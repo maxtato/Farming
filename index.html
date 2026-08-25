@@ -398,12 +398,22 @@ function mergeParts(parts){
 // Carte élargie de 176 à 220 : il reste 26 m de terrain hors des routes, où
 // s'installent les commerces. La définition de la texture suit (512 -> 640) pour
 // garder exactement la même finesse au sol : 640/55 = 512/44 = 11,64 px par mètre.
-const WORLD = 220, HALF = WORLD/2;
-const TN = 4, TPX = 640;                 // 4x4 tuiles de 640px
-const TSIZE = WORLD/TN;                  // 55 unités par tuile
+//
+// Puis élargie une seconde fois, vers l'EST seulement, pour loger une cinquième
+// colonne de parcelles. Le monde n'est donc plus carré ni centré sur l'origine : il
+// se décrit par deux intervalles indépendants. L'origine OUEST et l'origine NORD ne
+// bougent pas d'un centimètre — c'est ce qui permet à une cellule (i,j) d'une ancienne
+// sauvegarde de garder exactement le même indice dans la nouvelle grille.
+// TSIZE et TPX restent tels quels : la finesse du sol est inchangée, on pose
+// simplement une colonne de tuiles de plus.
+const X0 = -110, Z0 = -110;
+const TSIZE = 55, TPX = 640;             // tuiles de 55 m rendues sur 640 px
+const TNX = 5, TNZ = 4;                  // 5 x 4 tuiles au lieu de 4 x 4
+const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 275 x 220
+const X1 = X0 + WX, Z1 = Z0 + WZ;        // 165 à l'est, 110 au sud
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
-for(let j=0;j<TN;j++) for(let i=0;i<TN;i++){
+for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
   const cv = document.createElement('canvas'); cv.width = cv.height = TPX;
   const ctx = cv.getContext('2d');
   ctx.fillStyle = '#'+C.grass.toString(16).padStart(6,'0'); ctx.fillRect(0,0,TPX,TPX);
@@ -416,9 +426,9 @@ for(let j=0;j<TN;j++) for(let i=0;i<TN;i++){
     new THREE.MeshLambertMaterial({map:tex}));
   mesh.rotation.x = -Math.PI/2;
   mesh.receiveShadow = true;
-  mesh.position.set(-HALF + TSIZE*(i+0.5), 0, -HALF + TSIZE*(j+0.5));
+  mesh.position.set(X0 + TSIZE*(i+0.5), 0, Z0 + TSIZE*(j+0.5));
   scene.add(mesh);
-  tiles.push({ctx, tex, x0:-HALF+TSIZE*i, z0:-HALF+TSIZE*j, dirty:false});
+  tiles.push({ctx, tex, x0:X0+TSIZE*i, z0:Z0+TSIZE*j, dirty:false});
 }
 function flushTiles(){ for(const t of tiles){ if(t.dirty){ t.tex.needsUpdate = true; t.dirty = false; } } }
 
@@ -468,21 +478,26 @@ const CS = 1.3;                          // taille de cellule de culture
 // c'est ce qui rendait la traînée sale alors qu'aucun carré ne manquait.
 const PSIZE_PX = 3;                      // largeur d'un carré, en pixels de texture
 const PSIZE = PSIZE_PX * TSIZE / TPX;    // ~0,43 m
-const GN = Math.round(WORLD/CS);         // 110
+const GNX = Math.round(WX/CS), GNZ = Math.round(WZ/CS);   // 212 x 169
+const NCELL = GNX*GNZ;
 const ST = {HORS:0, JACHERE:1, LABOURE:2, SEME:3, MUR:4, CHAUME:5};
-const state  = new Uint8Array(GN*GN);
-const growth = new Float32Array(GN*GN);
-const instOf = new Int32Array(GN*GN).fill(-1);
-const fert   = new Uint8Array(GN*GN);
+const state  = new Uint8Array(NCELL);
+const growth = new Float32Array(NCELL);
+const instOf = new Int32Array(NCELL).fill(-1);
+const fert   = new Uint8Array(NCELL);
 const growingList = [];
 let arableCount = 0;
 
 // Les chemins de sable posent le quadrillage ; les parcelles se logent DANS les cases,
 // avec une marge d'herbe, sans jamais mordre sur un chemin.
 const PATH_W = 6.4;
-const PATHS_V = [-40, 0, 40];   // chemins nord-sud
-const PATHS_H = [-40, 0, 40];   // chemins est-ouest
+const PATHS_V = [-40, 0, 40, 80];   // chemins nord-sud
+const PATHS_H = [-40, 0, 40];       // chemins est-ouest
+// La rocade n'est plus un carré : le brin EST a reculé de 40 m — un pas de trame — pour
+// loger la cinquième colonne de parcelles. Les trois autres n'ont pas bougé d'un mètre.
 const ROAD_C = 74, ROAD_W = 10;
+const ROAD_E = ROAD_C + 40;                              // 114
+const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:-ROAD_C, z1:ROAD_C};
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
 // Chaque parcelle est en retrait de 1,6 m dans sa case : il reste donc une bande
@@ -491,14 +506,20 @@ const ROAD_C = 74, ROAD_W = 10;
 // Chaque case de la trame est une parcelle. Une seule est exploitable au départ,
 // les autres sont des friches à vendre. Les cases de la maison et du parking sont
 // exclues. `owned` pilote la peinture du sol, les cellules cultivables et le décor.
-const P_COLS = [{x:-54.6,w:19.6},{x:-20,w:30.4},{x:20,w:30.4},{x:54.6,w:19.6}];
+// Cinq colonnes depuis l'élargissement : la quatrième est une colonne pleine, entre
+// les chemins de 40 et 80 ; la cinquième vient buter contre la rocade est comme la
+// première le fait contre la rocade ouest, d'où sa largeur réduite.
+const P_COLS = [{x:-54.6,w:19.6},{x:-20,w:30.4},{x:20,w:30.4},{x:60,w:30.4},{x:94.6,w:19.6}];
 const P_ROWS = [{z:-54.6,h:19.6},{z:-20,h:30.4},{z:20,h:30.4},{z:54.6,h:19.6}];
 const PARCELS = [];
 for(const c of P_COLS) for(const r of P_ROWS){
+  // Trois cases de la rangée sud sont prises par la ferme elle-même. La quatrième
+  // exclusion portait sur l'ancienne colonne de bordure, à 54,6 : depuis
+  // l'élargissement cette bande est à 30 m de la cour et rien n'y est bâti, elle
+  // redevient donc cultivable. D'où 17 parcelles et non 16.
   if(c.x === -54.6 && r.z === 54.6) continue;      // case de la maison
-  if(c.x === -20   && r.z === 54.6) continue;      // case du parking
-  if(c.x ===  54.6 && r.z === 54.6) continue;      // case du moulin
-  if(c.x ===  20   && r.z === 54.6) continue;      // case du hangar
+  if(c.x === -20   && r.z === 54.6) continue;      // case de la cour
+  if(c.x ===  20   && r.z === 54.6) continue;      // case du garage
   PARCELS.push({x:c.x, z:r.z, w:c.w, h:r.h, owned:(c.x === -20 && r.z === 20), decor:[], sign:null});
 }
 // Prix croissant avec l'éloignement de la parcelle de départ : on s'étend de proche
@@ -507,7 +528,8 @@ for(const c of P_COLS) for(const r of P_ROWS){
   const home = PARCELS.find(p => p.owned);
   const rest = PARCELS.filter(p => !p.owned)
     .sort((a,b)=> Math.hypot(a.x-home.x,a.z-home.z) - Math.hypot(b.x-home.x,b.z-home.z));
-  const GRILLE = [4000, 7000, 11000, 16000, 22000, 30000, 40000, 52000, 66000, 82000, 100000, 120000, 145000];
+  const GRILLE = [4000, 7000, 11000, 16000, 22000, 30000, 40000, 52000, 66000, 82000,
+                  100000, 120000, 145000, 175000, 210000, 250000, 300000];
   rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
@@ -537,6 +559,9 @@ const QUAI_GARAGE = {x: HANGAR.x, z: HANGAR.z + HANGAR.d/2 + 3.7};
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
 // vers l'extérieur. Chaque enseigne a son gabarit et son style.
 const FRONT = 82;
+// La bande est a suivi le recul de sa rocade : même écart de 8 m entre la chaussée et
+// la ligne des façades, mais 40 m plus loin. Les bandes ouest et nord n'ont pas bougé.
+const FRONT_E = FRONT + 40;
 const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de la boulangerie
 // Point de déversement : la grille au sol sur le chemin, sous la goulotte du silo.
 const SILO = {x:-40, z:48.5, r:4.5};
@@ -578,8 +603,8 @@ const SITES = [
 for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(S.dir === 'E'){
-    S.x = FRONT + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
-    S.px = FRONT + S.pw/2; S.pz = S.park;
+    S.x = FRONT_E + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
+    S.px = FRONT_E + S.pw/2; S.pz = S.park;
   } else if(S.dir === 'W'){
     S.x = -(FRONT + S.d/2); S.z = S.bat; S.rot = Math.PI/2;
     S.px = -(FRONT + S.pw/2); S.pz = S.park;
@@ -617,8 +642,10 @@ const BAKERY  = SITES[6];
 // coordonnées longe l'un des quatre brins. Un seul test, appliqué partout.
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
-  if(Math.abs(Math.abs(x) - ROAD_C) < lim && Math.abs(z) <= ROAD_C + lim) return true;
-  if(Math.abs(Math.abs(z) - ROAD_C) < lim && Math.abs(x) <= ROAD_C + lim) return true;
+  const dansZ = z >= ROC.z0 - lim && z <= ROC.z1 + lim;
+  const dansX = x >= ROC.x0 - lim && x <= ROC.x1 + lim;
+  if(dansZ && (Math.abs(x - ROC.x0) < lim || Math.abs(x - ROC.x1) < lim)) return true;
+  if(dansX && (Math.abs(z - ROC.z0) < lim || Math.abs(z - ROC.z1) < lim)) return true;
   return false;
 }
 function onPath(x,z,margin){
@@ -642,11 +669,12 @@ function inYard(x,z,margin){
 function isArable(x,z){
   return inParcel(x,z,0,true) && !onPath(x,z,0) && !inYard(x,z,2);
 }
-const cellX = i => -HALF + (i+0.5)*CS;
+const cellX = i => X0 + (i+0.5)*CS;
+const cellZ = j => Z0 + (j+0.5)*CS;
 const idxOf = (x,z) => {
-  const i = Math.floor((x+HALF)/CS), j = Math.floor((z+HALF)/CS);
-  if(i<0||j<0||i>=GN||j>=GN) return -1;
-  return j*GN+i;
+  const i = Math.floor((x-X0)/CS), j = Math.floor((z-Z0)/CS);
+  if(i<0||j<0||i>=GNX||j>=GNZ) return -1;
+  return j*GNX+i;
 };
 
 /* ---------- 6. DÉCOR STATIQUE PEINT ---------- */
@@ -664,8 +692,10 @@ function paintParcelSoil(p){
 function paintStaticGround(){
   // grain de prairie : l'herbe ne doit pas être un aplat mort
   const gr = Math.random;
-  for(let k=0;k<650;k++){
-    const x = (gr()-0.5)*WORLD, z = (gr()-0.5)*WORLD;
+  // Le compte suit l'aire : 650 éclats étaient calibrés sur 220 x 220, la carte en
+  // fait un quart de plus.
+  for(let k=0, N=Math.round(650*WX*WZ/(220*220)); k<N; k++){
+    const x = X0 + gr()*WX, z = Z0 + gr()*WZ;
     fillRect(x, z, 0.5+gr()*1.7, 0.4+gr()*1.1,
       gr() < 0.5 ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.15)', AX);
   }
@@ -679,8 +709,14 @@ function paintStaticGround(){
       fillRect(vert?x:x+t, vert?z+t:z, vert?0.7:4.2, vert?4.2:0.7, 'rgba(255,255,255,.42)', AX);
     }
   };
-  roadStrip(0,-ROAD_C, WORLD, false); roadStrip(0, ROAD_C, WORLD, false);
-  roadStrip(-ROAD_C, 0, WORLD, true); roadStrip( ROAD_C, 0, WORLD, true);
+  // Les quatre brins de la rocade. Ils se recouvrent aux angles de la demi-largeur,
+  // ce qui ferme proprement les coins sans dessiner de raccord.
+  // Chaque brin court d'un bord du monde à l'autre, comme avant : les quatre bouts
+  // dépassent des angles et se perdent hors carte, ce qui donne à la rocade l'air
+  // d'une vraie route de passage plutôt que d'un circuit fermé sur lui-même.
+  const RCX = (X0 + X1)/2, RCZ = (Z0 + Z1)/2;
+  roadStrip(RCX, ROC.z0, WX, false); roadStrip(RCX, ROC.z1, WX, false);
+  roadStrip(ROC.x0, RCZ, WZ, true);  roadStrip(ROC.x1, RCZ, WZ, true);
 
   // parcelles de terre nue, avec sillons anciens
   for(const p of PARCELS) if(p.owned) paintParcelSoil(p);
@@ -701,6 +737,9 @@ function paintStaticGround(){
     }
   };
   const REACH = ROAD_C - ROAD_W/2;              // le sable vient buter contre la route, sans mordre
+  // En X la rocade n'est plus symétrique : les chemins est-ouest s'étirent donc de
+  // l'accotement ouest jusqu'à l'accotement est, et non plus de -REACH à +REACH.
+  const XA = ROC.x0 + ROAD_W/2, XB = ROC.x1 - ROAD_W/2;
   for(const px of PATHS_V){
     // Le chemin central s'arrête au bord nord des dalles : au-delà, la cour et le
     // garage ne font qu'une seule aire de bitume. Traverser une bande de sable de
@@ -709,7 +748,7 @@ function paintStaticGround(){
     if(px === 0) path(px, (COUR_Z0 - REACH)/2, REACH + COUR_Z0, true);
     else path(px, 0, REACH*2, true);
   }
-  for(const pz of PATHS_H) path(0, pz, REACH*2, false);
+  for(const pz of PATHS_H) path((XA+XB)/2, pz, XB - XA, false);
 
   // cour de ferme en terre battue
   // dalle de parking : béton, avec le même grain que l'herbe puis le marquage
@@ -905,12 +944,17 @@ const CROPS = [
   {nom:'Avoine',lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
    temps:190, kg:10, prix:1.20, haut:0.95, cout:3000, verrou:true}
 ];
-const cropCell = new Uint8Array(GN*GN);
+const cropCell = new Uint8Array(NCELL);
 const cLo = new THREE.Color(C.wheatLo), cHi = new THREE.Color(C.wheatHi);
 
 // Réserve d'instances de blé partagée. Une InstancedMesh ne peut pas grandir, donc on
 // alloue une fois pour six parcelles cultivées et chaque achat consomme des places.
-const FIELD_POOL = 3400;
+// Le pool était fixé à 3400 et se saturait AVANT même l'élargissement : les 12
+// parcelles réclament 4 757 cellules, si bien que les dernières achetées gardaient
+// ~1 350 cellules jamais rendues cultivables — de la terre morte qu'aucun outil ne
+// pouvait travailler. Avec cinq colonnes il en faut 7 716. On monte à 8 200, marge
+// comprise : c'est un seul InstancedMesh, donc toujours un seul appel de rendu.
+const FIELD_POOL = 8200;
 let nextInst = 0;
 function buildField(){
   paintStaticGround();
@@ -937,10 +981,10 @@ function buildField(){
 // Met une parcelle en culture : cellules cultivables, épis alloués, sol peint en terre.
 function activateParcel(p){
   p.owned = true;
-  const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
-  const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-    const id = j*GN+i;
+    const id = j*GNX+i;
     if(state[id] !== ST.HORS) continue;
     const x = cellX(i), z = cellX(j);
     if(!isArable(x,z)) continue;
@@ -979,7 +1023,7 @@ function queueTint(id, color){ tintQ.push(id); tintQ.push(color); }
 // la teinte baverait sur le sable, là où aucun outil ne peut plus repasser.
 // On rogne donc chaque carré sur le rectangle de la parcelle qui le contient.
 function paintCellClamped(id, col){
-  const x = cellX(id % GN), z = cellX((id/GN)|0), h = CS/2 + 0.04;
+  const x = cellX(id % GNX), z = cellZ((id/GNX)|0), h = CS/2 + 0.04;
   for(const p of PARCELS){
     if(!p.owned) continue;
     if(Math.abs(x-p.x) > p.w/2 || Math.abs(z-p.z) > p.h/2) continue;
@@ -1720,29 +1764,36 @@ function buildCommerce(S){
   ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
 }
 function buildFarm(){
-  const F = ROAD_C - ROAD_W/2 - 2.5;   // clôture posée entre la route et l'herbe
+  // Clôture posée entre la route et l'herbe. Le bord est a suivi la rocade.
+  const F = ROAD_C - ROAD_W/2 - 2.5;
+  const FE = ROAD_E - ROAD_W/2 - 2.5;
   const GAP = PATH_W/2 + 2.2;
   // La cour et le garage occupent toute la façade sud, de -36,6 à 36,6. C'est là
   // qu'on manœuvre le plus : on y entre et on en sort par n'importe quel bord, et
   // une clôture ou un mât planté devant n'y apporte qu'un obstacle à contourner.
   // La façade reste donc dégagée ; le reste du pourtour garde sa clôture.
   const COUR = 42;                     // demi-largeur de la façade ferme + garage
-  fenceRun(false, -F, -F, F, PATHS_V, GAP);   // bord nord
+  fenceRun(false, -F, -F, FE, PATHS_V, GAP);  // bord nord, jusqu'à la rocade est
   fenceLine(-F, F, -COUR, F);                 // bord sud, à l'ouest de la cour
-  fenceLine(COUR, F, F, F);                   // bord sud, à l'est du garage
+  // Bord sud, du garage à la rocade est. C'était une ligne continue tant qu'aucun
+  // chemin ne débouchait de ce côté ; celui de x = 80 en réclame une trouée, sinon la
+  // cinquième colonne n'a pas de sortie au sud.
+  fenceRun(false, F, COUR, FE, PATHS_V, GAP);
   fenceRun(true,  -F, -F, F, PATHS_H, GAP);   // bord ouest
-  fenceRun(true,   F, -F, F, PATHS_H, GAP);   // bord est
+  fenceRun(true,  FE, -F, F, PATHS_H, GAP);   // bord est
 
   // lampadaires en bord de route, potence tournée vers la chaussée
-  const LP = ROAD_C - ROAD_W/2 - 2.0;
+  const LP = ROAD_C - ROAD_W/2 - 2.0, LPE = ROAD_E - ROAD_W/2 - 2.0;
   // un mât planté dans un débouché de chemin bloquerait le passage : on saute ces positions
   const clearOfPath = (x,z)=> !onPath(x, z, 6.5);
-  for(let t=-60; t<=60; t+=20){
-    if(clearOfPath(t, -LP)) addLamp( t, -LP, 0);          // route nord
+  for(let t=-60; t<=100; t+=20){
+    if(clearOfPath(t, -LP)) addLamp( t, -LP, 0);                  // route nord
     // route sud : rien devant la cour ni le garage, pour les mêmes raisons
-    if(Math.abs(t) > COUR && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
-    if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);  // route ouest
-    if(clearOfPath( LP, t)) addLamp( LP, t, -Math.PI/2);  // route est
+    if((t < -COUR || t > COUR) && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
+  }
+  for(let t=-60; t<=60; t+=20){
+    if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);          // route ouest
+    if(clearOfPath( LPE, t)) addLamp( LPE, t, -Math.PI/2);        // route est
   }
 
   // Silo repoussé au coin du parking, contre le chemin de sable. Un gros tuyau part de
@@ -1912,7 +1963,8 @@ function buildFarm(){
   const bushMat = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true, shininess:0, specular:0x000000});
   const freeGrass = (x,z)=> !onPath(x,z,3.5) && !inParcel(x,z,2.5,true) && !inYard(x,z,4)
                             && Math.hypot(x+58, z-57) > 9
-                            && Math.max(Math.abs(x), Math.abs(z)) < ROAD_C - ROAD_W/2 - 5;
+                            && x > ROC.x0 + ROAD_W/2 + 5 && x < ROC.x1 - ROAD_W/2 - 5
+                            && z > ROC.z0 + ROAD_W/2 + 5 && z < ROC.z1 - ROAD_W/2 - 5;
   let seed = 1337;
   const rand = ()=>{ seed = (seed*1664525 + 1013904223) >>> 0; return seed/4294967296; };
   const putRock = (x,z,r,p)=>{
@@ -1960,16 +2012,20 @@ function buildFarm(){
   // Emplacements des maisons de bord de route, décidés avant le semis de verdure
   // pour que le filtre puisse les écarter — sinon les arbres poussent dedans.
   const MAISONS = [];
-  for(let k=0;k<4;k++){
-    const t = -66 + k*44;
+  // Cinq maisons sur la façade sud élargie. Le pas est recalculé plutôt que gardé à
+  // 44 : avec l'ancien, la cinquième tombait en x = 110, c'est-à-dire en plein sur la
+  // chaussée de la rocade est, qui court de 109 à 119.
+  for(let k=0;k<5;k++){
+    const t = -66 + k*40;
     MAISONS.push({x:t, z:FRONT + 6, ry:Math.PI, v:k});      // bord sud uniquement
   }
 
   // Bande extérieure : verdure entre les commerces, et lampadaires le long de la route.
   const libreDehors = (x,z)=>{
-    const d = Math.max(Math.abs(x), Math.abs(z));
-    if(d < ROAD_C + ROAD_W/2 + 6) return false;              // le houppier ne doit pas surplomber la route
-    if(Math.abs(x) > HALF-4 || Math.abs(z) > HALF-4) return false;
+    // dehors, c'est-à-dire au-delà de la rocade : le houppier ne doit pas la surplomber
+    if(x > ROC.x0 - ROAD_W/2 - 6 && x < ROC.x1 + ROAD_W/2 + 6 &&
+       z > ROC.z0 - ROAD_W/2 - 6 && z < ROC.z1 + ROAD_W/2 + 6) return false;
+    if(x < X0+4 || x > X1-4 || z < Z0+4 || z > Z1-4) return false;
     for(const S of SITES){
       // emprise du bâtiment : profondeur en X et largeur en Z sur les bords latéraux,
       // l'inverse sur le bord nord
@@ -1981,7 +2037,7 @@ function buildFarm(){
       if(Math.abs(x-M.x) < 13 && Math.abs(z-M.z) < 13) return false;
     return true;
   };
-  for(let gx=-HALF+8; gx<=HALF-8; gx+=7) for(let gz=-HALF+8; gz<=HALF-8; gz+=7){
+  for(let gx=X0+8; gx<=X1-8; gx+=7) for(let gz=Z0+8; gz<=Z1-8; gz+=7){
     const x = gx + (rnd2()-0.5)*4, z = gz + (rnd2()-0.5)*4;
     if(!libreDehors(x,z)) continue;
     const r = rnd2();
@@ -2004,19 +2060,19 @@ function buildFarm(){
    Ici : douze places égales réparties d'un bord à l'autre, toutes à la même
    profondeur, sur une seule origine. */
 function marquageParking(){
-  const Z0 = COUR_Z0 + 2.2, PROF = 11.5;                    // même bande pour toutes
+  const ZM = COUR_Z0 + 2.2, PROF = 11.5;   // ZM, pas Z0 : ce dernier est l'origine du monde                    // même bande pour toutes
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
   // Une séparation qui tomberait sous le garage ressortirait en moignon de part et
   // d'autre du bâtiment : ces places-là sont occupées, on ne les trace pas. La cuve,
   // elle, est centrée dans sa place, donc aucune ligne ne passe dessous.
   const sousHangar = (x)=> x > HANGAR.x - 7.5 && x < HANGAR.x + 7.5;
-  worldDraw(COUR_X0-2, Z0-2, COUR_X1+2, Z0+PROF+2, (c)=>{
+  worldDraw(COUR_X0-2, ZM-2, COUR_X1+2, ZM+PROF+2, (c)=>{
     c.fillStyle = '#E2E6E8';
     c.beginPath();
     for(let k=1;k<PLACES_N;k++){
       const x = COUR_X0 + k*PLACE_PAS;
       if(sousHangar(x)) continue;
-      c.rect(snap(x - LW/2), snap(Z0), LW, snap(PROF));
+      c.rect(snap(x - LW/2), snap(ZM), LW, snap(PROF));
     }
     c.fill();
   });
@@ -2386,9 +2442,8 @@ class Vehicle {
     this.pos.z += this.vel.y*dt;
 
     // limites + obstacles
-    const L = HALF - 6;
-    this.pos.x = Math.max(-L, Math.min(L, this.pos.x));
-    this.pos.z = Math.max(-L, Math.min(L, this.pos.z));
+    this.pos.x = Math.max(X0+6, Math.min(X1-6, this.pos.x));
+    this.pos.z = Math.max(Z0+6, Math.min(Z1-6, this.pos.z));
     for(const o of obstacles){
 
       const dx = this.pos.x-o.x, dz = this.pos.z-o.z;
@@ -2751,10 +2806,10 @@ function planAuto(m){
   for(const p of PARCELS){
     if(!p.owned) continue;
     let n = 0;
-    const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
-    const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+    const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+    const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
     for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-      const id = j*GN+i;
+      const id = j*GNX+i;
       if(state[id] !== ST.HORS && T.from.indexOf(state[id]) >= 0) n++;
     }
     if(n > bestN){ bestN = n; best = p; }
@@ -2921,28 +2976,30 @@ const traficMat = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:tr
 // dans le sens des aiguilles d'une montre vu de dessus. On renvoie la position ET la
 // tangente ; le cap se déduit de la tangente, ce qui garantit qu'un véhicule regarde
 // toujours là où il va, quel que soit son sens de circulation.
-function surRocade(R, CR, s){
-  const L = 2*(R-CR), A = Math.PI*CR/2, P = 4*(L+A);
+// `e` est l'écart à l'axe de la rocade : positif vers l'extérieur. Le tracé n'étant
+// plus carré, on part du rectangle ROC élargi de `e` plutôt que d'un rayon unique.
+function surRocade(e, CR, s){
+  const x0 = ROC.x0 - e, x1 = ROC.x1 + e, z0 = ROC.z0 - e, z1 = ROC.z1 + e;
+  const LX = (x1 - x0) - 2*CR, LZ = (z1 - z0) - 2*CR;
+  const A = Math.PI*CR/2, P = 2*(LX + LZ) + 4*A;
   s = ((s % P) + P) % P;
   // droites : (dx,dz) sens de marche ; arcs : centre et angle de départ
   const droites = [
-    {x0:-(R-CR), z0:-R, dx: 1, dz: 0},
-    {x0: R, z0:-(R-CR), dx: 0, dz: 1},
-    {x0: R-CR, z0: R,   dx:-1, dz: 0},
-    {x0:-R, z0: R-CR,   dx: 0, dz:-1}
+    {x0:x0+CR, z0:z0,    dx: 1, dz: 0, L:LX},
+    {x0:x1,    z0:z0+CR, dx: 0, dz: 1, L:LZ},
+    {x0:x1-CR, z0:z1,    dx:-1, dz: 0, L:LX},
+    {x0:x0,    z0:z1-CR, dx: 0, dz:-1, L:LZ}
   ];
   const arcs = [
-    {cx: R-CR, cz:-(R-CR), a0:-Math.PI/2},
-    {cx: R-CR, cz: R-CR,   a0: 0},
-    {cx:-(R-CR), cz: R-CR, a0: Math.PI/2},
-    {cx:-(R-CR), cz:-(R-CR), a0: Math.PI}
+    {cx:x1-CR, cz:z0+CR, a0:-Math.PI/2},
+    {cx:x1-CR, cz:z1-CR, a0: 0},
+    {cx:x0+CR, cz:z1-CR, a0: Math.PI/2},
+    {cx:x0+CR, cz:z0+CR, a0: Math.PI}
   ];
   for(let k=0;k<4;k++){
-    if(s < L){
-      const d = droites[k];
-      return {x:d.x0 + d.dx*s, z:d.z0 + d.dz*s, tx:d.dx, tz:d.dz};
-    }
-    s -= L;
+    const d = droites[k];
+    if(s < d.L) return {x:d.x0 + d.dx*s, z:d.z0 + d.dz*s, tx:d.dx, tz:d.dz};
+    s -= d.L;
     if(s < A){
       const a = arcs[k], ang = a.a0 + s/CR;
       return {x:a.cx + Math.cos(ang)*CR, z:a.cz + Math.sin(ang)*CR,
@@ -2973,7 +3030,7 @@ const TRAFIC = [];
     // On roule à droite : dans le sens du tracé, l'intérieur du circuit est à droite,
     // donc ce sens prend la file intérieure et le sens inverse la file extérieure.
     const sens = k % 2 ? 1 : -1;
-    TRAFIC.push({m, rem, sens, R: ROAD_C - sens*2.6, s: k*38 + Math.random()*16,
+    TRAFIC.push({m, rem, sens, R: -sens*2.6, s: k*38 + Math.random()*16,
                  v: lourd0 ? 6 + Math.random()*3 : 8 + Math.random()*6,
                  axe:null, tcap:0, troll:0});
   }
@@ -3189,10 +3246,10 @@ function work(m, dt){
   const CH = CS*0.708;
   const minx = Math.min(aLx,aRx,bLx,bRx), maxx = Math.max(aLx,aRx,bLx,bRx);
   const minz = Math.min(aLz,aRz,bLz,bRz), maxz = Math.max(aLz,aRz,bLz,bRz);
-  const i0 = Math.max(0, Math.floor((minx+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((maxx+HALF)/CS));
-  const j0 = Math.max(0, Math.floor((minz+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((maxz+HALF)/CS));
+  const i0 = Math.max(0, Math.floor((minx-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((maxx-X0)/CS));
+  const j0 = Math.max(0, Math.floor((minz-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((maxz-Z0)/CS));
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-    const id = j*GN+i;
+    const id = j*GNX+i;
     if(state[id] === ST.HORS) continue;
     if(T.from.indexOf(state[id]) < 0) continue;
     if(T.key === 'engrais' && fert[id]) continue;
@@ -4403,10 +4460,10 @@ function peindrePature(p){
 function creerPature(p, espece){
   const E = ESPECES[espece] || ESPECES.vache;
   // les cellules cultivables passent en herbe : plus rien à labourer ni à moissonner
-  const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
-  const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-    const id = j*GN+i;
+    const id = j*GNX+i;
     if(state[id] === ST.HORS) continue;
     state[id] = ST.PATURE; fert[id] = 0; growth[id] = 0;
     if(instOf[id] >= 0) setInstance(instOf[id], 0, 0);
@@ -5285,7 +5342,7 @@ addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx
 const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true, pret:false};
 
 function packGrille(){
-  const n = GN*GN, buf = new Uint8Array(n*4);
+  const n = NCELL, buf = new Uint8Array(n*4);
   for(let i=0;i<n;i++){
     buf[i]       = state[i];
     buf[n+i]     = Math.round(Math.max(0, Math.min(1, growth[i]))*255);
@@ -5303,8 +5360,17 @@ function packGrille(){
   for(let k=0;k<out.length;k+=8192) s += String.fromCharCode.apply(null, out.slice(k, k+8192));
   return btoa(s);
 }
-function unpackGrille(b64){
-  const s = atob(b64), n = GN*GN, buf = new Uint8Array(n*4);
+// `gnx`/`gnz` disent la trame de la grille enregistrée. Une sauvegarde d'avant
+// l'élargissement n'en porte pas : elle vient forcément d'une carte carrée de 169×169.
+//
+// La migration est une simple recopie ligne à ligne, et c'est ce qui a décidé de la
+// forme de l'élargissement : l'origine ouest et l'origine nord n'ayant pas bougé, une
+// cellule (i,j) garde exactement le même (i,j). Seule la longueur d'une ligne change,
+// de 169 à 212 ; les 43 colonnes neuves de chaque ligne restent à zéro, c'est-à-dire
+// hors culture, ce qu'elles étaient de toute façon avant qu'on achète la parcelle.
+function unpackGrille(b64, gnx, gnz){
+  const AX0 = gnx || 169, AZ0 = gnz || 169;       // trame de la grille enregistrée
+  const s = atob(b64), n = AX0*AZ0, buf = new Uint8Array(n*4);
   let p = 0;
   for(let i=0;i<s.length;i+=2){
     const v = s.charCodeAt(i), l = s.charCodeAt(i+1);
@@ -5312,13 +5378,25 @@ function unpackGrille(b64){
   }
   if(p !== buf.length) return false;         // sauvegarde tronquée : on n'y touche pas
   growingList.length = 0;
-  for(let i=0;i<n;i++){
-    state[i]    = buf[i];
-    growth[i]   = buf[n+i]/255;
-    fert[i]     = buf[n*2+i];
-    cropCell[i] = buf[n*3+i];
-    if(state[i] === ST.SEME) growingList.push(i);
+  state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0);
+  const li = Math.min(AX0, GNX), lj = Math.min(AZ0, GNZ);
+  for(let j=0;j<lj;j++){
+    const a = j*AX0, b = j*GNX;
+    for(let i=0;i<li;i++){
+      const src = a + i, dst = b + i;
+      state[dst]    = buf[src];
+      growth[dst]   = buf[n+src]/255;
+      fert[dst]     = buf[n*2+src];
+      cropCell[dst] = buf[n*3+src];
+      if(state[dst] === ST.SEME) growingList.push(dst);
+    }
   }
+  // Une sauvegarde d'avant l'agrandissement du pool d'épis porte des cellules restées
+  // HORS faute d'instance libre : de la terre peinte mais qu'aucun outil ne mordait.
+  // Le pool couvre maintenant toute la carte ; on rend ces cellules à la culture, sans
+  // quoi le défaut resterait gravé dans les parties en cours.
+  for(let id=0; id<NCELL; id++)
+    if(instOf[id] >= 0 && state[id] === ST.HORS) state[id] = ST.JACHERE;
   return true;
 }
 
@@ -5351,6 +5429,7 @@ function etatJeu(){
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
       vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
+    gnx: GNX, gnz: GNZ,
     grille: packGrille()
   };
 }
@@ -5400,10 +5479,10 @@ function repeindreSol(){
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     paintParcelSoil(p);
-    const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
-    const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+    const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+    const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
     for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-      const id = j*GN+i, col = COUL_ETAT[state[id]];
+      const id = j*GNX+i, col = COUL_ETAT[state[id]];
       if(col) paintCellClamped(id, col);
     }
   }
@@ -5431,7 +5510,7 @@ function chargerPartie(S){
       degagerFriche(p);
       activateParcel(p);
     });
-    if(!unpackGrille(S.grille)) return false;
+    if(!unpackGrille(S.grille, S.gnx, S.gnz)) return false;
     // 2. les pâtures : elles reposent clôture, tank et auge sur leur parcelle
     for(const q of S.patures){
       const p = PARCELS[q.parcelle];
@@ -5448,7 +5527,7 @@ function chargerPartie(S){
       majTasAuge(P);
     }
     // 3. les épis reprennent la taille et la couleur que dit la grille
-    for(let id=0; id<GN*GN; id++){
+    for(let id=0; id<NCELL; id++){
       const n = instOf[id];
       if(n < 0) continue;
       const vivant = (state[id] === ST.SEME || state[id] === ST.MUR) ? 1 : 0;
