@@ -530,6 +530,9 @@ const GYARD = {x:-YARD.x, z:YARD.z, w:YARD.w, h:YARD.h};  // dalle du garage, en
 const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
 const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
 const HANGAR = {x: 11, z: 54, w: 12, d: 15};   // emprise du bâtiment, sur la dalle de droite
+// Sa porte donne au sud ; on s'arrête juste devant. Défini ici parce que le décor est
+// construit bien avant la zone d'achat qui s'y adosse.
+const QUAI_GARAGE = {x: HANGAR.x, z: HANGAR.z + HANGAR.d/2 + 3.7};
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
 // vers l'extérieur. Chaque enseigne a son gabarit et son style.
@@ -1778,7 +1781,8 @@ function buildFarm(){
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
-    anneauAction(26, 54, 3.7);
+    // devant la porte, qui donne au sud : le bord nord de l'anneau l'affleure
+    anneauAction(QUAI_GARAGE.x, QUAI_GARAGE.z, 3.7);
     poseBulle('Garage', 0x7C4A38,
       [{titre:'ABRITE', lignes:[{nom:'Véhicules', prix:''}, {nom:'Outils et bennes', prix:''}]}],
       11, H + 3.4, 54, 0);
@@ -3444,7 +3448,9 @@ function refreshAutoButton(){
   autoEl.classList.toggle('on', !!v.auto);
 }
 /* --- concession du garage : on y achète les utilitaires --- */
-const GARAGE = {x:20, z:54.2, r:16};
+// Centrée devant la porte du hangar plutôt que sur le vague milieu de la dalle :
+// l'anneau posé ici marque exactement la zone où le bouton d'achat apparaît.
+const GARAGE = {x: QUAI_GARAGE.x, z: QUAI_GARAGE.z, r: 10};
 const vehEl = document.getElementById('veh');
 function vehiculeAVendre(){
   for(const m of MACHINES) if(m.verrou) return m;
@@ -4225,7 +4231,10 @@ function poserCuve(){
   g.add(box(0.9, 1.5, 0.7, 0x2E3438, 3.3, 0.75, 0));           // armoire de distribution
   g.add(cyl(0.13, 0.13, 1.6, 6, 0x2E3438, 3.3, 2.1, 0, 0, 0, 0.5));
   g.position.set(CUVE_POS.x, 0, CUVE_POS.z);
-  g.rotation.y = Math.PI/2;          // couchée dans le sens de la place, pas en travers
+  // Retournée d'un demi-tour : le pistolet est monté à un bout de la cuve, il doit
+  // donner sur l'allée de circulation et non sur le fond des places, sinon on fait
+  // le plein dos à la pompe.
+  g.rotation.y = -Math.PI/2;
   scene.add(g);
   cuveMesh = g;
   boxObs.push({x:CUVE_POS.x, z:CUVE_POS.z, hw:1.1, hd:3.2});   // pivotée avec elle
@@ -4250,9 +4259,9 @@ function commanderVrac(lots){
   }
   return n;
 }
-// Assez au sud pour que son anneau ne chevauche pas celui du garage, posé en (26, 54) :
-// deux cercles imbriqués au même endroit ne disent plus où s'arrêter.
-const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 8.5};
+// L'anneau vient se poser juste au pied du pistolet, qui sort à 3,3 m du centre de
+// la cuve côté allée : son bord nord affleure la pompe.
+const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 3.3 + 4.1};
 
 /* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
 /* Jusqu'ici une benne contenait « des kilos ». Avec le lait et le bétail il faut
