@@ -43,22 +43,56 @@ vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas 
 la distance : c'est ce qui permet de choisir sa destination d'un bout à l'autre de la
 carte, au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé de tournée.
 
-## Les élevages
+## La chaîne
+
+Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente
+directe**, et presque toujours une transformation qui paie mieux. C'est l'arbitrage
+central du jeu : encaisser tout de suite, ou faire un détour.
+
+| | vaut |
+|---|---|
+| **Brut**, vendu tel quel | ×1 |
+| Après **une transformation** | ×1,5 |
+| **Produit fini** | ×2 |
+| Recette à **plusieurs ingrédients** | ×2,5 |
+| **Commande** ou contrat | ×3 |
+
+Le barème porte sur la matière engagée, pas sur le kilo produit, et le prix au kilo
+s'en déduit tout seul. Un kilo de blé vaut 0,50 € ; moulu il rend 0,72 kg de farine,
+qui doit valoir une fois et demie le blé de départ : la farine vaut donc 1,04 € le
+kilo. Aucun prix n'est écrit à la main — on ne règle qu'un rendement et un palier.
+
+L'onglet **Filières** affiche la chaîne entière, prix compris, relue dans les mêmes
+tables que celles qui paient. Ce qui est affiché est ce qui sera versé.
+
+### Sept cultures
+
+Blé, maïs, orge, avoine et colza vont au **silo**, qui tient un tas par céréale : la
+trémie de la moissonneuse ne mélange pas, une culture à la fois. La **vigne** et
+l'**olivier** sont pérennes — plantés une fois, ils restent sur leur parcelle et
+repartent en croissance dès qu'on les a récoltés. Ils n'entrent pas au silo : du champ
+au pressoir ou à l'étal, directement.
+
+### Les élevages
 
 Une parcelle possédée s'aménage en enclos. Quatre espèces, chacune avec son
-aménagement, son produit et son acheteur :
+aménagement, son produit et son débouché :
 
-| | donne | qui achète | à l'enclos |
+| | donne | où ça va | à l'enclos |
 |---|---|---|---|
-| **Vaches** | du lait | la laiterie | tank à lait, auge, stabulation |
-| **Poules** | des œufs | la boulangerie | casier à œufs, trémie, poulailler sur pilotis |
-| **Cochons** | rien en continu, mais cher à la bête | la boucherie | auge, cabane, bauge de boue |
-| **Moutons** | de la laine | l'usine bio | presse à balles, râtelier, bergerie |
+| **Vaches** | du lait | laiterie (beurre, yaourt), fromagerie | tank à lait, auge, stabulation |
+| **Poules** | des œufs | boulangerie, ou vente directe | casier à œufs, trémie, poulailler sur pilotis |
+| **Cochons** | rien en continu | boucherie, en viande | auge, cabane, bauge de boue |
+| **Moutons** | de la laine | atelier textile | presse à balles, râtelier, bergerie |
 
-L'espèce se choisit dans l'onglet Élevage, avant d'aménager. Toutes mangent le grain
-du silo, apporté à la benne : une bête qui n'a rien à manger ne donne rien et ne
-grandit pas. Un cochon n'a pas de poste de collecte, donc pas d'anneau devant : il ne
-rapporte qu'en partant à la boucherie.
+L'espèce se choisit dans l'onglet Élevage, avant d'aménager. Toutes mangent les
+céréales du silo, apportées à la benne — ou l'aliment de l'atelier, qui remplit la
+mangeoire une fois et demie mieux, deux fois pour l'aliment premium. Une bête qui n'a
+rien à manger ne donne rien et ne grandit pas.
+
+La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre froide.
+On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
+ainsi deux fois son prix de marché, au prix d'une tournée de plus.
 
 ## L'atelier de la ferme
 
@@ -67,21 +101,23 @@ l'est du garage, les deux cases de la rangée sud ne font plus qu'une seule dall
 bitume — le chemin de sable qui les coupait a été déposé. Le silo y a déménagé, et
 l'atelier s'y installe à côté.
 
-On y verse le grain à la benne, il ressort transformé. Cinq paliers, achetés sur
+On y verse la matière à la benne, elle ressort transformée. Cinq paliers, achetés sur
 place, et chacun se voit sur le bâtiment :
 
-| | débloque | ce qu'on voit |
-|---|---|---|
-| **1 · Moulin** | blé → farine | la halle, sa trémie, son quai |
-| **2 · Alimentation animale** | céréales → aliment | deuxième trémie, mélangeur, hall latéral |
-| **3 · Pressoir** | colza → huile | deux cuves, passerelle, cheminée, bidons |
-| **4 · Stockage** | plus de capacité et de débit | appentis, conteneur, palettes en nombre |
-| **5 · Version complète** | le maximum | étage technique, auvent de quai, aire rangée |
+| | module | débloque | ce qu'on voit |
+|---|---|---|---|
+| **1** | Moulin | blé → farine | la halle, sa trémie, son quai |
+| **2** | Broyeur | maïs → aliment | deuxième trémie, mélangeur, hall latéral |
+| **3** | Pressoir | colza → huile de colza | deux cuves, passerelle, cheminée, bidons |
+| **4** | Mélangeur | maïs + orge + avoine → aliment premium | appentis, conteneur, palettes en nombre |
+| **5** | Cave | raisin → vin | étage technique, auvent de quai, aire rangée |
 
-La farine part à la boulangerie, l'huile à l'huilerie. L'aliment ne se vend pas : il se
-donne aux bêtes, et il remplit la mangeoire une fois et demie mieux que le grain brut.
-Le bouton sur l'anneau du quai sert à monter d'un palier, puis à choisir ce que
-l'atelier transforme.
+L'atelier n'accepte que ce que sa recette du moment réclame : réglé sur le moulin, il
+refuse le raisin. Le bouton sur l'anneau du quai sert à monter d'un palier, puis à
+passer d'un module à l'autre. Les paliers 4 et 5 augmentent aussi la capacité et le
+débit.
+
+L'aliment ne se vend pas, il se donne aux bêtes. Tout le reste part sur la route.
 
 ## Le gazole
 
@@ -99,33 +135,42 @@ avec une flaque orange au sol la nuit.
 ## La boucle de jeu
 
 ```
-                 comptoir agricole
-                  (semences, engrais, gazole en gros)
-                          |
-   labour  ->  semis  ->  engrais  ->  moisson  ->  trémie
-                                                      |
-                            +-------------------------+
-                            |
-                 silo  ->  atelier  -+-> farine  -> boulangerie -> pain
-                   |                 |-> huile   -> huilerie
-                   |                 \-> aliment -> les mangeoires
+              comptoir agricole
+               (semences, engrais, gazole en gros)
+                       |
+   labour -> semis -> engrais -> moisson -> trémie
+                                              |
+                       +----------------------+
+                       |
+             silo -+-> coopérative : rachète les cinq céréales, tout de suite
                    |
-                   +--> brasserie / huilerie / usines / coopérative
-                   |         (selon la culture)
+                   +-> atelier -+-> farine          -> boulangerie / marché
+                   |            |-> huile de colza  -> restaurant / marché
+                   |            |-> aliment (+ premium) -> les mangeoires
+                   |            \-> vin              -> caviste, meilleur prix
                    |
-                   +--> supermarché : rachète tout produit fini, 14 % moins cher
+                   +-> usines du bord de route : on verse, on revient chercher
+                   |     orge   -> brasserie      -> bière
+                   |     avoine -> usine d'avoine -> lait d'avoine
+                   |     blé/maïs/avoine -> usine de céréales -> céréales
+                   |     colza / olives  -> huilerie -> huiles
+                   |     lait   -> laiterie   -> beurre + yaourt
+                   |     lait   -> fromagerie -> fromage
+                   |     laine  -> atelier textile (vend sur place)
                    |
-                   +--> mangeoire -> vaches  -> lait  -> laiterie
-                                  |-> poules  -> œufs  -> boulangerie
-                                  |-> moutons -> laine -> usine bio
-                                  \-> cochons          -> boucherie
-                                       (et toute bête adulte, de n'importe
-                                        quelle espèce, part à la boucherie)
+                   \-> mangeoire -> vaches  -> lait
+                                 |-> poules  -> œufs
+                                 |-> moutons -> laine
+                                 \-> toute bête adulte -> boucherie -> viande
+
+   et au bout : marché du village (petites quantités, bon prix)
+                supermarché (tout, 14 % moins cher)
+                restaurant (surpaie le transformé, 10 % de plus)
 ```
 
-Quatre cultures (blé, maïs, colza, avoine), chacune avec sa durée de pousse, son
-rendement et son acheteur. Douze parcelles à racheter une à une, un matériel à
-améliorer, des contrats à durée limitée, et une progression en onze paliers.
+La vigne et l'olivier court-circuitent le silo : du champ à la cave, au pressoir ou à
+l'étal. Vingt parcelles à racheter une à une, un matériel à améliorer, des contrats à
+durée limitée, et une progression en onze paliers.
 
 ## Ce que contient le fichier
 
@@ -133,7 +178,7 @@ Le code est découpé en sections numérotées, dans l'ordre où on les lit :
 
 | | |
 |---|---|
-| 1 – 3 | palette, moteur de rendu, outils de géométrie |
+| 1 – 3 | palette, produits et barème, moteur de rendu, géométrie |
 | 4 – 7 | sol peint par tuiles, grille de culture, peintures de travail |
 | 8 – 9 | le blé en `InstancedMesh`, le décor et les props |
 | 10 – 12 | machines, physique des véhicules, particules |
@@ -149,8 +194,13 @@ Quelques partis pris qui expliquent le reste :
   centimètre sur la largeur de l'outil et évite les trous dans les virages.
 - **Les outils sont indépendants des tracteurs.** Un outil dételé reste au sol ; ses
   caractéristiques de travail voyagent avec lui, pas avec l'engin qui le tire.
-- **Un chargement a une nature** (grain, farine, lait, œufs, laine). Une caisse
+- **Un chargement a une nature** — une clé de la table des produits. Une caisse
   entamée n'accepte plus rien d'autre : c'est ce qui oblige à planifier ses tournées.
+- **Un transformateur, c'est toujours la même mécanique** : une trémie, un stock, une
+  recette entre les deux. L'atelier de la ferme et les usines du bord de route
+  partagent le même code ; seule change la liste des recettes.
+- **Une recette n'a rien à déclarer** : le nom du produit suffit, puisque la table des
+  produits dit déjà de quoi il est fait, ce qu'il rend et à quel palier il appartient.
 - **Un anneau ne s'allume jamais pour le seul fait qu'un panneau peut s'ouvrir.** Il
   s'allume quand quelque chose se passe dans le monde.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les

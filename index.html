@@ -580,7 +580,103 @@ const FRONT = 82;
 // la ligne des façades, mais 40 m plus loin. Les bandes ouest et nord n'ont pas bougé.
 const FRONT_E = FRONT + 40;
 const FRONT_N = FRONT + DZ_NORD;         // la bande nord a suivi son brin de rocade
-const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de la boulangerie
+/* ---------- LES PRODUITS, ET CE QU'ILS VALENT ---------- */
+/* Toute la chaîne tient dans une seule table. Un produit est soit BRUT — il sort de
+   la terre ou de la bête, et son prix est écrit ici — soit issu d'une recette : il
+   dit alors de quoi il est fait (`de`), combien de kilos il rend par kilo consommé
+   (`rendement`) et à quel palier de valeur il appartient.
+
+   L'échelle de valeur est celle du cahier des charges, et elle porte sur la MATIÈRE
+   ENGAGÉE, pas sur le kilo produit :
+
+     brut vendu tel quel .................. ×1
+     après une transformation ............. ×1,5
+     produit fini ......................... ×2
+     recette à plusieurs ingrédients ...... ×2,5
+     commande ou contrat .................. ×3
+
+   Le prix au kilo s'en déduit tout seul. Un kilo de blé vaut 0,50 € ; moulu il rend
+   0,72 kg de farine, laquelle doit valoir une fois et demie le blé de départ : la
+   farine vaut donc 0,50 × 1,5 / 0,72 = 1,04 € le kilo. C'est ce qui garantit qu'une
+   transformation est toujours gagnante sans jamais avoir à équilibrer un prix à la
+   main : on ne règle qu'un rendement et un palier. */
+const PALIER = {BRUT:1, TRANSFORME:1.5, FINI:2, COMPOSE:2.5, CONTRAT:3};
+const PRODUITS = {
+  /* --- ce qui sort de la terre --- */
+  ble:    {nom:'Blé',       couleur:'#E3C267', brut:0.50, cereale:true},
+  mais:   {nom:'Maïs',      couleur:'#E8B93A', brut:0.65, cereale:true},
+  orge:   {nom:'Orge',      couleur:'#D8C68A', brut:0.55, cereale:true},
+  avoine: {nom:'Avoine',    couleur:'#E7DCA8', brut:0.60, cereale:true},
+  colza:  {nom:'Colza',     couleur:'#F2D82E', brut:0.90, cereale:true},
+  raisin: {nom:'Raisin',    couleur:'#7A4A82', brut:1.10},
+  olives: {nom:'Olives',    couleur:'#6E7A46', brut:1.20},
+
+  /* --- ce qui sort de la bête --- */
+  lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:0.62},
+  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', brut:1.45},
+  laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:2.10},
+
+  /* --- une transformation --- */
+  farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME'},
+  aliment:    {nom:'Aliment',       couleur:'#D8B24A', de:'mais',   rendement:0.86, palier:'TRANSFORME'},
+  huile:      {nom:'Huile de colza',couleur:'#E8C24A', de:'colza',  rendement:0.34, palier:'TRANSFORME'},
+  huileOlive: {nom:'Huile d\'olive',couleur:'#B9C24A', de:'olives', rendement:0.20, palier:'TRANSFORME'},
+  biere:      {nom:'Bière',         couleur:'#C98A2E', de:'orge',   rendement:0.90, palier:'TRANSFORME'},
+  laitAvoine: {nom:'Lait d\'avoine',couleur:'#EFE6CE', de:'avoine', rendement:2.00, palier:'TRANSFORME'},
+  beurre:     {nom:'Beurre',        couleur:'#F2DC8A', de:'lait',   rendement:0.20, palier:'TRANSFORME'},
+  yaourt:     {nom:'Yaourt',        couleur:'#F4F0E4', de:'lait',   rendement:0.95, palier:'TRANSFORME'},
+  fromage:    {nom:'Fromage',       couleur:'#F0D68A', de:'lait',   rendement:0.15, palier:'TRANSFORME'},
+  textile:    {nom:'Textile',       couleur:'#C8CEDC', de:'laine',  rendement:0.70, palier:'TRANSFORME'},
+  // Les céréales du petit-déjeuner acceptent le blé, le maïs ou l'avoine sans
+  // distinction : leur prix se cale sur le mélange à parts égales des trois.
+  cereales:   {nom:'Céréales',      couleur:'#DCB86A', libre:true,
+               de:{ble:0.34, mais:0.33, avoine:0.33}, rendement:0.80, palier:'TRANSFORME'},
+
+  /* --- produits finis --- */
+  // Une bête donne de quoi valoir deux fois son prix de marché. On la compte en kilos
+  // de carcasse pour que le camion s'en soucie : la benne se remplit, il faut deux
+  // tournées pour un troupeau.
+  viande:     {nom:'Viande',        couleur:'#B85A50', fini:6.50},
+  vin:        {nom:'Vin',           couleur:'#7A2438', de:'raisin', rendement:0.70, palier:'FINI'},
+  pain:       {nom:'Pain',          couleur:'#C98A4A', de:'farine', rendement:0.80, palier:'FINI'},
+
+  /* --- recettes à plusieurs ingrédients --- */
+  alimentPlus:{nom:'Aliment premium',couleur:'#E8C25A',
+               de:{mais:0.40, orge:0.30, avoine:0.30}, rendement:0.92, palier:'COMPOSE'},
+  cerealesPlus:{nom:'Céréales premium', couleur:'#E8C87A',
+               de:{ble:0.34, mais:0.33, avoine:0.33}, rendement:0.80, palier:'COMPOSE'},
+  viennoiserie:{nom:'Viennoiseries',couleur:'#E8B86A',
+               de:{farine:0.75, oeufs:0.25}, rendement:0.85, palier:'COMPOSE'},
+  // Les deux recettes hautes de la boulangerie sont des commandes : c'est le palier
+  // ×3, et c'est ce qui fait monter la récompense à chaque ingrédient de plus.
+  patisserie: {nom:'Pâtisseries',   couleur:'#EFC8A8',
+               de:{farine:0.55, oeufs:0.22, lait:0.23}, rendement:0.88, palier:'CONTRAT'},
+  patisseriePlus:{nom:'Pâtisseries premium', couleur:'#F0D2B0',
+               de:{farine:0.50, oeufs:0.22, beurre:0.28}, rendement:0.88, palier:'CONTRAT'}
+};
+// Le prix se calcule une fois, à la demande, et se retient. La récursion suit `de` :
+// une pâtisserie premium interroge le beurre, qui interroge le lait, qui est brut.
+const _prix = {};
+function prixDe(cle){
+  if(_prix[cle] !== undefined) return _prix[cle];
+  const P = PRODUITS[cle];
+  if(!P) return 0;
+  let v;
+  if(P.brut !== undefined) v = P.brut;
+  else if(P.fini !== undefined) v = P.fini;
+  else {
+    const ent = (typeof P.de === 'string') ? {[P.de]:1} : P.de;
+    let base = 0;
+    for(const k in ent) base += prixDe(k)*ent[k];
+    v = base*PALIER[P.palier]/P.rendement;
+  }
+  _prix[cle] = v;
+  return v;
+}
+// Ce qu'un kilo de matière première rapporte une fois passé par la recette : c'est
+// le chiffre qui dit au joueur si le détour vaut le déplacement.
+const rendementValeur = (cle)=> prixDe(cle)*(PRODUITS[cle].rendement || 1);
+
 // Point de déversement : la grille au sol sur le chemin, sous la goulotte du silo.
 // La cour de transformation. Les deux cases de la rangée sud à l'est du garage ne
 // font plus qu'une seule dalle de bitume : le chemin de sable qui les séparait a été
@@ -590,23 +686,65 @@ const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de l
 const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
 const SILO_TOUR = {x: 52, z: 50};
 const SILO = {x: 59, z: 50, r: 4.5};      // la grille de déversement, sous la goulotte
-const HALLE = {x: 84, z: 50, niveau: 1, entree: 0, aliment: 0, huile: 0, produit: 'farine'};
-// Ce que chaque produit tire d'un kilo de grain, et à partir de quel niveau. La farine
-// reprend exactement le rendement de l'ancien moulin : 0,72. L'huile rend peu mais se
-// vend cher, l'aliment rend beaucoup et ne se vend pas — il se donne aux bêtes.
-const RECETTES = {
-  farine:  {niveau:1, rendement:0.72, nom:'Farine'},
-  aliment: {niveau:2, rendement:0.86, nom:'Aliment'},
-  huile:   {niveau:3, rendement:0.34, nom:'Huile'}
+
+/* ---------- UN TRANSFORMATEUR, C'EST TOUJOURS LA MÊME MÉCANIQUE ---------- */
+/* Une trémie où l'on verse des matières, un stock d'où l'on repart avec le produit,
+   et une recette entre les deux. L'atelier de la ferme et les usines du bord de route
+   marchent exactement pareil : seule change la liste des recettes qu'ils savent faire.
+   La recette elle-même n'a rien à déclarer — le nom du produit suffit, puisque la
+   table des produits dit déjà de quoi il est fait et ce qu'il rend. */
+const recetteEntrees = (cle)=>{
+  const d = PRODUITS[cle].de;
+  return (typeof d === 'string') ? {[d]:1} : d;
 };
-const PRIX_HUILE = 1.45;                       // le kg d'huile, à l'huilerie
+const totalTremie = (U)=>{ let t = 0; for(const k in U.tremie) t += U.tremie[k]; return t; };
+function fabriquer(U, dt){
+  const cle = U.recette;
+  if(!cle || !PRODUITS[cle] || !PRODUITS[cle].de) return 0;
+  const ent = recetteEntrees(cle), P = PRODUITS[cle];
+  const place = U.stockMax() - (U.stock[cle] || 0);
+  if(place <= 0.01) return 0;
+  // On engage le moins de matière qu'autorisent le débit, la place restante et le
+  // plus rare des ingrédients : une recette à trois entrées s'arrête dès qu'il en
+  // manque une, sans consommer les deux autres.
+  let q = Math.min(U.debit()*dt, place/P.rendement);
+  if(P.libre){
+    // Recette « au choix » : les céréales du petit-déjeuner se font avec du blé, du
+    // maïs OU de l'avoine, indifféremment. On prend le tas le plus gros, un pour un ;
+    // la moyenne des trois n'a servi qu'à fixer le prix.
+    let meilleur = null;
+    for(const k in ent) if(!meilleur || (U.tremie[k] || 0) > (U.tremie[meilleur] || 0)) meilleur = k;
+    q = Math.min(q, U.tremie[meilleur] || 0);
+    if(q <= 0.0001) return 0;
+    U.tremie[meilleur] -= q;
+    U.stock[cle] = (U.stock[cle] || 0) + q*P.rendement;
+    return q;
+  }
+  for(const k in ent) q = Math.min(q, (U.tremie[k] || 0)/ent[k]);
+  if(q <= 0.0001) return 0;
+  for(const k in ent) U.tremie[k] -= q*ent[k];
+  U.stock[cle] = (U.stock[cle] || 0) + q*P.rendement;
+  return q;
+}
+
+const HALLE = {x: 84, z: 50, niveau: 1, tremie: {}, stock: {}, recette: 'farine'};
+// Les cinq modules du cahier des charges, un par palier : moulin, broyeur, pressoir,
+// mélangeur, cave. Le mélangeur réclame trois céréales à la fois, la cave prend le
+// raisin que le silo ne stocke pas.
+const ATELIER_RECETTES = [
+  {cle:'farine',      niveau:1, module:'Moulin'},
+  {cle:'aliment',     niveau:2, module:'Broyeur'},
+  {cle:'huile',       niveau:3, module:'Pressoir'},
+  {cle:'alimentPlus', niveau:4, module:'Mélangeur'},
+  {cle:'vin',         niveau:5, module:'Cave'}
+];
 // Capacités et débit : c'est là que se voient les niveaux 4 et 5.
 const halleEntreeMax = ()=> 900 + HALLE.niveau*700;
-const halleStockMax  = ()=> 700 + HALLE.niveau*500;
-const halleDebit     = ()=> 12 + HALLE.niveau*7;      // kg de grain moulus par seconde
-const halleStock = (n)=> n === 'farine' ? flourKg : HALLE[n];
-function halleAjoute(n, q){ if(n === 'farine') flourKg += q; else HALLE[n] += q; }
-function halleRetire(n, q){ if(n === 'farine') flourKg -= q; else HALLE[n] -= q; }
+HALLE.stockMax = ()=> 700 + HALLE.niveau*500;
+HALLE.debit    = ()=> 12 + HALLE.niveau*7;            // kg de matière engagés par seconde
+const halleStock = (n)=> HALLE.stock[n] || 0;
+function halleAjoute(n, q){ HALLE.stock[n] = (HALLE.stock[n] || 0) + q; }
+function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) - q); }
 const SITES = [
   // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
   // le long de la bande ; `modele` nomme la silhouette qui sera bâtie. Les deux seuls
@@ -675,6 +813,101 @@ const SITES = [
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batRestaurant(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2}
 ];
+/* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
+/* La table précédente dit où sont les bâtiments ; celle-ci dit à quoi ils servent.
+   Un commerce fait au plus deux choses :
+
+     `achete`   il paie tout de suite, au comptant, et le camion repart vide.
+     `fabrique` il garde la matière, la transforme, et on revient chercher le produit.
+
+   Un commerce qui fabrique ET vend sur place (`caisse`) encaisse lui-même sa
+   production : la boulangerie ne stocke pas ses pains, elle les vend.
+
+   `coef` module le prix du barème selon l'acheteur. Le spécialiste paie plein tarif,
+   le supermarché prend tout mais 14 % moins cher, le marché du village paie bien mais
+   par petites quantités, le restaurant surpaie ce qui lui arrive déjà transformé.
+
+   `choix` dit comment un atelier à plusieurs recettes s'y prend : `meilleure` ne
+   lance que la plus riche des recettes réalisables — c'est ce qui récompense le
+   joueur qui apporte trois ingrédients au lieu d'un — tandis que `toutes` les fait
+   tourner ensemble en partageant le débit. */
+const NEGOCE = {
+  // — achète la récolte brute, tout de suite, moins cher que le circuit long
+  'Coopérative':     {achete:['ble','mais','orge','avoine','colza'], coef:1.00},
+
+  // — les usines : on verse, on repart, on revient chercher
+  'Usine céréales':  {fabrique:['cerealesPlus','cereales'], choix:'meilleure', debit:16},
+  'Usine avoine':    {fabrique:['laitAvoine'], debit:14},
+  'Brasserie':       {fabrique:['biere'], debit:14},
+  'Huilerie':        {fabrique:['huile','huileOlive'], choix:'toutes', debit:15},
+  'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes', debit:18},
+  'Fromagerie':      {fabrique:['fromage'], debit:12},
+  'Boucherie':       {abattoir:true, achete:[], debit:0},
+  'Atelier textile': {fabrique:['textile'], caisse:true, coef:1.00, debit:10},
+
+  // — la boulangerie monte en gamme avec ce qu'on lui donne, et vend elle-même
+  'Boulangerie':     {fabrique:['patisseriePlus','patisserie','viennoiserie','pain'],
+                      choix:'meilleure', caisse:true, coef:1.00, debit:12},
+
+  // — les points de vente finaux
+  'Caviste':         {achete:['vin'], coef:1.15},
+  'Restaurant':      {achete:['viande','oeufs','lait','fromage','beurre','farine',
+                              'huile','huileOlive','vin','laitAvoine','biere'], coef:1.10},
+  'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine','fromage',
+                              'yaourt','viande','huile','huileOlive','vin','cereales',
+                              'cerealesPlus','biere','laitAvoine','beurre'],
+                      coef:0.94, etal:1400},
+  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','cereales',
+                              'cerealesPlus','laitAvoine','huile','huileOlive','vin',
+                              'fromage','beurre','yaourt','viande','biere'], coef:0.86}
+};
+for(const S of SITES){
+  Object.assign(S, NEGOCE[S.nom] || {});
+  S.achete = S.achete || [];
+  S.fabrique = S.fabrique || [];
+  S.coef = S.coef || 1;
+  S.tremie = {}; S.stock = {};
+  // Ce qu'une usine accepte dans sa trémie se déduit de ses recettes : pas de liste à
+  // tenir à jour en double, donc pas de liste qui se désynchronise.
+  S.accepte = [];
+  for(const cle of S.fabrique) for(const k in recetteEntrees(cle))
+    if(S.accepte.indexOf(k) < 0) S.accepte.push(k);
+  if(S.abattoir) S.stock.viande = 0;
+  S.debitKg  = S.debit || 12;
+  S.stockMax = ()=> 2600;
+  S.debit    = ()=> S.debitKg;
+  if(S.etal) S.reste = S.etal;
+}
+// Le marché du village prend de petites quantités : son étal se remplit, puis il faut
+// le laisser s'écouler. Il se réapprovisionne en une minute et demie environ.
+const ETAL_RECHARGE = 16;
+
+/* Les quatre questions qu'on pose à un commerce, et qui servent partout ailleurs :
+   combien il paie, s'il a encore de la place, s'il achète ceci, s'il l'accepte en
+   trémie, et ce qu'il a à rendre. Elles vivent ici, avec la table du négoce, parce
+   que les enseignes les interrogent dès la construction du décor. */
+const nomDe = (cle)=> (PRODUITS[cle] ? PRODUITS[cle].nom : 'Charge');
+const teinteDe = (cle)=> parseInt((PRODUITS[cle] ? PRODUITS[cle].couleur : '#EEEEEE').slice(1), 16);
+
+// Ce qu'un commerce paie le kilo : le barème du produit, modulé par l'acheteur.
+const prixChez = (S, cle)=> prixDe(cle)*(S.coef || 1);
+// Le marché du village prend de petites quantités : tant que son étal est plein, il
+// n'achète plus. Ailleurs, la question ne se pose pas.
+const placeChez = (S)=> (S.etal === undefined) ? Infinity : Math.max(0, S.reste);
+const acheteMaintenant = (S, cle)=> S.achete.indexOf(cle) >= 0 && placeChez(S) > 0.01;
+// Une usine accepte une matière tant que sa trémie n'est pas pleine…
+const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
+const TREMIE_SITE_MAX = 3000;
+const accepteMaintenant = (S, cle)=>
+  S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX;
+// …et rend un produit tant qu'il en reste sur son quai.
+function stockASortir(S, cle){
+  if(S.caisse) return 0;               // il vend lui-même, il n'y a rien à emporter
+  return (cle === undefined)
+    ? Object.keys(S.stock).find((k)=> S.stock[k] > 0.01) || null
+    : (S.stock[cle] || 0);
+}
+
 for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(S.dir === 'E'){
@@ -1030,18 +1263,30 @@ let wheat, wheatCount = 0;
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(),
       _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _col = new THREE.Color();
 const wheatBase = [];   // {x,z,rot,scale}
-// Deux cultures pour l'instant. Chacune a sa couleur, sa durée, son rendement et son
-// prix ; tout le reste du système (labour, semis, engrais, moisson) est identique.
+// Sept cultures. Chacune a sa couleur, sa durée, son rendement et le produit qu'elle
+// verse dans la trémie ; tout le reste du système (labour, semis, engrais, moisson)
+// est identique. L'ORDRE EST FIGÉ : une sauvegarde stocke l'indice de la culture dans
+// chaque cellule, donc on ajoute à la fin, jamais au milieu.
+// Les deux dernières sont pérennes : la vigne et l'olivier restent sur leur parcelle
+// et repartent en croissance dès qu'on les a récoltés — on ne les ressème pas.
 const CROPS = [
-  {nom:'Blé',  lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
-   temps:210, kg:12, prix:1.00, haut:1.00},
-  {nom:'Maïs', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:330, kg:21, prix:1.30, haut:1.45, cout:2500, verrou:true},
-  {nom:'Colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:260, kg:15, prix:1.55, haut:0.85, cout:4000, verrou:true},
-  {nom:'Avoine',lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:190, kg:10, prix:1.20, haut:0.95, cout:3000, verrou:true}
+  {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
+   temps:210, kg:12, haut:1.00},
+  {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
+   temps:330, kg:21, haut:1.45, cout:2500, verrou:true},
+  {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
+   temps:260, kg:15, haut:0.85, cout:4000, verrou:true},
+  {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
+   temps:190, kg:10, haut:0.95, cout:3000, verrou:true},
+  {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
+   temps:200, kg:11, haut:1.05, cout:2200, verrou:true},
+  {nom:'Raisin', cle:'raisin', lo:new THREE.Color(0x4E7A3A), hi:new THREE.Color(0x6E5A7A),
+   temps:340, kg:9, haut:1.20, cout:9000, verrou:true, perenne:true},
+  {nom:'Olives', cle:'olives', lo:new THREE.Color(0x6E8A5A), hi:new THREE.Color(0x8A9A6A),
+   temps:400, kg:8, haut:1.35, cout:11000, verrou:true, perenne:true}
 ];
+const CROP_DE = {};                       // clé de produit → indice de culture
+CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
 const cropCell = new Uint8Array(NCELL);
 const cLo = new THREE.Color(C.wheatLo), cHi = new THREE.Color(C.wheatHi);
 
@@ -1680,8 +1925,16 @@ const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
 function ajouteBulle(S, H){
   const eur = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
   const blocs = [];
-  if(S.crop >= 0) blocs.push({titre:'ACHÈTE', lignes:[{nom:CROPS[S.crop].nom, prix:eur(S.prix)}]});
-  else if(S === BAKERY) blocs.push({titre:'ACHÈTE', lignes:[{nom:'Farine', prix:eur(PRICE_BREAD)}]});
+  // Trois lignes au plus : au-delà, la bulle devient un panneau d'affichage et on ne
+  // la lit plus depuis la route. Le détail complet est dans l'onglet Commerces.
+  if(S.achete && S.achete.length)
+    blocs.push({titre:'ACHÈTE', lignes:S.achete.slice(0, 3)
+      .map((n)=> ({nom:PRODUITS[n].nom, prix:eur(prixChez(S, n))}))
+      .concat(S.achete.length > 3 ? [{nom:'et ' + (S.achete.length - 3) + ' autres', prix:''}] : [])});
+  if(S.fabrique && S.fabrique.length)
+    blocs.push({titre:S.caisse ? 'CUISINE' : 'TRANSFORME',
+      lignes:S.fabrique.slice(0, 3).map((n)=> ({nom:PRODUITS[n].nom,
+        prix:S.caisse ? eur(prixChez(S, n)) : ''}))});
   if(S.vend) blocs.push({titre:'VEND', lignes:S.vend});
   if(S.propose) blocs.push({titre:'PROPOSE', lignes:S.propose});
   if(S.demande){
@@ -2227,36 +2480,16 @@ function buildCommerce(S){
   // Point de déchargement : l'anneau est posé SUR la dalle, en entrant dans le
   // parking, et non plus à cheval sur l'accotement. On franchit la porte de la
   // clôture, on s'arrête sur l'anneau : c'est le même geste que dans une vraie cour.
-  if(S.prix > 0 || S === BAKERY){
-    S.dropX = S.quaiX; S.dropZ = S.quaiZ;
-    // Couleur vive : on part de la teinte de l'enseigne mais on pousse la saturation
-    // et la clarté, sinon les toits sombres donnent un anneau terne. Le mélange additif
-    // fait le reste — l'anneau éclaire le sol au lieu de le teinter.
-    //
-    // Deux mécaniques distinctes aboutissent ici, d'où deux conditions :
-    // la trémie de la moissonneuse s'y vide (deliverUn), et une caisse de grain s'y
-    // vend (cargoUn) — mais seulement chez un acheteur, pas à la boulangerie. Le moulin
-    // sait en plus RENDRE de la farine, la boulangerie ne prend qu'elle.
-    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
-      const m = MACHINES[cur], T = caisseDe(m);
-      if(S === BAKERY) return porte(T, 'farine') || porte(T, 'oeufs');
-      if(S === AVOINE) return porte(T, 'laine') || porte(T, 'huile') ||
-                           tremiePleine(m) || porte(T, 'grain');
-      return tremiePleine(m) || porte(T, 'grain');
-    });
-  } else { S.dropX = S.x; S.dropZ = S.z; }
+  // Tous les commerces ont désormais un quai : chacun achète, transforme ou rend
+  // quelque chose. L'anneau, lui, est posé une seule fois pour tout le monde par
+  // poserAnneauxCommerces() — sa condition est la même partout, et elle se lit dans
+  // le monde plutôt que site par site.
+  S.dropX = S.quaiX; S.dropZ = S.quaiZ;
   // L'atelier. Son anneau était posé au milieu du parking, à 19,5 m du bâtiment, alors
   // que refreshAtelier() mesurait la distance AU BÂTIMENT dans un rayon de 13 m : on
   // pouvait se garer pile au centre de l'anneau sans que le bouton n'apparaisse jamais,
   // et la seule zone qui marchait n'était signalée par rien. Le quai devient l'anneau
   // lui-même — ce qu'on voit est ce qui déclenche.
-  if(S.atelier){
-    S.dropX = S.quaiX; S.dropZ = S.quaiZ;
-    anneauAction(S.dropX, S.dropZ, 2.3, ()=>{
-      const c = coutAmelioration(MACHINES[cur]);
-      return c > 0 && money >= c;
-    });
-  }
   clotureSite(S);
   ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
 }
@@ -2365,7 +2598,14 @@ function buildFarm(){
   // quand la caisse porte déjà autre chose.
   anneauAction(SILO.x, SILO.z, 1.1, ()=>{
     const m = MACHINES[cur];
-    return tremiePleine(m) || peutPrendre(caisseDe(m), 'grain', siloKg);
+    const T = caisseDe(m);
+    // La moissonneuse y range sa récolte — mais pas le raisin ni les olives, que le
+    // silo ne prend pas. Une caisse y fait le plein de la céréale qu'elle porte déjà,
+    // ou du plus gros tas si elle est vide.
+    if(tremiePleine(m) && siloStock[CROPS[hopCrop].cle] !== undefined
+       && siloTotal() < siloMax()) return true;
+    const cle = (T && T.load > 0.01) ? T.type : siloPlusGros();
+    return !!cle && siloStock[cle] !== undefined && peutPrendre(T, cle, siloStock[cle]);
   });
 
   // maison, à l'écart de la cour
@@ -2730,8 +2970,9 @@ function poserAtelier(){
   if(!HALLE.anneau){
     anneauAction(HALLE.quai.x, HALLE.quai.z, 2.9, ()=>{
       const m = MACHINES[cur], T = caisseDe(m);
-      if(porte(T, 'grain') && HALLE.entree < halleEntreeMax()) return true;
-      if(peutPrendre(T, HALLE.produit, halleStock(HALLE.produit))) return true;
+      if(T && T.load > 0.01 && atelierAccepte(T.type)) return true;
+      const sorti = (T && T.load > 0.01) ? T.type : HALLE.recette;
+      if(peutPrendre(T, sorti, halleStock(sorti))) return true;
       const c = coutAtelier();
       return c > 0 && money >= c;
     });
@@ -3826,7 +4067,7 @@ const TOOLS = [
             from:[ST.JACHERE, ST.LABOURE, ST.SEME, ST.MUR, ST.CHAUME], to:ST.LABOURE,
             aide:'Prépare la terre'}),
   makeTool({key:'semis',   nom:'Semoir',  build:buildSemoir,   hitch:2.0, L:2.5,  width:6.4,
-            from:[ST.LABOURE], to:ST.SEME, aide:'Sème le blé'}),
+            from:[ST.LABOURE], to:ST.SEME, aide:'Sème la culture choisie'}),
   makeTool({key:'engrais', nom:'Épandeur',build:buildEpandeur, hitch:2.0, L:3.9,  width:12.0,
             from:[ST.SEME], to:ST.SEME, aide:'Booste la croissance'}),
   // La benne ne travaille pas la terre : elle transporte. C'est elle qui relie le
@@ -3873,12 +4114,45 @@ TOOLS.forEach((T, i)=>{
 
 let cur = MACHINES.findIndex(m => m.key === 'moisson');   // on démarre sur la moissonneuse
 const GOAL = 3000;
-let money = 0, siloKg = 0, hopper = 0, delivered = 0, flourKg = 0, breadKg = 0;
+let money = 0, hopper = 0, delivered = 0, breadKg = 0;
+/* Le silo n'est plus un tas de « grain » : il tient un tas par céréale. C'est ce qui
+   permet à la coopérative de payer le colza plus cher que l'avoine, et à l'atelier de
+   réclamer du maïs pour son broyeur alors qu'il reste du blé à côté. Le raisin et les
+   olives n'y entrent pas — ils vont directement du champ au pressoir ou à l'étal. */
+const siloStock = {ble:0, mais:0, orge:0, avoine:0, colza:0};
+const SILO_CLES = Object.keys(siloStock);
+const siloTotal = ()=> SILO_CLES.reduce((t, k)=> t + siloStock[k], 0);
+// Le silo déborde : cinq tas se partagent la tour, et une récolte de plus n'y entre
+// pas. C'est ce qui pousse à écouler avant de remoissonner.
+const siloMax = ()=> 24000;
+// Sur quel tas la benne se sert quand elle arrive vide : le plus gros. C'est celui
+// dont la ferme est le plus encombrée, donc celui qu'il faut sortir en premier.
+function siloPlusGros(){
+  let meilleur = null;
+  for(const k of SILO_CLES) if(!meilleur || siloStock[k] > siloStock[meilleur]) meilleur = k;
+  return (meilleur && siloStock[meilleur] > 0.01) ? meilleur : null;
+}
+// Ce qu'un kilo versé dans l'auge remplit de mangeoire. Les céréales valent un pour
+// un, l'aliment du broyeur une fois et demie, celui du mélangeur deux fois : c'est ce
+// qui rend les modules d'alimentation rentables. Le colza n'est pas un fourrage.
+const RATION = {ble:1, mais:1, orge:1, avoine:1, aliment:1.5, alimentPlus:2};
+// Les compteurs cumulés servent aux contrats et à la progression. Un seul endroit
+// pour dire quel produit alimente quel compteur.
+const COMPTEUR = {lait:'lait', oeufs:'oeufs', laine:'laine', huile:'huile',
+                  huileOlive:'huile', farine:'mill', pain:'pain', viennoiserie:'pain',
+                  patisserie:'pain', patisseriePlus:'pain'};
+function compter(cle, q){
+  const c = COMPTEUR[cle];
+  if(c) STAT[c] += q;
+  else if(PRODUITS[cle] && PRODUITS[cle].cereale) STAT.silo += q;
+}
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0,
               oeufs:0, laine:0, huile:0};
-let hopMult = 1;   // valeur moyenne de ce que contient la trémie
+// La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
+// n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
+let hopCrop = 0;
 let HOP_MAX = 900;
 const KG_CELL = 12, PRICE = 0.22, PRICE_MILL = 0.38;
 // Durée pour qu'un semis arrive à maturité, en secondes. Réglage isolé :
@@ -3963,6 +4237,15 @@ function work(m, dt){
     touched.length = 0;
     if(bacDe(T)) eligible = false;
   }
+  // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
+  // n'accepte plus qu'une seule nature. Un andain qui mordrait sur une autre culture
+  // est refusé en entier — et rien n'est peint, sinon la moissonneuse laisserait du
+  // chaume sur du blé encore debout.
+  if(T.key === 'moisson' && hopper > 0.01 && touched.length
+     && touched.some((id)=> cropCell[id] !== hopCrop)){
+    touched.length = 0; eligible = false;
+    showHint('TRÉMIE OCCUPÉE PAR DU ' + CROPS[hopCrop].nom.toUpperCase());
+  }
   consommerStock(T, touched.length);
 
   const did = touched.length > 0;
@@ -3977,12 +4260,22 @@ function work(m, dt){
       const was = hopper;
       const C2 = CROPS[cropCell[id]];
       const gain = C2.kg*growth[id]*(fert[id]?1.55:1);
-      // moyenne pondérée : une trémie mixte se vend au prorata de ce qu'elle contient
-      hopMult = (hopMult*hopper + C2.prix*gain) / Math.max(0.001, hopper + gain);
+      if(hopper <= 0.01) hopCrop = cropCell[id];
       hopper = Math.min(HOP_MAX, hopper + gain);
       STAT.moisson += gain;
       if(was < HOP_MAX && hopper >= HOP_MAX) showHint('TRÉMIE PLEINE — DIRECTION SILO');
       fert[id] = 0;
+      // La vigne et l'olivier ne se ressèment pas : on leur retire leur récolte et ils
+      // repartent en croissance sur place. La cellule reste semée, donc l'andain ne
+      // laisse pas de chaume derrière lui — c'est voulu, une vigne n'est pas fauchée.
+      if(C2.perenne){
+        // Repasser en SEME, et pas seulement remettre la croissance à zéro : grow()
+        // ne suit que les cellules semées et laisserait la vigne à l'état mûr, taillée
+        // pour toujours. C'est l'état qui la remet dans la file de croissance.
+        state[id] = ST.SEME; growth[id] = 0; growingList.push(id);
+        setInstance(instOf[id], 0, 1);
+        continue;
+      }
       setInstance(instOf[id], 0, 0);
     } else if(T.key === 'semis'){
       growth[id] = 0; fert[id] = 0; growingList.push(id);
@@ -4163,7 +4456,8 @@ function ongletOutils(){
 function ongletGraines(){
   titre('Cultures disponibles');
   CROPS.forEach((c, i)=>{
-    const det = 'Pousse en ' + c.temps + ' s · ' + c.kg + ' kg par cellule · valeur ×' + c.prix.toFixed(2);
+    const det = 'Pousse en ' + c.temps + ' s · ' + c.kg + ' kg par cellule · '
+              + dec(prixDe(c.cle)) + ' € le kg' + (c.perenne ? ' · repart toute seule' : '');
     if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
     const ok = money >= c.cout;
     article(c.hi.getHex(), c.nom, det + ' · ' + eur(c.cout),
@@ -4263,7 +4557,7 @@ function etoiles(n){ return n > 1 ? ' ' + '★'.repeat(n-1) : ''; }
 function machineLabel(i){
   const m = MACHINES[i];
   const T = toolOf(m);
-  if(m.key === 'moisson') return 'MOISSONNEUSE' + etoiles(m.v.level) + ' — Récolte le blé mûr';
+  if(m.key === 'moisson') return 'MOISSONNEUSE' + etoiles(m.v.level) + ' — Récolte ce qui est mûr';
   if(m.v.cargo) return m.nom.toUpperCase() + etoiles(m.v.level) + ' — Transporte '
        + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
   return 'TRACTEUR ' + m.nom.toUpperCase() + etoiles(m.v.level) + ' — '
@@ -4487,7 +4781,7 @@ const ETAPES = [
   {txt:'Récolter et livrer 1 000 kg',   test:()=> delivered >= 1000,  prog:()=> delivered/1000},
   {txt:'Acheter une deuxième parcelle', test:()=> PARCELS.filter(p=>p.owned).length >= 2,
                                         prog:()=> money/4000},
-  {txt:'Moudre 360 kg de farine',       test:()=> flourKg >= 360,     prog:()=> flourKg/360},
+  {txt:'Moudre 360 kg de farine',       test:()=> STAT.mill >= 360,   prog:()=> STAT.mill/360},
   {txt:'Livrer de la farine à la boulangerie', test:()=> breadKg >= 300, prog:()=> breadKg/300},
   {txt:'Étendre la ferme à 4 parcelles',test:()=> PARCELS.filter(p=>p.owned).length >= 4,
                                         prog:()=> (PARCELS.filter(p=>p.owned).length-2)/2},
@@ -4501,34 +4795,51 @@ document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = 
 // Toutes les caisses passent par le même aiguillage : voir `cargoUn` au chapitre 22,
 // où la NATURE du chargement décide de ce qui peut être pris et de qui l'achète.
 function updateCargo(dt){
-  for(const m of MACHINES) if(!m.verrou) cargoUn(m, dt);
+  for(const m of MACHINES) if(!m.verrou){ reprendreUn(m, dt); cargoUn(m, dt); }
 }
 function deliver(dt){
   for(const m of MACHINES){ if(m.key === 'moisson' && !m.verrou) deliverUn(m.v, dt); }
 }
+/* La moissonneuse vide sa trémie là où elle s'arrête. Au silo elle range, sans rien
+   toucher : le silo n'achète pas, il stocke — c'est ensuite au joueur de choisir
+   entre vendre et transformer. Ailleurs, elle décharge chez qui veut bien de sa
+   récolte, au prix de l'acheteur. Le raisin et les olives, que le silo ne prend pas,
+   n'ont que cette porte-là : du champ à l'étal ou au pressoir, directement. */
 function deliverUn(v, dt){
-  if(hopper <= 0) return;
-  if(v.speed > 2.5) return;
-  let site = null, prix = 0;
-  if(Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r){ site = SILO; prix = PRICE; }
+  if(hopper <= 0 || v.speed > 2.5) return;
+  const cle = CROPS[hopCrop].cle;
+  const auSilo = Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r
+                 && siloStock[cle] !== undefined && siloTotal() < siloMax();
+  let site = null, mode = null;
+  if(auSilo){ site = SILO; mode = 'silo'; }
   else for(const S of SITES){
-    if(S.prix <= 0) continue;
-    if(Math.hypot(v.pos.x-(S.dropX!==undefined?S.dropX:S.x), v.pos.z-(S.dropZ!==undefined?S.dropZ:S.z)) > QUAI_R) continue;
-    // un site ne paie son tarif que pour la culture qu'il transforme
-    site = S; prix = (S.crop < 0 || Math.abs(hopMult - CROPS[S.crop].prix) < 0.01) ? S.prix : PRICE;
+    if(!aQuai(v, S)) continue;
+    if(acheteMaintenant(S, cle)){ site = S; mode = 'vente'; }
+    else if(accepteMaintenant(S, cle)){ site = S; mode = 'tremie'; }
     break;
   }
   if(!site) return;
-  const q = Math.min(hopper, 420*dt);
-  hopper -= q; delivered += q; siloKg += q; money += q*prix*hopMult;
-  STAT.silo += q;
+  const q = Math.min(hopper, 420*dt,
+                     mode === 'vente' ? placeChez(site) : Infinity,
+                     mode === 'silo'  ? siloMax() - siloTotal() : Infinity);
+  if(q <= 0.0001) return;
+  hopper -= q; delivered += q;
+  if(mode === 'silo'){ siloStock[cle] += q; }
+  else if(mode === 'vente'){
+    money += q*prixChez(site, cle); compter(cle, q);
+    if(site.etal !== undefined) site.reste -= q;
+  } else {
+    site.tremie[cle] = (site.tremie[cle] || 0) + q;
+  }
   if(Math.random() < 0.6)
     puff((site.dropX!==undefined?site.dropX:site.x) + (Math.random()-0.5)*3, 3 + Math.random()*3,
          (site.dropZ!==undefined?site.dropZ:site.z) + (Math.random()-0.5)*3,
-         site.nom ? 0xF2E7D2 : 0xFFC65A, 0.4, 0.2);
+         site.nom ? teinteDe(cle) : 0xFFC65A, 0.4, 0.2);
   if(hopper <= 0.01){
-    hopper = 0; hopMult = 1;
-    showHint((site.nom ? site.nom.toUpperCase() + ' — ' : 'LIVRÉ — ') + Math.floor(money) + ' €');
+    hopper = 0;
+    showHint(mode === 'silo' ? nomDe(cle).toUpperCase() + ' AU SILO'
+           : mode === 'vente' ? site.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'
+           : nomDe(cle).toUpperCase() + ' LIVRÉ À ' + site.nom.toUpperCase());
   }
 }
 
@@ -4837,14 +5148,11 @@ function acheterIntrant(clef, kg){
 // Quatre commerces n'avaient qu'une façade. On leur pose le même anneau au sol que
 // les points de livraison, à la même distance de la chaussée : la carte reste lisible,
 // et on sait au premier coup d'œil où l'on peut s'arrêter.
-const COOP     = SITES.find(S=>S.coop);
 const COMPTOIR = SITES.find(S=>S.fournisseur);
 const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
 const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
-// L'usine bio transformait déjà des cultures : elle prend aussi la laine des moutons.
-const AVOINE   = SITES.find(S=>S.nom === 'Usine avoine');
-// L'huilerie achetait déjà le colza brut : elle prend aussi l'huile pressée à la ferme.
-const HUILERIE = SITES.find(S=>S.nom === 'Huilerie');
+// La laine part à l'atelier textile, qui la file et vend lui-même ses pièces.
+const TEXTILE  = SITES.find(S=>S.nom === 'Atelier textile');
 // Le comptoir n'a rien à vendre quand la bourse est vide et les bacs pleins : son
 // anneau doit alors s'éteindre comme les autres. On reprend exactement les conditions
 // qui rendent une ligne cliquable dans ongletComptoir(), sur le plus petit lot de
@@ -4856,27 +5164,37 @@ function comptoirServable(){
   if(CARBU.cuveMax <= 0) return money >= CARBU.cuvePrix;
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
-(function poserServices(){
-  for(const S of [COOP, COMPTOIR, LAITERIE, BOUCHERIE, MARCHE]){
-    if(!S) continue;
+/* Un seul anneau par commerce, et une seule condition pour tous. Elle énumère
+   exactement les gestes que le code sait faire à ce quai — vendre, verser, reprendre,
+   vider la trémie, ouvrir le comptoir, livrer des bêtes — de sorte qu'il n'existe
+   aucun anneau jaune sans effet, ni aucun effet sans anneau jaune. Avant, chaque site
+   portait sa propre condition écrite à la main : c'est ce qui laissait le supermarché
+   éteint devant une benne de vin et la coopérative allumée pour rien. */
+function quelqueChoseAFaire(S){
+  const m = MACHINES[cur], v = m.v, T = caisseDe(m);
+  if(S.fournisseur) return comptoirServable();
+  if(S.abattoir && (v.betail || 0) > 0) return true;
+  if(S.atelier){ const c = coutAmelioration(m); return c > 0 && money >= c; }
+  // une caisse chargée : vendre, ou verser dans la trémie de l'usine
+  if(T && T.load > 0.01 && (acheteMaintenant(S, T.type) || accepteMaintenant(S, T.type)))
+    return true;
+  // une caisse qui a de la place : reprendre un produit fini sur le quai
+  if(T && T.load < T.capacite - 0.01){
+    const cle = (T.load > 0.01) ? T.type : stockASortir(S);
+    if(cle && !S.caisse && (S.stock[cle] || 0) > 0.01 && peutCharger(T, cle)) return true;
+  }
+  // la trémie de la moissonneuse, qui se vide chez qui veut bien de sa récolte
+  if(tremiePleine(m)){
+    const cle = CROPS[hopCrop].cle;
+    if(acheteMaintenant(S, cle) || accepteMaintenant(S, cle)) return true;
+  }
+  return false;
+}
+(function poserAnneauxCommerces(){
+  for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
-    S.service = true;
-    // Chacun sa condition, calquée sur la fonction qui déclenche vraiment :
-    //   comptoir    — au moins une ligne de sa boutique doit être achetable, sinon s'y
-    //                 arrêter n'offre qu'un rayon de boutons grisés ;
-    //   laiterie    — cargoUn() ne prend que du lait ;
-    //   boucherie   — updateBetail() ne regarde que les bêtes à bord ;
-    //   coopérative — elle rachète le grain, en trémie comme en caisse ;
-    //   supermarché — il rachète toute nature déjà transformée.
-    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
-      const v = MACHINES[cur].v, T = caisseDe(MACHINES[cur]);
-      if(S === COMPTOIR)  return comptoirServable();
-      if(S === LAITERIE)  return porte(T, 'lait');
-      if(S === BOUCHERIE) return (v.betail || 0) > 0;
-      // La coopérative rachète toute récolte ; le supermarché, tout produit fini.
-      if(S === COOP)      return tremiePleine(MACHINES[cur]) || porte(T, 'grain');
-      return MARCHE_NATURES.some((n)=> porte(T, n));
-    });
+    S.service = !!(S.fournisseur || S.achete.length || S.fabrique.length || S.abattoir);
+    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=> quelqueChoseAFaire(S));
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
@@ -5064,7 +5382,7 @@ const ESPECES = {
   vache: {
     cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
     prix:1200, prixBete:1750, maturite:420, ration:0.12, m2:88, places:14, echelle:1.15,
-    produit:'lait', nomProduit:'Lait', prixProduit:0.62, parSec:0.42, cuveMax:1800,
+    produit:'lait', nomProduit:'Lait', parSec:0.42, cuveMax:1800,
     acheteur:()=> LAITERIE, acheteurNom:'LA LAITERIE',
     corps:corpsVache, tete:teteVache, cou:{y:1.16, z:1.28}, plonge:0.55,
     patte:{h:0.78, r:0.115, hb:[1.75, 0.62], x:0.34, z:[-0.70, 0.72]},
@@ -5076,7 +5394,7 @@ const ESPECES = {
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
     prix:90, prixBete:135, maturite:160, ration:0.014, m2:13, places:26, echelle:1.55,
-    produit:'oeufs', nomProduit:'Œufs', prixProduit:1.45, parSec:0.034, cuveMax:400,
+    produit:'oeufs', nomProduit:'Œufs', parSec:0.034, cuveMax:400,
     acheteur:()=> BAKERY, acheteurNom:'LA BOULANGERIE',
     corps:corpsPoule, tete:tetePoule, cou:{y:0.72, z:0.16}, plonge:0.62,
     patte:null, queue:null,
@@ -5087,8 +5405,8 @@ const ESPECES = {
   cochon: {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     prix:480, prixBete:820, maturite:320, ration:0.10, m2:30, places:16, echelle:1.25,
-    produit:null, nomProduit:null, prixProduit:0, parSec:0, cuveMax:0,
-    acheteur:null, acheteurNom:null,
+    produit:null, nomProduit:null, parSec:0, cuveMax:0,
+    acheteur:()=> BOUCHERIE, acheteurNom:'LA BOUCHERIE',
     corps:corpsCochon, tete:teteCochon, cou:{y:0.74, z:0.82}, plonge:0.42,
     patte:{h:0.46, r:0.105, hb:[1.3, 0.7], x:0.26, z:[-0.44, 0.46]}, queue:null,
     robes:[{fond:0xE9A8A2, tache:0xD3908B, corne:0xD3908B, peau:0xD3908B},
@@ -5098,8 +5416,8 @@ const ESPECES = {
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
     prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
-    produit:'laine', nomProduit:'Laine', prixProduit:2.10, parSec:0.036, cuveMax:600,
-    acheteur:()=> AVOINE, acheteurNom:'L\'USINE D\'AVOINE',
+    produit:'laine', nomProduit:'Laine', parSec:0.036, cuveMax:600,
+    acheteur:()=> TEXTILE, acheteurNom:'L\'ATELIER TEXTILE',
     corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
     patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
     robes:[{fond:0xF0EADA, tache:0xDED6C2, corne:0x3A3630, peau:0x3A3630},
@@ -5108,6 +5426,10 @@ const ESPECES = {
   }
 };
 const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton'];
+// Le prix du produit d'une bête n'est plus écrit ici : il vient du barème commun,
+// comme celui d'une récolte. Une seule table de valeurs pour toute la ferme.
+for(const k of ESP_CLES){ const E = ESPECES[k];
+  Object.defineProperty(E, 'prixProduit', {get: ()=> E.produit ? prixDe(E.produit) : 0}); }
 // Géométries construites à la demande et gardées : une par espèce et par robe.
 const GEO_BETE = {};
 function geoBete(E, r){
@@ -5219,7 +5541,7 @@ function creerPature(p, espece){
       ()=> peutPrendre(caisseDe(MACHINES[cur]), E.produit, P.produit));
   anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
     ()=>{ const T = caisseDe(MACHINES[cur]);
-          return (porte(T, 'grain') || porte(T, 'aliment')) && P.grain < P.grainMax; });
+          return !!T && !!RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax; });
   anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
     const m = MACHINES[cur], cap = capaciteBetail(m);
     return cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
@@ -5536,35 +5858,20 @@ function commanderVrac(lots){
 const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 3.3 + 4.1};
 
 /* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
-/* Jusqu'ici une benne contenait « des kilos ». Avec le lait et le bétail il faut
-   savoir CE QU'ON TRANSPORTE : on ne vend pas du lait à la brasserie. Chaque caisse
-   porte donc un type, posé au chargement et effacé au déchargement. Une caisse
-   entamée n'accepte plus rien d'autre — c'est ce qui rend les tournées à planifier. */
-const NATURES = {
-  grain:  {nom:'Grain',  couleur:'#FFAE2E'},
-  farine: {nom:'Farine', couleur:'#F2E7D2'},
-  lait:   {nom:'Lait',   couleur:'#DCEEF5'},
-  oeufs:  {nom:'Œufs',   couleur:'#F6E7B8'},
-  laine:  {nom:'Laine',  couleur:'#EDE6D6'},
-  aliment:{nom:'Aliment',couleur:'#D8B24A'},
-  huile:  {nom:'Huile',  couleur:'#E8C24A'}
-};
-// Le supermarché rachète tout ce qui sort déjà transformé. Il paie 14 % de moins que
-// le spécialiste : c'est le prix de la commodité, il est sur la route de la ferme et
-// prend tout d'un coup, là où la tournée des acheteurs rapporte plus mais coûte du
-// gazole et du temps.
-const MARCHE_NATURES = ['farine', 'huile', 'lait', 'oeufs', 'laine'];
-const MARCHE_DECOTE = 0.86;
-function prixMarche(n){
-  const t = {farine: PRICE_BREAD, huile: PRIX_HUILE,
-             lait: ESPECES.vache.prixProduit, oeufs: ESPECES.poule.prixProduit,
-             laine: ESPECES.mouton.prixProduit};
-  return (t[n] || 0)*MARCHE_DECOTE;
-}
+/* Une benne ne contient pas « des kilos », elle contient QUELQUE CHOSE : on ne vend
+   pas du lait à la brasserie et on ne verse pas des olives dans le moulin. Chaque
+   caisse porte donc la clé d'un produit, posée au chargement et effacée au vidage.
+   Une caisse entamée n'accepte plus rien d'autre — c'est ce qui oblige à planifier
+   ses tournées plutôt qu'à tout empiler.
+
+   Toute la circulation des marchandises passe par quatre gestes, et quatre seulement :
+   prendre au silo ou à l'enclos, verser dans une trémie, reprendre un produit fini,
+   encaisser chez un acheteur. Le reste n'est que la table des produits et celle du
+   négoce. */
+const NATURES = PRODUITS;              // ancien nom, gardé là où il se lit mieux
 const peutCharger = (T, type)=> T.load < 0.01 || T.type === type;
 function poserType(T, type){ T.type = type; }
 function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
-
 // Remplace la version d'origine : même mécanique de proximité, mais la nature du
 // chargement décide de ce qui peut être pris et de qui l'achète.
 function cargoUn(m, dt){
@@ -5575,14 +5882,18 @@ function cargoUn(m, dt){
   const debit = 340*dt;
 
   /* --- chargements --- */
-  if(prochePoint(v, SILO.x, SILO.z, SILO.r) && peutCharger(T, 'grain') && siloKg > 0.01
-     && T.load < T.capacite){
-    const q = Math.min(debit, T.capacite - T.load, siloKg);
-    T.load += q; siloKg -= q; poserType(T, 'grain');
-    if(Math.random() < 0.4)
-      puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
-    if(T.load >= T.capacite - 0.01) showHint('CHARGÉ EN GRAIN');
-    return;
+  // Au silo on prend la céréale demandée par la benne si elle est entamée, sinon le
+  // plus gros tas : une caisse vide repart avec ce dont la ferme est le plus encombrée.
+  if(prochePoint(v, SILO.x, SILO.z, SILO.r) && T.load < T.capacite){
+    const cle = (T.load > 0.01) ? T.type : siloPlusGros();
+    if(cle && siloStock[cle] > 0.01 && peutCharger(T, cle)){
+      const q = Math.min(debit, T.capacite - T.load, siloStock[cle]);
+      T.load += q; siloStock[cle] -= q; poserType(T, cle);
+      if(Math.random() < 0.4)
+        puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
   }
 
   const pat = patureProche(v);
@@ -5592,120 +5903,146 @@ function cargoUn(m, dt){
     const q = Math.min(debit, T.capacite - T.load, pat.P.produit);
     T.load += q; pat.P.produit -= q; poserType(T, espP.produit);
     if(Math.random() < 0.3) puff(pat.P.quaiProduit.x, 2.2, pat.P.quaiProduit.z,
-                                 parseInt(NATURES[espP.produit].couleur.slice(1), 16), 0.3, 0.25);
-    if(T.load >= T.capacite - 0.01) showHint(NATURES[espP.produit].nom.toUpperCase() + ' CHARGÉ — DIRECTION ' + espP.acheteurNom);
+                                 teinteDe(espP.produit), 0.3, 0.25);
+    if(T.load >= T.capacite - 0.01) showHint(nomDe(espP.produit).toUpperCase() + ' CHARGÉ');
     return;
   }
 
-  // Atelier : on verse le grain dans sa trémie, on repart avec ce qu'il a produit.
+  // Atelier de la ferme : on repart d'abord avec ce qu'il a produit, on verse ensuite.
   // Le chargement passe avant, pour qu'une caisse vide reparte pleine sans manœuvre.
-  if(surQuaiAtelier(v) && peutCharger(T, HALLE.produit)
-     && halleStock(HALLE.produit) > 0.01 && T.load < T.capacite){
-    const q = Math.min(debit, T.capacite - T.load, halleStock(HALLE.produit));
-    T.load += q; halleRetire(HALLE.produit, q); poserType(T, HALLE.produit);
-    if(Math.random() < 0.3)
-      puff(HALLE.quai.x, 2.4, HALLE.quai.z, 0xF2E7D2, 0.35, 0.3);
-    if(T.load >= T.capacite - 0.01)
-      showHint(NATURES[HALLE.produit].nom.toUpperCase() + ' CHARGÉ');
-    return;
+  if(surQuaiAtelier(v)){
+    const sorti = (T.load > 0.01) ? T.type : HALLE.recette;
+    if(sorti && halleStock(sorti) > 0.01 && peutCharger(T, sorti) && T.load < T.capacite){
+      const q = Math.min(debit, T.capacite - T.load, halleStock(sorti));
+      T.load += q; halleRetire(sorti, q); poserType(T, sorti);
+      if(Math.random() < 0.3) puff(HALLE.quai.x, 2.4, HALLE.quai.z, teinteDe(sorti), 0.35, 0.3);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(sorti).toUpperCase() + ' CHARGÉ');
+      return;
+    }
   }
   if(T.load <= 0.01){ viderType(T); return; }
-  if(surQuaiAtelier(v) && T.type === 'grain' && HALLE.entree < halleEntreeMax()){
-    const q = Math.min(debit, T.load, halleEntreeMax() - HALLE.entree);
-    T.load -= q; HALLE.entree += q;
-    if(Math.random() < 0.3) puff(HALLE.x - 5.5, 4.6, HALLE.z - 1.0, 0xE8DCC0, 0.3, 0.28);
-    if(T.load <= 0.01){ viderType(T); showHint('GRAIN VERSÉ À L\'ATELIER'); }
-    return;
+
+  // On verse dans la trémie de l'atelier ce que sa recette du moment réclame.
+  if(surQuaiAtelier(v) && atelierAccepte(T.type)){
+    const q = Math.min(debit, T.load, halleEntreeMax() - totalTremie(HALLE));
+    if(q > 0.0001){
+      T.load -= q; HALLE.tremie[T.type] = (HALLE.tremie[T.type] || 0) + q;
+      if(Math.random() < 0.3) puff(HALLE.x - 5.5, 4.6, HALLE.z - 1.0, 0xE8DCC0, 0.3, 0.28);
+      if(T.load <= 0.01){ showHint(nomDe(T.type).toUpperCase() + ' VERSÉ À L\'ATELIER'); viderType(T); }
+      return;
+    }
   }
 
   /* --- déchargements --- */
-  // le grain nourrit d'abord le troupeau : l'auge passe avant la vente
-  // L'aliment de l'atelier vaut mieux que le grain brut : la même benne remplit une
-  // fois et demie la mangeoire. C'est ce qui rend le module d'alimentation rentable.
-  if(pat && pat.quoi === 'auge' && (T.type === 'grain' || T.type === 'aliment')
-     && pat.P.grain < pat.P.grainMax){
-    const rend = T.type === 'aliment' ? 1.5 : 1;
+  // Le grain nourrit d'abord le troupeau : l'auge passe avant la vente. L'aliment de
+  // l'atelier vaut mieux que la céréale brute, et le premium mieux encore — la même
+  // benne remplit la mangeoire une fois et demie, puis deux fois mieux.
+  if(pat && pat.quoi === 'auge' && RATION[T.type] && pat.P.grain < pat.P.grainMax){
+    const rend = RATION[T.type];
     const q = Math.min(ELEVAGE.debit*dt, T.load, (pat.P.grainMax - pat.P.grain)/rend);
     T.load -= q; pat.P.grain += q*rend;
     if(Math.random() < 0.4) puff(pat.P.quaiAuge.x, 1.8, pat.P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
     if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
     return;
   }
-  if(T.type === 'lait' && aQuai(v, LAITERIE)){
-    const q = Math.min(ELEVAGE.debit*dt, T.load);
-    T.load -= q; money += q*ESPECES.vache.prixProduit; STAT.lait += q;
-    if(Math.random() < 0.4) puff(LAITERIE.dropX, 2.6, LAITERIE.dropZ, 0xEAF4F8, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint('LAIT LIVRÉ — ' + Math.floor(money) + ' €'); }
-    return;
+
+  // Puis les commerces. Un seul balayage : le premier site à quai qui sait quoi faire
+  // de ce chargement le prend — soit il l'achète, soit il le met dans sa trémie.
+  for(const S of SITES){
+    if(!aQuai(v, S)) continue;
+    if(acheteMaintenant(S, T.type)){
+      const q = Math.min(ELEVAGE.debit*dt, T.load, placeChez(S));
+      if(q <= 0.0001) break;
+      T.load -= q; money += q*prixChez(S, T.type);
+      if(S.etal !== undefined) S.reste -= q;
+      compter(T.type, q);
+      if(Math.random() < 0.4) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.4, 0.3);
+      if(T.load <= 0.01){ viderType(T);
+        showHint(nomDe(T.type).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
+      return;
+    }
+    if(accepteMaintenant(S, T.type)){
+      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(S));
+      if(q <= 0.0001) break;
+      T.load -= q; S.tremie[T.type] = (S.tremie[T.type] || 0) + q;
+      if(Math.random() < 0.3) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.35, 0.3);
+      if(T.load <= 0.01){
+        showHint(nomDe(T.type).toUpperCase() + ' LIVRÉ À ' + S.nom.toUpperCase());
+        viderType(T); }
+      return;
+    }
+    break;
   }
-  // Les œufs partent à la boulangerie, la laine à l'usine bio : deux commerces qui
-  // existaient déjà et dont l'activité s'y prête, plutôt que deux façades de plus.
-  if(T.type === 'oeufs' && aQuai(v, BAKERY)){
-    const q = Math.min(ELEVAGE.debit*dt, T.load);
-    T.load -= q; money += q*ESPECES.poule.prixProduit; STAT.oeufs += q;
-    if(Math.random() < 0.4) puff(BAKERY.dropX, 2.6, BAKERY.dropZ, 0xF6E7B8, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint('ŒUFS LIVRÉS — ' + Math.floor(money) + ' €'); }
-    return;
-  }
-  if(MARCHE_NATURES.indexOf(T.type) >= 0 && aQuai(v, MARCHE)){
-    const q = Math.min(ELEVAGE.debit*dt, T.load);
-    const nat = T.type;
-    T.load -= q; money += q*prixMarche(nat);
-    if(nat === 'lait') STAT.lait += q; else if(nat === 'oeufs') STAT.oeufs += q;
-    else if(nat === 'laine') STAT.laine += q; else if(nat === 'huile') STAT.huile += q;
-    else STAT.pain += q;
-    if(Math.random() < 0.4) puff(MARCHE.dropX, 2.6, MARCHE.dropZ, 0xEDEFF1, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T);
-      showHint(NATURES[nat].nom.toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
-    return;
-  }
-  if(T.type === 'huile' && aQuai(v, HUILERIE)){
-    const q = Math.min(ELEVAGE.debit*dt, T.load);
-    T.load -= q; money += q*PRIX_HUILE; STAT.huile += q;
-    if(Math.random() < 0.4) puff(HUILERIE.dropX, 2.6, HUILERIE.dropZ, 0xE8C24A, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint('HUILE LIVRÉE — ' + Math.floor(money) + ' €'); }
-    return;
-  }
-  if(T.type === 'laine' && aQuai(v, AVOINE)){
-    const q = Math.min(ELEVAGE.debit*dt, T.load);
-    T.load -= q; money += q*ESPECES.mouton.prixProduit; STAT.laine += q;
-    if(Math.random() < 0.4) puff(AVOINE.dropX, 2.6, AVOINE.dropZ, 0xEDE6D6, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint('LAINE LIVRÉE — ' + Math.floor(money) + ' €'); }
-    return;
-  }
-  if(T.type === 'farine' && aQuai(v, BAKERY)){
-    const q = Math.min(debit, T.load);
-    T.load -= q; breadKg += q*0.8; money += q*PRICE_BREAD; STAT.pain += q*0.8;
-    if(BAKERY.smoke && Math.random() < 0.5)
-      puff(BAKERY.smoke.x+(Math.random()-0.5)*0.3, BAKERY.smoke.y, BAKERY.smoke.z+(Math.random()-0.5)*0.3,
-           0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
-    if(T.load <= 0.01){ viderType(T); showHint('PAIN VENDU — ' + Math.floor(money) + ' €'); }
-    return;
-  }
-  if(T.type === 'grain') for(const S of SITES){
-    if(S.prix <= 0 || !aQuai(v, S)) continue;
-    const q = Math.min(300*dt, T.load);
-    T.load -= q; money += q*S.prix; STAT.silo += q;
-    if(Math.random() < 0.4) puff(S.dropX, 2.5, S.dropZ, 0xF2E7D2, 0.4, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint(S.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'); }
+}
+// Reprendre un produit fini sur le quai d'une usine. C'est le geste symétrique du
+// versement, et il a besoin d'être appelé avant lui : sinon une benne vide garée
+// devant l'huilerie repartirait avec ce qu'elle vient d'apporter.
+function reprendreUn(m, dt){
+  const v = m.v;
+  const tool = toolOf(m);
+  const T = (tool && tool.cargo) ? tool : (v.cargo ? v.cargo : null);
+  if(!T || v.speed > 2.5 || T.load >= T.capacite - 0.01) return;
+  for(const S of SITES){
+    if(!aQuai(v, S)) continue;
+    const cle = (T.load > 0.01) ? T.type : stockASortir(S);
+    if(!cle || S.caisse || !(S.stock[cle] > 0.01) || !peutCharger(T, cle)) return;
+    const q = Math.min(340*dt, T.capacite - T.load, S.stock[cle]);
+    T.load += q; S.stock[cle] -= q; poserType(T, cle);
+    if(Math.random() < 0.3) puff(S.dropX, 2.6, S.dropZ, teinteDe(cle), 0.35, 0.3);
+    if(T.load >= T.capacite - 0.01) showHint(nomDe(cle).toUpperCase() + ' CHARGÉ');
     return;
   }
 }
 
-/* --- l'atelier tourne tout seul tant qu'il a du grain dans sa trémie --- */
-function updateAtelier(dt){
-  const R = RECETTES[HALLE.produit] || RECETTES.farine;
-  if(R.niveau > HALLE.niveau) HALLE.produit = 'farine';
-  if(HALLE.entree <= 0.01) return;
-  const place = halleStockMax() - halleStock(HALLE.produit);
-  if(place <= 0.01) return;
-  const q = Math.min(halleDebit()*dt, HALLE.entree, place/R.rendement);
-  HALLE.entree -= q;
-  halleAjoute(HALLE.produit, q*R.rendement);
-  if(HALLE.produit === 'farine') STAT.mill += q;
-  if(Math.random() < 0.12)
-    puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+/* --- les usines du bord de route tournent toutes seules --- */
+function updateUsines(dt){
+  for(const S of SITES){
+    if(S.etal !== undefined) S.reste = Math.min(S.etal, S.reste + ETAL_RECHARGE*dt);
+    if(!S.fabrique.length) continue;
+    if(S.choix === 'toutes'){
+      // Beurre et yaourt sortent ensemble de la même cuve de lait : chaque recette
+      // reçoit sa part du débit.
+      const part = S.debitKg/S.fabrique.length;
+      for(const cle of S.fabrique) fabriquerSite(S, cle, part, dt);
+    } else {
+      // Sinon on ne lance que la plus riche des recettes réalisables : c'est ce qui
+      // récompense le joueur qui apporte trois ingrédients au lieu d'un seul.
+      for(const cle of S.fabrique) if(fabriquerSite(S, cle, S.debitKg, dt) > 0) break;
+    }
+  }
 }
+function fabriquerSite(S, cle, debitKg, dt){
+  const U = {tremie:S.tremie, stock:S.caisse ? {} : S.stock, recette:cle,
+             debit:()=> debitKg, stockMax:()=> S.caisse ? Infinity : 2600};
+  const q = fabriquer(U, dt);
+  if(q > 0 && S.caisse){
+    // Boulangerie et atelier textile n'entreposent rien : ils vendent au comptoir.
+    const gain = (U.stock[cle] || 0)*prixChez(S, cle);
+    money += gain; compter(cle, (U.stock[cle] || 0));
+    if(Math.random() < 0.10 && S.smoke)
+      puff(S.smoke.x, S.smoke.y, S.smoke.z, 0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
+  }
+  if(q > 0 && Math.random() < 0.08)
+    puff(S.x, 6.0, S.z, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+  return q;
+}
+
+/* --- l'atelier de la ferme tourne tant que sa recette a de quoi travailler --- */
+function updateAtelier(dt){
+  const R = ATELIER_RECETTES.find((r)=> r.cle === HALLE.recette);
+  if(!R || R.niveau > HALLE.niveau) HALLE.recette = 'farine';
+  const q = fabriquer(HALLE, dt);
+  if(q > 0){
+    if(HALLE.recette === 'farine') STAT.mill += q;
+    if(Math.random() < 0.12)
+      puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+  }
+}
+// Ce que l'atelier accepte en ce moment : les entrées de sa recette du moment, rien
+// d'autre. Régler l'atelier sur le pressoir, c'est lui dire de ne plus prendre de blé.
+const atelierAccepte = (cle)=> !!cle && !!PRODUITS[HALLE.recette]
+  && recetteEntrees(HALLE.recette)[cle] !== undefined
+  && totalTremie(HALLE) < halleEntreeMax();
 const surQuaiAtelier = (v, r)=> HALLE.quai && prochePoint(v, HALLE.quai.x, HALLE.quai.z, r || QUAI_R);
 // Le coût du palier suivant, ou 0 si l'atelier est au maximum.
 function coutAtelier(){
@@ -5742,9 +6079,15 @@ function updateBetail(dt){
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
     v.venteT = 0; v.betail--;
-    money += (v.betailPrix || ESPECES.vache.prixBete); STAT.betes++;
-    puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xF2E7D2, 0.5, 0.4);
-    showHint('BÊTE VENDUE — ' + Math.floor(money) + ' €');
+    // La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre
+    // froide. On revient la chercher, et c'est le restaurant qui paie le mieux. Une
+    // bête donne de quoi valoir deux fois son prix de marché — c'est le palier
+    // « produit fini », gagné au prix d'une tournée de plus.
+    const kgv = (v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI/prixDe('viande');
+    BOUCHERIE.stock.viande = (BOUCHERIE.stock.viande || 0) + kgv;
+    STAT.betes++;
+    puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
+    showHint('BÊTE ABATTUE — ' + Math.round(kgv) + ' KG DE VIANDE À REPRENDRE');
   }
 }
 
@@ -5777,12 +6120,16 @@ function actionService(){
     if(c > 0 && money >= c)
       return {txt:'ATELIER — ' + ATL.PALIERS[HALLE.niveau].nom.toUpperCase() + ' ' +
                   c.toLocaleString('fr-FR') + ' €', ok:true, f:()=> ameliorerAtelier()};
-    const dispo = Object.keys(RECETTES).filter((n)=> RECETTES[n].niveau <= HALLE.niveau);
-    if(dispo.length > 1)
-      return {txt:'ATELIER PRODUIT : ' + NATURES[HALLE.produit].nom.toUpperCase(), ok:true,
-              f:()=>{ const i = dispo.indexOf(HALLE.produit);
-                      HALLE.produit = dispo[(i + 1) % dispo.length];
-                      showHint('ATELIER — ' + NATURES[HALLE.produit].nom.toUpperCase()); }};
+    const dispo = ATELIER_RECETTES.filter((r)=> r.niveau <= HALLE.niveau);
+    if(dispo.length > 1){
+      const i = dispo.findIndex((r)=> r.cle === HALLE.recette);
+      const suiv = dispo[(i + 1) % dispo.length];
+      return {txt:'ATELIER : ' + PRODUITS[HALLE.recette].nom.toUpperCase() +
+                  ' → ' + suiv.module.toUpperCase(), ok:true,
+              f:()=>{ HALLE.recette = suiv.cle;
+                      showHint('ATELIER — ' + suiv.module.toUpperCase() + ', ' +
+                               PRODUITS[suiv.cle].nom.toUpperCase()); }};
+    }
     if(c > 0)
       return {txt:'ATELIER : IL MANQUE ' + Math.ceil(c - money).toLocaleString('fr-FR') + ' €',
               ok:false};
@@ -5862,7 +6209,8 @@ function refreshJauges(){
 /* ---------- 25. NOUVEAUX ONGLETS DE LA BOUTIQUE ---------- */
 // Le panneau existant sait déjà dessiner des lignes d'article : on lui ajoute
 // trois rayons plutôt que d'inventer une deuxième interface.
-ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'});
+ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'},
+                     {id:'filieres', nom:'Filières'});
 ONGLETS[ONGLETS.length-1] = {id:'reglages', nom:'Réglages'};
 
 const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
@@ -5968,16 +6316,77 @@ function ongletElevage(){
       plein ? 'Enclos plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ()=>{ if(acheterBete(P)) showHint('UNE BÊTE DE PLUS AU PRÉ'); });
   });
-  titre('Qui achète quoi');
+  titre('Où mène chaque produit');
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">' +
-    'Laiterie : ' + dec(ESPECES.vache.prixProduit) + ' € le kg de lait.<br>' +
-    'Boulangerie : ' + dec(ESPECES.poule.prixProduit) + ' € le kg d\'œufs.<br>' +
-    'Usine d\'avoine : ' + dec(ESPECES.mouton.prixProduit) + ' € le kg de laine.<br>' +
-    'Boucherie : la bête adulte, au tarif de son espèce.<br><br>' +
+    'Lait : la laiterie en fait du beurre et du yaourt, la fromagerie du fromage. ' +
+    'Il se vend aussi tel quel au marché, au supermarché et au restaurant.<br>' +
+    'Œufs : ingrédient de la boulangerie, ou vente directe.<br>' +
+    'Laine : l\'atelier textile la file et vend lui-même ses pièces.<br>' +
+    'Bêtes : la boucherie les abat et garde la viande en chambre froide — on revient ' +
+    'la charger, et c\'est le restaurant qui la paie le mieux.<br><br>' +
     'Une caisse ne transporte qu\'une seule nature à la fois, et ne prend des bêtes ' +
-    'que si elle est vide.</div></div>';
+    'que si elle est vide. L\'onglet Filières donne le détail de toute la chaîne.' +
+    '</div></div>';
   pliste.appendChild(d);
+}
+
+/* ---------- L'ONGLET FILIÈRES : LA CHAÎNE, EN ENTIER, SUR UN ÉCRAN ---------- */
+/* Rien ici ne décide de quoi que ce soit : tout est relu dans les tables des produits
+   et du négoce. Une recette ajoutée là-bas apparaît ici toute seule, avec son prix
+   déjà calculé — c'est la seule façon d'être sûr que ce qui est affiché est ce qui
+   sera payé. */
+function ongletFilieres(){
+  const flecheur = (cle)=>{
+    const P = PRODUITS[cle];
+    if(!P.de) return '';
+    const ent = recetteEntrees(cle);
+    const noms = Object.keys(ent).map((k)=> PRODUITS[k].nom);
+    return (P.libre ? noms.join(' ou ') : noms.join(' + ')) + ' → ';
+  };
+  const acheteurs = (cle)=> SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
+    .sort((A, B)=> B.coef - A.coef)
+    .map((S)=> S.nom + ' ' + dec(prixChez(S, cle)))
+    .join(' · ');
+
+  titre('Ce qui sort de la terre et de la bête');
+  for(const cle of ['ble','mais','orge','avoine','colza','raisin','olives','lait','oeufs','laine']){
+    const P = PRODUITS[cle];
+    const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
+      && recetteEntrees(k)[cle] !== undefined).map((k)=> PRODUITS[k].nom);
+    article(parseInt(P.couleur.slice(1), 16), P.nom,
+      dec(prixDe(cle)) + ' € le kg brut<br>' +
+      (acheteurs(cle) ? 'Vente directe : ' + acheteurs(cle) + '<br>' : 'Aucune vente directe<br>') +
+      (suites.length ? 'Se transforme en : ' + suites.join(', ') : 'Ne se transforme pas'),
+      'Brut', 'no', null);
+  }
+
+  titre('L\'atelier de la ferme');
+  for(const R of ATELIER_RECETTES){
+    const dispo = R.niveau <= HALLE.niveau;
+    article(parseInt(PRODUITS[R.cle].couleur.slice(1), 16), R.module,
+      flecheur(R.cle) + PRODUITS[R.cle].nom + ' · ' + dec(prixDe(R.cle)) + ' € le kg<br>' +
+      'Rendement ' + Math.round(PRODUITS[R.cle].rendement*100) + ' % · ' +
+      dec(rendementValeur(R.cle)) + ' € par kg engagé',
+      dispo ? (HALLE.recette === R.cle ? 'En cours' : 'Niveau ' + R.niveau)
+            : 'Niveau ' + R.niveau + ' requis',
+      dispo ? 'ok' : 'no', null);
+  }
+
+  titre('Les usines et les commerces');
+  for(const S of SITES){
+    if(!S.fabrique.length && !S.achete.length) continue;
+    const l = [];
+    for(const cle of S.fabrique)
+      l.push((S.caisse ? 'Cuisine : ' : 'Transforme : ') + flecheur(cle) + PRODUITS[cle].nom +
+             ' (' + dec(rendementValeur(cle)*(S.coef || 1)) + ' € par kg apporté)');
+    if(S.abattoir) l.push('Abat les bêtes et rend la viande à charger');
+    if(S.achete.length)
+      l.push('Achète : ' + S.achete.map((k)=> PRODUITS[k].nom).join(', ') +
+             (S.coef !== 1 ? ' — au barème ' + Math.round(S.coef*100) + ' %' : ''));
+    if(S.etal !== undefined) l.push('Étal limité : ' + kg(S.reste) + ' de place');
+    article(S.toit, S.nom, l.join('<br>'), 'Fiche', 'no', null);
+  }
 }
 
 function ongletReglages(){
@@ -6018,9 +6427,9 @@ function ongletReglages(){
   d2.innerHTML = '<div class="txt"><div class="det">' +
     'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
     ' · dont ' + PATURES.length + ' en pâture<br>' +
-    'Silo : ' + kg(siloKg) + ' · farine ' + kg(flourKg) + '<br>' +
+    'Silo : ' + kg(siloTotal()) + '<br>' +
     'Atelier niveau ' + HALLE.niveau + ' — ' + ATL.PALIERS[HALLE.niveau-1].nom +
-    ' · trémie ' + kg(HALLE.entree) + '<br>' +
+    ' · trémie ' + kg(totalTremie(HALLE)) + '<br>' +
     'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
     'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
     '</div></div>';
@@ -6044,7 +6453,7 @@ function rendrePanneau(){
   }
   pliste.innerHTML = '';
   ({engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
-    comptoir:ongletComptoir, elevage:ongletElevage,
+    comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
 }
 
@@ -6206,12 +6615,19 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
 function etatJeu(){
   return {
     v: 1, quand: Date.now(),
-    money, siloKg, hopper, hopMult, delivered, flourKg, breadKg,
+    money, hopper, hopCrop, delivered, breadKg,
+    silo: Object.assign({}, siloStock),
+    // Ce que les usines du bord de route ont en trémie et sur leur quai : sans ça, une
+    // benne d'olives versée à l'huilerie s'évaporerait au rechargement de la partie.
+    negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
+                              stock: Object.assign({}, S.stock),
+                              reste: S.reste})),
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
-    halle: {niveau: HALLE.niveau, entree: HALLE.entree, aliment: HALLE.aliment,
-            huile: HALLE.huile, produit: HALLE.produit},
+    halle: {niveau: HALLE.niveau, recette: HALLE.recette,
+            tremie: Object.assign({}, HALLE.tremie),
+            stock: Object.assign({}, HALLE.stock)},
     stock: {semence: STOCK.semence, engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
@@ -6344,16 +6760,39 @@ function chargerPartie(S){
     repeindreSol();
 
     // 4. l'exploitation
-    money = S.money; siloKg = S.siloKg; hopper = S.hopper; hopMult = S.hopMult;
-    delivered = S.delivered; flourKg = S.flourKg; breadKg = S.breadKg;
+    money = S.money; hopper = S.hopper; delivered = S.delivered; breadKg = S.breadKg;
+    // Le silo était un tas unique de « grain » avant la chaîne de production : une
+    // vieille partie retrouve son tas versé en blé, la céréale de départ.
+    for(const k of SILO_CLES) siloStock[k] = (S.silo && S.silo[k]) || 0;
+    if(!S.silo && S.siloKg) siloStock.ble = S.siloKg;
+    hopCrop = (S.hopCrop !== undefined && CROPS[S.hopCrop]) ? S.hopCrop : 0;
+    // Les trémies et les quais des usines. Une sauvegarde d'avant la chaîne n'en a
+    // pas : les commerces repartent à vide, ce qui est leur état de départ.
+    SITES.forEach((St, i)=>{
+      const N = S.negoce && S.negoce[i];
+      St.tremie = (N && N.tremie) ? Object.assign({}, N.tremie) : {};
+      St.stock  = (N && N.stock)  ? Object.assign({}, N.stock)  : {};
+      if(St.etal !== undefined) St.reste = (N && N.reste !== undefined) ? N.reste : St.etal;
+    });
     Object.assign(STAT, S.STAT); etape = S.etape; fini = !!S.fini;
     JOUR.heure = S.jour.heure; JOUR.jours = S.jour.jours; JOUR.sec = S.jour.sec;
     CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
     // `halle` est absent des sauvegardes d'avant l'atelier : elles repartent au niveau 1.
     if(S.halle){
-      HALLE.niveau = S.halle.niveau || 1; HALLE.entree = S.halle.entree || 0;
-      HALLE.aliment = S.halle.aliment || 0; HALLE.huile = S.halle.huile || 0;
-      HALLE.produit = RECETTES[S.halle.produit] ? S.halle.produit : 'farine';
+      HALLE.niveau = S.halle.niveau || 1;
+      // Avant la chaîne, l'atelier n'avait qu'une entrée indifférenciée et trois
+      // recettes. Le contenu de l'ancienne trémie retombe sur l'entrée de la recette
+      // en cours, et un produit disparu retombe sur la farine.
+      HALLE.tremie = Object.assign({}, S.halle.tremie || {});
+      HALLE.stock  = Object.assign({}, S.halle.stock  || {});
+      const anc = S.halle.produit;
+      HALLE.recette = ATELIER_RECETTES.some((r)=> r.cle === (S.halle.recette || anc))
+                      ? (S.halle.recette || anc) : 'farine';
+      if(S.halle.entree) HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] =
+                         (HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] || 0) + S.halle.entree;
+      if(S.flourKg) HALLE.stock.farine = (HALLE.stock.farine || 0) + S.flourKg;
+      if(S.halle.aliment) HALLE.stock.aliment = (HALLE.stock.aliment || 0) + S.halle.aliment;
+      if(S.halle.huile)   HALLE.stock.huile   = (HALLE.stock.huile   || 0) + S.halle.huile;
       poserAtelier();
     }
     if(CARBU.cuveMax > 0) poserCuve();
@@ -6468,8 +6907,8 @@ ETAPES.length = 0;
 ETAPES.push(
   {txt:'Récolter et livrer 1 000 kg',          test:()=> delivered >= 1000,  prog:()=> delivered/1000},
   {txt:'Acheter une deuxième parcelle',        test:()=> nbParcelles() >= 2, prog:()=> money/4000},
-  {txt:'Moudre 360 kg de farine à l\'atelier', test:()=> flourKg + STAT.pain >= 360,
-                                               prog:()=> (flourKg + STAT.pain)/360},
+  {txt:'Moudre 360 kg de farine à l\'atelier', test:()=> STAT.mill >= 360,
+                                               prog:()=> STAT.mill/360},
   {txt:'Vendre 300 kg de pain',                test:()=> STAT.pain >= 300,   prog:()=> STAT.pain/300},
   {txt:'Étendre la ferme à 4 parcelles',       test:()=> nbParcelles() >= 4, prog:()=> (nbParcelles()-2)/2},
   {txt:'Aménager une pâture et acheter une bête',
@@ -6620,6 +7059,7 @@ function loop(now){
       usineT = 0.5 + Math.random()*0.3;
     }
     updateAtelier(dt);
+    updateUsines(dt);
     updateTrafic(dt);
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
