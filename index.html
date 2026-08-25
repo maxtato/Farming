@@ -3957,6 +3957,17 @@ const STATION  = SITES.find(S=>S.pompes);
 const COMPTOIR = SITES.find(S=>S.fournisseur);
 const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
 const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
+// Le comptoir n'a rien à vendre quand la bourse est vide et les bacs pleins : son
+// anneau doit alors s'éteindre comme les autres. On reprend exactement les conditions
+// qui rendent une ligne cliquable dans ongletComptoir(), sur le plus petit lot de
+// chaque rayon — si même celui-là est hors de portée, il n'y a rien à faire ici.
+function comptoirServable(){
+  const place = (c)=> STOCK.max - STOCK[c] >= 1;
+  if(place('semence') && money >= 250*STOCK.prixSemence) return true;
+  if(place('engrais') && money >= 250*STOCK.prixEngrais) return true;
+  if(CARBU.cuveMax <= 0) return money >= CARBU.cuvePrix;
+  return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
+}
 (function poserServices(){
   const ecart = FRONT - 1.5;
   for(const S of [STATION, COMPTOIR, LAITERIE, BOUCHERIE]){
@@ -3967,13 +3978,14 @@ const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
     S.service = true;
     // Chacun sa condition, calquée sur la fonction qui déclenche vraiment :
     //   station   — updatePlein() puis remplir(), qui refuse si la caisse est vide ;
-    //   comptoir  — il ouvre toujours, c'est sa seule et unique fonction ;
+    //   comptoir  — au moins une ligne de sa boutique doit être achetable, sinon s'y
+    //               arrêter n'offre qu'un rayon de boutons grisés ;
     //   laiterie  — cargoUn() ne prend que du lait ;
     //   boucherie — updateBetail() ne regarde que les bêtes à bord.
     anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
       const v = MACHINES[cur].v;
       if(S === STATION)   return v.fuel < v.resMax - 0.05 && money > 0;
-      if(S === COMPTOIR)  return true;
+      if(S === COMPTOIR)  return comptoirServable();
       if(S === LAITERIE)  return porte(caisseDe(MACHINES[cur]), 'lait');
       return (v.betail || 0) > 0;
     });
@@ -4157,7 +4169,7 @@ function creerPature(p){
   anneauAction(P.quaiTank.x, P.quaiTank.z, 0.7,
     ()=> peutPrendre(caisseDe(MACHINES[cur]), 'lait', P.lait));
   anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
-    ()=> porte(caisseDe(MACHINES[cur]), 'grain') && P.grain < P.grainMax - 0.01);
+    ()=> porte(caisseDe(MACHINES[cur]), 'grain') && P.grain < P.grainMax);
   anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
     const m = MACHINES[cur], cap = capaciteBetail(m);
     return cap > 0 && vachesAdultes(P) > 0 && (m.v.betail || 0) < cap;
