@@ -520,6 +520,8 @@ for(const c of P_COLS) for(const r of P_ROWS){
   if(c.x === -54.6 && r.z === 54.6) continue;      // case de la maison
   if(c.x === -20   && r.z === 54.6) continue;      // case de la cour
   if(c.x ===  20   && r.z === 54.6) continue;      // case du garage
+  if(c.x ===  60   && r.z === 54.6) continue;      // cour de transformation, silo
+  if(c.x ===  94.6 && r.z === 54.6) continue;      // cour de transformation, atelier
   PARCELS.push({x:c.x, z:r.z, w:c.w, h:r.h, owned:(c.x === -20 && r.z === 20), decor:[], sign:null});
 }
 // Prix croissant avec l'éloignement de la parcelle de départ : on s'étend de proche
@@ -564,7 +566,31 @@ const FRONT = 82;
 const FRONT_E = FRONT + 40;
 const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de la boulangerie
 // Point de déversement : la grille au sol sur le chemin, sous la goulotte du silo.
-const SILO = {x:-40, z:48.5, r:4.5};
+// La cour de transformation. Les deux cases de la rangée sud à l'est du garage ne
+// font plus qu'une seule dalle de bitume : le chemin de sable qui les séparait a été
+// déposé, comme il l'avait été entre la cour et le garage. Le silo y a déménagé — il
+// était contre la maison, il est maintenant au bout de la chaîne, à côté de l'atelier
+// qui moud son grain.
+const HALLE_YARD = {x0: PATHS_V[2] + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
+const SILO_TOUR = {x: 52, z: 50};
+const SILO = {x: 59, z: 50, r: 4.5};      // la grille de déversement, sous la goulotte
+const HALLE = {x: 84, z: 50, niveau: 1, entree: 0, aliment: 0, huile: 0, produit: 'farine'};
+// Ce que chaque produit tire d'un kilo de grain, et à partir de quel niveau. La farine
+// reprend exactement le rendement de l'ancien moulin : 0,72. L'huile rend peu mais se
+// vend cher, l'aliment rend beaucoup et ne se vend pas — il se donne aux bêtes.
+const RECETTES = {
+  farine:  {niveau:1, rendement:0.72, nom:'Farine'},
+  aliment: {niveau:2, rendement:0.86, nom:'Aliment'},
+  huile:   {niveau:3, rendement:0.34, nom:'Huile'}
+};
+const PRIX_HUILE = 1.45;                       // le kg d'huile, à l'huilerie
+// Capacités et débit : c'est là que se voient les niveaux 4 et 5.
+const halleEntreeMax = ()=> 900 + HALLE.niveau*700;
+const halleStockMax  = ()=> 700 + HALLE.niveau*500;
+const halleDebit     = ()=> 12 + HALLE.niveau*7;      // kg de grain moulus par seconde
+const halleStock = (n)=> n === 'farine' ? flourKg : HALLE[n];
+function halleAjoute(n, q){ if(n === 'farine') flourKg += q; else HALLE[n] += q; }
+function halleRetire(n, q){ if(n === 'farine') flourKg -= q; else HALLE[n] -= q; }
 const SITES = [
   // `bat` et `park` : position du bâtiment et de sa dalle le long de la bande. Tout
   // l'ensemble doit tenir entre les deux routes perpendiculaires, soit ±66.
@@ -572,8 +598,13 @@ const SITES = [
    w:13.0, d:9.5,  pw:13, ph:13, toit:0x7A4A2E, mur:0xE8D6BC, cuves:3},
   {nom:'Atelier', enseigne:'logo3d', picto:'cle',        dir:'W', bat:-29, park:-10, style:'usine',   crop:-1, prix:0, atelier:true, cloture:'grillage',
    w:13.0, d:10.0, pw:19, ph:26, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true},
-  {nom:'Moulin', enseigne:'potence', picto:'epi',         dir:'W', bat: 10, park: 21, style:'artisan', crop:0, prix:0.38, farine:0.72, cloture:'trottoir',
-   w:10.0, d:8.5,  pw:11, ph:11, toit:0x8A4A32, mur:0xE6DAC4, ailes:true},
+  // Le moulin a fermé : sa fonction est passée à l'atelier de la ferme, où l'on
+  // moud son propre blé. Un supermarché occupe la parcelle, et c'est le débouché
+  // commode pour tout ce qui sort transformé — il paie un peu moins que le
+  // spécialiste, mais il prend tout, et il est sur la route de la ferme.
+  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'W', bat: 10, park: 21, style:'boutique', crop:-1, prix:0, cloture:'trottoir',
+   w:17.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6, vitrine:true, supermarche:true,
+   propose:[{nom:'Rachète', prix:'tout produit fini'}]},
   {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'W', bat: 38, park: 55, style:'usine',   crop:0, prix:0.46, cloture:'grillage',
    w:16.0, d:12.0, pw:16, ph:15, toit:0x4A6B8A, mur:0xDCE2E8, silos:3, chem:true, tuyaux:true},
   {nom:'Huilerie', enseigne:'totem', picto:'goutte',       dir:'N', bat:-54, park:-39, style:'usine',   crop:2, prix:0.58, cloture:'muret',
@@ -588,11 +619,14 @@ const SITES = [
    w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2, fournisseur:true,
    enseigne:'totem', picto:'graine',
    vend:[{nom:'Semences', prix:'0,35 € / kg'}, {nom:'Engrais', prix:'0,50 € / kg'}]},
-  // Bord est : les commerces liés à l'élevage, et la station-service.
-  {nom:'Station-service', dir:'E', bat:-52, park:-36, style:'usine', crop:-1, prix:0, cloture:'trottoir',
-   w:11.0, d:8.0, pw:15, ph:14, toit:0xD8443A, mur:0xF2EAD8, pompes:true,
-   enseigne:'totem', picto:'goutte',
-   vend:[{nom:'Gazole', prix:'1,85 € / L'}, {nom:'Adblue', prix:'0,90 € / L'}]},
+  // Bord est : les commerces liés à l'élevage, et la coopérative.
+  // La station-service a fermé avec le moulin. Le gazole ne s'achète plus qu'en gros,
+  // livré à la cuve de la ferme : c'est la coopérative qui l'expédie.
+  {nom:'Coopérative', dir:'E', bat:-52, park:-36, style:'usine', crop:0, prix:0.50, cloture:'grillage',
+   w:15.0, d:10.0, pw:15, ph:14, toit:0x2F7D46, mur:0xE8EFE4, silos:3, chem:true, coop:true,
+   enseigne:'totem', picto:'epi',
+   vend:[{nom:'Gazole en gros', prix:'1,48 € / L, livré'}],
+   propose:[{nom:'Rachète', prix:'toute récolte'}]},
   {nom:'Laiterie', dir:'E', bat:-10, park: 6, style:'usine', crop:-1, prix:0, cloture:'grillage',
    w:15.0, d:11.0, pw:15, ph:14, toit:0x4E7FA8, mur:0xF0F4F6, silos:3, chem:true,
    enseigne:'facade', picto:'goutte', demande:'Lait — prévoir des pâtures'},
@@ -635,9 +669,11 @@ for(const S of SITES){
 // et 6,5 m côté service, pour un anneau dessiné à 4,4 : trois valeurs pour une seule
 // forme. Maintenant que l'anneau est posé sur la dalle, une seule suffit.
 const QUAI_R = 6.5;
-const MILL    = SITES[2];
-const ATELIER = SITES[1];
-const BAKERY  = SITES[6];
+// Repérés par leur nom et non plus par leur rang : le tableau a déjà changé deux
+// fois de composition, et un indice en dur y survit mal.
+const ATELIER = SITES.find(S=>S.atelier);
+const BAKERY  = SITES.find(S=>S.nom === 'Boulangerie');
+const MARCHE  = SITES.find(S=>S.supermarche);
 // La rocade est un anneau : un point est sur la chaussée si l'une de ses deux
 // coordonnées longe l'un des quatre brins. Un seul test, appliqué partout.
 function surRoute(x, z, m){
@@ -745,7 +781,11 @@ function paintStaticGround(){
     // garage ne font qu'une seule aire de bitume. Traverser une bande de sable de
     // 6 m entre deux parkings n'avait aucun sens, et on la franchissait à chaque
     // passage de l'un à l'autre.
-    if(px === 0) path(px, (COUR_Z0 - REACH)/2, REACH + COUR_Z0, true);
+    // Les chemins de 0 et de 80 s'arrêtent au bord nord des dalles : au-delà, cour,
+    // garage et cour de transformation ne font qu'une seule aire de bitume. Traverser
+    // une bande de sable de 6 m entre deux parkings n'a aucun sens, et on la franchit
+    // à chaque passage de l'un à l'autre.
+    if(px === 0 || px === 80) path(px, (COUR_Z0 - REACH)/2, REACH + COUR_Z0, true);
     else path(px, 0, REACH*2, true);
   }
   for(const pz of PATHS_H) path((XA+XB)/2, pz, XB - XA, false);
@@ -770,6 +810,22 @@ function paintStaticGround(){
   // Le marquage des places n'est plus tracé ici : la cour et le garage ne forment
   // qu'un seul parking, dessiné d'une seule trame par `marquageParking()`, une fois
   // les deux dalles posées.
+
+  // Cour de transformation : une seule dalle sur les deux anciennes cases, sans la
+  // bande de sable qui les coupait en deux. Même bitume et même grain que le parking,
+  // pour que la ferme se lise d'un bout à l'autre comme un même sol de travail.
+  const HY = HALLE_YARD, HW = HY.x1 - HY.x0, HD = HY.z1 - HY.z0;
+  fillRect((HY.x0+HY.x1)/2, (HY.z0+HY.z1)/2, HW, HD, '#5C6367', AX);
+  for(let k=0, n=Math.round(HW*HD/18); k<n; k++)
+    fillRect(HY.x0 + Math.random()*HW, HY.z0 + Math.random()*HD,
+      0.5+Math.random()*1.4, 0.4+Math.random()*0.9,
+      Math.random() < 0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
+  // Une allée de circulation le long du bord sud, pour dire par où l'on entre et sort.
+  const LWH = 4/PPU, snapH = (v)=> Math.round(v*PPU)/PPU;
+  worldDraw(HY.x0, HY.z1-8, HY.x1, HY.z1, (c)=>{
+    c.fillStyle = '#E2E6E8';
+    c.fillRect(snapH(HY.x0+2), snapH(HY.z1-3.4), snapH(HW-4), LWH);
+  });
 }
 
 /* ---------- 7. PEINTURES DE TRAVAIL ---------- */
@@ -1743,8 +1799,8 @@ function buildCommerce(S){
     anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
       const m = MACHINES[cur], T = caisseDe(m);
       if(S === BAKERY) return porte(T, 'farine') || porte(T, 'oeufs');
-      if(S === MILL && peutPrendre(T, 'farine', flourKg)) return true;
-      if(S === BIO && porte(T, 'laine')) return true;
+      if(S === BIO) return porte(T, 'laine') || porte(T, 'huile') ||
+                           tremiePleine(m) || porte(T, 'grain');
       return tremiePleine(m) || porte(T, 'grain');
     });
   } else { S.dropX = S.x; S.dropZ = S.z; }
@@ -1775,10 +1831,11 @@ function buildFarm(){
   const COUR = 42;                     // demi-largeur de la façade ferme + garage
   fenceRun(false, -F, -F, FE, PATHS_V, GAP);  // bord nord, jusqu'à la rocade est
   fenceLine(-F, F, -COUR, F);                 // bord sud, à l'ouest de la cour
-  // Bord sud, du garage à la rocade est. C'était une ligne continue tant qu'aucun
-  // chemin ne débouchait de ce côté ; celui de x = 80 en réclame une trouée, sinon la
-  // cinquième colonne n'a pas de sortie au sud.
-  fenceRun(false, F, COUR, FE, PATHS_V, GAP);
+  // À l'est de la cour, plus rien : la cour, le garage et la cour de transformation
+  // occupent maintenant toute la façade sud jusqu'à x = 104. C'est là qu'on manœuvre
+  // le plus, et une clôture plantée en travers d'une dalle de bitume n'apporterait
+  // qu'un obstacle à contourner. Il ne restait de toute façon que deux mètres entre
+  // le bout de la dalle et la rocade est.
   fenceRun(true,  -F, -F, F, PATHS_H, GAP);   // bord ouest
   fenceRun(true,  FE, -F, F, PATHS_H, GAP);   // bord est
 
@@ -1786,33 +1843,37 @@ function buildFarm(){
   const LP = ROAD_C - ROAD_W/2 - 2.0, LPE = ROAD_E - ROAD_W/2 - 2.0;
   // un mât planté dans un débouché de chemin bloquerait le passage : on saute ces positions
   const clearOfPath = (x,z)=> !onPath(x, z, 6.5);
+  // Route sud : rien devant la ferme. La cour, le garage et la cour de transformation
+  // occupent la façade de -42 à 104, et un mât planté sur une dalle de manœuvre ne
+  // serait qu'un obstacle de plus à contourner.
+  const devantLaFerme = (x)=> Math.abs(x) <= COUR ||
+                              (x >= HALLE_YARD.x0 - 2 && x <= HALLE_YARD.x1 + 2);
   for(let t=-60; t<=100; t+=20){
     if(clearOfPath(t, -LP)) addLamp( t, -LP, 0);                  // route nord
-    // route sud : rien devant la cour ni le garage, pour les mêmes raisons
-    if((t < -COUR || t > COUR) && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
+    if(!devantLaFerme(t) && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
   }
   for(let t=-60; t<=60; t+=20){
     if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);          // route ouest
     if(clearOfPath( LPE, t)) addLamp( LPE, t, -Math.PI/2);        // route est
   }
 
-  // Silo repoussé au coin du parking, contre le chemin de sable. Un gros tuyau part de
-  // son sommet et surplombe la voie : on se gare sur la grille, en dessous, pour vider
-  // sa trémie ou pour recharger une benne.
+  // Le silo se dresse au bout de la cour de transformation, à côté de l'atelier qui
+  // moud son grain. Un gros tuyau part de son sommet et surplombe la voie : on se gare
+  // sur la grille, en dessous, pour vider sa trémie ou pour recharger une benne.
   const silo = new THREE.Group();
   silo.add(cyl(3.2,3.2,9.5,10,C.cream,0,4.75,0));
   silo.add(cyl(0.15,3.5,2.6,10,C.orange,0,10.6,0));
   for(let k=1;k<4;k++) silo.add(cyl(3.3,3.3,0.2,10,0xE7B98A,0,k*2.4,0));
-  silo.position.set(-47,0,48.5);
+  silo.position.set(SILO_TOUR.x,0,SILO_TOUR.z);
   scene.add(silo);
-  obstacles.push({x:-47,z:48.5,r:3.3});
+  obstacles.push({x:SILO_TOUR.x,z:SILO_TOUR.z,r:3.3});
 
   // tuyau de chargement, du silo jusqu'au-dessus du chemin
   const tuyau = new THREE.Group();
   tuyau.add(cyl(0.62,0.62,8.2,10, 0xB9BFC4, 0,0,0, 0,0,Math.PI/2));
   tuyau.add(cyl(0.75,0.75,0.5,10, 0x8A9298, -3.6,0,0, 0,0,Math.PI/2));
   tuyau.add(cyl(0.9,0.62,1.5,10, 0xE8B44A, 4.0,-0.7,0));           // goulotte de sortie
-  tuyau.position.set(-43.4, 7.6, 48.5);
+  tuyau.position.set(SILO_TOUR.x + 3.6, 7.6, SILO_TOUR.z);
   scene.add(tuyau);
   tuyau.add(box(0.3,2.2,0.3, 0x8A9298, 3.2,-1.6,0));               // haubans
   tuyau.add(box(0.3,2.2,0.3, 0x8A9298, 0.6,-1.6,0));
@@ -2050,6 +2111,169 @@ function buildFarm(){
   putBush(-50.5, 50.5, Math.random);
 
   marquageParking();     // en dernier : les deux dalles doivent être posées
+  poserAtelier();
+}
+
+/* ---------- L'ATELIER DE LA FERME, EN CINQ NIVEAUX ----------
+   Le moulin du bord de route a fermé : c'est ici qu'on moud son propre blé. Chaque
+   niveau AJOUTE un module sans jamais redessiner le bâtiment, et le volume principal
+   grandit à chaque fois — la progression se lit de loin, d'un seul coup d'œil.
+
+     1  moulin                blé -> farine
+     2  alimentation animale  céréales -> aliment, plus nourrissant que le grain brut
+     3  pressoir              colza -> huile
+     4  stockage              la cour tient plus de marchandise, et le débit monte
+     5  version complète      étage technique, auvent de quai, aire logistique rangée */
+const ATL = {
+  // Palette agricole sobre, reprise du bâti existant.
+  BARDAGE:0xD6DDE2, VERT:0x3E6B4E, BETON:0x9BA3A8, BETON2:0x848C91,
+  METAL:0xC9CFD3, SOMBRE:0x2E3438, BOIS:0x8A6A3A, BOIS2:0x6B4E24, ENDUIT:0xEFE4CE,
+  ARDOISE:0x4A5359, BLE:0xE8C24A,
+  // Prix des paliers, et ce que chacun débloque.
+  PALIERS: [
+    {prix:0,      nom:'Moulin',               det:'Le blé devient farine'},
+    {prix:14000,  nom:'Alimentation animale', det:'Les céréales deviennent de l\'aliment'},
+    {prix:26000,  nom:'Pressoir',             det:'Le colza devient de l\'huile'},
+    {prix:42000,  nom:'Stockage',             det:'Plus de cuves, plus de débit'},
+    {prix:68000,  nom:'Version complète',     det:'Étage technique et auvent de quai'}
+  ]
+};
+// dalle de chargement : béton, bordure et marquage
+function quaiBeton(x, z, w, d){
+  const g = new THREE.Group();
+  g.add(box(w, 0.16, d, ATL.BETON, 0, 0.08, 0));
+  g.add(box(w + 0.3, 0.1, d + 0.3, ATL.BETON2, 0, 0.03, 0));
+  for(let k = -1; k <= 1; k++)
+    g.add(box(0.14, 0.04, d*0.72, 0xF0F2F3, k*w*0.28, 0.18, 0));
+  g.position.set(x, 0, z);
+  return g;
+}
+function palettes(g, x, z, n, c){
+  for(let k = 0; k < n; k++){
+    g.add(box(1.2, 0.12, 0.9, ATL.BOIS, x, 0.24 + k*0.42, z));
+    g.add(box(1.0, 0.3, 0.75, c, x, 0.45 + k*0.42, z));
+  }
+}
+function sacsEmpiles(g, x, z, n){
+  for(let k = 0; k < n; k++)
+    g.add(box(0.5, 0.26, 0.36, 0xE8DCC0,
+      x + (k % 2)*0.55, 0.13 + Math.floor(k/2)*0.26, z + (k % 3)*0.1));
+}
+function tremieAtl(g, x, z, r, h, c){
+  g.add(cyl(r, r, h, 10, c || ATL.METAL, x, h/2 + 1.2, z));
+  g.add(cyl(r, r*0.35, 1.2, 10, c || ATL.METAL, x, 0.6, z));
+  g.add(cyl(r*1.08, r*1.08, 0.2, 10, 0xA8B0B5, x, h + 1.2, z));
+  for(const a of [0.7, 2.1, 3.5, 4.9])
+    g.add(box(0.14, 1.2, 0.14, 0x8A9298, x + Math.cos(a)*r, 0.6, z + Math.sin(a)*r));
+}
+function cuveAtl(g, x, z, r, h){
+  g.add(cyl(r, r, h, 12, ATL.METAL, x, h/2 + 0.3, z));
+  g.add(cyl(r*1.06, r*1.06, 0.16, 12, 0x8A9298, x, h + 0.3, z));
+  g.add(cyl(r*0.3, r*0.3, 0.5, 8, 0x8A9298, x, h + 0.6, z));
+  g.add(box(r*2.2, 0.3, r*2.2, ATL.BETON2, x, 0.15, z));
+}
+function enseigneAtl(g, x, z, c, ry){
+  const e = new THREE.Group();
+  e.add(box(0.16, 2.2, 0.16, ATL.BOIS2, 0, 1.1, 0));
+  e.add(box(1.9, 0.8, 0.14, ATL.ENDUIT, 0, 2.1, 0));
+  e.add(box(1.6, 0.5, 0.16, c, 0, 2.1, 0.02));
+  e.position.set(x, 0, z); if(ry) e.rotation.y = ry;
+  g.add(e);
+}
+// Construit la halle au niveau demandé. Tout est dans un seul groupe : monter d'un
+// niveau, c'est jeter ce groupe et en rebâtir un — le bâtiment n'a pas d'état.
+function modeleAtelier(niveau){
+  const g = new THREE.Group();
+  const W = 9.4 + niveau*0.8, D = 6.6 + niveau*0.3, H = 3.9 + niveau*0.42;
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:ATL.BARDAGE, y:0}));
+  g.add(slab({w:W + 0.6, h:0.5, d:D + 0.6, tw:W + 0.1, td:D + 0.1, c:ATL.VERT, y:H}));
+  for(let k = -3; k <= 3; k++)
+    g.add(box(0.12, H*0.9, 0.1, 0xC2CAD0, k*W*0.13, H*0.45, D/2 + 0.03));
+  g.add(box(W*0.30, H*0.6, 0.26, ATL.SOMBRE, -W*0.24, H*0.30, D/2 + 0.05));   // porte de quai
+  for(let k = 0; k < 3; k++)
+    g.add(box(W*0.26, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.17 + k*0.16, D/2 + 0.18));
+  g.add(box(1.6, 1.2, 0.16, 0xCBD2D6, W*0.22, H*0.62, D/2 + 0.03));
+  g.add(box(1.35, 1.0, 0.2, 0x44647A, W*0.22, H*0.62, D/2 + 0.07));
+  g.add(quaiBeton(0, D/2 + 4.0, 7 + niveau*0.9, 4.6 + niveau*0.2));
+  sacsEmpiles(g, -W*0.24, D/2 + 1.6, 4);
+  palettes(g, W*0.1, D/2 + 3.2, Math.min(3, niveau), 0xEDE3CC);
+  tremieAtl(g, -W/2 - 1.6, -1.0, 1.0, 3.0 + niveau*0.25);            // trémie à céréales
+
+  if(niveau >= 2){                        // alimentation animale : deuxième trémie et mélangeur
+    tremieAtl(g, -W/2 - 1.6, 1.8, 0.85, 2.4 + niveau*0.2, 0xD8B24A);
+    g.add(box(1.6, 1.4, 1.6, 0x8A9298, -W/2 - 1.6, 0.7, 4.0));
+    g.add(cyl(0.5, 0.5, 1.8, 10, ATL.METAL, -W/2 - 1.6, 2.3, 4.0));
+    g.add(box(0.3, 0.3, 3.0, 0x8A9298, -W/2 - 1.6, 3.4, 0.4));       // convoyeur
+    g.add(slab({w:3.0, h:2.4, d:D - 1.2, tw:3.0, td:D - 1.2, c:0xC9D2D8, x:-W/2 - 1.5, y:0}));
+    g.add(slab({w:3.4, h:0.34, d:D - 0.8, tw:3.0, td:D - 1.2, c:ATL.VERT, x:-W/2 - 1.5, y:2.4}));
+    sacsEmpiles(g, -W*0.02, D/2 + 1.6, 6);
+  }
+  if(niveau >= 3){                        // pressoir : cuves, passerelle, cheminée, bidons
+    cuveAtl(g, W/2 + 2.0, -1.6, 1.05, 3.2);
+    cuveAtl(g, W/2 + 2.0, 1.4, 1.05, 3.2);
+    g.add(box(2.4, 1.8, 2.2, ATL.BETON2, W/2 + 2.0, 0.9, 4.2));
+    g.add(box(0.28, 0.28, 4.4, 0x8A9298, W/2 + 2.0, 3.7, -0.1));
+    g.add(box(4.2, 0.22, 0.9, 0x8A9298, W/2, 3.4, 0.6));             // passerelle
+    for(let k = 0; k < 6; k++)
+      g.add(box(0.1, 0.7, 0.1, 0x8A9298, W/2 - 1.8 + k*0.7, 3.85, 1.0));
+    g.add(cyl(0.4, 0.5, 3.2, 8, 0xC4CACE, W*0.34, H + 1.6, -D/2 + 1.2));
+    for(let k = 0; k < 4; k++)
+      g.add(cyl(0.3, 0.3, 0.7, 8, ATL.BLE, W*0.3 + (k % 2)*0.7, 0.35,
+                D/2 + 2.4 + Math.floor(k/2)*0.7));
+  }
+  if(niveau >= 4){                        // stockage : appentis, palettes, caisses, conteneur
+    g.add(slab({w:4.2, h:H - 0.6, d:D + 0.6, tw:4.2, td:D + 0.6, c:0xC9D2D8, x:W/2 + 2.1, y:0}));
+    g.add(slab({w:4.8, h:0.4, d:D + 1.0, tw:4.4, td:D + 0.6, c:ATL.VERT, x:W/2 + 2.1, y:H - 0.6}));
+    g.add(box(1.6, (H-0.6)*0.6, 0.22, ATL.SOMBRE, W/2 + 2.1, (H-0.6)*0.3, D/2 + 0.62));
+    palettes(g, W*0.34, D/2 + 3.4, 2, 0xD8B24A);
+    for(let k = 0; k < 3; k++)
+      g.add(box(1.1, 0.9, 1.1, ATL.BOIS, -W*0.36 + k*1.3, 0.45, D/2 + 3.6));
+    g.add(box(2.6, 2.2, 5.6, 0x4E6B7A, -W/2 - 3.6, 1.1, D/2 + 3.0));
+    g.add(box(2.7, 0.2, 5.7, 0x3E5766, -W/2 - 3.6, 2.25, D/2 + 3.0));
+  }
+  if(niveau >= 5){                        // étage technique et auvent de quai
+    g.add(slab({w:W*0.5, h:2.2, d:D*0.6, tw:W*0.5, td:D*0.6, c:0xC9D2D8, x:-W*0.12, y:H + 0.5}));
+    g.add(slab({w:W*0.56, h:0.36, d:D*0.66, tw:W*0.5, td:D*0.6, c:ATL.VERT, x:-W*0.12, y:H + 2.7}));
+    for(let k = -1; k <= 1; k++)
+      g.add(box(1.0, 0.9, 0.14, 0x44647A, -W*0.12 + k*1.6, H + 1.6, D*0.3 + 0.02));
+    g.add(box(W*0.94, 0.34, 3.6, ATL.ARDOISE, 0, H + 0.9, D/2 + 1.8));   // auvent de quai
+    for(const px of [-W*0.38, W*0.38])
+      g.add(box(0.32, H + 0.9, 0.32, 0x8A9298, px, (H + 0.9)/2, D/2 + 3.2));
+    enseigneAtl(g, -W/2 - 1.2, D/2 + 4.6, ATL.BLE, 0.4);
+  }
+  g.userData = {W, D, H};
+  return g;
+}
+// Pose ou repose la halle. L'emprise d'obstacle suit le niveau : les modules
+// latéraux débordent, et on ne doit pas pouvoir rouler au travers.
+let atelierMesh = null, atelierObs = null;
+function poserAtelier(){
+  if(atelierMesh){ scene.remove(atelierMesh); }
+  atelierMesh = modeleAtelier(HALLE.niveau);
+  atelierMesh.position.set(HALLE.x, 0, HALLE.z);
+  scene.add(atelierMesh);
+  const u = atelierMesh.userData;
+  // Chaque palier pousse un module sur un côté : la trémie seule au niveau 1, le hall
+  // d'alimentation au 2, les cuves au 3, l'appentis et le conteneur au 4.
+  const N = HALLE.niveau;
+  const demi = u.W/2 + (N >= 4 ? 4.5 : (N >= 3 ? 3.4 : (N >= 2 ? 3.2 : 2.7)));
+  if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd:u.D/2}; boxObs.push(atelierObs); }
+  else { atelierObs.hw = demi; atelierObs.hd = u.D/2; }
+  HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2 + 4.0};
+  // Un seul anneau pour la vie de la partie : il suit le quai quand la halle grandit,
+  // plutôt que d'en poser un nouveau à chaque niveau — un anneau ne se retire pas.
+  if(!HALLE.anneau){
+    anneauAction(HALLE.quai.x, HALLE.quai.z, 2.9, ()=>{
+      const m = MACHINES[cur], T = caisseDe(m);
+      if(porte(T, 'grain') && HALLE.entree < halleEntreeMax()) return true;
+      if(peutPrendre(T, HALLE.produit, halleStock(HALLE.produit))) return true;
+      const c = coutAtelier();
+      return c > 0 && money >= c;
+    });
+    HALLE.anneau = ANNEAUX[ANNEAUX.length - 1];
+  }
+  HALLE.anneau.anneau.position.set(HALLE.quai.x, 0.10, HALLE.quai.z);
+  HALLE.anneau.halo.position.set(HALLE.quai.x, 0.08, HALLE.quai.z);
 }
 
 /* Marquage du parking — UNE seule trame pour toute l'aire, cour et garage confondus.
@@ -2734,7 +2958,7 @@ function updateBirds(dt, vx, vz){
 /* --- contrats : missions courtes, une à la fois, avec délai --- */
 const MODELES = [
   {stat:'silo',    txt:n=>'Livrer '+n+' kg de blé au silo',        min:250, max:800,  pay:0.14, sec:150},
-  {stat:'mill',    txt:n=>'Livrer '+n+' kg de blé au moulin',      min:250, max:800,  pay:0.20, sec:180},
+  {stat:'mill',    txt:n=>'Moudre '+n+' kg de grain à l\'atelier', min:250, max:800,  pay:0.20, sec:180},
   {stat:'pain',    txt:n=>'Vendre '+n+' kg de pain',               min:150, max:500,  pay:0.34, sec:210},
   {stat:'moisson', txt:n=>'Récolter '+n+' kg de blé',              min:300, max:900,  pay:0.12, sec:170},
   {stat:'labour',  txt:n=>'Labourer '+n+' m² de terre',            min:300, max:800,  pay:0.09, sec:150},
@@ -3188,7 +3412,7 @@ let money = 0, siloKg = 0, hopper = 0, delivered = 0, flourKg = 0, breadKg = 0;
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0,
-              oeufs:0, laine:0};
+              oeufs:0, laine:0, huile:0};
 let hopMult = 1;   // valeur moyenne de ce que contient la trémie
 let HOP_MAX = 900;
 const KG_CELL = 12, PRICE = 0.22, PRICE_MILL = 0.38;
@@ -3798,7 +4022,7 @@ const ETAPES = [
   {txt:'Récolter et livrer 1 000 kg',   test:()=> delivered >= 1000,  prog:()=> delivered/1000},
   {txt:'Acheter une deuxième parcelle', test:()=> PARCELS.filter(p=>p.owned).length >= 2,
                                         prog:()=> money/4000},
-  {txt:'Livrer 500 kg au moulin',       test:()=> flourKg >= 360,     prog:()=> flourKg/360},
+  {txt:'Moudre 360 kg de farine',       test:()=> flourKg >= 360,     prog:()=> flourKg/360},
   {txt:'Livrer de la farine à la boulangerie', test:()=> breadKg >= 300, prog:()=> breadKg/300},
   {txt:'Étendre la ferme à 4 parcelles',test:()=> PARCELS.filter(p=>p.owned).length >= 4,
                                         prog:()=> (PARCELS.filter(p=>p.owned).length-2)/2},
@@ -3832,8 +4056,7 @@ function deliverUn(v, dt){
   if(!site) return;
   const q = Math.min(hopper, 420*dt);
   hopper -= q; delivered += q; siloKg += q; money += q*prix*hopMult;
-  if(site === MILL) STAT.mill += q; else STAT.silo += q;
-  if(site === MILL) flourKg += q*0.72;                     // rendement en farine
+  STAT.silo += q;
   if(Math.random() < 0.6)
     puff((site.dropX!==undefined?site.dropX:site.x) + (Math.random()-0.5)*3, 3 + Math.random()*3,
          (site.dropZ!==undefined?site.dropZ:site.z) + (Math.random()-0.5)*3,
@@ -4078,7 +4301,7 @@ function brulerCarburant(v, throttle, dt){
   if(v.fuel <= 0.05){
     if(!v.sec){
       v.sec = true; v.auto = false; v.plan = null;
-      if(MACHINES[cur].v === v) showHint('PANNE SÈCHE — DIRECTION LA STATION');
+      if(MACHINES[cur].v === v) showHint('PANNE SÈCHE — DIRECTION LA CUVE');
     }
   } else if(v.fuel > 1) v.sec = false;
 }
@@ -4149,12 +4372,14 @@ function acheterIntrant(clef, kg){
 // Quatre commerces n'avaient qu'une façade. On leur pose le même anneau au sol que
 // les points de livraison, à la même distance de la chaussée : la carte reste lisible,
 // et on sait au premier coup d'œil où l'on peut s'arrêter.
-const STATION  = SITES.find(S=>S.pompes);
+const COOP     = SITES.find(S=>S.coop);
 const COMPTOIR = SITES.find(S=>S.fournisseur);
 const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
 const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
 // L'usine bio transformait déjà des cultures : elle prend aussi la laine des moutons.
 const BIO      = SITES.find(S=>S.nom === 'Usine bio');
+// L'huilerie achetait déjà le colza brut : elle prend aussi l'huile pressée à la ferme.
+const HUILERIE = SITES.find(S=>S.nom === 'Huilerie');
 // Le comptoir n'a rien à vendre quand la bourse est vide et les bacs pleins : son
 // anneau doit alors s'éteindre comme les autres. On reprend exactement les conditions
 // qui rendent une ligne cliquable dans ongletComptoir(), sur le plus petit lot de
@@ -4167,22 +4392,25 @@ function comptoirServable(){
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
 (function poserServices(){
-  for(const S of [STATION, COMPTOIR, LAITERIE, BOUCHERIE]){
+  for(const S of [COOP, COMPTOIR, LAITERIE, BOUCHERIE, MARCHE]){
     if(!S) continue;
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     S.service = true;
     // Chacun sa condition, calquée sur la fonction qui déclenche vraiment :
-    //   station   — updatePlein() puis remplir(), qui refuse si la caisse est vide ;
-    //   comptoir  — au moins une ligne de sa boutique doit être achetable, sinon s'y
-    //               arrêter n'offre qu'un rayon de boutons grisés ;
-    //   laiterie  — cargoUn() ne prend que du lait ;
-    //   boucherie — updateBetail() ne regarde que les bêtes à bord.
+    //   comptoir    — au moins une ligne de sa boutique doit être achetable, sinon s'y
+    //                 arrêter n'offre qu'un rayon de boutons grisés ;
+    //   laiterie    — cargoUn() ne prend que du lait ;
+    //   boucherie   — updateBetail() ne regarde que les bêtes à bord ;
+    //   coopérative — elle rachète le grain, en trémie comme en caisse ;
+    //   supermarché — il rachète toute nature déjà transformée.
     anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
-      const v = MACHINES[cur].v;
-      if(S === STATION)   return v.fuel < v.resMax - 0.05 && money > 0;
+      const v = MACHINES[cur].v, T = caisseDe(MACHINES[cur]);
       if(S === COMPTOIR)  return comptoirServable();
-      if(S === LAITERIE)  return porte(caisseDe(MACHINES[cur]), 'lait');
-      return (v.betail || 0) > 0;
+      if(S === LAITERIE)  return porte(T, 'lait');
+      if(S === BOUCHERIE) return (v.betail || 0) > 0;
+      // La coopérative rachète toute récolte ; le supermarché, tout produit fini.
+      if(S === COOP)      return tremiePleine(MACHINES[cur]) || porte(T, 'grain');
+      return MARCHE_NATURES.some((n)=> porte(T, n));
     });
   }
 })();
@@ -4523,7 +4751,8 @@ function creerPature(p, espece){
     anneauAction(P.quaiProduit.x, P.quaiProduit.z, 0.7,
       ()=> peutPrendre(caisseDe(MACHINES[cur]), E.produit, P.produit));
   anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
-    ()=> porte(caisseDe(MACHINES[cur]), 'grain') && P.grain < P.grainMax);
+    ()=>{ const T = caisseDe(MACHINES[cur]);
+          return (porte(T, 'grain') || porte(T, 'aliment')) && P.grain < P.grainMax; });
   anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
     const m = MACHINES[cur], cap = capaciteBetail(m);
     return cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
@@ -4849,8 +5078,22 @@ const NATURES = {
   farine: {nom:'Farine', couleur:'#F2E7D2'},
   lait:   {nom:'Lait',   couleur:'#DCEEF5'},
   oeufs:  {nom:'Œufs',   couleur:'#F6E7B8'},
-  laine:  {nom:'Laine',  couleur:'#EDE6D6'}
+  laine:  {nom:'Laine',  couleur:'#EDE6D6'},
+  aliment:{nom:'Aliment',couleur:'#D8B24A'},
+  huile:  {nom:'Huile',  couleur:'#E8C24A'}
 };
+// Le supermarché rachète tout ce qui sort déjà transformé. Il paie 14 % de moins que
+// le spécialiste : c'est le prix de la commodité, il est sur la route de la ferme et
+// prend tout d'un coup, là où la tournée des acheteurs rapporte plus mais coûte du
+// gazole et du temps.
+const MARCHE_NATURES = ['farine', 'huile', 'lait', 'oeufs', 'laine'];
+const MARCHE_DECOTE = 0.86;
+function prixMarche(n){
+  const t = {farine: PRICE_BREAD, huile: PRIX_HUILE,
+             lait: ESPECES.vache.prixProduit, oeufs: ESPECES.poule.prixProduit,
+             laine: ESPECES.mouton.prixProduit};
+  return (t[n] || 0)*MARCHE_DECOTE;
+}
 const peutCharger = (T, type)=> T.load < 0.01 || T.type === type;
 function poserType(T, type){ T.type = type; }
 function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
@@ -4874,13 +5117,7 @@ function cargoUn(m, dt){
     if(T.load >= T.capacite - 0.01) showHint('CHARGÉ EN GRAIN');
     return;
   }
-  if(aQuai(v, MILL) && peutCharger(T, 'farine') && flourKg > 0.01 && T.load < T.capacite){
-    const q = Math.min(debit, T.capacite - T.load, flourKg);
-    T.load += q; flourKg -= q; poserType(T, 'farine');
-    if(Math.random() < 0.4) puff(MILL.dropX+(Math.random()-0.5)*3, 3, MILL.dropZ+(Math.random()-0.5)*3, 0xF2E7D2, 0.4, 0.3);
-    if(T.load >= T.capacite - 0.01) showHint('FARINE CHARGÉE — DIRECTION BOULANGERIE');
-    return;
-  }
+
   const pat = patureProche(v);
   const espP = pat ? (ESPECES[pat.P.espece] || ESPECES.vache) : null;
   if(pat && pat.quoi === 'produit' && espP.produit && peutCharger(T, espP.produit)
@@ -4893,13 +5130,36 @@ function cargoUn(m, dt){
     return;
   }
 
+  // Atelier : on verse le grain dans sa trémie, on repart avec ce qu'il a produit.
+  // Le chargement passe avant, pour qu'une caisse vide reparte pleine sans manœuvre.
+  if(surQuaiAtelier(v) && peutCharger(T, HALLE.produit)
+     && halleStock(HALLE.produit) > 0.01 && T.load < T.capacite){
+    const q = Math.min(debit, T.capacite - T.load, halleStock(HALLE.produit));
+    T.load += q; halleRetire(HALLE.produit, q); poserType(T, HALLE.produit);
+    if(Math.random() < 0.3)
+      puff(HALLE.quai.x, 2.4, HALLE.quai.z, 0xF2E7D2, 0.35, 0.3);
+    if(T.load >= T.capacite - 0.01)
+      showHint(NATURES[HALLE.produit].nom.toUpperCase() + ' CHARGÉ');
+    return;
+  }
   if(T.load <= 0.01){ viderType(T); return; }
+  if(surQuaiAtelier(v) && T.type === 'grain' && HALLE.entree < halleEntreeMax()){
+    const q = Math.min(debit, T.load, halleEntreeMax() - HALLE.entree);
+    T.load -= q; HALLE.entree += q;
+    if(Math.random() < 0.3) puff(HALLE.x - 5.5, 4.6, HALLE.z - 1.0, 0xE8DCC0, 0.3, 0.28);
+    if(T.load <= 0.01){ viderType(T); showHint('GRAIN VERSÉ À L\'ATELIER'); }
+    return;
+  }
 
   /* --- déchargements --- */
   // le grain nourrit d'abord le troupeau : l'auge passe avant la vente
-  if(pat && pat.quoi === 'auge' && T.type === 'grain' && pat.P.grain < pat.P.grainMax){
-    const q = Math.min(ELEVAGE.debit*dt, T.load, pat.P.grainMax - pat.P.grain);
-    T.load -= q; pat.P.grain += q;
+  // L'aliment de l'atelier vaut mieux que le grain brut : la même benne remplit une
+  // fois et demie la mangeoire. C'est ce qui rend le module d'alimentation rentable.
+  if(pat && pat.quoi === 'auge' && (T.type === 'grain' || T.type === 'aliment')
+     && pat.P.grain < pat.P.grainMax){
+    const rend = T.type === 'aliment' ? 1.5 : 1;
+    const q = Math.min(ELEVAGE.debit*dt, T.load, (pat.P.grainMax - pat.P.grain)/rend);
+    T.load -= q; pat.P.grain += q*rend;
     if(Math.random() < 0.4) puff(pat.P.quaiAuge.x, 1.8, pat.P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
     if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
     return;
@@ -4918,6 +5178,25 @@ function cargoUn(m, dt){
     T.load -= q; money += q*ESPECES.poule.prixProduit; STAT.oeufs += q;
     if(Math.random() < 0.4) puff(BAKERY.dropX, 2.6, BAKERY.dropZ, 0xF6E7B8, 0.4, 0.3);
     if(T.load <= 0.01){ viderType(T); showHint('ŒUFS LIVRÉS — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  if(MARCHE_NATURES.indexOf(T.type) >= 0 && aQuai(v, MARCHE)){
+    const q = Math.min(ELEVAGE.debit*dt, T.load);
+    const nat = T.type;
+    T.load -= q; money += q*prixMarche(nat);
+    if(nat === 'lait') STAT.lait += q; else if(nat === 'oeufs') STAT.oeufs += q;
+    else if(nat === 'laine') STAT.laine += q; else if(nat === 'huile') STAT.huile += q;
+    else STAT.pain += q;
+    if(Math.random() < 0.4) puff(MARCHE.dropX, 2.6, MARCHE.dropZ, 0xEDEFF1, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T);
+      showHint(NATURES[nat].nom.toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  if(T.type === 'huile' && aQuai(v, HUILERIE)){
+    const q = Math.min(ELEVAGE.debit*dt, T.load);
+    T.load -= q; money += q*PRIX_HUILE; STAT.huile += q;
+    if(Math.random() < 0.4) puff(HUILERIE.dropX, 2.6, HUILERIE.dropZ, 0xE8C24A, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint('HUILE LIVRÉE — ' + Math.floor(money) + ' €'); }
     return;
   }
   if(T.type === 'laine' && aQuai(v, BIO)){
@@ -4946,6 +5225,34 @@ function cargoUn(m, dt){
   }
 }
 
+/* --- l'atelier tourne tout seul tant qu'il a du grain dans sa trémie --- */
+function updateAtelier(dt){
+  const R = RECETTES[HALLE.produit] || RECETTES.farine;
+  if(R.niveau > HALLE.niveau) HALLE.produit = 'farine';
+  if(HALLE.entree <= 0.01) return;
+  const place = halleStockMax() - halleStock(HALLE.produit);
+  if(place <= 0.01) return;
+  const q = Math.min(halleDebit()*dt, HALLE.entree, place/R.rendement);
+  HALLE.entree -= q;
+  halleAjoute(HALLE.produit, q*R.rendement);
+  if(HALLE.produit === 'farine') STAT.mill += q;
+  if(Math.random() < 0.12)
+    puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+}
+const surQuaiAtelier = (v, r)=> HALLE.quai && prochePoint(v, HALLE.quai.x, HALLE.quai.z, r || QUAI_R);
+// Le coût du palier suivant, ou 0 si l'atelier est au maximum.
+function coutAtelier(){
+  const P = ATL.PALIERS[HALLE.niveau];          // le niveau n est à l'indice n-1
+  return P ? P.prix : 0;
+}
+function ameliorerAtelier(){
+  const c = coutAtelier();
+  if(!c || money < c) return false;
+  money -= c; HALLE.niveau++; poserAtelier();
+  showHint('ATELIER — ' + ATL.PALIERS[HALLE.niveau-1].nom.toUpperCase());
+  return true;
+}
+
 /* --- carburant : les pleins se font tout seuls, comme les livraisons --- */
 // Il n'y a rien à décider en arrivant à la pompe : on s'arrête sur l'anneau, ça coule.
 // La cuve de la ferme est gratuite à l'usage — elle a déjà été payée au remplissage.
@@ -4954,8 +5261,9 @@ function updatePlein(dt){
     if(m.verrou) continue;
     const v = m.v;
     if(v.speed > 2.5 || v.fuel >= v.resMax - 0.05) continue;
+    // Il n'existe plus de pompe publique : le gazole s'achète en gros à la coopérative,
+    // livré dans la cuve de la ferme, et c'est là que se font tous les pleins.
     if(CARBU.cuveMax > 0 && prochePoint(v, quaiCuve.x, quaiCuve.z, 6.0)) remplir(v, dt, 'cuve');
-    else if(aQuai(v, STATION)) remplir(v, dt, 'pompe');
   }
 }
 /* --- bétail : la vente se fait à l'arrêt devant la boucherie --- */
@@ -4996,6 +5304,23 @@ let especeChoisie = 0;
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
+  // Sur le quai de l'atelier : monter d'un palier, ou changer ce qu'on y transforme.
+  if(surQuaiAtelier(v)){
+    const c = coutAtelier();
+    if(c > 0 && money >= c)
+      return {txt:'ATELIER — ' + ATL.PALIERS[HALLE.niveau].nom.toUpperCase() + ' ' +
+                  c.toLocaleString('fr-FR') + ' €', ok:true, f:()=> ameliorerAtelier()};
+    const dispo = Object.keys(RECETTES).filter((n)=> RECETTES[n].niveau <= HALLE.niveau);
+    if(dispo.length > 1)
+      return {txt:'ATELIER PRODUIT : ' + NATURES[HALLE.produit].nom.toUpperCase(), ok:true,
+              f:()=>{ const i = dispo.indexOf(HALLE.produit);
+                      HALLE.produit = dispo[(i + 1) % dispo.length];
+                      showHint('ATELIER — ' + NATURES[HALLE.produit].nom.toUpperCase()); }};
+    if(c > 0)
+      return {txt:'ATELIER : IL MANQUE ' + Math.ceil(c - money).toLocaleString('fr-FR') + ' €',
+              ok:false};
+    return {txt:'ATELIER AU MAXIMUM', ok:false};
+  }
   if(aQuai(v, COMPTOIR))
     return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
   const pat = patureProche(v);
@@ -5227,6 +5552,8 @@ function ongletReglages(){
     'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
     ' · dont ' + PATURES.length + ' en pâture<br>' +
     'Silo : ' + kg(siloKg) + ' · farine ' + kg(flourKg) + '<br>' +
+    'Atelier niveau ' + HALLE.niveau + ' — ' + ATL.PALIERS[HALLE.niveau-1].nom +
+    ' · trémie ' + kg(HALLE.entree) + '<br>' +
     'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
     'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
     '</div></div>';
@@ -5407,6 +5734,8 @@ function etatJeu(){
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
+    halle: {niveau: HALLE.niveau, entree: HALLE.entree, aliment: HALLE.aliment,
+            huile: HALLE.huile, produit: HALLE.produit},
     stock: {semence: STOCK.semence, engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
@@ -5544,6 +5873,13 @@ function chargerPartie(S){
     Object.assign(STAT, S.STAT); etape = S.etape; fini = !!S.fini;
     JOUR.heure = S.jour.heure; JOUR.jours = S.jour.jours; JOUR.sec = S.jour.sec;
     CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
+    // `halle` est absent des sauvegardes d'avant l'atelier : elles repartent au niveau 1.
+    if(S.halle){
+      HALLE.niveau = S.halle.niveau || 1; HALLE.entree = S.halle.entree || 0;
+      HALLE.aliment = S.halle.aliment || 0; HALLE.huile = S.halle.huile || 0;
+      HALLE.produit = RECETTES[S.halle.produit] ? S.halle.produit : 'farine';
+      poserAtelier();
+    }
     if(CARBU.cuveMax > 0) poserCuve();
     STOCK.semence = S.stock.semence; STOCK.engrais = S.stock.engrais;
     AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
@@ -5656,7 +5992,7 @@ ETAPES.length = 0;
 ETAPES.push(
   {txt:'Récolter et livrer 1 000 kg',          test:()=> delivered >= 1000,  prog:()=> delivered/1000},
   {txt:'Acheter une deuxième parcelle',        test:()=> nbParcelles() >= 2, prog:()=> money/4000},
-  {txt:'Produire 360 kg de farine au moulin',  test:()=> flourKg + STAT.pain >= 360,
+  {txt:'Moudre 360 kg de farine à l\'atelier', test:()=> flourKg + STAT.pain >= 360,
                                                prog:()=> (flourKg + STAT.pain)/360},
   {txt:'Vendre 300 kg de pain',                test:()=> STAT.pain >= 300,   prog:()=> STAT.pain/300},
   {txt:'Étendre la ferme à 4 parcelles',       test:()=> nbParcelles() >= 4, prog:()=> (nbParcelles()-2)/2},
@@ -5776,7 +6112,6 @@ function loop(now){
              0xB2B9BD, 0.95 + Math.random()*0.35, 0.95, 3.4, -0.28, 0.44, 0.7);
       chimT = 0.16 + Math.random()*0.14;
     }
-    if(MILL.sails) MILL.sails.rotation.z += dt*0.6;
     for(const S of SITES) if(S.logo) S.logo.rotation.y += dt*0.9;
     // les bulles font face à la caméra et flottent doucement
     for(const B of BULLES)
@@ -5808,6 +6143,7 @@ function loop(now){
              0xAEB5B9, 0.8, 0.85, 3.0, -0.28, 0.4, 0.6);
       usineT = 0.5 + Math.random()*0.3;
     }
+    updateAtelier(dt);
     updateTrafic(dt);
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
