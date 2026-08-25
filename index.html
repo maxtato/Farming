@@ -608,47 +608,72 @@ const halleStock = (n)=> n === 'farine' ? flourKg : HALLE[n];
 function halleAjoute(n, q){ if(n === 'farine') flourKg += q; else HALLE[n] += q; }
 function halleRetire(n, q){ if(n === 'farine') flourKg -= q; else HALLE[n] -= q; }
 const SITES = [
-  // `bat` et `park` : position du bâtiment et de sa dalle le long de la bande. Tout
-  // l'ensemble doit tenir entre les deux routes perpendiculaires, soit ±66.
-  {nom:'Brasserie', enseigne:'potence', picto:'chope',      dir:'W', bat:-57, park:-44, style:'boutique',crop:1, prix:0.52, cloture:'muret',
-   w:13.0, d:9.5,  pw:13, ph:13, toit:0x7A4A2E, mur:0xE8D6BC, cuves:3},
-  {nom:'Atelier', enseigne:'logo3d', picto:'cle',        dir:'W', bat:-29, park:-10, style:'usine',   crop:-1, prix:0, atelier:true, cloture:'grillage',
-   w:13.0, d:10.0, pw:19, ph:26, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true},
-  // Le moulin a fermé : sa fonction est passée à l'atelier de la ferme, où l'on
-  // moud son propre blé. Un supermarché occupe la parcelle, et c'est le débouché
-  // commode pour tout ce qui sort transformé — il paie un peu moins que le
-  // spécialiste, mais il prend tout, et il est sur la route de la ferme.
-  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'W', bat: 10, park: 21, style:'boutique', crop:-1, prix:0, cloture:'trottoir',
-   w:17.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6, vitrine:true, supermarche:true,
-   propose:[{nom:'Rachète', prix:'tout produit fini'}]},
-  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'W', bat: 38, park: 55, style:'usine',   crop:0, prix:0.46, cloture:'grillage',
-   w:16.0, d:12.0, pw:16, ph:15, toit:0x4A6B8A, mur:0xDCE2E8, silos:3, chem:true, tuyaux:true},
-  {nom:'Huilerie', enseigne:'totem', picto:'goutte',       dir:'N', bat:-54, park:-39, style:'usine',   crop:2, prix:0.58, cloture:'muret',
+  // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
+  // le long de la bande ; `modele` nomme la silhouette qui sera bâtie. Les deux seuls
+  // sites sans modèle propre — l'atelier de réparation et l'huilerie — retombent sur
+  // le gabarit générique piloté par leurs drapeaux.
+
+  /* --- bande OUEST, six commerces --- */
+  {nom:'Brasserie', enseigne:'potence', picto:'chope', dir:'W', bat:-102, park:-89,
+   style:'boutique', crop:1, prix:0.52, cloture:'muret', modele:()=> batBrasserie(),
+   w:13.0, d:9.5,  pw:12, ph:12, toit:0xA85440, mur:0xE8D6BC},
+  {nom:'Atelier', enseigne:'logo3d', picto:'cle', dir:'W', bat:-72, park:-59,
+   style:'usine', crop:-1, prix:0, atelier:true, cloture:'grillage',
+   w:13.0, d:10.0, pw:16, ph:16, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true},
+  {nom:'Caviste', enseigne:'potence', picto:'chope', dir:'W', bat:-42, park:-29,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batCaviste(),
+   w:10.0, d:7.5,  pw:10, ph:11, toit:0x6B3A6E, mur:0xEFE4CE},
+  {nom:'Marché', enseigne:'totem', picto:'graine', dir:'W', bat:-12, park:1,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batMarche(),
+   w:12.0, d:9.0,  pw:11, ph:12, toit:0x3E6B4E, mur:0xF6EFE0},
+  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'W', bat:18, park:31,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', supermarche:true,
+   modele:()=> batSupermarche(),
+   w:18.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6},
+  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'W', bat:48, park:61,
+   style:'usine', crop:0, prix:0.46, cloture:'grillage', modele:()=> batUsineCereales(),
+   w:16.0, d:12.0, pw:14, ph:13, toit:0x4A6B8A, mur:0xDCE2E8},
+
+  /* --- bande NORD, cinq commerces --- */
+  {nom:'Huilerie', enseigne:'totem', picto:'goutte', dir:'N', bat:-58, park:-45,
+   style:'usine', crop:2, prix:0.58, cloture:'muret',
    w:15.0, d:10.5, pw:15, ph:13, toit:0xB0902E, mur:0xF0E4C6, cuves:2, chem:true},
-  {nom:'Usine bio', enseigne:'facade', picto:'feuille',      dir:'N', bat:-21, park: -7, style:'usine',   crop:3, prix:0.55, cloture:'grillage',
-   w:14.0, d:11.0, pw:14, ph:14, toit:0x3E7C52, mur:0xE4EEDC, silos:2, chem:true},
-  {nom:'Boulangerie',    dir:'N', bat: 12, park: 22, style:'boutique',crop:-1, prix:0, cloture:'trottoir',
-   w:10.5, d:7.5,  pw:10, ph:11, toit:0xC06A2E, mur:0xEFE0C4, four:true,
-   enseigne:'laterale', picto:'baguette'},
-  // Fournisseur agricole : c'est ici qu'on commandera semences, engrais et matériel.
-  {nom:'Comptoir agricole', dir:'N', bat: 44, park: 58, style:'boutique',crop:-1, prix:0, cloture:'muret',
-   w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2, fournisseur:true,
-   enseigne:'totem', picto:'graine',
+  {nom:'Boulangerie', enseigne:'laterale', picto:'baguette', dir:'N', bat:-20, park:-7,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batBoulangerie(),
+   w:11.0, d:8.0,  pw:11, ph:12, toit:0xC06A2E, mur:0xEFE0C4},
+  // Fournisseur agricole : c'est ici qu'on commande semences, engrais et gazole.
+  {nom:'Comptoir agricole', enseigne:'totem', picto:'graine', dir:'N', bat:18, park:31,
+   style:'boutique', crop:-1, prix:0, cloture:'muret', fournisseur:true,
+   w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2,
    vend:[{nom:'Semences', prix:'0,35 € / kg'}, {nom:'Engrais', prix:'0,50 € / kg'}]},
-  // Bord est : les commerces liés à l'élevage, et la coopérative.
-  // La station-service a fermé avec le moulin. Le gazole ne s'achète plus qu'en gros,
-  // livré à la cuve de la ferme : c'est la coopérative qui l'expédie.
-  {nom:'Coopérative', dir:'E', bat:-52, park:-36, style:'usine', crop:0, prix:0.50, cloture:'grillage',
-   w:15.0, d:10.0, pw:15, ph:14, toit:0x2F7D46, mur:0xE8EFE4, silos:3, chem:true, coop:true,
-   enseigne:'totem', picto:'epi',
+  {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'N', bat:56, park:69,
+   style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
+   w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A6A3A, mur:0xEFE4CE},
+  {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'N', bat:94, park:107,
+   style:'usine', crop:3, prix:0.55, cloture:'grillage', modele:()=> batUsineAvoine(),
+   w:14.0, d:11.0, pw:13, ph:13, toit:0x3E7C52, mur:0xE4EEDC},
+
+  /* --- bande EST, cinq commerces --- */
+  {nom:'Coopérative', enseigne:'totem', picto:'epi', dir:'E', bat:-100, park:-87,
+   style:'usine', crop:0, prix:0.50, cloture:'grillage', coop:true,
+   modele:()=> batCooperative(),
+   w:15.0, d:10.0, pw:14, ph:14, toit:0x2F7D46, mur:0xE8EFE4,
    vend:[{nom:'Gazole en gros', prix:'1,48 € / L, livré'}],
    propose:[{nom:'Rachète', prix:'toute récolte'}]},
-  {nom:'Laiterie', dir:'E', bat:-10, park: 6, style:'usine', crop:-1, prix:0, cloture:'grillage',
-   w:15.0, d:11.0, pw:15, ph:14, toit:0x4E7FA8, mur:0xF0F4F6, silos:3, chem:true,
-   enseigne:'facade', picto:'goutte', demande:'Lait — prévoir des pâtures'},
-  {nom:'Boucherie', dir:'E', bat: 40, park: 54, style:'boutique', crop:-1, prix:0, cloture:'muret',
-   w:11.0, d:8.0, pw:12, ph:12, toit:0xA83A32, mur:0xF4E9DC, vitrine:true,
-   enseigne:'laterale', picto:'chope', demande:'Viande — prévoir des enclos'}
+  {nom:'Atelier textile', enseigne:'facade', picto:'feuille', dir:'E', bat:-64, park:-51,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batTextile(),
+   w:14.0, d:10.0, pw:13, ph:13, toit:0x5A6B7A, mur:0xE0E6EA},
+  {nom:'Laiterie', enseigne:'facade', picto:'goutte', dir:'E', bat:-28, park:-15,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batLaiterie(),
+   w:15.0, d:11.0, pw:14, ph:14, toit:0x4E7FA8, mur:0xF0F4F6,
+   demande:'Lait — prévoir des pâtures'},
+  {nom:'Boucherie', enseigne:'laterale', picto:'chope', dir:'E', bat:8, park:21,
+   style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batBoucherie(),
+   w:11.0, d:8.0,  pw:11, ph:12, toit:0xA83A32, mur:0xF4E9DC,
+   demande:'Viande — prévoir des enclos'},
+  {nom:'Restaurant', enseigne:'potence', picto:'baguette', dir:'E', bat:44, park:57,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batRestaurant(),
+   w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2}
 ];
 for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
@@ -1670,65 +1695,463 @@ function ajouteBulle(S, H){
   const rotB = (S.dir === 'W' || S.dir === 'E') ? Math.PI/2 : 0;
   poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
 }
+/* ---------- LES COMMERCES DU VILLAGE ----------
+   Treize bâtiments, chacun avec sa silhouette et ses attributs : on reconnaît une
+   fromagerie d'une brasserie du premier coup d'œil, ce qu'un gabarit générique piloté
+   par des drapeaux ne permettait pas. Chaque fonction rend un groupe posé à l'origine,
+   nez vers +Z ; buildCommerce l'oriente et le pose sur sa dalle. */
+const CM = {
+  ENDUIT:0xEFE4CE, PIERRE:0xDCD2BC, BOIS:0x8A6A3A, BOIS2:0x6B4E24,
+  TUILE:0x9C4A32, ARDOISE:0x4A5359, BARDAGE:0xD6DDE2, VERT:0x3E6B4E,
+  BETON:0x9BA3A8, BETON2:0x848C91, METAL:0xC9CFD3, SOMBRE:0x2E3438,
+  VITRE:0x44647A, CUIVRE:0xB5783A, BRIQUE:0xA85440, CREME:0xF6EFE0
+};
+// ---- pièces communes ----
+function cmDalle(g, x, z, w, d, c, lignes){
+  g.add(box(w, 0.16, d, c || CM.BETON, x, 0.08, z));
+  g.add(box(w + 0.3, 0.1, d + 0.3, CM.BETON2, x, 0.03, z));
+  if(lignes) for(let k = -1; k <= 1; k++)
+    g.add(box(0.14, 0.04, d * 0.7, 0xF0F2F3, x + k * w * 0.28, 0.18, z));
+}
+function cmVitrine(g, x, y, z, w, h, cadre){
+  g.add(box(w, h, 0.16, cadre || CM.CREME, x, y, z));
+  g.add(box(w - 0.35, h - 0.35, 0.2, CM.VITRE, x, y, z + 0.05));
+}
+function cmPorte(g, x, z, w, h, c){
+  g.add(box(w, h, 0.2, c || CM.BOIS2, x, h/2, z));
+  g.add(box(w + 0.2, 0.16, 0.24, CM.CREME, x, h + 0.08, z));
+}
+// auvent rayé de boutique
+function cmStore(g, x, y, z, w, d, c1, c2){
+  const n = 6;
+  for(let k = 0; k < n; k++)
+    g.add(box(w/n, 0.14, d, k % 2 ? c1 : c2, x - w/2 + w/n*(k + 0.5), y, z));
+  g.add(box(w + 0.1, 0.2, 0.2, 0xF0F2F3, x, y - 0.12, z + d/2));
+}
+function cmEnseigne(g, x, y, z, w, c){
+  g.add(box(w, 0.9, 0.16, CM.SOMBRE, x, y, z));
+  g.add(box(w - 0.5, 0.5, 0.2, c, x, y, z + 0.04));
+}
+function cmPotence(g, x, y, z, c){
+  g.add(box(0.14, 0.14, 1.2, CM.BOIS2, x, y, z + 0.6));
+  g.add(box(1.6, 0.9, 0.14, c, x, y - 0.5, z + 1.15));
+  g.add(box(0.1, 0.5, 0.1, CM.BOIS2, x, y - 0.25, z + 1.15));
+}
+function cmSilo(g, x, z, r, h, c){
+  g.add(cyl(r, r, h, 12, c || CM.METAL, x, h/2, z));
+  g.add(cyl(r * 1.08, 0.1, 1.2, 12, 0xA8B0B5, x, h + 0.55, z));
+  for(let k = 1; k < 4; k++) g.add(cyl(r * 1.02, r * 1.02, 0.12, 12, 0xA8B0B5, x, k * h/4, z));
+}
+function cmCuve(g, x, z, r, h, c){
+  g.add(cyl(r, r, h, 12, c || CM.METAL, x, h/2 + 0.3, z));
+  g.add(cyl(r * 1.06, r * 1.06, 0.16, 12, 0x8A9298, x, h + 0.3, z));
+  g.add(box(r * 2.2, 0.3, r * 2.2, CM.BETON2, x, 0.15, z));
+}
+function cmTonneau(x, y, z, r, h, couche){
+  const g = new THREE.Group();
+  g.add(cyl(r, r, h, 12, CM.BOIS, 0, 0, 0));
+  g.add(cyl(r * 1.05, r * 1.05, h * 0.16, 12, 0x5A4326, 0, h * 0.28, 0));
+  g.add(cyl(r * 1.05, r * 1.05, h * 0.16, 12, 0x5A4326, 0, -h * 0.28, 0));
+  g.position.set(x, y, z);
+  if(couche) g.rotation.z = Math.PI / 2;
+  return g;
+}
+function cmPalette(g, x, z, n, c){
+  for(let k = 0; k < n; k++){
+    g.add(box(1.2, 0.12, 0.9, CM.BOIS, x, 0.24 + k * 0.42, z));
+    g.add(box(1.0, 0.3, 0.75, c, x, 0.45 + k * 0.42, z));
+  }
+}
+// corps de boutique : murs, toit à deux pentes, dalle devant
+function cmBoutique(g, W, D, H, mur, toit){
+  g.add(slab({w:W, h:H, d:D, tw:W - 0.4, td:D - 0.3, c:mur, y:0}));
+  g.add(gable(D + 0.5, 2.0, W + 0.5, toit, 0, H, 0, Math.PI/2));
+  cmDalle(g, 0, D/2 + 2.6, W + 1, 4.0, CM.BETON, false);
+}
+// corps industriel : halle bardée à toit plat
+function cmHalle(g, W, D, H, mur, toit){
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:mur, y:0}));
+  g.add(slab({w:W + 0.6, h:0.5, d:D + 0.6, tw:W + 0.1, td:D + 0.1, c:toit, y:H}));
+  for(let k = -3; k <= 3; k++)
+    g.add(box(0.12, H * 0.9, 0.1, 0xC2CAD0, k * W * 0.13, H * 0.45, D/2 + 0.03));
+  g.add(box(W * 0.3, H * 0.6, 0.26, CM.SOMBRE, -W * 0.22, H * 0.3, D/2 + 0.05));
+  for(let k = 0; k < 3; k++)
+    g.add(box(W * 0.26, 0.12, 0.1, 0x8A9298, -W * 0.22, H * 0.17 + k * 0.16, D/2 + 0.18));
+  cmDalle(g, 0, D/2 + 3.4, W + 1, 5.0, CM.BETON, true);
+}
+
+/* 1 — Coopérative agricole */
+function batCooperative(){
+  const g = new THREE.Group();
+  cmHalle(g, 12, 8, 5.0, CM.BARDAGE, CM.VERT);
+  for(let k = 0; k < 3; k++) cmSilo(g, -7.6, -2.4 + k * 2.4, 1.1, 7.5);
+  g.add(box(0.3, 0.3, 5.2, 0x8A9298, -7.6, 6.4, 0));
+  cmEnseigne(g, 2.2, 4.0, 4.05, 5.0, CM.VERT);
+  cmPalette(g, 3.0, 6.4, 2, 0xD8B24A);
+  cmPalette(g, 1.4, 6.4, 1, 0xE8DCC0);
+  for(let k = 0; k < 4; k++) g.add(box(0.5, 0.3, 0.36, 0xE8DCC0, -3.4 + k*0.6, 0.15, 5.2));
+  return g;
+}
+/* 2 — Boulangerie */
+function batBoulangerie(){
+  const g = new THREE.Group();
+  cmBoutique(g, 8.5, 6.5, 4.0, 0xF2E4C8, CM.TUILE);
+  cmVitrine(g, 1.5, 2.0, 3.3, 3.4, 2.4);
+  cmPorte(g, -2.4, 3.3, 1.5, 2.6, CM.BOIS2);
+  cmStore(g, 1.5, 3.4, 4.0, 3.8, 1.6, 0xC0392B, CM.CREME);
+  cmPotence(g, -3.6, 3.4, 3.3, 0xC08A3E);
+  g.add(box(1.0, 2.4, 1.0, CM.PIERRE, 2.8, 5.2, -1.6));            // four
+  g.add(box(1.25, 0.24, 1.25, 0x8E8172, 2.8, 6.5, -1.6));
+  for(let k = 0; k < 3; k++) g.add(box(0.9, 0.3, 0.7, 0xE0B463, -1.0 + k*1.0, 0.3, 5.4));
+  return g;
+}
+/* 3 — Brasserie */
+function batBrasserie(){
+  const g = new THREE.Group();
+  cmBoutique(g, 10, 7, 4.4, CM.BRIQUE, CM.ARDOISE);
+  for(let k = 0; k < 8; k++) g.add(box(9.6, 0.12, 0.1, 0x8E4436, 0, 0.5 + k*0.5, 3.55));
+  cmVitrine(g, 2.4, 2.2, 3.55, 3.0, 2.2, 0xE8DCC0);
+  cmPorte(g, -2.6, 3.55, 1.8, 2.8, CM.BOIS2);
+  cmEnseigne(g, 0, 4.6, 3.6, 5.5, 0xC08A3E);
+  for(let k = 0; k < 3; k++) cmCuve(g, -6.6, -2.0 + k*2.0, 1.0, 4.2, CM.CUIVRE);
+  g.add(box(0.26, 0.26, 4.4, 0x8A9298, -6.6, 4.8, 0));
+  g.add(cmTonneau(4.6, 0.62, 4.4, 0.62, 1.3, false));
+  g.add(cmTonneau(5.9, 0.62, 4.4, 0.62, 1.3, false));
+  g.add(cmTonneau(5.25, 1.85, 4.4, 0.62, 1.3, false));
+  return g;
+}
+/* 4 — Usine de céréales */
+function batUsineCereales(){
+  const g = new THREE.Group();
+  cmHalle(g, 13, 8.5, 6.2, CM.BARDAGE, 0x4A6B8A);
+  for(let k = 0; k < 4; k++) cmSilo(g, -8.4 + 0, -3.6 + k * 2.4, 1.3, 9.0);
+  g.add(box(0.34, 0.34, 8.0, 0x8A9298, -8.4, 8.0, 0));
+  g.add(box(6.0, 0.3, 0.8, 0x8A9298, -4.5, 5.4, 0.6));          // convoyeur incliné
+  g.add(cyl(0.6, 0.7, 4.0, 8, 0xC4CACE, 4.4, 8.0, -2.4));       // cheminée
+  cmEnseigne(g, 2.6, 5.0, 4.3, 5.6, 0x4A6B8A);
+  cmPalette(g, 3.6, 7.6, 3, 0xEDE3CC);
+  return g;
+}
+/* 5 — Usine de lait d'avoine */
+function batUsineAvoine(){
+  const g = new THREE.Group();
+  cmHalle(g, 11.5, 8, 5.6, 0xE8F0E6, 0x3E7C52);
+  for(let k = 0; k < 3; k++) cmCuve(g, 7.4, -2.4 + k * 2.4, 1.2, 5.2, 0xE8EDF0);
+  for(const yy of [2.2, 3.4]) g.add(box(0.24, 0.24, 5.4, 0x9AA2A7, 7.4, yy, 0));
+  g.add(box(5.0, 0.24, 0.24, 0x9AA2A7, 4.2, 3.4, 0));
+  cmSilo(g, -6.8, 0, 1.0, 6.4, 0xF2F6F1);
+  cmEnseigne(g, 2.0, 4.4, 4.05, 5.0, 0x3E7C52);
+  for(let k = 0; k < 4; k++) g.add(box(0.7, 0.9, 0.7, 0xF2F6F1, -2.6 + k*0.9, 0.45, 6.2));
+  return g;
+}
+/* 6 — Laiterie */
+function batLaiterie(){
+  const g = new THREE.Group();
+  cmHalle(g, 11, 8, 5.2, 0xF0F4F6, 0x4E7FA8);
+  g.add(cyl(1.5, 1.5, 7.0, 14, 0xEDF1F4, -7.2, 1.7, 0, Math.PI/2));   // citerne couchée
+  for(const dz of [-2.6, 0, 2.6]) g.add(cyl(1.55, 1.55, 0.2, 14, 0xB9C1C6, -7.2, 1.7, dz, Math.PI/2));
+  g.add(box(3.6, 0.16, 6.6, 0xB9C1C6, -7.2, 0.6, 0));
+  g.add(box(4.4, 2.6, 0.3, 0xD8E2E8, 3.0, 1.3, 4.15));               // quai réfrigéré
+  g.add(box(4.6, 0.3, 1.6, 0x4E7FA8, 3.0, 2.7, 4.8));
+  cmEnseigne(g, -1.4, 4.2, 4.05, 4.4, 0x4E7FA8);
+  for(let k = 0; k < 3; k++) g.add(cyl(0.42, 0.42, 0.9, 10, 0xE8EDF0, 5.6 + (k%2)*0.9, 0.45, 6.4));
+  return g;
+}
+/* 7 — Boucherie */
+function batBoucherie(){
+  const g = new THREE.Group();
+  cmBoutique(g, 8, 6.2, 4.0, 0xF4E9DC, 0xA83A32);
+  cmVitrine(g, 1.4, 2.0, 3.15, 3.2, 2.3);
+  cmPorte(g, -2.2, 3.15, 1.5, 2.6, 0x7A2E28);
+  cmStore(g, 1.4, 3.4, 3.7, 3.6, 1.5, 0xA83A32, CM.CREME);
+  cmEnseigne(g, 0, 4.5, 3.2, 4.6, 0xA83A32);
+  g.add(cyl(0.55, 0.55, 0.9, 10, CM.BOIS, -3.2, 0.45, 4.6));            // billot
+  g.add(box(1.2, 0.1, 1.2, CM.BOIS2, -3.2, 0.95, 4.6));
+  for(let k = 0; k < 2; k++) g.add(box(0.9, 0.5, 0.7, 0xD8CFC0, 2.6 + k*1.1, 0.25, 5.0));
+  return g;
+}
+/* 8 — Atelier textile : toit en dents de scie */
+function batTextile(){
+  const g = new THREE.Group();
+  const W = 11, D = 8, H = 4.6;
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:0xD8CFC0, y:0}));
+  // Toit en dents de scie : chaque dent est un pan incliné qui retombe sur la verrière
+  // verticale de la dent suivante. Un simple prisme à deux pentes ne donne pas ça —
+  // c'est ce qui rendait la toiture bancale.
+  g.add(slab({w:W + 0.5, h:0.3, d:D + 0.5, tw:W + 0.5, td:D + 0.5, c:0x6E7B82, y:H}));
+  const nSheds = 4, pas = W/nSheds, hSh = 1.6;
+  const pente = Math.atan2(hSh, pas), lg = Math.hypot(pas, hSh);
+  for(let k = 0; k < nSheds; k++){
+    const x0 = -W/2 + k * pas;
+    // verrière verticale, côté haut de la dent
+    g.add(box(0.16, hSh, D - 0.2, CM.VITRE, x0 + 0.1, H + 0.3 + hSh/2, 0));
+    for(let m2 = 0; m2 < 3; m2++)
+      g.add(box(0.2, 0.1, D - 0.2, 0x8A9298, x0 + 0.1, H + 0.3 + hSh*(m2 + 1)/4, 0));
+    // pan incliné, du sommet de la verrière jusqu'à la base de la dent suivante
+    const pan = box(lg, 0.16, D + 0.3, 0x5F6B72, 0, 0, 0);
+    pan.position.set(x0 + pas/2, H + 0.3 + hSh/2, 0);
+    pan.rotation.z = -pente;
+    g.add(pan);
+    // joue de rive, pour fermer le triangle sur les deux pignons
+    for(const dz of [-(D + 0.3)/2, (D + 0.3)/2]){
+      const j = new THREE.Mesh(new THREE.BufferGeometry(), mat(0xC9D2D8));
+      const P = [[x0, H + 0.3, dz], [x0 + pas, H + 0.3, dz], [x0, H + 0.3 + hSh, dz]];
+      const pos = [];
+      for(const i of [0,1,2]) pos.push(P[i][0], P[i][1], P[i][2]);
+      for(const i of [0,2,1]) pos.push(P[i][0], P[i][1], P[i][2]);
+      j.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      j.geometry.computeVertexNormals();
+      j.castShadow = true; g.add(j);
+    }
+  }
+  g.add(box(W * 0.28, H * 0.6, 0.24, CM.SOMBRE, -W * 0.24, H * 0.3, D/2 + 0.05));
+  cmVitrine(g, 2.4, 2.4, D/2 + 0.05, 3.0, 2.0, 0xE8DCC0);
+  cmEnseigne(g, 2.4, 4.1, D/2 + 0.1, 4.0, 0x7A5F8E);
+  cmDalle(g, 0, D/2 + 3.0, W, 4.4, CM.BETON, false);
+  for(let k = 0; k < 4; k++)                                         // balles de laine
+    g.add(cyl(0.62, 0.62, 1.1, 12, CM.CREME, -3.6 + k*1.5, 0.62, D/2 + 3.0, 0, 0, Math.PI/2));
+  return g;
+}
+/* 9 — Supermarché : longue façade vitrée, entrée sous auvent, parking et quai */
+function batSupermarche(){
+  const g = new THREE.Group();
+  const W = 16, D = 9.5, H = 5.0;
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:0xE6EAEC, y:0}));
+  g.add(slab({w:W + 0.9, h:0.7, d:D + 0.9, tw:W + 0.3, td:D + 0.3, c:0xD8443A, y:H}));
+  // groupes de climatisation en toiture
+  for(let k = 0; k < 3; k++) g.add(box(1.6, 0.8, 1.4, 0xB9C1C6, -4.5 + k * 4.5, H + 1.05, -1.5));
+  // façade entièrement vitrée, à meneaux réguliers
+  for(let k = 0; k < 6; k++){
+    const x = -W/2 + 1.6 + k * 2.6;
+    g.add(box(2.3, 3.4, 0.14, 0xF0F2F3, x, 1.9, D/2 + 0.04));
+    g.add(box(2.0, 3.1, 0.2, CM.VITRE, x, 1.9, D/2 + 0.08));
+  }
+  for(let k = 0; k <= 6; k++)
+    g.add(box(0.22, 3.8, 0.26, 0xCBD2D6, -W/2 + 0.3 + k * 2.6, 1.9, D/2 + 0.1));
+  g.add(box(W, 0.3, 0.3, 0xCBD2D6, 0, 3.85, D/2 + 0.1));
+  // entrée : sas plus haut, portes coulissantes, tapis
+  g.add(box(4.2, 4.0, 0.5, 0xF0F2F3, W * 0.26, 2.0, D/2 + 0.2));
+  g.add(box(1.7, 3.0, 0.26, 0x9FB4C4, W * 0.26 - 0.95, 1.5, D/2 + 0.48));
+  g.add(box(1.7, 3.0, 0.26, 0x9FB4C4, W * 0.26 + 0.95, 1.5, D/2 + 0.48));
+  g.add(box(4.6, 0.06, 2.0, 0x8A9298, W * 0.26, 0.2, D/2 + 1.4));
+  // bandeau d'enseigne et pavé logo
+  g.add(box(W * 0.78, 1.5, 0.3, 0xC03A31, 0, H - 0.5, D/2 + 0.2));
+  g.add(box(W * 0.62, 0.85, 0.34, 0xF6EFE0, 0.6, H - 0.5, D/2 + 0.26));
+  g.add(box(1.5, 1.5, 0.36, 0xE8A62E, -W * 0.3, H - 0.5, D/2 + 0.26));
+  // auvent devant l'entrée
+  g.add(box(W * 0.5, 0.34, 4.2, 0xC03A31, W * 0.2, H - 1.9, D/2 + 2.3));
+  for(const px of [W * 0.2 - 3.4, W * 0.2 + 3.4])
+    g.add(box(0.3, H - 1.9, 0.3, 0xB9C1C6, px, (H - 1.9)/2, D/2 + 4.2));
+  // abri à chariots, avec les chariots emboîtés
+  g.add(box(4.4, 0.26, 2.6, 0xB9C1C6, -W * 0.28, 2.5, D/2 + 3.4));
+  for(const px of [-W * 0.28 - 1.9, -W * 0.28 + 1.9])
+    g.add(box(0.22, 2.5, 0.22, 0xB9C1C6, px, 1.25, D/2 + 4.5));
+  for(let k = 0; k < 5; k++){
+    g.add(box(0.62, 0.42, 0.9, 0xC9CFD3, -W * 0.28, 0.66, D/2 + 2.6 + k * 0.3));
+    g.add(box(0.62, 0.1, 0.1, 0x8A9298, -W * 0.28, 0.95, D/2 + 2.3 + k * 0.3));
+  }
+  // parking devant, places marquées et quelques voitures schématiques
+  cmDalle(g, 0, D/2 + 9.5, W + 4, 9.0, CM.BETON, false);
+  for(let k = -3; k <= 3; k++)
+    g.add(box(0.16, 0.05, 5.2, 0xF0F2F3, k * 2.7, 0.19, D/2 + 9.5));
+  const teintes = [0xC0392B, 0x3E7CB8, 0xE8DCC0];
+  for(let k = 0; k < 3; k++){
+    const x = -5.4 + k * 5.4;
+    g.add(box(1.9, 0.85, 4.0, teintes[k], x, 0.6, D/2 + 8.6));
+    g.add(box(1.6, 0.7, 2.0, 0x2C3B43, x, 1.35, D/2 + 8.4));
+    for(const sz of [-1.3, 1.3]) for(const sx of [-0.95, 0.95])
+      g.add(cyl(0.3, 0.3, 0.24, 8, 0x2A2622, x + sx, 0.3, D/2 + 8.6 + sz, 0, 0, Math.PI/2));
+  }
+  // quai de livraison sur le flanc, avec palettes
+  g.add(box(3.4, 1.1, 5.0, CM.BETON2, -W/2 - 1.5, 0.55, 0));
+  g.add(box(2.6, 2.8, 0.3, CM.SOMBRE, -W/2 - 0.2, 1.4, 0));
+  cmPalette(g, -W/2 - 1.8, 2.2, 2, 0xE8DCC0);
+  cmPalette(g, -W/2 - 1.8, -2.2, 1, 0xD8B24A);
+  return g;
+}
+/* 10 — Restaurant : auberge à terrasse, store, ardoise et jardinières */
+function batRestaurant(){
+  const g = new THREE.Group();
+  const W = 9.5, D = 7, H = 4.2;
+  g.add(slab({w:W, h:H, d:D, tw:W - 0.4, td:D - 0.3, c:0xF0E2C6, y:0}));
+  g.add(gable(D + 0.5, 2.2, W + 0.5, 0x8A4A32, 0, H, 0, Math.PI/2));
+  for(let k = 0; k < 5; k++)                                    // colombages
+    g.add(box(0.16, H - 0.4, 0.1, 0x8A6A3A, -W/2 + 1.2 + k * 1.9, (H - 0.4)/2, D/2 + 0.02));
+  cmVitrine(g, -1.8, 2.1, D/2 + 0.05, 3.2, 2.4);
+  cmPorte(g, 2.4, D/2 + 0.05, 1.7, 2.8, CM.BOIS2);
+  cmStore(g, -1.8, 3.5, D/2 + 0.9, 3.8, 1.7, 0x3E6B4E, CM.CREME);
+  cmEnseigne(g, 0, H + 1.0, D/2 + 0.3, 4.6, 0x8A4A32);
+  cmPotence(g, 4.2, 3.6, D/2 + 0.05, 0x3E6B4E);
+  g.add(box(0.9, 1.3, 0.14, 0x2E3438, 3.9, 1.1, D/2 + 0.12));   // ardoise du jour
+  g.add(box(0.8, 2.2, 0.8, CM.PIERRE, -3.4, H + 1.1, -1.6));       // cheminée
+  g.add(box(1.0, 0.24, 1.0, 0x8E8172, -3.4, H + 2.3, -1.6));
+  // terrasse : dallage, tables rondes, parasols, jardinières et lampions
+  cmDalle(g, 0, D/2 + 4.2, W + 1.5, 6.0, 0xC9B99A, false);
+  for(const px of [-3.0, 0.2, 3.4]){
+    g.add(cyl(0.13, 0.13, 0.9, 8, 0x8A9298, px, 0.5, D/2 + 3.6));
+    g.add(cyl(0.9, 0.9, 0.12, 14, CM.CREME, px, 0.96, D/2 + 3.6));
+    g.add(cyl(0.08, 0.08, 2.5, 8, CM.BOIS2, px, 1.4, D/2 + 3.6));
+    g.add(cyl(0.1, 1.8, 0.5, 12, 0xC0392B, px, 2.7, D/2 + 3.6));
+    for(const dz of [-0.95, 0.95]){
+      g.add(box(0.5, 0.1, 0.5, CM.BOIS, px, 0.45, D/2 + 3.6 + dz));
+      for(const sx of [-0.18, 0.18]) g.add(box(0.08, 0.45, 0.08, CM.BOIS2, px + sx, 0.22, D/2 + 3.6 + dz));
+      g.add(box(0.5, 0.55, 0.1, CM.BOIS, px, 0.72, D/2 + 3.6 + dz * 1.25));
+    }
+  }
+  for(const px of [-W/2 - 0.2, W/2 + 0.2]){                     // jardinières
+    g.add(box(0.9, 0.6, 2.6, 0x9C6B4A, px, 0.3, D/2 + 1.6));
+    g.add(box(0.8, 0.4, 2.4, 0x3E6B4E, px, 0.7, D/2 + 1.6));
+  }
+  for(let k = 0; k < 5; k++)                                    // guirlande de lampions
+    g.add(cyl(0.13, 0.13, 0.22, 10, 0xE8A62E, -3.6 + k * 1.8, 3.08, D/2 + 6.9));
+  for(const px of [-4.4, 4.4]) g.add(cyl(0.1, 0.1, 3.2, 8, CM.BOIS2, px, 1.6, D/2 + 6.9));
+  g.add(box(9.0, 0.06, 0.06, 0x5A4326, 0, 3.2, D/2 + 6.9));
+  return g;
+}
+/* 11 — Caviste */
+function batCaviste(){
+  const g = new THREE.Group();
+  cmBoutique(g, 6.5, 6, 4.2, CM.PIERRE, 0x5A3A52);
+  cmVitrine(g, 1.0, 2.1, 3.05, 2.6, 2.4, 0xE8DCC0);
+  cmPorte(g, -1.9, 3.05, 1.4, 2.6, CM.BOIS2);
+  cmPotence(g, -2.9, 3.5, 3.05, 0x6B3A6E);
+  cmEnseigne(g, 0.6, 4.2, 3.1, 3.4, 0x6B3A6E);
+  // casier à bouteilles visible en devanture
+  for(let i = 0; i < 3; i++) for(let k = 0; k < 4; k++)
+    g.add(cyl(0.13, 0.13, 0.5, 8, i % 2 ? 0x3E6B4E : 0x6B3A6E,
+              3.4 + k * 0.34, 0.4 + i * 0.55, 4.4, Math.PI/2));
+  for(let i = 0; i < 3; i++) g.add(box(1.8, 0.1, 0.7, CM.BOIS2, 3.9, 0.68 + i * 0.55, 4.4));
+  g.add(cmTonneau(-3.4, 0.6, 4.6, 0.6, 1.3, false));
+  g.add(box(1.4, 0.12, 1.4, CM.BOIS2, -3.4, 1.28, 4.6));
+  return g;
+}
+/* 12 — Marché du village : halle ouverte et étals */
+function batMarche(){
+  const g = new THREE.Group();
+  const W = 13, D = 9;
+  cmDalle(g, 0, 0, W + 1.5, D + 1.5, 0xC9B99A, false);
+  for(const px of [-W/2 + 0.8, W/2 - 0.8]) for(const pz of [-D/2 + 0.8, 0, D/2 - 0.8])
+    g.add(cyl(0.22, 0.26, 4.2, 8, CM.BOIS2, px, 2.1, pz));
+  g.add(gable(D + 1.2, 1.8, W + 1.2, CM.TUILE, 0, 4.2, 0, Math.PI/2));
+  g.add(box(W + 0.4, 0.3, 0.3, CM.BOIS, 0, 4.1, -D/2 + 0.8));
+  g.add(box(W + 0.4, 0.3, 0.3, CM.BOIS, 0, 4.1, D/2 - 0.8));
+  // étals sous la halle, bâches rayées
+  const teintes = [0xC0392B, 0x3E6B4E, 0xE0A02E, 0x4A6B8A];
+  for(let k = 0; k < 4; k++){
+    const x = -4.8 + k * 3.2;
+    g.add(box(2.6, 0.16, 1.8, CM.BOIS, x, 0.95, -1.4));
+    for(const px of [x - 1.1, x + 1.1]) g.add(box(0.12, 0.9, 0.12, CM.BOIS2, px, 0.5, -1.4));
+    cmStore(g, x, 2.5, -1.4, 2.8, 2.0, teintes[k], CM.CREME);
+    for(let i = 0; i < 3; i++)
+      g.add(box(0.5, 0.3, 0.4, teintes[(k + i) % 4], x - 0.8 + i * 0.8, 1.2, -1.4));
+  }
+  for(let k = 0; k < 3; k++){
+    g.add(box(1.0, 0.5, 0.8, 0xD8B24A, -3.0 + k * 1.4, 0.4, 2.6));
+    g.add(box(1.0, 0.12, 0.8, CM.BOIS2, -3.0 + k * 1.4, 0.68, 2.6));
+  }
+  return g;
+}
+
+/* 13 — Fromagerie : boutique et cave d'affinage accolée */
+function batFromagerie(){
+  const g = new THREE.Group();
+  const W = 8.5, D = 6.5, H = 4.0;
+  g.add(slab({w:W, h:H, d:D, tw:W - 0.4, td:D - 0.3, c:0xF4EEDC, y:0}));
+  g.add(gable(D + 0.5, 2.0, W + 0.5, 0xB8973A, 0, H, 0, Math.PI/2));
+  cmVitrine(g, 1.4, 2.1, D/2 + 0.05, 3.2, 2.4);
+  cmPorte(g, -2.4, D/2 + 0.05, 1.5, 2.6, CM.BOIS2);
+  cmStore(g, 1.4, 3.5, D/2 + 0.9, 3.6, 1.6, 0xE8C24A, CM.CREME);
+  cmEnseigne(g, 0, H + 0.9, D/2 + 0.3, 4.2, 0xB8973A);
+  cmPotence(g, -3.5, 3.5, D/2 + 0.05, 0xE8C24A);
+  // meules en vitrine, posées sur deux étagères
+  for(let i = 0; i < 2; i++){
+    g.add(box(3.0, 0.1, 0.5, CM.BOIS2, 1.4, 1.4 + i * 0.9, D/2 + 0.3));
+    for(let k = 0; k < 3; k++)
+      g.add(cyl(0.34, 0.34, 0.26, 14, i ? 0xE8C24A : 0xF0DFA8, 0.4 + k * 1.0, 1.58 + i * 0.9, D/2 + 0.3));
+  }
+  // cave d'affinage accolée : volume bas, ventelles, porte épaisse
+  const A = 4.2;
+  g.add(slab({w:A, h:2.9, d:D - 0.6, tw:A, td:D - 0.6, c:CM.PIERRE, x:-W/2 - A/2 + 0.2, y:0}));
+  g.add(gable(D - 0.1, 1.2, A + 0.4, 0x8E7A2E, -W/2 - A/2 + 0.2, 2.9, 0, Math.PI/2));
+  for(let k = 0; k < 3; k++)
+    g.add(box(0.12, 0.5, 1.2, 0x6E7B82, -W/2 - A + 0.2, 1.2 + k * 0.55, 0));
+  g.add(box(1.6, 2.2, 0.24, CM.BOIS2, -W/2 - A/2 + 0.2, 1.1, (D - 0.6)/2 + 0.02));
+  // claies de meules dehors et bidons de lait
+  for(let i = 0; i < 3; i++){
+    g.add(box(2.4, 0.12, 0.9, CM.BOIS2, -W/2 - 1.2, 0.5 + i * 0.62, D/2 + 2.2));
+    for(let k = 0; k < 3; k++)
+      g.add(cyl(0.32, 0.32, 0.24, 14, i % 2 ? 0xF0DFA8 : 0xE8C24A,
+                -W/2 - 2.0 + k * 0.8, 0.68 + i * 0.62, D/2 + 2.2));
+  }
+  for(const px of [-4.6, 4.4, 5.3]) g.add(cyl(0.36, 0.32, 0.95, 12, 0xE8EDF0, px, 0.48, D/2 + 3.6));
+  cmDalle(g, 0, D/2 + 3.0, W + 4, 4.4, CM.BETON, false);
+  return g;
+}
+
 function buildCommerce(S){
   const g = new THREE.Group();
   const W = S.w, D = S.d;
   const usine = S.style === 'usine';
   const H = usine ? 6.8 : 4.8;
-  g.add(slab({w:W, h:H, d:D, tw:usine?W:W-0.9, td:usine?D:D-0.8, c:S.mur, y:0}));
-  if(usine){
-    g.add(slab({w:W+0.7, h:0.55, d:D+0.7, tw:W+0.1, td:D+0.1, c:S.toit, y:H}));
-    for(let k=0;k<3;k++)                                    // aérateurs de toiture
-      g.add(box(1.5,0.7,1.5, 0x9AA2A7, -W/3+k*W/3, H+0.9, -D*0.15));
-    // bardage : rainures verticales
-    for(let k=-3;k<=3;k++) g.add(box(0.14, H*0.9, 0.1, 0xB9C1C6, k*W*0.13, H*0.45, D/2+0.03));
-    g.add(box(W*0.34, H*0.6, 0.25, 0x333A3F, -W*0.24, H*0.30, D/2+0.04));   // porte roulante
-    for(let k=0;k<3;k++) g.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.13, D/2+0.16));
-  } else {
-    g.add(gable(D+0.5, 2.7, W+0.5, S.toit, 0, H, 0, Math.PI/2));
-    // vitrine de boutique et auvent
-    g.add(box(W*0.44, H*0.52, 0.16, 0xF7EFDC, W*0.14, H*0.42, D/2+0.02));
-    g.add(box(W*0.40, H*0.46, 0.2,  0x5D7F92, W*0.14, H*0.42, D/2+0.06));
-    g.add(slab({w:W*0.52, h:0.22, d:1.5, tw:W*0.52, td:1.9, dz:0.4, c:S.toit, y:H*0.72, x:W*0.14, z:D/2+0.7}));
-    g.add(box(1.6, H*0.62, 0.2, 0x7A5730, -W*0.30, H*0.31, D/2+0.02));      // porte
-    g.add(box(0.9, 0.9, 0.9, S.toit, -W*0.30, H*0.86, D/2+0.3));            // lanterne
-  }
-  if(S.silos) for(let k=0;k<S.silos;k++){
-    g.add(cyl(1.8,1.8,H+4.0,10, 0xC9CFD3, -W/2+2.4+k*4.2, (H+4.0)/2, -D/2-3.0));
-    g.add(cyl(1.95,0.2,1.2,10, 0xA8B0B5, -W/2+2.4+k*4.2, H+4.4, -D/2-3.0));
-  }
-  if(S.cuves) for(let k=0;k<S.cuves;k++){
-    g.add(cyl(1.7,1.7,5.0,10, 0xB9C0C4, -W/2+2.6+k*3.8, 2.5, -D/2-3.0));
-    g.add(cyl(1.8,0.15,0.9,10, 0x8E969B, -W/2+2.6+k*3.8, 5.2, -D/2-3.0));
-  }
-  if(S.tuyaux) for(let k=0;k<2;k++)                        // tuyauterie extérieure
-    g.add(cyl(0.26,0.26,D*0.8,7, 0x8A9298, -W/2-0.5, 2.0+k*1.4, 0, Math.PI/2, 0, Math.PI/2));
-  if(S.chem){
-    g.add(cyl(0.75,0.95,7.5,8, 0xC4CACE, W/2-2.2, H*0.5+3.6, -D/2+1.8));
-    g.add(cyl(1.0,1.0,0.45,8, 0x8E8172, W/2-2.2, H*0.5+7.5, -D/2+1.8));
-    const mk = new THREE.Object3D(); mk.position.set(W/2-2.2, H*0.5+7.9, -D/2+1.8); g.add(mk); S.mk = mk;
-  }
-  if(S.four){
-    g.add(box(1.05,2.5,1.05, 0xB8A894, W/2-2.0, H+1.25, -D/2+1.6));
-    g.add(box(1.3,0.26,1.3, 0x8E8172, W/2-2.0, H+2.5, -D/2+1.6));
-    const mk = new THREE.Object3D(); mk.position.set(W/2-2.0, H+2.8, -D/2+1.6); g.add(mk); S.mk = mk;
-  }
-  if(S.ailes){
-    g.add(cyl(0.30,0.30,2.6,8, 0x6B4E24, 0, H+1.5, D/2+1.0, Math.PI/2));
-    const sails = new THREE.Group();
-    for(let k=0;k<4;k++){
-      // une pale : longeron, traverses et toile, comme un vrai châssis de moulin
-      const pale = new THREE.Group();
-      pale.add(box(0.22, 6.2, 0.22, 0x6B4E24, 0, 3.4, 0));            // longeron
-      for(let t=0;t<6;t++)
-        pale.add(box(1.5, 0.14, 0.14, 0x6B4E24, 0.55, 1.1 + t*1.05, 0));  // traverses
-      pale.add(box(1.25, 4.9, 0.07, 0xF2E7D2, 0.62, 3.3, 0.09));      // toile
-      pale.rotation.z = k/4*Math.PI*2;
-      sails.add(pale);
+  // Les commerces qui ont leur propre modèle l'apportent tout fait. Les autres sont
+  // encore bâtis par le gabarit générique, à partir de leurs drapeaux — c'est le cas
+  // de l'atelier de réparation et de l'huilerie, qui n'ont pas de modèle dédié.
+  if(S.modele){ g.add(S.modele()); } else {
+    g.add(slab({w:W, h:H, d:D, tw:usine?W:W-0.9, td:usine?D:D-0.8, c:S.mur, y:0}));
+    if(usine){
+      g.add(slab({w:W+0.7, h:0.55, d:D+0.7, tw:W+0.1, td:D+0.1, c:S.toit, y:H}));
+      for(let k=0;k<3;k++)                                    // aérateurs de toiture
+        g.add(box(1.5,0.7,1.5, 0x9AA2A7, -W/3+k*W/3, H+0.9, -D*0.15));
+      // bardage : rainures verticales
+      for(let k=-3;k<=3;k++) g.add(box(0.14, H*0.9, 0.1, 0xB9C1C6, k*W*0.13, H*0.45, D/2+0.03));
+      g.add(box(W*0.34, H*0.6, 0.25, 0x333A3F, -W*0.24, H*0.30, D/2+0.04));   // porte roulante
+      for(let k=0;k<3;k++) g.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.13, D/2+0.16));
+    } else {
+      g.add(gable(D+0.5, 2.7, W+0.5, S.toit, 0, H, 0, Math.PI/2));
+      // vitrine de boutique et auvent
+      g.add(box(W*0.44, H*0.52, 0.16, 0xF7EFDC, W*0.14, H*0.42, D/2+0.02));
+      g.add(box(W*0.40, H*0.46, 0.2,  0x5D7F92, W*0.14, H*0.42, D/2+0.06));
+      g.add(slab({w:W*0.52, h:0.22, d:1.5, tw:W*0.52, td:1.9, dz:0.4, c:S.toit, y:H*0.72, x:W*0.14, z:D/2+0.7}));
+      g.add(box(1.6, H*0.62, 0.2, 0x7A5730, -W*0.30, H*0.31, D/2+0.02));      // porte
+      g.add(box(0.9, 0.9, 0.9, S.toit, -W*0.30, H*0.86, D/2+0.3));            // lanterne
     }
-    sails.position.set(0, H+1.5, D/2+2.4); g.add(sails); S.sails = sails;
+    if(S.silos) for(let k=0;k<S.silos;k++){
+      g.add(cyl(1.8,1.8,H+4.0,10, 0xC9CFD3, -W/2+2.4+k*4.2, (H+4.0)/2, -D/2-3.0));
+      g.add(cyl(1.95,0.2,1.2,10, 0xA8B0B5, -W/2+2.4+k*4.2, H+4.4, -D/2-3.0));
+    }
+    if(S.cuves) for(let k=0;k<S.cuves;k++){
+      g.add(cyl(1.7,1.7,5.0,10, 0xB9C0C4, -W/2+2.6+k*3.8, 2.5, -D/2-3.0));
+      g.add(cyl(1.8,0.15,0.9,10, 0x8E969B, -W/2+2.6+k*3.8, 5.2, -D/2-3.0));
+    }
+    if(S.tuyaux) for(let k=0;k<2;k++)                        // tuyauterie extérieure
+      g.add(cyl(0.26,0.26,D*0.8,7, 0x8A9298, -W/2-0.5, 2.0+k*1.4, 0, Math.PI/2, 0, Math.PI/2));
+    if(S.chem){
+      g.add(cyl(0.75,0.95,7.5,8, 0xC4CACE, W/2-2.2, H*0.5+3.6, -D/2+1.8));
+      g.add(cyl(1.0,1.0,0.45,8, 0x8E8172, W/2-2.2, H*0.5+7.5, -D/2+1.8));
+      const mk = new THREE.Object3D(); mk.position.set(W/2-2.2, H*0.5+7.9, -D/2+1.8); g.add(mk); S.mk = mk;
+    }
+    if(S.four){
+      g.add(box(1.05,2.5,1.05, 0xB8A894, W/2-2.0, H+1.25, -D/2+1.6));
+      g.add(box(1.3,0.26,1.3, 0x8E8172, W/2-2.0, H+2.5, -D/2+1.6));
+      const mk = new THREE.Object3D(); mk.position.set(W/2-2.0, H+2.8, -D/2+1.6); g.add(mk); S.mk = mk;
+    }
+    if(S.ailes){
+      g.add(cyl(0.30,0.30,2.6,8, 0x6B4E24, 0, H+1.5, D/2+1.0, Math.PI/2));
+      const sails = new THREE.Group();
+      for(let k=0;k<4;k++){
+        // une pale : longeron, traverses et toile, comme un vrai châssis de moulin
+        const pale = new THREE.Group();
+        pale.add(box(0.22, 6.2, 0.22, 0x6B4E24, 0, 3.4, 0));            // longeron
+        for(let t=0;t<6;t++)
+          pale.add(box(1.5, 0.14, 0.14, 0x6B4E24, 0.55, 1.1 + t*1.05, 0));  // traverses
+        pale.add(box(1.25, 4.9, 0.07, 0xF2E7D2, 0.62, 3.3, 0.09));      // toile
+        pale.rotation.z = k/4*Math.PI*2;
+        sails.add(pale);
+      }
+      sails.position.set(0, H+1.5, D/2+2.4); g.add(sails); S.sails = sails;
+    }
+    // Enseigne : quatre poses différentes selon le commerce.
   }
-  // Enseigne : quatre poses différentes selon le commerce.
   const tex = enseigneTex(S.nom, S.toit, S.style, S.picto);
   const plaque = (lw, lh, dbl)=> new THREE.Mesh(new THREE.PlaneGeometry(lw, lh),
     new THREE.MeshBasicMaterial({map:tex, side: dbl ? THREE.DoubleSide : THREE.FrontSide}));
@@ -1817,7 +2240,7 @@ function buildCommerce(S){
     anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
       const m = MACHINES[cur], T = caisseDe(m);
       if(S === BAKERY) return porte(T, 'farine') || porte(T, 'oeufs');
-      if(S === BIO) return porte(T, 'laine') || porte(T, 'huile') ||
+      if(S === AVOINE) return porte(T, 'laine') || porte(T, 'huile') ||
                            tremiePleine(m) || porte(T, 'grain');
       return tremiePleine(m) || porte(T, 'grain');
     });
@@ -4419,7 +4842,7 @@ const COMPTOIR = SITES.find(S=>S.fournisseur);
 const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
 const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
 // L'usine bio transformait déjà des cultures : elle prend aussi la laine des moutons.
-const BIO      = SITES.find(S=>S.nom === 'Usine bio');
+const AVOINE   = SITES.find(S=>S.nom === 'Usine avoine');
 // L'huilerie achetait déjà le colza brut : elle prend aussi l'huile pressée à la ferme.
 const HUILERIE = SITES.find(S=>S.nom === 'Huilerie');
 // Le comptoir n'a rien à vendre quand la bourse est vide et les bacs pleins : son
@@ -4676,7 +5099,7 @@ const ESPECES = {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
     prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
     produit:'laine', nomProduit:'Laine', prixProduit:2.10, parSec:0.036, cuveMax:600,
-    acheteur:()=> BIO, acheteurNom:'L\'USINE BIO',
+    acheteur:()=> AVOINE, acheteurNom:'L\'USINE D\'AVOINE',
     corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
     patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
     robes:[{fond:0xF0EADA, tache:0xDED6C2, corne:0x3A3630, peau:0x3A3630},
@@ -5243,10 +5666,10 @@ function cargoUn(m, dt){
     if(T.load <= 0.01){ viderType(T); showHint('HUILE LIVRÉE — ' + Math.floor(money) + ' €'); }
     return;
   }
-  if(T.type === 'laine' && aQuai(v, BIO)){
+  if(T.type === 'laine' && aQuai(v, AVOINE)){
     const q = Math.min(ELEVAGE.debit*dt, T.load);
     T.load -= q; money += q*ESPECES.mouton.prixProduit; STAT.laine += q;
-    if(Math.random() < 0.4) puff(BIO.dropX, 2.6, BIO.dropZ, 0xEDE6D6, 0.4, 0.3);
+    if(Math.random() < 0.4) puff(AVOINE.dropX, 2.6, AVOINE.dropZ, 0xEDE6D6, 0.4, 0.3);
     if(T.load <= 0.01){ viderType(T); showHint('LAINE LIVRÉE — ' + Math.floor(money) + ' €'); }
     return;
   }
@@ -5550,7 +5973,7 @@ function ongletElevage(){
   d.innerHTML = '<div class="txt"><div class="det">' +
     'Laiterie : ' + dec(ESPECES.vache.prixProduit) + ' € le kg de lait.<br>' +
     'Boulangerie : ' + dec(ESPECES.poule.prixProduit) + ' € le kg d\'œufs.<br>' +
-    'Usine bio : ' + dec(ESPECES.mouton.prixProduit) + ' € le kg de laine.<br>' +
+    'Usine d\'avoine : ' + dec(ESPECES.mouton.prixProduit) + ' € le kg de laine.<br>' +
     'Boucherie : la bête adulte, au tarif de son espèce.<br><br>' +
     'Une caisse ne transporte qu\'une seule nature à la fois, et ne prend des bêtes ' +
     'que si elle est vide.</div></div>';
