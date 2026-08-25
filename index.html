@@ -516,7 +516,8 @@ for(const c of P_COLS) for(const r of P_ROWS){
 // s'y ancre, il reste donc exactement où il était.
 const COUR_Z0 = 43.4;                     // bord nord des dalles
 const COUR_Z1 = ROAD_C - ROAD_W/2;        // bord sud : le bitume de la rocade
-const YARD = {x:-20, z:(COUR_Z0+COUR_Z1)/2, w:33.2, h:COUR_Z1-COUR_Z0};   // dalle de parking
+const YARD  = {x:-20, z:(COUR_Z0+COUR_Z1)/2, w:33.2, h:COUR_Z1-COUR_Z0};  // dalle de parking
+const GYARD = {x: 20, z:YARD.z,               w:33.2, h:YARD.h};          // dalle du garage
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
 // vers l'extérieur. Chaque enseigne a son gabarit et son style.
@@ -664,14 +665,30 @@ function paintStaticGround(){
     }
   };
   const REACH = ROAD_C - ROAD_W/2;              // le sable vient buter contre la route, sans mordre
-  for(const px of PATHS_V) path(px, 0, REACH*2, true);
+  for(const px of PATHS_V){
+    // Le chemin central s'arrête au bord nord des dalles : au-delà, la cour et le
+    // garage ne font qu'une seule aire de bitume. Traverser une bande de sable de
+    // 6 m entre deux parkings n'avait aucun sens, et on la franchissait à chaque
+    // passage de l'un à l'autre.
+    if(px === 0) path(px, (COUR_Z0 - REACH)/2, REACH + COUR_Z0, true);
+    else path(px, 0, REACH*2, true);
+  }
   for(const pz of PATHS_H) path(0, pz, REACH*2, false);
 
   // cour de ferme en terre battue
   // dalle de parking : béton, avec le même grain que l'herbe puis le marquage
   fillRect(YARD.x, YARD.z, YARD.w, YARD.h, '#5C6367', AX);
+  // jonction cour <-> garage, à cheval sur les deux dalles pour ne laisser aucun
+  // liseré : le garage repeindra sa moitié par-dessus, à l'identique.
+  const JONCTION = {x:0, w:(GYARD.x - GYARD.w/2) - (YARD.x + YARD.w/2) + 2};
+  fillRect(JONCTION.x, YARD.z, JONCTION.w, YARD.h, '#5C6367', AX);
   for(let k=0;k<80;k++){
     const x = YARD.x + (Math.random()-0.5)*YARD.w, z = YARD.z + (Math.random()-0.5)*YARD.h;
+    fillRect(x, z, 0.5+Math.random()*1.4, 0.4+Math.random()*0.9,
+      Math.random() < 0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
+  }
+  for(let k=0;k<22;k++){                          // même grain sur la jonction
+    const x = JONCTION.x + (Math.random()-0.5)*JONCTION.w, z = YARD.z + (Math.random()-0.5)*YARD.h;
     fillRect(x, z, 0.5+Math.random()*1.4, 0.4+Math.random()*0.9,
       Math.random() < 0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
   }
@@ -1737,7 +1754,7 @@ function buildFarm(){
   // Garage : remise fermée pour les véhicules et les outils, sur une dalle de bitume
   // identique à celle du parking voisin, avec ses propres emplacements à côté.
   (function(){
-    const GY = {x:20, z:YARD.z, w:33.2, h:YARD.h};    // même gabarit que la cour
+    const GY = GYARD;                                 // même gabarit que la cour
     fillRect(GY.x, GY.z, GY.w, GY.h, '#5C6367', AX);
     for(let k=0;k<80;k++)
       fillRect(GY.x+(Math.random()-0.5)*GY.w, GY.z+(Math.random()-0.5)*GY.h,
