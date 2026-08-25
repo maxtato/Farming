@@ -60,6 +60,35 @@ du silo, apporté à la benne : une bête qui n'a rien à manger ne donne rien e
 grandit pas. Un cochon n'a pas de poste de collecte, donc pas d'anneau devant : il ne
 rapporte qu'en partant à la boucherie.
 
+## L'atelier de la ferme
+
+Le moulin du bord de route a fermé : on moud son propre blé, dans sa propre cour. À
+l'est du garage, les deux cases de la rangée sud ne font plus qu'une seule dalle de
+bitume — le chemin de sable qui les coupait a été déposé. Le silo y a déménagé, et
+l'atelier s'y installe à côté.
+
+On y verse le grain à la benne, il ressort transformé. Cinq paliers, achetés sur
+place, et chacun se voit sur le bâtiment :
+
+| | débloque | ce qu'on voit |
+|---|---|---|
+| **1 · Moulin** | blé → farine | la halle, sa trémie, son quai |
+| **2 · Alimentation animale** | céréales → aliment | deuxième trémie, mélangeur, hall latéral |
+| **3 · Pressoir** | colza → huile | deux cuves, passerelle, cheminée, bidons |
+| **4 · Stockage** | plus de capacité et de débit | appentis, conteneur, palettes en nombre |
+| **5 · Version complète** | le maximum | étage technique, auvent de quai, aire rangée |
+
+La farine part à la boulangerie, l'huile à l'huilerie. L'aliment ne se vend pas : il se
+donne aux bêtes, et il remplit la mangeoire une fois et demie mieux que le grain brut.
+Le bouton sur l'anneau du quai sert à monter d'un palier, puis à choisir ce que
+l'atelier transforme.
+
+## Le gazole
+
+Il n'y a pas de pompe publique. Le gazole s'achète en gros à la coopérative, livré dans
+la cuve de la ferme, et c'est là que se font tous les pleins. Un engin à sec n'est pas
+immobilisé : il se traîne au ralenti jusqu'à la cuve.
+
 ## La nuit
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes — la lentille passe à
@@ -77,9 +106,14 @@ avec une flaque orange au sol la nuit.
                                                       |
                             +-------------------------+
                             |
-                 silo  ->  moulin  ->  farine  ->  boulangerie  ->  pain
+                 silo  ->  atelier  -+-> farine  -> boulangerie -> pain
+                   |                 |-> huile   -> huilerie
+                   |                 \-> aliment -> les mangeoires
                    |
-                   +--> brasserie / huilerie / usines (selon la culture)
+                   +--> brasserie / huilerie / usines / coopérative
+                   |         (selon la culture)
+                   |
+                   +--> supermarché : rachète tout produit fini, 14 % moins cher
                    |
                    +--> mangeoire -> vaches  -> lait  -> laiterie
                                   |-> poules  -> œufs  -> boulangerie
