@@ -37,7 +37,9 @@
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
     display:flex;align-items:center;justify-content:center;gap:4px}
   #pause i{width:4px;height:14px;background:#fff;border-radius:1px;display:block}
-  #hint{position:absolute;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  /* Le bandeau d'information passe AU-DESSUS des boutons contextuels : à 96 px il
+     recouvrait le bouton d'achat, et les deux devenaient illisibles ensemble. */
+  #hint{position:absolute;bottom:calc(188px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
     font-size:12px;letter-spacing:1.5px;text-transform:uppercase;opacity:0;transition:opacity .3s;
     background:rgba(20,28,33,.6);padding:6px 14px;border-radius:12px;white-space:nowrap}
   #engins{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;
@@ -125,8 +127,35 @@
   #hopper{position:absolute;bottom:calc(190px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .3s}
   #hopfill{height:100%;width:0%;background:#FFAE2E}
+  /* jauge de gazole : toujours visible, elle clignote quand le réservoir se vide */
+  #fuel{position:absolute;bottom:calc(206px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
+    width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
+  #fuelfill{height:100%;width:100%;background:#8BE07A;transition:width .2s,background .3s}
+  #fuel.bas{animation:clig 1s infinite}
+  @keyframes clig{50%{opacity:.35}}
+  #chargetxt{position:absolute;bottom:calc(222px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
+    font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
+    text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
+  #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
+    transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
+    background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid #E8B44A;color:#E8B44A;white-space:nowrap;display:none}
+  #service.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+  /* écran d'accueil : il recueille aussi le premier geste, sans lequel aucun
+     navigateur n'autorise le son */
+  #accueil{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;
+    pointer-events:auto;background:rgba(12,18,22,.78);backdrop-filter:blur(5px)}
+  #acctitre{font-size:34px;font-weight:bold;letter-spacing:12px;margin-right:-12px}
+  #accbaseline{font-size:10px;letter-spacing:4px;opacity:.45;text-transform:uppercase}
+  #accsous{font-size:12px;line-height:1.7;opacity:.68;max-width:440px}
+  #accbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .accbtn{padding:12px 26px;border-radius:13px;font-size:12px;font-weight:bold;
+    letter-spacing:1.8px;text-transform:uppercase;border:2px solid rgba(255,255,255,.3);white-space:nowrap}
+  .accbtn.pri{background:#FAD201;color:#1B2429;border-color:#FAD201}
+  #accaide{font-size:10px;line-height:1.9;opacity:.4;letter-spacing:.8px;max-width:520px;margin-top:10px}
   #rot{position:absolute;inset:0;background:#1B2429;display:none;align-items:center;justify-content:center;
-    flex-direction:column;gap:14px;text-align:center;padding:30px;pointer-events:auto;z-index:20}
+    flex-direction:column;gap:14px;text-align:center;padding:30px;pointer-events:auto;z-index:40}
   #rot b{font-size:15px;letter-spacing:3px}
   #rot span{font-size:12px;opacity:.5;letter-spacing:1px}
   @media (orientation:portrait){#rot{display:flex}}
@@ -137,6 +166,7 @@
   <div class="pill" id="stats">
     <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span></div>
     <div class="stat"><span class="dot" style="background:#FFAE2E"></span><span id="silo">0 kg</span></div>
+    <div class="stat"><span class="dot" style="background:#7FD1E8"></span><span id="heure">09:00</span></div>
   </div>
   <div id="goalwrap"><div id="bar"><div id="barfill"></div></div><div id="star">★</div></div>
   <div id="goaltxt"></div>
@@ -167,9 +197,23 @@
   <div id="buy"></div>
   <div id="atelier"></div>
   <div id="veh"></div>
+  <div id="service"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="thr"><div class="lab up">AV</div><div class="lab dn">AR</div><div id="thrknob"></div></div>
+  <div id="chargetxt"></div>
+  <div id="fuel"><div id="fuelfill"></div></div>
   <div id="hopper"><div id="hopfill"></div></div>
+</div>
+<div id="accueil">
+  <div id="acctitre">MOISSON</div>
+  <div id="accbaseline">Yello Arcade</div>
+  <div id="accsous"></div>
+  <div id="accbtns"></div>
+  <div id="accaide">
+    Volant à gauche, gaz à droite — au clavier, les flèches.<br>
+    Laboure, sème, moissonne, puis vends au silo ou aux usines du bord de route.<br>
+    Un anneau lumineux au sol : arrête-toi dessus, ça se fait tout seul.
+  </div>
 </div>
 <div id="rot"><b>TOURNE L'ÉCRAN</b><span>Le jeu se joue en paysage</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1115,11 +1159,15 @@ const LAMP_GEO = (function(){
   return mergeParts(P);
 })();
 const lampMat = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true, shininess:0, specular:0x000000});
+// Positions relevées à la construction : le cycle jour/nuit vient y accrocher une
+// ampoule et un halo au sol, une fois tous les lampadaires posés.
+const LAMPES = [];
 function addLamp(x, z, ry){
   const m = new THREE.Mesh(LAMP_GEO, lampMat);
   m.position.set(x,0,z); m.rotation.y = ry;
   m.castShadow = true; scene.add(m);
   renversable(m, x, z, 0.9);
+  LAMPES.push({x, z, ry});
 }
 // panneau « À VENDRE » : le texte est peint dans une petite texture, matériau non
 // éclairé pour rester lisible quelle que soit l'orientation
@@ -2070,6 +2118,10 @@ class Vehicle {
   fwd(){ return {x:Math.sin(this.cap), z:Math.cos(this.cap)}; }
   right(){ return {x:Math.cos(this.cap), z:-Math.sin(this.cap)}; }
   update(dt, steerX, throttle){
+    // Le carburant se consomme AVANT le calcul du mouvement : un réservoir vide bride
+    // la commande des gaz, il ne coupe pas net. L'engin finit sa course au ralenti.
+    throttle = limiteSec(this, throttle);
+    brulerCarburant(this, throttle, dt);
     const f = this.fwd(), r = this.right();
     let vf = this.vel.x*f.x + this.vel.y*f.z;
     let vr = this.vel.x*r.x + this.vel.y*r.z;
@@ -2392,12 +2444,24 @@ const MODELES = [
   {stat:'pain',    txt:n=>'Vendre '+n+' kg de pain',               min:150, max:500,  pay:0.34, sec:210},
   {stat:'moisson', txt:n=>'Récolter '+n+' kg de blé',              min:300, max:900,  pay:0.12, sec:170},
   {stat:'labour',  txt:n=>'Labourer '+n+' m² de terre',            min:300, max:800,  pay:0.09, sec:150},
-  {stat:'semis',   txt:n=>'Semer '+n+' m² de blé',                 min:300, max:800,  pay:0.11, sec:160}
+  {stat:'semis',   txt:n=>'Semer '+n+' m² de blé',                 min:300, max:800,  pay:0.11, sec:160},
+  // Les deux circuits d'élevage ont aussi leurs commandes. `siPossible` les garde
+  // hors du tirage tant que la ferme n'a pas de quoi les honorer : proposer
+  // « vendre trois bêtes » à qui n'a pas de pâture, c'est une case perdue d'avance.
+  {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait à la laiterie',  min:250, max:900, pay:0.26, sec:230,
+   siPossible:()=> PATURES.some(P=>P.vaches.length > 0)},
+  {stat:'betes',   txt:n=>'Vendre '+n+' bête'+(n>1?'s':'')+' à la boucherie',
+   min:2, max:5, pas:1, pay:260, sec:300,
+   siPossible:()=> PATURES.reduce((a,P)=>a+P.vaches.length, 0) >= 3}
 ];
 let contrat = null;
 function nouveauContrat(){
-  const m = MODELES[(Math.random()*MODELES.length)|0];
-  const n = Math.round((m.min + Math.random()*(m.max-m.min))/50)*50;
+  // Un contrat ne doit porter que sur ce que la ferme sait déjà faire : proposer
+  // « vendre trois bêtes » à qui n'a pas de pâture, c'est une case à perdre d'avance.
+  const ouverts = MODELES.filter(m => !m.siPossible || m.siPossible());
+  const m = ouverts[(Math.random()*ouverts.length)|0];
+  const pas = m.pas || 50;
+  const n = Math.max(pas, Math.round((m.min + Math.random()*(m.max-m.min))/pas)*pas);
   contrat = {stat:m.stat, need:n, base:STAT[m.stat], label:m.txt(n),
              reward:Math.round(n*m.pay/10)*10, temps:m.sec};
 }
@@ -2815,7 +2879,7 @@ const GOAL = 3000;
 let money = 0, siloKg = 0, hopper = 0, delivered = 0, flourKg = 0, breadKg = 0;
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
-const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0};
+const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0};
 let hopMult = 1;   // valeur moyenne de ce que contient la trémie
 let HOP_MAX = 900;
 const KG_CELL = 12, PRICE = 0.22, PRICE_MILL = 0.38;
@@ -2889,6 +2953,16 @@ function work(m, dt){
     const wb = wheatBase[instOf[id]];
     if(inSweep(wb.x, wb.z, prev, prev.r, cur, cur.r, w, 0, nsubW)) touched.push(id);
   }
+
+  // Semences et engrais : la trémie de l'outil puise dans le stock de la ferme.
+  // On ne traite que ce que ce stock permet, et on ne peint pas ce qu'on n'a pas semé —
+  // sinon le sol afficherait un rang de semis là où rien n'est tombé.
+  const nMax = cellulesPossibles(T, touched.length);
+  if(nMax < touched.length){
+    touched.length = nMax;
+    if(nMax === 0 && bacDe(T)) eligible = false;
+  }
+  consommerStock(T, touched.length);
 
   const did = touched.length > 0;
   if(did){
@@ -3032,25 +3106,6 @@ function titre(txt){
   pliste.appendChild(d);
 }
 
-function rendrePanneau(){
-  pargent.textContent = eur(money);
-  ptitre.textContent = ONGLETS.find(o=>o.id===ongletActif).nom;
-  ponglets.innerHTML = '';
-  for(const o of ONGLETS){
-    const b = document.createElement('div');
-    b.className = 'ong' + (o.id === ongletActif ? ' on' : '');
-    b.textContent = o.nom;
-    b.addEventListener('pointerdown', ()=>{ ongletActif = o.id; rendrePanneau(); });
-    ponglets.appendChild(b);
-  }
-  pliste.innerHTML = '';
-  if(ongletActif === 'engins') ongletEngins();
-  else if(ongletActif === 'outils') ongletOutils();
-  else if(ongletActif === 'graines') ongletGraines();
-  else if(ongletActif === 'parcelles') ongletParcelles();
-  else ongletBudget();
-}
-
 function ongletEngins(){
   titre('Ma flotte');
   MACHINES.forEach((m, i)=>{
@@ -3144,26 +3199,6 @@ function ongletParcelles(){
         showHint('PARCELLE ACHETÉE');
       });
   }
-}
-
-function ongletBudget(){
-  titre('Trésorerie');
-  const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="nom">' + eur(money) + '</div>' +
-    '<div class="det">Crédite le compte pour essayer librement le contenu du jeu. ' +
-    'Ce réglage est là pour la mise au point, pas pour la partie.</div></div>';
-  pliste.appendChild(d);
-  for(const v of [1000, 10000, 100000])
-    article(0x8BE07A, '+ ' + eur(v), 'Ajouter au budget', 'Créditer', 'vert', ()=>{ money += v; });
-  article(0xC4553A, 'Remettre à zéro', 'Vide la trésorerie', 'Vider', '', ()=>{ money = 0; });
-  titre('Progression');
-  const d2 = document.createElement('div'); d2.className = 'art';
-  d2.innerHTML = '<div class="txt"><div class="det">' +
-    'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length + '<br>' +
-    'Silo : ' + Math.round(siloKg) + ' kg · farine ' + Math.round(flourKg) + ' kg<br>' +
-    'Récolté : ' + Math.round(STAT.moisson) + ' kg · pain vendu ' + Math.round(STAT.pain) + ' kg' +
-    '</div></div>';
-  pliste.appendChild(d2);
 }
 
 /* ---------- 14. ENTRÉES ---------- */
@@ -3436,7 +3471,13 @@ const el = {
   hopper: document.getElementById('hopper'), hopfill: document.getElementById('hopfill')
 };
 let hintT = 0;
-function showHint(t){ el.hint.textContent = t; el.hint.style.opacity = 1; hintT = 2.4; }
+// Le son est branché plus bas (chapitre 26) et ne l'est qu'une fois prêt : une
+// notification affichée pendant la construction du monde ne doit rien déclencher.
+let sonPret = false;
+function showHint(t){
+  el.hint.textContent = t; el.hint.style.opacity = 1; hintT = 2.4;
+  if(sonPret) AUDIO.signal(t);
+}
 // Paliers de progression : chacun se termine par l'achat d'une nouvelle parcelle.
 const ETAPES = [
   {txt:'Récolter et livrer 1 000 kg',   test:()=> delivered >= 1000,  prog:()=> delivered/1000},
@@ -3449,79 +3490,14 @@ const ETAPES = [
   {txt:'Atteindre 50 000 €',            test:()=> money >= 50000,     prog:()=> money/50000}
 ];
 let etape = 0;
-function refreshHUD(){
-  while(etape < ETAPES.length-1 && ETAPES[etape].test()) etape++;
-  const E = ETAPES[etape];
-  el.goal.textContent = E.txt;
-  el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
-  el.silo.textContent = Math.floor(delivered) + ' kg';
-  el.bar.style.width = Math.max(0, Math.min(100, E.prog()*100)) + '%';
-  const Tc = toolOf(MACHINES[cur]);
-  const vc = MACHINES[cur].v.cargo;
-  const chargeur = vc ? {v:vc.load, max:vc.capacite}
-                  : (Tc && Tc.cargo) ? {v:Tc.load, max:Tc.capacite}
-                  : {v:hopper, max:HOP_MAX};
-  el.hopper.style.opacity = chargeur.v > 1 ? 1 : 0;
-  el.hopfill.style.width = (chargeur.v/chargeur.max*100) + '%';
-}
 document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'EN ROUTE'); });
 
 /* livraison au silo */
 
-// La benne se remplit de farine au moulin et se vide à la boulangerie.
+// Toutes les caisses passent par le même aiguillage : voir `cargoUn` au chapitre 22,
+// où la NATURE du chargement décide de ce qui peut être pris et de qui l'achète.
 function updateCargo(dt){
   for(const m of MACHINES) if(!m.verrou) cargoUn(m, dt);
-}
-function cargoUn(m, dt){
-  const v = m.v;
-  const tool = toolOf(m);
-  // une benne attelée, ou la caisse de l'utilitaire lui-même
-  const T = (tool && tool.cargo) ? tool : (v.cargo ? v.cargo : null);
-  if(!T || v.speed > 2.5) return;
-  if(v.cargo && T === v.cargo){
-    // utilitaire : il charge du grain au silo et le revend au commerce de son choix
-    if(Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r && T.load < T.capacite && siloKg > 0.01){
-      const q = Math.min(300*dt, T.capacite - T.load, siloKg);
-      T.load += q; siloKg -= q;
-      if(T.load >= T.capacite - 0.01) showHint('CHARGÉ');
-      return;
-    }
-    for(const S of SITES){
-      if(S.prix <= 0 || T.load <= 0.01) continue;
-      if(Math.hypot(v.pos.x-S.dropX, v.pos.z-S.dropZ) > 8) continue;
-      const q = Math.min(300*dt, T.load);
-      T.load -= q; money += q*S.prix; STAT.silo += q;
-      if(Math.random() < 0.4) puff(S.dropX, 2.5, S.dropZ, 0xF2E7D2, 0.4, 0.3);
-      if(T.load <= 0.01){ T.load = 0; showHint(S.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'); }
-      return;
-    }
-    return;
-  }
-  const atMill = Math.hypot(v.pos.x-MILL.dropX, v.pos.z-MILL.dropZ) <= 8;
-  const atBak  = Math.hypot(v.pos.x-BAKERY.dropX, v.pos.z-BAKERY.dropZ) <= 8;
-  const atSilo = Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r;
-  if(atSilo && T.load < T.capacite && siloKg > 0.01){
-    // rechargement de la benne sous la goulotte du silo
-    const q = Math.min(340*dt, T.capacite - T.load, siloKg);
-    T.load += q; siloKg -= q;
-    if(Math.random() < 0.4)
-      puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
-    if(T.load >= T.capacite - 0.01) showHint('BENNE PLEINE');
-    return;
-  }
-  if(atMill && T.load < T.capacite && flourKg > 0.01){
-    const q = Math.min(340*dt, T.capacite - T.load, flourKg);
-    T.load += q; flourKg -= q;
-    if(Math.random() < 0.4) puff(MILL.x+(Math.random()-0.5)*3, 3, MILL.z+(Math.random()-0.5)*3, 0xF2E7D2, 0.4, 0.3);
-    if(T.load >= T.capacite - 0.01) showHint('BENNE PLEINE — DIRECTION BOULANGERIE');
-  } else if(atBak && T.load > 0.01){
-    const q = Math.min(340*dt, T.load);
-    T.load -= q; breadKg += q*0.8; money += q*PRICE_BREAD; STAT.pain += q*0.8;
-    if(BAKERY.smoke && Math.random() < 0.5)
-      puff(BAKERY.smoke.x+(Math.random()-0.5)*0.3, BAKERY.smoke.y, BAKERY.smoke.z+(Math.random()-0.5)*0.3,
-           0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
-    if(T.load <= 0.01){ T.load = 0; showHint('PAIN VENDU — ' + Math.floor(money) + ' €'); }
-  }
 }
 function deliver(dt){
   for(const m of MACHINES){ if(m.key === 'moisson' && !m.verrou) deliverUn(m.v, dt); }
@@ -3553,8 +3529,1407 @@ function deliverUn(v, dt){
   }
 }
 
-/* ---------- 15. BOUCLE ---------- */
+/* ============================================================
+   CHAPITRE 2 — la ferme prend vie
+   Quatre systèmes qui s'appuient sur ce qui existe déjà :
+     16. le temps qui passe (jour, nuit, phares)
+     17. le carburant, qui donne un coût à chaque trajet
+     18. les consommables, qui donnent un coût à chaque semis
+     19. les points de service, qui réveillent les commerces restés décoratifs
+   ============================================================ */
+
+/* ---------- 16. CYCLE JOUR / NUIT ---------- */
+// Une journée complète en dix minutes. On démarre à 8 h, en pleine lumière :
+// la première partie ne doit pas commencer dans le noir.
+const JOUR = {sec: 600, heure: 9, jours: 1};
+// Ambiances de référence, interpolées deux à deux selon l'heure. Chacune décrit le
+// ciel, le soleil et la lumière d'ambiance : c'est le seul endroit à retoucher pour
+// changer la couleur d'un moment de la journée.
+// Le plein jour tient de 8 h à 17 h 30 : une partie ordinaire se joue en lumière
+// franche, et la nuit reste un moment particulier plutôt que la moitié du temps.
+const AMBIANCES = [
+  {h:0,    ciel:0x0B1116, sol:0x18222A, soleil:0x9FB6D8, iSol:0.16, ciel2:0x2E4160, iAmb:0.26, nuit:1},
+  {h:5,    ciel:0x141B26, sol:0x1E2932, soleil:0xB49AD0, iSol:0.20, ciel2:0x3E4E74, iAmb:0.30, nuit:0.88},
+  {h:6.5,  ciel:0x3A3442, sol:0x3E4048, soleil:0xFFB27A, iSol:0.58, ciel2:0x8E90B0, iAmb:0.46, nuit:0.34},
+  {h:8,    ciel:0x1E2A30, sol:0x2A3A40, soleil:0xFFE6C0, iSol:0.95, ciel2:0x7FA8C0, iAmb:0.62, nuit:0},
+  {h:17.5, ciel:0x1E2A30, sol:0x2A3A40, soleil:0xFFE6C0, iSol:0.95, ciel2:0x7FA8C0, iAmb:0.62, nuit:0},
+  {h:19.5, ciel:0x3B2C2E, sol:0x40342E, soleil:0xFF8A4A, iSol:0.56, ciel2:0xB08A80, iAmb:0.44, nuit:0.36},
+  {h:21.5, ciel:0x161826, sol:0x20242E, soleil:0xA88AC0, iSol:0.22, ciel2:0x444E70, iAmb:0.30, nuit:0.88},
+  {h:24,   ciel:0x0B1116, sol:0x18222A, soleil:0x9FB6D8, iSol:0.16, ciel2:0x2E4160, iAmb:0.26, nuit:1}
+];
+const _cA = new THREE.Color(), _cB = new THREE.Color();
+let nuitK = 0;                       // 0 = plein jour, 1 = nuit noire
+// couleurs de travail, réutilisées à chaque image pour ne rien allouer dans la boucle
+const _ciel = new THREE.Color(), _solC = new THREE.Color(), _cielC = new THREE.Color();
+function ambianceAt(h){
+  let a = AMBIANCES[0], b = AMBIANCES[AMBIANCES.length-1];
+  for(let i=0;i<AMBIANCES.length-1;i++)
+    if(h >= AMBIANCES[i].h && h <= AMBIANCES[i+1].h){ a = AMBIANCES[i]; b = AMBIANCES[i+1]; break; }
+  const t = (h - a.h) / Math.max(0.001, b.h - a.h);
+  const k = t*t*(3-2*t);             // adoucissement : pas de cassure au passage d'un palier
+  return {a, b, k};
+}
+function updateJourNuit(dt){
+  JOUR.heure += dt * 24 / JOUR.sec;
+  if(JOUR.heure >= 24){ JOUR.heure -= 24; JOUR.jours++; }
+  const {a, b, k} = ambianceAt(JOUR.heure);
+  const mix = (ha, hb, out)=> out.setHex(ha).lerp(_cB.setHex(hb), k);
+  mix(a.ciel, b.ciel, _ciel);
+  scene.background.copy(_ciel);
+  scene.fog.color.copy(_ciel);
+  mix(a.soleil, b.soleil, _solC);
+  sun.color.copy(_solC);
+  sun.intensity = a.iSol + (b.iSol - a.iSol)*k;
+  mix(a.ciel2, b.ciel2, _cielC);
+  hemi.color.copy(_cielC);
+  _cA.setHex(a.sol); hemi.groundColor.copy(_cA.lerp(_cB.setHex(b.sol), k));
+  hemi.intensity = a.iAmb + (b.iAmb - a.iAmb)*k;
+  nuitK = a.nuit + (b.nuit - a.nuit)*k;
+  // course du soleil : il tourne d'est en ouest et s'abaisse en début et fin de journée.
+  // On lui garde une hauteur plancher : sous 40, l'ombre portée sort du champ de la
+  // carte d'ombre et se met à clignoter sur les bords.
+  const ang = (JOUR.heure/24)*Math.PI*2 - Math.PI/2;
+  const haut = Math.max(0.25, Math.sin((JOUR.heure-6)/12*Math.PI));
+  SUN_DIR.set(Math.cos(ang)*62, 42 + 46*haut, 24 + Math.sin(ang)*26);
+  majEclairagesNuit();
+}
+// Éclairages qui s'allument à la nuit tombée : ampoules des lampadaires, halo au sol,
+// phares et feux arrière des engins. Tout est en matériau non éclairé : c'est de la
+// lumière peinte, pas un calcul d'éclairage — le coût reste nul.
+let nuitGroupe = null, halosLampe = [], ampoules = [];
+const HALO_TEX = (function(){
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(32,32,0, 32,32,32);
+  g.addColorStop(0,   'rgba(255,233,168,1)');
+  g.addColorStop(0.45,'rgba(255,220,140,.42)');
+  g.addColorStop(1,   'rgba(255,210,120,0)');
+  c.fillStyle = g; c.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(cv);
+})();
+function haloPlan(r, couleur, op){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(r*2, r*2),
+    new THREE.MeshBasicMaterial({map:HALO_TEX, color:couleur, transparent:true,
+      opacity:op, blending:THREE.AdditiveBlending, depthWrite:false}));
+  m.rotation.x = -Math.PI/2;
+  m.renderOrder = 2;
+  return m;
+}
+function construireEclairagesNuit(){
+  nuitGroupe = new THREE.Group(); scene.add(nuitGroupe);
+  const ampouleMat = new THREE.MeshBasicMaterial({color:0xFFE9A8});
+  const ampouleGeo = new THREE.BoxGeometry(0.6, 0.12, 1.3);
+  for(const L of LAMPES){
+    // la tête du lampadaire est au bout d'une potence de 3,2 m, tournée par ry
+    const dx = -Math.sin(L.ry)*3.2, dz = -Math.cos(L.ry)*3.2;
+    const b = new THREE.Mesh(ampouleGeo, ampouleMat);
+    b.position.set(L.x + dx, 5.9, L.z + dz); b.rotation.y = L.ry;
+    nuitGroupe.add(b); ampoules.push(b);
+    const h = haloPlan(6.5, 0xFFD98A, 0);
+    h.position.set(L.x + dx, 0.06, L.z + dz);
+    nuitGroupe.add(h); halosLampe.push(h);
+  }
+  // phares : deux taches devant l'engin, un halo au sol, deux feux rouges derrière
+  for(const m of MACHINES){
+    const v = m.v, g = new THREE.Group();
+    const av = (m.key === 'moisson') ? 3.4 : (v.cargo ? 2.6 : 2.3);
+    const phareMat = new THREE.MeshBasicMaterial({color:0xFFF2CE});
+    const feuMat = new THREE.MeshBasicMaterial({color:0xE8563F});
+    for(const sx of [-0.85, 0.85]){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.32,0.16), phareMat);
+      p.position.set(sx, 1.55, av); g.add(p);
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.22,0.14), feuMat);
+      f.position.set(sx*0.8, 1.5, -av*0.85); g.add(f);
+    }
+    const faisceau = haloPlan(7.5, 0xFFE3B0, 0);
+    faisceau.position.set(0, 0.05, av + 5.5);
+    faisceau.scale.set(0.62, 1.25, 1);
+    g.add(faisceau);
+    g.visible = false;
+    v.group.add(g);
+    v.phares = g; v.faisceau = faisceau;
+  }
+}
+function majEclairagesNuit(){
+  if(!nuitGroupe) return;
+  const on = nuitK > 0.12;
+  nuitGroupe.visible = on;
+  if(on) for(const h of halosLampe) h.material.opacity = 0.34*nuitK;
+  for(const m of MACHINES){
+    const v = m.v;
+    if(!v.phares) continue;
+    const allume = on && !m.verrou;
+    v.phares.visible = allume;
+    if(allume) v.faisceau.material.opacity = 0.30*nuitK;
+  }
+}
+
+/* ---------- 17. CARBURANT ---------- */
+// Rouler coûte. C'est ce qui rend une tournée mal préparée réellement pénalisante,
+// et ce qui donne enfin un rôle à la station-service du bord de route.
+const CARBU = {
+  prixPompe: 1.85,      // au détail, à la pompe
+  prixVrac: 1.48,       // en gros, livré dans la cuve de la ferme
+  lotVrac: 500,         // taille d'une commande en gros
+  cuve: 0,              // stock de la ferme, en litres
+  cuveMax: 0,           // 0 tant que la cuve n'est pas achetée
+  cuvePrix: 7500,
+  debit: 26             // litres par seconde au remplissage
+};
+// Réservoir et consommation par type d'engin. La moissonneuse boit deux fois plus
+// qu'un tracteur : c'est voulu, elle doit imposer des retours réguliers.
+const RESERVOIRS = {t1:{max:90, c:0.052}, t2:{max:95, c:0.055}, t3:{max:100, c:0.058},
+                    pickup:{max:65, c:0.030}, fourgon:{max:85, c:0.042},
+                    moisson:{max:230, c:0.115}};
+for(const m of MACHINES){
+  const R = RESERVOIRS[m.key] || {max:90, c:0.05};
+  m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;
+  m.v.sec = false;                 // panne sèche
+}
+// Consommation : un ralenti incompressible, plus la charge moteur, plus le
+// supplément dû à l'outil qui travaille la terre.
+function brulerCarburant(v, throttle, dt){
+  if(v.resMax === undefined) return;
+  // `speed` n'existe qu'après le premier passage dans update() : sans ce garde-fou,
+  // la toute première image consomme NaN litres et le réservoir ne s'en remet jamais.
+  const vit = v.speed || 0;
+  // Un engin garé a le moteur coupé. Sans ce test, les tracteurs laissés sur la cour
+  // vidaient lentement leur réservoir alors que personne ne les touchait.
+  if(!(v.auto || vit > 0.4 || (MACHINES[cur] && MACHINES[cur].v === v))) return;
+  const outil = (v.tool && v.tool.attached === v && v.tool.from) ? 0.55 : 0;
+  const charge = 0.22 + 0.78*Math.min(1, Math.abs(throttle)) + outil*Math.min(1, vit/3);
+  v.fuel = Math.max(0, v.fuel - v.conso*charge*dt);
+  // Seuils volontairement écartés : à égalité stricte, un réservoir qui frôle le zéro
+  // faisait osciller l'état entre « à sec » et « plein régime » d'une image à l'autre.
+  if(v.fuel <= 0.05){
+    if(!v.sec){
+      v.sec = true; v.auto = false; v.plan = null;
+      if(MACHINES[cur].v === v) showHint('PANNE SÈCHE — DIRECTION LA STATION');
+    }
+  } else if(v.fuel > 1) v.sec = false;
+}
+// Un engin à sec se traîne jusqu'au bas-côté : on ne coupe pas net, on bride.
+function limiteSec(v, throttle){ return v.sec ? throttle*0.10 : throttle; }
+// Remplissage, depuis la pompe (payant à l'unité) ou depuis la cuve de la ferme.
+// Renvoie le nombre de litres réellement passés.
+function remplir(v, dt, source){
+  const place = v.resMax - v.fuel;
+  if(place <= 0.01) return 0;
+  let q = Math.min(CARBU.debit*dt, place);
+  if(source === 'cuve'){
+    q = Math.min(q, CARBU.cuve);
+    if(q <= 0) return 0;
+    CARBU.cuve -= q;
+  } else {
+    q = Math.min(q, money / CARBU.prixPompe);
+    if(q <= 0) return 0;
+    money -= q*CARBU.prixPompe;
+  }
+  v.fuel += q;
+  if(v.fuel >= v.resMax - 0.05){ v.fuel = v.resMax; v.sec = false; showHint('PLEIN FAIT'); }
+  return q;
+}
+
+/* ---------- 18. CONSOMMABLES : SEMENCES ET ENGRAIS ---------- */
+// Le semoir et l'épandeur puisaient dans le vide. Ils consomment maintenant un stock
+// qui s'achète au comptoir agricole, exactement au tarif affiché sur son enseigne.
+const STOCK = {
+  semence: 900, engrais: 350, max: 6000,
+  prixSemence: 0.35, prixEngrais: 0.50,
+  parCellSemence: 1.15, parCellEngrais: 0.95
+};
+// Ce qu'un outil consomme par cellule traitée, et dans quel bac il puise.
+function bacDe(T){
+  if(T.key === 'semis')   return {clef:'semence', par:STOCK.parCellSemence, nom:'SEMENCES'};
+  if(T.key === 'engrais') return {clef:'engrais', par:STOCK.parCellEngrais, nom:'ENGRAIS'};
+  return null;
+}
+// Combien de cellules le stock permet encore de traiter. `work()` s'en sert pour
+// n'en traiter qu'autant, puis prévient une seule fois.
+let alerteStock = 0;
+function cellulesPossibles(T, voulu){
+  const b = bacDe(T);
+  if(!b) return voulu;
+  const possible = Math.floor(STOCK[b.clef] / b.par);
+  if(possible >= voulu) return voulu;
+  if(alerteStock <= 0){
+    showHint(b.nom + ' ÉPUISÉES — AU COMPTOIR AGRICOLE');
+    alerteStock = 6;
+  }
+  return Math.max(0, possible);
+}
+function consommerStock(T, n){
+  const b = bacDe(T);
+  if(b) STOCK[b.clef] = Math.max(0, STOCK[b.clef] - b.par*n);
+}
+function acheterIntrant(clef, kg){
+  const prix = clef === 'semence' ? STOCK.prixSemence : STOCK.prixEngrais;
+  const place = STOCK.max - STOCK[clef];
+  const q = Math.min(kg, place, Math.floor(money/prix));
+  if(q <= 0) return 0;
+  money -= q*prix; STOCK[clef] += q;
+  return q;
+}
+
+/* ---------- 19. POINTS DE SERVICE ---------- */
+// Quatre commerces n'avaient qu'une façade. On leur pose le même anneau au sol que
+// les points de livraison, à la même distance de la chaussée : la carte reste lisible,
+// et on sait au premier coup d'œil où l'on peut s'arrêter.
+const STATION  = SITES.find(S=>S.pompes);
+const COMPTOIR = SITES.find(S=>S.fournisseur);
+const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
+const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
+(function poserServices(){
+  const ecart = FRONT - 1.5;
+  for(const S of [STATION, COMPTOIR, LAITERIE, BOUCHERIE]){
+    if(!S) continue;
+    if(S.dir === 'W'){ S.dropX = -ecart; S.dropZ = S.park; }
+    else if(S.dir === 'E'){ S.dropX = ecart; S.dropZ = S.park; }
+    else { S.dropX = S.park; S.dropZ = -(ecart); }
+    S.service = true;
+    anneauAction(S.dropX, S.dropZ, S.park*0.05);
+  }
+})();
+const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
+const aQuai = (v, S, r)=> S && prochePoint(v, S.dropX, S.dropZ, r);
+
+/* ---------- 20. ÉLEVAGE ---------- */
+/* Les enseignes de la laiterie et de la boucherie annonçaient depuis le début
+   « prévoir des pâtures » et « prévoir des enclos ». Voici les deux.
+
+   Le circuit est volontairement bouclé sur le reste du jeu plutôt que posé à côté :
+   on nourrit les bêtes avec SON PROPRE grain, sorti du silo par une benne ou un
+   utilitaire. Un élevage sans céréales ne tient pas, et une exploitation qui vend
+   tout son blé n'a plus de quoi nourrir son troupeau. C'est là que se joue l'arbitrage.
+
+     grain du silo -> auge -> vaches -> lait -> laiterie
+                                     -> bête adulte -> boucherie                     */
+
+/* Équilibrage — les deux débouchés doivent rester un vrai choix, pas un calcul évident.
+     lait  : rente régulière, qui ne demande que des tournées. Un troupeau de dix bêtes
+             remplit son tank en sept minutes, soit un peu plus d'un plein de fourgon.
+     viande: coup par coup. Une bête achetée 1 200 € en vaut 1 750 une fois adulte,
+             mais la vendre supprime sa production de lait. C'est là que se joue
+             l'arbitrage entre le revenu qui coule et le revenu qui tombe. */
+const ELEVAGE = {
+  prixPature: 2500,     // aménagement d'une parcelle possédée : clôture, auge, tank
+  prixVache: 1200,
+  prixLait: 0.62,       // le kg de lait, à la laiterie
+  prixBete: 1750,       // une bête adulte, à la boucherie
+  laitParSec: 0.42,     // par vache nourrie
+  grainParSec: 0.12,    // ration d'une vache
+  maturite: 420,        // secondes pour qu'un veau devienne une bête vendable
+  m2ParVache: 88,       // densité maximale admise dans une pâture
+  debit: 260            // kg par seconde aux transferts
+};
+const PATURES = [];
+
+/* --- silhouette de vache : un corps fusionné et une tête séparée, pour qu'elle
+   puisse brouter. Trois robes, tirées une fois pour toutes. --- */
+const ROBES = [
+  {fond:0xF2EBE0, tache:0x3A3330, corne:0xD8CBB4},   // pie noire
+  {fond:0xF2EBE0, tache:0x8A5230, corne:0xD8CBB4},   // pie rouge
+  {fond:0xB98A5A, tache:0x8A6038, corne:0xD8CBB4}    // froment
+];
+const vacheMat = new THREE.MeshPhongMaterial(
+  {vertexColors:true, flatShading:true, shininess:0, specular:0x000000});
+function geoCorps(R){
+  const P = [], put = (g,c,x,y,z,rx,ry,rz)=>{
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx||0, ry||0, rz||0));
+    m.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(1,1,1));
+    P.push({g, m, c});
+  };
+  put(new THREE.BoxGeometry(1.15, 1.18, 2.15), R.fond, 0, 1.32, 0);          // tronc
+  put(new THREE.BoxGeometry(1.02, 0.62, 0.62), R.fond, 0, 1.72, -1.02);      // croupe
+  // taches : de simples plaques posées sur les flancs et le dos
+  put(new THREE.BoxGeometry(1.20, 0.52, 0.66), R.tache, 0, 1.62,  0.42);
+  put(new THREE.BoxGeometry(1.20, 0.40, 0.48), R.tache, 0, 1.10, -0.52);
+  put(new THREE.BoxGeometry(0.36, 0.54, 0.54), R.tache, 0.60, 1.44, -0.05);
+  // Pattes toutes sombres : vue de loin, c'est ce qui détache la silhouette du pré.
+  // Avec des pattes claires la bête se lisait comme une simple tache blanche.
+  for(const sx of [-0.42, 0.42]) for(const sz of [-0.78, 0.78])
+    put(new THREE.BoxGeometry(0.26, 1.5, 0.28), R.tache, sx, 0.75, sz);
+  for(const sx of [-0.42, 0.42]) for(const sz of [-0.78, 0.78])              // sabots
+    put(new THREE.BoxGeometry(0.30, 0.22, 0.32), 0x2A2622, sx, 0.11, sz);
+  put(new THREE.BoxGeometry(0.62, 0.42, 0.5), 0xE8B0B0, 0, 0.62, -0.42);     // pis
+  put(new THREE.BoxGeometry(0.12, 0.72, 0.12), R.tache, 0, 1.62, -1.30);     // queue
+  put(new THREE.BoxGeometry(0.2, 0.26, 0.2), 0x2A2622, 0, 1.20, -1.30);      // flouve
+  return mergeParts(P);
+}
+function geoTete(R){
+  const P = [], put = (g,c,x,y,z)=>P.push({g, c, m:new THREE.Matrix4().makeTranslation(x,y,z)});
+  put(new THREE.BoxGeometry(0.72, 0.72, 0.78), R.fond, 0, 0, 0.30);
+  put(new THREE.BoxGeometry(0.52, 0.40, 0.34), 0xE0A9A0, 0, -0.16, 0.82);    // mufle
+  for(const sx of [-0.14, 0.14]) put(new THREE.BoxGeometry(0.08,0.08,0.06), 0x2A2622, sx, -0.12, 0.99);
+  for(const sx of [-0.28, 0.28]) put(new THREE.BoxGeometry(0.12,0.14,0.10), 0x2A2622, sx, 0.14, 0.66);  // yeux
+  for(const sx of [-0.44, 0.44]) put(new THREE.BoxGeometry(0.30,0.14,0.18), R.tache, sx, 0.10, 0.16);   // oreilles
+  for(const sx of [-0.22, 0.22]) put(new THREE.BoxGeometry(0.12,0.24,0.12), R.corne, sx, 0.44, 0.14);   // cornes
+  return mergeParts(P);
+}
+const GEO_CORPS = ROBES.map(geoCorps), GEO_TETE = ROBES.map(geoTete);
+
+/* --- aménagement d'une parcelle en pâture --- */
+// Choix assumé : l'opération est DÉFINITIVE. Une pâture est un investissement de
+// terrain, pas un réglage qu'on bascule ; et cela évite d'avoir à défaire proprement
+// une clôture, un tank et un troupeau à chaque va-et-vient.
+ST.PATURE = 6;
+function peindrePature(p){
+  fillRect(p.x, p.z, p.w, p.h, '#4E7A47', AX);
+  const n = Math.round(p.w*p.h/16);
+  for(let k=0;k<n;k++){
+    const x = p.x + (Math.random()-0.5)*p.w, z = p.z + (Math.random()-0.5)*p.h;
+    const r = Math.random();
+    fillRect(x, z, 0.4+Math.random()*1.6, 0.3+Math.random()*1.0,
+      r < 0.42 ? 'rgba(255,255,255,.10)' : (r < 0.84 ? 'rgba(0,0,0,.13)' : 'rgba(214,196,120,.22)'), AX);
+  }
+  // sentes tracées par le passage des bêtes, du portail vers le centre
+  for(let k=0;k<3;k++){
+    const a = -0.6 + k*0.6;
+    for(let t=0;t<14;t++){
+      const d = 1.5 + t*(p.h*0.36)/14;
+      fillRect(p.x + Math.sin(a)*d*0.7 + (Math.random()-0.5)*0.6,
+               p.z - p.h/2 + 1.5 + d, 0.9+Math.random()*0.5, 0.7, 'rgba(120,96,54,.20)', AX);
+    }
+  }
+}
+function creerPature(p){
+  // les cellules cultivables passent en herbe : plus rien à labourer ni à moissonner
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GN+i;
+    if(state[id] === ST.HORS) continue;
+    state[id] = ST.PATURE; fert[id] = 0; growth[id] = 0;
+    if(instOf[id] >= 0) setInstance(instOf[id], 0, 0);
+  }
+  wheat.instanceMatrix.needsUpdate = true;
+  if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+  peindrePature(p);
+  p.pature = true;
+
+  // Clôture sur les quatre côtés, portail au milieu du côté nord — celui qui donne
+  // sur le chemin de sable, donc celui d'où l'on arrive toujours.
+  const x0 = p.x - p.w/2 + 0.6, x1 = p.x + p.w/2 - 0.6;
+  const z0 = p.z - p.h/2 + 0.6, z1 = p.z + p.h/2 - 0.6;
+  const gx = p.x, gz = z0, demi = Math.min(4.2, p.w*0.18);
+  fenceLine(x0, z0, gx - demi, z0, 0xB4A183);
+  fenceLine(gx + demi, z0, x1, z0, 0xB4A183);
+  fenceLine(x0, z1, x1, z1, 0xB4A183);
+  fenceLine(x0, z0, x0, z1, 0xB4A183);
+  fenceLine(x1, z0, x1, z1, 0xB4A183);
+  for(const sx of [-demi, demi]){                        // montants du portail
+    scene.add(box(0.42, 2.6, 0.42, 0xE8B44A, gx + sx, 1.3, gz));
+    obstacles.push({x:gx+sx, z:gz, r:0.5});
+  }
+
+  // Tank à lait et auge rangés le long des deux côtés, jamais devant le portail :
+  // on entre tout droit, puis on se range à gauche pour le lait, à droite pour le grain.
+  const tx = x0 + 2.0, tz = z0 + 6.0;
+  const tank = new THREE.Group();
+  tank.add(cyl(1.5, 1.5, 4.6, 12, 0xD7DDE0, 0, 1.55, 0, Math.PI/2, 0, 0));
+  tank.add(box(1.2, 0.5, 5.0, 0x8A9298, 0, 0.25, 0));
+  tank.add(cyl(0.34, 0.34, 0.9, 8, 0x7FD1E8, 0, 2.6, 1.9));
+  tank.add(box(0.9, 0.8, 1.2, 0x4A5359, 0, 1.6, -2.2));
+  tank.position.set(tx, 0, tz);
+  scene.add(tank);
+  boxObs.push({x:tx, z:tz, hw:1.6, hd:2.5});
+
+  const ax = x1 - 2.0, az = z0 + 6.0;
+  const auge = new THREE.Group();
+  auge.add(box(1.5, 0.7, 6.0, 0x8A6B42, 0, 0.35, 0));
+  auge.add(box(1.1, 0.4, 5.6, 0x4E3A22, 0, 0.75, 0));
+  for(const sz of [-2.6, 2.6]) auge.add(box(1.6, 0.9, 0.4, 0x6B5335, 0, 0.45, sz));
+  auge.position.set(ax, 0, az);
+  scene.add(auge);
+  boxObs.push({x:ax, z:az, hw:0.8, hd:3.0});
+  const tas = box(0.95, 0.5, 5.2, 0xE0C07A, 0, 0.85, 0);   // le grain visible dans l'auge
+  auge.add(tas);
+
+  // Quais : là où l'anneau invite à s'arrêter, à côté de l'équipement et non dessus.
+  const P = {
+    p, tank, auge, tas, gx, gz,
+    quaiTank:{x: tx + 3.6, z: tz}, quaiAuge:{x: ax - 3.6, z: az},
+    quaiPortail:{x: gx, z: gz - 3.6},
+    lait:0, laitMax:1800, grain:0, grainMax:2000,
+    vaches:[], places: Math.max(2, Math.floor(p.w*p.h/ELEVAGE.m2ParVache)),
+    box:{x0:x0+2.6, x1:x1-2.6, z0:z0+10.0, z1:z1-1.5}
+  };
+  // Une parcelle étroite ne laisse pas 10 m avant la zone de pâture : on garde
+  // au moins une bande praticable, quitte à ce que les bêtes frôlent l'équipement.
+  if(P.box.z0 > P.box.z1 - 3) P.box.z0 = Math.max(z0 + 3.5, P.box.z1 - 3);
+  majTasAuge(P);
+  anneauAction(P.quaiTank.x, P.quaiTank.z, 0.7);
+  anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1);
+  anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4);
+  PATURES.push(P);
+  return P;
+}
+function majTasAuge(P){
+  const k = P.grain / P.grainMax;
+  P.tas.visible = k > 0.02;
+  P.tas.scale.set(1, Math.max(0.06, k), 1);
+  P.tas.position.y = 0.62 + 0.24*k;
+}
+
+/* --- une bête --- */
+function ajouterVache(P, age){
+  if(P.vaches.length >= P.places) return null;
+  const r = (Math.random()*ROBES.length)|0;
+  const g = new THREE.Group();
+  const corps = new THREE.Mesh(GEO_CORPS[r], vacheMat);
+  corps.castShadow = true; corps.receiveShadow = true;
+  g.add(corps);
+  const cou = new THREE.Group();               // pivot du cou : la tête plonge pour brouter
+  cou.position.set(0, 1.85, 0.95);
+  const tete = new THREE.Mesh(GEO_TETE[r], vacheMat);
+  tete.castShadow = true;
+  cou.add(tete); g.add(cou);
+  // La caméra est haute et lointaine : à l'échelle réelle une vache devient un point.
+  // On la grossit d'un cinquième, comme les engins le sont déjà par rapport au décor.
+  g.scale.setScalar(1.2);
+  const V = {g, cou, corps,
+             x: P.box.x0 + Math.random()*(P.box.x1-P.box.x0),
+             z: P.box.z0 + Math.random()*(P.box.z1-P.box.z0),
+             cap: Math.random()*Math.PI*2, robe:r,
+             age: age === undefined ? 0 : age,
+             mode:'broute', t: 1 + Math.random()*4, tx:0, tz:0,
+             tete0: 0, balance: Math.random()*6};
+  V.tx = V.x; V.tz = V.z;
+  g.position.set(V.x, 0, V.z); g.rotation.y = V.cap;
+  scene.add(g);
+  P.vaches.push(V);
+  return V;
+}
+// Un point au hasard dans la pâture, en évitant la bande d'entrée où sont posés
+// le tank et l'auge : les bêtes n'ont pas à gêner la manœuvre.
+function pointPature(P){
+  return {x: P.box.x0 + Math.random()*(P.box.x1-P.box.x0),
+          z: P.box.z0 + Math.random()*(P.box.z1-P.box.z0)};
+}
+function updateElevage(dt){
+  for(const P of PATURES){
+    let nourries = 0;
+    for(const V of P.vaches){
+      // ration : tant qu'il reste du grain dans l'auge, la bête mange et produit
+      const mange = Math.min(P.grain, ELEVAGE.grainParSec*dt);
+      P.grain -= mange;
+      const rassasiee = mange > 0;
+      if(rassasiee){
+        nourries++;
+        V.age = Math.min(1, V.age + dt/ELEVAGE.maturite);
+      }
+      // déplacement : de longues pauses à brouter, de courts trajets entre deux touffes
+      V.t -= dt;
+      if(V.t <= 0){
+        if(V.mode === 'broute'){
+          const q = pointPature(P);
+          V.tx = q.x; V.tz = q.z;
+          V.mode = 'marche'; V.t = 14;
+        } else { V.mode = 'broute'; V.t = 3 + Math.random()*7; }
+      }
+      if(V.mode === 'marche'){
+        const dx = V.tx - V.x, dz = V.tz - V.z;
+        const d = Math.hypot(dx, dz);
+        if(d < 0.7){ V.mode = 'broute'; V.t = 3 + Math.random()*7; }
+        else {
+          const vit = 1.25;
+          V.x += dx/d*vit*dt; V.z += dz/d*vit*dt;
+          let cible = Math.atan2(dx, dz), e = cible - V.cap;
+          while(e >  Math.PI) e -= Math.PI*2;
+          while(e < -Math.PI) e += Math.PI*2;
+          V.cap += Math.max(-2.4*dt, Math.min(2.4*dt, e));
+        }
+      }
+      // la tête plonge quand elle broute, et se balance en marchant
+      V.balance += dt*(V.mode === 'marche' ? 5.2 : 1.1);
+      const vise = V.mode === 'broute' ? 1.05 : 0.12;
+      V.tete0 += (vise - V.tete0)*Math.min(1, dt*2.4);
+      V.cou.rotation.x = V.tete0 + Math.sin(V.balance)*(V.mode === 'marche' ? 0.10 : 0.05);
+      V.cou.position.y = 1.85 - V.tete0*0.55;
+      V.g.position.set(V.x, V.mode === 'marche' ? Math.abs(Math.sin(V.balance))*0.045 : 0, V.z);
+      V.g.rotation.y = V.cap;
+      V.g.rotation.z = V.mode === 'marche' ? Math.sin(V.balance)*0.035 : 0;
+    }
+    // le lait ne coule que pour les bêtes effectivement nourries
+    if(nourries > 0)
+      P.lait = Math.min(P.laitMax, P.lait + nourries*ELEVAGE.laitParSec*dt);
+    majTasAuge(P);
+  }
+}
+// Le quai le plus proche, tous élevages confondus. Le rayon vaut celui de l'anneau
+// posé au sol : ce qu'on voit est exactement ce qui déclenche.
+const patureProche = (v, r)=>{
+  const R = r || 6.0;
+  let best = null, bd = R;
+  for(const P of PATURES) for(const q of ['Tank','Auge','Portail']){
+    const Q = P['quai'+q];
+    const d = Math.hypot(v.pos.x-Q.x, v.pos.z-Q.z);
+    if(d < bd){ bd = d; best = {P, quoi:q.toLowerCase()}; }
+  }
+  return best;
+};
+function vachesAdultes(P){ let n = 0; for(const V of P.vaches) if(V.age >= 1) n++; return n; }
+// Charger des bêtes : on prend les plus âgées, elles disparaissent de la pâture.
+function chargerBetail(P, v, n){
+  const pris = [];
+  P.vaches.sort((a,b)=> b.age - a.age);
+  while(pris.length < n && P.vaches.length && P.vaches[0].age >= 1){
+    const V = P.vaches.shift();
+    scene.remove(V.g);
+    pris.push(V);
+  }
+  v.betail = (v.betail || 0) + pris.length;
+  return pris.length;
+}
+function acheterPature(p){
+  if(money < ELEVAGE.prixPature || !p.owned || p.pature) return false;
+  money -= ELEVAGE.prixPature;
+  creerPature(p);
+  flushTiles();
+  showHint('PÂTURE AMÉNAGÉE — RESTE À ACHETER DES BÊTES');
+  return true;
+}
+function acheterVache(P){
+  if(!P || money < ELEVAGE.prixVache || P.vaches.length >= P.places) return false;
+  money -= ELEVAGE.prixVache;
+  ajouterVache(P, 0.25);
+  return true;
+}
+
+
+/* ---------- 21. LA CUVE DE LA FERME ---------- */
+// Acheter en gros suppose d'avoir où stocker. La cuve se pose une fois, dans un coin
+// de la cour, et évite ensuite l'aller-retour à la pompe pour chaque plein.
+const CUVE_POS = {x:-8.5, z:60.5};
+let cuveMesh = null;
+function poserCuve(){
+  if(cuveMesh) return;
+  const g = new THREE.Group();
+  g.add(cyl(1.7, 1.7, 5.4, 12, 0xE8563F, 0, 2.3, 0, 0, 0, Math.PI/2));
+  g.add(box(6.0, 0.6, 1.6, 0x4A5359, 0, 0.3, 0));
+  for(const sx of [-2.1, 2.1]) g.add(box(0.5, 1.5, 1.9, 0x6E767C, sx, 0.75, 0));
+  g.add(box(0.9, 1.5, 0.7, 0x2E3438, 3.3, 0.75, 0));           // armoire de distribution
+  g.add(cyl(0.13, 0.13, 1.6, 6, 0x2E3438, 3.3, 2.1, 0, 0, 0, 0.5));
+  g.position.set(CUVE_POS.x, 0, CUVE_POS.z);
+  scene.add(g);
+  cuveMesh = g;
+  boxObs.push({x:CUVE_POS.x, z:CUVE_POS.z, hw:3.2, hd:1.1});
+  anneauAction(CUVE_POS.x, CUVE_POS.z + 3.8, 1.6);
+}
+function acheterCuve(){
+  if(CARBU.cuveMax > 0 || money < CARBU.cuvePrix) return false;
+  money -= CARBU.cuvePrix;
+  CARBU.cuveMax = 3000;
+  poserCuve();
+  showHint('CUVE INSTALLÉE DANS LA COUR');
+  return true;
+}
+function commanderVrac(lots){
+  if(CARBU.cuveMax <= 0) return 0;
+  let n = 0;
+  for(let k=0;k<lots;k++){
+    const q = Math.min(CARBU.lotVrac, CARBU.cuveMax - CARBU.cuve);
+    const cout = q*CARBU.prixVrac;
+    if(q <= 0.5 || money < cout) break;
+    money -= cout; CARBU.cuve += q; n += q;
+  }
+  return n;
+}
+const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 3.8};
+
+/* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
+/* Jusqu'ici une benne contenait « des kilos ». Avec le lait et le bétail il faut
+   savoir CE QU'ON TRANSPORTE : on ne vend pas du lait à la brasserie. Chaque caisse
+   porte donc un type, posé au chargement et effacé au déchargement. Une caisse
+   entamée n'accepte plus rien d'autre — c'est ce qui rend les tournées à planifier. */
+const NATURES = {
+  grain:  {nom:'Grain',  couleur:'#FFAE2E'},
+  farine: {nom:'Farine', couleur:'#F2E7D2'},
+  lait:   {nom:'Lait',   couleur:'#DCEEF5'}
+};
+const peutCharger = (T, type)=> T.load < 0.01 || T.type === type;
+function poserType(T, type){ T.type = type; }
+function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
+
+// Remplace la version d'origine : même mécanique de proximité, mais la nature du
+// chargement décide de ce qui peut être pris et de qui l'achète.
+function cargoUn(m, dt){
+  const v = m.v;
+  const tool = toolOf(m);
+  const T = (tool && tool.cargo) ? tool : (v.cargo ? v.cargo : null);
+  if(!T || v.speed > 2.5) return;
+  const debit = 340*dt;
+
+  /* --- chargements --- */
+  if(prochePoint(v, SILO.x, SILO.z, SILO.r) && peutCharger(T, 'grain') && siloKg > 0.01
+     && T.load < T.capacite){
+    const q = Math.min(debit, T.capacite - T.load, siloKg);
+    T.load += q; siloKg -= q; poserType(T, 'grain');
+    if(Math.random() < 0.4)
+      puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
+    if(T.load >= T.capacite - 0.01) showHint('CHARGÉ EN GRAIN');
+    return;
+  }
+  if(aQuai(v, MILL) && peutCharger(T, 'farine') && flourKg > 0.01 && T.load < T.capacite){
+    const q = Math.min(debit, T.capacite - T.load, flourKg);
+    T.load += q; flourKg -= q; poserType(T, 'farine');
+    if(Math.random() < 0.4) puff(MILL.dropX+(Math.random()-0.5)*3, 3, MILL.dropZ+(Math.random()-0.5)*3, 0xF2E7D2, 0.4, 0.3);
+    if(T.load >= T.capacite - 0.01) showHint('FARINE CHARGÉE — DIRECTION BOULANGERIE');
+    return;
+  }
+  const pat = patureProche(v);
+  if(pat && pat.quoi === 'tank' && peutCharger(T, 'lait') && pat.P.lait > 0.01 && T.load < T.capacite){
+    const q = Math.min(debit, T.capacite - T.load, pat.P.lait);
+    T.load += q; pat.P.lait -= q; poserType(T, 'lait');
+    if(Math.random() < 0.3) puff(pat.P.quaiTank.x, 2.2, pat.P.quaiTank.z, 0xEAF4F8, 0.3, 0.25);
+    if(T.load >= T.capacite - 0.01) showHint('LAIT CHARGÉ — DIRECTION LAITERIE');
+    return;
+  }
+
+  if(T.load <= 0.01){ viderType(T); return; }
+
+  /* --- déchargements --- */
+  // le grain nourrit d'abord le troupeau : l'auge passe avant la vente
+  if(pat && pat.quoi === 'auge' && T.type === 'grain' && pat.P.grain < pat.P.grainMax){
+    const q = Math.min(ELEVAGE.debit*dt, T.load, pat.P.grainMax - pat.P.grain);
+    T.load -= q; pat.P.grain += q;
+    if(Math.random() < 0.4) puff(pat.P.quaiAuge.x, 1.8, pat.P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
+    return;
+  }
+  if(T.type === 'lait' && aQuai(v, LAITERIE)){
+    const q = Math.min(ELEVAGE.debit*dt, T.load);
+    T.load -= q; money += q*ELEVAGE.prixLait; STAT.lait += q;
+    if(Math.random() < 0.4) puff(LAITERIE.dropX, 2.6, LAITERIE.dropZ, 0xEAF4F8, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint('LAIT LIVRÉ — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  if(T.type === 'farine' && aQuai(v, BAKERY)){
+    const q = Math.min(debit, T.load);
+    T.load -= q; breadKg += q*0.8; money += q*PRICE_BREAD; STAT.pain += q*0.8;
+    if(BAKERY.smoke && Math.random() < 0.5)
+      puff(BAKERY.smoke.x+(Math.random()-0.5)*0.3, BAKERY.smoke.y, BAKERY.smoke.z+(Math.random()-0.5)*0.3,
+           0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
+    if(T.load <= 0.01){ viderType(T); showHint('PAIN VENDU — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  if(T.type === 'grain') for(const S of SITES){
+    if(S.prix <= 0 || !aQuai(v, S)) continue;
+    const q = Math.min(300*dt, T.load);
+    T.load -= q; money += q*S.prix; STAT.silo += q;
+    if(Math.random() < 0.4) puff(S.dropX, 2.5, S.dropZ, 0xF2E7D2, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint(S.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+}
+
+/* --- carburant : les pleins se font tout seuls, comme les livraisons --- */
+// Il n'y a rien à décider en arrivant à la pompe : on s'arrête sur l'anneau, ça coule.
+// La cuve de la ferme est gratuite à l'usage — elle a déjà été payée au remplissage.
+function updatePlein(dt){
+  for(const m of MACHINES){
+    if(m.verrou) continue;
+    const v = m.v;
+    if(v.speed > 2.5 || v.fuel >= v.resMax - 0.05) continue;
+    if(CARBU.cuveMax > 0 && prochePoint(v, quaiCuve.x, quaiCuve.z, 6.0)) remplir(v, dt, 'cuve');
+    else if(aQuai(v, STATION, 6.5)) remplir(v, dt, 'pompe');
+  }
+}
+/* --- bétail : la vente se fait à l'arrêt devant la boucherie --- */
+function updateBetail(dt){
+  for(const m of MACHINES){
+    if(m.verrou) continue;
+    const v = m.v;
+    if(!v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE)) continue;
+    v.venteT = (v.venteT || 0) + dt;
+    if(v.venteT < 1.1) continue;
+    v.venteT = 0; v.betail--;
+    money += ELEVAGE.prixBete; STAT.betes++;
+    puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xF2E7D2, 0.5, 0.4);
+    showHint('BÊTE VENDUE — ' + Math.floor(money) + ' €');
+  }
+}
+
+/* ---------- 23. BOUTON CONTEXTUEL DE SERVICE ---------- */
+// Un seul bouton pour tout ce qui demande un accord explicite : embarquer des bêtes,
+// ouvrir le comptoir, poser une pâture. Le reste (plein, livraison) se fait tout seul.
+const servEl = document.getElementById('service');
+// Une caisse pleine ne prend pas de bêtes : on transporte du lait OU du bétail,
+// jamais les deux. Ça force à choisir sa tournée plutôt qu'à tout empiler.
+function capaciteBetail(m){
+  const T = toolOf(m);
+  const caisse = (T && T.cargo) ? T : (m.v.cargo || null);
+  if(caisse && caisse.load > 1) return 0;
+  if(m.key === 'fourgon') return 5;
+  if(m.key === 'pickup')  return 2;
+  return (T && T.key === 'benne') ? 4 : 0;
+}
+// L'aménagement d'une pâture est définitif : il se confirme en deux temps, et
+// l'armement retombe tout seul si on ne confirme pas.
+let armePature = 0;
+// Renvoie l'action disponible ici et maintenant, ou null.
+function actionService(){
+  const m = MACHINES[cur], v = m.v;
+  if(aQuai(v, COMPTOIR, 6.5))
+    return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
+  const pat = patureProche(v);
+  if(pat && pat.quoi === 'portail'){
+    const P = pat.P, cap = capaciteBetail(m), prets = vachesAdultes(P);
+    if(cap > 0 && prets > 0 && (v.betail || 0) < cap){
+      const n = Math.min(cap - (v.betail||0), prets);
+      return {txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
+              f:()=>{ chargerBetail(P, v, n); showHint('EN ROUTE POUR LA BOUCHERIE'); }};
+    }
+    return {txt:'PÂTURE — ' + P.vaches.length + ' / ' + P.places + ' BÊTES', ok:true,
+            f:()=> ouvrirPanneau('elevage')};
+  }
+  // à l'arrêt au milieu d'une parcelle à soi, encore cultivable : proposer l'aménagement
+  for(const p of PARCELS){
+    if(!p.owned || p.pature) continue;
+    if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
+    if(v.speed > 1.5){ armePature = 0; return null; }
+    const ok = money >= ELEVAGE.prixPature;
+    if(!ok) return {txt:'PÂTURE : IL MANQUE ' + Math.ceil(ELEVAGE.prixPature-money).toLocaleString('fr-FR') + ' €',
+                    ok:false};
+    if(armePature > 0)
+      return {txt:'CONFIRMER — LA CULTURE SERA PERDUE', ok:true,
+              f:()=>{ armePature = 0; acheterPature(p); }};
+    return {txt:'AMÉNAGER UNE PÂTURE ' + ELEVAGE.prixPature.toLocaleString('fr-FR') + ' €',
+            ok:true, f:()=>{ armePature = 4; showHint('CETTE PARCELLE NE SERA PLUS CULTIVABLE'); }};
+  }
+  armePature = 0;
+  return null;
+}
+function refreshService(){
+  const a = actionService();
+  if(!a){ servEl.style.display = 'none'; servEl._f = null; return false; }
+  servEl.style.display = 'block';
+  servEl.classList.toggle('no', !a.ok);
+  servEl.textContent = a.txt;
+  servEl._f = a.ok ? a.f : null;
+  return true;
+}
+servEl.addEventListener('pointerdown', ()=>{ if(servEl._f) servEl._f(); refreshService(); });
+
+/* ---------- 24. JAUGES ET HORLOGE ---------- */
+const jaugeEl = {
+  fuel: document.getElementById('fuelfill'), fuelBox: document.getElementById('fuel'),
+  heure: document.getElementById('heure'), charge: document.getElementById('chargetxt')
+};
+function refreshJauges(){
+  const m = MACHINES[cur], v = m.v;
+  const k = v.fuel / v.resMax;
+  jaugeEl.fuel.style.width = (k*100) + '%';
+  jaugeEl.fuel.style.background = k < 0.12 ? '#E8563F' : (k < 0.28 ? '#F0A030' : '#8BE07A');
+  jaugeEl.fuelBox.classList.toggle('bas', k < 0.12);
+  const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
+  jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
+  // ce que porte l'engin courant, en clair : la nature compte autant que la quantité
+  const T = toolOf(m);
+  const caisse = (T && T.cargo) ? T : (v.cargo || null);
+  let txt = '';
+  if(v.betail) txt = v.betail + ' bête' + (v.betail>1?'s':'');
+  else if(caisse && caisse.load > 1)
+    txt = (NATURES[caisse.type] ? NATURES[caisse.type].nom : 'Charge') + ' ' + Math.round(caisse.load) + ' kg';
+  else if(m.key === 'moisson' && hopper > 1) txt = 'Trémie ' + Math.round(hopper) + ' kg';
+  jaugeEl.charge.textContent = txt;
+  jaugeEl.charge.style.opacity = txt ? 0.75 : 0;
+}
+
+/* ---------- 25. NOUVEAUX ONGLETS DE LA BOUTIQUE ---------- */
+// Le panneau existant sait déjà dessiner des lignes d'article : on lui ajoute
+// trois rayons plutôt que d'inventer une deuxième interface.
+ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'});
+ONGLETS[ONGLETS.length-1] = {id:'reglages', nom:'Réglages'};
+
+const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
+// virgule décimale : le reste du jeu écrit « 0,35 € », les rations doivent suivre
+const dec = (v, n)=> v.toFixed(n === undefined ? 2 : n).replace('.', ',');
+const litres = (v)=> Math.round(v).toLocaleString('fr-FR') + ' L';
+
+function ongletComptoir(){
+  titre('Semences et engrais');
+  const bacs = [
+    {clef:'semence', nom:'Semences', couleur:0xE0C07A, prix:STOCK.prixSemence,
+     det:'Le semoir y puise ' + dec(STOCK.parCellSemence) + ' kg par cellule semée'},
+    {clef:'engrais', nom:'Engrais', couleur:0x9FD8E8, prix:STOCK.prixEngrais,
+     det:'L\'épandeur y puise ' + dec(STOCK.parCellEngrais) + ' kg par cellule traitée'}
+  ];
+  for(const b of bacs){
+    article(b.couleur, b.nom, b.det + '<br>En stock : ' + kg(STOCK[b.clef]) + ' / ' + kg(STOCK.max),
+      'Stock', 'no', null);
+    for(const q of [250, 1000]){
+      const cout = q*b.prix;
+      const place = STOCK.max - STOCK[b.clef] >= 1;
+      const ok = money >= cout && place;
+      article(b.couleur, '+ ' + kg(q) + ' de ' + b.nom.toLowerCase(),
+        eur(cout) + '  ·  ' + dec(b.prix) + ' € / kg',
+        !place ? 'Bac plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+        ()=>{ const pris = acheterIntrant(b.clef, q); if(pris) showHint('+ ' + kg(pris) + ' EN STOCK'); });
+    }
+  }
+
+  titre('Gazole');
+  if(CARBU.cuveMax <= 0){
+    const ok = money >= CARBU.cuvePrix;
+    article(0xE8563F, 'Cuve de ferme',
+      'Une cuve de ' + litres(3000) + ' posée dans la cour. Le gazole en gros y est livré à ' +
+      dec(CARBU.prixVrac) + ' € / L au lieu de ' +
+      dec(CARBU.prixPompe) + ' € à la pompe, et les pleins se font sur place.<br>' +
+      eur(CARBU.cuvePrix),
+      ok ? 'Installer' : 'Trop cher', ok ? 'vert' : 'no', ()=> acheterCuve());
+  } else {
+    article(0xE8563F, 'Cuve de ferme',
+      'Contient ' + litres(CARBU.cuve) + ' / ' + litres(CARBU.cuveMax) +
+      '<br>Les pleins y sont gratuits : le gazole est déjà payé.', 'Installée', 'ok', null);
+    for(const lots of [1, 4]){
+      const q = lots*CARBU.lotVrac, cout = q*CARBU.prixVrac;
+      const place = CARBU.cuve < CARBU.cuveMax - 1;
+      const ok = money >= cout && place;
+      article(0xE8563F, '+ ' + litres(q), eur(cout) + '  ·  livraison à la cuve',
+        !place ? 'Cuve pleine' : (ok ? 'Commander' : 'Trop cher'), ok ? 'vert' : 'no',
+        ()=>{ const pris = commanderVrac(lots); if(pris) showHint('+ ' + litres(pris) + ' DANS LA CUVE'); });
+    }
+  }
+  titre('Où faire le plein');
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">À la pompe de la station-service, ' +
+    'ou à la cuve de la cour une fois installée. Dans les deux cas il suffit de s\'arrêter ' +
+    'sur l\'anneau au sol : le plein se fait tout seul.</div></div>';
+  pliste.appendChild(d);
+}
+
+function ongletElevage(){
+  if(!PATURES.length){
+    titre('Aucune pâture');
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">La laiterie et la boucherie attendent ' +
+      'de la marchandise. Conduis un engin au milieu d\'une parcelle qui t\'appartient : ' +
+      'le bouton d\'aménagement apparaît. Une pâture coûte ' + eur(ELEVAGE.prixPature) +
+      ' et remplace définitivement la culture.<br><br>' +
+      'Ensuite : du grain dans l\'auge, des bêtes dans le pré, le lait au tank. ' +
+      'Une bête qui n\'a rien à manger ne donne rien.</div></div>';
+    pliste.appendChild(d);
+    return;
+  }
+  PATURES.forEach((P, i)=>{
+    titre('Pâture ' + (i+1) + ' — ' + Math.round(P.p.w) + ' × ' + Math.round(P.p.h) + ' m');
+    const adultes = vachesAdultes(P);
+    article(0xF2EBE0, 'Troupeau',
+      P.vaches.length + ' / ' + P.places + ' bêtes · ' + adultes + ' prête' + (adultes>1?'s':'') +
+      ' pour la boucherie<br>Auge : ' + kg(P.grain) + ' / ' + kg(P.grainMax) +
+      ' · Tank : ' + kg(P.lait) + ' / ' + kg(P.laitMax),
+      'État', 'no', null);
+    const plein = P.vaches.length >= P.places;
+    const ok = !plein && money >= ELEVAGE.prixVache;
+    article(0x8A5230, 'Acheter une vache',
+      eur(ELEVAGE.prixVache) + ' · elle donne ' + dec(ELEVAGE.laitParSec) +
+      ' kg de lait par seconde tant qu\'elle est nourrie',
+      plein ? 'Pâture pleine' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      ()=>{ if(acheterVache(P)) showHint('UNE BÊTE DE PLUS AU PRÉ'); });
+  });
+  titre('Les prix pratiqués');
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">' +
+    'Laiterie : ' + dec(ELEVAGE.prixLait) + ' € le kg de lait.<br>' +
+    'Boucherie : ' + eur(ELEVAGE.prixBete) + ' la bête adulte.<br>' +
+    'Une bête devient adulte après environ ' + Math.round(ELEVAGE.maturite/60) +
+    ' minutes passées à manger.</div></div>';
+  pliste.appendChild(d);
+}
+
+function ongletReglages(){
+  titre('Partie');
+  article(0x8BE07A, 'Sauvegarde automatique',
+    sauvegardeInfo(), 'Sauver', 'vert', ()=>{ sauvegarder(true); });
+  article(0xC4553A, 'Nouvelle partie',
+    'Efface la sauvegarde et repart d\'une terre vierge. Sans retour possible.',
+    confirmeReset ? 'Confirmer ?' : 'Recommencer', confirmeReset ? 'ok' : '',
+    ()=>{ if(confirmeReset) nouvellePartie(); else confirmeReset = true; });
+
+  titre('Son');
+  article(0x7FD1E8, 'Ambiance sonore',
+    AUDIO.on ? 'Moteur, livraisons et notifications' : 'Coupé',
+    AUDIO.on ? 'Couper' : 'Activer', AUDIO.on ? 'ok' : '', ()=> AUDIO.basculer());
+  article(0x7FD1E8, 'Volume', 'Actuellement ' + Math.round(AUDIO.volume*100) + ' %',
+    'Changer', '', ()=>{ AUDIO.volume = AUDIO.volume >= 0.95 ? 0.25 : Math.min(1, AUDIO.volume + 0.25); AUDIO.majVolume(); });
+
+  titre('Journée');
+  article(0xFAD201, 'Durée d\'une journée',
+    'Une journée complète dure ' + Math.round(JOUR.sec/60) + ' minutes. ' +
+    'Il est ' + Math.floor(JOUR.heure) + ' h, jour ' + JOUR.jours + '.',
+    JOUR.sec >= 1200 ? 'Raccourcir' : 'Rallonger', '',
+    ()=>{ JOUR.sec = JOUR.sec >= 1200 ? 300 : JOUR.sec*2; });
+
+  titre('Trésorerie de mise au point');
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="nom">' + eur(money) + '</div>' +
+    '<div class="det">Crédite le compte pour essayer librement le contenu du jeu. ' +
+    'Ce réglage est là pour la mise au point, pas pour la partie.</div></div>';
+  pliste.appendChild(d);
+  for(const v of [1000, 10000, 100000])
+    article(0x8BE07A, '+ ' + eur(v), 'Ajouter au budget', 'Créditer', 'vert', ()=>{ money += v; });
+  article(0xC4553A, 'Remettre à zéro', 'Vide la trésorerie', 'Vider', '', ()=>{ money = 0; });
+
+  titre('Progression');
+  const d2 = document.createElement('div'); d2.className = 'art';
+  d2.innerHTML = '<div class="txt"><div class="det">' +
+    'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
+    ' · dont ' + PATURES.length + ' en pâture<br>' +
+    'Silo : ' + kg(siloKg) + ' · farine ' + kg(flourKg) + '<br>' +
+    'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
+    'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
+    '</div></div>';
+  pliste.appendChild(d2);
+}
+let confirmeReset = false;
+
+// On remplace l'aiguillage d'origine : mêmes onglets qu'avant, plus les trois nouveaux.
+function rendrePanneau(){
+  pargent.textContent = eur(money);
+  const O = ONGLETS.find(o=>o.id===ongletActif) || ONGLETS[0];
+  ongletActif = O.id;
+  ptitre.textContent = O.nom;
+  ponglets.innerHTML = '';
+  for(const o of ONGLETS){
+    const b = document.createElement('div');
+    b.className = 'ong' + (o.id === ongletActif ? ' on' : '');
+    b.textContent = o.nom;
+    b.addEventListener('pointerdown', ()=>{ ongletActif = o.id; confirmeReset = false; rendrePanneau(); });
+    ponglets.appendChild(b);
+  }
+  pliste.innerHTML = '';
+  ({engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
+    comptoir:ongletComptoir, elevage:ongletElevage,
+    parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
+}
+
+/* ---------- 26. SON ---------- */
+/* Synthèse pure : pas un octet d'audio à télécharger, et le moteur suit réellement
+   le régime de l'engin qu'on pilote. Tout est enveloppé : un navigateur qui refuse
+   l'audio ne doit jamais empêcher le jeu de tourner. */
+const AUDIO = {
+  on: true, volume: 0.5, ctx: null, maitre: null, moteur: null, dispo: false,
+  init(){
+    if(this.ctx || !this.on) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      this.ctx = new AC();
+      this.maitre = this.ctx.createGain();
+      this.maitre.gain.value = this.volume*0.5;
+      this.maitre.connect(this.ctx.destination);
+      // moteur : deux dents de scie légèrement désaccordées, passées au filtre passe-bas.
+      // C'est le filtre, pas le volume, qui donne l'impression d'effort.
+      const g = this.ctx.createGain(); g.gain.value = 0;
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 320; f.Q.value = 3.2;
+      const o1 = this.ctx.createOscillator(), o2 = this.ctx.createOscillator();
+      o1.type = 'sawtooth'; o2.type = 'sawtooth'; o2.detune.value = 14;
+      o1.frequency.value = 42; o2.frequency.value = 42;
+      o1.connect(f); o2.connect(f); f.connect(g); g.connect(this.maitre);
+      o1.start(); o2.start();
+      this.moteur = {g, f, o1, o2};
+      this.dispo = true;
+    } catch(e){ this.dispo = false; }
+  },
+  majVolume(){ if(this.maitre) try { this.maitre.gain.value = this.volume*0.5; } catch(e){} },
+  basculer(){
+    this.on = !this.on;
+    if(this.on){ this.init(); if(this.ctx) try { this.ctx.resume(); } catch(e){} }
+    else if(this.moteur) try { this.moteur.g.gain.value = 0; } catch(e){}
+    showHint(this.on ? 'SON ACTIVÉ' : 'SON COUPÉ');
+  },
+  // régime : la fréquence suit la vitesse, le filtre suit la charge moteur
+  moteurUpdate(v, gaz){
+    if(!this.dispo || !this.on || !this.moteur) return;
+    try {
+      const t = this.ctx.currentTime;
+      const rap = Math.min(1, Math.abs(v.speed)/Math.max(1, v.vmax));
+      const hz = 34 + rap*46 + Math.abs(gaz)*10;
+      const vol = v.sec ? 0.012 : 0.045 + Math.abs(gaz)*0.055;
+      this.moteur.o1.frequency.setTargetAtTime(hz, t, 0.12);
+      this.moteur.o2.frequency.setTargetAtTime(hz, t, 0.12);
+      this.moteur.f.frequency.setTargetAtTime(260 + rap*520 + Math.abs(gaz)*300, t, 0.15);
+      this.moteur.g.gain.setTargetAtTime(vol, t, 0.10);
+    } catch(e){}
+  },
+  // brefs signaux : une note filtrée qui monte ou descend selon l'événement
+  bip(hz, duree, type, gain){
+    if(!this.dispo || !this.on) return;
+    try {
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type || 'triangle'; o.frequency.setValueAtTime(hz, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(gain === undefined ? 0.18 : gain, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (duree || 0.16));
+      o.connect(g); g.connect(this.maitre);
+      o.start(t); o.stop(t + (duree || 0.16) + 0.03);
+    } catch(e){}
+  },
+  caisse(){ this.bip(880, 0.09, 'square', 0.10); setTimeout(()=>this.bip(1320, 0.14, 'square', 0.09), 70); },
+  alerte(){ this.bip(300, 0.22, 'sawtooth', 0.12); },
+  // Chaque notification a son timbre : ce qui rapporte tinte, ce qui alerte gronde.
+  // C'est `showHint` qui appelle ici, une fois le son déclaré prêt.
+  signal(t){
+    if(/€/.test(t)) this.caisse();
+    else if(/PANNE|ÉPUIS|EXPIR/.test(t)) this.alerte();
+    else this.bip(660, 0.1, 'triangle', 0.08);
+  }
+};
+sonPret = true;
+// Le premier geste du joueur autorise l'audio : c'est la règle des navigateurs.
+addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx.resume(); }catch(e){} });
+
+/* ---------- 27. SAUVEGARDE ---------- */
+/* Une ferme se construit sur la durée : sans sauvegarde, tout ce qui précède ne
+   dure que le temps d'un onglet. On enregistre l'état complet, terrain compris.
+
+   Le terrain est le gros morceau : 12 100 cellules × 4 tableaux. On les empile dans
+   un seul octet-tableau puis on les compresse en RLE — une carte est faite de longues
+   plages identiques, la compression est donc excellente — avant de passer en base64. */
+const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true};
+
+function packGrille(){
+  const n = GN*GN, buf = new Uint8Array(n*4);
+  for(let i=0;i<n;i++){
+    buf[i]       = state[i];
+    buf[n+i]     = Math.round(Math.max(0, Math.min(1, growth[i]))*255);
+    buf[n*2+i]   = fert[i];
+    buf[n*3+i]   = cropCell[i];
+  }
+  const out = [];
+  let i = 0;
+  while(i < buf.length){
+    const v = buf[i]; let l = 1;
+    while(i+l < buf.length && buf[i+l] === v && l < 255) l++;
+    out.push(v, l); i += l;
+  }
+  let s = '';
+  for(let k=0;k<out.length;k+=8192) s += String.fromCharCode.apply(null, out.slice(k, k+8192));
+  return btoa(s);
+}
+function unpackGrille(b64){
+  const s = atob(b64), n = GN*GN, buf = new Uint8Array(n*4);
+  let p = 0;
+  for(let i=0;i<s.length;i+=2){
+    const v = s.charCodeAt(i), l = s.charCodeAt(i+1);
+    for(let k=0;k<l && p<buf.length;k++) buf[p++] = v;
+  }
+  if(p !== buf.length) return false;         // sauvegarde tronquée : on n'y touche pas
+  growingList.length = 0;
+  for(let i=0;i<n;i++){
+    state[i]    = buf[i];
+    growth[i]   = buf[n+i]/255;
+    fert[i]     = buf[n*2+i];
+    cropCell[i] = buf[n*3+i];
+    if(state[i] === ST.SEME) growingList.push(i);
+  }
+  return true;
+}
+
+function etatJeu(){
+  return {
+    v: 1, quand: Date.now(),
+    money, siloKg, hopper, hopMult, delivered, flourKg, breadKg,
+    STAT: Object.assign({}, STAT), etape, cur, fini,
+    jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
+    carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
+    stock: {semence: STOCK.semence, engrais: STOCK.engrais},
+    audio: {on: AUDIO.on, volume: AUDIO.volume},
+    moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
+    contrat: contrat && {stat:contrat.stat, need:contrat.need, base:contrat.base,
+                         label:contrat.label, reward:contrat.reward, temps:contrat.temps},
+    crops: CROPS.map(c=>!!c.verrou),
+    parcelles: PARCELS.map(p=>({o:!!p.owned, pat:!!p.pature})),
+    machines: MACHINES.map(m=>{
+      const v = m.v;
+      return {verrou:!!m.verrou, level:v.level, x:v.pos.x, z:v.pos.z, cap:v.cap,
+              fuel:v.fuel, vmax:v.vmax, accel:v.accel, turn:v.turn,
+              betail:v.betail||0, auto:!!v.auto,
+              cargo: v.cargo ? {load:v.cargo.load, capacite:v.cargo.capacite, type:v.cargo.type||null} : null};
+    }),
+    outils: TOOLS.map(T=>({level:T.level, width:T.width, capacite:T.capacite,
+                           load:T.load||0, type:T.type||null, crop:T.crop||0,
+                           x:T.group.position.x, z:T.group.position.z, cap:T.group.rotation.y,
+                           porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
+    patures: PATURES.map(P=>({
+      parcelle: PARCELS.indexOf(P.p), lait:P.lait, grain:P.grain,
+      vaches: P.vaches.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
+    })),
+    grille: packGrille()
+  };
+}
+function sauvegarder(explicite){
+  if(!SAVE.actif) return false;
+  try {
+    localStorage.setItem(SAVE.clef, JSON.stringify(etatJeu()));
+    SAVE.derniere = Date.now();
+    if(explicite) showHint('PARTIE SAUVEGARDÉE');
+    return true;
+  } catch(e){
+    SAVE.actif = false;
+    if(explicite) showHint('SAUVEGARDE INDISPONIBLE ICI');
+    return false;
+  }
+}
+function lireSauvegarde(){
+  try {
+    const s = localStorage.getItem(SAVE.clef);
+    return s ? JSON.parse(s) : null;
+  } catch(e){ SAVE.actif = false; return null; }
+}
+function effacerSauvegarde(){ try { localStorage.removeItem(SAVE.clef); } catch(e){} }
+function sauvegardeInfo(){
+  if(!SAVE.actif) return 'Indisponible : ce navigateur refuse le stockage local sur cette page.';
+  if(!SAVE.derniere) return 'La partie s\'enregistre toute seule toutes les ' + SAVE.periode + ' secondes.';
+  const d = Math.round((Date.now()-SAVE.derniere)/1000);
+  return 'Enregistrée il y a ' + (d < 60 ? d + ' s' : Math.round(d/60) + ' min') +
+         '. L\'enregistrement se refait tout seul toutes les ' + SAVE.periode + ' secondes.';
+}
+
+/* --- remise en peinture du sol d'après l'état des cellules ---
+   Les passages d'outil sont peints dans une texture, qui n'est pas sauvegardée : la
+   repeindre à l'identique demanderait de rejouer toutes les trajectoires. On repose
+   donc l'aplat de chaque cellule selon son état. Le rendu est un peu plus carré qu'une
+   traînée fraîche, mais il dit exactement la même chose du terrain. */
+const COUL_ETAT = {};
+COUL_ETAT[ST.LABOURE] = C.soil;
+COUL_ETAT[ST.SEME]    = C.seed;
+COUL_ETAT[ST.MUR]     = C.seed;
+COUL_ETAT[ST.CHAUME]  = '#63482A';
+function repeindreSol(){
+  for(const p of PARCELS){
+    if(!p.owned || p.pature) continue;
+    paintParcelSoil(p);
+    const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
+    const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+      const id = j*GN+i, col = COUL_ETAT[state[id]];
+      if(col) paintCellClamped(id, col);
+    }
+  }
+  flushTiles();
+}
+// Une parcelle rachetée doit perdre son décor de friche, exactement comme à l'achat.
+function degagerFriche(p){
+  for(const o of p.decor){
+    if(o.isObject3D) scene.remove(o);
+    else { const i = obstacles.indexOf(o); if(i >= 0) obstacles.splice(i,1); }
+  }
+  p.decor.length = 0;
+  if(p.sign){ scene.remove(p.sign); p.sign = null; }
+  if(p.signObs){ const i = obstacles.indexOf(p.signObs); if(i >= 0) obstacles.splice(i,1); }
+  p.signPos = null;
+}
+
+function chargerPartie(S){
+  if(!S || S.v !== 1) return false;
+  try {
+    // 1. le terrain d'abord : parcelles possédées, puis état de chaque cellule
+    S.parcelles.forEach((q, i)=>{
+      const p = PARCELS[i];
+      if(!p || !q.o || p.owned) return;
+      degagerFriche(p);
+      activateParcel(p);
+    });
+    if(!unpackGrille(S.grille)) return false;
+    // 2. les pâtures : elles reposent clôture, tank et auge sur leur parcelle
+    for(const q of S.patures){
+      const p = PARCELS[q.parcelle];
+      if(!p || p.pature) continue;
+      const P = creerPature(p);
+      P.lait = q.lait; P.grain = q.grain;
+      for(const w of q.vaches){
+        const V = ajouterVache(P, w.age);
+        if(V){ V.x = w.x; V.z = w.z; V.cap = w.cap; V.tx = w.x; V.tz = w.z; }
+      }
+      majTasAuge(P);
+    }
+    // 3. les épis reprennent la taille et la couleur que dit la grille
+    for(let id=0; id<GN*GN; id++){
+      const n = instOf[id];
+      if(n < 0) continue;
+      const vivant = (state[id] === ST.SEME || state[id] === ST.MUR) ? 1 : 0;
+      wheatBase[n].crop = cropCell[id];
+      setInstance(n, growth[id], vivant);
+    }
+    wheat.instanceMatrix.needsUpdate = true;
+    if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+    repeindreSol();
+
+    // 4. l'exploitation
+    money = S.money; siloKg = S.siloKg; hopper = S.hopper; hopMult = S.hopMult;
+    delivered = S.delivered; flourKg = S.flourKg; breadKg = S.breadKg;
+    Object.assign(STAT, S.STAT); etape = S.etape; fini = !!S.fini;
+    JOUR.heure = S.jour.heure; JOUR.jours = S.jour.jours; JOUR.sec = S.jour.sec;
+    CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
+    if(CARBU.cuveMax > 0) poserCuve();
+    STOCK.semence = S.stock.semence; STOCK.engrais = S.stock.engrais;
+    AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
+    MOISSON.width = S.moisson.width; MOISSON.level = S.moisson.level; HOP_MAX = S.moisson.hopMax;
+    S.crops.forEach((verrou, i)=>{ if(CROPS[i]) CROPS[i].verrou = verrou; });
+    contrat = S.contrat ? Object.assign({}, S.contrat) : null;
+    if(!contrat) nouveauContrat();
+
+    // 5. le matériel : d'abord tout dételer, puis reposer chaque pièce
+    for(const m of MACHINES) if(m.v.tool) detachTool(m.v);
+    S.machines.forEach((q, i)=>{
+      const m = MACHINES[i]; if(!m) return;
+      const v = m.v;
+      m.verrou = q.verrou; v.group.visible = !q.verrou;
+      v.level = q.level; v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn;
+      v.pos.set(q.x, 0, q.z); v.cap = q.cap;
+      v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
+      v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
+      v.fuel = Math.min(q.fuel, v.resMax); v.sec = v.fuel <= 0;
+      v.betail = q.betail; v.auto = false;
+      if(v.cargo && q.cargo){ v.cargo.load = q.cargo.load; v.cargo.capacite = q.cargo.capacite; v.cargo.type = q.cargo.type; }
+      if(m.key === 'moisson'){
+        const head = v.group.userData.head;
+        if(head) head.scale.x = MOISSON.width/8.0;
+      }
+    });
+    S.outils.forEach((q, i)=>{
+      const T = TOOLS[i]; if(!T) return;
+      T.level = q.level; T.width = q.width; T.crop = q.crop;
+      if(q.capacite) T.capacite = q.capacite;
+      T.load = q.load; T.type = q.type;
+      T.group.scale.x = T.width / T.width0;
+      T.group.position.set(q.x, 0, q.z); T.group.rotation.y = q.cap;
+      T.x = q.x; T.z = q.z; T.cap = q.cap; T.axle.x = q.x; T.axle.z = q.z;
+      if(q.porteur >= 0 && MACHINES[q.porteur] && !MACHINES[q.porteur].verrou)
+        attachTool(MACHINES[q.porteur].v, T);
+    });
+    setMachine(MACHINES[S.cur] && !MACHINES[S.cur].verrou ? S.cur : 0);
+    updateJourNuit(0);
+    flushTiles();
+    return true;
+  } catch(e){
+    console.warn('sauvegarde illisible', e);
+    return false;
+  }
+}
+function nouvellePartie(){ effacerSauvegarde(); location.reload(); }
+function updateSauvegarde(dt){
+  SAVE.t += dt;
+  if(SAVE.t < SAVE.periode) return;
+  SAVE.t = 0; sauvegarder(false);
+}
+// Une page qu'on quitte ne prévient pas toujours : on enregistre aussi au masquage.
+addEventListener('visibilitychange', ()=>{ if(document.hidden) sauvegarder(false); });
+addEventListener('pagehide', ()=> sauvegarder(false));
+
+/* ---------- 28. ÉCRAN D'ACCUEIL ---------- */
+// Il sert trois choses à la fois : proposer de reprendre, rappeler les commandes,
+// et recueillir le premier geste du joueur — celui sans lequel aucun navigateur
+// n'autorise le son.
+const accueil = document.getElementById('accueil');
+const accBtns = document.getElementById('accbtns');
+let demarre = false;
+function boutonAccueil(txt, principal, f){
+  const b = document.createElement('div');
+  b.className = 'accbtn' + (principal ? ' pri' : '');
+  b.textContent = txt;
+  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); f(); });
+  accBtns.appendChild(b);
+  return b;
+}
+function lancerPartie(){
+  if(demarre) return;
+  demarre = true;
+  accueil.style.display = 'none';
+  paused = false;
+  last = performance.now();
+  AUDIO.init();
+  if(AUDIO.ctx) try { AUDIO.ctx.resume(); } catch(e){}
+}
+(function ouvrirAccueil(){
+  paused = true;
+  const S = lireSauvegarde();
+  const sous = document.getElementById('accsous');
+  if(S){
+    const d = new Date(S.quand);
+    sous.textContent = 'Partie en cours — ' + Math.round(S.money).toLocaleString('fr-FR') + ' €, jour '
+      + (S.jour ? S.jour.jours : 1) + ', enregistrée le '
+      + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR').slice(0,5);
+    boutonAccueil('Reprendre', true, ()=>{
+      if(!chargerPartie(S)) showHint('SAUVEGARDE ILLISIBLE — NOUVELLE PARTIE');
+      lancerPartie();
+    });
+    boutonAccueil('Nouvelle partie', false, ()=>{ effacerSauvegarde(); lancerPartie(); });
+  } else {
+    sous.textContent = SAVE.actif
+      ? 'La partie s\'enregistre toute seule : tu peux fermer et revenir.'
+      : 'Le stockage local est refusé ici : la partie ne sera pas conservée.';
+    boutonAccueil('Commencer', true, lancerPartie);
+  }
+})();
+
+/* ---------- 29. PROGRESSION ---------- */
+/* Les paliers d'origine s'arrêtaient à 50 000 € et la barre restait figée ensuite.
+   On prolonge la ligne jusqu'à la vallée entière, en faisant passer le joueur par
+   chacun des circuits : céréales, transformation, élevage, puis l'expansion. */
+const nbParcelles = ()=> PARCELS.filter(p=>p.owned).length;
+ETAPES.length = 0;
+ETAPES.push(
+  {txt:'Récolter et livrer 1 000 kg',          test:()=> delivered >= 1000,  prog:()=> delivered/1000},
+  {txt:'Acheter une deuxième parcelle',        test:()=> nbParcelles() >= 2, prog:()=> money/4000},
+  {txt:'Produire 360 kg de farine au moulin',  test:()=> flourKg + STAT.pain >= 360,
+                                               prog:()=> (flourKg + STAT.pain)/360},
+  {txt:'Vendre 300 kg de pain',                test:()=> STAT.pain >= 300,   prog:()=> STAT.pain/300},
+  {txt:'Étendre la ferme à 4 parcelles',       test:()=> nbParcelles() >= 4, prog:()=> (nbParcelles()-2)/2},
+  {txt:'Aménager une pâture et acheter une bête',
+                                               test:()=> PATURES.some(P=>P.vaches.length > 0),
+                                               prog:()=> PATURES.length ? 0.5 + 0.5*Math.min(1, PATURES[0].vaches.length) : 0},
+  {txt:'Livrer 1 500 kg de lait à la laiterie',test:()=> STAT.lait >= 1500,  prog:()=> STAT.lait/1500},
+  {txt:'Vendre 5 bêtes à la boucherie',        test:()=> STAT.betes >= 5,    prog:()=> STAT.betes/5},
+  {txt:'Installer la cuve de gazole',          test:()=> CARBU.cuveMax > 0,  prog:()=> money/CARBU.cuvePrix},
+  {txt:'Atteindre 100 000 €',                  test:()=> money >= 100000,    prog:()=> money/100000},
+  {txt:'Posséder toute la vallée',             test:()=> nbParcelles() >= PARCELS.length,
+                                               prog:()=> nbParcelles()/PARCELS.length}
+);
+let fini = false;
+// Le HUD d'origine bloquait sur l'avant-dernier palier : la dernière ligne ne
+// pouvait jamais se remplir. On la laisse aboutir, et l'aboutissement se voit.
+function refreshHUD(){
+  while(etape < ETAPES.length-1 && ETAPES[etape].test()) etape++;
+  const E = ETAPES[etape];
+  const acheve = etape === ETAPES.length-1 && E.test();
+  if(acheve && !fini){ fini = true; ouvrirFin(); }
+  el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI' : E.txt;
+  el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
+  el.silo.textContent = Math.floor(delivered) + ' kg';
+  el.bar.style.width = Math.max(0, Math.min(100, E.prog()*100)) + '%';
+  const Tc = toolOf(MACHINES[cur]);
+  const vc = MACHINES[cur].v.cargo;
+  const chargeur = vc ? {v:vc.load, max:vc.capacite}
+                  : (Tc && Tc.cargo) ? {v:Tc.load, max:Tc.capacite}
+                  : {v:hopper, max:HOP_MAX};
+  el.hopper.style.opacity = chargeur.v > 1 ? 1 : 0;
+  el.hopfill.style.width = (chargeur.v/chargeur.max*100) + '%';
+  const nat = NATURES[(Tc && Tc.cargo) ? Tc.type : (vc ? vc.type : null)];
+  el.hopfill.style.background = nat ? nat.couleur : '#FFAE2E';
+}
+function ouvrirFin(){
+  sauvegarder(false);
+  const sous = document.getElementById('accsous');
+  accBtns.innerHTML = '';
+  document.getElementById('acctitre').textContent = 'MOISSON FAITE';
+  sous.innerHTML = 'Toute la vallée t\'appartient — ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
+    kg(STAT.moisson) + ' récoltés · ' + kg(STAT.pain) + ' de pain · ' +
+    kg(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
+  boutonAccueil('Continuer à jouer', true, ()=>{ accueil.style.display = 'none'; paused = false; last = performance.now(); });
+  accueil.style.display = 'flex';
+  paused = true;
+}
+
+/* ---------- 30. BOUCLE ---------- */
 nouveauContrat();
+construireEclairagesNuit();
+updateJourNuit(0);
 setMachine(cur);
 smokeT = 0; chimT = 0; usineT = 0;
 last = performance.now();
@@ -3607,6 +4982,14 @@ function loop(now){
     deliver(dt);
     updateCargo(dt);
     updateContrat(dt);
+    updateJourNuit(dt);
+    updateElevage(dt);
+    updatePlein(dt);
+    updateBetail(dt);
+    updateSauvegarde(dt);
+    AUDIO.moteurUpdate(v, thrM);
+    if(alerteStock > 0) alerteStock -= dt;
+    if(armePature > 0) armePature -= dt;
     chimT -= dt;
     if(chimney && chimT <= 0){
       for(let k=0;k<2;k++)
@@ -3654,7 +5037,8 @@ function loop(now){
   if(hintT > 0){ hintT -= dt; if(hintT <= 0) el.hint.style.opacity = 0; }
   refreshHUD();
   refreshContrat();
-  refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();   // quelques dizaines de tests, coût nul
+  refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
+  refreshService(); refreshJauges();   // quelques dizaines de tests, coût nul
   renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);
