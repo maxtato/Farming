@@ -3,15 +3,19 @@
 Jeu de ferme low-poly, en un seul fichier HTML. Vanilla JS + three.js, pensé pour
 le mobile en paysage — et jouable au clavier sur ordinateur.
 
-Ouvre `moisson.html` dans un navigateur. Rien à installer, rien à compiler.
+Ouvre `index.html` dans un navigateur. Rien à installer, rien à compiler.
 La seule dépendance est three.js r128, chargée depuis un CDN : il faut donc une
 connexion au premier lancement.
 
-Le dépôt se déploie tel quel sur Vercel. Le jeu gardant son nom de fichier plutôt
-qu'un `index.html`, `vercel.json` réécrit simplement la racine vers `moisson.html` —
-sans ça, l'adresse du déploiement répond 404. À ouvrir depuis une vraie adresse
-plutôt qu'en `file://` : certains navigateurs refusent le stockage local aux
-fichiers ouverts en direct, et la partie ne serait alors pas conservée.
+## Le mettre en ligne
+
+Le jeu s'appelle `index.html` et vit à la racine : c'est le seul nom que tout
+hébergeur statique sert sans configuration. Il n'y a donc rien à régler, ni sur
+GitHub Pages, ni sur Vercel, ni ailleurs — pousser le dépôt suffit.
+
+Mieux vaut y jouer depuis une vraie adresse qu'en `file://` : certains navigateurs
+refusent le stockage local aux fichiers ouverts en direct, et la partie ne serait
+alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte le cas.
 
 ## Jouer
 
