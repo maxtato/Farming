@@ -1892,7 +1892,13 @@ function buildTracteur(bodyColor){
     const w1 = wheelMesh(1.25,0.75); w1.position.set(s2*1.35,1.25,-1.5); g.add(w1); wr.push(w1);
     const w2 = wheelMesh(0.78,0.55); w2.position.set(s2*1.25,0.78,1.75); g.add(w2); wf.push(w2);
   }
-  g.userData = {wr, wf, exhaust:exh, beacon:beaconMat};
+  // Chaque engin déclare où sont SES feux, aux coordonnées exactes des optiques
+  // déjà sculptées dans le modèle. Le cycle jour/nuit vient poser une lueur dessus
+  // au lieu d'en inventer une deuxième au jugé.
+  g.userData = {wr, wf, exhaust:exh, beacon:beaconMat,
+    lampes:{avant:  {x:[-0.9, 0.9],  y:1.75, z: 2.40, w:0.36, h:0.22},
+            arriere:{x:[-0.85,0.85], y:1.85, z:-1.87, w:0.30, h:0.20},
+            portee:2.6}};
   return g;
 }
 function buildCharrue(){
@@ -1959,7 +1965,14 @@ function buildPickup(){
     const a = wheelMesh(0.62,0.38); a.position.set(sx,0.62,1.9); g.add(a); wf.push(a);
     const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,-1.9); g.add(b2); wr.push(b2);
   }
-  g.userData = {wr, wf, beacon:beaconMatP};
+  // À côté d'un tracteur de 4,6 m de haut, un pick-up modelé à l'échelle réelle
+  // fait jouet. On l'agrandit d'un tiers : le gabarit redevient crédible sans
+  // toucher à une seule proportion du modèle.
+  g.scale.setScalar(1.38);
+  g.userData = {wr, wf, beacon:beaconMatP,
+    lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
+            arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
+            portee:3.0}};
   return g;
 }
 function buildFourgon(){
@@ -1995,7 +2008,13 @@ function buildFourgon(){
     const a = wheelMesh(0.66,0.4); a.position.set(sx,0.66,2.2); g.add(a); wf.push(a);
     const b2 = wheelMesh(0.66,0.4); b2.position.set(sx,0.66,-2.2); g.add(b2); wr.push(b2);
   }
-  g.userData = {wr, wf, beacon:beaconMatF};
+  // Même correction d'échelle que le pick-up, un peu plus mesurée : un fourgon
+  // de livraison arrive à la hauteur du toit d'un tracteur, pas au-dessus.
+  g.scale.setScalar(1.25);
+  g.userData = {wr, wf, beacon:beaconMatF,
+    lampes:{avant:  {x:[-0.9, 0.9],  y:1.02, z: 3.36, w:0.34, h:0.22},
+            arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20},
+            portee:3.5}};
   return g;
 }
 function buildMoissonneuse(){
@@ -2043,7 +2062,12 @@ function buildMoissonneuse(){
     const w1 = wheelMesh(1.35,0.85); w1.position.set(s2*1.7,1.35,0.6); g.add(w1); wr.push(w1);
     const w2 = wheelMesh(0.72,0.5);  w2.position.set(s2*1.15,0.72,-3.4); g.add(w2); wf.push(w2);
   }
-  g.userData = {wr, wf, reel, exhaust:exhM, auger, beacon:beaconMatM, head};
+  // La coupe déborde de 5 m devant la cabine : le faisceau doit la dépasser,
+  // sinon il éclaire la machine au lieu du champ.
+  g.userData = {wr, wf, reel, exhaust:exhM, auger, beacon:beaconMatM, head,
+    lampes:{avant:  {x:[-1.0, 1.0],  y:3.90, z: 3.03, w:0.40, h:0.24},
+            arriere:{x:[-1.2, 1.2],  y:2.00, z:-3.92, w:0.34, h:0.22},
+            portee:5.2}};
   return g;
 }
 
@@ -2803,12 +2827,12 @@ const MACHINES = [
       build:()=>buildTracteur(0x3574C6)
     })},
   {key:'pickup', nom:'Pick-up', verrou:true, prix:9000, v:new Vehicle({
-      x:14, z:52, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.05,
+      x:14, z:52, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
   {key:'fourgon', nom:'Fourgon', verrou:true, prix:18000, v:new Vehicle({
-      x:20, z:52, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.1,
+      x:20, z:52, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.33,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
     })},
@@ -3644,20 +3668,27 @@ function construireEclairagesNuit(){
     h.position.set(L.x + dx, 0.06, L.z + dz);
     nuitGroupe.add(h); halosLampe.push(h);
   }
-  // phares : deux taches devant l'engin, un halo au sol, deux feux rouges derrière
+  // Feux des engins. Les optiques sont DÉJÀ sculptées dans chaque modèle : on ne
+  // les redessine pas, on vient poser une lueur juste devant, aux coordonnées que
+  // le modèle déclare lui-même (`userData.lampes`). Une position devinée finissait
+  // plantée dans le capot, et faisait doublon avec les phares du tracteur.
+  const phareMat = new THREE.MeshBasicMaterial({color:0xFFF2CE});
+  const feuMat = new THREE.MeshBasicMaterial({color:0xE8563F});
   for(const m of MACHINES){
-    const v = m.v, g = new THREE.Group();
-    const av = (m.key === 'moisson') ? 3.4 : (v.cargo ? 2.6 : 2.3);
-    const phareMat = new THREE.MeshBasicMaterial({color:0xFFF2CE});
-    const feuMat = new THREE.MeshBasicMaterial({color:0xE8563F});
-    for(const sx of [-0.85, 0.85]){
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.32,0.16), phareMat);
-      p.position.set(sx, 1.55, av); g.add(p);
-      const f = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.22,0.14), feuMat);
-      f.position.set(sx*0.8, 1.5, -av*0.85); g.add(f);
+    const v = m.v, L = v.group.userData.lampes;
+    if(!L) continue;
+    const g = new THREE.Group();
+    // la lueur affleure l'optique, décalée de 5 cm pour ne pas se battre avec elle
+    for(const sx of L.avant.x){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(L.avant.w, L.avant.h, 0.06), phareMat);
+      p.position.set(sx, L.avant.y, L.avant.z + 0.05); g.add(p);
+    }
+    for(const sx of L.arriere.x){
+      const f = new THREE.Mesh(new THREE.BoxGeometry(L.arriere.w, L.arriere.h, 0.06), feuMat);
+      f.position.set(sx, L.arriere.y, L.arriere.z - 0.05); g.add(f);
     }
     const faisceau = haloPlan(7.5, 0xFFE3B0, 0);
-    faisceau.position.set(0, 0.05, av + 5.5);
+    faisceau.position.set(0, 0.05, L.portee + 5.5);
     faisceau.scale.set(0.62, 1.25, 1);
     g.add(faisceau);
     g.visible = false;
