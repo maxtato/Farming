@@ -3586,16 +3586,23 @@ const JOUR = {sec: 600, heure: 9, jours: 1};
 // changer la couleur d'un moment de la journée.
 // Le plein jour tient de 8 h à 17 h 30 : une partie ordinaire se joue en lumière
 // franche, et la nuit reste un moment particulier plutôt que la moitié du temps.
+// La nuit doit se VOIR sans empêcher de jouer. Une nuit physiquement juste rendait
+// le terrain à 5 % de la luminosité du jour : entre deux lampadaires on conduisait
+// à l'aveugle. Les valeurs nocturnes visent donc une nuit « de pleine lune » —
+// franchement bleue et contrastée, mais où chaque sillon reste lisible.
 const AMBIANCES = [
-  {h:0,    ciel:0x0B1116, sol:0x18222A, soleil:0x9FB6D8, iSol:0.16, ciel2:0x2E4160, iAmb:0.26, nuit:1},
-  {h:5,    ciel:0x141B26, sol:0x1E2932, soleil:0xB49AD0, iSol:0.20, ciel2:0x3E4E74, iAmb:0.30, nuit:0.88},
-  {h:6.5,  ciel:0x3A3442, sol:0x3E4048, soleil:0xFFB27A, iSol:0.58, ciel2:0x8E90B0, iAmb:0.46, nuit:0.34},
+  {h:0,    ciel:0x141C26, sol:0x2A3540, soleil:0xAFC4E0, iSol:0.30, ciel2:0x566E94, iAmb:0.47, nuit:1},
+  {h:5,    ciel:0x1A2230, sol:0x2E3A46, soleil:0xBCA6D8, iSol:0.32, ciel2:0x5C729C, iAmb:0.49, nuit:0.88},
+  {h:6.5,  ciel:0x3A3442, sol:0x3E4048, soleil:0xFFB27A, iSol:0.58, ciel2:0x8E90B0, iAmb:0.52, nuit:0.34},
   {h:8,    ciel:0x1E2A30, sol:0x2A3A40, soleil:0xFFE6C0, iSol:0.95, ciel2:0x7FA8C0, iAmb:0.62, nuit:0},
   {h:17.5, ciel:0x1E2A30, sol:0x2A3A40, soleil:0xFFE6C0, iSol:0.95, ciel2:0x7FA8C0, iAmb:0.62, nuit:0},
-  {h:19.5, ciel:0x3B2C2E, sol:0x40342E, soleil:0xFF8A4A, iSol:0.56, ciel2:0xB08A80, iAmb:0.44, nuit:0.36},
-  {h:21.5, ciel:0x161826, sol:0x20242E, soleil:0xA88AC0, iSol:0.22, ciel2:0x444E70, iAmb:0.30, nuit:0.88},
-  {h:24,   ciel:0x0B1116, sol:0x18222A, soleil:0x9FB6D8, iSol:0.16, ciel2:0x2E4160, iAmb:0.26, nuit:1}
+  {h:19.5, ciel:0x3B2C2E, sol:0x40342E, soleil:0xFF8A4A, iSol:0.56, ciel2:0xB08A80, iAmb:0.51, nuit:0.36},
+  {h:21.5, ciel:0x1C2230, sol:0x2E3642, soleil:0xB49AD0, iSol:0.32, ciel2:0x5A6E98, iAmb:0.49, nuit:0.88},
+  {h:24,   ciel:0x141C26, sol:0x2A3540, soleil:0xAFC4E0, iSol:0.30, ciel2:0x566E94, iAmb:0.47, nuit:1}
 ];
+// Plancher de lisibilité, appliqué quoi qu'il arrive au tableau ci-dessus : c'est
+// la garantie qu'aucun réglage futur ne pourra rendre la nuit injouable.
+const NUIT_MINI = {amb: 0.46, sol: 0.29};
 const _cA = new THREE.Color(), _cB = new THREE.Color();
 let nuitK = 0;                       // 0 = plein jour, 1 = nuit noire
 // couleurs de travail, réutilisées à chaque image pour ne rien allouer dans la boucle
@@ -3618,11 +3625,11 @@ function updateJourNuit(dt){
   scene.fog.color.copy(_ciel);
   mix(a.soleil, b.soleil, _solC);
   sun.color.copy(_solC);
-  sun.intensity = a.iSol + (b.iSol - a.iSol)*k;
+  sun.intensity = Math.max(NUIT_MINI.sol, a.iSol + (b.iSol - a.iSol)*k);
   mix(a.ciel2, b.ciel2, _cielC);
   hemi.color.copy(_cielC);
   _cA.setHex(a.sol); hemi.groundColor.copy(_cA.lerp(_cB.setHex(b.sol), k));
-  hemi.intensity = a.iAmb + (b.iAmb - a.iAmb)*k;
+  hemi.intensity = Math.max(NUIT_MINI.amb, a.iAmb + (b.iAmb - a.iAmb)*k);
   nuitK = a.nuit + (b.nuit - a.nuit)*k;
   // course du soleil : il tourne d'est en ouest et s'abaisse en début et fin de journée.
   // On lui garde une hauteur plancher : sous 40, l'ombre portée sort du champ de la
