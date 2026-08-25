@@ -923,6 +923,7 @@ function nouvelleCommande(){
   }
   RESTO.commande = {liste,
     prime: liste.reduce((t, l)=> t + prixDe(l.cle)*l.need*(PALIER.CONTRAT - 1), 0)};
+  if(RESTO.bulle) ajouteBulle(RESTO, RESTO.bulleH);
 }
 // Ce qu'il reste à apporter d'un produit pour la commande en cours, ou 0.
 const resteCommande = (cle)=>{
@@ -1962,8 +1963,13 @@ function ajouteBulle(S, H){
   const eur = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
   const blocs = [];
   // Trois lignes au plus : au-delà, la bulle devient un panneau d'affichage et on ne
-  // la lit plus depuis la route. Le détail complet est dans l'onglet Commerces.
-  if(S.achete && S.achete.length)
+  // la lit plus depuis la route. Le détail complet est dans l'onglet Filières.
+  // Un commerce qui tient une commande l'affiche À LA PLACE de sa liste d'achats : le
+  // restaurant prend onze produits, mais ce qui intéresse le joueur depuis la route,
+  // c'est ce qu'il réclame en ce moment.
+  if(S.commande) blocs.push({titre:'COMMANDE', lignes:S.commande.liste.map((l)=>
+    ({nom:PRODUITS[l.cle].nom, prix:Math.round(l.need) + ' kg'}))});
+  else if(S.achete && S.achete.length)
     blocs.push({titre:'ACHÈTE', lignes:S.achete.slice(0, 3)
       .map((n)=> ({nom:PRODUITS[n].nom, prix:eur(prixChez(S, n))}))
       .concat(S.achete.length > 3 ? [{nom:'et ' + (S.achete.length - 3) + ' autres', prix:''}] : [])});
@@ -1971,8 +1977,6 @@ function ajouteBulle(S, H){
     blocs.push({titre:S.caisse ? 'CUISINE' : 'TRANSFORME',
       lignes:S.fabrique.slice(0, 3).map((n)=> ({nom:PRODUITS[n].nom,
         prix:S.caisse ? eur(prixChez(S, n)) : ''}))});
-  if(S.commande) blocs.unshift({titre:'COMMANDE', lignes:S.commande.liste.map((l)=>
-    ({nom:PRODUITS[l.cle].nom, prix:Math.round(resteCommande(l.cle)) + ' kg'}))});
   if(S.vend) blocs.push({titre:'VEND', lignes:S.vend});
   if(S.propose) blocs.push({titre:'PROPOSE', lignes:S.propose});
   if(S.demande){
@@ -1984,7 +1988,12 @@ function ajouteBulle(S, H){
   // façade d'un commerce du bord est lui tournait donc le dos et restait invisible.
   // On garde le parallélisme à la route, mais du côté d'où l'on regarde.
   const rotB = (S.dir === 'W' || S.dir === 'E') ? Math.PI/2 : 0;
-  poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
+  // Une enseigne est une image cuite une fois : on garde de quoi la refaire, pour le
+  // commerce dont le contenu change — le restaurant et sa commande.
+  if(S.bulle){ scene.remove(S.bulle); const i = BULLES.findIndex((b)=> b.m === S.bulle);
+               if(i >= 0) BULLES.splice(i, 1); }
+  S.bulle = poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
+  S.bulleH = H;
 }
 /* ---------- LES COMMERCES DU VILLAGE ----------
    Treize bâtiments, chacun avec sa silhouette et ses attributs : on reconnaît une
@@ -6065,7 +6074,7 @@ function updateUsines(dt){
 }
 function fabriquerSite(S, cle, debitKg, dt){
   const U = {tremie:S.tremie, stock:S.caisse ? {} : S.stock, recette:cle,
-             debit:()=> debitKg, stockMax:()=> S.caisse ? Infinity : 2600};
+             debit:()=> debitKg, stockMax:()=> S.caisse ? Infinity : S.stockMax()};
   const q = fabriquer(U, dt);
   if(q > 0 && S.caisse){
     // Boulangerie et atelier textile n'entreposent rien : ils vendent au comptoir.
@@ -6992,7 +7001,12 @@ function refreshHUD(){
   if(acheve && !fini){ fini = true; ouvrirFin(); }
   el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI' : E.txt;
   el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
-  el.silo.textContent = Math.floor(delivered) + ' kg';
+  // Ce qui dort au silo, pas le cumul livré depuis le début : c'est ce chiffre-là qui
+  // décide si la moissonneuse pourra encore rentrer sa trémie. Il vire à l'orange
+  // quand la tour est presque pleine — il faut alors écouler avant de remoissonner.
+  const st = siloTotal();
+  el.silo.textContent = Math.floor(st) + ' kg';
+  el.silo.style.color = st > siloMax()*0.92 ? '#FFAE2E' : '';
   el.bar.style.width = Math.max(0, Math.min(100, E.prog()*100)) + '%';
   const Tc = toolOf(MACHINES[cur]);
   const vc = MACHINES[cur].v.cargo;
