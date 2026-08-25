@@ -3172,9 +3172,22 @@ function jeuDeFeux(){
     halos: []
   };
 }
-// Une optique : boîtier sombre encastré, lentille par-dessus, et une bille additive
-// qui reste invisible le jour. La bille donne le halo autour de l'ampoule ; une sphère
-// plutôt qu'un plan, pour qu'elle se lise pareil sous n'importe quel angle de caméra.
+/* Une lampe, c'est partout la même chose dans ce jeu : un corps qui passe à l'émissif
+   et une bille additive qui s'épanouit autour de lui. C'est ce que faisait déjà le
+   gyrophare, et il n'y a aucune raison qu'un phare ou un lampadaire s'y prenne
+   autrement. Rien n'est projeté au sol : une tache posée sur le bitume ne suit pas
+   vraiment la lampe, elle se lit comme une zone d'action — et le jeu réserve les
+   marques au sol aux anneaux, qui veulent dire « ici, maintenant ». */
+function billeLumiere(rayon, couleur){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(rayon, 8, 6),
+    new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:0,
+      blending:THREE.AdditiveBlending, depthWrite:false}));
+  m.renderOrder = 2;
+  m.visible = false;                 // three.js dessine un transparent même à zéro
+  return m;
+}
+// Une optique : boîtier sombre encastré, lentille par-dessus, et la bille de lumière
+// commune, qui reste invisible le jour.
 function optique(g, F, arriere, sx, y, z, w, h){
   const sens = arriere ? -1 : 1;
   g.add(box(w*1.25, h*1.36, 0.14, 0x2A2E32, sx, y, z - sens*0.07));
@@ -3183,11 +3196,10 @@ function optique(g, F, arriere, sx, y, z, w, h){
   lentille.position.set(sx, y, z);
   lentille.receiveShadow = true;
   g.add(lentille);
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(Math.max(w, h)*0.72, 7, 5),
-    new THREE.MeshBasicMaterial({color: arriere ? 0xFF7A5E : 0xFFEFC0, transparent:true,
-      opacity:0, blending:THREE.AdditiveBlending, depthWrite:false}));
+  // Plus large qu'avant : c'est elle qui porte désormais toute la lumière du phare,
+  // le faisceau projeté au sol ayant disparu.
+  const halo = billeLumiere(Math.max(w, h)*1.15, arriere ? 0xFF7A5E : 0xFFEFC0);
   halo.position.set(sx, y, z + sens*0.08);
-  halo.renderOrder = 2; halo.visible = false;
   g.add(halo);
   F.halos.push(halo);
   return lentille;
@@ -3201,10 +3213,8 @@ function gyrophare(g, x, y, z){
     flatShading:true, shininess:0, specular:0x000000});
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), dome);
   m.position.set(x, y, z); m.castShadow = true; g.add(m);
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6),
-    new THREE.MeshBasicMaterial({color:0xFFC63A, transparent:true, opacity:0,
-      blending:THREE.AdditiveBlending, depthWrite:false}));
-  halo.position.set(x, y, z); halo.renderOrder = 2; halo.visible = false; g.add(halo);
+  const halo = billeLumiere(0.5, 0xFFC63A);
+  halo.position.set(x, y, z); g.add(halo);
   // Pas de flaque au sol : un gyrophare éclaire l'air autour de lui, pas le bitume
   // sous la machine. Le disque orange se lisait comme une deuxième zone d'action, à
   // deux mètres des anneaux qui, eux, veulent dire quelque chose.
@@ -3236,8 +3246,7 @@ function buildTracteur(bodyColor){
   // au lieu d'en inventer une deuxième au jugé.
   g.userData = {wr, wf, exhaust:exh, gyro, feux:F,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.75, z: 2.40, w:0.36, h:0.22},
-            arriere:{x:[-0.85,0.85], y:1.85, z:-1.87, w:0.30, h:0.20},
-            portee:2.6}};
+            arriere:{x:[-0.85,0.85], y:1.85, z:-1.87, w:0.30, h:0.20}}};
   return g;
 }
 function buildCharrue(){
@@ -3307,8 +3316,7 @@ function buildPickup(){
   g.scale.setScalar(1.38);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
-            arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
-            portee:3.0}};
+            arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18}}};
   return g;
 }
 function buildFourgon(){
@@ -3346,8 +3354,7 @@ function buildFourgon(){
   g.scale.setScalar(1.40);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.02, z: 3.36, w:0.34, h:0.22},
-            arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20},
-            portee:3.5}};
+            arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20}}};
   return g;
 }
 function buildMoissonneuse(){
@@ -3392,12 +3399,9 @@ function buildMoissonneuse(){
     const w1 = wheelMesh(1.35,0.85); w1.position.set(s2*1.7,1.35,0.6); g.add(w1); wr.push(w1);
     const w2 = wheelMesh(0.72,0.5);  w2.position.set(s2*1.15,0.72,-3.4); g.add(w2); wf.push(w2);
   }
-  // La coupe déborde de 5 m devant la cabine : le faisceau doit la dépasser,
-  // sinon il éclaire la machine au lieu du champ.
   g.userData = {wr, wf, reel, exhaust:exhM, auger, gyro, feux:F, head,
     lampes:{avant:  {x:[-1.0, 1.0],  y:3.90, z: 3.03, w:0.40, h:0.24},
-            arriere:{x:[-1.2, 1.2],  y:2.00, z:-3.92, w:0.34, h:0.22},
-            portee:5.2}};
+            arriere:{x:[-1.2, 1.2],  y:2.00, z:-3.92, w:0.34, h:0.22}}};
   return g;
 }
 
@@ -5067,67 +5071,10 @@ function updateJourNuit(dt){
   SUN_DIR.set(Math.cos(ang)*62, 42 + 46*haut, 24 + Math.sin(ang)*26);
   majEclairagesNuit();
 }
-// Éclairages qui s'allument à la nuit tombée : ampoules des lampadaires, halo au sol,
-// phares et feux arrière des engins. Tout est en matériau non éclairé : c'est de la
-// lumière peinte, pas un calcul d'éclairage — le coût reste nul.
-let nuitGroupe = null, halosLampe = [], ampoules = [];
-const HALO_TEX = (function(){
-  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
-  const c = cv.getContext('2d');
-  const g = c.createRadialGradient(32,32,0, 32,32,32);
-  g.addColorStop(0,   'rgba(255,233,168,1)');
-  g.addColorStop(0.45,'rgba(255,220,140,.42)');
-  g.addColorStop(1,   'rgba(255,210,120,0)');
-  c.fillStyle = g; c.fillRect(0,0,64,64);
-  return new THREE.CanvasTexture(cv);
-})();
-function haloPlan(r, couleur, op){
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(r*2, r*2),
-    new THREE.MeshBasicMaterial({map:HALO_TEX, color:couleur, transparent:true,
-      opacity:op, blending:THREE.AdditiveBlending, depthWrite:false}));
-  m.rotation.x = -Math.PI/2;
-  m.renderOrder = 2;
-  return m;
-}
-// Le faisceau des engins était un disque flou centré huit mètres devant, mis à l'échelle
-// en ovale : il débordait d'un mètre DERRIÈRE la machine et se lisait comme une tache
-// posée sur le sol, sans lien visible avec les optiques — d'où l'impression que la
-// lumière ne suivait pas l'engin. Il devient un trapèze qui part du nez et s'ouvre
-// devant : une forme orientée dit d'elle-même dans quel sens on éclaire.
-const FAISCEAU_TEX = (function(){
-  const L = 96, W = 48;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = L;
-  const c = cv.getContext('2d');
-  for(let y=0;y<L;y++){
-    const t = y/(L-1);                                  // 0 tout près, 1 au loin
-    const fond = Math.pow(1 - t, 1.5);                  // extinction en profondeur
-    for(let x=0;x<W;x++){
-      const u = (x/(W-1))*2 - 1;                        // -1 à gauche, +1 à droite
-      const bord = Math.max(0, 1 - u*u);                // les deux bords s'éteignent
-      const a = fond * bord * (0.45 + 0.55*bord);
-      c.fillStyle = 'rgba(255,232,180,' + a.toFixed(3) + ')';
-      c.fillRect(x, y, 1, 1);
-    }
-  }
-  return new THREE.CanvasTexture(cv);
-})();
-// Quadrilatère à plat, du nez (largeur w0) à la portée (largeur w1). La texture est
-// posée v = 1 côté machine : avec le retournement vertical que three.js applique aux
-// textures de canevas, c'est bien la première ligne du canevas — la plus claire.
-function faisceauSol(z0, z1, w0, w1){
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(
-    [-w0/2, 0, z0,  w0/2, 0, z0,  w1/2, 0, z1,  -w1/2, 0, z1], 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute([0,1, 1,1, 1,0, 0,0], 2));
-  g.setIndex([0,1,2, 0,2,3]);
-  g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({map:FAISCEAU_TEX,
-    color:0xFFE3B0, transparent:true, opacity:0, blending:THREE.AdditiveBlending,
-    depthWrite:false, side:THREE.DoubleSide}));
-  m.renderOrder = 2;
-  m.visible = false;
-  return m;
-}
+// Éclairages qui s'allument à la nuit tombée : ampoules des lampadaires, phares et
+// feux arrière des engins. Tout est en matériau non éclairé : c'est de la lumière
+// peinte, pas un calcul d'éclairage — le coût reste nul.
+let nuitGroupe = null, billesLampe = [], ampoules = [];
 function construireEclairagesNuit(){
   nuitGroupe = new THREE.Group(); scene.add(nuitGroupe);
   const ampouleMat = new THREE.MeshBasicMaterial({color:0xFFE9A8});
@@ -5138,37 +5085,25 @@ function construireEclairagesNuit(){
     const b = new THREE.Mesh(ampouleGeo, ampouleMat);
     b.position.set(L.x + dx, 5.9, L.z + dz); b.rotation.y = L.ry;
     nuitGroupe.add(b); ampoules.push(b);
-    const h = haloPlan(6.5, 0xFFD98A, 0);
-    h.position.set(L.x + dx, 0.06, L.z + dz);
-    nuitGroupe.add(h); halosLampe.push(h);
-  }
-  // Feux des engins : plus une seule lampe posée par-dessus le modèle. Les optiques
-  // sculptées passent elles-mêmes à l'émissif (`userData.feux`), et on ne leur ajoute
-  // que le faisceau au sol, qu'aucun modèle ne peut porter.
-  for(const m of MACHINES){
-    const v = m.v, L = v.group.userData.lampes;
-    if(!L || !v.group.userData.feux) continue;
-    // Le groupe des utilitaires est mis à l'échelle : on divise les cotes voulues en
-    // mètres du monde par ce facteur, sinon le fourgon éclairerait 40 % plus loin que
-    // le tracteur sans qu'on l'ait décidé.
-    const s = v.group.scale.x || 1;
-    const demi = Math.max.apply(null, L.avant.x.map(Math.abs));
-    const f = faisceauSol(L.portee + 0.6, L.portee + 0.6 + 15/s, demi*2 + 1.2, demi*2 + 1.2 + 5.4/s);
-    f.position.y = 0.05;
-    v.group.add(f);
-    v.faisceau = f;
+    // La flaque au sol de 6,5 m devient une bille autour de la tête du mât : c'est la
+    // lampe qui brille, comme le gyrophare et comme les phares.
+    const h = billeLumiere(1.35, 0xFFD98A);
+    h.position.set(L.x + dx, 5.9, L.z + dz);
+    nuitGroupe.add(h); billesLampe.push(h);
   }
 }
 function majEclairagesNuit(){
   if(!nuitGroupe) return;
   const on = nuitK > 0.12;
   nuitGroupe.visible = on;
-  if(on) for(const h of halosLampe) h.material.opacity = 0.34*nuitK;
+  if(on) for(const h of billesLampe){ h.visible = true; h.material.opacity = 0.58*nuitK;
+                                     h.scale.setScalar(0.9 + 0.25*nuitK); }
+  else for(const h of billesLampe) h.visible = false;
   for(const m of MACHINES){
     const v = m.v, F = v.group.userData.feux;
     if(!F) continue;
     // Un engin garé a les feux éteints, comme il a le moteur coupé : sans ce test, la
-    // cour porte quatre à six faisceaux immobiles toute la nuit.
+    // cour reste allumée toute la nuit pour personne.
     const enService = m.v.auto || m === MACHINES[cur] || (m.v.speed || 0) > 0.4;
     const allume = on && !m.verrou && enService;
     const k = allume ? nuitK : 0;
@@ -5178,11 +5113,10 @@ function majEclairagesNuit(){
     F.arriere.emissive.setRGB(k*0.86, k*0.20, k*0.11);
     // .visible et pas seulement l'opacité : three.js trie et dessine un transparent à
     // opacité nulle. Sans ça, le jour coûtait autant que la nuit.
-    for(const h of F.halos){ h.visible = allume; h.material.opacity = k*0.55; }
-    if(v.faisceau){
-      v.faisceau.visible = allume;
-      v.faisceau.material.opacity = k*0.46;
-    }
+    // Plus vive qu'avant : la bille porte à elle seule ce que le phare éclaire, depuis
+    // que le trapèze projeté au sol a disparu.
+    for(const h of F.halos){ h.visible = allume; h.material.opacity = k*0.78;
+                             h.scale.setScalar(0.85 + 0.3*k); }
   }
 }
 
