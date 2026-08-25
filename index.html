@@ -588,11 +588,31 @@ for(const S of SITES){
     S.px = S.park; S.pz = -(FRONT + S.ph/2);
   }
   S.r = 13;
+  // Emprise d'un seul tenant : le bâtiment ET son parking sur la même dalle. Ils
+  // formaient jusqu'ici deux îlots de béton séparés par une bande d'herbe de 0 à 3,5 m
+  // selon le site, et chacun avait sa propre bordure. Une seule propriété, une seule
+  // dalle, une seule clôture. Un bâtiment tourné d'un quart de tour présente sa
+  // profondeur en X et sa largeur en Z : d'où le test sur `dir`.
+  const lat = (S.dir === 'W' || S.dir === 'E');
+  const bw = lat ? S.d : S.w, bd = lat ? S.w : S.d;
+  S.emp = {
+    x0: Math.min(S.x - bw/2, S.px - S.pw/2), x1: Math.max(S.x + bw/2, S.px + S.pw/2),
+    z0: Math.min(S.z - bd/2, S.pz - S.ph/2), z1: Math.max(S.z + bd/2, S.pz + S.ph/2)
+  };
+  // Le quai : sur la dalle, au bord de la route, aligné sur le milieu du parking.
+  // C'est aussi la porte de la clôture — on entre par là et on s'arrête sur l'anneau.
+  const RECUL = 4.5;
+  if(S.dir === 'W'){ S.quaiX = S.emp.x1 - RECUL; S.quaiZ = S.park; }
+  else if(S.dir === 'E'){ S.quaiX = S.emp.x0 + RECUL; S.quaiZ = S.park; }
+  else { S.quaiX = S.park; S.quaiZ = S.emp.z1 - RECUL; }
 }
+// Rayon d'arrêt commun à tous les quais de bord de route. Il valait 8 m côté livraison
+// et 6,5 m côté service, pour un anneau dessiné à 4,4 : trois valeurs pour une seule
+// forme. Maintenant que l'anneau est posé sur la dalle, une seule suffit.
+const QUAI_R = 6.5;
 const MILL    = SITES[2];
 const ATELIER = SITES[1];
 const BAKERY  = SITES[6];
-const ATELIER_R = 6.5;   // rayon du quai de l'atelier, aligné sur la station et le comptoir
 // La rocade est un anneau : un point est sur la chaussée si l'une de ses deux
 // coordonnées longe l'un des quatre brins. Un seul test, appliqué partout.
 function surRoute(x, z, m){
@@ -1300,7 +1320,7 @@ function enseigneTex(nom, fond, style, picto){
 }
 // Bordure de parking : trois côtés, jamais celui qui donne sur la route. Trois styles
 // selon l'enseigne — muret plein, grillage industriel, ou simple trottoir.
-function bordureParking(S){
+function clotureSite(S){
   const g = new THREE.Group();
   const type = S.cloture || 'muret';
   const bande = (lx, lz, x, z)=>{
@@ -1321,14 +1341,32 @@ function bordureParking(S){
       g.add(box(lx+0.3, 0.26, lz+0.3, 0xC6CBCE, x, 0.13, z));
     }
   };
+  // Un côté, moins ses trouées. Deux choses interrompent la clôture côté route : le
+  // bâtiment, qui fait déjà mur là où il est, et la porte par laquelle on entre.
+  const cote = (a0, a1, trous, poser)=>{
+    let a = a0;
+    for(const t of trous.slice().sort((p, q)=> p[0]-q[0])){
+      if(t[0] > a + 0.4) poser(a, Math.min(t[0], a1));
+      a = Math.max(a, t[1]);
+    }
+    if(a1 > a + 0.4) poser(a, a1);
+  };
+  const E = S.emp, EP = 0.34, PORTE = 12;   // de quoi laisser passer une moissonneuse
+  const cx = (E.x0 + E.x1)/2, cz = (E.z0 + E.z1)/2;
+  const LX = E.x1 - E.x0, LZ = E.z1 - E.z0;
   if(S.dir === 'W' || S.dir === 'E'){
-    bande(0.34, S.ph, (S.dir === 'W' ? -1 : 1)*S.pw/2, 0);
-    bande(S.pw, 0.34, 0, -S.ph/2); bande(S.pw, 0.34, 0, S.ph/2);
+    bande(LX, EP, cx, E.z0); bande(LX, EP, cx, E.z1);          // pignons nord et sud
+    bande(EP, LZ, S.dir === 'W' ? E.x0 : E.x1, cz);            // fond, dos à la route
+    cote(E.z0, E.z1,
+      [[S.z - S.w/2 - 0.25, S.z + S.w/2 + 0.25], [S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
+      (u, v)=> bande(EP, v - u, S.dir === 'W' ? E.x1 : E.x0, (u + v)/2));
   } else {
-    bande(S.pw, 0.34, 0, -S.ph/2);
-    bande(0.34, S.ph, -S.pw/2, 0); bande(0.34, S.ph, S.pw/2, 0);
+    bande(EP, LZ, E.x0, cz); bande(EP, LZ, E.x1, cz);          // pignons est et ouest
+    bande(LX, EP, cx, E.z0);                                   // fond, au nord
+    cote(E.x0, E.x1,
+      [[S.x - S.w/2 - 0.25, S.x + S.w/2 + 0.25], [S.quaiX - PORTE/2, S.quaiX + PORTE/2]],
+      (u, v)=> bande(v - u, EP, (u + v)/2, E.z1));
   }
-  g.position.set(S.px, 0, S.pz);
   scene.add(g);
 }
 // Un commerce : gabarit et style propres à son activité.
@@ -1460,8 +1498,12 @@ const COUL_ACTIVE = new THREE.Color(JAUNE_ACTION);
 const COUL_VEILLE = new THREE.Color(BLANC_ATTENTE);
 // `actif` : fonction sans argument renvoyant true quand l'action est possible ici et
 // maintenant. Omise, l'anneau est réputé toujours actif.
+// Anneau plus petit et plus épais qu'à l'origine : posé sur la dalle du parking, il
+// marque une place où s'arrêter, pas une zone entière. 3,05 m de rayon extérieur pour
+// 0,55 d'épaisseur, contre 4,42 pour 0,32.
+const ANNEAU_R = 3.05, ANNEAU_EP = 0.55;
 function anneauAction(x, z, phase, actif){
-  const anneau = new THREE.Mesh(new THREE.RingGeometry(4.10, 4.42, 56),
+  const anneau = new THREE.Mesh(new THREE.RingGeometry(ANNEAU_R - ANNEAU_EP, ANNEAU_R, 48),
     new THREE.MeshBasicMaterial({color:JAUNE_ACTION, transparent:true, opacity:0.95,
                                  blending:THREE.AdditiveBlending,
                                  side:THREE.DoubleSide, depthWrite:false}));
@@ -1469,7 +1511,7 @@ function anneauAction(x, z, phase, actif){
   anneau.position.set(x, 0.10, z);
   anneau.renderOrder = 3;
   scene.add(anneau);
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(4.10, 40),
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(ANNEAU_R - ANNEAU_EP*0.5, 32),
     new THREE.MeshBasicMaterial({color:JAUNE_ACTION, transparent:true, opacity:0.10,
                                  blending:THREE.AdditiveBlending,
                                  side:THREE.DoubleSide, depthWrite:false}));
@@ -1621,10 +1663,13 @@ function buildCommerce(S){
   const lat = (S.dir === 'W' || S.dir === 'E');
   boxObs.push({x:S.x, z:S.z, hw:(lat ? D : W)/2, hd:(lat ? W : D)/2});
 
-  // parking : dalle, marquage, et muret sur les trois côtés opposés à la route
-  fillRect(S.px, S.pz, S.pw, S.ph, S.pompes ? '#6F767B' : '#5C6367', AX);
-  for(let k=0;k<50;k++)
-    fillRect(S.px+(Math.random()-0.5)*S.pw, S.pz+(Math.random()-0.5)*S.ph,
+  // La dalle : bâtiment et parking d'un seul tenant, et non plus deux îlots de béton
+  // séparés par une bande d'herbe. Le marquage des places, lui, reste sur le parking —
+  // on ne trace pas de stationnement contre un mur.
+  const E = S.emp, EW = E.x1 - E.x0, ED = E.z1 - E.z0;
+  fillRect((E.x0+E.x1)/2, (E.z0+E.z1)/2, EW, ED, S.pompes ? '#6F767B' : '#5C6367', AX);
+  for(let k=0;k<Math.round(EW*ED/28);k++)
+    fillRect(E.x0 + Math.random()*EW, E.z0 + Math.random()*ED,
              0.5+Math.random()*1.4, 0.4+Math.random()*0.9,
              Math.random()<0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
@@ -1638,13 +1683,11 @@ function buildCommerce(S){
     }
     c.fill();
   });
-  // Point de déchargement : un anneau lumineux qui pulse, posé à mi-chemin entre le
-  // parking et la chaussée. On s'y arrête au passage, sans entrer dans le parking.
+  // Point de déchargement : l'anneau est posé SUR la dalle, en entrant dans le
+  // parking, et non plus à cheval sur l'accotement. On franchit la porte de la
+  // clôture, on s'arrête sur l'anneau : c'est le même geste que dans une vraie cour.
   if(S.prix > 0 || S === BAKERY){
-    const ecart = FRONT - 1.5;
-    if(S.dir === 'W'){ S.dropX = -ecart; S.dropZ = S.park; }
-    else if(S.dir === 'E'){ S.dropX = ecart; S.dropZ = S.park; }
-    else { S.dropX = S.park; S.dropZ = -ecart; }
+    S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     // Couleur vive : on part de la teinte de l'enseigne mais on pousse la saturation
     // et la clarté, sinon les toits sombres donnent un anneau terne. Le mélange additif
     // fait le reste — l'anneau éclaire le sol au lieu de le teinter.
@@ -1655,24 +1698,25 @@ function buildCommerce(S){
     // sait en plus RENDRE de la farine, la boulangerie ne prend qu'elle.
     anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
       const m = MACHINES[cur], T = caisseDe(m);
-      if(S === BAKERY) return porte(T, 'farine');
+      if(S === BAKERY) return porte(T, 'farine') || porte(T, 'oeufs');
       if(S === MILL && peutPrendre(T, 'farine', flourKg)) return true;
+      if(S === BIO && porte(T, 'laine')) return true;
       return tremiePleine(m) || porte(T, 'grain');
     });
   } else { S.dropX = S.x; S.dropZ = S.z; }
-  // L'atelier. Son anneau était posé sur le parking, à 19,5 m du bâtiment, alors que
-  // refreshAtelier() mesurait la distance AU BÂTIMENT dans un rayon de 13 m : on pouvait
-  // se garer pile au centre de l'anneau sans que le bouton n'apparaisse jamais, et la
-  // seule zone qui marchait n'était signalée par rien. Le quai devient l'anneau lui-même,
-  // comme partout ailleurs — ce qu'on voit est ce qui déclenche.
+  // L'atelier. Son anneau était posé au milieu du parking, à 19,5 m du bâtiment, alors
+  // que refreshAtelier() mesurait la distance AU BÂTIMENT dans un rayon de 13 m : on
+  // pouvait se garer pile au centre de l'anneau sans que le bouton n'apparaisse jamais,
+  // et la seule zone qui marchait n'était signalée par rien. Le quai devient l'anneau
+  // lui-même — ce qu'on voit est ce qui déclenche.
   if(S.atelier){
-    S.dropX = S.px; S.dropZ = S.pz;
-    anneauAction(S.px, S.pz, 2.3, ()=>{
+    S.dropX = S.quaiX; S.dropZ = S.quaiZ;
+    anneauAction(S.dropX, S.dropZ, 2.3, ()=>{
       const c = coutAmelioration(MACHINES[cur]);
       return c > 0 && money >= c;
     });
   }
-  bordureParking(S);
+  clotureSite(S);
   ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
 }
 function buildFarm(){
@@ -1985,6 +2029,62 @@ function wheelMesh(r, w, hex){
   const rim = cyl(r*0.55,r*0.55,w+0.06,8,C.cream,0,0,0,0,0,Math.PI/2); g.add(rim);
   return g;
 }
+
+/* --- optiques et gyrophare : ce sont les feux du modèle qui s'allument --- */
+// Chaque engin avait déjà ses optiques sculptées, et le cycle jour/nuit venait poser
+// une deuxième paire de boîtes lumineuses juste devant. Deux jeux de phares pour un
+// engin, et une tache de lumière au sol sans rapport visible avec la machine.
+// Désormais la lentille sculptée passe elle-même à l'émissif.
+//
+// Chaque engin porte SES matériaux : mat() rend un matériau partagé par tout le décor,
+// allumer un tracteur allumerait la vallée entière.
+function jeuDeFeux(){
+  const commun = {flatShading:true, shininess:0, specular:0x000000};
+  return {
+    avant:   new THREE.MeshPhongMaterial(Object.assign({color:0xFFF6CC, emissive:0x000000}, commun)),
+    arriere: new THREE.MeshPhongMaterial(Object.assign({color:0x8C3128, emissive:0x000000}, commun)),
+    halos: []
+  };
+}
+// Une optique : boîtier sombre encastré, lentille par-dessus, et une bille additive
+// qui reste invisible le jour. La bille donne le halo autour de l'ampoule ; une sphère
+// plutôt qu'un plan, pour qu'elle se lise pareil sous n'importe quel angle de caméra.
+function optique(g, F, arriere, sx, y, z, w, h){
+  const sens = arriere ? -1 : 1;
+  g.add(box(w*1.25, h*1.36, 0.14, 0x2A2E32, sx, y, z - sens*0.07));
+  const lentille = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1),
+                                  arriere ? F.arriere : F.avant);
+  lentille.position.set(sx, y, z);
+  lentille.receiveShadow = true;
+  g.add(lentille);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(Math.max(w, h)*0.72, 7, 5),
+    new THREE.MeshBasicMaterial({color: arriere ? 0xFF7A5E : 0xFFEFC0, transparent:true,
+      opacity:0, blending:THREE.AdditiveBlending, depthWrite:false}));
+  halo.position.set(sx, y, z + sens*0.08);
+  halo.renderOrder = 2; halo.visible = false;
+  g.add(halo);
+  F.halos.push(halo);
+  return lentille;
+}
+// Gyrophare. Avant, seule la teinte du dôme changeait : sur un écran de téléphone, à la
+// distance de jeu, ça ne se voyait pas. Le dôme devient émissif, une bille additive
+// s'épanouit autour, et la nuit une flaque orange bat au sol sous la machine.
+function gyrophare(g, x, y, z){
+  const dome = new THREE.MeshPhongMaterial({color:0xC9A21A, emissive:0x000000,
+    flatShading:true, shininess:0, specular:0x000000});
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), dome);
+  m.position.set(x, y, z); m.castShadow = true; g.add(m);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6),
+    new THREE.MeshBasicMaterial({color:0xFFC63A, transparent:true, opacity:0,
+      blending:THREE.AdditiveBlending, depthWrite:false}));
+  halo.position.set(x, y, z); halo.renderOrder = 2; halo.visible = false; g.add(halo);
+  const sol = new THREE.Mesh(new THREE.CircleGeometry(4.6, 22),
+    new THREE.MeshBasicMaterial({color:0xFFB03A, transparent:true, opacity:0,
+      blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+  sol.rotation.x = -Math.PI/2; sol.position.set(0, 0.055, z*0.3);
+  sol.renderOrder = 2; sol.visible = false; g.add(sol);
+  return {dome, halo, sol};
+}
 function buildTracteur(bodyColor){
   const g = new THREE.Group();
   // capot : plus étroit et plus bas vers l'avant
@@ -1994,13 +2094,10 @@ function buildTracteur(bodyColor){
   g.add(slab({w:2.35,h:1.75,d:2.1, tw:1.95,td:1.6, dz:-0.16, c:C.glass, y:2.6, z:-0.85}));
   // toit débordant, légèrement de travers
   g.add(slab({w:2.85,h:0.3,d:2.55, tw:2.5,td:2.15, dx:0.08, dz:-0.2, c:bodyColor, y:4.32, z:-0.85, ry:0.018}));
-  const beaconMat = new THREE.MeshPhongMaterial({color:0x6B5A12, flatShading:true, shininess:0, specular:0x000000});
-  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), beaconMat);
-  beacon.position.set(1.0,4.68,-0.85); beacon.castShadow = true; g.add(beacon);
-  for(const sx of [-0.9, 0.9]){                            // phares avant
-    g.add(box(0.45,0.3,0.14,0x2A2E32, sx,1.75,2.32));
-    g.add(box(0.36,0.22,0.1,0xFFF6CC, sx,1.75,2.40));
-  }
+  const gyro = gyrophare(g, 1.0, 4.68, -0.85);
+  const F = jeuDeFeux();                                   // phares avant et feux arrière
+  for(const sx of [-0.9, 0.9])  optique(g, F, false, sx, 1.75,  2.40, 0.36, 0.22);
+  for(const sx of [-0.85,0.85]) optique(g, F, true,  sx, 1.85, -1.87, 0.30, 0.20);
   g.add(cyl(0.14,0.16,1.5,6,C.dark,0.9,3.0,1.6));          // pot d'échappement vertical
   const exh = new THREE.Object3D(); exh.position.set(0.9,3.8,1.6); g.add(exh);
   g.add(slab({w:2.9,h:0.4,d:0.55, tw:2.4,td:0.35, sz:-0.12, c:C.dark, y:1.3, z:2.3}));  // masse avant
@@ -2012,7 +2109,7 @@ function buildTracteur(bodyColor){
   // Chaque engin déclare où sont SES feux, aux coordonnées exactes des optiques
   // déjà sculptées dans le modèle. Le cycle jour/nuit vient poser une lueur dessus
   // au lieu d'en inventer une deuxième au jugé.
-  g.userData = {wr, wf, exhaust:exh, beacon:beaconMat,
+  g.userData = {wr, wf, exhaust:exh, gyro, feux:F,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.75, z: 2.40, w:0.36, h:0.22},
             arriere:{x:[-0.85,0.85], y:1.85, z:-1.87, w:0.30, h:0.20},
             portee:2.6}};
@@ -2053,10 +2150,9 @@ function buildPickup(){
   g.add(box(1.8,0.6,0.22, CREME, 0,0.95,2.82));
   for(let k=0;k<3;k++) g.add(box(1.5,0.08,0.1, SOMBRE, 0,0.78+k*0.16,2.94));
   g.add(box(2.1,0.2,0.5, CREME, 0,0.6,2.78));
-  for(const sx of [-0.82,0.82]){
-    g.add(box(0.42,0.3,0.14, 0x2A2E32, sx,1.12,2.86));
-    g.add(box(0.34,0.22,0.1, 0xFFF6CC, sx,1.12,2.92));
-  }
+  const F = jeuDeFeux();
+  for(const sx of [-0.82,0.82]) optique(g, F, false, sx, 1.12,  2.92, 0.34, 0.22);
+  for(const sx of [-0.85,0.85]) optique(g, F, true,  sx, 1.20, -3.47, 0.30, 0.18);
   g.add(slab({w:2.05,h:1.35,d:1.9, tw:1.9,td:1.75, c:CAISSE, y:0.92, z:0.75}));
   g.add(box(1.85,0.72,0.14, SOMBRE, 0,1.86,1.66));
   for(const sx of [-1.0,1.0]) g.add(box(0.12,0.6,1.1, SOMBRE, sx,1.82,0.75));
@@ -2074,9 +2170,7 @@ function buildPickup(){
     g.add(box(0.46,0.06,1.57, CAISSE2, sx,1.33,-1.9));
   }
   g.add(cyl(0.22,0.22,1.9,8, CREME, 0,1.42,-0.62, 0,0,Math.PI/2));
-  const beaconMatP = new THREE.MeshPhongMaterial({color:0x6B5A12, flatShading:true, shininess:0, specular:0x000000});
-  const beaconP = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), beaconMatP);
-  beaconP.position.set(0.72,2.52,0.2); beaconP.castShadow = true; g.add(beaconP);
+  const gyro = gyrophare(g, 0.72, 2.52, 0.2);
   const wr = [], wf = [];
   for(const sx of [-1.02,1.02]){
     const a = wheelMesh(0.62,0.38); a.position.set(sx,0.62,1.9); g.add(a); wf.push(a);
@@ -2086,7 +2180,7 @@ function buildPickup(){
   // fait jouet. On l'agrandit d'un tiers : le gabarit redevient crédible sans
   // toucher à une seule proportion du modèle.
   g.scale.setScalar(1.38);
-  g.userData = {wr, wf, beacon:beaconMatP,
+  g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
             arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
             portee:3.0}};
@@ -2102,10 +2196,9 @@ function buildFourgon(){
   g.add(box(2.1,0.42,0.2, CAB, 0,1.2,3.24));
   for(let k=0;k<3;k++) g.add(box(1.6,0.1,0.12, 0x8A9298, 0,1.42+k*0.14,3.3));
   g.add(box(2.35,0.24,0.6, 0x8A9298, 0,0.72,3.3));
-  for(const sx of [-0.9,0.9]){
-    g.add(box(0.42,0.3,0.14, 0x2A2E32, sx,1.02,3.3));
-    g.add(box(0.34,0.22,0.1, 0xFFF6CC, sx,1.02,3.36));
-  }
+  const F = jeuDeFeux();
+  for(const sx of [-0.9,0.9]) optique(g, F, false, sx, 1.02,  3.36, 0.34, 0.22);
+  for(const sx of [-0.9,0.9]) optique(g, F, true,  sx, 1.25, -3.99, 0.32, 0.20);
   for(const sx of [-1.24,1.24]){
     g.add(box(0.09,0.5,0.09, 0xF2E7D2, sx,2.25,2.9));
     g.add(box(0.3,0.42,0.09, SOMBRE, sx,2.57,2.9));
@@ -2117,9 +2210,7 @@ function buildFourgon(){
   g.add(box(2.3,2.2,0.14, 0xDCD2BB, 0,2.05,-3.92));
   for(let k=0;k<6;k++) g.add(box(2.1,0.1,0.1, ARETE, 0,1.1+k*0.34,-4.0));
   g.add(box(1.9,0.16,0.5, 0x8A9298, 0,0.7,-4.05));
-  const beaconMatF = new THREE.MeshPhongMaterial({color:0x6B5A12, flatShading:true, shininess:0, specular:0x000000});
-  const beaconF = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), beaconMatF);
-  beaconF.position.set(0.8,3.05,1.8); beaconF.castShadow = true; g.add(beaconF);
+  const gyro = gyrophare(g, 0.8, 3.05, 1.8);
   const wr = [], wf = [];
   for(const sx of [-1.06,1.06]){
     const a = wheelMesh(0.66,0.4); a.position.set(sx,0.66,2.2); g.add(a); wf.push(a);
@@ -2128,7 +2219,7 @@ function buildFourgon(){
   // Même correction d'échelle que le pick-up, un peu plus mesurée : un fourgon
   // de livraison arrive à la hauteur du toit d'un tracteur, pas au-dessus.
   g.scale.setScalar(1.40);
-  g.userData = {wr, wf, beacon:beaconMatF,
+  g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.02, z: 3.36, w:0.34, h:0.22},
             arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20},
             portee:3.5}};
@@ -2140,13 +2231,10 @@ function buildMoissonneuse(){
   g.add(slab({w:3.0,h:1.05,d:2.7, tw:3.7,td:3.25, c:0xF2B32C, y:3.45, z:-2.0}));   // trémie évasée
   g.add(slab({w:2.55,h:1.85,d:2.2, tw:2.1,td:1.7, dz:0.14, c:C.glass, y:2.7, z:1.9}));
   g.add(slab({w:3.0,h:0.3,d:2.5, tw:2.7,td:2.1, dx:-0.07, dz:0.15, c:0xF2B32C, y:4.55, z:1.9, ry:-0.015}));
-  const beaconMatM = new THREE.MeshPhongMaterial({color:0x6B5A12, flatShading:true, shininess:0, specular:0x000000});
-  const beaconM = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), beaconMatM);
-  beaconM.position.set(1.2,4.92,1.9); beaconM.castShadow = true; g.add(beaconM);
-  for(const sx of [-1.0, 1.0]){                            // phares de cabine
-    g.add(box(0.5,0.32,0.14,0x2A2E32, sx,3.9,2.95));
-    g.add(box(0.4,0.24,0.1,0xFFF6CC, sx,3.9,3.03));
-  }
+  const gyro = gyrophare(g, 1.2, 4.92, 1.9);
+  const F = jeuDeFeux();                                   // phares de cabine, feux de trémie
+  for(const sx of [-1.0, 1.0]) optique(g, F, false, sx, 3.90,  3.03, 0.40, 0.24);
+  for(const sx of [-1.2, 1.2]) optique(g, F, true,  sx, 2.00, -3.92, 0.34, 0.22);
   // vis de vidange : montée sur un pivot. Repliée elle longe la carrosserie vers l'avant,
   // dépliée elle pointe sur le côté gauche pour vider dans une benne.
   const auger = new THREE.Group();
@@ -2181,7 +2269,7 @@ function buildMoissonneuse(){
   }
   // La coupe déborde de 5 m devant la cabine : le faisceau doit la dépasser,
   // sinon il éclaire la machine au lieu du champ.
-  g.userData = {wr, wf, reel, exhaust:exhM, auger, beacon:beaconMatM, head,
+  g.userData = {wr, wf, reel, exhaust:exhM, auger, gyro, feux:F, head,
     lampes:{avant:  {x:[-1.0, 1.0],  y:3.90, z: 3.03, w:0.40, h:0.24},
             arriere:{x:[-1.2, 1.2],  y:2.00, z:-3.92, w:0.34, h:0.22},
             portee:5.2}};
@@ -2391,11 +2479,21 @@ class Vehicle {
       w.rotation.x = this.spin/0.78;
       w.rotation.y = (steerX || 0)*0.45;
     });
-    if(ud.beacon){
-      // éteint à l'arrêt, il pulse dès que la machine roule
+    if(ud.gyro){
+      // Éteint à l'arrêt, il bat dès que la machine roule. L'exposant écrase le bas de
+      // la sinusoïde : on obtient un éclat bref et net plutôt qu'un fondu mou.
       const on = this.speed > 0.6;
-      const k = on ? 0.35 + 0.65*Math.abs(Math.sin(performance.now()/1000*6)) : 0;
-      ud.beacon.color.setRGB(0.42 + 0.58*k, 0.35 + 0.47*k, 0.07 + 0.05*k);
+      const bat = Math.pow(Math.abs(Math.sin(performance.now()/1000*5.4)), 0.55);
+      const k = on ? 0.22 + 0.78*bat : 0;
+      const G = ud.gyro;
+      G.dome.color.setRGB(0.42 + 0.58*k, 0.33 + 0.49*k, 0.06 + 0.07*k);
+      G.dome.emissive.setRGB(k*0.98, k*0.62, k*0.05);
+      G.halo.visible = k > 0.01;
+      G.halo.material.opacity = k*0.62;
+      G.halo.scale.setScalar(0.68 + 0.62*k);
+      // la flaque au sol ne sert que la nuit : de jour elle laverait la couleur du sol
+      G.sol.material.opacity = k*0.26*nuitK;
+      G.sol.visible = nuitK > 0.05 && k > 0.01;
     }
     if(ud.reel) ud.reel.rotation.x -= Math.max(0.6, Math.abs(vf))*dt*1.6;
     if(ud.auger){
@@ -2593,12 +2691,12 @@ const MODELES = [
   // les moments où l'auge est vide.
   {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait à la laiterie',  min:250, max:900, pay:0.26, sec:230,
    plafond:(m)=> PATURES.reduce((a,P)=>
-     a + P.lait + P.vaches.length*ELEVAGE.laitParSec*m.sec*0.75, 0)},
+     a + (P.espece === 'vache' ? P.produit + P.betes.length*ESPECES.vache.parSec*m.sec*0.75 : 0), 0)},
   // Pour le bétail : seules comptent les bêtes DÉJÀ adultes. Un veau met 420 s à
   // grandir, soit plus que l'échéance du contrat — l'inclure serait mentir.
   {stat:'betes',   txt:n=>'Vendre '+n+' bête'+(n>1?'s':'')+' à la boucherie',
    min:2, max:5, pas:1, pay:260, sec:300,
-   plafond:()=> PATURES.reduce((a,P)=> a + vachesAdultes(P), 0)}
+   plafond:()=> PATURES.reduce((a,P)=> a + betesAdultes(P), 0)}
 ];
 let contrat = null;
 function nouveauContrat(){
@@ -3032,7 +3130,8 @@ const GOAL = 3000;
 let money = 0, siloKg = 0, hopper = 0, delivered = 0, flourKg = 0, breadKg = 0;
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
-const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0};
+const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0,
+              oeufs:0, laine:0};
 let hopMult = 1;   // valeur moyenne de ce que contient la trémie
 let HOP_MAX = 900;
 const KG_CELL = 12, PRICE = 0.22, PRICE_MILL = 0.38;
@@ -3272,8 +3371,7 @@ function ongletEngins(){
       : (m.key === 'moisson' ? 'Coupe ' + MOISSON.width.toFixed(1) + ' m · trémie ' + HOP_MAX + ' kg'
                              : (T ? 'Attelé : ' + T.nom : 'Sans outil'))
         + ' · niveau ' + m.v.level;
-    const couleur = m.v.group.userData && m.v.group.userData.beacon ? 0xFAD201 : 0xFAD201;
-    article(couleur, m.nom, det, i === cur ? 'À bord' : 'Piloter',
+    article(0xFAD201, m.nom, det, i === cur ? 'À bord' : 'Piloter',
       i === cur ? 'ok' : '', ()=>{ setMachine(i); fermerPanneau(); });
   });
   const aVendre = MACHINES.filter(m=>m.verrou);
@@ -3545,7 +3643,7 @@ function refreshAtelier(){
   const m = MACHINES[cur], v = m.v;
   // Sur l'anneau du parking, et non plus « quelque part autour du bâtiment » : voir le
   // commentaire à la pose de cet anneau. Même rayon que la station et le comptoir.
-  if(!aQuai(v, ATELIER, ATELIER_R)){ atelEl.style.display='none'; return; }
+  if(!aQuai(v, ATELIER)){ atelEl.style.display='none'; return; }
   const c = coutAmelioration(m);
   atelEl.style.display = 'block';
   if(c === 0){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM'; return; }
@@ -3669,7 +3767,7 @@ function deliverUn(v, dt){
   if(Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r){ site = SILO; prix = PRICE; }
   else for(const S of SITES){
     if(S.prix <= 0) continue;
-    if(Math.hypot(v.pos.x-(S.dropX!==undefined?S.dropX:S.x), v.pos.z-(S.dropZ!==undefined?S.dropZ:S.z)) > 8) continue;
+    if(Math.hypot(v.pos.x-(S.dropX!==undefined?S.dropX:S.x), v.pos.z-(S.dropZ!==undefined?S.dropZ:S.z)) > QUAI_R) continue;
     // un site ne paie son tarif que pour la culture qu'il transforme
     site = S; prix = (S.crop < 0 || Math.abs(hopMult - CROPS[S.crop].prix) < 0.01) ? S.prix : PRICE;
     break;
@@ -3786,6 +3884,45 @@ function haloPlan(r, couleur, op){
   m.renderOrder = 2;
   return m;
 }
+// Le faisceau des engins était un disque flou centré huit mètres devant, mis à l'échelle
+// en ovale : il débordait d'un mètre DERRIÈRE la machine et se lisait comme une tache
+// posée sur le sol, sans lien visible avec les optiques — d'où l'impression que la
+// lumière ne suivait pas l'engin. Il devient un trapèze qui part du nez et s'ouvre
+// devant : une forme orientée dit d'elle-même dans quel sens on éclaire.
+const FAISCEAU_TEX = (function(){
+  const L = 96, W = 48;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = L;
+  const c = cv.getContext('2d');
+  for(let y=0;y<L;y++){
+    const t = y/(L-1);                                  // 0 tout près, 1 au loin
+    const fond = Math.pow(1 - t, 1.5);                  // extinction en profondeur
+    for(let x=0;x<W;x++){
+      const u = (x/(W-1))*2 - 1;                        // -1 à gauche, +1 à droite
+      const bord = Math.max(0, 1 - u*u);                // les deux bords s'éteignent
+      const a = fond * bord * (0.45 + 0.55*bord);
+      c.fillStyle = 'rgba(255,232,180,' + a.toFixed(3) + ')';
+      c.fillRect(x, y, 1, 1);
+    }
+  }
+  return new THREE.CanvasTexture(cv);
+})();
+// Quadrilatère à plat, du nez (largeur w0) à la portée (largeur w1). La texture est
+// posée v = 1 côté machine : avec le retournement vertical que three.js applique aux
+// textures de canevas, c'est bien la première ligne du canevas — la plus claire.
+function faisceauSol(z0, z1, w0, w1){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(
+    [-w0/2, 0, z0,  w0/2, 0, z0,  w1/2, 0, z1,  -w1/2, 0, z1], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0,1, 1,1, 1,0, 0,0], 2));
+  g.setIndex([0,1,2, 0,2,3]);
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({map:FAISCEAU_TEX,
+    color:0xFFE3B0, transparent:true, opacity:0, blending:THREE.AdditiveBlending,
+    depthWrite:false, side:THREE.DoubleSide}));
+  m.renderOrder = 2;
+  m.visible = false;
+  return m;
+}
 function construireEclairagesNuit(){
   nuitGroupe = new THREE.Group(); scene.add(nuitGroupe);
   const ampouleMat = new THREE.MeshBasicMaterial({color:0xFFE9A8});
@@ -3800,32 +3937,21 @@ function construireEclairagesNuit(){
     h.position.set(L.x + dx, 0.06, L.z + dz);
     nuitGroupe.add(h); halosLampe.push(h);
   }
-  // Feux des engins. Les optiques sont DÉJÀ sculptées dans chaque modèle : on ne
-  // les redessine pas, on vient poser une lueur juste devant, aux coordonnées que
-  // le modèle déclare lui-même (`userData.lampes`). Une position devinée finissait
-  // plantée dans le capot, et faisait doublon avec les phares du tracteur.
-  const phareMat = new THREE.MeshBasicMaterial({color:0xFFF2CE});
-  const feuMat = new THREE.MeshBasicMaterial({color:0xE8563F});
+  // Feux des engins : plus une seule lampe posée par-dessus le modèle. Les optiques
+  // sculptées passent elles-mêmes à l'émissif (`userData.feux`), et on ne leur ajoute
+  // que le faisceau au sol, qu'aucun modèle ne peut porter.
   for(const m of MACHINES){
     const v = m.v, L = v.group.userData.lampes;
-    if(!L) continue;
-    const g = new THREE.Group();
-    // la lueur affleure l'optique, décalée de 5 cm pour ne pas se battre avec elle
-    for(const sx of L.avant.x){
-      const p = new THREE.Mesh(new THREE.BoxGeometry(L.avant.w, L.avant.h, 0.06), phareMat);
-      p.position.set(sx, L.avant.y, L.avant.z + 0.05); g.add(p);
-    }
-    for(const sx of L.arriere.x){
-      const f = new THREE.Mesh(new THREE.BoxGeometry(L.arriere.w, L.arriere.h, 0.06), feuMat);
-      f.position.set(sx, L.arriere.y, L.arriere.z - 0.05); g.add(f);
-    }
-    const faisceau = haloPlan(7.5, 0xFFE3B0, 0);
-    faisceau.position.set(0, 0.05, L.portee + 5.5);
-    faisceau.scale.set(0.62, 1.25, 1);
-    g.add(faisceau);
-    g.visible = false;
-    v.group.add(g);
-    v.phares = g; v.faisceau = faisceau;
+    if(!L || !v.group.userData.feux) continue;
+    // Le groupe des utilitaires est mis à l'échelle : on divise les cotes voulues en
+    // mètres du monde par ce facteur, sinon le fourgon éclairerait 40 % plus loin que
+    // le tracteur sans qu'on l'ait décidé.
+    const s = v.group.scale.x || 1;
+    const demi = Math.max.apply(null, L.avant.x.map(Math.abs));
+    const f = faisceauSol(L.portee + 0.6, L.portee + 0.6 + 15/s, demi*2 + 1.2, demi*2 + 1.2 + 5.4/s);
+    f.position.y = 0.05;
+    v.group.add(f);
+    v.faisceau = f;
   }
 }
 function majEclairagesNuit(){
@@ -3834,11 +3960,24 @@ function majEclairagesNuit(){
   nuitGroupe.visible = on;
   if(on) for(const h of halosLampe) h.material.opacity = 0.34*nuitK;
   for(const m of MACHINES){
-    const v = m.v;
-    if(!v.phares) continue;
-    const allume = on && !m.verrou;
-    v.phares.visible = allume;
-    if(allume) v.faisceau.material.opacity = 0.30*nuitK;
+    const v = m.v, F = v.group.userData.feux;
+    if(!F) continue;
+    // Un engin garé a les feux éteints, comme il a le moteur coupé : sans ce test, la
+    // cour porte quatre à six faisceaux immobiles toute la nuit.
+    const enService = m.v.auto || m === MACHINES[cur] || (m.v.speed || 0) > 0.4;
+    const allume = on && !m.verrou && enService;
+    const k = allume ? nuitK : 0;
+    // La lentille passe de son crème mat à un émissif franc : c'est l'optique du modèle
+    // qui s'allume, pas une lampe rapportée devant elle.
+    F.avant.emissive.setRGB(k*1.00, k*0.90, k*0.62);
+    F.arriere.emissive.setRGB(k*0.86, k*0.20, k*0.11);
+    // .visible et pas seulement l'opacité : three.js trie et dessine un transparent à
+    // opacité nulle. Sans ça, le jour coûtait autant que la nuit.
+    for(const h of F.halos){ h.visible = allume; h.material.opacity = k*0.55; }
+    if(v.faisceau){
+      v.faisceau.visible = allume;
+      v.faisceau.material.opacity = k*0.46;
+    }
   }
 }
 
@@ -3957,6 +4096,8 @@ const STATION  = SITES.find(S=>S.pompes);
 const COMPTOIR = SITES.find(S=>S.fournisseur);
 const LAITERIE = SITES.find(S=>S.nom === 'Laiterie');
 const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
+// L'usine bio transformait déjà des cultures : elle prend aussi la laine des moutons.
+const BIO      = SITES.find(S=>S.nom === 'Usine bio');
 // Le comptoir n'a rien à vendre quand la bourse est vide et les bacs pleins : son
 // anneau doit alors s'éteindre comme les autres. On reprend exactement les conditions
 // qui rendent une ligne cliquable dans ongletComptoir(), sur le plus petit lot de
@@ -3969,12 +4110,9 @@ function comptoirServable(){
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
 (function poserServices(){
-  const ecart = FRONT - 1.5;
   for(const S of [STATION, COMPTOIR, LAITERIE, BOUCHERIE]){
     if(!S) continue;
-    if(S.dir === 'W'){ S.dropX = -ecart; S.dropZ = S.park; }
-    else if(S.dir === 'E'){ S.dropX = ecart; S.dropZ = S.park; }
-    else { S.dropX = S.park; S.dropZ = -(ecart); }
+    S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     S.service = true;
     // Chacun sa condition, calquée sur la fonction qui déclenche vraiment :
     //   station   — updatePlein() puis remplir(), qui refuse si la caisse est vide ;
@@ -3992,7 +4130,7 @@ function comptoirServable(){
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
-const aQuai = (v, S, r)=> S && prochePoint(v, S.dropX, S.dropZ, r);
+const aQuai = (v, S, r)=> S && prochePoint(v, S.dropX, S.dropZ, r || QUAI_R);
 
 /* ---------- 20. ÉLEVAGE ---------- */
 /* Les enseignes de la laiterie et de la boucherie annonçaient depuis le début
@@ -4013,62 +4151,230 @@ const aQuai = (v, S, r)=> S && prochePoint(v, S.dropX, S.dropZ, r);
              mais la vendre supprime sa production de lait. C'est là que se joue
              l'arbitrage entre le revenu qui coule et le revenu qui tombe. */
 const ELEVAGE = {
-  prixPature: 2500,     // aménagement d'une parcelle possédée : clôture, auge, tank
-  prixVache: 1200,
-  prixLait: 0.62,       // le kg de lait, à la laiterie
-  prixBete: 1750,       // une bête adulte, à la boucherie
-  laitParSec: 0.42,     // par vache nourrie
-  grainParSec: 0.12,    // ration d'une vache
-  maturite: 420,        // secondes pour qu'un veau devienne une bête vendable
-  m2ParVache: 88,       // densité maximale admise dans une pâture
-  debit: 260            // kg par seconde aux transferts
+  prixPature: 2500,     // aménager une parcelle possédée : clôture, abri, mangeoire
+  debit: 260            // kg par seconde aux transferts mangeoire et collecte
 };
+// Ce que chaque espèce apporte, et qui l'achète. Les prix, les cadences et la
+// maturité vivent dans ESPECES : ici on ne garde que ce qui ne dépend pas de l'espèce.
 const PATURES = [];
 
 /* --- silhouette de vache : un corps fusionné et une tête séparée, pour qu'elle
    puisse brouter. Trois robes, tirées une fois pour toutes. --- */
-const ROBES = [
-  {fond:0xF2EBE0, tache:0x3A3330, corne:0xD8CBB4},   // pie noire
-  {fond:0xF2EBE0, tache:0x8A5230, corne:0xD8CBB4},   // pie rouge
-  {fond:0xB98A5A, tache:0x8A6038, corne:0xD8CBB4}    // froment
-];
-const vacheMat = new THREE.MeshPhongMaterial(
-  {vertexColors:true, flatShading:true, shininess:0, specular:0x000000});
-function geoCorps(R){
-  const P = [], put = (g,c,x,y,z,rx,ry,rz)=>{
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx||0, ry||0, rz||0));
-    m.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(1,1,1));
-    P.push({g, m, c});
+/* --- les quatre espèces -----------------------------------------------------
+   Bâties sur des fûts et des billes facettées plutôt que sur des cubes : la
+   silhouette s'arrondit sans quitter le style low-poly. Tout ce qui ne bouge pas est
+   fusionné en une seule géométrie colorée au sommet — une bête coûte six maillages
+   (corps, tête, quatre pattes), et les géométries sont partagées entre toutes les
+   bêtes d'une même espèce et d'une même robe. */
+const GEO_BILLE = {}, GEO_FUT = {};
+const gBille = (r)=>{ const c = r.toFixed(3);
+  return GEO_BILLE[c] || (GEO_BILLE[c] = new THREE.IcosahedronGeometry(r, 1)); };
+const gFut = (r1, r2, L, seg)=>{ const c = [r1,r2,L,seg].join('|');
+  return GEO_FUT[c] || (GEO_FUT[c] = new THREE.CylinderGeometry(r1, r2, L, seg)); };
+// Tache de robe : un disque construit DANS le repère du tronc. On paramètre le contour
+// par un angle et on projette chaque point sur le fût — la tache épouse la courbure,
+// et son bord est rond au lieu d'être une plaque rectangulaire posée sur le flanc.
+function gTache(R, zc, thetaC, dz, dth){
+  const N = 20, pos = [], idx = [];
+  const point = (z, th)=> [ (R+0.014)*Math.sin(th), (R+0.014)*Math.cos(th), z ];
+  const c0 = point(zc, thetaC);
+  pos.push(c0[0], c0[1], c0[2]);
+  for(let k=0;k<=N;k++){
+    const a = k/N*Math.PI*2;
+    const ond = 1 + 0.14*Math.sin(a*3 + zc*2.1);
+    const q = point(zc + Math.cos(a)*dz*ond, thetaC + Math.sin(a)*dth*ond);
+    pos.push(q[0], q[1], q[2]);
+  }
+  for(let k=1;k<=N;k++) idx.push(0, k, k+1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const beteMat = new THREE.MeshPhongMaterial(
+  {vertexColors:true, flatShading:true, shininess:0, specular:0x000000, side:THREE.DoubleSide});
+// Un assembleur : chaque pièce est posée par une matrice complète — position,
+// rotation, échelle — puis tout est fusionné. La couleur voyage dans les sommets.
+function piecier(){
+  const P = [];
+  const put = (g, c, x, y, z, o)=>{
+    o = o || {};
+    P.push({g, c, m: new THREE.Matrix4().compose(
+      new THREE.Vector3(x||0, y||0, z||0),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(o.rx||0, o.ry||0, o.rz||0)),
+      new THREE.Vector3(o.sx||1, o.sy||1, o.sz||1))});
   };
-  put(new THREE.BoxGeometry(1.15, 1.18, 2.15), R.fond, 0, 1.32, 0);          // tronc
-  put(new THREE.BoxGeometry(1.02, 0.62, 0.62), R.fond, 0, 1.72, -1.02);      // croupe
-  // taches : de simples plaques posées sur les flancs et le dos
-  put(new THREE.BoxGeometry(1.20, 0.52, 0.66), R.tache, 0, 1.62,  0.42);
-  put(new THREE.BoxGeometry(1.20, 0.40, 0.48), R.tache, 0, 1.10, -0.52);
-  put(new THREE.BoxGeometry(0.36, 0.54, 0.54), R.tache, 0.60, 1.44, -0.05);
-  // Pattes toutes sombres : vue de loin, c'est ce qui détache la silhouette du pré.
-  // Avec des pattes claires la bête se lisait comme une simple tache blanche.
-  for(const sx of [-0.42, 0.42]) for(const sz of [-0.78, 0.78])
-    put(new THREE.BoxGeometry(0.26, 1.5, 0.28), R.tache, sx, 0.75, sz);
-  for(const sx of [-0.42, 0.42]) for(const sz of [-0.78, 0.78])              // sabots
-    put(new THREE.BoxGeometry(0.30, 0.22, 0.32), 0x2A2622, sx, 0.11, sz);
-  put(new THREE.BoxGeometry(0.62, 0.42, 0.5), 0xE8B0B0, 0, 0.62, -0.42);     // pis
-  put(new THREE.BoxGeometry(0.12, 0.72, 0.12), R.tache, 0, 1.62, -1.30);     // queue
-  put(new THREE.BoxGeometry(0.2, 0.26, 0.2), 0x2A2622, 0, 1.20, -1.30);      // flouve
-  return mergeParts(P);
+  return {put, geo: ()=> mergeParts(P)};
 }
-function geoTete(R){
-  const P = [], put = (g,c,x,y,z)=>P.push({g, c, m:new THREE.Matrix4().makeTranslation(x,y,z)});
-  put(new THREE.BoxGeometry(0.72, 0.72, 0.78), R.fond, 0, 0, 0.30);
-  put(new THREE.BoxGeometry(0.52, 0.40, 0.34), 0xE0A9A0, 0, -0.16, 0.82);    // mufle
-  for(const sx of [-0.14, 0.14]) put(new THREE.BoxGeometry(0.08,0.08,0.06), 0x2A2622, sx, -0.12, 0.99);
-  for(const sx of [-0.28, 0.28]) put(new THREE.BoxGeometry(0.12,0.14,0.10), 0x2A2622, sx, 0.14, 0.66);  // yeux
-  for(const sx of [-0.44, 0.44]) put(new THREE.BoxGeometry(0.30,0.14,0.18), R.tache, sx, 0.10, 0.16);   // oreilles
-  for(const sx of [-0.22, 0.22]) put(new THREE.BoxGeometry(0.12,0.24,0.12), R.corne, sx, 0.44, 0.14);   // cornes
-  return mergeParts(P);
+const AX90 = {rx: Math.PI/2};   // un fût couché sur l'axe Z : le tronc de toutes les bêtes
+// Une patte : cuisse galbée et onglon. Le pivot est à la hanche, c'est lui qu'on
+// fait osciller. `hb` donne le rapport des rayons haut/bas — une cuisse large qui
+// s'affine vers l'onglon se lit mieux qu'un simple tube.
+function geoPatte(h, r, c, hb){
+  const w = piecier();
+  hb = hb || [0.82, 1];
+  w.put(gFut(r*hb[0], r*hb[1], h, 8), c, 0, -h/2, 0);
+  w.put(gFut(r*hb[1]*1.3, r*hb[1]*1.05, r*0.55, 8), 0x2A2622, 0, -h + r*0.28, 0);
+  return w.geo();
 }
-const GEO_CORPS = ROBES.map(geoCorps), GEO_TETE = ROBES.map(geoTete);
+
+/* Vache : tronc en fût, épaule et croupe arrondies, robe tachée, mufle rose */
+function corpsVache(R){
+  const w = piecier(), r = 0.58;
+  w.put(gFut(r, r, 1.9, 14), R.fond, 0, 1.02, 0, AX90);
+  w.put(gBille(r), R.fond, 0, 1.02,  0.9, {sz:0.8});
+  w.put(gBille(r), R.fond, 0, 1.02, -0.9, {sz:0.8});
+  w.put(gTache(r, -0.34,  0.35, 0.34, 0.75), R.tache, 0, 1.02, 0);
+  w.put(gTache(r,  0.46,  1.50, 0.26, 0.60), R.tache, 0, 1.02, 0);
+  w.put(gTache(r,  0.02, -1.35, 0.30, 0.66), R.tache, 0, 1.02, 0);
+  w.put(gTache(r, -0.86, -0.50, 0.20, 0.50), R.tache, 0, 1.02, 0);
+  w.put(gBille(0.24), R.peau, 0, 0.60, -0.42, {sy:0.7});          // pis
+  return w.geo();
+}
+function teteVache(R){
+  const w = piecier();
+  w.put(gBille(0.36), R.fond, 0, 0, 0, {sy:0.95, sz:1.15});
+  w.put(gFut(0.24, 0.27, 0.34, 12), R.peau, 0, -0.05, 0.42, AX90);
+  for(const sx of [-0.10, 0.10]) w.put(gBille(0.045), 0x2A2622, sx, -0.02, 0.56, {sz:0.5});
+  for(const sx of [-0.20, 0.20]) w.put(gBille(0.07),  0x2A2622, sx,  0.16, 0.24);
+  for(const sx of [-0.33, 0.33]) w.put(gBille(0.14),  R.fond,   sx,  0.10, -0.02, {sy:0.55, sz:0.75});
+  for(const sx of [-0.18, 0.18]) w.put(gFut(0.045, 0.07, 0.24, 8), R.corne, sx, 0.36, -0.04);
+  return w.geo();
+}
+/* Poule : corps ovoïde, crête et caroncules rouges, queue relevée */
+function corpsPoule(R){
+  const w = piecier();
+  w.put(gBille(0.28), R.fond, 0, 0.40, 0, {sy:1.05, sz:1.35});
+  w.put(gBille(0.19), R.fond, 0, 0.52, -0.30, {sx:0.45, sy:1.1, sz:0.9});   // queue
+  w.put(gBille(0.13), R.tache, 0, 0.66, -0.36, {sx:0.4, sy:0.9, sz:0.8});
+  for(const sx of [-0.20, 0.20]) w.put(gBille(0.15), R.fond, sx, 0.42, 0, {sx:0.35, sy:0.85, sz:1.15});
+  for(const sx of [-0.09, 0.09]){                                            // pattes fixes
+    w.put(gFut(0.025, 0.03, 0.2, 6), R.corne, sx, 0.12, 0.02);
+    w.put(gBille(0.06), R.corne, sx, 0.03, 0.06, {sy:0.35, sz:1.4});
+  }
+  return w.geo();
+}
+function tetePoule(R){
+  const w = piecier();
+  w.put(gBille(0.17), R.fond, 0, 0, 0);
+  for(let k=0;k<3;k++)                                                        // crête
+    w.put(gBille(0.05), R.peau, 0, 0.14 + (k === 1 ? 0.03 : 0), 0.08 - k*0.08, {sx:0.7, sy:1.2, sz:0.7});
+  w.put(gBille(0.05), R.peau, 0, -0.10, 0.10, {sx:0.7, sz:0.7});              // caroncule
+  w.put(gFut(0.02, 0.07, 0.14, 8), R.corne, 0, 0, 0.14, AX90);                // bec
+  for(const sx of [-0.09, 0.09]) w.put(gBille(0.028), 0x2A2622, sx, 0.04, 0.10);
+  return w.geo();
+}
+/* Cochon : tronc bombé, groin cylindrique, oreilles souples, queue en tire-bouchon */
+function corpsCochon(R){
+  const w = piecier(), r = 0.46;
+  w.put(gFut(r, r, 1.15, 14), R.fond, 0, 0.60, 0, AX90);
+  w.put(gBille(r), R.fond, 0, 0.60,  0.55, {sz:0.85});
+  w.put(gBille(r), R.fond, 0, 0.60, -0.58, {sz:0.8});
+  w.put(gTache(r, -0.10,  1.2, 0.24, 0.55), R.tache, 0, 0.60, 0);
+  w.put(gTache(r,  0.20, -1.1, 0.20, 0.48), R.tache, 0, 0.60, 0);
+  for(let k=0;k<4;k++)                                                        // queue en tire-bouchon
+    w.put(gBille(0.05), R.peau, Math.sin(k*1.8)*0.09, 0.86 + k*0.07, -0.72 - Math.cos(k*1.8)*0.05);
+  return w.geo();
+}
+function teteCochon(R){
+  const w = piecier();
+  w.put(gBille(0.30), R.fond, 0, 0, 0, {sy:0.9, sz:1.1});
+  w.put(gFut(0.15, 0.17, 0.20, 12), R.peau, 0, -0.04, 0.32, AX90);            // groin
+  for(const sx of [-0.06, 0.06]) w.put(gBille(0.03), 0x2A2622, sx, -0.02, 0.42);
+  for(const sx of [-0.17, 0.17]) w.put(gBille(0.13), R.peau, sx, 0.20, 0.05, {sx:0.5, sy:1.1, sz:0.8});
+  for(const sx of [-0.14, 0.14]) w.put(gBille(0.045), 0x2A2622, sx, 0.10, 0.20);
+  return w.geo();
+}
+/* Mouton : toison en amas de billes, tête et pattes sombres */
+function corpsMouton(R){
+  const w = piecier(), r = 0.52;
+  w.put(gFut(r, r, 1.2, 14), R.fond, 0, 0.78, 0, AX90);
+  w.put(gBille(r), R.fond, 0, 0.78,  0.58, {sz:0.8});
+  w.put(gBille(r), R.fond, 0, 0.78, -0.60, {sz:0.8});
+  const amas = [[0,1.12,0.34,0.42],[0.30,1.05,-0.10,0.36],[-0.30,1.08,-0.34,0.38],
+                [0,1.02,-0.60,0.34],[0.42,0.82,0.18,0.30],[-0.42,0.84,-0.20,0.30],
+                [0.36,0.76,-0.50,0.28],[-0.36,0.78,0.42,0.28],[0,1.16,-0.16,0.40],
+                [0,0.72,0.62,0.36],[0,0.70,-0.66,0.32]];
+  amas.forEach((q, i)=> w.put(gBille(q[3]), i % 2 ? R.tache : R.fond, q[0], q[1], q[2]));
+  return w.geo();
+}
+function teteMouton(R){
+  const w = piecier();
+  w.put(gBille(0.24), R.corne, 0, 0, 0, {sy:1.05, sz:1.2});
+  w.put(gFut(0.12, 0.14, 0.20, 10), 0x4A453D, 0, -0.06, 0.28, AX90);
+  for(const sx of [-0.08, 0.08]) w.put(gBille(0.035), R.fond, sx, 0.06, 0.20);
+  for(const sx of [-0.21, 0.21]) w.put(gBille(0.10), R.corne, sx, 0.14, 0.02, {sx:0.55, sy:0.7});
+  w.put(gBille(0.24), R.fond, 0, 0.22, -0.10, {sx:1.05, sy:0.8, sz:0.9});     // toupet
+  return w.geo();
+}
+
+// Le catalogue. Chaque espèce dit son allure, sa robe, son économie et l'aménagement
+// que réclame son enclos. Tout le reste du jeu ne lit que cette table.
+const ESPECES = {
+  vache: {
+    cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
+    prix:1200, prixBete:1750, maturite:420, ration:0.12, m2:88, places:14, echelle:1.15,
+    produit:'lait', nomProduit:'Lait', prixProduit:0.62, parSec:0.42, cuveMax:1800,
+    acheteur:()=> LAITERIE, acheteurNom:'LA LAITERIE',
+    corps:corpsVache, tete:teteVache, cou:{y:1.16, z:1.28}, plonge:0.55,
+    patte:{h:0.78, r:0.115, hb:[1.75, 0.62], x:0.34, z:[-0.70, 0.72]},
+    queue:{y:1.28, z:-1.12, long:0.72, r:[0.05, 0.04], bout:0.09},
+    robes:[{fond:0xF2EDE2, tache:0x33383C, corne:0xE8E0CC, peau:0xE3A9A0},
+           {fond:0xF2EDE2, tache:0x8A5230, corne:0xE8E0CC, peau:0xE3A9A0},
+           {fond:0xC79A63, tache:0x8A6038, corne:0xE8E0CC, peau:0xE3A9A0}]
+  },
+  poule: {
+    cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
+    prix:90, prixBete:135, maturite:160, ration:0.014, m2:13, places:26, echelle:1.55,
+    produit:'oeufs', nomProduit:'Œufs', prixProduit:1.45, parSec:0.034, cuveMax:400,
+    acheteur:()=> BAKERY, acheteurNom:'LA BOULANGERIE',
+    corps:corpsPoule, tete:tetePoule, cou:{y:0.72, z:0.16}, plonge:0.62,
+    patte:null, queue:null,
+    robes:[{fond:0xF6EFE0, tache:0xDCD2BB, corne:0xE8A62E, peau:0xC8342C},
+           {fond:0xC96B2E, tache:0x9E4E1E, corne:0xE8A62E, peau:0xC8342C},
+           {fond:0x4A4640, tache:0x33302C, corne:0xE8A62E, peau:0xC8342C}]
+  },
+  cochon: {
+    cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
+    prix:480, prixBete:820, maturite:320, ration:0.10, m2:30, places:16, echelle:1.25,
+    produit:null, nomProduit:null, prixProduit:0, parSec:0, cuveMax:0,
+    acheteur:null, acheteurNom:null,
+    corps:corpsCochon, tete:teteCochon, cou:{y:0.74, z:0.82}, plonge:0.42,
+    patte:{h:0.46, r:0.105, hb:[1.3, 0.7], x:0.26, z:[-0.44, 0.46]}, queue:null,
+    robes:[{fond:0xE9A8A2, tache:0xD3908B, corne:0xD3908B, peau:0xD3908B},
+           {fond:0xE9A8A2, tache:0x4A4038, corne:0xD3908B, peau:0xD3908B},
+           {fond:0xB9857C, tache:0x8A5F58, corne:0xD3908B, peau:0xD3908B}]
+  },
+  mouton: {
+    cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
+    prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
+    produit:'laine', nomProduit:'Laine', prixProduit:2.10, parSec:0.036, cuveMax:600,
+    acheteur:()=> BIO, acheteurNom:'L\'USINE BIO',
+    corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
+    patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
+    robes:[{fond:0xF0EADA, tache:0xDED6C2, corne:0x3A3630, peau:0x3A3630},
+           {fond:0xE0D6C0, tache:0xC9BDA2, corne:0x3A3630, peau:0x3A3630},
+           {fond:0x4A453D, tache:0x38342E, corne:0x2A2622, peau:0x2A2622}]
+  }
+};
+const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton'];
+// Géométries construites à la demande et gardées : une par espèce et par robe.
+const GEO_BETE = {};
+function geoBete(E, r){
+  const c = E.cle + r;
+  if(!GEO_BETE[c]){
+    const R = E.robes[r];
+    GEO_BETE[c] = {corps: E.corps(R), tete: E.tete(R),
+                   patte: E.patte ? geoPatte(E.patte.h, E.patte.r, R.fond, E.patte.hb) : null,
+                   queue: E.queue ? (function(){
+                     const w = piecier();
+                     w.put(gFut(E.queue.r[0], E.queue.r[1], E.queue.long, 8), R.fond, 0, -E.queue.long/2, 0);
+                     w.put(gBille(E.queue.bout), R.tache, 0, -E.queue.long - 0.02, -0.04);
+                     return w.geo();
+                   })() : null};
+  }
+  return GEO_BETE[c];
+}
 
 /* --- aménagement d'une parcelle en pâture --- */
 // Choix assumé : l'opération est DÉFINITIVE. Une pâture est un investissement de
@@ -4094,7 +4400,8 @@ function peindrePature(p){
     }
   }
 }
-function creerPature(p){
+function creerPature(p, espece){
+  const E = ESPECES[espece] || ESPECES.vache;
   // les cellules cultivables passent en herbe : plus rien à labourer ni à moissonner
   const i0 = Math.max(0, Math.floor((p.x-p.w/2+HALF)/CS)), i1 = Math.min(GN-1, Math.ceil((p.x+p.w/2+HALF)/CS));
   const j0 = Math.max(0, Math.floor((p.z-p.h/2+HALF)/CS)), j1 = Math.min(GN-1, Math.ceil((p.z+p.h/2+HALF)/CS));
@@ -4124,58 +4431,133 @@ function creerPature(p){
     obstacles.push({x:gx+sx, z:gz, r:0.5});
   }
 
-  // Tank à lait et auge rangés le long des deux côtés, jamais devant le portail :
-  // on entre tout droit, puis on se range à gauche pour le lait, à droite pour le grain.
+  // L'aménagement dépend de l'espèce : chacune a son poste de collecte à gauche et
+  // sa mangeoire à droite, jamais devant le portail. On entre tout droit, puis on se
+  // range à gauche pour le produit, à droite pour le grain.
   const tx = x0 + 2.0, tz = z0 + 6.0;
-  const tank = new THREE.Group();
-  tank.add(cyl(1.5, 1.5, 4.6, 12, 0xD7DDE0, 0, 1.55, 0, Math.PI/2, 0, 0));
-  tank.add(box(1.2, 0.5, 5.0, 0x8A9298, 0, 0.25, 0));
-  tank.add(cyl(0.34, 0.34, 0.9, 8, 0x7FD1E8, 0, 2.6, 1.9));
-  tank.add(box(0.9, 0.8, 1.2, 0x4A5359, 0, 1.6, -2.2));
-  tank.position.set(tx, 0, tz);
-  scene.add(tank);
-  boxObs.push({x:tx, z:tz, hw:1.6, hd:2.5});
-
   const ax = x1 - 2.0, az = z0 + 6.0;
-  const auge = new THREE.Group();
-  auge.add(box(1.5, 0.7, 6.0, 0x8A6B42, 0, 0.35, 0));
-  auge.add(box(1.1, 0.4, 5.6, 0x4E3A22, 0, 0.75, 0));
-  for(const sz of [-2.6, 2.6]) auge.add(box(1.6, 0.9, 0.4, 0x6B5335, 0, 0.45, sz));
-  auge.position.set(ax, 0, az);
-  scene.add(auge);
-  boxObs.push({x:ax, z:az, hw:0.8, hd:3.0});
-  const tas = box(0.95, 0.5, 5.2, 0xE0C07A, 0, 0.85, 0);   // le grain visible dans l'auge
-  auge.add(tas);
+  const collecte = E.produit ? posteCollecte(E, tx, tz) : null;
+  const mangeoire = posteMangeoire(E, ax, az);
+  abriEspece(E, p.x, z1 - 4.0);
 
   // Quais : là où l'anneau invite à s'arrêter, à côté de l'équipement et non dessus.
   const P = {
-    p, tank, auge, tas, gx, gz,
-    quaiTank:{x: tx + 3.6, z: tz}, quaiAuge:{x: ax - 3.6, z: az},
+    p, espece:E.cle, collecte, auge:mangeoire.groupe, tas:mangeoire.tas, gx, gz,
+    quaiProduit: E.produit ? {x: tx + 3.6, z: tz} : null,
+    quaiAuge:{x: ax - 3.6, z: az},
     quaiPortail:{x: gx, z: gz - 3.6},
-    lait:0, laitMax:1800, grain:0, grainMax:2000,
-    vaches:[], places: Math.max(2, Math.floor(p.w*p.h/ELEVAGE.m2ParVache)),
+    produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
+    betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
     box:{x0:x0+2.6, x1:x1-2.6, z0:z0+10.0, z1:z1-1.5}
   };
   // Une parcelle étroite ne laisse pas 10 m avant la zone de pâture : on garde
   // au moins une bande praticable, quitte à ce que les bêtes frôlent l'équipement.
   if(P.box.z0 > P.box.z1 - 3) P.box.z0 = Math.max(z0 + 3.5, P.box.z1 - 3);
   majTasAuge(P);
-  // Les trois quais de la pâture, chacun avec sa condition :
-  //   tank    — il faut une caisse qui accepte le lait, et du lait au tank ;
-  //   auge    — il faut porter du grain, et que l'auge ne déborde pas ;
+  // Les quais de l'enclos, chacun avec sa condition :
+  //   produit — il faut une caisse qui accepte cette nature, et de quoi charger ;
+  //   auge    — il faut porter du grain, et que la mangeoire ne déborde pas ;
   //   portail — il faut de la place à bord et une bête adulte à embarquer. Le repli
   //             « ouvrir le panneau Élevage » n'allume pas l'anneau : ce panneau est
   //             déjà au menu, ce n'est pas ce qu'on vient chercher jusqu'ici.
-  anneauAction(P.quaiTank.x, P.quaiTank.z, 0.7,
-    ()=> peutPrendre(caisseDe(MACHINES[cur]), 'lait', P.lait));
+  // Un cochon ne donne rien en continu : pas de poste de collecte, donc pas d'anneau
+  // — un anneau posé ne peut plus être retiré, il resterait blanc devant rien.
+  if(P.quaiProduit)
+    anneauAction(P.quaiProduit.x, P.quaiProduit.z, 0.7,
+      ()=> peutPrendre(caisseDe(MACHINES[cur]), E.produit, P.produit));
   anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
     ()=> porte(caisseDe(MACHINES[cur]), 'grain') && P.grain < P.grainMax);
   anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
     const m = MACHINES[cur], cap = capaciteBetail(m);
-    return cap > 0 && vachesAdultes(P) > 0 && (m.v.betail || 0) < cap;
+    return cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
   });
   PATURES.push(P);
   return P;
+}
+/* --- l'aménagement, espèce par espèce --- */
+// Poste de collecte : c'est là que le produit s'accumule et qu'une caisse vient le
+// prendre. Un tank pour le lait, un casier pour les œufs, une presse pour la laine.
+function posteCollecte(E, x, z){
+  const g = new THREE.Group();
+  if(E.cle === 'vache'){
+    g.add(cyl(1.5, 1.5, 4.6, 12, 0xD7DDE0, 0, 1.55, 0, Math.PI/2, 0, 0));
+    g.add(box(1.2, 0.5, 5.0, 0x8A9298, 0, 0.25, 0));
+    g.add(cyl(0.34, 0.34, 0.9, 8, 0x7FD1E8, 0, 2.6, 1.9));
+    g.add(box(0.9, 0.8, 1.2, 0x4A5359, 0, 1.6, -2.2));
+  } else if(E.cle === 'poule'){
+    g.add(box(2.0, 1.5, 4.4, 0xE8DCC0, 0, 0.75, 0));            // casier réfrigéré
+    g.add(box(2.2, 0.25, 4.6, 0xB9A882, 0, 1.6, 0));
+    for(let k=0;k<3;k++)                                         // plateaux d'œufs
+      g.add(box(1.5, 0.28, 1.0, 0xF2E7D2, 0, 1.85 + k*0.3, -1.2 + k*1.2));
+    g.add(box(0.5, 0.9, 0.5, 0x6E767C, 0, 0.45, 2.3));
+  } else {
+    g.add(box(2.1, 2.2, 3.0, 0x8A9298, 0, 1.1, 0));              // presse à balles
+    g.add(box(2.3, 0.3, 3.2, 0x6E767C, 0, 2.3, 0));
+    for(let k=0;k<2;k++)                                         // ballots de laine
+      g.add(cyl(0.8, 0.8, 1.5, 10, 0xF0EADA, 0, 0.8, 2.6 + k*1.7, 0, 0, Math.PI/2));
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+  boxObs.push({x, z, hw:1.6, hd:2.5});
+  return g;
+}
+// Mangeoire : elle reçoit le grain apporté à la benne. Le tas visible dit le niveau.
+function posteMangeoire(E, x, z){
+  const g = new THREE.Group();
+  let tas;
+  if(E.cle === 'mouton'){
+    g.add(box(1.5, 0.5, 6.0, 0x8A6B42, 0, 0.25, 0));             // râtelier
+    for(let k=0;k<9;k++) g.add(box(0.12, 1.3, 0.12, 0x6B5335, 0, 1.1, -2.6 + k*0.65));
+    g.add(box(1.6, 0.16, 6.2, 0x6B5335, 0, 1.8, 0));
+    tas = box(0.9, 0.6, 5.2, 0xE0C07A, 0, 0.75, 0);
+  } else if(E.cle === 'poule'){
+    g.add(cyl(1.0, 0.7, 1.4, 10, 0x9BA3A8, 0, 0.7, -1.8));       // trémie conique
+    g.add(cyl(1.2, 1.2, 0.3, 12, 0x7E868C, 0, 0.15, -1.8));
+    g.add(box(1.3, 0.3, 4.4, 0x8A6B42, 0, 0.15, 0.9));
+    tas = box(0.9, 0.3, 4.0, 0xE0C07A, 0, 0.35, 0.9);
+  } else {
+    g.add(box(1.5, 0.7, 6.0, 0x8A6B42, 0, 0.35, 0));
+    g.add(box(1.1, 0.4, 5.6, 0x4E3A22, 0, 0.75, 0));
+    for(const sz of [-2.6, 2.6]) g.add(box(1.6, 0.9, 0.4, 0x6B5335, 0, 0.45, sz));
+    tas = box(0.95, 0.5, 5.2, 0xE0C07A, 0, 0.85, 0);
+  }
+  g.add(tas);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  boxObs.push({x, z, hw:0.9, hd:3.0});
+  return {groupe:g, tas};
+}
+// L'abri, au fond de l'enclos : c'est lui qui donne son air à l'élevage vu de loin.
+function abriEspece(E, x, z){
+  const g = new THREE.Group();
+  if(E.cle === 'poule'){                                          // poulailler sur pilotis
+    g.add(box(4.2, 2.0, 3.2, 0xC9773A, 0, 1.6, 0));
+    g.add(gable(3.6, 1.1, 4.8, 0x8A4A28, 0, 2.6, 0, Math.PI/2));
+    for(const sx of [-1.7, 1.7]) for(const sz of [-1.3, 1.3])
+      g.add(box(0.24, 0.7, 0.24, 0x6B5335, sx, 0.35, sz));
+    g.add(box(0.9, 1.0, 0.16, 0x4E3A22, 0, 1.3, 1.66));           // trappe
+    g.add(box(1.1, 0.14, 2.2, 0x8A6B42, 0, 0.62, 2.6, 0.32));     // planche d'accès
+  } else if(E.cle === 'cochon'){                                   // cabane basse et bauge
+    g.add(box(5.0, 1.9, 4.0, 0xB9A882, 0, 0.95, 0));
+    g.add(gable(4.4, 0.9, 5.6, 0x6E767C, 0, 1.9, 0, Math.PI/2));
+    g.add(box(1.6, 1.3, 0.18, 0x4E3A22, -1.0, 0.65, 2.1));
+    g.add(cyl(2.6, 2.6, 0.16, 14, 0x5A4A38, 2.8, 0.09, 3.4));     // la bauge
+    g.add(cyl(1.5, 1.5, 0.2, 12, 0x4A3C2C, 3.4, 0.12, 4.0));
+  } else if(E.cle === 'mouton'){                                   // bergerie ouverte
+    g.add(box(6.4, 2.4, 4.2, 0xE0D8C4, 0, 1.2, 0));
+    g.add(gable(4.6, 1.2, 7.0, 0x8A9298, 0, 2.4, 0, Math.PI/2));
+    g.add(box(6.4, 1.3, 0.2, 0xC9BDA2, 0, 0.65, 2.1));            // muret de façade
+    for(const sx of [-2.9, 0, 2.9]) g.add(box(0.28, 2.4, 0.28, 0xB9A882, sx, 1.2, 2.1));
+  } else {                                                         // stabulation ouverte
+    g.add(box(7.0, 2.8, 4.6, 0xDDE3E6, 0, 1.4, 0));
+    g.add(gable(5.0, 1.2, 7.6, 0x6E8AA0, 0, 2.8, 0, Math.PI/2));
+    for(const sx of [-3.2, -1.1, 1.1, 3.2]) g.add(box(0.3, 2.8, 0.3, 0x9BA3A8, sx, 1.4, 2.3));
+    g.add(box(6.4, 0.5, 0.8, 0x8A6B42, 0, 0.25, 2.3));
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+  boxObs.push({x, z, hw:3.6, hd:2.4});
+  return g;
 }
 function majTasAuge(P){
   const k = P.grain / P.grainMax;
@@ -4185,32 +4567,51 @@ function majTasAuge(P){
 }
 
 /* --- une bête --- */
-function ajouterVache(P, age){
-  if(P.vaches.length >= P.places) return null;
-  const r = (Math.random()*ROBES.length)|0;
+function ajouterBete(P, age, robe){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  if(P.betes.length >= P.places) return null;
+  const r = (robe === undefined || robe === null) ? (Math.random()*E.robes.length)|0 : robe;
+  const M = geoBete(E, r);
   const g = new THREE.Group();
-  const corps = new THREE.Mesh(GEO_CORPS[r], vacheMat);
+  const corps = new THREE.Mesh(M.corps, beteMat);
   corps.castShadow = true; corps.receiveShadow = true;
   g.add(corps);
   const cou = new THREE.Group();               // pivot du cou : la tête plonge pour brouter
-  cou.position.set(0, 1.85, 0.95);
-  const tete = new THREE.Mesh(GEO_TETE[r], vacheMat);
+  cou.position.set(0, E.cou.y, E.cou.z);
+  const tete = new THREE.Mesh(M.tete, beteMat);
   tete.castShadow = true;
   cou.add(tete); g.add(cou);
-  // La caméra est haute et lointaine : à l'échelle réelle une vache devient un point.
-  // On la grossit d'un cinquième, comme les engins le sont déjà par rapport au décor.
-  g.scale.setScalar(1.2);
-  const V = {g, cou, corps,
+  // Pattes articulées : un pivot à la hanche, deux diagonales opposées. Sans elles,
+  // une bête arrondie glisse sur l'herbe comme un jouet à roulettes.
+  const pattes = [];
+  if(M.patte) for(const sx of [-E.patte.x, E.patte.x]) for(const sz of E.patte.z){
+    const pv = new THREE.Group();
+    pv.position.set(sx, E.patte.h, sz);
+    const j = new THREE.Mesh(M.patte, beteMat); j.castShadow = true;
+    pv.add(j); g.add(pv);
+    pattes.push({pv, diag: ((sz > 0) === (sx < 0)) ? 0 : Math.PI});
+  }
+  let queue = null;
+  if(M.queue){
+    queue = new THREE.Group();
+    queue.position.set(0, E.queue.y, E.queue.z);
+    queue.add(new THREE.Mesh(M.queue, beteMat));
+    g.add(queue);
+  }
+  // La caméra est haute et lointaine : à l'échelle réelle une bête devient un point.
+  // On la grossit, comme les engins le sont déjà par rapport au décor.
+  g.scale.setScalar(E.echelle);
+  const V = {g, cou, corps, pattes, queue,
              x: P.box.x0 + Math.random()*(P.box.x1-P.box.x0),
              z: P.box.z0 + Math.random()*(P.box.z1-P.box.z0),
              cap: Math.random()*Math.PI*2, robe:r,
              age: age === undefined ? 0 : age,
              mode:'broute', t: 1 + Math.random()*4, tx:0, tz:0,
-             tete0: 0, balance: Math.random()*6};
+             tete0: 0, balance: Math.random()*6, pas: Math.random()*6};
   V.tx = V.x; V.tz = V.z;
   g.position.set(V.x, 0, V.z); g.rotation.y = V.cap;
   scene.add(g);
-  P.vaches.push(V);
+  P.betes.push(V);
   return V;
 }
 // Un point au hasard dans la pâture, en évitant la bande d'entrée où sont posés
@@ -4221,15 +4622,15 @@ function pointPature(P){
 }
 function updateElevage(dt){
   for(const P of PATURES){
+    const E = ESPECES[P.espece] || ESPECES.vache;
     let nourries = 0;
-    for(const V of P.vaches){
-      // ration : tant qu'il reste du grain dans l'auge, la bête mange et produit
-      const mange = Math.min(P.grain, ELEVAGE.grainParSec*dt);
+    for(const V of P.betes){
+      // ration : tant qu'il reste du grain dans la mangeoire, la bête mange et produit
+      const mange = Math.min(P.grain, E.ration*dt);
       P.grain -= mange;
-      const rassasiee = mange > 0;
-      if(rassasiee){
+      if(mange > 0){
         nourries++;
-        V.age = Math.min(1, V.age + dt/ELEVAGE.maturite);
+        V.age = Math.min(1, V.age + dt/E.maturite);
       }
       // déplacement : de longues pauses à brouter, de courts trajets entre deux touffes
       V.t -= dt;
@@ -4240,12 +4641,13 @@ function updateElevage(dt){
           V.mode = 'marche'; V.t = 14;
         } else { V.mode = 'broute'; V.t = 3 + Math.random()*7; }
       }
+      let vit = 0;
       if(V.mode === 'marche'){
         const dx = V.tx - V.x, dz = V.tz - V.z;
         const d = Math.hypot(dx, dz);
         if(d < 0.7){ V.mode = 'broute'; V.t = 3 + Math.random()*7; }
         else {
-          const vit = 1.25;
+          vit = 1.25;
           V.x += dx/d*vit*dt; V.z += dz/d*vit*dt;
           let cible = Math.atan2(dx, dz), e = cible - V.cap;
           while(e >  Math.PI) e -= Math.PI*2;
@@ -4255,17 +4657,27 @@ function updateElevage(dt){
       }
       // la tête plonge quand elle broute, et se balance en marchant
       V.balance += dt*(V.mode === 'marche' ? 5.2 : 1.1);
-      const vise = V.mode === 'broute' ? 1.05 : 0.12;
+      const vise = V.mode === 'broute' ? E.plonge*1.9 : 0.12;
       V.tete0 += (vise - V.tete0)*Math.min(1, dt*2.4);
       V.cou.rotation.x = V.tete0 + Math.sin(V.balance)*(V.mode === 'marche' ? 0.10 : 0.05);
-      V.cou.position.y = 1.85 - V.tete0*0.55;
-      V.g.position.set(V.x, V.mode === 'marche' ? Math.abs(Math.sin(V.balance))*0.045 : 0, V.z);
+      V.cou.position.y = E.cou.y - V.tete0*E.plonge;
+      // Les pattes battent en diagonale — avant gauche avec arrière droit — et le corps
+      // rebondit deux fois par cycle. Immobile, elles reviennent doucement à l'aplomb.
+      V.pas += dt*vit*5.6;
+      const amp = vit > 0 ? 0.36 : 0;
+      for(const q of V.pattes) q.pv.rotation.x = Math.sin(V.pas + q.diag)*amp;
+      const reb = vit > 0 ? Math.abs(Math.sin(V.pas))*0.05 : 0;
+      if(V.queue){
+        V.queue.rotation.z = Math.sin(V.balance*0.9)*0.22;
+        V.queue.rotation.x = Math.sin(V.balance*0.6)*0.10;
+      }
+      V.g.position.set(V.x, reb, V.z);
       V.g.rotation.y = V.cap;
-      V.g.rotation.z = V.mode === 'marche' ? Math.sin(V.balance)*0.035 : 0;
+      V.g.rotation.z = V.mode === 'marche' ? Math.sin(V.pas)*0.03 : 0;
     }
-    // le lait ne coule que pour les bêtes effectivement nourries
-    if(nourries > 0)
-      P.lait = Math.min(P.laitMax, P.lait + nourries*ELEVAGE.laitParSec*dt);
+    // le produit ne coule que pour les bêtes effectivement nourries
+    if(nourries > 0 && E.produit)
+      P.produit = Math.min(P.produitMax, P.produit + nourries*E.parSec*dt);
     majTasAuge(P);
   }
 }
@@ -4274,38 +4686,44 @@ function updateElevage(dt){
 const patureProche = (v, r)=>{
   const R = r || 6.0;
   let best = null, bd = R;
-  for(const P of PATURES) for(const q of ['Tank','Auge','Portail']){
+  // Un enclos de cochons n'a pas de poste de collecte : le quai peut être absent.
+  for(const P of PATURES) for(const q of ['Produit','Auge','Portail']){
     const Q = P['quai'+q];
+    if(!Q) continue;
     const d = Math.hypot(v.pos.x-Q.x, v.pos.z-Q.z);
     if(d < bd){ bd = d; best = {P, quoi:q.toLowerCase()}; }
   }
   return best;
 };
-function vachesAdultes(P){ let n = 0; for(const V of P.vaches) if(V.age >= 1) n++; return n; }
+function betesAdultes(P){ let n = 0; for(const V of P.betes) if(V.age >= 1) n++; return n; }
 // Charger des bêtes : on prend les plus âgées, elles disparaissent de la pâture.
 function chargerBetail(P, v, n){
   const pris = [];
-  P.vaches.sort((a,b)=> b.age - a.age);
-  while(pris.length < n && P.vaches.length && P.vaches[0].age >= 1){
-    const V = P.vaches.shift();
+  P.betes.sort((a,b)=> b.age - a.age);
+  while(pris.length < n && P.betes.length && P.betes[0].age >= 1){
+    const V = P.betes.shift();
     scene.remove(V.g);
     pris.push(V);
   }
   v.betail = (v.betail || 0) + pris.length;
+  // Le tarif suit l'espèce embarquée : un cochon ne vaut pas une vache. Une caisse
+  // n'accepte qu'une seule espèce à la fois, la valeur ne peut donc pas se mélanger.
+  if(pris.length) v.betailPrix = (ESPECES[P.espece] || ESPECES.vache).prixBete;
   return pris.length;
 }
-function acheterPature(p){
+function acheterPature(p, espece){
   if(money < ELEVAGE.prixPature || !p.owned || p.pature) return false;
   money -= ELEVAGE.prixPature;
-  creerPature(p);
+  creerPature(p, espece || 'vache');
   flushTiles();
   showHint('PÂTURE AMÉNAGÉE — RESTE À ACHETER DES BÊTES');
   return true;
 }
-function acheterVache(P){
-  if(!P || money < ELEVAGE.prixVache || P.vaches.length >= P.places) return false;
-  money -= ELEVAGE.prixVache;
-  ajouterVache(P, 0.25);
+function acheterBete(P){
+  const E = ESPECES[P && P.espece] || ESPECES.vache;
+  if(!P || money < E.prix || P.betes.length >= P.places) return false;
+  money -= E.prix;
+  ajouterBete(P, 0.25);
   return true;
 }
 
@@ -4372,7 +4790,9 @@ const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 3.3 + 4.1};
 const NATURES = {
   grain:  {nom:'Grain',  couleur:'#FFAE2E'},
   farine: {nom:'Farine', couleur:'#F2E7D2'},
-  lait:   {nom:'Lait',   couleur:'#DCEEF5'}
+  lait:   {nom:'Lait',   couleur:'#DCEEF5'},
+  oeufs:  {nom:'Œufs',   couleur:'#F6E7B8'},
+  laine:  {nom:'Laine',  couleur:'#EDE6D6'}
 };
 const peutCharger = (T, type)=> T.load < 0.01 || T.type === type;
 function poserType(T, type){ T.type = type; }
@@ -4405,11 +4825,14 @@ function cargoUn(m, dt){
     return;
   }
   const pat = patureProche(v);
-  if(pat && pat.quoi === 'tank' && peutCharger(T, 'lait') && pat.P.lait > 0.01 && T.load < T.capacite){
-    const q = Math.min(debit, T.capacite - T.load, pat.P.lait);
-    T.load += q; pat.P.lait -= q; poserType(T, 'lait');
-    if(Math.random() < 0.3) puff(pat.P.quaiTank.x, 2.2, pat.P.quaiTank.z, 0xEAF4F8, 0.3, 0.25);
-    if(T.load >= T.capacite - 0.01) showHint('LAIT CHARGÉ — DIRECTION LAITERIE');
+  const espP = pat ? (ESPECES[pat.P.espece] || ESPECES.vache) : null;
+  if(pat && pat.quoi === 'produit' && espP.produit && peutCharger(T, espP.produit)
+     && pat.P.produit > 0.01 && T.load < T.capacite){
+    const q = Math.min(debit, T.capacite - T.load, pat.P.produit);
+    T.load += q; pat.P.produit -= q; poserType(T, espP.produit);
+    if(Math.random() < 0.3) puff(pat.P.quaiProduit.x, 2.2, pat.P.quaiProduit.z,
+                                 parseInt(NATURES[espP.produit].couleur.slice(1), 16), 0.3, 0.25);
+    if(T.load >= T.capacite - 0.01) showHint(NATURES[espP.produit].nom.toUpperCase() + ' CHARGÉ — DIRECTION ' + espP.acheteurNom);
     return;
   }
 
@@ -4426,9 +4849,25 @@ function cargoUn(m, dt){
   }
   if(T.type === 'lait' && aQuai(v, LAITERIE)){
     const q = Math.min(ELEVAGE.debit*dt, T.load);
-    T.load -= q; money += q*ELEVAGE.prixLait; STAT.lait += q;
+    T.load -= q; money += q*ESPECES.vache.prixProduit; STAT.lait += q;
     if(Math.random() < 0.4) puff(LAITERIE.dropX, 2.6, LAITERIE.dropZ, 0xEAF4F8, 0.4, 0.3);
     if(T.load <= 0.01){ viderType(T); showHint('LAIT LIVRÉ — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  // Les œufs partent à la boulangerie, la laine à l'usine bio : deux commerces qui
+  // existaient déjà et dont l'activité s'y prête, plutôt que deux façades de plus.
+  if(T.type === 'oeufs' && aQuai(v, BAKERY)){
+    const q = Math.min(ELEVAGE.debit*dt, T.load);
+    T.load -= q; money += q*ESPECES.poule.prixProduit; STAT.oeufs += q;
+    if(Math.random() < 0.4) puff(BAKERY.dropX, 2.6, BAKERY.dropZ, 0xF6E7B8, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint('ŒUFS LIVRÉS — ' + Math.floor(money) + ' €'); }
+    return;
+  }
+  if(T.type === 'laine' && aQuai(v, BIO)){
+    const q = Math.min(ELEVAGE.debit*dt, T.load);
+    T.load -= q; money += q*ESPECES.mouton.prixProduit; STAT.laine += q;
+    if(Math.random() < 0.4) puff(BIO.dropX, 2.6, BIO.dropZ, 0xEDE6D6, 0.4, 0.3);
+    if(T.load <= 0.01){ viderType(T); showHint('LAINE LIVRÉE — ' + Math.floor(money) + ' €'); }
     return;
   }
   if(T.type === 'farine' && aQuai(v, BAKERY)){
@@ -4459,7 +4898,7 @@ function updatePlein(dt){
     const v = m.v;
     if(v.speed > 2.5 || v.fuel >= v.resMax - 0.05) continue;
     if(CARBU.cuveMax > 0 && prochePoint(v, quaiCuve.x, quaiCuve.z, 6.0)) remplir(v, dt, 'cuve');
-    else if(aQuai(v, STATION, 6.5)) remplir(v, dt, 'pompe');
+    else if(aQuai(v, STATION)) remplir(v, dt, 'pompe');
   }
 }
 /* --- bétail : la vente se fait à l'arrêt devant la boucherie --- */
@@ -4471,7 +4910,7 @@ function updateBetail(dt){
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
     v.venteT = 0; v.betail--;
-    money += ELEVAGE.prixBete; STAT.betes++;
+    money += (v.betailPrix || ESPECES.vache.prixBete); STAT.betes++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xF2E7D2, 0.5, 0.4);
     showHint('BÊTE VENDUE — ' + Math.floor(money) + ' €');
   }
@@ -4494,20 +4933,24 @@ function capaciteBetail(m){
 // L'aménagement d'une pâture est définitif : il se confirme en deux temps, et
 // l'armement retombe tout seul si on ne confirme pas.
 let armePature = 0;
+// L'espèce que l'on posera au prochain aménagement. Elle se règle dans l'onglet
+// Élevage, et le bouton contextuel l'affiche avant de demander confirmation.
+let especeChoisie = 0;
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
-  if(aQuai(v, COMPTOIR, 6.5))
+  if(aQuai(v, COMPTOIR))
     return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
   const pat = patureProche(v);
   if(pat && pat.quoi === 'portail'){
-    const P = pat.P, cap = capaciteBetail(m), prets = vachesAdultes(P);
+    const P = pat.P, cap = capaciteBetail(m), prets = betesAdultes(P);
     if(cap > 0 && prets > 0 && (v.betail || 0) < cap){
       const n = Math.min(cap - (v.betail||0), prets);
       return {txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
               f:()=>{ chargerBetail(P, v, n); showHint('EN ROUTE POUR LA BOUCHERIE'); }};
     }
-    return {txt:'PÂTURE — ' + P.vaches.length + ' / ' + P.places + ' BÊTES', ok:true,
+    return {txt:(ESPECES[P.espece] || ESPECES.vache).pluriel.toUpperCase() + ' — ' +
+                 P.betes.length + ' / ' + P.places, ok:true,
             f:()=> ouvrirPanneau('elevage')};
   }
   // à l'arrêt au milieu d'une parcelle à soi, encore cultivable : proposer l'aménagement
@@ -4516,13 +4959,17 @@ function actionService(){
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
     if(v.speed > 1.5){ armePature = 0; return null; }
     const ok = money >= ELEVAGE.prixPature;
-    if(!ok) return {txt:'PÂTURE : IL MANQUE ' + Math.ceil(ELEVAGE.prixPature-money).toLocaleString('fr-FR') + ' €',
+    if(!ok) return {txt:'ENCLOS : IL MANQUE ' + Math.ceil(ELEVAGE.prixPature-money).toLocaleString('fr-FR') + ' €',
                     ok:false};
+    const E = ESPECES[ESP_CLES[especeChoisie]];
+    // Deux temps, comme avant, mais le premier sert aussi à choisir l'espèce : chaque
+    // appui fait défiler les quatre, le deuxième appui sur la même confirme.
     if(armePature > 0)
-      return {txt:'CONFIRMER — LA CULTURE SERA PERDUE', ok:true,
-              f:()=>{ armePature = 0; acheterPature(p); }};
-    return {txt:'AMÉNAGER UNE PÂTURE ' + ELEVAGE.prixPature.toLocaleString('fr-FR') + ' €',
-            ok:true, f:()=>{ armePature = 4; showHint('CETTE PARCELLE NE SERA PLUS CULTIVABLE'); }};
+      return {txt:'CONFIRMER ' + E.pluriel.toUpperCase() + ' — LA CULTURE SERA PERDUE', ok:true,
+              f:()=>{ armePature = 0; acheterPature(p, E.cle); }};
+    return {txt:E.pluriel.toUpperCase() + ' ' + ELEVAGE.prixPature.toLocaleString('fr-FR') + ' € — TOUCHER POUR ARMER',
+            ok:true, f:()=>{ armePature = 4;
+              showHint('APPUIE ENCORE POUR CONFIRMER · MENU ÉLEVAGE POUR CHANGER D\'ESPÈCE'); }};
   }
   armePature = 0;
   return null;
@@ -4627,41 +5074,60 @@ function ongletComptoir(){
 }
 
 function ongletElevage(){
+  titre('Espèce du prochain enclos');
+  ESP_CLES.forEach((cle, i)=>{
+    const E = ESPECES[cle];
+    const gain = E.produit
+      ? dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() + ' / s, revendus ' + dec(E.prixProduit) + ' € le kg'
+      : 'aucun produit continu : elle se vend à la boucherie, et cher';
+    article(E.robes[0].fond, E.pluriel,
+      eur(E.prix) + ' la bête · ' + gain + '<br>' +
+      'Adulte en ' + Math.round(E.maturite/60) + ' min · revendue ' + eur(E.prixBete) +
+      ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos',
+      i === especeChoisie ? 'Choisie' : 'Choisir', i === especeChoisie ? 'ok' : '',
+      ()=>{ especeChoisie = i; });
+  });
   if(!PATURES.length){
-    titre('Aucune pâture');
+    titre('Aucun enclos');
     const d = document.createElement('div'); d.className = 'art';
-    d.innerHTML = '<div class="txt"><div class="det">La laiterie et la boucherie attendent ' +
-      'de la marchandise. Conduis un engin au milieu d\'une parcelle qui t\'appartient : ' +
-      'le bouton d\'aménagement apparaît. Une pâture coûte ' + eur(ELEVAGE.prixPature) +
-      ' et remplace définitivement la culture.<br><br>' +
-      'Ensuite : du grain dans l\'auge, des bêtes dans le pré, le lait au tank. ' +
-      'Une bête qui n\'a rien à manger ne donne rien.</div></div>';
+    d.innerHTML = '<div class="txt"><div class="det">Conduis un engin au milieu d\'une ' +
+      'parcelle qui t\'appartient, à l\'arrêt : le bouton d\'aménagement apparaît. ' +
+      'Un enclos coûte ' + eur(ELEVAGE.prixPature) + ' et remplace définitivement la ' +
+      'culture.<br><br>Ensuite : du grain du silo dans la mangeoire, des bêtes dans ' +
+      'l\'enclos, le produit au poste de collecte. Une bête qui n\'a rien à manger ne ' +
+      'donne rien et ne grandit pas.</div></div>';
     pliste.appendChild(d);
     return;
   }
   PATURES.forEach((P, i)=>{
-    titre('Pâture ' + (i+1) + ' — ' + Math.round(P.p.w) + ' × ' + Math.round(P.p.h) + ' m');
-    const adultes = vachesAdultes(P);
-    article(0xF2EBE0, 'Troupeau',
-      P.vaches.length + ' / ' + P.places + ' bêtes · ' + adultes + ' prête' + (adultes>1?'s':'') +
-      ' pour la boucherie<br>Auge : ' + kg(P.grain) + ' / ' + kg(P.grainMax) +
-      ' · Tank : ' + kg(P.lait) + ' / ' + kg(P.laitMax),
+    const E = ESPECES[P.espece] || ESPECES.vache;
+    titre('Enclos ' + (i+1) + ' — ' + E.pluriel.toLowerCase() + ' · ' +
+          Math.round(P.p.w) + ' × ' + Math.round(P.p.h) + ' m');
+    const adultes = betesAdultes(P);
+    article(E.robes[0].fond, 'Troupeau',
+      P.betes.length + ' / ' + P.places + ' bêtes · ' + adultes + ' prête' + (adultes>1?'s':'') +
+      ' pour la boucherie<br>Mangeoire : ' + kg(P.grain) + ' / ' + kg(P.grainMax) +
+      (E.produit ? ' · ' + E.nomProduit + ' : ' + kg(P.produit) + ' / ' + kg(P.produitMax) : ''),
       'État', 'no', null);
-    const plein = P.vaches.length >= P.places;
-    const ok = !plein && money >= ELEVAGE.prixVache;
-    article(0x8A5230, 'Acheter une vache',
-      eur(ELEVAGE.prixVache) + ' · elle donne ' + dec(ELEVAGE.laitParSec) +
-      ' kg de lait par seconde tant qu\'elle est nourrie',
-      plein ? 'Pâture pleine' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
-      ()=>{ if(acheterVache(P)) showHint('UNE BÊTE DE PLUS AU PRÉ'); });
+    const plein = P.betes.length >= P.places;
+    const ok = !plein && money >= E.prix;
+    article(E.robes[1].fond, 'Acheter ' + E.un,
+      eur(E.prix) + (E.produit
+        ? ' · elle donne ' + dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() +
+          ' par seconde tant qu\'elle est nourrie'
+        : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
+      plein ? 'Enclos plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      ()=>{ if(acheterBete(P)) showHint('UNE BÊTE DE PLUS AU PRÉ'); });
   });
-  titre('Les prix pratiqués');
+  titre('Qui achète quoi');
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">' +
-    'Laiterie : ' + dec(ELEVAGE.prixLait) + ' € le kg de lait.<br>' +
-    'Boucherie : ' + eur(ELEVAGE.prixBete) + ' la bête adulte.<br>' +
-    'Une bête devient adulte après environ ' + Math.round(ELEVAGE.maturite/60) +
-    ' minutes passées à manger.</div></div>';
+    'Laiterie : ' + dec(ESPECES.vache.prixProduit) + ' € le kg de lait.<br>' +
+    'Boulangerie : ' + dec(ESPECES.poule.prixProduit) + ' € le kg d\'œufs.<br>' +
+    'Usine bio : ' + dec(ESPECES.mouton.prixProduit) + ' € le kg de laine.<br>' +
+    'Boucherie : la bête adulte, au tarif de son espèce.<br><br>' +
+    'Une caisse ne transporte qu\'une seule nature à la fois, et ne prend des bêtes ' +
+    'que si elle est vide.</div></div>';
   pliste.appendChild(d);
 }
 
@@ -4882,8 +5348,8 @@ function etatJeu(){
                            x:T.group.position.x, z:T.group.position.z, cap:T.group.rotation.y,
                            porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
     patures: PATURES.map(P=>({
-      parcelle: PARCELS.indexOf(P.p), lait:P.lait, grain:P.grain,
-      vaches: P.vaches.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
+      parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
+      vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
     grille: packGrille()
   };
@@ -4970,10 +5436,13 @@ function chargerPartie(S){
     for(const q of S.patures){
       const p = PARCELS[q.parcelle];
       if(!p || p.pature) continue;
-      const P = creerPature(p);
-      P.lait = q.lait; P.grain = q.grain;
+      // `espece` est absent des sauvegardes d'avant les quatre élevages : elles ne
+      // connaissaient que des vaches. Les clés `lait` et `vaches` gardent leur nom
+      // pour la même raison — les renommer ferait repartir la partie de zéro.
+      const P = creerPature(p, q.espece || 'vache');
+      P.produit = q.lait; P.grain = q.grain;
       for(const w of q.vaches){
-        const V = ajouterVache(P, w.age);
+        const V = ajouterBete(P, w.age, w.robe);
         if(V){ V.x = w.x; V.z = w.z; V.cap = w.cap; V.tx = w.x; V.tz = w.z; }
       }
       majTasAuge(P);
@@ -5113,8 +5582,8 @@ ETAPES.push(
   {txt:'Vendre 300 kg de pain',                test:()=> STAT.pain >= 300,   prog:()=> STAT.pain/300},
   {txt:'Étendre la ferme à 4 parcelles',       test:()=> nbParcelles() >= 4, prog:()=> (nbParcelles()-2)/2},
   {txt:'Aménager une pâture et acheter une bête',
-                                               test:()=> PATURES.some(P=>P.vaches.length > 0),
-                                               prog:()=> PATURES.length ? 0.5 + 0.5*Math.min(1, PATURES[0].vaches.length) : 0},
+                                               test:()=> PATURES.some(P=>P.betes.length > 0),
+                                               prog:()=> PATURES.length ? 0.5 + 0.5*Math.min(1, PATURES[0].betes.length) : 0},
   {txt:'Livrer 1 500 kg de lait à la laiterie',test:()=> STAT.lait >= 1500,  prog:()=> STAT.lait/1500},
   {txt:'Vendre 5 bêtes à la boucherie',        test:()=> STAT.betes >= 5,    prog:()=> STAT.betes/5},
   {txt:'Installer la cuve de gazole',          test:()=> CARBU.cuveMax > 0,  prog:()=> money/CARBU.cuvePrix},
@@ -5242,12 +5711,16 @@ function loop(now){
       const on = A.actif ? !!A.actif() : true;
       A.k = (A.k === null) ? (on ? 1 : 0)
                            : A.k + ((on ? 1 : 0) - A.k) * Math.min(1, dt*6);
-      const bat = (0.5 + 0.5*Math.sin(now/1000*2.6 + A.ph)) * A.k;
+      // L'exposant creuse le bas de la sinusoïde : la respiration part de bien plus bas
+      // et remonte franchement, au lieu de vibrer autour d'une valeur moyenne.
+      const bat = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8 + A.ph), 1.6) * A.k;
       A.anneau.material.color.copy(COUL_VEILLE).lerp(COUL_ACTIVE, A.k);
       A.halo.material.color.copy(COUL_VEILLE).lerp(COUL_ACTIVE, A.k);
-      A.anneau.material.opacity = 0.38 + 0.17*A.k + 0.45*bat;
-      A.anneau.scale.setScalar(1 + 0.07*bat);
-      A.halo.material.opacity = 0.045 + 0.015*A.k + 0.16*bat;
+      // en veille : un blanc franchement transparent, immobile.
+      // en éveil : le jaune monte jusqu'à saturation et l'anneau enfle de 14 %.
+      A.anneau.material.opacity = 0.26 + 0.24*A.k + 0.62*bat;
+      A.anneau.scale.setScalar(1 + 0.14*bat);
+      A.halo.material.opacity = 0.030 + 0.030*A.k + 0.20*bat;
     }
     usineT -= dt;
     if(usineT <= 0){

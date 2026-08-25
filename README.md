@@ -28,8 +28,10 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Pilotage automatique** | bouton AUTO : la machine fait ses allers-retours seule |
 
 Un **anneau lumineux au sol** signale un endroit où s'arrêter : livraison, plein de
-gazole, chargement. On se gare dessus, ça se fait tout seul. Sa couleur dit s'il y a
-quelque chose à y faire **avec ce qu'on transporte en ce moment** :
+gazole, chargement. Il est posé sur la dalle du commerce, juste en entrant dans le
+parking : on franchit la porte de la clôture, on se gare dessus, ça se fait tout seul.
+Sa couleur dit s'il y a quelque chose à y faire **avec ce qu'on transporte en ce
+moment** :
 
 | | |
 |---|---|
@@ -40,6 +42,30 @@ La caisse est pleine de lait ? Seule la laiterie s'allume, sur toute la vallée.
 vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas compte de
 la distance : c'est ce qui permet de choisir sa destination d'un bout à l'autre de la
 carte, au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé de tournée.
+
+## Les élevages
+
+Une parcelle possédée s'aménage en enclos. Quatre espèces, chacune avec son
+aménagement, son produit et son acheteur :
+
+| | donne | qui achète | à l'enclos |
+|---|---|---|---|
+| **Vaches** | du lait | la laiterie | tank à lait, auge, stabulation |
+| **Poules** | des œufs | la boulangerie | casier à œufs, trémie, poulailler sur pilotis |
+| **Cochons** | rien en continu, mais cher à la bête | la boucherie | auge, cabane, bauge de boue |
+| **Moutons** | de la laine | l'usine bio | presse à balles, râtelier, bergerie |
+
+L'espèce se choisit dans l'onglet Élevage, avant d'aménager. Toutes mangent le grain
+du silo, apporté à la benne : une bête qui n'a rien à manger ne donne rien et ne
+grandit pas. Un cochon n'a pas de poste de collecte, donc pas d'anneau devant : il ne
+rapporte qu'en partant à la boucherie.
+
+## La nuit
+
+Les optiques sculptées sur chaque engin s'allument elles-mêmes — la lentille passe à
+l'émissif — et projettent un faisceau au sol qui part du nez et s'ouvre devant. Un
+engin garé reste éteint, comme il a le moteur coupé. Le gyrophare bat dès qu'on roule,
+avec une flaque orange au sol la nuit.
 
 ## La boucle de jeu
 
@@ -55,8 +81,12 @@ carte, au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé de tour
                    |
                    +--> brasserie / huilerie / usines (selon la culture)
                    |
-                   +--> auge  ->  vaches  ->  lait      ->  laiterie
-                                          \-> bête adulte -> boucherie
+                   +--> mangeoire -> vaches  -> lait  -> laiterie
+                                  |-> poules  -> œufs  -> boulangerie
+                                  |-> moutons -> laine -> usine bio
+                                  \-> cochons          -> boucherie
+                                       (et toute bête adulte, de n'importe
+                                        quelle espèce, part à la boucherie)
 ```
 
 Quatre cultures (blé, maïs, colza, avoine), chacune avec sa durée de pousse, son
@@ -85,8 +115,10 @@ Quelques partis pris qui expliquent le reste :
   centimètre sur la largeur de l'outil et évite les trous dans les virages.
 - **Les outils sont indépendants des tracteurs.** Un outil dételé reste au sol ; ses
   caractéristiques de travail voyagent avec lui, pas avec l'engin qui le tire.
-- **Un chargement a une nature** (grain, farine, lait). Une caisse entamée n'accepte
-  plus rien d'autre : c'est ce qui oblige à planifier ses tournées.
+- **Un chargement a une nature** (grain, farine, lait, œufs, laine). Une caisse
+  entamée n'accepte plus rien d'autre : c'est ce qui oblige à planifier ses tournées.
+- **Un anneau ne s'allume jamais pour le seul fait qu'un panneau peut s'ouvrir.** Il
+  s'allume quand quelque chose se passe dans le monde.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les
   couleurs des faces doivent rendre pleines, pas modelées.
 
