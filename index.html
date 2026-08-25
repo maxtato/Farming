@@ -2445,23 +2445,35 @@ const MODELES = [
   {stat:'moisson', txt:n=>'Récolter '+n+' kg de blé',              min:300, max:900,  pay:0.12, sec:170},
   {stat:'labour',  txt:n=>'Labourer '+n+' m² de terre',            min:300, max:800,  pay:0.09, sec:150},
   {stat:'semis',   txt:n=>'Semer '+n+' m² de blé',                 min:300, max:800,  pay:0.11, sec:160},
-  // Les deux circuits d'élevage ont aussi leurs commandes. `siPossible` les garde
-  // hors du tirage tant que la ferme n'a pas de quoi les honorer : proposer
-  // « vendre trois bêtes » à qui n'a pas de pâture, c'est une case perdue d'avance.
+  // Les deux circuits d'élevage ont aussi leurs commandes, bornées par ce que le
+  // troupeau peut sortir avant l'échéance (voir `plafond` dans nouveauContrat).
+  // Pour le lait : ce qui dort déjà dans les tanks, plus ce que les bêtes nourries
+  // produiront d'ici là. Le quart retiré paie les allers-retours à la laiterie et
+  // les moments où l'auge est vide.
   {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait à la laiterie',  min:250, max:900, pay:0.26, sec:230,
-   siPossible:()=> PATURES.some(P=>P.vaches.length > 0)},
+   plafond:(m)=> PATURES.reduce((a,P)=>
+     a + P.lait + P.vaches.length*ELEVAGE.laitParSec*m.sec*0.75, 0)},
+  // Pour le bétail : seules comptent les bêtes DÉJÀ adultes. Un veau met 420 s à
+  // grandir, soit plus que l'échéance du contrat — l'inclure serait mentir.
   {stat:'betes',   txt:n=>'Vendre '+n+' bête'+(n>1?'s':'')+' à la boucherie',
    min:2, max:5, pas:1, pay:260, sec:300,
-   siPossible:()=> PATURES.reduce((a,P)=>a+P.vaches.length, 0) >= 3}
+   plafond:()=> PATURES.reduce((a,P)=> a + vachesAdultes(P), 0)}
 ];
 let contrat = null;
 function nouveauContrat(){
-  // Un contrat ne doit porter que sur ce que la ferme sait déjà faire : proposer
-  // « vendre trois bêtes » à qui n'a pas de pâture, c'est une case à perdre d'avance.
-  const ouverts = MODELES.filter(m => !m.siPossible || m.siPossible());
+  // Un contrat ne doit porter que sur ce que la ferme peut RÉELLEMENT honorer avant
+  // l'échéance. `plafond` sert donc deux fois : il écarte le modèle quand la ferme
+  // n'a pas de quoi atteindre le minimum, et il borne la quantité tirée. Sans lui,
+  // une seule vache suffisait à déclencher une commande de 250 kg de lait qu'elle
+  // ne pouvait pas produire dans le temps imparti — un contrat impossible n'est
+  // pas un défi, c'est une case perdue d'avance.
+  const capa = (m)=> m.plafond ? m.plafond(m) : Infinity;
+  const ouverts = MODELES.filter(m => capa(m) >= m.min);
   const m = ouverts[(Math.random()*ouverts.length)|0];
   const pas = m.pas || 50;
-  const n = Math.max(pas, Math.round((m.min + Math.random()*(m.max-m.min))/pas)*pas);
+  const haut = Math.min(m.max, capa(m));
+  let n = Math.round((m.min + Math.random()*(haut - m.min))/pas)*pas;
+  n = Math.max(pas, Math.min(n, Math.floor(capa(m)/pas)*pas));
   contrat = {stat:m.stat, need:n, base:STAT[m.stat], label:m.txt(n),
              reward:Math.round(n*m.pay/10)*10, temps:m.sec};
 }
@@ -2957,10 +2969,13 @@ function work(m, dt){
   // Semences et engrais : la trémie de l'outil puise dans le stock de la ferme.
   // On ne traite que ce que ce stock permet, et on ne peint pas ce qu'on n'a pas semé —
   // sinon le sol afficherait un rang de semis là où rien n'est tombé.
-  const nMax = cellulesPossibles(T, touched.length);
-  if(nMax < touched.length){
-    touched.length = nMax;
-    if(nMax === 0 && bacDe(T)) eligible = false;
+  // Une passe se fait en entier ou pas du tout. Traiter la moitié des cellules
+  // tout en peignant la traînée complète afficherait un rang semé là où rien n'est
+  // tombé ; et peindre la moitié d'une traînée ferait une couture visible. Le
+  // reliquat trop petit pour une passe reste au stock, où la boutique l'affiche.
+  if(cellulesPossibles(T, touched.length) < touched.length){
+    touched.length = 0;
+    if(bacDe(T)) eligible = false;
   }
   consommerStock(T, touched.length);
 
@@ -4590,7 +4605,7 @@ addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx
    Le terrain est le gros morceau : 12 100 cellules × 4 tableaux. On les empile dans
    un seul octet-tableau puis on les compresse en RLE — une carte est faite de longues
    plages identiques, la compression est donc excellente — avant de passer en base64. */
-const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true};
+const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true, pret:false};
 
 function packGrille(){
   const n = GN*GN, buf = new Uint8Array(n*4);
@@ -4663,7 +4678,11 @@ function etatJeu(){
   };
 }
 function sauvegarder(explicite){
-  if(!SAVE.actif) return false;
+  // `pret` n'est levé qu'au lancement de la partie. Sans lui, quitter l'onglet
+  // depuis l'écran d'accueil enregistrait le monde par défaut — celui d'avant
+  // `chargerPartie` — par-dessus la sauvegarde existante, et la partie était perdue
+  // sans qu'on y ait seulement touché.
+  if(!SAVE.actif || !SAVE.pret) return false;
   try {
     localStorage.setItem(SAVE.clef, JSON.stringify(etatJeu()));
     SAVE.derniere = Date.now();
@@ -4840,6 +4859,7 @@ function boutonAccueil(txt, principal, f){
 function lancerPartie(){
   if(demarre) return;
   demarre = true;
+  SAVE.pret = true;              // à partir d'ici seulement, l'état en mémoire fait foi
   accueil.style.display = 'none';
   paused = false;
   last = performance.now();
