@@ -945,6 +945,12 @@ function avancerCommande(cle, q){
 }
 nouvelleCommande();
 
+/* La disposition est une fonction et non une boucle jouée une fois : les modèles de
+   commerce ne sont déclarés que bien plus bas dans le fichier, et il faut les avoir
+   mesurés pour connaître les cotes réelles d'un site. On dispose donc une première
+   fois sur les cotes annoncées — de quoi faire tourner tout ce qui suit — puis une
+   seconde fois, juste avant de bâtir le décor, sur les cotes relevées. */
+function disposerSites(){
 for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(S.dir === 'E'){
@@ -976,6 +982,74 @@ for(const S of SITES){
   else if(S.dir === 'E'){ S.quaiX = S.emp.x0 + RECUL; S.quaiZ = S.park; }
   else { S.quaiX = S.park; S.quaiZ = S.emp.z1 - RECUL; }
 }
+}
+disposerSites();
+
+/* Les treize modèles de commerce viennent d'une planche de présentation : chacun y
+   avait été dessiné sur son propre socle, avec son parvis, sa terrasse ou son quai
+   DEVANT la façade. Posés le long de la rocade, tous ces avant-corps tombaient sur la
+   chaussée — quatre mètres pour la plupart, treize pour le supermarché et son parking
+   de démonstration. Rien ne le disait : les cotes déclarées dans SITES ne décrivaient
+   que le bâtiment.
+   On mesure donc chaque modèle une fois pour toutes, on le recentre dans son emprise
+   et on donne au site ses cotes RÉELLES. La dalle, la clôture, le quai et l'anneau
+   suivent, puisqu'ils s'en déduisent. */
+const MARGE_DALLE = 1.0;                  // ce qui reste de dalle derrière et de côté
+const ECART_PARKING = 13;                 // le parking, à droite du bâtiment sur la bande
+const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle de sa chaussée
+function ajusterSitesAuxModeles(){
+  const bb = new THREE.Box3();
+  for(const S of SITES){
+    if(S.w0 === undefined){ S.w0 = S.w; S.d0 = S.d; }
+    const corps = S.modele ? S.modele() : corpsGenerique(S);
+    corps.updateMatrixWorld(true);
+    bb.setFromObject(corps);
+    // Le parvis : la bande de dalle laissée devant la façade. Elle doit au moins
+    // contenir ce que l'enseigne avance, sinon le totem retombe sur l'accotement.
+    S.parvis = Math.max(RECUL_ROCADE, (ENSEIGNE_AVANT[S.enseigne] || 0) + 0.4);
+    const cote = (ENSEIGNE_COTE[S.enseigne] || 0);
+    S.corpsMesh = corps;
+    // Un seul gabarit de parking pour tous : c'est le même quai partout, avec le même
+    // anneau et la même porte. Les tailles écrites à la main allaient de 11 à 16 m le
+    // long de la bande sans que rien ne le justifie, et c'est ce qui débordait quand
+    // les bâtiments ont pris leurs cotes réelles.
+    S.ph = 11; S.pw = 13;
+    S.w = (bb.max.x - bb.min.x) + MARGE_DALLE + 2*cote;
+    S.d = (bb.max.z - bb.min.z) + MARGE_DALLE + S.parvis;
+    S.corpsDx = -(bb.max.x + bb.min.x)/2;
+    S.corpsDz = (S.d/2 - S.parvis) - bb.max.z;
+  }
+}
+
+/* Les positions le long de chaque bande étaient écrites à la main, commerce par
+   commerce. Elles ont dû être refaites à chaque fois qu'un modèle changeait de taille,
+   et elles sont devenues franchement fausses le jour où les cotes RÉELLES ont remplacé
+   les cotes annoncées : ici deux dalles à soixante centimètres l'une de l'autre, là
+   quatre mètres de vide. On les calcule donc, à partir des largeurs mesurées. Il ne
+   reste à écrire dans la table que l'ORDRE des commerces sur leur bande. */
+function repartirBandes(){
+  for(const dir of ['W', 'N', 'E']){
+    const b = SITES.filter((S)=> S.dir === dir).sort((A, B)=> A.bat - B.bat);
+    if(!b.length) continue;
+    // Ce que chaque site occupe de part et d'autre de son point d'ancrage : son bâti
+    // d'un côté, son bâti OU son parking de l'autre, selon lequel va le plus loin.
+    const avant = b.map((S)=> S.w/2);
+    const apres = b.map((S)=> Math.max(S.w/2, ECART_PARKING + S.ph/2));
+    const total = b.reduce((t, S, i)=> t + avant[i] + apres[i], 0);
+    // La bande court d'une rocade perpendiculaire à l'autre, en gardant le même recul
+    // qu'entre une dalle et sa propre chaussée.
+    const d0 = (dir === 'N' ? -ROAD_C : ROAD_N) + ROAD_W/2 + RECUL_ROCADE;
+    const d1 = (dir === 'N' ?  ROAD_E : ROAD_C) - ROAD_W/2 - RECUL_ROCADE;
+    const jeu = Math.max(0, (d1 - d0) - total) / Math.max(1, b.length - 1);
+    let t = d0;
+    b.forEach((S, i)=>{
+      S.bat = t + avant[i];
+      S.park = S.bat + ECART_PARKING;
+      t += avant[i] + apres[i] + jeu;
+    });
+  }
+}
+
 // Rayon d'arrêt commun à tous les quais de bord de route. Il valait 8 m côté livraison
 // et 6,5 m côté service, pour un anneau dessiné à 4,4 : trois valeurs pour une seule
 // forme. Maintenant que l'anneau est posé sur la dalle, une seule suffit.
@@ -2250,18 +2324,9 @@ function batSupermarche(){
     g.add(box(0.62, 0.42, 0.9, 0xC9CFD3, -W * 0.28, 0.66, D/2 + 2.6 + k * 0.3));
     g.add(box(0.62, 0.1, 0.1, 0x8A9298, -W * 0.28, 0.95, D/2 + 2.3 + k * 0.3));
   }
-  // parking devant, places marquées et quelques voitures schématiques
-  cmDalle(g, 0, D/2 + 9.5, W + 4, 9.0, CM.BETON, false);
-  for(let k = -3; k <= 3; k++)
-    g.add(box(0.16, 0.05, 5.2, 0xF0F2F3, k * 2.7, 0.19, D/2 + 9.5));
-  const teintes = [0xC0392B, 0x3E7CB8, 0xE8DCC0];
-  for(let k = 0; k < 3; k++){
-    const x = -5.4 + k * 5.4;
-    g.add(box(1.9, 0.85, 4.0, teintes[k], x, 0.6, D/2 + 8.6));
-    g.add(box(1.6, 0.7, 2.0, 0x2C3B43, x, 1.35, D/2 + 8.4));
-    for(const sz of [-1.3, 1.3]) for(const sx of [-0.95, 0.95])
-      g.add(cyl(0.3, 0.3, 0.24, 8, 0x2A2622, x + sx, 0.3, D/2 + 8.6 + sz, 0, 0, Math.PI/2));
-  }
+  // Pas de parking dessiné ici : le jeu en pose déjà un à côté, avec son marquage, son
+  // quai et son anneau. Celui de la planche de présentation venait s'ajouter au bon,
+  // neuf mètres plus en avant — c'est-à-dire en plein sur la chaussée.
   // quai de livraison sur le flanc, avec palettes
   g.add(box(3.4, 1.1, 5.0, CM.BETON2, -W/2 - 1.5, 0.55, 0));
   g.add(box(2.6, 2.8, 0.3, CM.SOMBRE, -W/2 - 0.2, 1.4, 0));
@@ -2388,55 +2453,55 @@ function batFromagerie(){
   return g;
 }
 
-function buildCommerce(S){
-  const g = new THREE.Group();
-  const W = S.w, D = S.d;
+/* Le gabarit générique, sorti de buildCommerce pour pouvoir être MESURÉ avant d'être
+   posé. C'est ce qui permet de traiter de la même façon les treize commerces qui ont
+   leur modèle dédié et les trois qui n'en ont pas : on bâtit, on mesure, on ajuste la
+   dalle, et seulement ensuite on pose. */
+function corpsGenerique(S){
+  const CG = new THREE.Group();
+  const W = S.w0, D = S.d0;
   const usine = S.style === 'usine';
   const H = usine ? 6.8 : 4.8;
-  // Les commerces qui ont leur propre modèle l'apportent tout fait. Les autres sont
-  // encore bâtis par le gabarit générique, à partir de leurs drapeaux — c'est le cas
-  // de l'atelier de réparation et de l'huilerie, qui n'ont pas de modèle dédié.
-  if(S.modele){ g.add(S.modele()); } else {
-    g.add(slab({w:W, h:H, d:D, tw:usine?W:W-0.9, td:usine?D:D-0.8, c:S.mur, y:0}));
+    CG.add(slab({w:W, h:H, d:D, tw:usine?W:W-0.9, td:usine?D:D-0.8, c:S.mur, y:0}));
     if(usine){
-      g.add(slab({w:W+0.7, h:0.55, d:D+0.7, tw:W+0.1, td:D+0.1, c:S.toit, y:H}));
+      CG.add(slab({w:W+0.7, h:0.55, d:D+0.7, tw:W+0.1, td:D+0.1, c:S.toit, y:H}));
       for(let k=0;k<3;k++)                                    // aérateurs de toiture
-        g.add(box(1.5,0.7,1.5, 0x9AA2A7, -W/3+k*W/3, H+0.9, -D*0.15));
+        CG.add(box(1.5,0.7,1.5, 0x9AA2A7, -W/3+k*W/3, H+0.9, -D*0.15));
       // bardage : rainures verticales
-      for(let k=-3;k<=3;k++) g.add(box(0.14, H*0.9, 0.1, 0xB9C1C6, k*W*0.13, H*0.45, D/2+0.03));
-      g.add(box(W*0.34, H*0.6, 0.25, 0x333A3F, -W*0.24, H*0.30, D/2+0.04));   // porte roulante
-      for(let k=0;k<3;k++) g.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.13, D/2+0.16));
+      for(let k=-3;k<=3;k++) CG.add(box(0.14, H*0.9, 0.1, 0xB9C1C6, k*W*0.13, H*0.45, D/2+0.03));
+      CG.add(box(W*0.34, H*0.6, 0.25, 0x333A3F, -W*0.24, H*0.30, D/2+0.04));   // porte roulante
+      for(let k=0;k<3;k++) CG.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.13, D/2+0.16));
     } else {
-      g.add(gable(D+0.5, 2.7, W+0.5, S.toit, 0, H, 0, Math.PI/2));
+      CG.add(gable(D+0.5, 2.7, W+0.5, S.toit, 0, H, 0, Math.PI/2));
       // vitrine de boutique et auvent
-      g.add(box(W*0.44, H*0.52, 0.16, 0xF7EFDC, W*0.14, H*0.42, D/2+0.02));
-      g.add(box(W*0.40, H*0.46, 0.2,  0x5D7F92, W*0.14, H*0.42, D/2+0.06));
-      g.add(slab({w:W*0.52, h:0.22, d:1.5, tw:W*0.52, td:1.9, dz:0.4, c:S.toit, y:H*0.72, x:W*0.14, z:D/2+0.7}));
-      g.add(box(1.6, H*0.62, 0.2, 0x7A5730, -W*0.30, H*0.31, D/2+0.02));      // porte
-      g.add(box(0.9, 0.9, 0.9, S.toit, -W*0.30, H*0.86, D/2+0.3));            // lanterne
+      CG.add(box(W*0.44, H*0.52, 0.16, 0xF7EFDC, W*0.14, H*0.42, D/2+0.02));
+      CG.add(box(W*0.40, H*0.46, 0.2,  0x5D7F92, W*0.14, H*0.42, D/2+0.06));
+      CG.add(slab({w:W*0.52, h:0.22, d:1.5, tw:W*0.52, td:1.9, dz:0.4, c:S.toit, y:H*0.72, x:W*0.14, z:D/2+0.7}));
+      CG.add(box(1.6, H*0.62, 0.2, 0x7A5730, -W*0.30, H*0.31, D/2+0.02));      // porte
+      CG.add(box(0.9, 0.9, 0.9, S.toit, -W*0.30, H*0.86, D/2+0.3));            // lanterne
     }
     if(S.silos) for(let k=0;k<S.silos;k++){
-      g.add(cyl(1.8,1.8,H+4.0,10, 0xC9CFD3, -W/2+2.4+k*4.2, (H+4.0)/2, -D/2-3.0));
-      g.add(cyl(1.95,0.2,1.2,10, 0xA8B0B5, -W/2+2.4+k*4.2, H+4.4, -D/2-3.0));
+      CG.add(cyl(1.8,1.8,H+4.0,10, 0xC9CFD3, -W/2+2.4+k*4.2, (H+4.0)/2, -D/2-3.0));
+      CG.add(cyl(1.95,0.2,1.2,10, 0xA8B0B5, -W/2+2.4+k*4.2, H+4.4, -D/2-3.0));
     }
     if(S.cuves) for(let k=0;k<S.cuves;k++){
-      g.add(cyl(1.7,1.7,5.0,10, 0xB9C0C4, -W/2+2.6+k*3.8, 2.5, -D/2-3.0));
-      g.add(cyl(1.8,0.15,0.9,10, 0x8E969B, -W/2+2.6+k*3.8, 5.2, -D/2-3.0));
+      CG.add(cyl(1.7,1.7,5.0,10, 0xB9C0C4, -W/2+2.6+k*3.8, 2.5, -D/2-3.0));
+      CG.add(cyl(1.8,0.15,0.9,10, 0x8E969B, -W/2+2.6+k*3.8, 5.2, -D/2-3.0));
     }
     if(S.tuyaux) for(let k=0;k<2;k++)                        // tuyauterie extérieure
-      g.add(cyl(0.26,0.26,D*0.8,7, 0x8A9298, -W/2-0.5, 2.0+k*1.4, 0, Math.PI/2, 0, Math.PI/2));
+      CG.add(cyl(0.26,0.26,D*0.8,7, 0x8A9298, -W/2-0.5, 2.0+k*1.4, 0, Math.PI/2, 0, Math.PI/2));
     if(S.chem){
-      g.add(cyl(0.75,0.95,7.5,8, 0xC4CACE, W/2-2.2, H*0.5+3.6, -D/2+1.8));
-      g.add(cyl(1.0,1.0,0.45,8, 0x8E8172, W/2-2.2, H*0.5+7.5, -D/2+1.8));
-      const mk = new THREE.Object3D(); mk.position.set(W/2-2.2, H*0.5+7.9, -D/2+1.8); g.add(mk); S.mk = mk;
+      CG.add(cyl(0.75,0.95,7.5,8, 0xC4CACE, W/2-2.2, H*0.5+3.6, -D/2+1.8));
+      CG.add(cyl(1.0,1.0,0.45,8, 0x8E8172, W/2-2.2, H*0.5+7.5, -D/2+1.8));
+      const mk = new THREE.Object3D(); mk.position.set(W/2-2.2, H*0.5+7.9, -D/2+1.8); CG.add(mk); S.mk = mk;
     }
     if(S.four){
-      g.add(box(1.05,2.5,1.05, 0xB8A894, W/2-2.0, H+1.25, -D/2+1.6));
-      g.add(box(1.3,0.26,1.3, 0x8E8172, W/2-2.0, H+2.5, -D/2+1.6));
-      const mk = new THREE.Object3D(); mk.position.set(W/2-2.0, H+2.8, -D/2+1.6); g.add(mk); S.mk = mk;
+      CG.add(box(1.05,2.5,1.05, 0xB8A894, W/2-2.0, H+1.25, -D/2+1.6));
+      CG.add(box(1.3,0.26,1.3, 0x8E8172, W/2-2.0, H+2.5, -D/2+1.6));
+      const mk = new THREE.Object3D(); mk.position.set(W/2-2.0, H+2.8, -D/2+1.6); CG.add(mk); S.mk = mk;
     }
     if(S.ailes){
-      g.add(cyl(0.30,0.30,2.6,8, 0x6B4E24, 0, H+1.5, D/2+1.0, Math.PI/2));
+      CG.add(cyl(0.30,0.30,2.6,8, 0x6B4E24, 0, H+1.5, D/2+1.0, Math.PI/2));
       const sails = new THREE.Group();
       for(let k=0;k<4;k++){
         // une pale : longeron, traverses et toile, comme un vrai châssis de moulin
@@ -2448,29 +2513,49 @@ function buildCommerce(S){
         pale.rotation.z = k/4*Math.PI*2;
         sails.add(pale);
       }
-      sails.position.set(0, H+1.5, D/2+2.4); g.add(sails); S.sails = sails;
+      sails.position.set(0, H+1.5, D/2+2.4); CG.add(sails); S.sails = sails;
     }
-    // Enseigne : quatre poses différentes selon le commerce.
-  }
+  return CG;
+}
+// Ce que l'enseigne déborde du bâti, selon sa pose : devant la façade, et sur le côté.
+// La dalle doit la contenir. Un totem planté sur l'accotement, c'est une enseigne au
+// milieu de la route — et c'est exactement ce qui se passait pour la coopérative,
+// le marché, l'huilerie et le comptoir agricole.
+const ENSEIGNE_AVANT = {facade:0.4, potence:2.1, laterale:0.4, totem:4.0, logo3d:0.4};
+const ENSEIGNE_COTE  = {facade:0,   potence:0,   laterale:2.0, totem:0,   logo3d:0};
+
+function buildCommerce(S){
+  const g = new THREE.Group();
+  const W = S.w, D = S.d;
+  const usine = S.style === 'usine';
+  const H = usine ? 6.8 : 4.8;
+  // Le bâti — modèle dédié ou gabarit générique — a été mesuré puis recentré dans son
+  // emprise par ajusterSitesAuxModeles(). On ne fait que le poser à sa place.
+  const corps = S.corpsMesh || (S.modele ? S.modele() : corpsGenerique(S));
+  corps.position.set(S.corpsDx || 0, 0, S.corpsDz || 0);
+  g.add(corps);
+  // La ligne de façade : le devant du bâti. Les enseignes s'y accrochent, et le parvis
+  // qui la sépare du bord de la dalle leur laisse la place de saillir sans déborder.
+  const DF = S.d/2 - (S.parvis || 0);
   const tex = enseigneTex(S.nom, S.toit, S.style, S.picto);
   const plaque = (lw, lh, dbl)=> new THREE.Mesh(new THREE.PlaneGeometry(lw, lh),
     new THREE.MeshBasicMaterial({map:tex, side: dbl ? THREE.DoubleSide : THREE.FrontSide}));
   const pose = S.enseigne || (usine ? 'facade' : 'potence');
   if(pose === 'facade'){                                   // bandeau haut en façade
     const pan = plaque(W*0.62, W*0.19, false);
-    pan.position.set(W*0.10, H*0.82, D/2+0.06); g.add(pan);
+    pan.position.set(W*0.10, H*0.82, DF+0.06); g.add(pan);
   } else if(pose === 'potence'){                           // plaque suspendue à une potence
-    g.add(box(0.16,0.16,1.5, 0x5A4326, -W*0.30, H*0.70, D/2+0.75));
+    g.add(box(0.16,0.16,1.5, 0x5A4326, -W*0.30, H*0.70, DF+0.75));
     const pan = plaque(2.9, 0.95, true);
-    pan.position.set(-W*0.30, H*0.56, D/2+1.4); g.add(pan);
-    g.add(box(0.1,0.32,0.1, 0x5A4326, -W*0.30-1.3, H*0.66, D/2+1.4));
-    g.add(box(0.1,0.32,0.1, 0x5A4326, -W*0.30+1.3, H*0.66, D/2+1.4));
+    pan.position.set(-W*0.30, H*0.56, DF+1.4); g.add(pan);
+    g.add(box(0.1,0.32,0.1, 0x5A4326, -W*0.30-1.3, H*0.66, DF+1.4));
+    g.add(box(0.1,0.32,0.1, 0x5A4326, -W*0.30+1.3, H*0.66, DF+1.4));
   } else if(pose === 'laterale'){                          // enseigne perpendiculaire au mur
-    g.add(box(0.14,0.14,1.1, 0x5A4326, W/2+0.1, H*0.66, D*0.18));
+    g.add(box(0.14,0.14,1.1, 0x5A4326, W/2+0.1, H*0.66, DF-D*0.32));
     const pan = plaque(2.6, 0.85, true);
-    pan.position.set(W/2+1.45, H*0.66, D*0.18);
+    pan.position.set(W/2+1.45, H*0.66, DF-D*0.32);
     pan.rotation.y = Math.PI/2; g.add(pan);
-    g.add(box(0.1,0.9,0.1, 0x5A4326, W/2+1.45, H*0.66+0.6, D*0.18));
+    g.add(box(0.1,0.9,0.1, 0x5A4326, W/2+1.45, H*0.66+0.6, DF-D*0.32));
   } else if(pose === 'totem'){                             // panneau planté devant l'entrée
     const t = new THREE.Group();
     t.add(box(0.34,3.6,0.34, 0x6E767C, 0,1.8,0));
@@ -2479,16 +2564,19 @@ function buildCommerce(S){
     pan.position.set(0,4.0,0.18); t.add(pan);
     const pan2 = plaque(3.1, 1.05, true);
     pan2.position.set(0,4.0,-0.18); pan2.rotation.y = Math.PI; t.add(pan2);
-    t.position.set(-W*0.36, 0, D/2+3.4); g.add(t);
+    t.position.set(-W*0.36, 0, DF+3.4); g.add(t);
   } else if(pose === 'logo3d'){                            // emblème en volume sur le toit
     const pan = plaque(W*0.5, W*0.15, false);
-    pan.position.set(-W*0.12, H*0.80, D/2+0.06); g.add(pan);
+    pan.position.set(-W*0.12, H*0.80, DF+0.06); g.add(pan);
+    // Un pneu, pas une roue de tracteur : le moyeu jaune et les crampons dorés en
+    // faisaient une jante de jouet, et le jaune se disputait avec celui des anneaux
+    // d'action, seule couleur du jeu qui veut dire « ici, maintenant ».
     const pneu = new THREE.Group();
     pneu.add(cyl(1.9,1.9,0.55,14, 0x24282B, 0,0,0));
-    pneu.add(cyl(1.05,1.05,0.62,10, 0xD8B24A, 0,0,0));
+    pneu.add(cyl(1.05,1.05,0.62,10, 0xC9CFD3, 0,0,0));
     for(let k=0;k<8;k++){
       const a2 = k/8*Math.PI*2;
-      pneu.add(box(0.22,0.62,0.9, 0xB99630, Math.cos(a2)*1.45, 0, Math.sin(a2)*1.45));
+      pneu.add(box(0.22,0.62,0.9, 0x3A4045, Math.cos(a2)*1.45, 0, Math.sin(a2)*1.45));
     }
     pneu.rotation.x = Math.PI/2;
     pneu.position.set(W*0.28, H+2.3, 0);
@@ -2541,6 +2629,11 @@ function buildCommerce(S){
   ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
 }
 function buildFarm(){
+  // Les cotes réelles des commerces ne sont connues qu'ici : les modèles sont déclarés
+  // plus haut, mais c'est le premier moment où on peut les instancier sans TDZ.
+  ajusterSitesAuxModeles();
+  repartirBandes();
+  disposerSites();
   // Clôture posée entre la route et l'herbe. Le bord est a suivi la rocade.
   const F = ROAD_C - ROAD_W/2 - 2.5;
   const FE = ROAD_E - ROAD_W/2 - 2.5;
@@ -3100,8 +3193,9 @@ function optique(g, F, arriere, sx, y, z, w, h){
   return lentille;
 }
 // Gyrophare. Avant, seule la teinte du dôme changeait : sur un écran de téléphone, à la
-// distance de jeu, ça ne se voyait pas. Le dôme devient émissif, une bille additive
-// s'épanouit autour, et la nuit une flaque orange bat au sol sous la machine.
+// distance de jeu, ça ne se voyait pas. Le dôme passe donc à l'émissif et une bille
+// additive s'épanouit autour de lui — c'est la lampe elle-même qui brille, et rien
+// n'est projeté au sol.
 function gyrophare(g, x, y, z){
   const dome = new THREE.MeshPhongMaterial({color:0xC9A21A, emissive:0x000000,
     flatShading:true, shininess:0, specular:0x000000});
@@ -3111,12 +3205,10 @@ function gyrophare(g, x, y, z){
     new THREE.MeshBasicMaterial({color:0xFFC63A, transparent:true, opacity:0,
       blending:THREE.AdditiveBlending, depthWrite:false}));
   halo.position.set(x, y, z); halo.renderOrder = 2; halo.visible = false; g.add(halo);
-  const sol = new THREE.Mesh(new THREE.CircleGeometry(4.6, 22),
-    new THREE.MeshBasicMaterial({color:0xFFB03A, transparent:true, opacity:0,
-      blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
-  sol.rotation.x = -Math.PI/2; sol.position.set(0, 0.055, z*0.3);
-  sol.renderOrder = 2; sol.visible = false; g.add(sol);
-  return {dome, halo, sol};
+  // Pas de flaque au sol : un gyrophare éclaire l'air autour de lui, pas le bitume
+  // sous la machine. Le disque orange se lisait comme une deuxième zone d'action, à
+  // deux mètres des anneaux qui, eux, veulent dire quelque chose.
+  return {dome, halo};
 }
 function buildTracteur(bodyColor){
   const g = new THREE.Group();
@@ -3523,9 +3615,6 @@ class Vehicle {
       G.halo.visible = k > 0.01;
       G.halo.material.opacity = k*0.62;
       G.halo.scale.setScalar(0.68 + 0.62*k);
-      // la flaque au sol ne sert que la nuit : de jour elle laverait la couleur du sol
-      G.sol.material.opacity = k*0.26*nuitK;
-      G.sol.visible = nuitK > 0.05 && k > 0.01;
     }
     if(ud.reel) ud.reel.rotation.x -= Math.max(0.6, Math.abs(vf))*dt*1.6;
     if(ud.auger){
