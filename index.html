@@ -406,9 +406,14 @@ function mergeParts(parts){
 // sauvegarde de garder exactement le même indice dans la nouvelle grille.
 // TSIZE et TPX restent tels quels : la finesse du sol est inchangée, on pose
 // simplement une colonne de tuiles de plus.
-const X0 = -110, Z0 = -110;
+// L'origine NORD recule à son tour, pour une rangée de parcelles de plus. Elle ne
+// peut pas reculer de n'importe combien : pour qu'une cellule d'une ancienne
+// sauvegarde retombe sur un indice ENTIER, le décalage doit être un multiple exact du
+// pas de la grille. 31 x 1,3 = 40,3 m, au plus près du pas de trame de 40 m.
+const DZ_NORD = 31*1.3;                  // 40,3 m — 31 cellules pile
+const X0 = -110, Z0 = -110 - DZ_NORD;    // -150,3
 const TSIZE = 55, TPX = 640;             // tuiles de 55 m rendues sur 640 px
-const TNX = 5, TNZ = 4;                  // 5 x 4 tuiles au lieu de 4 x 4
+const TNX = 5, TNZ = 5;                  // 5 x 5 tuiles
 const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 275 x 220
 const X1 = X0 + WX, Z1 = Z0 + WZ;        // 165 à l'est, 110 au sud
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
@@ -491,13 +496,14 @@ let arableCount = 0;
 // Les chemins de sable posent le quadrillage ; les parcelles se logent DANS les cases,
 // avec une marge d'herbe, sans jamais mordre sur un chemin.
 const PATH_W = 6.4;
-const PATHS_V = [-40, 0, 40, 80];   // chemins nord-sud
-const PATHS_H = [-40, 0, 40];       // chemins est-ouest
+const PATHS_V = [-40, 0, 40, 80];        // chemins nord-sud
+const PATHS_H = [-80.3, -40, 0, 40];     // chemins est-ouest
 // La rocade n'est plus un carré : le brin EST a reculé de 40 m — un pas de trame — pour
 // loger la cinquième colonne de parcelles. Les trois autres n'ont pas bougé d'un mètre.
 const ROAD_C = 74, ROAD_W = 10;
 const ROAD_E = ROAD_C + 40;                              // 114
-const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:-ROAD_C, z1:ROAD_C};
+const ROAD_N = -(ROAD_C + DZ_NORD);                      // -114,3
+const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:ROAD_N, z1:ROAD_C};
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
 // Chaque parcelle est en retrait de 1,6 m dans sa case : il reste donc une bande
@@ -510,7 +516,9 @@ const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:-ROAD_C, z1:ROAD_C};
 // les chemins de 40 et 80 ; la cinquième vient buter contre la rocade est comme la
 // première le fait contre la rocade ouest, d'où sa largeur réduite.
 const P_COLS = [{x:-54.6,w:19.6},{x:-20,w:30.4},{x:20,w:30.4},{x:60,w:30.4},{x:94.6,w:19.6}];
-const P_ROWS = [{z:-54.6,h:19.6},{z:-20,h:30.4},{z:20,h:30.4},{z:54.6,h:19.6}];
+// Cinq rangées depuis l'élargissement vers le nord : la première vient buter contre
+// la rocade nord comme la dernière le fait contre la rocade sud.
+const P_ROWS = [{z:-94.9,h:19.6},{z:-60.3,h:30.4},{z:-20,h:30.4},{z:20,h:30.4},{z:54.6,h:19.6}];
 const PARCELS = [];
 for(const c of P_COLS) for(const r of P_ROWS){
   // Trois cases de la rangée sud sont prises par la ferme elle-même. La quatrième
@@ -531,7 +539,8 @@ for(const c of P_COLS) for(const r of P_ROWS){
   const rest = PARCELS.filter(p => !p.owned)
     .sort((a,b)=> Math.hypot(a.x-home.x,a.z-home.z) - Math.hypot(b.x-home.x,b.z-home.z));
   const GRILLE = [4000, 7000, 11000, 16000, 22000, 30000, 40000, 52000, 66000, 82000,
-                  100000, 120000, 145000, 175000, 210000, 250000, 300000];
+                  100000, 120000, 145000, 175000, 210000, 250000, 300000,
+                  360000, 430000, 510000, 600000];
   rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
@@ -543,9 +552,15 @@ for(const c of P_COLS) for(const r of P_ROWS){
 // laissait un filet d'herbe tout le long — invisible tant que l'ancien chemin central
 // le recouvrait sur 6 m, et qui sautait aux yeux comme un décrochement une fois ce
 // chemin raccourci.
-const COUR_Z0 = PATHS_H[2] + PATH_W/2;    // 43,2 : là où finit le chemin nord
+// Repérés par leur RANG DEPUIS LE BORD, pas par un indice absolu : ajouter une rangée
+// de parcelles au nord a inséré un chemin en tête de PATHS_H, et `PATHS_H[2]` a cessé
+// de désigner le chemin sud — toute la cour de ferme est partie 40 m plus haut.
+const CHEMIN_SUD  = PATHS_H[PATHS_H.length - 1];        //  40
+const CHEMIN_OUEST = PATHS_V[0];                        // -40
+const CHEMIN_COUR  = PATHS_V[PATHS_V.length - 2];       //  40, à l'ouest de la cour de transformation
+const COUR_Z0 = CHEMIN_SUD + PATH_W/2;    // 43,2 : là où finit le chemin sud
 const COUR_Z1 = ROAD_C - ROAD_W/2;        // 69 : le bitume de la rocade
-const COUR_X0 = PATHS_V[0] + PATH_W/2;    // -36,8 : là où finit le chemin ouest
+const COUR_X0 = CHEMIN_OUEST + PATH_W/2;  // -36,8 : là où finit le chemin ouest
 const COUR_X1 = -COUR_X0;                 //  36,8 : idem à l'est
 const YARD  = {x:(COUR_X0-3.4)/2, z:(COUR_Z0+COUR_Z1)/2,
                w:-3.4-COUR_X0, h:COUR_Z1-COUR_Z0};        // dalle de parking
@@ -564,6 +579,7 @@ const FRONT = 82;
 // La bande est a suivi le recul de sa rocade : même écart de 8 m entre la chaussée et
 // la ligne des façades, mais 40 m plus loin. Les bandes ouest et nord n'ont pas bougé.
 const FRONT_E = FRONT + 40;
+const FRONT_N = FRONT + DZ_NORD;         // la bande nord a suivi son brin de rocade
 const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de la boulangerie
 // Point de déversement : la grille au sol sur le chemin, sous la goulotte du silo.
 // La cour de transformation. Les deux cases de la rangée sud à l'est du garage ne
@@ -571,7 +587,7 @@ const PRICE_BREAD = 0.72;      // prix du pain, utilisé aussi par la bulle de l
 // déposé, comme il l'avait été entre la cour et le garage. Le silo y a déménagé — il
 // était contre la maison, il est maintenant au bout de la chaîne, à côté de l'atelier
 // qui moud son grain.
-const HALLE_YARD = {x0: PATHS_V[2] + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
+const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
 const SILO_TOUR = {x: 52, z: 50};
 const SILO = {x: 59, z: 50, r: 4.5};      // la grille de déversement, sous la goulotte
 const HALLE = {x: 84, z: 50, niveau: 1, entree: 0, aliment: 0, huile: 0, produit: 'farine'};
@@ -643,8 +659,8 @@ for(const S of SITES){
     S.x = -(FRONT + S.d/2); S.z = S.bat; S.rot = Math.PI/2;
     S.px = -(FRONT + S.pw/2); S.pz = S.park;
   } else {
-    S.x = S.bat; S.z = -(FRONT + S.d/2); S.rot = 0;
-    S.px = S.park; S.pz = -(FRONT + S.ph/2);
+    S.x = S.bat; S.z = -(FRONT_N + S.d/2); S.rot = 0;
+    S.px = S.park; S.pz = -(FRONT_N + S.ph/2);
   }
   S.r = 13;
   // Emprise d'un seul tenant : le bâtiment ET son parking sur la même dalle. Ils
@@ -773,6 +789,7 @@ function paintStaticGround(){
     }
   };
   const REACH = ROAD_C - ROAD_W/2;              // le sable vient buter contre la route, sans mordre
+  const ZA = ROC.z0 + ROAD_W/2;                 // l'accotement nord, qui a reculé
   // En X la rocade n'est plus symétrique : les chemins est-ouest s'étirent donc de
   // l'accotement ouest jusqu'à l'accotement est, et non plus de -REACH à +REACH.
   const XA = ROC.x0 + ROAD_W/2, XB = ROC.x1 - ROAD_W/2;
@@ -785,8 +802,8 @@ function paintStaticGround(){
     // garage et cour de transformation ne font qu'une seule aire de bitume. Traverser
     // une bande de sable de 6 m entre deux parkings n'a aucun sens, et on la franchit
     // à chaque passage de l'un à l'autre.
-    if(px === 0 || px === 80) path(px, (COUR_Z0 - REACH)/2, REACH + COUR_Z0, true);
-    else path(px, 0, REACH*2, true);
+    if(px === 0 || px === 80) path(px, (COUR_Z0 + ZA)/2, COUR_Z0 - ZA, true);
+    else path(px, (ZA + REACH)/2, REACH - ZA, true);
   }
   for(const pz of PATHS_H) path((XA+XB)/2, pz, XB - XA, false);
 
@@ -1010,7 +1027,8 @@ const cLo = new THREE.Color(C.wheatLo), cHi = new THREE.Color(C.wheatHi);
 // ~1 350 cellules jamais rendues cultivables — de la terre morte qu'aucun outil ne
 // pouvait travailler. Avec cinq colonnes il en faut 7 716. On monte à 8 200, marge
 // comprise : c'est un seul InstancedMesh, donc toujours un seul appel de rendu.
-const FIELD_POOL = 8200;
+// Relevé après la rangée nord : 20 parcelles réclament 7 948 instances.
+const FIELD_POOL = 9500;
 let nextInst = 0;
 function buildField(){
   paintStaticGround();
@@ -1042,7 +1060,7 @@ function activateParcel(p){
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
     const id = j*GNX+i;
     if(state[id] !== ST.HORS) continue;
-    const x = cellX(i), z = cellX(j);
+    const x = cellX(i), z = cellZ(j);
     if(!isArable(x,z)) continue;
     if(nextInst >= FIELD_POOL) continue;
     const n = nextInst++;
@@ -1823,6 +1841,7 @@ function buildFarm(){
   // Clôture posée entre la route et l'herbe. Le bord est a suivi la rocade.
   const F = ROAD_C - ROAD_W/2 - 2.5;
   const FE = ROAD_E - ROAD_W/2 - 2.5;
+  const FN = ROAD_N + ROAD_W/2 + 2.5;
   // La trouée n'était calibrée que sur la largeur du chemin : 10,8 m pour une
   // moissonneuse qui en fait 8,4. Il restait 1,2 m de chaque côté, et le moindre
   // écart couchait un tronçon. On l'ouvre à 15,6 m, de quoi entrer sans viser.
@@ -1832,18 +1851,19 @@ function buildFarm(){
   // une clôture ou un mât planté devant n'y apporte qu'un obstacle à contourner.
   // La façade reste donc dégagée ; le reste du pourtour garde sa clôture.
   const COUR = 42;                     // demi-largeur de la façade ferme + garage
-  fenceRun(false, -F, -F, FE, PATHS_V, GAP);  // bord nord, jusqu'à la rocade est
+  fenceRun(false, FN, -F, FE, PATHS_V, GAP);  // bord nord, jusqu'à la rocade est
   fenceLine(-F, F, -COUR, F);                 // bord sud, à l'ouest de la cour
   // À l'est de la cour, plus rien : la cour, le garage et la cour de transformation
   // occupent maintenant toute la façade sud jusqu'à x = 104. C'est là qu'on manœuvre
   // le plus, et une clôture plantée en travers d'une dalle de bitume n'apporterait
   // qu'un obstacle à contourner. Il ne restait de toute façon que deux mètres entre
   // le bout de la dalle et la rocade est.
-  fenceRun(true,  -F, -F, F, PATHS_H, GAP);   // bord ouest
-  fenceRun(true,  FE, -F, F, PATHS_H, GAP);   // bord est
+  fenceRun(true,  -F, FN, F, PATHS_H, GAP);   // bord ouest
+  fenceRun(true,  FE, FN, F, PATHS_H, GAP);   // bord est
 
   // lampadaires en bord de route, potence tournée vers la chaussée
   const LP = ROAD_C - ROAD_W/2 - 2.0, LPE = ROAD_E - ROAD_W/2 - 2.0;
+  const LPN = ROAD_N + ROAD_W/2 + 2.0;
   // un mât planté dans un débouché de chemin bloquerait le passage : on saute ces positions
   const clearOfPath = (x,z)=> !onPath(x, z, 6.5);
   // Route sud : rien devant la ferme. La cour, le garage et la cour de transformation
@@ -1852,10 +1872,10 @@ function buildFarm(){
   const devantLaFerme = (x)=> Math.abs(x) <= COUR ||
                               (x >= HALLE_YARD.x0 - 2 && x <= HALLE_YARD.x1 + 2);
   for(let t=-60; t<=100; t+=20){
-    if(clearOfPath(t, -LP)) addLamp( t, -LP, 0);                  // route nord
+    if(clearOfPath(t, LPN)) addLamp( t, LPN, 0);                  // route nord
     if(!devantLaFerme(t) && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
   }
-  for(let t=-60; t<=60; t+=20){
+  for(let t=-100; t<=60; t+=20){
     if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);          // route ouest
     if(clearOfPath( LPE, t)) addLamp( LPE, t, -Math.PI/2);        // route est
   }
@@ -3503,7 +3523,7 @@ function work(m, dt){
     // Un épi planté avec un décalage aléatoire de ±28 cm pouvait rester debout alors
     // que le sol autour de lui était peint : d'où les touffes isolées au milieu du
     // passage, qui ressemblaient à des trous dans la ligne.
-    if(!eligible && inSweep(cellX(i), cellX(j), prev, prev.r, cur, cur.r, w, CH, nsubW))
+    if(!eligible && inSweep(cellX(i), cellZ(j), prev, prev.r, cur, cur.r, w, CH, nsubW))
       eligible = true;
     const wb = wheatBase[instOf[id]];
     if(inSweep(wb.x, wb.z, prev, prev.r, cur, cur.r, w, 0, nsubW)) touched.push(id);
@@ -5719,8 +5739,14 @@ function packGrille(){
 // cellule (i,j) garde exactement le même (i,j). Seule la longueur d'une ligne change,
 // de 169 à 212 ; les 43 colonnes neuves de chaque ligne restent à zéro, c'est-à-dire
 // hors culture, ce qu'elles étaient de toute façon avant qu'on achète la parcelle.
-function unpackGrille(b64, gnx, gnz){
+function unpackGrille(b64, gnx, gnz, sx0, sz0){
   const AX0 = gnx || 169, AZ0 = gnz || 169;       // trame de la grille enregistrée
+  // Les origines du monde ont reculé, d'abord à l'est puis au nord. Une sauvegarde
+  // porte les siennes ; celles d'avant valaient -110 sur les deux axes. Le décalage
+  // est un nombre ENTIER de cellules par construction — c'est ce qui a dicté le pas
+  // de l'élargissement — donc la migration reste une recopie, jamais un ré-échantillonnage.
+  const di = Math.round(((sx0 === undefined ? -110 : sx0) - X0)/CS);
+  const dj = Math.round(((sz0 === undefined ? -110 : sz0) - Z0)/CS);
   const s = atob(b64), n = AX0*AZ0, buf = new Uint8Array(n*4);
   let p = 0;
   for(let i=0;i<s.length;i+=2){
@@ -5730,11 +5756,14 @@ function unpackGrille(b64, gnx, gnz){
   if(p !== buf.length) return false;         // sauvegarde tronquée : on n'y touche pas
   growingList.length = 0;
   state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0);
-  const li = Math.min(AX0, GNX), lj = Math.min(AZ0, GNZ);
-  for(let j=0;j<lj;j++){
-    const a = j*AX0, b = j*GNX;
-    for(let i=0;i<li;i++){
-      const src = a + i, dst = b + i;
+  for(let j=0;j<AZ0;j++){
+    const jd = j + dj;
+    if(jd < 0 || jd >= GNZ) continue;
+    const a = j*AX0, b = jd*GNX;
+    for(let i=0;i<AX0;i++){
+      const id2 = i + di;
+      if(id2 < 0 || id2 >= GNX) continue;
+      const src = a + i, dst = b + id2;
       state[dst]    = buf[src];
       growth[dst]   = buf[n+src]/255;
       fert[dst]     = buf[n*2+src];
@@ -5782,7 +5811,7 @@ function etatJeu(){
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
       vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
-    gnx: GNX, gnz: GNZ,
+    gnx: GNX, gnz: GNZ, x0: X0, z0: Z0,
     grille: packGrille()
   };
 }
@@ -5863,7 +5892,7 @@ function chargerPartie(S){
       degagerFriche(p);
       activateParcel(p);
     });
-    if(!unpackGrille(S.grille, S.gnx, S.gnz)) return false;
+    if(!unpackGrille(S.grille, S.gnx, S.gnz, S.x0, S.z0)) return false;
     // 2. les pâtures : elles reposent clôture, tank et auge sur leur parcelle
     for(const q of S.patures){
       const p = PARCELS[q.parcelle];
