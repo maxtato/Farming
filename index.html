@@ -1823,7 +1823,10 @@ function buildFarm(){
   // Clôture posée entre la route et l'herbe. Le bord est a suivi la rocade.
   const F = ROAD_C - ROAD_W/2 - 2.5;
   const FE = ROAD_E - ROAD_W/2 - 2.5;
-  const GAP = PATH_W/2 + 2.2;
+  // La trouée n'était calibrée que sur la largeur du chemin : 10,8 m pour une
+  // moissonneuse qui en fait 8,4. Il restait 1,2 m de chaque côté, et le moindre
+  // écart couchait un tronçon. On l'ouvre à 15,6 m, de quoi entrer sans viser.
+  const GAP = PATH_W/2 + 4.6;
   // La cour et le garage occupent toute la façade sud, de -36,6 à 36,6. C'est là
   // qu'on manœuvre le plus : on y entre et on en sort par n'importe quel bord, et
   // une clôture ou un mât planté devant n'y apporte qu'un obstacle à contourner.
@@ -1952,6 +1955,25 @@ function buildFarm(){
   h.updateMatrixWorld(true);
   chimney = new THREE.Vector3(); cm.getWorldPosition(chimney);
 
+
+  // Le puits de la cour : margelle de pierre, deux montants, un petit toit et le seau
+  // au bout de sa corde. Il ne sert à rien qu'à dire que la maison est habitée.
+  const puits = new THREE.Group();
+  puits.add(cyl(1.15, 1.15, 1.0, 12, 0xBFB6A4, 0, 0.5, 0));          // margelle
+  puits.add(cyl(1.24, 1.24, 0.18, 12, 0x9A9184, 0, 1.04, 0));        // couronnement
+  puits.add(cyl(1.0, 1.0, 0.1, 12, 0x35505C, 0, 0.92, 0));           // l'eau, au fond
+  for(const sx of [-1.06, 1.06])
+    puits.add(box(0.22, 2.3, 0.22, 0x7A5730, sx, 2.15, 0));          // montants
+  puits.add(gable(2.4, 0.85, 3.1, 0xC4553A, 0, 3.3, 0, Math.PI/2));  // toit à deux pentes
+  puits.add(cyl(0.17, 0.17, 1.95, 8, 0x8A6A3A, 0, 2.95, 0, 0, 0, Math.PI/2));   // treuil
+  puits.add(box(0.5, 0.1, 0.1, 0x5A4326, 1.32, 2.95, 0));            // manivelle
+  puits.add(box(0.36, 0.12, 0.12, 0x5A4326, 1.55, 2.72, 0));
+  puits.add(box(0.05, 0.95, 0.05, 0xD8CBB4, 0, 2.42, 0));            // corde
+  puits.add(cyl(0.3, 0.25, 0.44, 8, 0x8A9298, 0, 1.76, 0));          // seau
+  puits.position.set(-49.5, 0, 60); puits.rotation.y = 0.5;
+  puits.traverse((o)=>{ if(o.isMesh){ o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(puits);
+  obstacles.push({x:-49.5, z:60, r:1.5});
 
   // bottes de paille
   for(let k=0;k<6;k++){
@@ -4705,7 +4727,9 @@ function creerPature(p, espece){
   // sur le chemin de sable, donc celui d'où l'on arrive toujours.
   const x0 = p.x - p.w/2 + 0.6, x1 = p.x + p.w/2 - 0.6;
   const z0 = p.z - p.h/2 + 0.6, z1 = p.z + p.h/2 - 0.6;
-  const gx = p.x, gz = z0, demi = Math.min(4.2, p.w*0.18);
+  // Même mesure qu'aux trouées de la clôture de ferme : un portail de 8,4 m est
+  // exactement la largeur d'une moissonneuse, on ne passait qu'au millimètre.
+  const gx = p.x, gz = z0, demi = Math.min(6.0, p.w*0.22);
   fenceLine(x0, z0, gx - demi, z0, 0xB4A183);
   fenceLine(gx + demi, z0, x1, z0, 0xB4A183);
   fenceLine(x0, z1, x1, z1, 0xB4A183);
