@@ -1601,8 +1601,14 @@ function buildCommerce(S){
 function buildFarm(){
   const F = ROAD_C - ROAD_W/2 - 2.5;   // clôture posée entre la route et l'herbe
   const GAP = PATH_W/2 + 2.2;
+  // La cour et le garage occupent toute la façade sud, de -36,6 à 36,6. C'est là
+  // qu'on manœuvre le plus : on y entre et on en sort par n'importe quel bord, et
+  // une clôture ou un mât planté devant n'y apporte qu'un obstacle à contourner.
+  // La façade reste donc dégagée ; le reste du pourtour garde sa clôture.
+  const COUR = 42;                     // demi-largeur de la façade ferme + garage
   fenceRun(false, -F, -F, F, PATHS_V, GAP);   // bord nord
-  fenceRun(false,  F, -F, F, PATHS_V, GAP);   // bord sud
+  fenceLine(-F, F, -COUR, F);                 // bord sud, à l'ouest de la cour
+  fenceLine(COUR, F, F, F);                   // bord sud, à l'est du garage
   fenceRun(true,  -F, -F, F, PATHS_H, GAP);   // bord ouest
   fenceRun(true,   F, -F, F, PATHS_H, GAP);   // bord est
 
@@ -1612,7 +1618,8 @@ function buildFarm(){
   const clearOfPath = (x,z)=> !onPath(x, z, 6.5);
   for(let t=-60; t<=60; t+=20){
     if(clearOfPath(t, -LP)) addLamp( t, -LP, 0);          // route nord
-    if(clearOfPath(t,  LP)) addLamp( t,  LP, Math.PI);    // route sud
+    // route sud : rien devant la cour ni le garage, pour les mêmes raisons
+    if(Math.abs(t) > COUR && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
     if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);  // route ouest
     if(clearOfPath( LP, t)) addLamp( LP, t, -Math.PI/2);  // route est
   }
