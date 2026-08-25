@@ -1355,25 +1355,170 @@ function paintSwath(key, a, ar, b, br, w){
 }
 
 /* ---------- 8. BLÉ (InstancedMesh, épi « variante E ») ---------- */
-function wheatGeometry(){
-  const parts = [];
-  const stems = [[0,0,0.03],[-0.30,0.21,-0.20],[0.29,-0.20,0.19]];
-  for(const [ox,oz,tz] of stems){
-    const st = new THREE.CylinderGeometry(0.07,0.105,1.02,3,1,true);
-    const m1 = new THREE.Matrix4().makeRotationZ(tz);
-    m1.setPosition(ox, 0.51, oz);
-    parts.push({g:st, m:m1, c:0xF0F0F0});
+/* Les sept cultures ont chacune leur plante. Jusqu'ici elles partageaient toutes la
+   silhouette du blé et ne se distinguaient que par la couleur : un champ de maïs
+   ressemblait à un champ de blé jauni. Les géométries viennent de la planche fournie
+   par le joueur, ramenées à l'échelle d'une cellule.
+
+   Les cinq céréales sont peintes en BLANC : c'est la couleur d'instance, calculée
+   depuis lo/hi selon la maturité, qui les teint. Les deux cultures permanentes portent
+   au contraire leur propre palette — un tronc d'olivier n'a pas à jaunir avec la
+   saison — et reçoivent une couleur d'instance presque blanche, qui ne fait que
+   nuancer. */
+function geoBle(){
+  const P = [];
+  for(const [ox, oz, tz] of [[0,0,0.03], [-0.30,0.21,-0.20], [0.29,-0.20,0.19]]){
+    const st = new THREE.CylinderGeometry(0.07, 0.105, 1.02, 3, 1, true);
+    const m1 = new THREE.Matrix4().makeRotationZ(tz); m1.setPosition(ox, 0.51, oz);
+    P.push({g:st, m:m1, c:0xF0F0F0});
     // épi : prisme effilé, grains suggérés par l'étage plus large
-    const h1 = new THREE.CylinderGeometry(0.12,0.205,0.72,3,1,true);
-    const m2 = new THREE.Matrix4().makeRotationZ(tz); m2.setPosition(ox+tz*0.6, 1.36, oz);
-    parts.push({g:h1, m:m2, c:0xFFFFFF});
+    const h1 = new THREE.CylinderGeometry(0.12, 0.205, 0.72, 3, 1, true);
+    const m2 = new THREE.Matrix4().makeRotationZ(tz); m2.setPosition(ox + tz*0.6, 1.36, oz);
+    P.push({g:h1, m:m2, c:0xFFFFFF});
   }
-  return mergeParts(parts);
+  return mergeParts(P);
 }
-let wheat, wheatCount = 0;
+// L'orge se reconnaît à ses barbes : de longues arêtes qui s'évasent au-dessus d'un
+// épi court et dense. Sans elles, elle serait un blé un peu plus pâle.
+function geoOrge(){
+  const P = [];
+  for(const [ox, oz, tz] of [[-0.16,0.12,-0.06], [0.20,-0.14,0.14]]){
+    const st = new THREE.CylinderGeometry(0.055, 0.085, 1.05, 3, 1, true);
+    const m1 = new THREE.Matrix4().makeRotationZ(tz); m1.setPosition(ox, 0.52, oz);
+    P.push({g:st, m:m1, c:0xEAEAEA});
+    const ep = new THREE.CylinderGeometry(0.09, 0.17, 0.50, 3, 1, true);
+    const m2 = new THREE.Matrix4().makeRotationZ(tz); m2.setPosition(ox + tz*0.55, 1.25, oz);
+    P.push({g:ep, m:m2, c:0xFFFFFF});
+    for(let k = 0; k < 4; k++){
+      const a = -0.45 + k*0.30;
+      const ba = new THREE.CylinderGeometry(0.008, 0.022, 0.9, 3, 1, true);
+      const m3 = new THREE.Matrix4().makeRotationZ(tz + a*0.55);
+      m3.multiply(new THREE.Matrix4().makeRotationY(k*1.2));
+      m3.setPosition(ox + tz*0.6 + a*0.16, 1.85, oz + a*0.1);
+      P.push({g:ba, m:m3, c:0xFFFFFF});
+    }
+  }
+  return mergeParts(P);
+}
+// Le maïs : une tige unique et haute, trois feuilles retombantes, un épi contre la
+// tige et le panicule au sommet.
+function geoMais(){
+  const P = [];
+  const st = new THREE.CylinderGeometry(0.10, 0.16, 1.90, 4, 1, true);
+  P.push({g:st, m:new THREE.Matrix4().makeTranslation(0, 0.95, 0), c:0xE8E8E8});
+  for(let k = 0; k < 3; k++){
+    const a = k*2.1, h = 0.55 + k*0.4;
+    const f = new THREE.CylinderGeometry(0.02, 0.34, 0.95, 3, 1, true);
+    const m = new THREE.Matrix4().makeRotationZ(0.95*(k % 2 ? 1 : -1));
+    m.multiply(new THREE.Matrix4().makeRotationY(a));
+    m.setPosition(Math.cos(a)*0.3, h, Math.sin(a)*0.3);
+    P.push({g:f, m, c:0xF4F4F4});
+  }
+  P.push({g:new THREE.CylinderGeometry(0.10, 0.19, 0.62, 5, 1, true),
+          m:new THREE.Matrix4().makeTranslation(0.22, 1.15, 0.05), c:0xFFFFFF});
+  P.push({g:new THREE.CylinderGeometry(0.03, 0.11, 0.50, 3, 1, true),
+          m:new THREE.Matrix4().makeTranslation(0, 2.10, 0), c:0xFFFFFF});
+  return mergeParts(P);
+}
+// Le colza : des grappes de fleurs empilées au bout de tiges courtes. C'est la masse
+// jaune vue de loin, pas le détail, qui doit le rendre reconnaissable.
+function geoColza(){
+  const P = [];
+  for(const [ox, oz] of [[-0.14,0.10], [0.16,-0.12]]){
+    P.push({g:new THREE.CylinderGeometry(0.05, 0.08, 0.95, 3, 1, true),
+            m:new THREE.Matrix4().makeTranslation(ox, 0.48, oz), c:0xDCDCDC});
+    for(let k = 0; k < 3; k++){
+      const a = k*2.1;
+      P.push({g:new THREE.CylinderGeometry(0.16, 0.13, 0.22, 3, 1, true),
+              m:new THREE.Matrix4().makeTranslation(
+                ox + Math.cos(a)*0.12, 1.04 + k*0.13, oz + Math.sin(a)*0.12), c:0xFFFFFF});
+    }
+  }
+  return mergeParts(P);
+}
+// L'avoine : des tiges fines et souples, et des grains portés en panicule lâche plutôt
+// qu'en épi serré.
+function geoAvoine(){
+  const P = [];
+  for(const [ox, oz, tz] of [[-0.15,0.11,-0.05], [0.18,-0.13,0.12]]){
+    const st = new THREE.CylinderGeometry(0.035, 0.06, 1.15, 3, 1, true);
+    const m1 = new THREE.Matrix4().makeRotationZ(tz); m1.setPosition(ox, 0.58, oz);
+    P.push({g:st, m:m1, c:0xE4E4E4});
+    for(let k = 0; k < 3; k++){
+      const a = k*2.1, r = 0.13 + (k % 2)*0.07;
+      const gr = new THREE.CylinderGeometry(0.015, 0.075, 0.26, 3, 1, true);
+      const m2 = new THREE.Matrix4().makeRotationZ(0.5*Math.cos(a));
+      m2.setPosition(ox + tz*0.5 + Math.cos(a)*r, 1.14 - (k % 2)*0.12, oz + Math.sin(a)*r);
+      P.push({g:gr, m:m2, c:0xFFFFFF});
+    }
+  }
+  return mergeParts(P);
+}
+/* Une souche de vigne, avec son piquet et son bout de fil. Les cellules d'un même rang
+   se suivent à 1,3 m et leurs fils se rejoignent : c'est ce qui reconstitue le
+   palissage sans avoir à modéliser un rang entier. D'où l'alignement strict — une
+   vigne plantée de travers ne fait plus de rang. */
+function geoVigne(){
+  const P = [];
+  const put = (g, c, x, y, z, o)=>{
+    o = o || {};
+    P.push({g, c, m:new THREE.Matrix4().compose(
+      new THREE.Vector3(x, y, z),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(0, o.ry || 0, o.rz || 0)),
+      new THREE.Vector3(o.sx || 1, o.sy || 1, o.sz || 1))});
+  };
+  put(new THREE.BoxGeometry(0.07, 0.88, 0.07), 0x6B4E24, 0, 0.44, 0);       // piquet
+  put(new THREE.BoxGeometry(0.025, 0.025, 0.80), 0x9AA2A7, 0, 0.60, 0);     // fil
+  put(new THREE.CylinderGeometry(0.05, 0.08, 0.32, 6), 0x6B4E24, 0.02, 0.16, 0);   // cep
+  for(let i = 0; i < 2; i++)                                                // feuillage
+    put(new THREE.IcosahedronGeometry(0.25, 0), 0x5E8C46,
+        (i-0.5)*0.12, 0.56 + i*0.12, (i-0.5)*0.30, {sx:0.8, sy:0.95, sz:1.15});
+  for(const dz of [-0.16, 0.18])                                            // grappes
+    put(new THREE.IcosahedronGeometry(0.10, 0), 0x7A4A82, 0.07, 0.36, dz, {sy:1.25});
+  return mergeParts(P);
+}
+/* Un olivier. Tronc noueux en trois fûts décalés, couronne en boules, olives semées
+   dedans. Il occupe cinq mètres de large : une cellule sur seize en porte un, sinon
+   la parcelle deviendrait un maquis impénétrable. */
+function geoOlivier(){
+  const P = [];
+  const put = (g, c, x, y, z, o)=>{
+    o = o || {};
+    P.push({g, c, m:new THREE.Matrix4().compose(
+      new THREE.Vector3(x, y, z),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(0, o.ry || 0, 0)),
+      new THREE.Vector3(o.sx || 1, o.sy || 1, o.sz || 1))});
+  };
+  put(new THREE.CylinderGeometry(0.17, 0.26, 0.62, 6), 0x7A6650, 0, 0.31, 0);
+  put(new THREE.CylinderGeometry(0.11, 0.17, 0.52, 6), 0x7A6650, 0.02, 0.88, 0.01);
+  for(const [dx, dy, dz, r] of [[0, 1.34, 0, 0.62], [0.46, 1.18, 0.16, 0.42],
+                                [-0.44, 1.20, -0.13, 0.40], [0.05, 1.68, -0.10, 0.36]])
+    put(new THREE.IcosahedronGeometry(r, 0), 0x86A47E, dx, dy, dz, {sy:0.8});
+  for(let k = 0; k < 4; k++){
+    const a = k*1.6, r = 0.44 + (k % 3)*0.15;
+    put(new THREE.IcosahedronGeometry(0.055, 0), 0x33421F,
+        Math.cos(a)*r, 1.18 + (k % 4)*0.15, Math.sin(a)*r);
+  }
+  return mergeParts(P);
+}
+const GEO_CULTURE = [geoBle, geoMais, geoColza, geoAvoine, geoOrge, geoVigne, geoOlivier];
+/* Un maillage instancié PAR CULTURE, et non plus un seul pour tout le champ : sept
+   plantes différentes ne peuvent pas partager une géométrie.
+
+   Le piège serait d'allouer sept fois la réserve et de laisser les instances inutiles
+   à l'échelle zéro : le processeur graphique les traiterait quand même, soit 66 500
+   plantes par image au lieu de 9 500. On compacte donc chaque maillage : `count` vaut
+   exactement le nombre de cellules qui portent CETTE culture, et la somme des sept
+   reste ce qu'elle a toujours été. Une cellule qui change de culture déménage — on la
+   retire de son ancien maillage en y ramenant la dernière instance à sa place, ce qui
+   garde le tableau compact et sans trou. */
+const CHAMPS = [];                                        // culture -> InstancedMesh
+const champRec = [];                                      // culture -> [place -> fiche]
+const champSale = [];                                     // culture -> à renvoyer au GPU
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(),
       _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _col = new THREE.Color();
-const wheatBase = [];   // {x,z,rot,scale}
+const _axeY = new THREE.Vector3(0, 1, 0);
+const wheatBase = [];   // fiche de plante par cellule cultivable : {x,z,i,j,rot,sc,crop}
 // Sept cultures. Chacune a sa couleur, sa durée, son rendement et le produit qu'elle
 // verse dans la trémie ; tout le reste du système (labour, semis, engrais, moisson)
 // est identique. L'ORDRE EST FIGÉ : une sauvegarde stocke l'indice de la culture dans
@@ -1391,10 +1536,17 @@ const CROPS = [
    temps:190, kg:10, haut:0.95, cout:3000, verrou:true},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
    temps:200, kg:11, haut:1.05, cout:2200, verrou:true},
-  {nom:'Raisin', cle:'raisin', lo:new THREE.Color(0x4E7A3A), hi:new THREE.Color(0x6E5A7A),
-   temps:340, kg:9, haut:1.20, cout:9000, verrou:true, perenne:true},
-  {nom:'Olives', cle:'olives', lo:new THREE.Color(0x6E8A5A), hi:new THREE.Color(0x8A9A6A),
-   temps:400, kg:8, haut:1.35, cout:11000, verrou:true, perenne:true}
+  // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
+  // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
+  // ne poussent pas non plus à chaque cellule — un olivier tous les cinq mètres, un
+  // pied de vigne tous les 1,3 m mais un rang sur deux — d'où le masque, calculé sur
+  // la cellule pour que la plantation soit régulière et non semée au hasard.
+  {nom:'Raisin', cle:'raisin', lo:new THREE.Color(0xBCCDA8), hi:new THREE.Color(0xC9B4C4),
+   temps:340, kg:9, haut:1.20, cout:9000, verrou:true, perenne:true,
+   rang:true, masque:(i)=> i % 2 === 0},
+  {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
+   temps:400, kg:8, haut:1.35, cout:11000, verrou:true, perenne:true,
+   masque:(i, j)=> i % 4 === 0 && j % 4 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
 CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
@@ -1411,26 +1563,31 @@ const cLo = new THREE.Color(C.wheatLo), cHi = new THREE.Color(C.wheatHi);
 // Relevé après la rangée nord : 20 parcelles réclament 7 948 instances.
 const FIELD_POOL = 9500;
 let nextInst = 0;
+const champSlot = new Int32Array(FIELD_POOL).fill(-1);    // fiche -> place dans son maillage
+const champCrop = new Int8Array(FIELD_POOL).fill(-1);     // fiche -> culture où elle est posée
 function buildField(){
   paintStaticGround();
-  const wg = wheatGeometry();
-  // Un jaune assombri devient kaki : c'est l'ombrage des faces latérales des tiges
-  // qui verdissait la masse. On surexpose la géométrie pour que les flancs rendent plein.
-  const wcol = wg.attributes.color.array;
-  for(let i=0;i<wcol.length;i++) wcol[i] *= 1.22;
-  wheat = new THREE.InstancedMesh(wg,
-    new THREE.MeshLambertMaterial({vertexColors:true}), FIELD_POOL);
-  wheat.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  wheat.frustumCulled = false;
-  wheat.receiveShadow = true;
-  // three alloue le tampon de couleurs d'instance à la taille de `count` lors du premier
-  // setColorAt. Comme on démarre à 0 instance, ce tampon naissait vide et toutes les
-  // couleurs écrites tombaient dans le vide : les épis rendaient noir. On l'alloue donc
-  // nous-mêmes à la taille de la réserve.
-  wheat.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(FIELD_POOL*3), 3);
-  wheat.instanceColor.setUsage(THREE.DynamicDrawUsage);
-  wheat.count = 0;
-  scene.add(wheat);
+  for(let c = 0; c < CROPS.length; c++){
+    const wg = GEO_CULTURE[c]();
+    // Un jaune assombri devient kaki : c'est l'ombrage des faces latérales des tiges
+    // qui verdissait la masse. On surexpose la géométrie pour que les flancs rendent plein.
+    const wcol = wg.attributes.color.array;
+    for(let i = 0; i < wcol.length; i++) wcol[i] *= 1.22;
+    const M = new THREE.InstancedMesh(wg,
+      new THREE.MeshLambertMaterial({vertexColors:true}), FIELD_POOL);
+    M.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    M.frustumCulled = false;
+    M.receiveShadow = true;
+    // three alloue le tampon de couleurs d'instance à la taille de `count` lors du premier
+    // setColorAt. Comme on démarre à 0 instance, ce tampon naissait vide et toutes les
+    // couleurs écrites tombaient dans le vide : les épis rendaient noir. On l'alloue donc
+    // nous-mêmes à la taille de la réserve.
+    M.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(FIELD_POOL*3), 3);
+    M.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    M.count = 0;
+    scene.add(M);
+    CHAMPS[c] = M; champRec[c] = [];
+  }
   for(const p of PARCELS) if(p.owned) activateParcel(p);
 }
 // Met une parcelle en culture : cellules cultivables, épis alloués, sol peint en terre.
@@ -1449,25 +1606,68 @@ function activateParcel(p){
     let wx = x + (Math.random()-0.5)*0.55, wz = z + (Math.random()-0.5)*0.55;
     wx = Math.max(p.x-p.w/2+0.35, Math.min(p.x+p.w/2-0.35, wx));
     wz = Math.max(p.z-p.h/2+0.35, Math.min(p.z+p.h/2-0.35, wz));
-    wheatBase[n] = {x:wx, z:wz, rot:Math.random()*Math.PI, sc:1.45 + Math.random()*0.5, crop:0};
+    wheatBase[n] = {x:wx, z:wz, i:i, j:j,
+                    rot:Math.random()*Math.PI, sc:1.45 + Math.random()*0.5, crop:0};
     setInstance(n, 0, 0);
     state[id] = ST.JACHERE; arableCount++;
   }
-  wheat.count = nextInst;
-  wheat.instanceMatrix.needsUpdate = true;
-  if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+  champsAJour();
   paintParcelSoil(p);
+}
+// Retire une fiche de son maillage en ramenant la dernière instance à sa place : le
+// tableau reste compact, donc `count` reste juste, donc le GPU ne traite que ce qui
+// pousse vraiment.
+function retirerDuChamp(n){
+  const c = champCrop[n];
+  if(c < 0) return;
+  const M = CHAMPS[c], liste = champRec[c], place = champSlot[n], dernier = M.count - 1;
+  if(place !== dernier){
+    const autre = liste[dernier];
+    M.getMatrixAt(dernier, _m4); M.setMatrixAt(place, _m4);
+    if(M.instanceColor){
+      _col.fromArray(M.instanceColor.array, dernier*3);
+      M.setColorAt(place, _col);
+    }
+    liste[place] = autre; champSlot[autre] = place;
+  }
+  M.count = dernier;
+  champCrop[n] = -1; champSlot[n] = -1;
+  champSale[c] = true;
 }
 function setInstance(n, g, alive){
   const b = wheatBase[n];
-  const C2 = CROPS[b.crop || 0];
-  const s = alive ? b.sc * (0.22 + 0.78*g) : 0.0001;
-  _q.setFromAxisAngle(new THREE.Vector3(0,1,0), b.rot);
-  _v3.set(b.x, 0, b.z); _s3.set(s, s*(0.5+0.5*g)*C2.haut, s);
+  const c = b.crop | 0, C2 = CROPS[c];
+  // Une cellule qui ne porte rien — terre nue, ou maille vide entre deux oliviers —
+  // n'a pas d'instance du tout. C'est ce qui rend le masque des permanentes gratuit.
+  if(!alive || (C2.masque && !C2.masque(b.i, b.j))){ retirerDuChamp(n); return; }
+  if(champCrop[n] !== c){ retirerDuChamp(n); 
+    const M0 = CHAMPS[c], place = M0.count++;
+    champRec[c][place] = n; champSlot[n] = place; champCrop[n] = c;
+  }
+  // Une vigne est plantée en rang : ni décalage aléatoire, ni rotation. C'est
+  // l'alignement des cellules voisines qui reconstitue le fil de palissage.
+  const enRang = !!C2.rang;
+  // Une plante permanente ne rétrécit pas quand on la récolte : on lui a pris ses
+  // fruits, pas son bois. Son échelle ne varie donc qu'à peine.
+  const s = b.sc * (C2.perenne ? 0.88 + 0.12*g : 0.22 + 0.78*g);
+  _q.setFromAxisAngle(_axeY, enRang ? 0 : b.rot);
+  _v3.set(enRang ? cellX(b.i) : b.x, 0, enRang ? cellZ(b.j) : b.z);
+  _s3.set(s, s*(C2.perenne ? 1 : 0.5 + 0.5*g)*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
-  wheat.setMatrixAt(n, _m4);
-  _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0,(g-0.20)/0.40)));
-  wheat.setColorAt(n, _col);
+  _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
+  const M = CHAMPS[c], place = champSlot[n];
+  M.setMatrixAt(place, _m4);
+  M.setColorAt(place, _col);
+  champSale[c] = true;
+}
+// Renvoie au GPU les seuls maillages qui ont bougé.
+function champsAJour(){
+  for(let c = 0; c < CHAMPS.length; c++){
+    if(!champSale[c]) continue;
+    CHAMPS[c].instanceMatrix.needsUpdate = true;
+    if(CHAMPS[c].instanceColor) CHAMPS[c].instanceColor.needsUpdate = true;
+    champSale[c] = false;
+  }
 }
 
 /* teinte de sol par cellule, étalée sur plusieurs frames */
@@ -4440,8 +4640,7 @@ function work(m, dt){
     state[id] = T.to;
   }
   if(did){
-    wheat.instanceMatrix.needsUpdate = true;
-    if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+    champsAJour();
   }
   const anyField = eligible;
   if(anyField) paintSwath(T.key, prev, prev.r, cur, cur.r, w);
@@ -4493,8 +4692,7 @@ function grow(dt){
     }
   }
   if(dirty){
-    wheat.instanceMatrix.needsUpdate = true;
-    if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+    champsAJour();
   }
 }
 
@@ -5566,8 +5764,7 @@ function creerPature(p, espece){
     state[id] = ST.PATURE; fert[id] = 0; growth[id] = 0;
     if(instOf[id] >= 0) setInstance(instOf[id], 0, 0);
   }
-  wheat.instanceMatrix.needsUpdate = true;
-  if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+  champsAJour();
   peindrePature(p);
   p.pature = true;
 
@@ -6843,8 +7040,7 @@ function chargerPartie(S){
       wheatBase[n].crop = cropCell[id];
       setInstance(n, growth[id], vivant);
     }
-    wheat.instanceMatrix.needsUpdate = true;
-    if(wheat.instanceColor) wheat.instanceColor.needsUpdate = true;
+    champsAJour();
     repeindreSol();
 
     // 4. l'exploitation
