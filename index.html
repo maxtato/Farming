@@ -6487,6 +6487,164 @@ function refreshJauges(){
   jaugeEl.charge.style.opacity = txt ? 0.75 : 0;
 }
 
+/* ---------- JAUGES FLOTTANTES ---------- */
+/* Le bandeau du haut dit ce qu'on transporte, mais en chiffres et loin de l'action :
+   on charge une benne à l'autre bout de l'écran en regardant un texte dans un coin.
+   Une jauge posée AU-DESSUS de la chose concernée dit la même chose là où l'œil est
+   déjà — sur le camion pendant qu'il se remplit, sur le silo qui déborde, sur la
+   parcelle qui mûrit.
+
+   C'est un sprite : la caméra du jeu ne tourne jamais, mais un sprite reste lisible
+   même si on la fait tourner un jour, et il coûte moins qu'un plan réorienté à chaque
+   image. Sa texture n'est redessinée que lorsque le remplissage bouge d'un centième —
+   sinon une jauge qui se remplit repeindrait un canevas soixante fois par seconde. */
+const JAUGE_L = 256, JAUGE_H = 76;
+function creerJauge(){
+  const cv = document.createElement('canvas');
+  cv.width = JAUGE_L; cv.height = JAUGE_H;
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+    depthWrite:false, depthTest:false, opacity:0}));
+  sp.scale.set(7.2, 7.2*JAUGE_H/JAUGE_L, 1);
+  sp.renderOrder = 4;
+  sp.visible = false;
+  scene.add(sp);
+  return {sp, cv, ctx:cv.getContext('2d'), tex, k:-1, txt:null, coul:null};
+}
+function peindreJauge(J, txt, k, coul){
+  // arrondi au centième : c'est le pas visible sur une barre de 200 pixels
+  const kk = Math.round(Math.max(0, Math.min(1, k))*100)/100;
+  if(J.k === kk && J.txt === txt && J.coul === coul) return;
+  J.k = kk; J.txt = txt; J.coul = coul;
+  const c = J.ctx;
+  c.clearRect(0, 0, JAUGE_L, JAUGE_H);
+  c.fillStyle = 'rgba(24,31,36,.82)';
+  const r = 14;
+  c.beginPath();
+  c.moveTo(r, 0); c.lineTo(JAUGE_L-r, 0); c.quadraticCurveTo(JAUGE_L, 0, JAUGE_L, r);
+  c.lineTo(JAUGE_L, JAUGE_H-r); c.quadraticCurveTo(JAUGE_L, JAUGE_H, JAUGE_L-r, JAUGE_H);
+  c.lineTo(r, JAUGE_H); c.quadraticCurveTo(0, JAUGE_H, 0, JAUGE_H-r);
+  c.lineTo(0, r); c.quadraticCurveTo(0, 0, r, 0); c.closePath(); c.fill();
+  c.fillStyle = '#F2E9D6';
+  c.font = 'bold 26px "Trebuchet MS",Verdana,sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(txt, JAUGE_L/2, 26, JAUGE_L - 28);
+  // la barre : un fond creux, un remplissage plein, pas de dégradé — c'est la longueur
+  // qui doit se lire d'un coup d'œil, pas la matière
+  const bx = 18, by = 48, bw = JAUGE_L - 36, bh = 14;
+  c.fillStyle = 'rgba(255,255,255,.16)';
+  c.fillRect(bx, by, bw, bh);
+  c.fillStyle = coul;
+  c.fillRect(bx, by, bw*kk, bh);
+  J.tex.needsUpdate = true;
+}
+// Une jauge ne se montre que si elle a quelque chose à dire ET qu'on est assez près :
+// vingt jauges éparpillées sur la vallée, ce serait un tableau de bord, pas un paysage.
+const JAUGE_PORTEE = 62;
+function montrerJauge(J, x, y, z, txt, k, coul, dt){
+  const v = MACHINES[cur].v;
+  const loin = Math.hypot(v.pos.x - x, v.pos.z - z) > JAUGE_PORTEE;
+  const vise = loin ? 0 : 1;
+  J.sp.material.opacity += (vise - J.sp.material.opacity)*Math.min(1, dt*6);
+  J.sp.visible = J.sp.material.opacity > 0.02;
+  if(!J.sp.visible) return;
+  peindreJauge(J, txt, k, coul);
+  J.sp.position.set(x, y, z);
+}
+function cacherJauge(J, dt){
+  J.sp.material.opacity += (0 - J.sp.material.opacity)*Math.min(1, dt*6);
+  J.sp.visible = J.sp.material.opacity > 0.02;
+}
+
+// Les quatre jauges du monde. Celles des parcelles sont créées à la demande, une par
+// parcelle semée, et rendues au tas quand la parcelle ne pousse plus.
+let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null;
+const jaugesParcelle = [];
+function poserJauges(){
+  jaugeEngin = creerJauge(); jaugeSilo = creerJauge(); jaugeAtelier = creerJauge();
+  for(let k = 0; k < PARCELS.length; k++) jaugesParcelle.push(creerJauge());
+}
+
+/* La pousse moyenne d'une parcelle. On ne la recalcule qu'une fois par seconde :
+   balayer huit mille cellules à chaque image pour une barre qui avance d'un pixel
+   toutes les deux secondes n'aurait aucun sens. */
+let pousseT = 0;
+function majPousseParcelles(dt){
+  pousseT -= dt;
+  if(pousseT > 0) return;
+  pousseT = 1.0;
+  for(const p of PARCELS){
+    p.pousse = 0; p.pousseN = 0; p.murN = 0;
+    if(!p.owned || p.pature) continue;
+    const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+    const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+    let somme = 0, n = 0, murs = 0, crop = 0;
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+      const id = j*GNX+i;
+      if(state[id] !== ST.SEME && state[id] !== ST.MUR) continue;
+      somme += growth[id]; n++; crop = cropCell[id];
+      if(state[id] === ST.MUR) murs++;
+    }
+    p.pousse = n ? somme/n : 0; p.pousseN = n; p.murN = murs; p.pousseCrop = crop;
+  }
+}
+
+/* Ce que chaque jauge raconte, une fois par image. Tout est relu dans l'état du jeu :
+   aucune de ces valeurs n'est tenue à jour ailleurs, donc aucune ne peut mentir. */
+function majJauges(dt){
+  if(!jaugeEngin) return;
+  majPousseParcelles(dt);
+  const m = MACHINES[cur], v = m.v, T = caisseDe(m);
+
+  // — l'engin : elle apparaît quand quelque chose entre ou sort, et s'attarde deux
+  //   secondes pour qu'on voie le résultat avant qu'elle s'efface.
+  const charge = (m.key === 'moisson' && hopper > 0.01) ? {q:hopper, max:HOP_MAX, cle:CROPS[hopCrop].cle}
+               : (T && T.load > 0.01) ? {q:T.load, max:T.capacite, cle:T.type}
+               : null;
+  const bouge = charge && Math.abs(charge.q - (v.jaugeQ === undefined ? charge.q : v.jaugeQ)) > 0.01;
+  v.jaugeQ = charge ? charge.q : 0;
+  v.jaugeT = bouge ? 2.0 : Math.max(0, (v.jaugeT || 0) - dt);
+  if(charge && v.jaugeT > 0){
+    const P = PRODUITS[charge.cle];
+    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z,
+      (P ? P.nom : 'Charge') + ' ' + Math.round(charge.q) + ' kg',
+      charge.q/charge.max, P ? P.couleur : '#E6F0F8', dt);
+  } else cacherJauge(jaugeEngin, dt);
+
+  // — le silo : le total, et la céréale dont il est le plus encombré
+  const st = siloTotal();
+  if(st > 0.5){
+    const gros = siloPlusGros();
+    montrerJauge(jaugeSilo, SILO_TOUR.x, 15.5, SILO_TOUR.z,
+      'Silo ' + Math.round(st) + ' kg' + (gros ? ' · ' + PRODUITS[gros].nom : ''),
+      st/siloMax(), st > siloMax()*0.92 ? '#E8563F' : '#FFAE2E', dt);
+  } else cacherJauge(jaugeSilo, dt);
+
+  // — l'atelier : ce qu'il lui reste à travailler, ou ce qu'il a fini et qui attend
+  const tr = totalTremie(HALLE), fini = halleStock(HALLE.recette);
+  if(tr > 0.5 || fini > 0.5){
+    const R = PRODUITS[HALLE.recette];
+    montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
+      tr > 0.5 ? R.nom + ' ' + Math.round(tr) + ' kg à moudre'
+               : R.nom + ' ' + Math.round(fini) + ' kg prêts',
+      tr > 0.5 ? tr/halleEntreeMax() : fini/HALLE.stockMax(),
+      tr > 0.5 ? '#D8B24A' : R.couleur, dt);
+  } else cacherJauge(jaugeAtelier, dt);
+
+  // — les parcelles semées : où en est la pousse, et quand tout est mûr
+  PARCELS.forEach((p, k)=>{
+    const J = jaugesParcelle[k];
+    if(!J) return;
+    if(!p.owned || p.pature || !p.pousseN){ cacherJauge(J, dt); return; }
+    const C2 = CROPS[p.pousseCrop] || CROPS[0];
+    const mur = p.murN >= p.pousseN;
+    montrerJauge(J, p.x, 5.4, p.z,
+      C2.nom + (mur ? ' — à moissonner' : ' ' + Math.round(p.pousse*100) + ' %'),
+      p.pousse, mur ? '#FFD21E' : '#8BE07A', dt);
+  });
+}
+poserJauges();
+
 /* ---------- 25. NOUVEAUX ONGLETS DE LA BOUTIQUE ---------- */
 // Le panneau existant sait déjà dessiner des lignes d'article : on lui ajoute
 // trois rayons plutôt que d'inventer une deuxième interface.
@@ -7354,6 +7512,7 @@ function loop(now){
     }
     updateAtelier(dt);
     updateUsines(dt);
+    majJauges(dt);
     updateTrafic(dt);
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
