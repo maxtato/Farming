@@ -514,10 +514,21 @@ for(const c of P_COLS) for(const r of P_ROWS){
 // une bande d'herbe de 4 m entre le parking et la route, qu'on traversait à chaque
 // sortie sans qu'elle serve à rien. Le bord nord ne bouge pas : le marquage au sol
 // s'y ancre, il reste donc exactement où il était.
-const COUR_Z0 = 43.4;                     // bord nord des dalles
-const COUR_Z1 = ROAD_C - ROAD_W/2;        // bord sud : le bitume de la rocade
-const YARD  = {x:-20, z:(COUR_Z0+COUR_Z1)/2, w:33.2, h:COUR_Z1-COUR_Z0};  // dalle de parking
-const GYARD = {x: 20, z:YARD.z,               w:33.2, h:YARD.h};          // dalle du garage
+// Les bords sont DÉDUITS des chemins et de la route qu'ils touchent, pas posés à la
+// main. Avec des valeurs en dur, la dalle s'arrêtait 20 cm avant le chemin nord et
+// laissait un filet d'herbe tout le long — invisible tant que l'ancien chemin central
+// le recouvrait sur 6 m, et qui sautait aux yeux comme un décrochement une fois ce
+// chemin raccourci.
+const COUR_Z0 = PATHS_H[2] + PATH_W/2;    // 43,2 : là où finit le chemin nord
+const COUR_Z1 = ROAD_C - ROAD_W/2;        // 69 : le bitume de la rocade
+const COUR_X0 = PATHS_V[0] + PATH_W/2;    // -36,8 : là où finit le chemin ouest
+const COUR_X1 = -COUR_X0;                 //  36,8 : idem à l'est
+const YARD  = {x:(COUR_X0-3.4)/2, z:(COUR_Z0+COUR_Z1)/2,
+               w:-3.4-COUR_X0, h:COUR_Z1-COUR_Z0};        // dalle de parking
+const GYARD = {x:-YARD.x, z:YARD.z, w:YARD.w, h:YARD.h};  // dalle du garage, en miroir
+// Trame des places, partagée : le marquage la dessine, la cuve s'y range.
+const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
+const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
 const HANGAR = {x: 11, z: 54, w: 12, d: 15};   // emprise du bâtiment, sur la dalle de droite
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
@@ -1885,19 +1896,17 @@ function buildFarm(){
    Ici : douze places égales réparties d'un bord à l'autre, toutes à la même
    profondeur, sur une seule origine. */
 function marquageParking(){
-  const X0 = YARD.x - YARD.w/2, X1 = GYARD.x + GYARD.w/2;   // -36,6 -> 36,6
-  const PLACES = 12, PAS = (X1 - X0)/PLACES;                // 6,10 m par place
   const Z0 = COUR_Z0 + 2.2, PROF = 11.5;                    // même bande pour toutes
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
   // Une séparation qui tomberait sous le garage ressortirait en moignon de part et
   // d'autre du bâtiment : ces places-là sont occupées, on ne les trace pas. La cuve,
   // elle, est centrée dans sa place, donc aucune ligne ne passe dessous.
   const sousHangar = (x)=> x > HANGAR.x - 7.5 && x < HANGAR.x + 7.5;
-  worldDraw(X0-2, Z0-2, X1+2, Z0+PROF+2, (c)=>{
+  worldDraw(COUR_X0-2, Z0-2, COUR_X1+2, Z0+PROF+2, (c)=>{
     c.fillStyle = '#E2E6E8';
     c.beginPath();
-    for(let k=1;k<PLACES;k++){
-      const x = X0 + k*PAS;
+    for(let k=1;k<PLACES_N;k++){
+      const x = COUR_X0 + k*PLACE_PAS;
       if(sousHangar(x)) continue;
       c.rect(snap(x - LW/2), snap(Z0), LW, snap(PROF));
     }
@@ -2054,7 +2063,7 @@ function buildFourgon(){
   }
   // Même correction d'échelle que le pick-up, un peu plus mesurée : un fourgon
   // de livraison arrive à la hauteur du toit d'un tracteur, pas au-dessus.
-  g.scale.setScalar(1.25);
+  g.scale.setScalar(1.40);
   g.userData = {wr, wf, beacon:beaconMatF,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.02, z: 3.36, w:0.34, h:0.22},
             arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20},
@@ -2856,32 +2865,32 @@ flushTiles();
 
 const MACHINES = [
   {key:'t1', nom:'Vert', v:new Vehicle({
-      x:-33.55, z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
+      x:placeCentre(0), z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
   {key:'t2', nom:'Rouge', v:new Vehicle({
-      x:-27.45, z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
+      x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
   {key:'t3', nom:'Bleu', v:new Vehicle({
-      x:-21.35, z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
+      x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
       build:()=>buildTracteur(0x3574C6)
     })},
   {key:'pickup', nom:'Pick-up', verrou:true, prix:9000, v:new Vehicle({
-      x:27.45, z:50, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
+      x:placeCentre(10), z:51.1, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
   {key:'fourgon', nom:'Fourgon', verrou:true, prix:18000, v:new Vehicle({
-      x:33.55, z:50, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.33,
+      x:placeCentre(11), z:51.1, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
     })},
   {key:'moisson', nom:'Moisson', v:new Vehicle({
-      x:-12.2, z:47, cap:Math.PI, vmax:9.5, accel:7, turn:1.5, grip:4.0, trackW:1.7,
+      x:COUR_X0 + 4*PLACE_PAS, z:47, cap:Math.PI, vmax:9.5, accel:7, turn:1.5, grip:4.0, trackW:1.7,
       susp:{k:20, d:3.8, roll:0.052, pitch:0.024, rough:1.3},
       toolOffset:4.6, build:buildMoissonneuse
     })}
@@ -2946,7 +2955,7 @@ for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
 // chercher avec un tracteur. Un outil détaché garde la transformation de son groupe,
 // on la pose donc explicitement ici.
-const TOOL_PARK = [[-33.55, 56], [-27.45, 56], [-21.35, 56], [-15.25, 56]];
+const TOOL_PARK = [0,1,2,3].map(k => [placeCentre(k), 56]);
 TOOLS.forEach((T, i)=>{
   const q = TOOL_PARK[i];
   T.group.position.set(q[0], 0, q[1]);
@@ -4205,7 +4214,7 @@ function acheterVache(P){
 // Rangée le long du flanc est du garage, sur la place n° 10 dont elle occupe
 // exactement le centre : aucune séparation ne passe dessous. Elle était auparavant
 // plantée au milieu de la cour, là où l'on manœuvre.
-const CUVE_POS = {x:21.35, z:HANGAR.z};
+const CUVE_POS = {x:placeCentre(9), z:HANGAR.z};
 let cuveMesh = null;
 function poserCuve(){
   if(cuveMesh) return;
