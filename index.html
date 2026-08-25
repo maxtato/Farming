@@ -592,6 +592,7 @@ for(const S of SITES){
 const MILL    = SITES[2];
 const ATELIER = SITES[1];
 const BAKERY  = SITES[6];
+const ATELIER_R = 6.5;   // rayon du quai de l'atelier, aligné sur la station et le comptoir
 // La rocade est un anneau : un point est sur la chaussée si l'une de ses deux
 // coordonnées longe l'un des quatre brins. Un seul test, appliqué partout.
 function surRoute(x, z, m){
@@ -1442,10 +1443,24 @@ function poseBulle(nom, toit, blocs, x, y, z, rot){
 }
 const BULLES = [];
 const ANNEAUX = [];   // marqueurs d'action
-// Un seul et même anneau jaune partout où une action est possible : livrer, charger,
-// réparer. Mélange additif — il éclaire le sol au lieu de le teinter.
-const JAUNE_ACTION = 0xFFD21E;
-function anneauAction(x, z, phase){
+// Le même anneau partout où une action est possible : livrer, charger, réparer.
+// Mélange additif — il éclaire le sol au lieu de le teinter.
+//
+// Il dit deux choses à la fois, et c'est là tout son intérêt :
+//   JAUNE, qui pulse franchement — en se garant ici À L'INSTANT, avec cet engin et ce
+//     chargement, il se passe quelque chose ;
+//   BLANC, fixe et discret — un point de service, mais rien à y faire avec ce qu'on
+//     transporte : mauvaise nature de chargement, caisse pleine, réservoir plein, silo
+//     vide, pas assez d'argent.
+// La condition est évaluée SANS le critère de distance : c'est ce qui permet de choisir
+// sa destination de l'autre bout de la vallée, au lieu d'avoir à y aller pour savoir.
+const JAUNE_ACTION  = 0xFFD21E;
+const BLANC_ATTENTE = 0xE6F0F8;   // un blanc à peine froid, qui ne se confond pas avec le jaune
+const COUL_ACTIVE = new THREE.Color(JAUNE_ACTION);
+const COUL_VEILLE = new THREE.Color(BLANC_ATTENTE);
+// `actif` : fonction sans argument renvoyant true quand l'action est possible ici et
+// maintenant. Omise, l'anneau est réputé toujours actif.
+function anneauAction(x, z, phase, actif){
   const anneau = new THREE.Mesh(new THREE.RingGeometry(4.10, 4.42, 56),
     new THREE.MeshBasicMaterial({color:JAUNE_ACTION, transparent:true, opacity:0.95,
                                  blending:THREE.AdditiveBlending,
@@ -1462,8 +1477,21 @@ function anneauAction(x, z, phase){
   halo.position.set(x, 0.08, z);
   halo.renderOrder = 3;
   scene.add(halo);
-  ANNEAUX.push({anneau, halo, ph:phase || 0});
+  // `k` à null : la toute première image fixe l'état sans transition, sinon tous les
+  // anneaux de la carte s'allument en jaune au démarrage avant de retomber au blanc.
+  ANNEAUX.push({anneau, halo, ph:phase || 0, actif: actif || null, k: null});
 }
+/* --- de quoi écrire ces conditions sans les réinventer à chaque anneau --- */
+// Ces quatre outils sont volontairement calqués sur les tests que font vraiment
+// cargoUn(), deliverUn(), updatePlein() et updateBetail() : un anneau qui mentirait
+// serait pire que pas d'anneau du tout.
+const caisseDe = (m)=>{ const T = toolOf(m); return (T && T.cargo) ? T : (m.v.cargo || null); };
+// La moissonneuse est le seul engin dont la trémie se vide sur un point de livraison.
+const tremiePleine = (m)=> m.key === 'moisson' && hopper > 0.01;
+// Charger : il faut de la place, de la marchandise, et une caisse qui accepte la nature.
+const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacite && peutCharger(T, type);
+// Décharger : il faut porter cette nature-là, et en quantité non nulle.
+const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
 function ajouteBulle(S, H){
   const eur = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
   const blocs = [];
@@ -1620,9 +1648,30 @@ function buildCommerce(S){
     // Couleur vive : on part de la teinte de l'enseigne mais on pousse la saturation
     // et la clarté, sinon les toits sombres donnent un anneau terne. Le mélange additif
     // fait le reste — l'anneau éclaire le sol au lieu de le teinter.
-    anneauAction(S.dropX, S.dropZ, S.park*0.05);
+    //
+    // Deux mécaniques distinctes aboutissent ici, d'où deux conditions :
+    // la trémie de la moissonneuse s'y vide (deliverUn), et une caisse de grain s'y
+    // vend (cargoUn) — mais seulement chez un acheteur, pas à la boulangerie. Le moulin
+    // sait en plus RENDRE de la farine, la boulangerie ne prend qu'elle.
+    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
+      const m = MACHINES[cur], T = caisseDe(m);
+      if(S === BAKERY) return porte(T, 'farine');
+      if(S === MILL && peutPrendre(T, 'farine', flourKg)) return true;
+      return tremiePleine(m) || porte(T, 'grain');
+    });
   } else { S.dropX = S.x; S.dropZ = S.z; }
-  if(S.atelier) anneauAction(S.px, S.pz, 2.3);
+  // L'atelier. Son anneau était posé sur le parking, à 19,5 m du bâtiment, alors que
+  // refreshAtelier() mesurait la distance AU BÂTIMENT dans un rayon de 13 m : on pouvait
+  // se garer pile au centre de l'anneau sans que le bouton n'apparaisse jamais, et la
+  // seule zone qui marchait n'était signalée par rien. Le quai devient l'anneau lui-même,
+  // comme partout ailleurs — ce qu'on voit est ce qui déclenche.
+  if(S.atelier){
+    S.dropX = S.px; S.dropZ = S.pz;
+    anneauAction(S.px, S.pz, 2.3, ()=>{
+      const c = coutAmelioration(MACHINES[cur]);
+      return c > 0 && money >= c;
+    });
+  }
   bordureParking(S);
   ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
 }
@@ -1709,7 +1758,13 @@ function buildFarm(){
     }
   });
 
-  anneauAction(SILO.x, SILO.z, 1.1);
+  // Le silo marche dans les deux sens : la moissonneuse y vide sa trémie, une caisse y
+  // fait le plein de grain. Il s'éteint quand la trémie est vide ET le silo aussi — ou
+  // quand la caisse porte déjà autre chose.
+  anneauAction(SILO.x, SILO.z, 1.1, ()=>{
+    const m = MACHINES[cur];
+    return tremiePleine(m) || peutPrendre(caisseDe(m), 'grain', siloKg);
+  });
 
   // maison, à l'écart de la cour
   const h = new THREE.Group();
@@ -1782,7 +1837,12 @@ function buildFarm(){
     scene.add(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
     // devant la porte, qui donne au sud : le bord nord de l'anneau l'affleure
-    anneauAction(QUAI_GARAGE.x, QUAI_GARAGE.z, 3.7);
+    // La concession : jaune tant qu'il reste un utilitaire à vendre ET qu'on a de quoi
+    // le payer. Une fois tout le parc acheté, l'anneau reste au blanc pour de bon.
+    anneauAction(QUAI_GARAGE.x, QUAI_GARAGE.z, 3.7, ()=>{
+      const m = vehiculeAVendre();
+      return !!m && money >= m.prix;
+    });
     poseBulle('Garage', 0x7C4A38,
       [{titre:'ABRITE', lignes:[{nom:'Véhicules', prix:''}, {nom:'Outils et bennes', prix:''}]}],
       11, H + 3.4, 54, 0);
@@ -3483,7 +3543,9 @@ vehEl.addEventListener('pointerdown', ()=>{
 const atelEl = document.getElementById('atelier');
 function refreshAtelier(){
   const m = MACHINES[cur], v = m.v;
-  if(Math.hypot(v.pos.x-ATELIER.x, v.pos.z-ATELIER.z) > ATELIER.r){ atelEl.style.display='none'; return; }
+  // Sur l'anneau du parking, et non plus « quelque part autour du bâtiment » : voir le
+  // commentaire à la pose de cet anneau. Même rayon que la station et le comptoir.
+  if(!aQuai(v, ATELIER, ATELIER_R)){ atelEl.style.display='none'; return; }
   const c = coutAmelioration(m);
   atelEl.style.display = 'block';
   if(c === 0){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM'; return; }
@@ -3903,7 +3965,18 @@ const BOUCHERIE= SITES.find(S=>S.nom === 'Boucherie');
     else if(S.dir === 'E'){ S.dropX = ecart; S.dropZ = S.park; }
     else { S.dropX = S.park; S.dropZ = -(ecart); }
     S.service = true;
-    anneauAction(S.dropX, S.dropZ, S.park*0.05);
+    // Chacun sa condition, calquée sur la fonction qui déclenche vraiment :
+    //   station   — updatePlein() puis remplir(), qui refuse si la caisse est vide ;
+    //   comptoir  — il ouvre toujours, c'est sa seule et unique fonction ;
+    //   laiterie  — cargoUn() ne prend que du lait ;
+    //   boucherie — updateBetail() ne regarde que les bêtes à bord.
+    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=>{
+      const v = MACHINES[cur].v;
+      if(S === STATION)   return v.fuel < v.resMax - 0.05 && money > 0;
+      if(S === COMPTOIR)  return true;
+      if(S === LAITERIE)  return porte(caisseDe(MACHINES[cur]), 'lait');
+      return (v.betail || 0) > 0;
+    });
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
@@ -4075,9 +4148,20 @@ function creerPature(p){
   // au moins une bande praticable, quitte à ce que les bêtes frôlent l'équipement.
   if(P.box.z0 > P.box.z1 - 3) P.box.z0 = Math.max(z0 + 3.5, P.box.z1 - 3);
   majTasAuge(P);
-  anneauAction(P.quaiTank.x, P.quaiTank.z, 0.7);
-  anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1);
-  anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4);
+  // Les trois quais de la pâture, chacun avec sa condition :
+  //   tank    — il faut une caisse qui accepte le lait, et du lait au tank ;
+  //   auge    — il faut porter du grain, et que l'auge ne déborde pas ;
+  //   portail — il faut de la place à bord et une bête adulte à embarquer. Le repli
+  //             « ouvrir le panneau Élevage » n'allume pas l'anneau : ce panneau est
+  //             déjà au menu, ce n'est pas ce qu'on vient chercher jusqu'ici.
+  anneauAction(P.quaiTank.x, P.quaiTank.z, 0.7,
+    ()=> peutPrendre(caisseDe(MACHINES[cur]), 'lait', P.lait));
+  anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
+    ()=> porte(caisseDe(MACHINES[cur]), 'grain') && P.grain < P.grainMax - 0.01);
+  anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
+    const m = MACHINES[cur], cap = capaciteBetail(m);
+    return cap > 0 && vachesAdultes(P) > 0 && (m.v.betail || 0) < cap;
+  });
   PATURES.push(P);
   return P;
 }
@@ -4238,7 +4322,12 @@ function poserCuve(){
   scene.add(g);
   cuveMesh = g;
   boxObs.push({x:CUVE_POS.x, z:CUVE_POS.z, hw:1.1, hd:3.2});   // pivotée avec elle
-  anneauAction(quaiCuve.x, quaiCuve.z, 1.6);
+  // La cuve : jaune s'il reste du gazole dedans et de la place dans le réservoir.
+  // Une cuve vide s'éteint — c'est le rappel qu'il faut recommander du vrac.
+  anneauAction(quaiCuve.x, quaiCuve.z, 1.6, ()=>{
+    const v = MACHINES[cur].v;
+    return CARBU.cuve > 0.01 && v.fuel < v.resMax - 0.05;
+  });
 }
 function acheterCuve(){
   if(CARBU.cuveMax > 0 || money < CARBU.cuvePrix) return false;
@@ -5132,12 +5221,21 @@ function loop(now){
     // les bulles font face à la caméra et flottent doucement
     for(const B of BULLES)
       B.m.position.y = B.y0 + Math.sin(now/1000*1.3 + B.ph)*0.32;
-    // pulsation des anneaux de déchargement
+    // Anneaux d'action : jaune et pulsant quand l'action est possible, blanc et fixe
+    // sinon. La bascule est amortie (A.k) plutôt qu'immédiate — sans ça, rouler le long
+    // d'une rangée de commerces ou finir de charger une benne fait clignoter la carte.
+    // Seul l'anneau actif respire : c'est le mouvement qui attire l'œil, la couleur ne
+    // fait que confirmer.
     for(const A of ANNEAUX){
-      const k = 0.5 + 0.5*Math.sin(now/1000*2.2 + A.ph);
-      A.anneau.material.opacity = 0.70 + 0.30*k;
-      A.anneau.scale.setScalar(1 + 0.03*k);
-      A.halo.material.opacity = 0.06 + 0.10*k;
+      const on = A.actif ? !!A.actif() : true;
+      A.k = (A.k === null) ? (on ? 1 : 0)
+                           : A.k + ((on ? 1 : 0) - A.k) * Math.min(1, dt*6);
+      const bat = (0.5 + 0.5*Math.sin(now/1000*2.6 + A.ph)) * A.k;
+      A.anneau.material.color.copy(COUL_VEILLE).lerp(COUL_ACTIVE, A.k);
+      A.halo.material.color.copy(COUL_VEILLE).lerp(COUL_ACTIVE, A.k);
+      A.anneau.material.opacity = 0.38 + 0.17*A.k + 0.45*bat;
+      A.anneau.scale.setScalar(1 + 0.07*bat);
+      A.halo.material.opacity = 0.045 + 0.015*A.k + 0.16*bat;
     }
     usineT -= dt;
     if(usineT <= 0){

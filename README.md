@@ -28,7 +28,18 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Pilotage automatique** | bouton AUTO : la machine fait ses allers-retours seule |
 
 Un **anneau lumineux au sol** signale un endroit où s'arrêter : livraison, plein de
-gazole, chargement. On se gare dessus, ça se fait tout seul.
+gazole, chargement. On se gare dessus, ça se fait tout seul. Sa couleur dit s'il y a
+quelque chose à y faire **avec ce qu'on transporte en ce moment** :
+
+| | |
+|---|---|
+| **Jaune, qui pulse** | en s'arrêtant ici maintenant, il se passe quelque chose |
+| **Blanc, fixe** | un point de service, mais rien à y faire avec ce chargement |
+
+La caisse est pleine de lait ? Seule la laiterie s'allume, sur toute la vallée. On la
+vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas compte de
+la distance : c'est ce qui permet de choisir sa destination d'un bout à l'autre de la
+carte, au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé de tournée.
 
 ## La boucle de jeu
 
