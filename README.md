@@ -65,6 +65,11 @@ kilo. Aucun prix n'est écrit à la main — on ne règle qu'un rendement et un 
 L'onglet **Filières** affiche la chaîne entière, prix compris, relue dans les mêmes
 tables que celles qui paient. Ce qui est affiché est ce qui sera versé.
 
+Le **restaurant** tient une commande permanente : trois produits à la fois, une grosse
+prime à la clé. C'est la seule chose du jeu qui demande de composer une tournée au lieu
+de remplir une benne d'un seul tenant. Elle s'affiche sur son enseigne, elle avance à
+chaque livraison, et une nouvelle prend sa place dès qu'elle est honorée.
+
 ### Sept cultures
 
 Blé, maïs, orge, avoine et colza vont au **silo**, qui tient un tas par céréale : la

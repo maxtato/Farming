@@ -908,6 +908,42 @@ function stockASortir(S, cle){
     : (S.stock[cle] || 0);
 }
 
+const RESTO    = SITES.find(S=>S.nom === 'Restaurant');
+
+/* La commande du restaurant : trois produits à la fois, une grosse prime à la clé.
+   C'est le palier ×3 du barème appliqué à un panier plutôt qu'à une seule
+   marchandise — et c'est la seule chose du jeu qui demande de composer une tournée
+   au lieu de remplir une benne d'un seul tenant. Chaque livraison la fait avancer,
+   et elle se renouvelle dès qu'elle est honorée. */
+function nouvelleCommande(){
+  const choix = RESTO.achete.slice(), liste = [];
+  for(let k = 0; k < 3 && choix.length; k++){
+    const c = choix.splice((Math.random()*choix.length)|0, 1)[0];
+    liste.push({cle:c, need: Math.round((50 + Math.random()*100)/10)*10, fait:0});
+  }
+  RESTO.commande = {liste,
+    prime: liste.reduce((t, l)=> t + prixDe(l.cle)*l.need*(PALIER.CONTRAT - 1), 0)};
+}
+// Ce qu'il reste à apporter d'un produit pour la commande en cours, ou 0.
+const resteCommande = (cle)=>{
+  if(!RESTO.commande) return 0;
+  const l = RESTO.commande.liste.find((x)=> x.cle === cle);
+  return l ? Math.max(0, l.need - l.fait) : 0;
+};
+// Créditer la commande de ce qu'on vient de livrer, et la solder si elle est complète.
+function avancerCommande(cle, q){
+  const C = RESTO.commande;
+  if(!C) return;
+  const l = C.liste.find((x)=> x.cle === cle);
+  if(!l) return;
+  l.fait = Math.min(l.need, l.fait + q);
+  if(!C.liste.every((x)=> x.fait >= x.need - 0.01)) return;
+  money += C.prime;
+  showHint('COMMANDE DU RESTAURANT — PRIME DE ' + Math.round(C.prime).toLocaleString('fr-FR') + ' €');
+  nouvelleCommande();
+}
+nouvelleCommande();
+
 for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(S.dir === 'E'){
@@ -1935,6 +1971,8 @@ function ajouteBulle(S, H){
     blocs.push({titre:S.caisse ? 'CUISINE' : 'TRANSFORME',
       lignes:S.fabrique.slice(0, 3).map((n)=> ({nom:PRODUITS[n].nom,
         prix:S.caisse ? eur(prixChez(S, n)) : ''}))});
+  if(S.commande) blocs.unshift({titre:'COMMANDE', lignes:S.commande.liste.map((l)=>
+    ({nom:PRODUITS[l.cle].nom, prix:Math.round(resteCommande(l.cle)) + ' kg'}))});
   if(S.vend) blocs.push({titre:'VEND', lignes:S.vend});
   if(S.propose) blocs.push({titre:'PROPOSE', lignes:S.propose});
   if(S.demande){
@@ -3662,25 +3700,29 @@ function updateBirds(dt, vx, vz){
 }
 
 /* --- contrats : missions courtes, une à la fois, avec délai --- */
+// Une commande, c'est le palier ×3 du barème : la prime s'ajoute à ce que la
+// marchandise vaut déjà, de sorte qu'un contrat honoré rapporte trois fois le brut
+// de départ. Elle se déduit donc du prix, comme tout le reste.
+const prime = (cle)=> prixDe(cle)*(PALIER.CONTRAT - 1);
 const MODELES = [
-  {stat:'silo',    txt:n=>'Livrer '+n+' kg de blé au silo',        min:250, max:800,  pay:0.14, sec:150},
-  {stat:'mill',    txt:n=>'Moudre '+n+' kg de grain à l\'atelier', min:250, max:800,  pay:0.20, sec:180},
-  {stat:'pain',    txt:n=>'Vendre '+n+' kg de pain',               min:150, max:500,  pay:0.34, sec:210},
-  {stat:'moisson', txt:n=>'Récolter '+n+' kg de blé',              min:300, max:900,  pay:0.12, sec:170},
+  {stat:'silo',    txt:n=>'Rentrer '+n+' kg de céréales au silo',  min:250, max:800,  pay:prime('ble'),  sec:150},
+  {stat:'mill',    txt:n=>'Moudre '+n+' kg à l\'atelier',          min:250, max:800,  pay:prime('ble'),  sec:180},
+  {stat:'pain',    txt:n=>'Vendre '+n+' kg de la boulangerie',     min:150, max:300,  pay:prime('pain'), sec:210},
+  {stat:'moisson', txt:n=>'Moissonner '+n+' kg',                   min:300, max:900,  pay:prime('ble'),  sec:170},
   {stat:'labour',  txt:n=>'Labourer '+n+' m² de terre',            min:300, max:800,  pay:0.09, sec:150},
-  {stat:'semis',   txt:n=>'Semer '+n+' m² de blé',                 min:300, max:800,  pay:0.11, sec:160},
+  {stat:'semis',   txt:n=>'Semer '+n+' m²',                        min:300, max:800,  pay:0.11, sec:160},
   // Les deux circuits d'élevage ont aussi leurs commandes, bornées par ce que le
   // troupeau peut sortir avant l'échéance (voir `plafond` dans nouveauContrat).
   // Pour le lait : ce qui dort déjà dans les tanks, plus ce que les bêtes nourries
   // produiront d'ici là. Le quart retiré paie les allers-retours à la laiterie et
   // les moments où l'auge est vide.
-  {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait à la laiterie',  min:250, max:900, pay:0.26, sec:230,
+  {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait',  min:250, max:900, pay:prime('lait'), sec:230,
    plafond:(m)=> PATURES.reduce((a,P)=>
      a + (P.espece === 'vache' ? P.produit + P.betes.length*ESPECES.vache.parSec*m.sec*0.75 : 0), 0)},
   // Pour le bétail : seules comptent les bêtes DÉJÀ adultes. Un veau met 420 s à
   // grandir, soit plus que l'échéance du contrat — l'inclure serait mentir.
   {stat:'betes',   txt:n=>'Vendre '+n+' bête'+(n>1?'s':'')+' à la boucherie',
-   min:2, max:5, pas:1, pay:260, sec:300,
+   min:2, max:5, pas:1, pay:420, sec:300,
    plafond:()=> PATURES.reduce((a,P)=> a + betesAdultes(P), 0)}
 ];
 let contrat = null;
@@ -4138,13 +4180,21 @@ function siloPlusGros(){
 const RATION = {ble:1, mais:1, orge:1, avoine:1, aliment:1.5, alimentPlus:2};
 // Les compteurs cumulés servent aux contrats et à la progression. Un seul endroit
 // pour dire quel produit alimente quel compteur.
+// La farine n'y figure pas : `mill` compte ce que L'ATELIER a moulu, pas ce qu'on
+// revend ensuite. Sans quoi une benne de farine achetée au marché gonflerait le
+// compteur du moulin.
 const COMPTEUR = {lait:'lait', oeufs:'oeufs', laine:'laine', huile:'huile',
-                  huileOlive:'huile', farine:'mill', pain:'pain', viennoiserie:'pain',
+                  huileOlive:'huile', pain:'pain', viennoiserie:'pain',
                   patisserie:'pain', patisseriePlus:'pain'};
-function compter(cle, q){
+// On compte dès que la marchandise QUITTE LES MAINS DU JOUEUR : vendue, ou versée
+// dans une trémie. C'est ce que demandent les contrats — « livrer du lait » doit se
+// valider en livrant à la laiterie, qui ne paie plus au comptant.
+// Les céréales font exception : elles ne comptent qu'à L'ENTRÉE DU SILO, sinon le
+// même grain serait compté deux fois, une fois rentré et une fois revendu.
+function compter(cle, q, entreeSilo){
   const c = COMPTEUR[cle];
   if(c) STAT[c] += q;
-  else if(PRODUITS[cle] && PRODUITS[cle].cereale) STAT.silo += q;
+  else if(entreeSilo && PRODUITS[cle] && PRODUITS[cle].cereale) STAT.silo += q;
 }
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
@@ -4824,9 +4874,10 @@ function deliverUn(v, dt){
                      mode === 'silo'  ? siloMax() - siloTotal() : Infinity);
   if(q <= 0.0001) return;
   hopper -= q; delivered += q;
+  compter(cle, q, mode === 'silo');
   if(mode === 'silo'){ siloStock[cle] += q; }
   else if(mode === 'vente'){
-    money += q*prixChez(site, cle); compter(cle, q);
+    money += q*prixChez(site, cle);
     if(site.etal !== undefined) site.reste -= q;
   } else {
     site.tremie[cle] = (site.tremie[cle] || 0) + q;
@@ -5955,6 +6006,7 @@ function cargoUn(m, dt){
       if(q <= 0.0001) break;
       T.load -= q; money += q*prixChez(S, T.type);
       if(S.etal !== undefined) S.reste -= q;
+      if(S === RESTO) avancerCommande(T.type, q);
       compter(T.type, q);
       if(Math.random() < 0.4) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.4, 0.3);
       if(T.load <= 0.01){ viderType(T);
@@ -5964,7 +6016,7 @@ function cargoUn(m, dt){
     if(accepteMaintenant(S, T.type)){
       const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(S));
       if(q <= 0.0001) break;
-      T.load -= q; S.tremie[T.type] = (S.tremie[T.type] || 0) + q;
+      T.load -= q; S.tremie[T.type] = (S.tremie[T.type] || 0) + q; compter(T.type, q);
       if(Math.random() < 0.3) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.35, 0.3);
       if(T.load <= 0.01){
         showHint(nomDe(T.type).toUpperCase() + ' LIVRÉ À ' + S.nom.toUpperCase());
@@ -6385,6 +6437,9 @@ function ongletFilieres(){
       l.push('Achète : ' + S.achete.map((k)=> PRODUITS[k].nom).join(', ') +
              (S.coef !== 1 ? ' — au barème ' + Math.round(S.coef*100) + ' %' : ''));
     if(S.etal !== undefined) l.push('Étal limité : ' + kg(S.reste) + ' de place');
+    if(S.commande) l.push('Commande en cours : ' + S.commande.liste.map((c)=>
+      PRODUITS[c.cle].nom + ' ' + Math.round(resteCommande(c.cle)) + ' kg').join(', ') +
+      ' — prime ' + eur(S.commande.prime));
     article(S.toit, S.nom, l.join('<br>'), 'Fiche', 'no', null);
   }
 }
@@ -6622,6 +6677,7 @@ function etatJeu(){
     negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
                               stock: Object.assign({}, S.stock),
                               reste: S.reste})),
+    commande: RESTO.commande,
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
@@ -6774,6 +6830,11 @@ function chargerPartie(S){
       St.stock  = (N && N.stock)  ? Object.assign({}, N.stock)  : {};
       if(St.etal !== undefined) St.reste = (N && N.reste !== undefined) ? N.reste : St.etal;
     });
+    // La commande du restaurant : une partie d'avant la chaîne n'en a pas, on en tire
+    // une neuve plutôt que de laisser le restaurant sans rien à demander.
+    if(S.commande && S.commande.liste && S.commande.liste.every((l)=> PRODUITS[l.cle]))
+      RESTO.commande = S.commande;
+    else nouvelleCommande();
     Object.assign(STAT, S.STAT); etape = S.etape; fini = !!S.fini;
     JOUR.heure = S.jour.heure; JOUR.jours = S.jour.jours; JOUR.sec = S.jour.sec;
     CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
