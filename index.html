@@ -514,11 +514,19 @@ function mergeParts(parts){
 // sauvegarde retombe sur un indice ENTIER, le décalage doit être un multiple exact du
 // pas de la grille. 31 x 1,3 = 40,3 m, au plus près du pas de trame de 40 m.
 const DZ_NORD = 31*1.3;                  // 40,3 m — 31 cellules pile
-const X0 = -110, Z0 = -110 - DZ_NORD;    // -150,3
+// Et les deux origines glissent d'un cran de plus, de quatre cellules chacune, pour
+// que les dalles des commerces puissent s'élargir : elles tenaient à quarante
+// centimètres du bord ouest et à un mètre quarante du bord nord, et le tour du
+// bâtiment demandé n'y entrait pas. Quatre cellules, parce que le décalage doit
+// rester un multiple exact du pas de grille : unpackGrille() migre alors une ancienne
+// sauvegarde par simple recopie, en décalant les indices de quatre. Ce qu'on prend à
+// l'ouest et au nord, on le rend à l'est et au sud, où il restait 17 et 55 m de vide.
+const DECAL = 4*1.3;                     // 5,2 m — quatre cellules pile
+const X0 = -110 - DECAL, Z0 = -110 - DZ_NORD - DECAL;
 const TSIZE = 55, TPX = 640;             // tuiles de 55 m rendues sur 640 px
 const TNX = 5, TNZ = 5;                  // 5 x 5 tuiles
 const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 275 x 220
-const X1 = X0 + WX, Z1 = Z0 + WZ;        // 165 à l'est, 110 au sud
+const X1 = X0 + WX, Z1 = Z0 + WZ;        // 159,8 à l'est, 119,5 au sud
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
 for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
@@ -1063,7 +1071,12 @@ function avancerCommande(cle, q){
 }
 nouvelleCommande();
 
-const MARGE_DALLE = 1.0;                  // ce qui reste de dalle derrière et de côté
+/* CE QUI ENTOURE LE BÂTIMENT. La dalle faisait la largeur du bâti à cinquante
+   centimètres près : le mur touchait presque la clôture, et on ne pouvait pas en faire
+   le tour. Trois mètres de chaque côté et trois mètres derrière, c'est de quoi passer
+   avec un engin — un tracteur fait 2,55 m de large. */
+const MARGE_COTE = 3.0;                   // de dalle libre à gauche et à droite du bâti
+const MARGE_ARRIERE = 3.0;                // et derrière lui, entre le mur et la clôture
 /* LE PARVIS. La cour devant la façade, sur toute la largeur de la dalle. C'est là
    qu'on se gare — les places y sont peintes — et c'est là qu'est posé le cercle jaune.
    Le parking latéral qui l'a précédé mettait l'anneau À CÔTÉ du commerce, treize
@@ -1138,8 +1151,8 @@ function ajusterSitesAuxModeles(){
     // contenir la place où l'on se gare ET l'anneau, sans que rien ne touche le bitume.
     S.parvis = PARVIS + (S.parvisPlus || 0);
     S.corpsMesh = corps;
-    S.w = (bb.max.x - bb.min.x) + MARGE_DALLE;
-    S.d = (bb.max.z - bb.min.z) + MARGE_DALLE + S.parvis;
+    S.w = (bb.max.x - bb.min.x) + 2*MARGE_COTE;
+    S.d = (bb.max.z - bb.min.z) + MARGE_ARRIERE + S.parvis;
     S.corpsDx = -(bb.max.x + bb.min.x)/2;
     S.corpsDz = (S.d/2 - S.parvis) - bb.max.z;
   }
@@ -2186,20 +2199,27 @@ function enseigneTex(nom, fond, style, picto){
 function clotureSite(S){
   const g = new THREE.Group();
   const type = S.cloture || 'muret';
+  /* HAUTEURS. Le muret montait à 1,15 m et le grillage à 1,90 : de loin, et vus de
+     dessus comme on voit ce jeu, ils ne fermaient rien — la dalle semblait ouverte à
+     tous vents. Le muret passe à 1,80 m et le grillage à 2,60 m. Le trottoir, lui, ne
+     bouge pas : ce n'est pas une clôture, c'est une bordure, et il doit rester bas
+     pour qu'on voie la boutique derrière. */
+  const H_MURET = 1.8, H_GRILLAGE = 2.6;
   const bande = (lx, lz, x, z)=>{
     if(type === 'muret'){
-      g.add(box(lx, 1.15, lz, 0xB8BCC0, x, 0.575, z));
-      g.add(box(lx+0.18, 0.18, lz+0.18, 0x8E969B, x, 1.20, z));       // chaperon
+      g.add(box(lx, H_MURET, lz, 0xB8BCC0, x, H_MURET/2, z));
+      g.add(box(lx+0.18, 0.18, lz+0.18, 0x8E969B, x, H_MURET + 0.05, z));   // chaperon
     } else if(type === 'grillage'){
       const L = Math.max(lx, lz), horiz = lx > lz;
       const n = Math.max(2, Math.round(L/2.4));
       for(let k=0;k<=n;k++){
         const t = -L/2 + k*L/n;
-        g.add(box(0.16, 1.9, 0.16, 0x6E767C, x + (horiz?t:0), 0.95, z + (horiz?0:t)));
+        g.add(box(0.16, H_GRILLAGE, 0.16, 0x6E767C, x + (horiz?t:0), H_GRILLAGE/2, z + (horiz?0:t)));
       }
-      for(const hy of [0.55, 1.55])                                   // lisses
+      for(const hy of [0.55, H_GRILLAGE*0.55, H_GRILLAGE - 0.25])     // trois lisses
         g.add(box(horiz?L:0.09, 0.09, horiz?0.09:L, 0x8A9298, x, hy, z));
-      g.add(box(horiz?L:0.05, 1.5, horiz?0.05:L, 0x7E868C, x, 0.95, z));  // maille
+      g.add(box(horiz?L:0.05, H_GRILLAGE - 0.3, horiz?0.05:L, 0x7E868C,
+                x, (H_GRILLAGE - 0.3)/2 + 0.05, z));                  // maille
     } else {                                                          // trottoir
       g.add(box(lx+0.3, 0.26, lz+0.3, 0xC6CBCE, x, 0.13, z));
     }
@@ -2215,6 +2235,13 @@ function clotureSite(S){
     if(a1 > a + 0.4) poser(a, a1);
   };
   const E = S.emp, EP = 0.34, PORTE = 12;   // de quoi laisser passer une moissonneuse
+  // Deux piliers encadrent la porte : sans eux, une clôture haute s'arrête dans le vide.
+  const pilier = (x, z)=>{
+    if(type === 'trottoir') return;
+    const h = (type === 'muret') ? H_MURET + 0.5 : H_GRILLAGE + 0.4;
+    g.add(box(0.5, h, 0.5, type === 'muret' ? 0xC6CBCE : 0x6E767C, x, h/2, z));
+    g.add(box(0.66, 0.16, 0.66, 0x8E969B, x, h + 0.08, z));
+  };
   const cx = (E.x0 + E.x1)/2, cz = (E.z0 + E.z1)/2;
   const LX = E.x1 - E.x0, LZ = E.z1 - E.z0;
   if(S.dir === 'W' || S.dir === 'E'){
@@ -2222,11 +2249,13 @@ function clotureSite(S){
     bande(EP, LZ, S.dir === 'W' ? E.x0 : E.x1, cz);            // fond, dos à la route
     cote(E.z0, E.z1, [[S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
       (u, v)=> bande(EP, v - u, S.dir === 'W' ? E.x1 : E.x0, (u + v)/2));
+    for(const s2 of [-1, 1]) pilier(S.dir === 'W' ? E.x1 : E.x0, S.quaiZ + s2*PORTE/2);
   } else {
     bande(EP, LZ, E.x0, cz); bande(EP, LZ, E.x1, cz);          // pignons est et ouest
     bande(LX, EP, cx, E.z0);                                   // fond, au nord
     cote(E.x0, E.x1, [[S.quaiX - PORTE/2, S.quaiX + PORTE/2]],
       (u, v)=> bande(v - u, EP, (u + v)/2, E.z1));
+    for(const s2 of [-1, 1]) pilier(S.quaiX + s2*PORTE/2, E.z1);
   }
   scene.add(g);
 }
