@@ -47,11 +47,12 @@ qu'on transporte en ce moment** :
 | **Jaune, qui pulse** | en s'arrêtant ici maintenant, il se passe quelque chose |
 | **Blanc, fixe** | un point de service, mais rien à y faire avec ce chargement |
 
-Une fois à l'arrêt, **rien ne part tout seul** : le jeu demande, toujours en deux
-temps. D'abord **DÉCHARGER** ou **REMPLIR** — les deux seuls sens possibles. Puis, si ce
-sens offre plusieurs possibilités, la liste de ce qui est disponible, et de quoi
-revenir en arrière. Quand il n'y en a qu'une, le premier clic suffit. Le transfert en
-cours reste affiché, plein, et un clic dessus l'arrête.
+Une fois à l'arrêt, **rien ne part tout seul** : le jeu demande. Et il montre **tout ce
+qui est possible ici d'un seul coup** — ce qu'on dépose, ce qu'on prend, les gestes qui
+ne passent pas par la benne, et jusqu'à ce qui est **empêché**, en gris, avec sa raison.
+Un appui sur une action ouvre le **curseur de quantité** dès qu'il y a matière à doser.
+Le transfert en cours reste affiché, plein, avec ce qu'il lui reste à faire ; un clic
+dessus l'arrête.
 
 Où peut-on faire quoi :
 
