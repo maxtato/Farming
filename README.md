@@ -496,7 +496,7 @@ blanc chaud, très clair, qui ressort sans crier.
 
 Trois silhouettes de maison se répétaient en enfilade le long de la façade sud — et en
 vérité elles n'étaient même pas construites : le code qui les dessinait n'était appelé
-de nulle part, il réservait la place sans rien y poser. **Onze maisons prises dans six
+de nulle part, il réservait la place sans rien y poser. **Dix maisons prises dans six
 modèles** forment maintenant une rue : chaumière au toit débordant, maison de pierre à
 volets bleus, chalet à balcon, maison de bourg étroite, longère à appentis, maison à
 colombages. Chacune apporte son portillon, son allée et ses abords.
@@ -515,18 +515,35 @@ vingt mètres derrière les chaussées, et **trois d'entre elles tombaient dans 
 d'un commerce** — quatre dalles en tout, l'une des trois chevauchant deux voisins :
 les bandes ouest et nord sont pleines du bitume jusqu'au bord de
 carte, il ne reste derrière les dalles que trois à cinq mètres. Le brin sud de la rocade
-est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les onze
-maisons s'y alignent, façades tournées vers la chaussée, et le rang le longe d'un bout à
-l'autre — de −68,7 à 108,7 pour un brin qui court de −74 à 114 — sans le dépasser.
+est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les maisons
+s'y alignent, façades tournées vers la chaussée.
+
+**Combien de maisons ? Autant qu'il en tient.** Le nombre n'est pas écrit : les quatre
+brins de la rocade **courent d'un bord du monde à l'autre** — ils ne s'arrêtent pas aux
+angles, c'est ce qui leur donne l'air d'une route de passage — et le bitume des brins
+ouest et est passe donc au droit du rang, pour tout `z`. Le rang doit leur laisser la
+même verge qu'à la chaussée de devant. On empile donc les lots tant qu'ils tiennent
+entre les deux chaussées latérales, verge comprise : dix, et la onzième (une longère de
+22,4 m) ne rentre plus. Relevé : 11,52 m de verge à l'ouest comme à l'est. Sans cette
+borne, les deux pignons tombaient à **34 cm** de l'asphalte.
 
 **Mitoyennes, et clôturées en commun.** Chaque maison avait sa clôture, et deux voisines
 en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'était le
 jardin de personne. Les lots sont maintenant **jointifs** — bord contre bord, écart nul
-aux dix jonctions — et la clôture est **une seule** : un devant qui court sur 177 m et
+aux neuf jonctions — et la clôture est **une seule** : un devant qui court sur 155 m et
 s'ouvre d'un portillon devant chaque allée, un fond, deux pignons, et une mitoyenne à
-chaque bord de lot interne. Le tout fusionné en un objet de 403 primitives : onze
-clôtures sont devenues une, et le rang entier a coûté **24 triangles** de plus que dix
-maisons séparées, une maison de plus comprise.
+chaque bord de lot interne.
+
+Commune, mais **pas un seul objet**. Fusionnée d'un tenant, elle faisait un maillage de
+177 m dont la sphère englobante mesurait 89 m de rayon : le tronc de vue ne l'écartait
+plus jamais, et ses triangles partaient au GPU même en lui tournant le dos. La
+mitoyenneté est donc dans le **découpage** — chaque lot porte sa part du devant, sa part
+du fond et la clôture de son bord gauche, le dernier fermant le rang par son pignon est —
+et chaque lot fusionne la sienne : dix maillages de 13,5 m de rayon. Face au rang,
+14 178 → **10 194 triangles** pour deux appels de dessin de plus ; dos au rang,
+8 136 → **7 516**. Et les bouts de pan sont partagés : deux pans qui se rejoignent
+poseraient chacun leur poteau au même point, quatre volumes exactement superposés aux
+quatre coins.
 
 Aucune cote n'est écrite : chaque modèle **déclare** son lot dans `dJardin()` — largeur,
 profondeur, décalage, axe de l'allée — et le rang met ces cotes bout à bout, centrées sur
@@ -550,7 +567,7 @@ appartient au champ et non au village, le second ferait doublon avec les clôtur
 
 Chaque bloc est **fusionné en une seule géométrie** avant d'entrer dans la scène :
 soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est ce qui
-permet d'en poser trente-huit sans que la carte s'alourdisse — 32 000 triangles pour
+permet d'en poser quarante-six sans que la carte s'alourdisse — 31 000 triangles pour
 l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
 échelle ne crée pas de géométrie.
 
