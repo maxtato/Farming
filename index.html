@@ -776,9 +776,11 @@ const SITES = [
   {nom:'Marché', enseigne:'totem', picto:'graine', dir:'W', bat:-12, park:1,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batMarche(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x3E6B4E, mur:0xF6EFE0},
+  // Le plus imposant des seize, et le seul à demander une cour plus profonde : c'est
+  // un supermarché, son parking fait partie de ce qu'il est.
   {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'W', bat:18, park:31,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', supermarche:true,
-   modele:()=> batSupermarche(),
+   parvisPlus:2.0, modele:()=> batSupermarche(),
    w:18.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6},
   {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'W', bat:48, park:61,
    style:'usine', crop:0, prix:0.46, cloture:'grillage', modele:()=> batUsineCereales(),
@@ -957,6 +959,16 @@ function avancerCommande(cle, q){
 }
 nouvelleCommande();
 
+const MARGE_DALLE = 1.0;                  // ce qui reste de dalle derrière et de côté
+/* LE PARVIS. La cour devant la façade, sur toute la largeur de la dalle. C'est là
+   qu'on se gare — les places y sont peintes — et c'est là qu'est posé le cercle jaune.
+   Le parking latéral qui l'a précédé mettait l'anneau À CÔTÉ du commerce, treize
+   mètres plus loin sur la bande : on entrait par une porte, on s'arrêtait ailleurs.
+   Un commerce a maintenant une seule adresse, devant sa porte. */
+const PARVIS = 10.0;                      // profondeur de cour devant chaque façade
+const ANNEAU_RECUL = 4.6;                 // l'anneau, à cette distance du bord côté route
+const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle d'une rocade
+
 /* La disposition est une fonction et non une boucle jouée une fois : les modèles de
    commerce ne sont déclarés que bien plus bas dans le fichier, et il faut les avoir
    mesurés pour connaître les cotes réelles d'un site. On dispose donc une première
@@ -967,32 +979,32 @@ for(const S of SITES){
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(S.dir === 'E'){
     S.x = FRONT_E + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
-    S.px = FRONT_E + S.pw/2; S.pz = S.park;
   } else if(S.dir === 'W'){
     S.x = -(FRONT + S.d/2); S.z = S.bat; S.rot = Math.PI/2;
-    S.px = -(FRONT + S.pw/2); S.pz = S.park;
   } else {
     S.x = S.bat; S.z = -(FRONT_N + S.d/2); S.rot = 0;
-    S.px = S.park; S.pz = -(FRONT_N + S.ph/2);
   }
   S.r = 13;
-  // Emprise d'un seul tenant : le bâtiment ET son parking sur la même dalle. Ils
-  // formaient jusqu'ici deux îlots de béton séparés par une bande d'herbe de 0 à 3,5 m
-  // selon le site, et chacun avait sa propre bordure. Une seule propriété, une seule
-  // dalle, une seule clôture. Un bâtiment tourné d'un quart de tour présente sa
-  // profondeur en X et sa largeur en Z : d'où le test sur `dir`.
+  // Emprise d'un seul tenant : le bâti et son parvis, un seul rectangle. Un bâtiment
+  // tourné d'un quart de tour présente sa profondeur en X et sa largeur en Z : d'où le
+  // test sur `dir`. Le parvis, lui, est déjà compté dans S.d.
   const lat = (S.dir === 'W' || S.dir === 'E');
   const bw = lat ? S.d : S.w, bd = lat ? S.w : S.d;
-  S.emp = {
-    x0: Math.min(S.x - bw/2, S.px - S.pw/2), x1: Math.max(S.x + bw/2, S.px + S.pw/2),
-    z0: Math.min(S.z - bd/2, S.pz - S.ph/2), z1: Math.max(S.z + bd/2, S.pz + S.ph/2)
-  };
-  // Le quai : sur la dalle, au bord de la route, aligné sur le milieu du parking.
-  // C'est aussi la porte de la clôture — on entre par là et on s'arrête sur l'anneau.
-  const RECUL = 4.5;
-  if(S.dir === 'W'){ S.quaiX = S.emp.x1 - RECUL; S.quaiZ = S.park; }
-  else if(S.dir === 'E'){ S.quaiX = S.emp.x0 + RECUL; S.quaiZ = S.park; }
-  else { S.quaiX = S.park; S.quaiZ = S.emp.z1 - RECUL; }
+  S.emp = {x0: S.x - bw/2, x1: S.x + bw/2, z0: S.z - bd/2, z1: S.z + bd/2};
+  // Le quai : sur l'AXE du bâtiment, à la même distance du bord côté route pour les
+  // seize. C'est là qu'est le cercle jaune et là que la clôture s'ouvre. On entre par
+  // la porte, on s'arrête devant l'entrée — un seul geste, le même partout.
+  if(S.dir === 'W'){ S.quaiX = S.emp.x1 - ANNEAU_RECUL; S.quaiZ = S.z; }
+  else if(S.dir === 'E'){ S.quaiX = S.emp.x0 + ANNEAU_RECUL; S.quaiZ = S.z; }
+  else { S.quaiX = S.x; S.quaiZ = S.emp.z1 - ANNEAU_RECUL; }
+  // Le parvis lui-même, pour le marquage au sol : toute la largeur de la dalle sur
+  // sa profondeur, devant la façade. `pw` se lit en X, `ph` en Z.
+  const pv = S.parvis || PARVIS;         // au premier passage, rien n'a encore été mesuré
+  S.pw = lat ? pv : S.w;
+  S.ph = lat ? S.w : pv;
+  if(S.dir === 'W'){ S.px = S.emp.x1 - pv/2; S.pz = S.z; }
+  else if(S.dir === 'E'){ S.px = S.emp.x0 + pv/2; S.pz = S.z; }
+  else { S.px = S.x; S.pz = S.emp.z1 - pv/2; }
 }
 }
 disposerSites();
@@ -1011,9 +1023,6 @@ disposerSites();
    On mesure ensuite chaque modèle une fois pour toutes, on le recentre dans son
    emprise et on donne au site ses cotes RÉELLES. La dalle, la clôture, le quai et
    l'anneau suivent, puisqu'ils s'en déduisent. */
-const MARGE_DALLE = 1.0;                  // ce qui reste de dalle derrière et de côté
-const ECART_PARKING = 13;                 // le parking, à droite du bâtiment sur la bande
-const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle de sa chaussée
 function ajusterSitesAuxModeles(){
   const bb = new THREE.Box3();
   for(const S of SITES){
@@ -1021,17 +1030,11 @@ function ajusterSitesAuxModeles(){
     const corps = S.modele ? S.modele() : corpsGenerique(S);
     corps.updateMatrixWorld(true);
     bb.setFromObject(corps);
-    // Le parvis : la bande de dalle laissée devant la façade. Elle doit au moins
-    // contenir ce que l'enseigne avance, sinon le totem retombe sur l'accotement.
-    S.parvis = Math.max(RECUL_ROCADE, (ENSEIGNE_AVANT[S.enseigne] || 0) + 0.4);
-    const cote = (ENSEIGNE_COTE[S.enseigne] || 0);
+    // Le parvis : le même pour les seize, sauf à le demander plus profond. Il doit
+    // contenir la place où l'on se gare ET l'anneau, sans que rien ne touche le bitume.
+    S.parvis = PARVIS + (S.parvisPlus || 0);
     S.corpsMesh = corps;
-    // Un seul gabarit de parking pour tous : c'est le même quai partout, avec le même
-    // anneau et la même porte. Les tailles écrites à la main allaient de 11 à 16 m le
-    // long de la bande sans que rien ne le justifie, et c'est ce qui débordait quand
-    // les bâtiments ont pris leurs cotes réelles.
-    S.ph = 11; S.pw = 13;
-    S.w = (bb.max.x - bb.min.x) + MARGE_DALLE + 2*cote;
+    S.w = (bb.max.x - bb.min.x) + MARGE_DALLE;
     S.d = (bb.max.z - bb.min.z) + MARGE_DALLE + S.parvis;
     S.corpsDx = -(bb.max.x + bb.min.x)/2;
     S.corpsDz = (S.d/2 - S.parvis) - bb.max.z;
@@ -1048,10 +1051,11 @@ function repartirBandes(){
   for(const dir of ['W', 'N', 'E']){
     const b = SITES.filter((S)=> S.dir === dir).sort((A, B)=> A.bat - B.bat);
     if(!b.length) continue;
-    // Ce que chaque site occupe de part et d'autre de son point d'ancrage : son bâti
-    // d'un côté, son bâti OU son parking de l'autre, selon lequel va le plus loin.
+    // Ce que chaque site occupe de part et d'autre de son ancrage : sa demi-largeur,
+    // des deux côtés. La dalle est maintenant symétrique — le parvis est devant, pas
+    // sur le flanc — et les commerces se répartissent d'autant plus au large.
     const avant = b.map((S)=> S.w/2);
-    const apres = b.map((S)=> Math.max(S.w/2, ECART_PARKING + S.ph/2));
+    const apres = b.map((S)=> S.w/2);
     const total = b.reduce((t, S, i)=> t + avant[i] + apres[i], 0);
     // La bande court d'une rocade perpendiculaire à l'autre, en gardant le même recul
     // qu'entre une dalle et sa propre chaussée.
@@ -1061,7 +1065,6 @@ function repartirBandes(){
     let t = d0;
     b.forEach((S, i)=>{
       S.bat = t + avant[i];
-      S.park = S.bat + ECART_PARKING;
       t += avant[i] + apres[i] + jeu;
     });
   }
@@ -2094,8 +2097,8 @@ function clotureSite(S){
       g.add(box(lx+0.3, 0.26, lz+0.3, 0xC6CBCE, x, 0.13, z));
     }
   };
-  // Un côté, moins ses trouées. Deux choses interrompent la clôture côté route : le
-  // bâtiment, qui fait déjà mur là où il est, et la porte par laquelle on entre.
+  // Un côté, moins ses trouées. Côté route il n'y en a plus qu'une, la porte : le
+  // bâtiment ne borde plus la chaussée, c'est son parvis qui la borde.
   const cote = (a0, a1, trous, poser)=>{
     let a = a0;
     for(const t of trous.slice().sort((p, q)=> p[0]-q[0])){
@@ -2110,14 +2113,12 @@ function clotureSite(S){
   if(S.dir === 'W' || S.dir === 'E'){
     bande(LX, EP, cx, E.z0); bande(LX, EP, cx, E.z1);          // pignons nord et sud
     bande(EP, LZ, S.dir === 'W' ? E.x0 : E.x1, cz);            // fond, dos à la route
-    cote(E.z0, E.z1,
-      [[S.z - S.w/2 - 0.25, S.z + S.w/2 + 0.25], [S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
+    cote(E.z0, E.z1, [[S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
       (u, v)=> bande(EP, v - u, S.dir === 'W' ? E.x1 : E.x0, (u + v)/2));
   } else {
     bande(EP, LZ, E.x0, cz); bande(EP, LZ, E.x1, cz);          // pignons est et ouest
     bande(LX, EP, cx, E.z0);                                   // fond, au nord
-    cote(E.x0, E.x1,
-      [[S.x - S.w/2 - 0.25, S.x + S.w/2 + 0.25], [S.quaiX - PORTE/2, S.quaiX + PORTE/2]],
+    cote(E.x0, E.x1, [[S.quaiX - PORTE/2, S.quaiX + PORTE/2]],
       (u, v)=> bande(v - u, EP, (u + v)/2, E.z1));
   }
   scene.add(g);
@@ -2772,8 +2773,6 @@ function corpsGenerique(S){
 // La dalle doit la contenir. Un totem planté sur l'accotement, c'est une enseigne au
 // milieu de la route — et c'est exactement ce qui se passait pour la coopérative,
 // le marché, l'huilerie et le comptoir agricole.
-const ENSEIGNE_AVANT = {facade:0.4, potence:2.1, laterale:0.4, totem:4.0, logo3d:0.4};
-const ENSEIGNE_COTE  = {facade:0,   potence:0,   laterale:2.0, totem:0,   logo3d:0};
 
 function buildCommerce(S){
   const g = new THREE.Group();
@@ -2788,10 +2787,15 @@ function buildCommerce(S){
   // La ligne de façade : le devant du bâti. Les enseignes s'y accrochent, et le parvis
   // qui la sépare du bord de la dalle leur laisse la place de saillir sans déborder.
   const DF = S.d/2 - (S.parvis || 0);
-  const tex = enseigneTex(S.nom, S.toit, S.style, S.picto);
+  /* L'ENSEIGNE RAPPORTÉE. Elle date de l'époque où les seize commerces étaient tous
+     bâtis par le gabarit générique : c'était alors la seule enseigne du jeu. Les treize
+     modèles dédiés portent depuis leur propre enseigne, sculptée dans le volume — le
+     caviste en avait trois, le restaurant quatre. On ne la pose donc plus que pour les
+     trois sites qui n'ont pas de modèle, et qui autrement n'auraient rien. */
+  const pose = S.modele ? null : (S.enseigne || (usine ? 'facade' : 'potence'));
+  const tex = pose ? enseigneTex(S.nom, S.toit, S.style, S.picto) : null;
   const plaque = (lw, lh, dbl)=> new THREE.Mesh(new THREE.PlaneGeometry(lw, lh),
     new THREE.MeshBasicMaterial({map:tex, side: dbl ? THREE.DoubleSide : THREE.FrontSide}));
-  const pose = S.enseigne || (usine ? 'facade' : 'potence');
   if(pose === 'facade'){                                   // bandeau haut en façade
     const pan = plaque(W*0.62, W*0.19, false);
     pan.position.set(W*0.10, H*0.82, DF+0.06); g.add(pan);
@@ -3195,7 +3199,7 @@ function buildFarm(){
       // l'inverse sur le bord nord
       const ex = (S.dir === 'N') ? S.w/2 : S.d/2, ez = (S.dir === 'N') ? S.d/2 : S.w/2;
       if(Math.abs(x-S.x) < ex+7 && Math.abs(z-S.z) < ez+7) return false;
-      if(Math.abs(x-S.px) < S.pw/2+7 && Math.abs(z-S.pz) < S.ph/2+7) return false;
+      if(x > S.emp.x0-7 && x < S.emp.x1+7 && z > S.emp.z0-7 && z < S.emp.z1+7) return false;
     }
     for(const M of MAISONS)
       if(Math.abs(x-M.x) < 13 && Math.abs(z-M.z) < 13) return false;
@@ -5527,7 +5531,7 @@ function quelqueChoseAFaire(S){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     S.service = !!(S.fournisseur || S.achete.length || S.fabrique.length || S.abattoir);
-    anneauAction(S.dropX, S.dropZ, S.park*0.05, ()=> quelqueChoseAFaire(S));
+    anneauAction(S.dropX, S.dropZ, S.bat*0.05, ()=> quelqueChoseAFaire(S));
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
