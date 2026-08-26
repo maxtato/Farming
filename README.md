@@ -492,6 +492,55 @@ le prix, on en déduit la place qui reste, et l'on rétrécit le nom jusqu'à ce
 commerce : un toit sombre le rendait illisible sur un fond déjà sombre. Il passe à un
 blanc chaud, très clair, qui ressort sans crier.
 
+## Le village
+
+Trois silhouettes de maison se répétaient en enfilade le long de la façade sud — et en
+vérité elles n'étaient même pas construites : le code qui les dessinait n'était appelé
+de nulle part, il réservait la place sans rien y poser. **Onze maisons prises dans six
+modèles** occupent maintenant les trois bords extérieurs : chaumière au toit débordant,
+maison de pierre à volets bleus, chalet à balcon, maison de bourg étroite, longère à
+appentis, maison à colombages. Chacune apporte sa clôture, son portillon, son allée et
+ses abords.
+
+**Vingt-six petits objets** se sèment entre elles : abri de bus, tonnelle, lavoir, table
+de pique-nique, bûcher, puits, calvaire, entrée de village, banc de place, poteau
+télégraphique. L'épouvantail et le muret de pierre sèche sont écartés — le premier
+appartient au champ et non au village, le second ferait doublon avec les clôtures.
+
+Chaque bloc est **fusionné en une seule géométrie** avant d'entrer dans la scène :
+soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est ce qui
+permet d'en poser trente-sept sans que la carte s'alourdisse — 34 000 triangles pour
+l'ensemble, et pas un obstacle sur une route.
+
+## Sept cultures, redessinées
+
+Les silhouettes viennent de la planche de présentation : trois talles au lieu de deux,
+une feuille de maïs **arquée** en deux lames plutôt qu'un piquant droit, des barbes
+d'orge plus généreuses, des grappes de colza étagées.
+
+Mais la planche, transposée telle quelle, coûtait **476 triangles** par plante pour les
+cinq céréales contre 246 — presque le double, et l'essentiel venait des feuilles de maïs
+dessinées en boîtes pleines : douze triangles pour une lame de trois centimètres
+d'épaisseur qu'on ne voit jamais par la tranche. Trois règles rendent la richesse sans
+le poids :
+
+1. Ce qui est **plat est un plan** (2 triangles), jamais une boîte (12). Le matériau des
+   cultures passe en double face : une feuille se voit du dessus comme du dessous.
+2. Ce qui mesure moins de dix centimètres à deux mètres de haut ne se voit pas d'une
+   caméra à quarante mètres — les nœuds de la tige de maïs sautent.
+3. Trois côtés suffisent à toute tige.
+
+Relevé : **246 triangles pour les cinq, exactement comme avant.** Le colza et l'avoine
+gagnent une talle et perdent une fleur — trois tiges portant cinq grappes se lisent mieux
+que deux tiges en portant six, pour le même prix.
+
+**Et les tampons d'instances grandissent au besoin.** Chacun des sept maillages réservait
+9 500 instances, soit **4,82 Mio** pour les sept, alors que la somme de leurs comptes ne
+peut jamais dépasser 9 500 : une cellule ne porte qu'une culture. Une ferme qui sème deux
+céréales payait cinq maillages vides plein tarif. Ils démarrent maintenant à 512 et
+doublent quand il le faut : **0,26 Mio** sur une partie fraîche, 0,91 Mio sur une ferme
+entièrement semée.
+
 ## Le décor est tiré au sort, mais toujours le même
 
 Arbres, buissons, rochers, touffes d'herbe, fleurs des ruchers, taches de terre : tout
