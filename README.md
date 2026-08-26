@@ -25,7 +25,8 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Gaz** | manette à droite, ou ↑ ↓ |
 | **Changer d'engin** | bouton en bas, ou les touches 1 à 4 |
 | **Atteler / dételer** | bouton ATTELER, à portée d'un outil posé au sol |
-| **Pilotage automatique** | bouton AUTO : la machine fait ses allers-retours seule |
+| **Changer d'engin** | le bouton au nom de l'engin, en bas : la liste du parc s'ouvre |
+| **Automatiser** | bouton **PLAN** : la carte en grand, on compose une file de tâches |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
 Un **anneau lumineux au sol** signale un endroit où s'arrêter : livraison, plein de
@@ -155,6 +156,21 @@ Il n'y a pas de pompe publique. Le gazole s'achète en gros à la coopérative, 
 la cuve de la ferme, et c'est là que se font tous les pleins. Un engin à sec n'est pas
 immobilisé : il se traîne au ralenti jusqu'à la cuve.
 
+## Le plan de travail
+
+Le bouton **PLAN** ouvre la carte en grand — la seule vue d'ensemble du jeu. On y
+désigne un engin, ce qu'on lui demande, et où :
+
+- **Travailler des parcelles** : on touche les parcelles à la suite. L'engin les fait
+  dans l'ordre, avec l'outil qu'il porte, en serpentin. La moissonneuse va vider au
+  silo quand sa trémie est pleine, puis reprend sa passe.
+- **Navette entre deux lieux** : on touche un départ, puis une arrivée. L'engin charge
+  au premier, décharge au second, et recommence. Coché **EN BOUCLE**, il ne s'arrête
+  plus : le silo vers l'usine de céréales, sans fin.
+
+La file se lit en bas de la carte et se défait au doigt. En chemin entre deux étapes,
+un engin en mission ne touche à rien : il traverse le silo sans s'y vider.
+
 ## La nuit
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
@@ -245,6 +261,9 @@ Quelques partis pris qui expliquent le reste :
   produits dit déjà de quoi il est fait, ce qu'il rend et à quel palier il appartient.
 - **Un anneau ne s'allume jamais pour le seul fait qu'un panneau peut s'ouvrir.** Il
   s'allume quand quelque chose se passe dans le monde.
+- **Le texte est petit, et c'est voulu.** Tout s'écrit entre 8 et 13 px : sur un
+  téléphone en paysage, chaque pixel de hauteur gagné est une ligne de liste en plus.
+  Un menu qu'on fait défiler est un menu qu'on ne lit pas.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les
   couleurs des faces doivent rendre pleines, pas modelées.
 - **Une lampe brille, et pose un halo sur ce qu'elle éclaire.** Trois pièces, les

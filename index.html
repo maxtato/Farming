@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>MOISSON — Yello Arcade</title>
 <style>
+  /* ÉCHELLE TYPOGRAPHIQUE. Tout le jeu s'écrivait entre 9 et 15 px sur des écrans de
+     téléphone en paysage : les listes du menu ne montraient que quatre lignes et il
+     fallait faire défiler pour tout. L'échelle a été resserrée d'un cran — 8 à 13 px —
+     et les rembourrages du menu réduits d'un tiers. On voit un tiers de lignes en plus
+     sans que rien ne devienne illisible. */
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#1B2429;
     font-family:"Trebuchet MS",Verdana,system-ui,sans-serif;color:#fff;
@@ -15,20 +20,20 @@
     padding:7px 12px;border-radius:14px;background:rgba(20,28,33,.55);
     backdrop-filter:blur(6px)}
   #stats{top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));flex-direction:column;align-items:flex-start;gap:4px;padding:9px 13px}
-  .stat{display:flex;align-items:center;gap:8px;font-weight:bold;font-size:15px;letter-spacing:.5px}
+  .stat{display:flex;align-items:center;gap:8px;font-weight:bold;font-size:13px;letter-spacing:.5px}
   .dot{width:9px;height:9px;border-radius:2px;flex:none}
   #goalwrap{position:absolute;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
     display:flex;align-items:center;gap:9px}
   #bar{width:min(38vw,260px);height:7px;border-radius:4px;background:rgba(255,255,255,.22);overflow:hidden}
   #barfill{height:100%;width:0%;background:#fff;border-radius:4px;transition:width .25s}
-  #star{font-size:15px;color:#fff;opacity:.85}
+  #star{font-size:13px;color:#fff;opacity:.85}
   #goaltxt{position:absolute;top:calc(40px + env(safe-area-inset-top));text-shadow:0 1px 3px rgba(0,0,0,.6);left:50%;transform:translateX(-50%);
-    font-size:10px;letter-spacing:2.5px;opacity:.6;white-space:nowrap;text-transform:uppercase}
+    font-size:9px;letter-spacing:2.5px;opacity:.6;white-space:nowrap;text-transform:uppercase}
   #ctr{position:absolute;top:calc(78px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
     padding:8px 12px;border-radius:14px;background:rgba(20,28,33,.55);backdrop-filter:blur(6px);
     max-width:52vw;display:none}
-  #ctrtxt{font-size:11px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
-  #ctrsub{font-size:10px;opacity:.6;letter-spacing:.8px;margin-top:3px}
+  #ctrtxt{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
+  #ctrsub{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
   #ctrbar{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
   #ctrfill{height:100%;width:0%;background:#FAD201;border-radius:3px;transition:width .25s}
   #ctr.urgent #ctrfill{background:#E8563F}
@@ -40,71 +45,97 @@
   /* Le bandeau d'information passe AU-DESSUS des boutons contextuels : à 96 px il
      recouvrait le bouton d'achat, et les deux devenaient illisibles ensemble. */
   #hint{position:absolute;bottom:calc(188px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
-    font-size:12px;letter-spacing:1.5px;text-transform:uppercase;opacity:0;transition:opacity .3s;
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0;transition:opacity .3s;
     background:rgba(20,28,33,.6);padding:6px 14px;border-radius:12px;white-space:nowrap}
+  /* Le nom de l'engin devient un BOUTON : une petite silhouette de tracteur devant, le
+     nom derrière. Il ouvrait le menu ; il ouvre la fenêtre rapide du parc, où l'on
+     change d'engin d'un doigt sans quitter la partie. */
   #engins{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;
-    transform:translateX(-50%);pointer-events:auto;padding:10px 22px;border-radius:14px;
-    background:rgba(20,28,33,.62);font-size:12px;font-weight:bold;letter-spacing:1.6px;
-    border:2px solid rgba(255,255,255,.28);white-space:nowrap}
+    transform:translateX(-50%);pointer-events:auto;padding:8px 16px;border-radius:14px;
+    background:rgba(20,28,33,.62);font-size:10px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid rgba(255,255,255,.34);white-space:nowrap;
+    display:flex;align-items:center;gap:8px}
+  #engins svg{width:20px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;
+    stroke-linecap:round;stroke-linejoin:round;flex:none;opacity:.9}
+  /* La fenêtre rapide du parc : rien que les engins qu'on possède, un par ligne. */
+  #parc{position:absolute;inset:0;display:none;z-index:22}
+  #parcfond{position:absolute;inset:0;background:rgba(10,15,18,.66);pointer-events:auto}
+  #parcboite{position:absolute;bottom:calc(60px + env(safe-area-inset-bottom));left:50%;
+    transform:translateX(-50%);pointer-events:auto;width:min(88vw,340px);
+    background:#1B2429;border:2px solid rgba(255,255,255,.16);border-radius:16px;
+    padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  #parctitre{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;opacity:.45;
+    padding:2px 4px 8px}
+  #parcliste{display:flex;flex-direction:column;gap:5px}
+  .pe{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;
+    background:rgba(255,255,255,.05);font-size:10px;font-weight:bold;letter-spacing:.8px}
+  .pe .pt{width:10px;height:26px;border-radius:3px;flex:none}
+  .pe .pn{flex:1}
+  .pe .pd{font-size:8px;opacity:.5;letter-spacing:.6px;font-weight:normal}
+  .pe.on{background:#FAD201;color:#1B2429}
+  .pe.on .pd{opacity:.65}
   #menuBtn{position:absolute;top:calc(14px + env(safe-area-inset-top));
     right:calc(66px + env(safe-area-inset-right));pointer-events:auto;
     padding:9px 16px;border-radius:12px;background:rgba(20,28,33,.55);
-    font-size:11px;font-weight:bold;letter-spacing:1.6px;border:2px solid rgba(255,255,255,.25)}
+    font-size:10px;font-weight:bold;letter-spacing:1.6px;border:2px solid rgba(255,255,255,.25)}
   /* panneau plein écran : boutique, améliorations et réglages */
   #panneau{position:absolute;inset:0;display:none;pointer-events:auto;z-index:20}
   #pfond{position:absolute;inset:0;background:rgba(10,15,18,.72);backdrop-filter:blur(3px)}
   #pboite{position:absolute;inset:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px;
     max-width:760px;margin:auto;background:#1B2429;border-radius:18px;overflow:hidden;
     display:flex;flex-direction:column;border:2px solid rgba(255,255,255,.12)}
-  #ptete{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.05)}
-  #ptitre{font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1}
-  #pargent{font-size:15px;font-weight:bold;color:#FAD201}
+  #ptete{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.05)}
+  #ptitre{font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1}
+  #pargent{font-size:13px;font-weight:bold;color:#FAD201}
   #pfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
-    display:flex;align-items:center;justify-content:center;font-size:15px}
-  #ponglets{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;flex-shrink:0}
-  .ong{padding:8px 14px;border-radius:11px;background:rgba(255,255,255,.07);font-size:11px;
+    display:flex;align-items:center;justify-content:center;font-size:13px}
+  #ponglets{display:flex;gap:5px;padding:7px 10px;overflow-x:auto;flex-shrink:0}
+  .ong{padding:6px 11px;border-radius:11px;background:rgba(255,255,255,.07);font-size:10px;
     font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;opacity:.55}
   .ong.on{opacity:1;background:#FAD201;color:#1B2429}
-  #pliste{flex:1;overflow-y:auto;padding:4px 12px 16px}
-  .art{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px;
-    background:rgba(255,255,255,.05);border-radius:14px}
+  #pliste{flex:1;overflow-y:auto;padding:3px 10px 12px}
+  .art{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:5px;
+    background:rgba(255,255,255,.05);border-radius:12px}
   .art .txt{flex:1;min-width:0}
-  .art .nom{font-size:13px;font-weight:bold;letter-spacing:.6px}
-  .art .det{font-size:11px;opacity:.55;margin-top:3px;line-height:1.45}
-  .art .act{padding:9px 14px;border-radius:11px;font-size:11px;font-weight:bold;
+  .art .nom{font-size:12px;font-weight:bold;letter-spacing:.6px}
+  .art .det{font-size:10px;opacity:.55;margin-top:3px;line-height:1.45}
+  .art .act{padding:7px 12px;border-radius:11px;font-size:10px;font-weight:bold;
     letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;border:2px solid #FAD201;color:#FAD201}
   .art .act.no{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.35)}
   .art .act.ok{background:#FAD201;color:#1B2429}
   .art .act.vert{border-color:#8BE07A;color:#8BE07A}
-  .pastille{width:12px;height:34px;border-radius:6px;flex-shrink:0}
-  .sect{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.4;
+  .pastille{width:10px;height:34px;border-radius:6px;flex-shrink:0}
+  .sect{font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:.4;
     margin:14px 4px 8px}
   #stick::before{content:'◀     ▶';position:absolute;left:0;right:0;top:50%;margin-top:-7px;
-    text-align:center;font-size:11px;letter-spacing:2px;opacity:.3}
+    text-align:center;font-size:10px;letter-spacing:2px;opacity:.3}
   #hitch{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:8px 18px;border-radius:12px;
-    background:rgba(20,28,33,.55);font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    background:rgba(20,28,33,.55);font-size:10px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid rgba(255,255,255,.25);white-space:nowrap}
   #hitch.on{border-color:#FAD201;color:#FAD201}
   #auto{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));
     left:calc(50% + 96px);transform:translateX(-50%);pointer-events:auto;
     padding:8px 16px;border-radius:12px;background:rgba(20,28,33,.55);
-    font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    font-size:10px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid rgba(255,255,255,.25)}
   #auto.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.6)}
+  #auto{display:flex;align-items:center;gap:6px}
+  #auto svg{width:17px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;
+    stroke-linecap:round;stroke-linejoin:round;flex:none}
   #crop{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));
     left:calc(50% - 96px);transform:translateX(-50%);pointer-events:auto;
     padding:8px 16px;border-radius:12px;background:rgba(20,28,33,.55);
-    font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    font-size:10px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #F0C24A;color:#F0C24A;white-space:nowrap;display:none}
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
+    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #FAD201;color:#FAD201;white-space:nowrap;display:none}
   #buy.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   #atelier{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
+    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #7FD1E8;color:#7FD1E8;white-space:nowrap;display:none}
   #atelier.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   /* L'achat de véhicule et l'amélioration s'affichent ensemble, au garage : ils ne
@@ -112,7 +143,7 @@
      le garage n'a ni transfert ni action de service. */
   #veh{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
+    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #8BE07A;color:#8BE07A;white-space:nowrap;display:none}
   #veh.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   #stick{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:calc(24px + env(safe-area-inset-left));
@@ -125,7 +156,7 @@
     border:2px solid rgba(255,255,255,.18);pointer-events:auto}
   #thrknob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
     background:#FAD201}
-  #thr .lab{position:absolute;left:0;right:0;text-align:center;font-size:9px;letter-spacing:2px;opacity:.45}
+  #thr .lab{position:absolute;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2px;opacity:.45}
   #thr .lab.up{top:6px} #thr .lab.dn{bottom:6px}
   #hopper{position:absolute;bottom:calc(190px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .3s}
@@ -137,7 +168,7 @@
   #fuel.bas{animation:clig 1s infinite}
   @keyframes clig{50%{opacity:.35}}
   #chargetxt{position:absolute;bottom:calc(222px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
-    font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
+    font-size:9px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
     text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
   /* La rangée de choix : même place et même costume que le bouton de service, dont
      le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
@@ -145,19 +176,19 @@
     transform:translateX(-50%);pointer-events:auto;display:none;
     flex-direction:column;align-items:center;gap:6px}
   #choix .ch{padding:8px 18px;border-radius:12px;background:rgba(20,28,33,.82);
-    font-size:12px;font-weight:bold;letter-spacing:1.3px;border:2px solid #E8B44A;
+    font-size:11px;font-weight:bold;letter-spacing:1.3px;border:2px solid #E8B44A;
     color:#E8B44A;white-space:nowrap}
   #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   /* Le transfert en cours : plein, pour qu'on voie d'un coup d'œil ce qui tourne.
      Cliquer dessus l'arrête. Le retour, lui, s'efface : c'est une sortie, pas un choix. */
   #choix .ch.on{background:#E8B44A;color:#1B2429;border-color:#E8B44A}
   #choix .ch.retour{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.55);
-    font-size:11px;letter-spacing:1.1px;padding:6px 16px}
-  #choix .titre{font-size:10px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
+    font-size:10px;letter-spacing:1.1px;padding:6px 16px}
+  #choix .titre{font-size:9px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
     padding-bottom:2px}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
+    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #E8B44A;color:#E8B44A;white-space:nowrap;display:none}
   #service.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   /* écran d'accueil : il recueille aussi le premier geste, sans lequel aucun
@@ -165,18 +196,58 @@
   #accueil{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;
     pointer-events:auto;background:rgba(12,18,22,.78);backdrop-filter:blur(5px)}
-  #acctitre{font-size:34px;font-weight:bold;letter-spacing:12px;margin-right:-12px}
-  #accbaseline{font-size:10px;letter-spacing:4px;opacity:.45;text-transform:uppercase}
-  #accsous{font-size:12px;line-height:1.7;opacity:.68;max-width:440px}
+  #acctitre{font-size:28px;font-weight:bold;letter-spacing:12px;margin-right:-12px}
+  #accbaseline{font-size:9px;letter-spacing:4px;opacity:.45;text-transform:uppercase}
+  #accsous{font-size:11px;line-height:1.7;opacity:.68;max-width:440px}
   #accbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px}
-  .accbtn{padding:12px 26px;border-radius:13px;font-size:12px;font-weight:bold;
+  .accbtn{padding:12px 26px;border-radius:13px;font-size:11px;font-weight:bold;
     letter-spacing:1.8px;text-transform:uppercase;border:2px solid rgba(255,255,255,.3);white-space:nowrap}
   .accbtn.pri{background:#FAD201;color:#1B2429;border-color:#FAD201}
-  #accaide{font-size:10px;line-height:1.9;opacity:.4;letter-spacing:.8px;max-width:520px;margin-top:10px}
+  #accaide{font-size:9px;line-height:1.9;opacity:.4;letter-spacing:.8px;max-width:520px;margin-top:10px}
+  /* ---- LE PLAN DE TRAVAIL : la carte en grand, et ce qu'on veut y faire faire ----
+     Trois rangées de pastilles au-dessus d'une carte vue de dessus. On choisit un
+     engin, ce qu'on lui demande, puis on touche la carte : des parcelles à travailler,
+     ou deux lieux entre lesquels faire la navette. La file se lit en bas. */
+  #plan{position:absolute;inset:0;display:none;z-index:24;background:rgba(10,15,18,.84);
+    backdrop-filter:blur(3px)}
+  #planboite{position:absolute;inset:calc(8px + env(safe-area-inset-top)) 8px
+    calc(8px + env(safe-area-inset-bottom)) 8px;max-width:820px;margin:auto;
+    background:#1B2429;border:2px solid rgba(255,255,255,.16);border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden}
+  #plantete{display:flex;align-items:center;gap:10px;padding:8px 12px;
+    border-bottom:1px solid rgba(255,255,255,.08);flex:none}
+  #plantitre{font-size:11px;font-weight:bold;letter-spacing:1.8px;text-transform:uppercase;flex:1}
+  #planfermer{width:26px;height:26px;border-radius:9px;background:rgba(255,255,255,.08);
+    display:flex;align-items:center;justify-content:center;font-size:12px;pointer-events:auto}
+  #plan .rang{display:flex;gap:5px;padding:6px 10px;overflow-x:auto;flex:none;
+    scrollbar-width:none}
+  #plan .rang::-webkit-scrollbar{display:none}
+  #plan .pc{padding:5px 11px;border-radius:9px;font-size:9px;font-weight:bold;
+    letter-spacing:1px;text-transform:uppercase;white-space:nowrap;opacity:.5;
+    background:rgba(255,255,255,.06);pointer-events:auto;display:flex;align-items:center;gap:6px}
+  #plan .pc.on{opacity:1;background:#FAD201;color:#1B2429}
+  #plan .pc .pt{width:8px;height:8px;border-radius:2px;flex:none}
+  #plan .pc.tache{opacity:1;background:rgba(250,210,1,.16);color:#FAD201}
+  #plan .pc.vide{opacity:.35;background:none;font-weight:normal;text-transform:none;
+    letter-spacing:.4px;pointer-events:none}
+  #plancarte{flex:1;min-height:0;position:relative;margin:0 10px;border-radius:12px;
+    overflow:hidden;background:#26332B}
+  #plancv{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;
+    image-rendering:auto}
+  #planaide{font-size:8px;letter-spacing:.8px;opacity:.45;padding:5px 12px 0;flex:none;
+    text-align:center}
+  #planpied{display:flex;gap:8px;padding:8px 10px;flex:none}
+  #plan .pb{flex:1;text-align:center;padding:9px 14px;border-radius:11px;font-size:10px;
+    font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;pointer-events:auto;
+    border:2px solid rgba(255,255,255,.22);color:rgba(255,255,255,.6)}
+  #plan .pb.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.5)}
+  #plan .pb.pri{border-color:#FAD201;background:#FAD201;color:#1B2429}
+  #plan .pb.pri.no{border-color:rgba(255,255,255,.18);background:none;
+    color:rgba(255,255,255,.35)}
   #rot{position:absolute;inset:0;background:#1B2429;display:none;align-items:center;justify-content:center;
     flex-direction:column;gap:14px;text-align:center;padding:30px;pointer-events:auto;z-index:40}
-  #rot b{font-size:15px;letter-spacing:3px}
-  #rot span{font-size:12px;opacity:.5;letter-spacing:1px}
+  #rot b{font-size:13px;letter-spacing:3px}
+  #rot span{font-size:11px;opacity:.5;letter-spacing:1px}
   @media (orientation:portrait){#rot{display:flex}}
 </style>
 </head>
@@ -196,7 +267,8 @@
   </div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
-  <div id="engins">ENGINS</div>
+  <div id="engins"><svg viewBox="0 0 24 16"><path d="M3 11h5l1-5h5l3 5h3" /><circle cx="6" cy="12" r="3"/><circle cx="17" cy="12.5" r="2.5"/></svg><b>ENGINS</b></div>
+  <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctitre">Changer d'engin</div><div id="parcliste"></div></div></div>
   <div id="menuBtn">MENU</div>
   <div id="panneau">
     <div id="pfond"></div>
@@ -211,7 +283,7 @@
     </div>
   </div>
   <div id="hitch">ATTELER</div>
-  <div id="auto">AUTO</div>
+  <div id="auto"><svg viewBox="0 0 24 16"><path d="M2 13h4l2-8h5l3 8h6"/><path d="M12 2v3M9.5 3.5h5"/></svg><b>PLAN</b></div>
   <div id="crop"></div>
   <div id="buy"></div>
   <div id="atelier"></div>
@@ -223,6 +295,17 @@
   <div id="chargetxt"></div>
   <div id="fuel"><div id="fuelfill"></div></div>
   <div id="hopper"><div id="hopfill"></div></div>
+</div>
+<div id="plan">
+  <div id="planboite">
+    <div id="plantete"><div id="plantitre">Plan de travail</div><div id="planfermer">✕</div></div>
+    <div id="planengins" class="rang"></div>
+    <div id="planmodes" class="rang"></div>
+    <div id="plancarte"><canvas id="plancv"></canvas></div>
+    <div id="planaide"></div>
+    <div id="plantaches" class="rang"></div>
+    <div id="planpied"><div id="planboucle" class="pb">EN BOUCLE</div><div id="planlancer" class="pb pri">LANCER</div></div>
+  </div>
 </div>
 <div id="accueil">
   <div id="acctitre">MOISSON</div>
@@ -4171,12 +4254,12 @@ function refreshContrat(){
 }
 
 /* --- pilote automatique : la machine fait ses allers-retours toute seule --- */
-function planAuto(m){
+function planAuto(m, cible){
   const T = toolOf(m);
   if(!T || !T.from) return null;
-  // on vise la parcelle possédée qui contient le plus de cellules travaillables
+  // on vise la parcelle demandée, ou celle qui contient le plus de cellules à faire
   let best = null, bestN = 0;
-  for(const p of PARCELS){
+  for(const p of (cible ? [cible] : PARCELS)){
     if(!p.owned) continue;
     let n = 0;
     const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
@@ -4207,8 +4290,62 @@ function planAuto(m){
   }
   return {pts, i:0, replans:0};
 }
+/* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
+   celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
+function tacheSuivante(m){
+  const v = m.v, M = v.mission;
+  v.plan = null; v.sensVoulu = 'route'; M.etape = 0; M.attente = 0;
+  M.i++;
+  if(M.i < M.taches.length) return;
+  if(M.boucle){ M.i = 0; return; }
+  v.mission = null; v.auto = false;
+  showHint(m.nom.toUpperCase() + ' — PLAN TERMINÉ');
+}
+function missionDrive(m, dt){
+  const v = m.v, M = v.mission;
+  const t = M.taches[M.i];
+  if(!t){ tacheSuivante(m); return [0, 0]; }
+  if(t.quoi === 'parcelle'){
+    // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
+    if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
+    if(v.goSilo){
+      if(hopper <= 0.5) v.goSilo = false;
+      else { v.sensVoulu = 'vider'; return viser(v, SILO.x, SILO.z, 7); }
+    }
+    v.sensVoulu = 'route';
+    if(!v.plan){
+      v.plan = planAuto(m, PARCELS[t.p]);
+      if(!v.plan){ tacheSuivante(m); return [0, 0]; }
+    }
+    const wp = v.plan.pts[v.plan.i];
+    if(!wp){ tacheSuivante(m); return [0, 0]; }
+    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 2.0){ v.plan.i++; return [0, 0.5]; }
+    return viser(v, wp.x, wp.z, 2.0);
+  }
+  // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
+  // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
+  // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
+  const P = lieuPoint(M.etape === 0 ? t.a : t.b);
+  if(!P){ tacheSuivante(m); return [0, 0]; }
+  if(Math.hypot(P.x - v.pos.x, P.z - v.pos.z) > 3.0){
+    v.sensVoulu = 'route'; M.attente = 0;
+    return viser(v, P.x, P.z, 2.4);
+  }
+  v.sensVoulu = (M.etape === 0) ? 'remplir' : 'vider';
+  M.attente = (M.attente || 0) + dt;
+  const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu);
+  // Quarante secondes : de quoi vider la plus grosse benne au débit le plus lent, et
+  // de quoi repartir quand même si le lieu ne peut rien nous donner.
+  if(!encore || M.attente > 40){
+    v.sensVoulu = 'route'; M.attente = 0;
+    if(M.etape === 0) M.etape = 1;       // chargé : on va livrer
+    else tacheSuivante(m);               // livré : l'aller-retour est fait
+  }
+  return [0, 0];
+}
 function autoDrive(m, dt){
   const v = m.v;
+  if(v.mission) return missionDrive(m, dt);
   // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
   if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
   if(v.goSilo){
@@ -4456,32 +4593,32 @@ buildFarm();
 flushTiles();
 
 const MACHINES = [
-  {key:'t1', nom:'Vert', v:new Vehicle({
+  {key:'t1', nom:'Vert', teinte:0x3B9440, v:new Vehicle({
       x:placeCentre(0), z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  {key:'t2', nom:'Rouge', v:new Vehicle({
+  {key:'t2', nom:'Rouge', teinte:0xD44435, v:new Vehicle({
       x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Bleu', v:new Vehicle({
+  {key:'t3', nom:'Bleu', teinte:0x2F6FB5, v:new Vehicle({
       x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
       build:()=>buildTracteur(0x3574C6)
     })},
-  {key:'pickup', nom:'Pick-up', verrou:true, prix:9000, v:new Vehicle({
+  {key:'pickup', nom:'Pick-up', teinte:0xC94F3A, verrou:true, prix:9000, v:new Vehicle({
       x:placeCentre(10), z:51.1, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
-  {key:'fourgon', nom:'Fourgon', verrou:true, prix:18000, v:new Vehicle({
+  {key:'fourgon', nom:'Fourgon', teinte:0xE8E2D2, verrou:true, prix:18000, v:new Vehicle({
       x:placeCentre(11), z:51.1, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
     })},
-  {key:'moisson', nom:'Moisson', v:new Vehicle({
+  {key:'moisson', nom:'Moisson', teinte:0xE0A02E, v:new Vehicle({
       x:COUR_X0 + 4*PLACE_PAS, z:47, cap:Math.PI, vmax:9.5, accel:7, turn:1.5, grip:4.0, trackW:1.7,
       susp:{k:20, d:3.8, roll:0.052, pitch:0.024, rough:1.3},
       toolOffset:4.6, build:buildMoissonneuse
@@ -4995,12 +5132,42 @@ function keyboardInput(){
 
 /* boutons machines */
 const enginsEl = document.getElementById('engins');
-enginsEl.addEventListener('pointerdown', ()=> ouvrirPanneau('engins'));
+/* --- LA FENÊTRE RAPIDE DU PARC ---
+   Changer d'engin passait par le menu : quatre gestes, le jeu en pause, huit onglets.
+   Le nom de l'engin est devenu un bouton, et il ouvre cette liste-là : rien que les
+   engins qu'on possède, avec leur couleur, leur outil et où ils sont. Un doigt. */
+const parcEl = document.getElementById('parc');
+const parcListe = document.getElementById('parcliste');
+// La teinte déclarée du modèle : on reconnaît le tracteur vert du rouge sans lire.
+const couleurEngin = (m)=> '#' + (m.teinte || 0x8BE07A).toString(16).padStart(6, '0');
+function ouvrirParc(){
+  parcListe.innerHTML = '';
+  MACHINES.forEach((m, i)=>{
+    if(m.verrou) return;
+    const T = toolOf(m);
+    const d = Math.round(Math.hypot(m.v.pos.x - MACHINES[cur].v.pos.x,
+                                    m.v.pos.z - MACHINES[cur].v.pos.z));
+    const det = (m.key === 'moisson' ? 'Moissonneuse'
+              : m.v.cargo ? 'Transport ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
+              : (T ? T.nom : 'sans outil'))
+      + (i === cur ? ' · à bord' : (m.v.mission ? ' · en mission' : ' · à ' + d + ' m'));
+    const l = document.createElement('div');
+    l.className = 'pe' + (i === cur ? ' on' : '');
+    l.innerHTML = '<div class="pt" style="background:' + couleurEngin(m) + '"></div>'
+      + '<div class="pn">' + m.nom.toUpperCase() + '<div class="pd">' + det + '</div></div>';
+    l.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); setMachine(i); fermerParc(); });
+    parcListe.appendChild(l);
+  });
+  parcEl.style.display = 'block';
+}
+const fermerParc = ()=>{ parcEl.style.display = 'none'; };
+enginsEl.addEventListener('pointerdown', ouvrirParc);
+document.getElementById('parcfond').addEventListener('pointerdown', fermerParc);
 function setMachine(i){
   if(MACHINES[i].verrou) return;      // un véhicule non acheté n'est pas pilotable
   cur = i;
   trail = [];
-  enginsEl.textContent = MACHINES[i].nom.toUpperCase();
+  enginsEl.querySelector('b').textContent = MACHINES[i].nom.toUpperCase();
   const v = MACHINES[i].v;
   camTarget.set(v.pos.x, 0, v.pos.z);
   camera.position.copy(camTarget).add(CAM_OFF);
@@ -5089,15 +5256,224 @@ function refreshCropButton(){
   cropEl.textContent = CROPS[T.crop || 0].nom.toUpperCase();
 }
 const autoEl = document.getElementById('auto');
-autoEl.addEventListener('pointerdown', ()=>{
-  const v = MACHINES[cur].v;
-  v.auto = !v.auto; v.plan = null; v.goSilo = false;
-  showHint(v.auto ? 'PILOTAGE AUTOMATIQUE' : 'PILOTAGE MANUEL');
-  refreshAutoButton();
+
+/* ---------- LE PLAN DE TRAVAIL ----------
+   Le bouton AUTO lançait la machine sur la parcelle qui avait le plus à faire, sans
+   rien demander : une seule tâche, choisie par le jeu, impossible à enchaîner. Il ouvre
+   maintenant la carte en grand. On y désigne un engin, ce qu'on lui demande, et où :
+   trois parcelles à labourer l'une après l'autre, ou une navette sans fin entre le silo
+   et l'usine de céréales. La file est exécutée dans l'ordre, en boucle si on veut.
+
+   Un LIEU est une clé textuelle — 'silo', 'atelier', 'pature2', ou le nom d'un
+   commerce — résolue en un point par lieuPoint(). C'est la même façon de nommer un
+   endroit que dans les actions de transfert, et pour la même raison : deux objets ne
+   se comparent pas, deux chaînes si. */
+function lieuxPossibles(){
+  const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z},
+             {cle:'atelier', nom:'Atelier de la ferme', x:HALLE.quai.x, z:HALLE.quai.z}];
+  PATURES.forEach((P, i)=>{
+    if(P.quaiProduit) L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1),
+                              x:P.quaiProduit.x, z:P.quaiProduit.z});
+  });
+  for(const S of SITES)
+    if(S.achete.length || S.accepte.length)
+      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ});
+  return L;
+}
+const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
+
+const planEl = document.getElementById('plan');
+const planCv = document.getElementById('plancv');
+// Ce qu'on est en train de composer. `taches` est la file, `mode` ce qu'on ajoute.
+let planEngin = 0, planMode = 'parcelle', planTaches = [], planBoucle = false, planNav = null;
+
+function ouvrirPlan(){
+  planEngin = cur;
+  const M = MACHINES[planEngin];
+  planTaches = (M.v.mission ? M.v.mission.taches.slice() : []);
+  planBoucle = !!(M.v.mission && M.v.mission.boucle);
+  planNav = null;
+  planEl.style.display = 'block';
+  paused = true;
+  majPlan();
+}
+function fermerPlan(){
+  planEl.style.display = 'none';
+  paused = false; last = performance.now();
+}
+function planPuce(txt, actif, f, teinte){
+  const b = document.createElement('div');
+  b.className = 'pc' + (actif ? ' on' : '');
+  if(teinte) b.innerHTML = '<div class="pt" style="background:' + teinte + '"></div>';
+  b.appendChild(document.createTextNode(txt));
+  if(f) b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); f(); });
+  return b;
+}
+function majPlan(){
+  const rE = document.getElementById('planengins'), rM = document.getElementById('planmodes'),
+        rT = document.getElementById('plantaches');
+  rE.innerHTML = ''; rM.innerHTML = ''; rT.innerHTML = '';
+  MACHINES.forEach((m, i)=>{
+    if(m.verrou) return;
+    rE.appendChild(planPuce(m.nom.toUpperCase(), i === planEngin, ()=>{
+      planEngin = i;
+      planTaches = (m.v.mission ? m.v.mission.taches.slice() : []);
+      planBoucle = !!(m.v.mission && m.v.mission.boucle);
+      planNav = null; majPlan();
+    }, couleurEngin(m)));
+  });
+  const M = MACHINES[planEngin], T = toolOf(M);
+  const peutTravailler = !!(T && T.from) || M.key === 'moisson';
+  rM.appendChild(planPuce('Travailler des parcelles', planMode === 'parcelle',
+    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; majPlan(); } : null));
+  rM.appendChild(planPuce('Navette entre deux lieux', planMode === 'navette',
+    ()=>{ planMode = 'navette'; planNav = null; majPlan(); }));
+  if(!peutTravailler && planMode === 'parcelle'){ planMode = 'navette'; return majPlan(); }
+
+  if(!planTaches.length) rT.appendChild(planPuce('Aucune tâche — touche la carte', false, null));
+  planTaches.forEach((t, k)=>{
+    // Le nom du lieu, pas sa clé : la file se lit comme une phrase.
+    const nomLieu = (cle)=>{ const P = lieuPoint(cle); return P ? P.nom : cle; };
+    const nom = (t.quoi === 'parcelle')
+      ? 'Parcelle ' + (t.p + 1)
+      : (nomLieu(t.a) + ' → ' + nomLieu(t.b));
+    const b = planPuce(nom + '   ✕', false, ()=>{ planTaches.splice(k, 1); majPlan(); });
+    b.classList.add('tache'); rT.appendChild(b);
+  });
+  document.getElementById('planaide').textContent = (planMode === 'parcelle')
+    ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
+    : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.');
+  document.getElementById('planboucle').classList.toggle('on', planBoucle);
+  const lancer = document.getElementById('planlancer');
+  lancer.classList.toggle('no', !planTaches.length);
+  lancer.textContent = MACHINES[planEngin].v.mission ? 'ARRÊTER' : 'LANCER';
+  dessinerCarte();
+}
+
+/* LA CARTE. Vue de dessus, à l'échelle, dessinée au canevas 2D : c'est la seule vue
+   d'ensemble du jeu. Elle ne montre que ce qu'on peut désigner — les parcelles, les
+   lieux où l'on charge et décharge, les engins — plus les routes pour se repérer. */
+let planEch = 1, planOx = 0, planOy = 0;
+function dessinerCarte(){
+  const box = planCv.parentElement;
+  const L = box.clientWidth, H = box.clientHeight;
+  if(!L || !H) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  planCv.width = Math.round(L*dpr); planCv.height = Math.round(H*dpr);
+  const c = planCv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // même échelle sur les deux axes, centrée : la carte du monde est carrée
+  planEch = Math.min(L/WX, H/WZ);
+  planOx = (L - WX*planEch)/2; planOy = (H - WZ*planEch)/2;
+  const px = (x)=> planOx + (x - X0)*planEch, pz = (z)=> planOy + (z - Z0)*planEch;
+  c.fillStyle = '#26332B'; c.fillRect(0, 0, L, H);
+  // les quatre brins de rocade
+  c.fillStyle = '#3A4348';
+  const brin = (x0, z0, x1, z1)=> c.fillRect(px(x0), pz(z0), (x1-x0)*planEch, (z1-z0)*planEch);
+  brin(-ROAD_C - ROAD_W/2, Z0, -ROAD_C + ROAD_W/2, Z0 + WZ);
+  brin(ROAD_E - ROAD_W/2, Z0, ROAD_E + ROAD_W/2, Z0 + WZ);
+  brin(X0, ROAD_C - ROAD_W/2, X0 + WX, ROAD_C + ROAD_W/2);
+  brin(X0, ROAD_N - ROAD_W/2, X0 + WX, ROAD_N + ROAD_W/2);
+  // les parcelles : possédées en terre, les autres en friche pâle
+  PARCELS.forEach((p, i)=>{
+    const choisie = planTaches.some((t)=> t.quoi === 'parcelle' && t.p === i);
+    c.fillStyle = !p.owned ? 'rgba(255,255,255,.05)' : (choisie ? '#FAD201' : '#4E6B3C');
+    c.fillRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
+    c.strokeStyle = choisie ? '#FFF' : 'rgba(0,0,0,.28)';
+    c.lineWidth = choisie ? 2 : 1;
+    c.strokeRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
+    if(p.owned && p.w*planEch > 22){
+      c.fillStyle = choisie ? '#1B2429' : 'rgba(255,255,255,.5)';
+      c.font = 'bold 9px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
+      c.fillText(String(i + 1), px(p.x), pz(p.z) + 3);
+    }
+  });
+  // les dalles des commerces, pour la silhouette du village
+  c.fillStyle = 'rgba(255,255,255,.09)';
+  for(const S of SITES)
+    c.fillRect(px(S.emp.x0), pz(S.emp.z0),
+               (S.emp.x1 - S.emp.x0)*planEch, (S.emp.z1 - S.emp.z0)*planEch);
+  // les lieux où l'on charge et décharge
+  const lieux = lieuxPossibles();
+  for(const P of lieux){
+    const dep = planNav === P.cle;
+    const pris = planTaches.some((t)=> t.quoi === 'navette' && (t.a === P.cle || t.b === P.cle));
+    c.beginPath(); c.arc(px(P.x), pz(P.z), dep ? 7 : 5, 0, Math.PI*2);
+    c.fillStyle = dep ? '#FFF' : (pris ? '#FAD201' : '#7FD1E8');
+    c.fill();
+    if(planMode === 'navette'){
+      c.fillStyle = 'rgba(255,255,255,.75)';
+      c.font = 'bold 8px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
+      c.fillText(P.nom.slice(0, 14), px(P.x), pz(P.z) - 8);
+    }
+  }
+  // les flèches des navettes déjà en file
+  c.lineWidth = 2;
+  for(const t of planTaches){
+    if(t.quoi !== 'navette') continue;
+    const A = lieuPoint(t.a), B = lieuPoint(t.b);
+    if(!A || !B) continue;
+    c.strokeStyle = '#FAD201'; c.beginPath();
+    c.moveTo(px(A.x), pz(A.z)); c.lineTo(px(B.x), pz(B.z)); c.stroke();
+  }
+  // les engins
+  MACHINES.forEach((m)=>{
+    if(m.verrou) return;
+    c.beginPath(); c.arc(px(m.v.pos.x), pz(m.v.pos.z), 4.5, 0, Math.PI*2);
+    c.fillStyle = couleurEngin(m); c.fill();
+    c.strokeStyle = (MACHINES[planEngin] === m) ? '#FFF' : 'rgba(0,0,0,.5)';
+    c.lineWidth = 2; c.stroke();
+  });
+}
+// Du doigt au monde : l'inverse exact de px()/pz().
+function carteVersMonde(ev){
+  const r = planCv.getBoundingClientRect();
+  return {x: X0 + (ev.clientX - r.left - planOx)/planEch,
+          z: Z0 + (ev.clientY - r.top - planOy)/planEch};
+}
+planCv.addEventListener('pointerdown', (ev)=>{
+  const w = carteVersMonde(ev);
+  if(planMode === 'parcelle'){
+    const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
+                                              && Math.abs(w.z - p.z) < p.h/2);
+    if(i < 0) return;
+    const k = planTaches.findIndex((t)=> t.quoi === 'parcelle' && t.p === i);
+    if(k >= 0) planTaches.splice(k, 1); else planTaches.push({quoi:'parcelle', p:i});
+  } else {
+    // le lieu le plus proche du doigt, à condition d'être vraiment dessus
+    let best = null, bd = 14/planEch;
+    for(const P of lieuxPossibles()){
+      const d = Math.hypot(w.x - P.x, w.z - P.z);
+      if(d < bd){ bd = d; best = P; }
+    }
+    if(!best) return;
+    if(!planNav){ planNav = best.cle; }
+    else if(planNav !== best.cle){ planTaches.push({quoi:'navette', a:planNav, b:best.cle}); planNav = null; }
+    else planNav = null;
+  }
+  majPlan();
 });
+document.getElementById('planfermer').addEventListener('pointerdown', fermerPlan);
+document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
+  planBoucle = !planBoucle; majPlan();
+});
+document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
+  const M = MACHINES[planEngin], v = M.v;
+  if(v.mission){ arreterMission(M); majPlan(); return; }
+  if(!planTaches.length) return;
+  v.mission = {taches:planTaches.slice(), i:0, etape:0, boucle:planBoucle, attente:0};
+  v.auto = true; v.plan = null; v.goSilo = false; v.sensVoulu = null;
+  showHint(M.nom.toUpperCase() + ' — ' + planTaches.length + ' TÂCHE'
+           + (planTaches.length > 1 ? 'S' : '') + (planBoucle ? ' EN BOUCLE' : ''));
+  fermerPlan();
+});
+function arreterMission(M){
+  M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
+  showHint(M.nom.toUpperCase() + ' — PLAN ARRÊTÉ');
+}
+autoEl.addEventListener('pointerdown', ouvrirPlan);
 function refreshAutoButton(){
-  const v = MACHINES[cur].v;
-  autoEl.classList.toggle('on', !!v.auto);
+  autoEl.classList.toggle('on', MACHINES.some((m)=> !m.verrou && m.v.mission));
 }
 /* --- la concession : au GARAGE DU VILLAGE, et nulle part ailleurs ---
    On achetait un véhicule devant la remise de la ferme, et aussi depuis le menu, sans
@@ -6362,9 +6738,23 @@ function actionRetenue(m){
   choixEnCours = null;                 // finie, ou devenue impossible : on redemande
   return null;
 }
-// Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
-// première possibilité, exactement comme le jeu le faisait pour tout le monde avant.
-const actionPour = (m)=> (m === MACHINES[cur]) ? actionRetenue(m) : (actionsIci(m)[0] || null);
+/* Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
+   première possibilité. Et quand un plan leur dit d'aller CHARGER quelque part, on ne
+   retient que les actions de ce sens : sans ce filtre, une benne pleine arrivant au
+   silo pour y prendre du blé s'y reviderait, « ranger » venant en tête de liste. */
+const actionPour = (m)=>{
+  const v = m.v;
+  if(m === MACHINES[cur] && !v.auto && !v.mission) return actionRetenue(m);
+  // 'route' : en chemin, l'engin ne touche à rien. Sans ça, une benne pleine arrêtée
+  // sur le silo entre deux étapes s'y reviderait toute seule — « ranger » vient en tête.
+  if(v.sensVoulu === 'route') return null;
+  let L = actionsIci(m);
+  if(v.sensVoulu){
+    const F = L.filter((A)=> modeDe(A) === v.sensVoulu);
+    if(F.length) L = F;
+  }
+  return L[0] || null;
+};
 
 /* Exécuter une action : c'est le seul endroit du jeu où la matière change de main. */
 function executer(m, A, dt){
@@ -7589,7 +7979,7 @@ function chargerPartie(S){
       v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
       v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
       v.fuel = Math.min(q.fuel, v.resMax); v.sec = v.fuel <= 0;
-      v.betail = q.betail; v.auto = false;
+      v.betail = q.betail; v.auto = false; v.mission = null; v.sensVoulu = null;
       if(v.cargo && q.cargo){ v.cargo.load = q.cargo.load; v.cargo.capacite = q.cargo.capacite; v.cargo.type = q.cargo.type; }
       if(m.key === 'moisson'){
         const head = v.group.userData.head;
