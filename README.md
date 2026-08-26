@@ -51,14 +51,23 @@ Où peut-on faire quoi :
 
 | | |
 |---|---|
-| **Silo, atelier de la ferme, pâtures** | décharger **et** remplir : c'est chez toi |
+| **Silo, entrepôt, pâtures** | décharger **et** remplir : c'est chez toi |
 | **Usines et points de vente du village** | décharger seulement — ils paient, ils gardent |
 | **Garage, comptoir agricole** | ni l'un ni l'autre : un bouton, pas un transfert |
+| **Atelier de la ferme** | rien : il se sert seul et dépose seul |
 
 Une **jauge flottante** montre le remplissage au-dessus de l'engin pendant le transfert,
-au-dessus du silo, au-dessus de l'atelier, et au-dessus de chaque parcelle qui pousse.
-Elle ne se montre que dans les soixante mètres : de plus loin, la vallée reste un
-paysage.
+au-dessus du silo, de l'entrepôt, de l'atelier, de chaque enclos et de chaque parcelle
+qui pousse. Elle ne se montre que dans les soixante mètres : de plus loin, la vallée
+reste un paysage.
+
+Et pendant un transfert, la marchandise **se voit**. En chargeant, des sacs et des
+cageots montent un par un dans la benne du pick-up, au rythme réel du remplissage, et
+ils y restent tant qu'elle est pleine. En déchargeant chez un client, les mêmes se
+posent au sol à l'endroit où l'on s'est arrêté, puis s'effacent quand la barre est
+finie. Ce qui coule en vrac — la trémie de la moissonneuse, une benne qu'on bascule
+dans la grille du silo, le grain versé dans une auge — ne se met pas en sacs : ça
+fume, à l'endroit exact où la matière arrive.
 
 La caisse est pleine de lait ? Seule la laiterie s'allume, sur toute la vallée. On la
 vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas compte de
@@ -137,15 +146,32 @@ La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre fr
 On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
 ainsi deux fois son prix de marché, au prix d'une tournée de plus.
 
-## L'atelier de la ferme
+## Deux magasins, et un atelier qui travaille seul
 
-Le moulin du bord de route a fermé : on moud son propre blé, dans sa propre cour. À
-l'est du garage, les deux cases de la rangée sud ne font plus qu'une seule dalle de
-bitume — le chemin de sable qui les coupait a été déposé. Le silo y a déménagé, et
-l'atelier s'y installe à côté.
+La chaîne tenait en trois trajets sur la même dalle : charger du blé au silo, le porter
+vingt mètres plus loin à l'atelier, revenir chercher la farine. Elle tient maintenant en
+deux magasins.
 
-On y verse la matière à la benne, elle ressort transformée. Cinq paliers, achetés sur
-place, et chacun se voit sur le bâtiment :
+| | prend | rend |
+|---|---|---|
+| **Silo** | les cinq céréales, et rien d'autre | de quoi nourrir les bêtes ou livrer la coopérative |
+| **Entrepôt** | tout le reste : raisin, olives, lait, œufs, laine, miel — et tout ce que l'atelier produit | tout ce qu'il a |
+
+L'**atelier** n'a plus de quai : il tire tout seul de quoi travailler dans les deux
+magasins, et pousse tout seul ce qu'il a fini dans l'entrepôt. On ne s'y arrête plus,
+on n'y verse plus rien, on ne vient plus rien y chercher. Ce qu'on garde, c'est le
+choix de ce qu'il fabrique — et il se fait au bouton **PRODUCTION**.
+
+Trois boutons en bas à gauche disent l'état de la ferme sans qu'on ait à traverser le
+menu :
+
+| | |
+|---|---|
+| **STOCKAGE** | ce qui dort au silo, à l'entrepôt, et ce qui roule dans les bennes |
+| **PRODUCTION** | pour chaque module, la conversion en clair — cent kilos de blé donnent soixante-douze kilos de farine —, ce que le stock permet d'en sortir, ce que la même matière vaudrait brute, et le bouton qui lance la production |
+| **PRIX** | qui achète quoi et à combien, du mieux-disant au moins cher, avec la place restante sur les étals et ce que la matière rapporterait transformée |
+
+Cinq paliers, et chacun se voit sur le bâtiment :
 
 | | module | débloque | ce qu'on voit |
 |---|---|---|---|
@@ -155,10 +181,9 @@ place, et chacun se voit sur le bâtiment :
 | **4** | Mélangeur | maïs + orge + avoine → aliment premium | appentis, conteneur, palettes en nombre |
 | **5** | Cave | raisin → vin | étage technique, auvent de quai, aire rangée |
 
-L'atelier n'accepte que ce que sa recette du moment réclame : réglé sur le moulin, il
-refuse le raisin. Le bouton sur l'anneau du quai sert à monter d'un palier, puis à
-passer d'un module à l'autre. Les paliers 4 et 5 augmentent aussi la capacité et le
-débit.
+L'atelier ne travaille qu'une recette à la fois : réglé sur le moulin, il laisse le
+raisin tranquille. Le module et le palier suivant se choisissent au bouton
+**PRODUCTION**. Les paliers 4 et 5 augmentent aussi la capacité et le débit.
 
 L'aliment ne se vend pas, il se donne aux bêtes. Tout le reste part sur la route.
 
@@ -204,10 +229,14 @@ sa flaque restait immobile sous l'engin, elle a été retirée.
                        |
              silo -+-> coopérative : rachète les cinq céréales, tout de suite
                    |
-                   +-> atelier -+-> farine          -> boulangerie / marché
-                   |            |-> huile de colza  -> restaurant / marché
-                   |            |-> aliment (+ premium) -> les mangeoires
-                   |            \-> vin              -> caviste, meilleur prix
+                   +-> atelier (il se sert seul) -+-> farine       -> entrepôt
+                   |                              |-> huile        -> entrepôt
+                   |                              |-> aliment      -> entrepôt
+                   |                              \-> vin          -> entrepôt
+                   |                                       |
+                   |   entrepôt -+-> boulangerie / marché / restaurant / caviste
+                   |             |-> les mangeoires, pour l'aliment
+                   |             \-> raisin, olives, lait, œufs, laine, miel en attente
                    |
                    +-> usines du bord de route : on verse, elles PAIENT
                    |     orge   -> brasserie      -> bière
@@ -291,9 +320,17 @@ Quelques partis pris qui expliquent le reste :
   recette entre les deux. L'atelier de la ferme et les usines du bord de route
   partagent le même code ; seule change la liste des recettes — et, chez les usines,
   le stock est remplacé par une caisse : elles vendent ce qu'elles font.
-- **On ne charge que chez soi.** Silo, atelier de la ferme, pâtures : les deux sens. Le
-  village achète, il ne rend rien. Faire des allers-retours pour récupérer chez une
-  usine ce qu'on venait de lui vendre, c'était trois arrêts pour une seule récolte.
+- **On ne charge que chez soi.** Silo, entrepôt, pâtures : les deux sens. Le village
+  achète, il ne rend rien. Faire des allers-retours pour récupérer chez une usine ce
+  qu'on venait de lui vendre, c'était trois arrêts pour une seule récolte.
+- **Deux magasins, pas trois.** Le silo prend les céréales, l'entrepôt prend tout le
+  reste, et l'atelier fait la navette entre les deux sans qu'on s'en mêle. Charger du
+  blé pour le porter vingt mètres plus loin, c'était un trajet qui n'apprenait rien et
+  ne décidait rien — le seul trajet qui compte est celui qui va vendre.
+- **Ce qui change de main se voit.** Un transfert n'était qu'une barre qui montait :
+  la benne d'un pick-up qu'on venait de remplir de six cents kilos restait vide à
+  l'œil. Les sacs et les cageots y montent maintenant un par un, et se posent au sol
+  quand on décharge. Ce qui coule en vrac fume au lieu de s'emballer.
 - **Un transfert ne démarre jamais sans qu'on l'ait demandé.** Deux boutons, deux
   temps, toujours les mêmes : le sens, puis la marchandise.
 - **Une recette n'a rien à déclarer** : le nom du produit suffit, puisque la table des

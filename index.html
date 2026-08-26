@@ -141,6 +141,17 @@
   /* L'achat de véhicule et l'amélioration s'affichent ensemble, au garage : ils ne
      peuvent pas partager la rangée des 104 px. Celle des 146 px est libre là-bas —
      le garage n'a ni transfert ni action de service. */
+  /* La régie : trois boutons qui ne parlent pas de l'engin mais de la ferme —
+     ce qui est en magasin, ce qu'on peut en faire, et à quel prix ça se vend. Ils
+     restent à gauche, au-dessus du manche, pour ne jamais recouvrir la colonne de
+     choix ni les boutons de l'engin, qui sont tous centrés. */
+  #regie{position:absolute;bottom:calc(154px + env(safe-area-inset-bottom));
+    left:calc(24px + env(safe-area-inset-left));pointer-events:auto;
+    display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+  #regie .rgb{padding:6px 12px;border-radius:10px;background:rgba(20,28,33,.62);
+    font-size:9px;font-weight:bold;letter-spacing:1.3px;white-space:nowrap;
+    border:2px solid rgba(255,255,255,.26);display:flex;align-items:center;gap:6px}
+  #regie .rgb .pt{width:7px;height:7px;border-radius:2px;flex:none}
   #veh{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
@@ -288,6 +299,11 @@
   <div id="buy"></div>
   <div id="atelier"></div>
   <div id="veh"></div>
+  <div id="regie">
+    <div class="rgb" data-p="stockage"><span class="pt" style="background:#9FD8E8"></span>STOCKAGE</div>
+    <div class="rgb" data-p="production"><span class="pt" style="background:#F0C24A"></span>PRODUCTION</div>
+    <div class="rgb" data-p="prix"><span class="pt" style="background:#8BE07A"></span>PRIX</div>
+  </div>
   <div id="choix"></div>
   <div id="service"></div>
   <div id="stick"><div id="knob"></div></div>
@@ -856,7 +872,36 @@ const halleEntreeMax = ()=> 900 + HALLE.niveau*700;
 HALLE.stockMax = ()=> 700 + HALLE.niveau*500;
 HALLE.debit    = ()=> 12 + HALLE.niveau*7;            // kg de matière engagés par seconde
 const halleStock = (n)=> HALLE.stock[n] || 0;
-function halleAjoute(n, q){ HALLE.stock[n] = (HALLE.stock[n] || 0) + q; }
+
+/* ---------- L'ENTREPÔT DE LA FERME ---------- */
+/* La chaîne était devenue illisible : on chargeait du blé au silo pour le porter
+   vingt mètres plus loin à l'atelier, on revenait chercher la farine, et le raisin
+   n'avait nulle part où dormir. Deux magasins suffisent, et un seul trajet compte —
+   celui qui va vendre.
+
+     • le SILO ne prend que les céréales. C'était déjà le cas.
+     • l'ENTREPÔT prend tout le reste : le raisin, les olives, le lait, les œufs, la
+       laine, le miel, et TOUT ce que l'atelier produit.
+     • l'atelier se sert seul dans les deux et dépose seul dans l'entrepôt.
+
+   L'entrepôt existait déjà comme décor — c'est l'ancien garage de la ferme, vidé de
+   sa fonction quand la concession est partie au village. Il la retrouve. */
+const ENTREPOT = {stock:{}, r:5.0, quai:null};
+ENTREPOT.stockMax = ()=> 12000;
+const entrepotTotal = ()=>{ let t = 0; for(const k in ENTREPOT.stock) t += ENTREPOT.stock[k]; return t; };
+const entrepotPlace = ()=> Math.max(0, ENTREPOT.stockMax() - entrepotTotal());
+const entrepotStock = (n)=> ENTREPOT.stock[n] || 0;
+// Ce que l'entrepôt accepte : tout ce qui n'est pas une céréale de silo. La règle est
+// écrite une fois, ici, et jamais réénumérée ailleurs — une culture ajoutée demain
+// trouve sa place toute seule.
+const entrepotAccepte = (cle)=> !!cle && !!PRODUITS[cle] && siloStock[cle] === undefined;
+function entrepotRange(cle, q){
+  ENTREPOT.stock[cle] = (ENTREPOT.stock[cle] || 0) + q;
+}
+function entrepotRetire(cle, q){
+  ENTREPOT.stock[cle] = Math.max(0, (ENTREPOT.stock[cle] || 0) - q);
+  if(ENTREPOT.stock[cle] < 0.005) delete ENTREPOT.stock[cle];
+}
 function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) - q); }
 const SITES = [
   // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
@@ -3251,12 +3296,15 @@ function buildFarm(){
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
-    // Plus d'anneau devant la porte : on n'y achète plus rien. Un anneau jaune veut
-    // dire « ici, maintenant, quelque chose » — devant une remise, il ne voudrait
-    // plus rien dire. La concession est passée au garage du village.
+    // Un quai devant la grande porte, et l'anneau qui va avec : l'entrepôt reçoit de
+    // nouveau de la marchandise, il lui faut de nouveau un endroit où s'arrêter.
+    ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2 + 4.0};
+    anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
+      ()=> actionsEntrepot(MACHINES[cur]).length > 0);
     poseBulle('Entrepôt', 0x7C4A38,
-      [{titre:'ABRITE', lignes:[{nom:'Véhicules', prix:''}, {nom:'Outils et bennes', prix:''}]}],
-      11, H + 3.4, 54, 0);
+      [{titre:'STOCKE', lignes:[{nom:'Hors céréales', prix:''},
+                                {nom:'Produits finis', prix:''}]}],
+      HANGAR.x, H + 3.4, HANGAR.z, 0);
   })();
 
   // géométries partagées du petit décor
@@ -3514,20 +3562,10 @@ function poserAtelier(){
   const demi = u.W/2 + (N >= 4 ? 4.5 : (N >= 3 ? 3.4 : (N >= 2 ? 3.2 : 2.7)));
   if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd:u.D/2}; boxObs.push(atelierObs); }
   else { atelierObs.hw = demi; atelierObs.hd = u.D/2; }
+  // PLUS D'ANNEAU DEVANT L'ATELIER. Il se sert tout seul au silo et à l'entrepôt, et
+  // dépose tout seul à l'entrepôt : il n'y a plus rien à venir y faire. On garde le
+  // point de quai, qui sert encore à situer le bâtiment et sa fumée.
   HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2 + 4.0};
-  // Un seul anneau pour la vie de la partie : il suit le quai quand la halle grandit,
-  // plutôt que d'en poser un nouveau à chaque niveau — un anneau ne se retire pas.
-  if(!HALLE.anneau){
-    anneauAction(HALLE.quai.x, HALLE.quai.z, 2.9, ()=>{
-      const m = MACHINES[cur], T = caisseDe(m);
-      if(actionsAtelier(m).length > 0) return true;
-      const c = coutAtelier();
-      return c > 0 && money >= c;
-    });
-    HALLE.anneau = ANNEAUX[ANNEAUX.length - 1];
-  }
-  HALLE.anneau.anneau.position.set(HALLE.quai.x, 0.10, HALLE.quai.z);
-  HALLE.anneau.halo.position.set(HALLE.quai.x, 0.08, HALLE.quai.z);
 }
 
 /* Marquage du parking — UNE seule trame pour toute l'aire, cour et garage confondus.
@@ -3747,7 +3785,11 @@ function buildPickup(){
   // fait jouet. On l'agrandit d'un tiers : le gabarit redevient crédible sans
   // toucher à une seule proportion du modèle.
   g.scale.setScalar(1.38);
+  // La benne est ouverte : on y voit ce qu'on y met. Ces cotes disent au système de
+  // colis où poser les sacs — quatre rangs de deux, sur le plancher, entre les
+  // passages de roue. Un engin qui n'a pas de `benne` n'en reçoit simplement pas.
   g.userData = {wr, wf, gyro, feux:F,
+    benne:{x:[-0.55, 0.55], z:[-0.85, -3.05], y:0.88, n:8, ech:0.62},
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
             arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
             nez:3.0}};
@@ -4240,6 +4282,103 @@ function updatePuffs(dt){
     p.m.material.opacity = p.op*(1-t*t);
   }
 }
+
+/* ---------- LES COLIS : LA MARCHANDISE, ENFIN VISIBLE ---------- */
+/* Un transfert ne se voyait qu'à une barre qui montait et à trois billes de poussière.
+   La benne d'un pick-up qu'on venait de remplir de six cents kilos de farine restait
+   vide à l'œil. On y pose donc des sacs et des cageots, un par un, au rythme réel du
+   chargement — et, quand on décharge, les mêmes se posent au sol à l'endroit où l'on
+   s'est arrêté, puis s'effacent une fois la barre finie.
+
+   Deux géométries fusionnées suffisent : un sac affaissé et une caisse cerclée. Elles
+   sont partagées par tout le pool ; seules la couleur et l'échelle changent. Comme les
+   particules, c'est un anneau d'objets préalloués — rien ne se crée pendant la partie. */
+const COLIS_GEO = (function(){
+  const B = (w,h,d,x,y,z,c)=>({g:new THREE.BoxGeometry(w,h,d),
+    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
+  // Le sac : deux volumes décalés, un pli au milieu, une ficelle en haut.
+  const sac = mergeParts([
+    B(0.62, 0.30, 0.44, 0, 0.16, 0, 0xE8DCC0),
+    B(0.56, 0.16, 0.40, 0, 0.38, 0, 0xE0D2B4),
+    B(0.20, 0.10, 0.16, 0, 0.49, 0, 0xC7B38E)
+  ]);
+  // La caisse : un cube clair, deux cerclages sombres, un couvercle.
+  const caisse = mergeParts([
+    B(0.54, 0.42, 0.46, 0, 0.21, 0, 0xC79A5E),
+    B(0.57, 0.06, 0.49, 0, 0.10, 0, 0x8A6A3A),
+    B(0.57, 0.06, 0.49, 0, 0.33, 0, 0x8A6A3A),
+    B(0.58, 0.05, 0.50, 0, 0.44, 0, 0xA8814A)
+  ]);
+  return [sac, caisse];
+})();
+const COLIS = [];
+for(let k = 0; k < 30; k++){
+  const m = new THREE.Mesh(COLIS_GEO[k % 2], new THREE.MeshLambertMaterial({
+    vertexColors:true, transparent:true, opacity:0}));
+  m.castShadow = true; m.visible = false; scene.add(m);
+  COLIS.push({m, pris:false, t:0, sol:false, hote:null, y0:0, mourant:false, fin:0});
+}
+// Un colis libre, ou rien. On ne vole jamais celui d'un voisin : un sac qui
+// disparaîtrait d'une benne pendant qu'on la remplit se remarquerait tout de suite.
+// La teinte d'un colis : celle de la marchandise, mais ramenée vers le clair. Un sac
+// de raisin tout noir ne se lirait plus comme un sac — c'est la toile qu'on voit,
+// pas le contenu.
+const _cColis = new THREE.Color(), _cBlanc = new THREE.Color(0xFFFFFF);
+function teindreColis(m, cle){
+  _cColis.setHex(teinteDe(cle)).lerp(_cBlanc, 0.5);
+  m.material.color.copy(_cColis);
+}
+function colisLibre(){
+  for(const c of COLIS) if(!c.pris) return c;
+  return null;
+}
+function rendreColis(c){
+  c.pris = false; c.sol = false; c.hote = null; c.mourant = false; c.fin = 0;
+  c.m.visible = false; c.m.material.opacity = 0;
+  if(c.m.parent && c.m.parent !== scene){ c.m.parent.remove(c.m); scene.add(c.m); }
+}
+// Poser un colis DANS une benne : il devient enfant du groupe de l'engin, donc il
+// roule avec lui sans qu'on ait à le suivre à chaque image.
+function colisEnBenne(hote, groupe, x, y, z, cle){
+  const c = colisLibre();
+  if(!c) return null;
+  c.pris = true; c.sol = false; c.hote = hote; c.t = 0; c.y0 = y; c.mourant = false;
+  scene.remove(c.m); groupe.add(c.m);
+  c.m.position.set(x, y, z);
+  c.m.rotation.set(0, (Math.random() - 0.5)*0.5, 0);
+  teindreColis(c.m, cle);
+  c.m.visible = true; c.m.material.opacity = 0;
+  return c;
+}
+// Poser un colis AU SOL, à côté de l'engin qui décharge. Il tombe de trente
+// centimètres, rebondit à peine, et attend la fin du transfert.
+function colisAuSol(hote, x, z, cle){
+  const c = colisLibre();
+  if(!c) return null;
+  c.pris = true; c.sol = true; c.hote = hote; c.t = 0; c.y0 = 0; c.mourant = false;
+  if(c.m.parent && c.m.parent !== scene){ c.m.parent.remove(c.m); scene.add(c.m); }
+  c.m.position.set(x, 0.55, z);
+  c.m.rotation.set(0, Math.random()*Math.PI*2, 0);
+  c.m.scale.setScalar(1.15);
+  teindreColis(c.m, cle);
+  c.m.visible = true; c.m.material.opacity = 0;
+  return c;
+}
+function updateColis(dt){
+  for(const c of COLIS){
+    if(!c.pris) continue;
+    c.t += dt;
+    // Apparition : un demi-tiers de seconde de fondu, et une chute pour ceux du sol.
+    const ap = Math.min(1, c.t/0.3);
+    c.m.material.opacity = c.mourant ? Math.max(0, 1 - (c.t - c.fin)/0.45) : ap;
+    if(c.sol && c.m.position.y > 0.02)
+      c.m.position.y = Math.max(0, 0.55*(1 - ap*ap));
+    if(!c.sol) c.m.scale.setScalar(0.6 + ap*0.4);
+    if(c.mourant && c.m.material.opacity <= 0.01) rendreColis(c);
+  }
+}
+// Marquer pour extinction : le colis s'efface en une demi-seconde, puis rend sa place.
+function effacerColis(c){ if(c && !c.mourant){ c.mourant = true; c.fin = c.t; } }
 
 /* --- traînées de pneus : ruban dynamique de 6 m qui s'efface, pas une peinture définitive --- */
 const TRAIL_N = 16, TRAIL_STEP = 0.42, TRAIL_LIFE = 2.4, TRAIL_HW = 0.30;
@@ -5282,6 +5421,8 @@ const ONGLETS = [
   {id:'budget',   nom:'Budget'}
 ];
 const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
+// « 30 kg de orge » se lit mal : l'élision est une politesse qui coûte une ligne.
+const dNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'd\u2019' : 'de ') + n;
 
 function ouvrirPanneau(onglet){
   ongletActif = onglet || ongletActif;
@@ -5612,13 +5753,13 @@ const autoEl = document.getElementById('auto');
    trois parcelles à labourer l'une après l'autre, ou une navette sans fin entre le silo
    et l'usine de céréales. La file est exécutée dans l'ordre, en boucle si on veut.
 
-   Un LIEU est une clé textuelle — 'silo', 'atelier', 'pature2', ou le nom d'un
+   Un LIEU est une clé textuelle — 'silo', 'entrepot', 'pature2', ou le nom d'un
    commerce — résolue en un point par lieuPoint(). C'est la même façon de nommer un
    endroit que dans les actions de transfert, et pour la même raison : deux objets ne
    se comparent pas, deux chaînes si. */
 function lieuxPossibles(){
   const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z},
-             {cle:'atelier', nom:'Atelier de la ferme', x:HALLE.quai.x, z:HALLE.quai.z}];
+             {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z}];
   PATURES.forEach((P, i)=>{
     L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z});
   });
@@ -5820,6 +5961,10 @@ function arreterMission(M){
   showHint(M.nom.toUpperCase() + ' — PLAN ARRÊTÉ');
 }
 autoEl.addEventListener('pointerdown', ouvrirPlan);
+// La régie : trois boutons, trois écrans. Ils ouvrent le panneau directement sur le
+// bon onglet — le menu reste accessible, mais on n'a plus à le traverser.
+for(const b of document.querySelectorAll('#regie .rgb'))
+  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); ouvrirPanneau(b.dataset.p); });
 function refreshAutoButton(){
   autoEl.classList.toggle('on', MACHINES.some((m)=> !m.verrou && m.v.mission));
 }
@@ -5978,6 +6123,72 @@ function updateCargo(dt){
     if(m.verrou) continue;
     const A = actionPour(m);
     if(A) executer(m, A, dt);
+    majColis(m, A, dt);
+  }
+}
+
+/* CE QU'ON VOIT PENDANT UN TRANSFERT.
+   Deux gestes, une seule matière. En CHARGEANT, les sacs montent un par un dans la
+   benne, au rythme réel du remplissage, et ils y restent tant que la benne est
+   pleine — c'est le seul endroit du jeu où l'on voit ce qu'un engin transporte sans
+   lire un chiffre. En DÉCHARGEANT, les mêmes se posent au sol à l'endroit où l'on
+   s'est arrêté, un par un, et s'effacent quand la barre est finie.
+
+   Rien n'est mémorisé d'une image à l'autre que la liste des colis posés : le nombre
+   à afficher se recalcule à chaque fois depuis la charge réelle, donc il ne peut pas
+   dériver. */
+const COLIS_SOL_MAX = 5;
+// Ce qui coule d'une goulotte ou d'une vis sans fin ne se met pas en sacs : la trémie
+// de la moissonneuse, le grain qu'on verse dans une auge, la benne qu'on bascule dans
+// la grille du silo. Ceux-là fument, ils ne s'emballent pas.
+const SANS_COLIS = {tremie:1, tremieVente:1, tremieLivraison:1, auge:1, ranger:1};
+function majColis(m, A, dt){
+  const v = m.v, T = caisseDe(m);
+  const ud = v.group.userData;
+  if(!v.colis) v.colis = [];
+  if(!v.colisSol) v.colisSol = [];
+
+  // — dans la benne : autant de sacs que la charge en mérite, jamais plus que de places
+  if(ud && ud.benne && T && PRODUITS[T.type]){
+    const B = ud.benne;
+    const vise = Math.max(0, Math.min(B.n, Math.round(T.load/T.capacite*B.n)));
+    while(v.colis.length > vise){ const c = v.colis.pop(); rendreColis(c); }
+    while(v.colis.length < vise){
+      const k = v.colis.length;
+      // deux colonnes, autant de rangs qu'il faut ; le fond d'abord, l'avant ensuite
+      const rangs = Math.ceil(B.n/2), r = Math.floor(k/2), col = k % 2;
+      const x = B.x[col];
+      const z = B.z[0] + (B.z[1] - B.z[0])*(rangs > 1 ? r/(rangs - 1) : 0);
+      const c = colisEnBenne(m, v.group, x, B.y, z, T.type);
+      if(!c) break;
+      c.m.scale.setScalar(B.ech);
+      v.colis.push(c);
+    }
+    for(const c of v.colis) teindreColis(c.m, T.type);
+  } else if(v.colis.length){
+    for(const c of v.colis) rendreColis(c);
+    v.colis.length = 0;
+  }
+
+  // — au sol : seulement pendant un déchargement, et seulement de la marchandise
+  const vide = A && modeDe(A) === 'vider' && A.cle && PRODUITS[A.cle] && !SANS_COLIS[A.sens];
+  if(vide){
+    v.colisT = (v.colisT || 0) + dt;
+    if(v.colisSol.length < COLIS_SOL_MAX && v.colisT > 0.45){
+      v.colisT = 0;
+      // à droite de l'engin, en éventail : on ne pose pas un sac sous ses roues
+      const k = v.colisSol.length;
+      const d = right(v.cap);
+      const av = Math.cos(v.cap), az2 = Math.sin(v.cap);
+      const ex = v.pos.x + d.x*3.9 + az2*(k - 2)*0.95;
+      const ez = v.pos.z + d.z*3.9 + av*(k - 2)*0.95;
+      const c = colisAuSol(m, ex, ez, A.cle);
+      if(c) v.colisSol.push(c);
+    }
+  } else if(v.colisSol.length){
+    for(const c of v.colisSol) effacerColis(c);
+    v.colisSol.length = 0;
+    v.colisT = 9;                       // le premier colis du prochain arrêt, sans attendre
   }
 }
 
@@ -7221,15 +7432,25 @@ function actionsAuSilo(m){
       out.push({sens:'prendre', lieu:'silo', cle:k, txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(siloStock[k])});
   return out;
 }
-function actionsAtelier(m){
+// L'ENTREPÔT. Il prend tout ce qui n'est pas céréale, et rend tout ce qu'il a — y
+// compris ce que l'atelier vient d'y déposer sans qu'on ait eu à aller le chercher.
+function actionsEntrepot(m){
   const T = caisseDe(m), out = [];
+  if(!ENTREPOT.quai) return out;
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
-  if(porte && atelierAccepte(T.type))
-    out.push({sens:'verserAtelier', lieu:'atelier', cle:T.type, txt:'VERSER ' + nomHaut(T.type)});
-  if(place) for(const k in HALLE.stock)
-    if(HALLE.stock[k] > 0.01 && peutCharger(T, k))
-      out.push({sens:'prendreAtelier', lieu:'atelier', cle:k,
-                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(HALLE.stock[k])});
+  if(porte && entrepotAccepte(T.type) && entrepotPlace() > 0.01)
+    out.push({sens:'rangerEntrepot', lieu:'entrepot', cle:T.type,
+              txt:'RENTRER ' + nomHaut(T.type)});
+  if(place){
+    // Les plus gros tas d'abord : la colonne ne montre que les premiers, et ce qu'on
+    // vient chercher dans un entrepôt, c'est presque toujours ce qu'il y a le plus.
+    const cles = Object.keys(ENTREPOT.stock)
+      .filter((k)=> ENTREPOT.stock[k] > 0.01 && peutCharger(T, k))
+      .sort((a, b)=> ENTREPOT.stock[b] - ENTREPOT.stock[a]);
+    for(const k of cles)
+      out.push({sens:'prendreEntrepot', lieu:'entrepot', cle:k,
+                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(ENTREPOT.stock[k])});
+  }
   return out;
 }
 function actionsPature(m, pat){
@@ -7275,7 +7496,8 @@ function actionsIci(m){
   if(prochePoint(v, SILO.x, SILO.z, SILO.r)) out = out.concat(actionsAuSilo(m));
   const pat = patureProche(v);
   if(pat) out = out.concat(actionsPature(m, pat));
-  if(surQuaiAtelier(v)) out = out.concat(actionsAtelier(m));
+  if(ENTREPOT.quai && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r))
+    out = out.concat(actionsEntrepot(m));
   for(const S of SITES) if(aQuai(v, S)){ out = out.concat(actionsAuSite(m, S)); break; }
   return out;
 }
@@ -7295,7 +7517,7 @@ let choixEnCours = null;
    pas de troisième cas. C'est ce qui permet de poser au joueur une question en deux
    temps : d'abord DÉCHARGER ou REMPLIR, ensuite quoi. */
 const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
-                    verser:1, verserAtelier:1, auge:1};
+                    verser:1, rangerEntrepot:1, auge:1};
 const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
 /* Le sens choisi au premier temps, ou null tant qu'on n'a pas répondu. */
 let choixMode = null;
@@ -7332,6 +7554,21 @@ const actionPour = (m)=>{
 };
 
 /* Exécuter une action : c'est le seul endroit du jeu où la matière change de main. */
+/* LA FUMÉE À LA GRILLE. Le grain tombait dans un nuage suspendu à cinq mètres de
+   haut, au-dessus de la goulotte, comme s'il montait au lieu de descendre. Ce qui se
+   voit quand une trémie se vide dans un caillebotis, c'est une bouffée de poussière
+   qui sort de la fosse et retombe : basse, large, rasante, à l'endroit exact où la
+   matière arrive. */
+function fumeeGrille(cle){
+  if(Math.random() < 0.55)
+    puff(SILO.x + (Math.random()-0.5)*2.2, 0.4 + Math.random()*0.7,
+         SILO.z + (Math.random()-0.5)*2.2, 0xD9D3C4, 0.62, 0.85, 1.6, -0.20, 0.42, 0.9);
+  // et quelques grains, à la couleur de ce qu'on verse : la poussière seule
+  // ressemblerait à un feu de broussailles
+  if(Math.random() < 0.25)
+    puff(SILO.x + (Math.random()-0.5)*1.4, 1.6 + Math.random()*0.8,
+         SILO.z + (Math.random()-0.5)*1.4, teinteDe(cle), 0.3, 0.35, 0.7, 1.2, 0.8, 1.2);
+}
 function executer(m, A, dt){
   const v = m.v, T = caisseDe(m);
   const debit = 340*dt, lent = ELEVAGE.debit*dt;
@@ -7340,9 +7577,7 @@ function executer(m, A, dt){
       const q = Math.min(hopper, 420*dt, siloMax() - siloTotal());
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; siloStock[A.cle] += q; compter(A.cle, q, true);
-      if(Math.random() < 0.6)
-        puff(SILO.x + (Math.random()-0.5)*3, 4 + Math.random()*3, SILO.z + (Math.random()-0.5)*3,
-             teinteDe(A.cle), 0.4, 0.2);
+      fumeeGrille(A.cle);
       if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
       return;
     }
@@ -7350,8 +7585,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.load, siloMax() - siloTotal());
       if(q <= 0.0001) return;
       T.load -= q; siloStock[A.cle] += q; compter(A.cle, q, true);
-      if(Math.random() < 0.4)
-        puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
+      fumeeGrille(A.cle);
       if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ'); }
       return;
     }
@@ -7384,19 +7618,21 @@ function executer(m, A, dt){
       if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
       return;
     }
-    case 'verserAtelier': {
-      const q = Math.min(debit, T.load, halleEntreeMax() - totalTremie(HALLE));
+    case 'rangerEntrepot': {
+      const q = Math.min(debit, T.load, entrepotPlace());
       if(q <= 0.0001) return;
-      T.load -= q; HALLE.tremie[A.cle] = (HALLE.tremie[A.cle] || 0) + q;
-      if(Math.random() < 0.3) puff(HALLE.x - 5.5, 4.6, HALLE.z - 1.0, 0xE8DCC0, 0.3, 0.28);
-      if(T.load <= 0.01){ showHint(nomDe(A.cle).toUpperCase() + ' VERSÉ À L\'ATELIER'); viderType(T); }
+      T.load -= q; entrepotRange(A.cle, q);
+      if(Math.random() < 0.3)
+        puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.28);
+      if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ À L\'ENTREPÔT'); }
       return;
     }
-    case 'prendreAtelier': {
-      const q = Math.min(debit, T.capacite - T.load, halleStock(A.cle));
+    case 'prendreEntrepot': {
+      const q = Math.min(debit, T.capacite - T.load, entrepotStock(A.cle));
       if(q <= 0.0001) return;
-      T.load += q; halleRetire(A.cle, q); poserType(T, A.cle);
-      if(Math.random() < 0.3) puff(HALLE.quai.x, 2.4, HALLE.quai.z, teinteDe(A.cle), 0.35, 0.3);
+      T.load += q; entrepotRetire(A.cle, q); poserType(T, A.cle);
+      if(Math.random() < 0.3)
+        puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
@@ -7482,23 +7718,64 @@ function fabriquerSite(S, cle, debitKg, dt){
   return q;
 }
 
-/* --- l'atelier de la ferme tourne tant que sa recette a de quoi travailler --- */
+/* --- L'ATELIER SE SERT ET DÉPOSE TOUT SEUL ---
+   Il fallait charger du blé au silo, le porter vingt mètres plus loin, revenir
+   chercher la farine : trois trajets pour rien, tous les trois sur la même dalle. Le
+   silo et l'entrepôt sont maintenant reliés à l'atelier par des vis sans fin qu'on
+   ne voit pas. À chaque image il tire de quoi travailler — les céréales au silo, le
+   reste à l'entrepôt — et pousse ce qu'il a fini dans l'entrepôt.
+
+   La production ne se lance plus sur son quai : c'est le bouton PRODUCTION qui dit
+   ce qu'il fabrique. Le joueur garde donc la main sur la recette, ce qui compte pour
+   les contrats — mais il n'a plus à faire le facteur. */
+// Ce qu'un magasin peut fournir d'une matière donnée, sans regarder d'où elle vient.
+const disponible = (cle)=> (siloStock[cle] !== undefined) ? siloStock[cle] : entrepotStock(cle);
+function retirerMatiere(cle, q){
+  if(siloStock[cle] !== undefined) siloStock[cle] = Math.max(0, siloStock[cle] - q);
+  else entrepotRetire(cle, q);
+}
+// La trémie de l'atelier n'est plus qu'un tampon : on la garde remplie de ce que
+// réclame la recette, au prorata des parts, dans la limite de sa capacité.
+function alimenterAtelier(dt){
+  const cle = HALLE.recette, P = PRODUITS[cle];
+  if(!P || !P.de) return;
+  const ent = recetteEntrees(cle);
+  // Le tampon vise deux secondes de débit par part : assez pour que fabriquer() ne
+  // s'arrête jamais, assez peu pour qu'on ne vide pas le silo dans un coin mort.
+  const vise = Math.min(halleEntreeMax(), HALLE.debit()*2 + 1);
+  for(const k in ent){
+    const manque = vise*ent[k] - (HALLE.tremie[k] || 0);
+    if(manque <= 0.0001) continue;
+    const q = Math.min(manque, disponible(k), 900*dt);
+    if(q <= 0.0001) continue;
+    retirerMatiere(k, q);
+    HALLE.tremie[k] = (HALLE.tremie[k] || 0) + q;
+  }
+}
+// Et ce qu'il a fini part à l'entrepôt, sans qu'on vienne le chercher.
+function deverserAtelier(dt){
+  const place = entrepotPlace();
+  if(place <= 0.01) return;
+  let reste = Math.min(place, 900*dt);
+  for(const k in HALLE.stock){
+    if(reste <= 0.0001) break;
+    const q = Math.min(HALLE.stock[k], reste);
+    if(q <= 0.0001) continue;
+    halleRetire(k, q); entrepotRange(k, q); reste -= q;
+  }
+}
 function updateAtelier(dt){
   const R = ATELIER_RECETTES.find((r)=> r.cle === HALLE.recette);
   if(!R || R.niveau > HALLE.niveau) HALLE.recette = 'farine';
+  alimenterAtelier(dt);
   const q = fabriquer(HALLE, dt);
   if(q > 0){
     if(HALLE.recette === 'farine') STAT.mill += q;
     if(Math.random() < 0.12)
       puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
   }
+  deverserAtelier(dt);
 }
-// Ce que l'atelier accepte en ce moment : les entrées de sa recette du moment, rien
-// d'autre. Régler l'atelier sur le pressoir, c'est lui dire de ne plus prendre de blé.
-const atelierAccepte = (cle)=> !!cle && !!PRODUITS[HALLE.recette]
-  && recetteEntrees(HALLE.recette)[cle] !== undefined
-  && totalTremie(HALLE) < halleEntreeMax();
-const surQuaiAtelier = (v, r)=> HALLE.quai && prochePoint(v, HALLE.quai.x, HALLE.quai.z, r || QUAI_R);
 // Le coût du palier suivant, ou 0 si l'atelier est au maximum.
 function coutAtelier(){
   const P = ATL.PALIERS[HALLE.niveau];          // le niveau n est à l'indice n-1
@@ -7570,27 +7847,6 @@ let especeChoisie = 0;
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
-  // Sur le quai de l'atelier : monter d'un palier, ou changer ce qu'on y transforme.
-  if(surQuaiAtelier(v)){
-    const c = coutAtelier();
-    if(c > 0 && money >= c)
-      return {txt:'ATELIER — ' + ATL.PALIERS[HALLE.niveau].nom.toUpperCase() + ' ' +
-                  c.toLocaleString('fr-FR') + ' €', ok:true, f:()=> ameliorerAtelier()};
-    const dispo = ATELIER_RECETTES.filter((r)=> r.niveau <= HALLE.niveau);
-    if(dispo.length > 1){
-      const i = dispo.findIndex((r)=> r.cle === HALLE.recette);
-      const suiv = dispo[(i + 1) % dispo.length];
-      return {txt:'ATELIER : ' + PRODUITS[HALLE.recette].nom.toUpperCase() +
-                  ' → ' + suiv.module.toUpperCase(), ok:true,
-              f:()=>{ HALLE.recette = suiv.cle;
-                      showHint('ATELIER — ' + suiv.module.toUpperCase() + ', ' +
-                               PRODUITS[suiv.cle].nom.toUpperCase()); }};
-    }
-    if(c > 0)
-      return {txt:'ATELIER : IL MANQUE ' + Math.ceil(c - money).toLocaleString('fr-FR') + ' €',
-              ok:false};
-    return {txt:'ATELIER AU MAXIMUM', ok:false};
-  }
   if(aQuai(v, COMPTOIR))
     return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
   // Devant un enclos, deux gestes qui ne passent pas par la benne : acheter une bête,
@@ -7677,7 +7933,7 @@ function refreshChoix(){
   }
   // Deux piles : ce qui vide la benne, ce qui la remplit. Le plus gros tas en tête.
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
-                auge:1, verserAtelier:1, prendre:2, reprendre:2, prendreAtelier:2, traire:2};
+                auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2, traire:2};
   const parSens = {vider:[], remplir:[]};
   for(const A of L) parSens[modeDe(A)].push(A);
   for(const k in parSens)
@@ -7855,10 +8111,11 @@ function cacherJauge(J, dt){
    démarrage, c'était un mégaoctet et demi de canevas dont dix-sept ne servaient
    jamais. Une parcelle en emprunte une quand elle pousse à portée, et la rend dès
    qu'elle sort du champ de vision. */
-let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null;
+let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
 const jaugesLibres = [];
 function poserJauges(){
-  jaugeEngin = creerJauge(); jaugeSilo = creerJauge(); jaugeAtelier = creerJauge();
+  jaugeEngin = creerJauge(); jaugeSilo = creerJauge();
+  jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
 }
 function prendreJauge(p){
   if(p.jauge) return p.jauge;
@@ -7927,16 +8184,29 @@ function majJauges(dt){
       st/siloMax(), st > siloMax()*0.92 ? '#E8563F' : '#FFAE2E', dt);
   } else cacherJauge(jaugeSilo, dt);
 
-  // — l'atelier : ce qu'il lui reste à travailler, ou ce qu'il a fini et qui attend
-  const tr = totalTremie(HALLE), fini = halleStock(HALLE.recette);
-  if(tr > 0.5 || fini > 0.5){
-    const R = PRODUITS[HALLE.recette];
-    montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
-      tr > 0.5 ? R.nom + ' ' + Math.round(tr) + ' kg à moudre'
-               : R.nom + ' ' + Math.round(fini) + ' kg prêts',
-      tr > 0.5 ? tr/halleEntreeMax() : fini/HALLE.stockMax(),
-      tr > 0.5 ? '#D8B24A' : R.couleur, dt);
-  } else cacherJauge(jaugeAtelier, dt);
+  // — l'atelier : ce qu'il produit en ce moment, et s'il a de quoi. Sa trémie n'est
+  //   plus qu'un tampon de deux secondes : ce qui compte, c'est la matière en magasin.
+  const R = PRODUITS[HALLE.recette];
+  const ent = recetteEntrees(HALLE.recette);
+  let matiere = Infinity;
+  for(const k in ent) matiere = Math.min(matiere, (disponible(k) + (HALLE.tremie[k] || 0))/ent[k]);
+  if(!isFinite(matiere)) matiere = 0;
+  montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
+    matiere > 0.5 ? R.nom + ' — ' + Math.round(matiere*PRODUITS[HALLE.recette].rendement) + ' kg à sortir'
+                  : R.nom + ' — plus de matière',
+    Math.min(1, matiere/(halleEntreeMax()*0.6)),
+    matiere > 0.5 ? R.couleur : '#8A9298', dt);
+
+  // — l'entrepôt : le total, et la nature dont il est le plus encombré
+  const et = entrepotTotal();
+  if(ENTREPOT.quai && et > 0.5){
+    let gros = null;
+    for(const k in ENTREPOT.stock)
+      if(!gros || ENTREPOT.stock[k] > ENTREPOT.stock[gros]) gros = k;
+    montrerJauge(jaugeEntrepot, HANGAR.x, 11.5, HANGAR.z,
+      'Entrepôt ' + Math.round(et) + ' kg' + (gros ? ' · ' + nomDe(gros) : ''),
+      et/ENTREPOT.stockMax(), et > ENTREPOT.stockMax()*0.92 ? '#E8563F' : '#9FD8E8', dt);
+  } else cacherJauge(jaugeEntrepot, dt);
 
   // — les enclos : ce qu'il reste à manger, et où en est le produit. Un troupeau qui
   //   s'arrête de produire ne le dit nulle part ; il fallait ouvrir le menu pour
@@ -7996,7 +8266,9 @@ poserJauges();
 // Le panneau existant sait déjà dessiner des lignes d'article : on lui ajoute
 // trois rayons plutôt que d'inventer une deuxième interface.
 ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'},
-                     {id:'filieres', nom:'Filières'});
+                     {id:'filieres', nom:'Filières'},
+                     {id:'stockage', nom:'Stockage'}, {id:'production', nom:'Production'},
+                     {id:'prix', nom:'Prix'});
 ONGLETS[ONGLETS.length-1] = {id:'reglages', nom:'Réglages'};
 
 const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
@@ -8188,6 +8460,168 @@ function ongletFilieres(){
   }
 }
 
+/* ---------- LES TROIS ÉCRANS DE LA RÉGIE ---------- */
+/* STOCKAGE : où dort la marchandise. Trois magasins — le silo, l'entrepôt, et les
+   bennes qui roulent. Rien n'y est calculé : tout est relu dans l'état du jeu, donc
+   rien ne peut y mentir. */
+function ongletStockage(){
+  const ligne = (cle, q, ou)=> article(parseInt(PRODUITS[cle].couleur.slice(1), 16),
+    PRODUITS[cle].nom, kg(q) + ' · ' + dec(prixDe(cle)) + ' € le kg — soit ' + eur(q*prixDe(cle)),
+    ou, 'no', null);
+
+  const st = siloTotal();
+  titre('Silo — ' + kg(st) + ' / ' + kg(siloMax()) + ' (céréales seules)');
+  const vides = [];
+  for(const k of SILO_CLES){
+    if(siloStock[k] > 0.5) ligne(k, siloStock[k], 'Silo');
+    else vides.push(PRODUITS[k].nom);
+  }
+  if(vides.length){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Aucun tas ' +
+      vides.map((n)=> dNom(n.toLowerCase())).join(', ') + '.</div></div>';
+    pliste.appendChild(d);
+  }
+
+  const et = entrepotTotal();
+  titre('Entrepôt — ' + kg(et) + ' / ' + kg(ENTREPOT.stockMax()));
+  const cles = Object.keys(ENTREPOT.stock).filter((k)=> ENTREPOT.stock[k] > 0.5)
+    .sort((a, b)=> ENTREPOT.stock[b] - ENTREPOT.stock[a]);
+  if(!cles.length){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Vide. Il reçoit les récoltes qui ' +
+      'ne vont pas au silo — raisin, olives, lait, œufs, laine, miel — et tout ce que ' +
+      'l\'atelier produit, sans qu\'on ait à aller le chercher.</div></div>';
+    pliste.appendChild(d);
+  }
+  for(const k of cles) ligne(k, ENTREPOT.stock[k], 'Entrepôt');
+
+  titre('En route');
+  let rien = true;
+  if(hopper > 0.5){
+    rien = false;
+    ligne(CROPS[hopCrop].cle, hopper, 'Trémie');
+  }
+  MACHINES.forEach((m)=>{
+    if(m.verrou) return;
+    const T = caisseDe(m);
+    if(T && T.load > 0.5 && PRODUITS[T.type]){ rien = false; ligne(T.type, T.load, m.nom); }
+    if(m.v.betail){
+      rien = false;
+      article(0xE8B44A, 'Bétail', m.v.betail + ' bête' + (m.v.betail > 1 ? 's' : '') +
+        ' à bord, en route pour la boucherie', m.nom, 'no', null);
+    }
+  });
+  if(rien){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Aucune benne chargée.</div></div>';
+    pliste.appendChild(d);
+  }
+}
+
+/* PRODUCTION : ce que l'atelier sait faire, ce que le stock permet d'en tirer, et le
+   bouton qui le met dessus. La conversion est écrite en clair — tant de kilos de blé
+   donnent tant de kilos de farine — parce que c'est la seule question qui se pose
+   vraiment : vendre brut, ou transformer. */
+function ongletProduction(){
+  const R0 = PRODUITS[HALLE.recette];
+  titre('Atelier de la ferme — niveau ' + HALLE.niveau + ', ' + ATL.PALIERS[HALLE.niveau-1].nom);
+  article(parseInt(R0.couleur.slice(1), 16), 'En production : ' + R0.nom,
+    'Débit ' + dec(HALLE.debit(), 0) + ' kg de matière par seconde<br>' +
+    'Il se sert seul au silo et à l\'entrepôt, et dépose seul à l\'entrepôt.',
+    'En cours', 'ok', null);
+
+  titre('Ce que le stock permet');
+  for(const R of ATELIER_RECETTES){
+    const P = PRODUITS[R.cle], ent = recetteEntrees(R.cle);
+    const dispo2 = R.niveau <= HALLE.niveau;
+    // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
+    const recette = Object.keys(ent).map((k)=>
+      Math.round(100*ent[k]) + ' kg ' + dNom(PRODUITS[k].nom.toLowerCase())).join(P.libre ? ' ou ' : ' + ');
+    // Et ce qu'on pourrait en sortir tout de suite, ingrédient le plus rare en tête.
+    let possible = Infinity, court = null;
+    for(const k in ent){
+      const d2 = disponible(k)/ent[k];
+      if(d2 < possible){ possible = d2; court = k; }
+    }
+    if(!isFinite(possible)) possible = 0;
+    const sortie = possible*P.rendement;
+    const det = recette + ' → ' + Math.round(100*P.rendement) + ' kg ' + dNom(P.nom.toLowerCase()) +
+      '<br>En magasin, de quoi sortir ' + kg(sortie) + ' — ' + eur(sortie*prixDe(R.cle)) +
+      (sortie < 1 ? ' (pas assez ' + dNom(PRODUITS[court].nom.toLowerCase()) + ')' : '') +
+      '<br>Brut, la même matière vaudrait ' +
+      eur(Object.keys(ent).reduce((t, k)=> t + possible*ent[k]*prixDe(k), 0));
+    article(parseInt(P.couleur.slice(1), 16), R.module + ' — ' + P.nom, det,
+      !dispo2 ? 'Niveau ' + R.niveau + ' requis'
+              : (HALLE.recette === R.cle ? 'En cours' : 'Produire'),
+      !dispo2 ? 'no' : (HALLE.recette === R.cle ? 'ok' : 'vert'),
+      dispo2 && HALLE.recette !== R.cle
+        ? ()=>{ HALLE.recette = R.cle;
+                showHint('ATELIER — ' + R.module.toUpperCase() + ', ' + P.nom.toUpperCase()); }
+        : null);
+  }
+
+  titre('Agrandir l\'atelier');
+  const c = coutAtelier();
+  if(c <= 0)
+    article(0x9FD8E8, 'Atelier au maximum',
+      'Les cinq modules tournent : moulin, broyeur, pressoir, mélangeur, cave.',
+      'Complet', 'ok', null);
+  else {
+    const P2 = ATL.PALIERS[HALLE.niveau];
+    const ok = money >= c;
+    article(0x9FD8E8, P2.nom, P2.det + '<br>Débit ' + dec(HALLE.debit(), 0) + ' → ' +
+      dec(12 + (HALLE.niveau+1)*7, 0) + ' kg/s' +
+      (ATELIER_RECETTES.some((r)=> r.niveau === HALLE.niveau + 1)
+        ? ' · ouvre le ' + ATELIER_RECETTES.find((r)=> r.niveau === HALLE.niveau + 1).module.toLowerCase()
+        : ''),
+      ok ? eur(c) : 'Il manque ' + eur(c - money), ok ? 'vert' : 'no',
+      ok ? ()=>{ if(ameliorerAtelier()) showHint('ATELIER AGRANDI'); } : null);
+  }
+}
+
+/* PRIX : le même kilo ne vaut pas la même chose partout. Le supermarché prend de très
+   grosses quantités mais paie mal ; le marché paie bien mais son étal est petit. Cet
+   écran met les deux côte à côte pour que le choix se fasse avant de charger, pas
+   devant le quai. */
+function ongletPrix(){
+  const natures = [];
+  for(const S of SITES) for(const k of S.achete) if(natures.indexOf(k) < 0) natures.push(k);
+  natures.sort((a, b)=> prixDe(b) - prixDe(a));
+
+  titre('Où vendre, et combien');
+  for(const cle of natures){
+    const P = PRODUITS[cle];
+    const chez = SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
+      .map((S)=> ({S, prix:prixChez(S, cle), place:(S.etal !== undefined) ? S.reste : Infinity}))
+      .sort((a, b)=> b.prix - a.prix);
+    const l = chez.map((q, i)=>
+      (i === 0 ? '<b>' : '') + q.S.nom + ' ' + dec(q.prix) + ' €' + (i === 0 ? '</b>' : '') +
+      (q.place === Infinity ? ' · sans limite' : ' · ' + kg(q.place) + ' de place'));
+    // Ce qui se transforme vaut plus une fois transformé : on le dit ici aussi.
+    const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
+      && recetteEntrees(k)[cle] !== undefined);
+    if(suites.length)
+      l.push('Transformé : ' + suites.map((k)=>
+        PRODUITS[k].nom + ' ' + dec(rendementValeur(k)) + ' € par kg engagé').join(' · '));
+    article(parseInt(P.couleur.slice(1), 16), P.nom, l.join('<br>'),
+      dec(prixDe(cle)) + ' €', 'no', null);
+  }
+
+  titre('Comment lire ces prix');
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">' +
+    'Le prix affiché est celui du kilo à la vente directe. Un commerce à étal — le ' +
+    'marché, le restaurant — paie mieux mais ne prend qu\'une quantité limitée, qui se ' +
+    'reconstitue au fil de la journée. Le supermarché prend tout ce qu\'on lui apporte, ' +
+    'et paie moins.<br><br>' +
+    'La dernière ligne de chaque produit dit ce que la même matière rapporterait ' +
+    'transformée, par kilo engagé. Quand ce chiffre dépasse le prix brut, il vaut ' +
+    'mieux passer par un atelier — le vôtre ou celui du bord de route.' +
+    '</div></div>';
+  pliste.appendChild(d);
+}
+
 function ongletReglages(){
   titre('Partie');
   article(0x8BE07A, 'Sauvegarde automatique',
@@ -8253,6 +8687,7 @@ function rendrePanneau(){
   pliste.innerHTML = '';
   ({engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
+    stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
     parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
 }
 
@@ -8428,6 +8863,7 @@ function etatJeu(){
     halle: {niveau: HALLE.niveau, recette: HALLE.recette,
             tremie: Object.assign({}, HALLE.tremie),
             stock: Object.assign({}, HALLE.stock)},
+    entrepot: Object.assign({}, ENTREPOT.stock),
     stock: {semence: STOCK.semence, engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
@@ -8598,6 +9034,16 @@ function chargerPartie(S){
       if(S.halle.aliment) HALLE.stock.aliment = (HALLE.stock.aliment || 0) + S.halle.aliment;
       if(S.halle.huile)   HALLE.stock.huile   = (HALLE.stock.huile   || 0) + S.halle.huile;
       poserAtelier();
+    }
+    // L'entrepôt est neuf : les parties d'avant n'en ont pas. Ce qui dormait au quai
+    // de l'atelier y est versé — c'est là qu'il serait arrivé tout seul aujourd'hui,
+    // et le laisser dans une halle devenue inaccessible reviendrait à le perdre.
+    for(const k in ENTREPOT.stock) delete ENTREPOT.stock[k];
+    if(S.entrepot) for(const k in S.entrepot)
+      if(PRODUITS[k] && S.entrepot[k] > 0.005) ENTREPOT.stock[k] = S.entrepot[k];
+    for(const k in HALLE.stock){
+      if(HALLE.stock[k] > 0.005) entrepotRange(k, HALLE.stock[k]);
+      delete HALLE.stock[k];
     }
     if(CARBU.cuveMax > 0) poserCuve();
     STOCK.semence = S.stock.semence; STOCK.engrais = S.stock.engrais;
@@ -8873,6 +9319,7 @@ function loop(now){
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
     updatePuffs(dt);
+    updateColis(dt);
     flushTiles();
   }
 
