@@ -496,10 +496,10 @@ blanc chaud, très clair, qui ressort sans crier.
 
 Trois silhouettes de maison se répétaient en enfilade le long de la façade sud — et en
 vérité elles n'étaient même pas construites : le code qui les dessinait n'était appelé
-de nulle part, il réservait la place sans rien y poser. **Dix maisons prises dans six
+de nulle part, il réservait la place sans rien y poser. **Onze maisons prises dans six
 modèles** forment maintenant une rue : chaumière au toit débordant, maison de pierre à
 volets bleus, chalet à balcon, maison de bourg étroite, longère à appentis, maison à
-colombages. Chacune apporte sa clôture, son portillon, son allée et ses abords.
+colombages. Chacune apporte son portillon, son allée et ses abords.
 
 **À l'échelle des commerces.** Les six modèles venaient d'une planche dessinée pour
 elle-même : porte de 2,20 m, corps de 6,40 × 5,07 m, quand la boutique d'en face porte
@@ -514,16 +514,33 @@ qu'on veut d'un toit pentu devant un commerce de plain-pied.
 vingt mètres derrière les chaussées, et **quatre d'entre elles tombaient dans la dalle
 d'un commerce** : les bandes ouest et nord sont pleines du bitume jusqu'au bord de
 carte, il ne reste derrière les dalles que trois à cinq mètres. Le brin sud de la rocade
-est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les dix
-maisons s'y alignent, façade sur la chaussée, au même `RECUL_ROCADE` de trois mètres que
-tiennent les quinze commerces.
+est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les onze
+maisons s'y alignent, façades tournées vers la chaussée, et le rang le longe d'un bout à
+l'autre — de −68,7 à 108,7 pour un brin qui court de −74 à 114 — sans le dépasser.
 
-L'écartement n'est pas écrit : les blocs sont bâtis d'abord, leur emprise réelle est
-mesurée, et la rue les répartit sur sa façade comme `repartirBandes()` répartit les
-commerces sur la leur. Dix et non onze, parce que l'entre-deux doit rester passable —
-onze les serraient à 2,50 m, moins que la largeur d'un engin ; dix laissent 5,29 m.
-Ce qui arrête l'engin est un **rectangle** et non un disque : un bloc de vingt-deux
-mètres sur quinze cerclé d'un disque déborderait sur la chaussée qu'il longe.
+**Mitoyennes, et clôturées en commun.** Chaque maison avait sa clôture, et deux voisines
+en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'était le
+jardin de personne. Les lots sont maintenant **jointifs** — bord contre bord, écart nul
+aux dix jonctions — et la clôture est **une seule** : un devant qui court sur 177 m et
+s'ouvre d'un portillon devant chaque allée, un fond, deux pignons, et une mitoyenne à
+chaque bord de lot interne. Le tout fusionné en un objet de 403 primitives : onze
+clôtures sont devenues une, et le rang entier a coûté **24 triangles** de plus que dix
+maisons séparées, une maison de plus comprise.
+
+Aucune cote n'est écrite : chaque modèle **déclare** son lot dans `dJardin()` — largeur,
+profondeur, décalage, axe de l'allée — et le rang met ces cotes bout à bout, centrées sur
+le brin sud. Le drapeau `jardinsPoses` est ce qui distingue les deux emplois : dans le
+rang, `dJardin()` note la cote et ne pose rien ; hors du rang, une maison garde sa
+clôture à elle. L'allée, elle, est prolongée jusqu'au portillon que le rang vient de
+percer — sinon elle s'arrêterait dans l'herbe à un mètre de la barrière.
+
+**Et le rang n'est pas sur la route.** Il se tenait à `RECUL_ROCADE`, les trois mètres de
+verge des commerces — mais un commerce met dix mètres de **parvis** entre sa dalle et sa
+façade, quand une maison n'a que son jardin de devant : vue de la chaussée, la clôture
+tombait au ras du bitume. `RUE_VERGE` vaut neuf mètres, ce qui remet les façades des
+maisons à 12,2–12,9 m du bitume, contre 13 pour celles des commerces. Ce qui arrête
+l'engin est **un seul rectangle** pour tout le rang : les lots étant jointifs, il n'y a
+plus rien à traverser entre deux maisons.
 
 **Vingt-six petits objets** se sèment entre elles : abri de bus, tonnelle, lavoir, table
 de pique-nique, bûcher, puits, calvaire, entrée de village, banc de place, poteau
@@ -532,7 +549,7 @@ appartient au champ et non au village, le second ferait doublon avec les clôtur
 
 Chaque bloc est **fusionné en une seule géométrie** avant d'entrer dans la scène :
 soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est ce qui
-permet d'en poser trente-six sans que la carte s'alourdisse — 32 000 triangles pour
+permet d'en poser trente-huit sans que la carte s'alourdisse — 32 000 triangles pour
 l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
 échelle ne crée pas de géométrie.
 

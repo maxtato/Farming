@@ -3799,43 +3799,63 @@ function buildFarm(){
      elles tombaient dans la dalle d'un commerce : les bandes ouest et nord sont pleines
      du bitume jusqu'au bord de carte, il ne reste derrière les dalles que trois à cinq
      mètres. Le brin sud de la rocade est le seul bord de route encore libre, et il
-     l'est sur toute sa longueur. Les maisons s'y alignent, façade sur la chaussée, au
-     recul exact des commerces — le même RECUL_ROCADE de trois mètres.
+     l'est sur toute sa longueur.
 
-     Les blocs sont bâtis AVANT d'être répartis : c'est leur emprise RÉELLE, mesurée,
-     qui décide de l'écartement, comme repartirBandes() le fait des commerces. Dix
-     maisons plutôt qu'onze, parce que l'écart entre deux jardins doit rester passable :
-     onze les serraient à deux mètres cinquante, moins que la largeur d'un engin.
+     LES LOTS SE TOUCHENT ET LA CLÔTURE EST COMMUNE. Chacune avait la sienne, et deux
+     voisines dressaient deux clôtures parallèles avec, entre elles, une bande d'herbe
+     qui n'était le jardin de personne. Les lots sont maintenant JOINTIFS : bord contre
+     bord, une seule mitoyenne entre deux voisins, un seul devant qui court sur tout le
+     rang et s'ouvre devant chaque allée. C'est un rang de village, pas onze îlots.
+
+     ET LE RANG N'EST PAS SUR LA ROUTE. Il se tenait à RECUL_ROCADE — les trois mètres
+     de verge des commerces — mais un commerce met dix mètres de PARVIS entre sa dalle
+     et sa façade, quand une maison n'a que son jardin de devant : vue de la chaussée,
+     la clôture tombait au ras du bitume. RUE_VERGE remet les façades des maisons sur
+     la ligne des façades de commerce, RECUL_ROCADE + PARVIS du bitume.
 
      Les emplacements sont décidés AVANT le semis de verdure pour que le filtre puisse
      les écarter, sinon les arbres poussent dans les jardins. */
   const MAISONS = [];
+  const RANG = {};
   {
-    const bb = new THREE.Box3();
-    for(let k = 0; k < 10; k++){
-      const {g, r} = MAI_MODELES[k % MAI_MODELES.length]();
+    /* Les blocs sont bâtis AVANT d'être répartis : c'est le lot que chaque modèle
+       DÉCLARE — sa cote de jardin, le décalage de son rectangle, l'axe de son allée —
+       qui décide du découpage, comme repartirBandes() répartit les commerces sur leurs
+       largeurs mesurées. Le drapeau retire aux modèles leur clôture : le rang clôture. */
+    jardinsPoses = false;
+    for(let k = 0; k < 11; k++){
+      const {g} = MAI_MODELES[k % MAI_MODELES.length]();
       g.scale.setScalar(MAI_ECHELLE);
       g.rotation.y = Math.PI;                 // façade tournée vers la chaussée
-      g.updateMatrixWorld(true);
-      bb.setFromObject(g);
-      MAISONS.push({g, r:r*MAI_ECHELLE,
-                    bx0:bb.min.x, bx1:bb.max.x, bz0:bb.min.z, bz1:bb.max.z});
+      const J = g.userData.jardin, A = g.userData.allee;
+      MAISONS.push({g, jw:J.w*MAI_ECHELLE, jd:J.d*MAI_ECHELLE,
+                    dec:J.decalX*MAI_ECHELLE,
+                    port:(A ? A.x : J.xPortillon)*MAI_ECHELLE,
+                    // le bout de l'allée du modèle, et sa largeur : le rang la
+                    // prolongera jusqu'au portillon qu'il vient de percer
+                    bout:A ? A.z1*MAI_ECHELLE : null, larg:A ? A.w*MAI_ECHELLE : 0});
     }
-    // La rue : le brin sud de la rocade, débordant de huit mètres sur chacun de ses
-    // angles. Au-delà, la maison ne longerait plus rien.
-    const RUE_Z  = ROC.z1 + ROAD_W/2 + RECUL_ROCADE;
-    const RUE_X0 = ROC.x0 - 8, RUE_X1 = ROC.x1 + 8;
-    const total = MAISONS.reduce((t, M)=> t + (M.bx1 - M.bx0), 0);
-    // Un engin fait 2,70 m de large : en dessous de quatre mètres cinquante, la rue
-    // n'a plus d'entre-deux et la bande extérieure devient inaccessible.
-    const jeu = Math.max(4.5, ((RUE_X1 - RUE_X0) - total) / (MAISONS.length - 1));
-    let t = (RUE_X0 + RUE_X1)/2 - (total + jeu*(MAISONS.length - 1))/2;
+    jardinsPoses = true;
+    // Un seul fond pour tout le rang : sinon la mitoyenne entre deux lots de
+    // profondeurs différentes finirait en marche d'escalier.
+    const PROF = Math.max.apply(null, MAISONS.map((M)=> M.jd));
+    const LONG = MAISONS.reduce((t, M)=> t + M.jw, 0);
+    RANG.z0 = ROC.z1 + ROAD_W/2 + RUE_VERGE;
+    RANG.z1 = RANG.z0 + PROF;
+    // centré sur le brin sud : le rang le longe d'un bout à l'autre sans le déborder
+    RANG.x0 = (ROC.x0 + ROC.x1)/2 - LONG/2;
+    RANG.x1 = RANG.x0 + LONG;
+    let t = RANG.x0;
     for(const M of MAISONS){
-      M.x = t - M.bx0;                        // bord gauche du bloc posé sur t
-      M.z = RUE_Z - M.bz0;                    // façade au recul des commerces
-      M.cx = M.x + (M.bx0 + M.bx1)/2; M.cz = M.z + (M.bz0 + M.bz1)/2;
-      M.hw = (M.bx1 - M.bx0)/2;       M.hd = (M.bz1 - M.bz0)/2;
-      t += (M.bx1 - M.bx0) + jeu;
+      /* Repère tourné d'un demi-tour : le monde DÉCROÎT quand le local croît. Le lot
+         est centré sur `decalX` dans le repère du modèle, l'allée sur son axe. */
+      M.bord = t;                             // la mitoyenne à sa gauche
+      M.cx = t + M.jw/2;                      // centre du lot, en monde
+      M.cz = (RANG.z0 + RANG.z1)/2;
+      M.x = M.cx + M.dec;                     // d'où la position du groupe
+      M.z = M.cz;
+      M.porteX = M.x - M.port;                // et l'axe du portillon
+      t += M.jw;
     }
   }
 
@@ -3852,20 +3872,46 @@ function buildFarm(){
       if(Math.abs(x-S.x) < ex+7 && Math.abs(z-S.z) < ez+7) return false;
       if(x > S.emp.x0-7 && x < S.emp.x1+7 && z > S.emp.z0-7 && z < S.emp.z1+7) return false;
     }
-    // les jardins : leur emprise mesurée, plus trois mètres de marge
-    for(const M of MAISONS)
-      if(Math.abs(x - M.cx) < M.hw + 3 && Math.abs(z - M.cz) < M.hd + 3) return false;
+    // le rang : un seul rectangle, puisque les lots sont jointifs, plus trois mètres
+    if(x > RANG.x0 - 3 && x < RANG.x1 + 3 && z > RANG.z0 - 3 && z < RANG.z1 + 3) return false;
     return true;
   };
-  /* Les maisons, posées avant la verdure pour que le semis les contourne. Ce qui les
-     entoure est un RECTANGLE et non un disque : un bloc de vingt-deux mètres sur
-     quinze cerclé d'un disque déborderait sur la chaussée qu'il longe. */
+  /* Les maisons, posées avant la verdure pour que le semis les contourne. Puis la
+     clôture du rang, d'un seul tenant : un devant percé d'un portillon par allée, un
+     fond, deux pignons, et une mitoyenne à chaque bord de lot sauf le premier — c'est
+     là toute la différence entre onze clôtures et une seule. */
   for(const M of MAISONS){
     M.g.position.set(M.x, 0, M.z);
     scene.add(M.g);
     fusionnerGroupe(M.g);
-    boxObs.push({x:M.cx, z:M.cz, hw:M.hw, hd:M.hd});
   }
+  const CLO = new THREE.Group();
+  panCloture(CLO, RANG.x0, RANG.z0, RANG.x1, RANG.z0, MAISONS.map((M)=> M.porteX));
+  panCloture(CLO, RANG.x0, RANG.z1, RANG.x1, RANG.z1, null);
+  panCloture(CLO, RANG.x0, RANG.z0, RANG.x0, RANG.z1, null);
+  panCloture(CLO, RANG.x1, RANG.z0, RANG.x1, RANG.z1, null);
+  for(let i = 1; i < MAISONS.length; i++)
+    panCloture(CLO, MAISONS[i].bord, RANG.z0, MAISONS[i].bord, RANG.z1, null);
+  /* Et l'allée rejoint son portillon. Le modèle arrête la sienne au bord de SON jardin,
+     qui n'est plus le bord du lot : le rang a un fond unique, et le devant est commun.
+     Sans ce raccord, chaque allée s'arrêterait dans l'herbe à un mètre de la barrière. */
+  for(const M of MAISONS){
+    if(M.bout === null) continue;
+    const z0 = M.z - M.bout, d = z0 - RANG.z0;    // du bout de l'allée jusqu'au devant
+    if(d < 0.15) continue;
+    CLO.add(box(M.larg, 0.08, d, 0xC9B99A, M.porteX, 0.04, RANG.z0 + d/2));
+    const n = Math.max(1, Math.round(d/(0.8*MAI_ECHELLE)));
+    for(let k = 0; k < n; k++)
+      CLO.add(box(M.larg*0.82, 0.04, d/n*0.55, 0xB8A88A, M.porteX, 0.09,
+                  RANG.z0 + d/n*(k + 0.5)));
+  }
+  scene.add(CLO);
+  fusionnerGroupe(CLO);
+  /* Ce qui arrête un engin : le rang entier, d'un seul rectangle. Les lots étant
+     jointifs il n'y a plus rien à traverser entre deux maisons, et un disque par
+     maison déborderait de toute façon sur la chaussée qu'elles longent. */
+  boxObs.push({x:(RANG.x0 + RANG.x1)/2, z:(RANG.z0 + RANG.z1)/2,
+               hw:(RANG.x1 - RANG.x0)/2, hd:(RANG.z1 - RANG.z0)/2});
 
   /* LES PETITS OBJETS DU VILLAGE, semés à gauche et à droite entre les maisons et les
      commerces. Ils passent en revue, l'un après l'autre et en boucle, pour qu'aucun ne
@@ -3876,8 +3922,6 @@ function buildFarm(){
   const libreObjet = (x, z, r)=>{
     if(!libreDehors(x, z)) return false;
     for(const P of POSES) if(Math.hypot(x - P.x, z - P.z) < r + P.r + 3) return false;
-    for(const M of MAISONS)
-      if(Math.abs(x - M.cx) < M.hw + 3 && Math.abs(z - M.cz) < M.hd + 3) return false;
     return true;
   };
   for(let k = 0; k < 26; k++){
@@ -3962,10 +4006,21 @@ function dCheminee(g, x, z, h, c){
 }
 /* La clôture de jardin et son portillon. `decalX` décale tout le rectangle — utile
    quand la maison porte une annexe d'un côté et que la clôture doit la contourner
-   plutôt que la traverser. */
+   plutôt que la traverser.
+
+   LA RUE EST MITOYENNE. Posées côte à côte, deux maisons dressaient deux clôtures
+   parallèles à quelques mètres l'une de l'autre : deux fois le même piquet, et entre
+   les deux une bande d'herbe qui n'appartenait à personne. Le rang clôture donc pour
+   tout le monde — un seul devant, un seul fond, deux pignons et une mitoyenne entre
+   voisins — et chaque modèle se contente de DÉCLARER la taille de son lot, qui est ce
+   dont le rang a besoin pour répartir. `jardinsPoses` est le drapeau qui distingue les
+   deux emplois : une maison bâtie hors du rang garde sa clôture à elle. */
+let jardinsPoses = true;
 function dJardin(g, w, d, hauteur, couleur, decalX, xPortillon){
   const H = hauteur || 0.95, C2 = couleur || 0xC9B99A, O = 1.5;
   const xPort = xPortillon !== undefined ? xPortillon : (decalX || 0);
+  g.userData.jardin = {w, d, decalX:decalX || 0, xPortillon:xPort};
+  if(!jardinsPoses) return;
   const cote = (lx, lz, px, pz, coupe)=>{
     const L = Math.max(lx, lz), horiz = lx > lz;
     const n = Math.max(2, Math.round(L/1.5));
@@ -3996,6 +4051,8 @@ function dJardin(g, w, d, hauteur, couleur, decalX, xPortillon){
 }
 function dAllee(g, x, z0, z1, w){
   const d = z1 - z0;
+  // le rang ouvre son portillon devant l'allée, pas au milieu du lot
+  g.userData.allee = {x, z0, z1, w};
   g.add(box(w, 0.08, d, 0xC9B99A, x, 0.04, z0 + d/2));
   const n = Math.max(2, Math.round(d/0.8));
   for(let k = 0; k < n; k++)
@@ -4314,6 +4371,57 @@ function vilPoteau(){
    qu'on veut. */
 const MAI_ECHELLE = 1.30;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
+
+/* LA CLÔTURE DU RANG. C'est celle de dJardin() sortie de son rectangle : la rue
+   mitoyenne a besoin d'un pan qui court sur cent soixante-dix mètres et s'ouvre devant
+   chaque portillon, là où dJardin() ne savait clôturer qu'un lot isolé. Même piquet,
+   même paire de lisses, mêmes montants coiffés de part et d'autre d'une ouverture —
+   à MAI_ECHELLE près, puisque le rang dessine en coordonnées de monde et non dans le
+   repère d'une maison.
+   Les ouvertures découpent le pan en tronçons, et chaque tronçon est clôturé pour
+   lui-même : c'est ce qui fait tomber un piquet exactement sur chaque bord d'ouverture
+   plutôt qu'au petit bonheur du pas régulier. */
+const RUE_H = 0.95*MAI_ECHELLE;            // hauteur de clôture, commune au rang
+const RUE_C = 0xC9B99A;                    // et sa couleur, commune elle aussi
+const RUE_PORTE = 1.5*MAI_ECHELLE;         // largeur d'un portillon
+/* LA VERGE, entre le bitume et la clôture. Le rang se tenait à RECUL_ROCADE — les
+   trois mètres de verge des commerces — mais un commerce met dix mètres de PARVIS
+   entre sa dalle et sa façade, quand une maison n'a que son jardin de devant : vue de
+   la chaussée, la clôture tombait au ras du bitume. Neuf mètres remettent les façades
+   des maisons sur la ligne des façades de commerce, RECUL_ROCADE + PARVIS du bitume. */
+const RUE_VERGE = 9;
+function panCloture(g, x0, z0, x1, z1, coupes){
+  const horiz = Math.abs(x1 - x0) > Math.abs(z1 - z0);
+  const a = horiz ? x0 : z0, b = horiz ? x1 : z1;
+  const S = 0.11*MAI_ECHELLE, LIS = 0.07*MAI_ECHELLE;
+  const PAS = 1.5*MAI_ECHELLE, DEMI = RUE_PORTE/2;
+  const ouv = (coupes || []).filter((c)=> c > a + DEMI && c < b - DEMI)
+                            .sort((u, v)=> u - v);
+  const troncon = (u, v)=>{
+    const L = v - u;
+    if(L < 0.25) return;
+    const n = Math.max(1, Math.round(L/PAS));
+    for(let k = 0; k <= n; k++){
+      const t = u + k*L/n;
+      g.add(box(S, RUE_H, S, RUE_C, horiz ? t : x0, RUE_H/2, horiz ? z0 : t));
+    }
+    for(const y of [RUE_H*0.42, RUE_H*0.78])
+      g.add(box(horiz ? L : LIS, LIS, horiz ? LIS : L, RUE_C,
+                horiz ? (u + v)/2 : x0, y, horiz ? z0 : (u + v)/2));
+  };
+  let t0 = a;
+  for(const c of ouv){ troncon(t0, c - DEMI); t0 = c + DEMI; }
+  troncon(t0, b);
+  // les montants de portillon, plus hauts que la clôture et coiffés
+  const MH = RUE_H + 0.35*MAI_ECHELLE;
+  for(const c of ouv) for(const s2 of [-1, 1]){
+    const t = c + s2*DEMI;
+    const px = horiz ? t : x0, pz = horiz ? z0 : t;
+    g.add(box(0.16*MAI_ECHELLE, MH, 0.16*MAI_ECHELLE, RUE_C, px, MH/2, pz));
+    g.add(box(0.24*MAI_ECHELLE, 0.12*MAI_ECHELLE, 0.24*MAI_ECHELLE, RUE_C,
+              px, MH + 0.05*MAI_ECHELLE, pz));
+  }
+}
 const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBucher,
                      vilPuits, vilCalvaire, vilEntree, vilBanc, vilPoteau];
 
