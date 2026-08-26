@@ -1166,7 +1166,7 @@ const SITES = [
   // Le garage : on y répare, on y améliore, et c'est le SEUL endroit où l'on achète
   // un véhicule. Il s'appelait « Atelier », ce qui le confondait avec l'atelier de
   // production de la ferme et avec l'atelier textile du village.
-  {nom:'Garage', enseigne:'logo3d', picto:'cle', dir:'W', bat:-72, park:-59,
+  {nom:'Garage', enseigne:'logo3d', picto:'cle', dir:'E', bat:-160, park:-59,
    style:'usine', crop:-1, prix:0, atelier:true, cloture:'grillage',
    w:13.0, d:10.0, pw:16, ph:16, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true,
    propose:[{nom:'Vend les véhicules', prix:''}, {nom:'Répare et améliore', prix:''}]},
@@ -1182,7 +1182,7 @@ const SITES = [
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', supermarche:true,
    parvisPlus:2.0, modele:()=> batSupermarche(),
    w:18.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6},
-  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'W', bat:48, park:61,
+  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'E', bat:-150, park:61,
    style:'usine', crop:0, prix:0.46, cloture:'grillage', modele:()=> batUsineCereales(),
    w:16.0, d:12.0, pw:14, ph:13, toit:0x4A6B8A, mur:0xDCE2E8},
 
@@ -1202,7 +1202,7 @@ const SITES = [
   {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'N', bat:56, park:69,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A6A3A, mur:0xEFE4CE},
-  {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'N', bat:94, park:107,
+  {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'E', bat:-140, park:107,
    style:'usine', crop:3, prix:0.55, cloture:'grillage', modele:()=> batUsineAvoine(),
    w:14.0, d:11.0, pw:13, ph:13, toit:0x3E7C52, mur:0xE4EEDC},
 
@@ -1220,11 +1220,11 @@ const SITES = [
    style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batLaiterie(),
    w:15.0, d:11.0, pw:14, ph:14, toit:0x4E7FA8, mur:0xF0F4F6,
    demande:'Lait — prévoir des pâtures'},
-  {nom:'Boucherie', enseigne:'laterale', picto:'chope', dir:'E', bat:8, park:21,
+  {nom:'Boucherie', enseigne:'laterale', picto:'chope', dir:'W', bat:120, park:21,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batBoucherie(),
    w:11.0, d:8.0,  pw:11, ph:12, toit:0xA83A32, mur:0xF4E9DC,
    demande:'Viande — prévoir des enclos'},
-  {nom:'Restaurant', enseigne:'potence', picto:'baguette', dir:'E', bat:44, park:57,
+  {nom:'Restaurant', enseigne:'potence', picto:'baguette', dir:'N', bat:130, park:57,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batRestaurant(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2}
 ];
@@ -1516,33 +1516,31 @@ function ajusterSitesAuxModeles(){
    L'ordre du tableau SITES, lui, ne bouge pas d'un cran : une sauvegarde y repère un
    commerce par son INDICE. On ne change que `bat`, l'ancrage le long de la bande. */
 const BANDES = {
-  // Ouest : le quartier industriel au nord, les commerces de bouche au sud, avec une
-  // maison de chaque côté — c'est le bout de bande que l'on croise en sortant de la ferme.
-  // Une seule maison à l'ouest : cette bande porte 127 m de dalles sur 172 de façade,
-  // c'est la plus chargée des trois. Deux maisons y auraient mangé les deux creux.
-  W: [{sites:['Usine céréales', 'Garage', 'Brasserie']},
-      {creux:'verdure', poids:1.2},
-      {maisons:1},
-      {sites:['Caviste', 'Marché', 'Supermarché']},
-      {creux:'mobilier', poids:0.8}],
-  // Nord : la bande la plus vide des trois. Elle se remplit de maisons plutôt que
-  // d'écarter les quatre commerces sur cent soixante-douze mètres.
-  N: [{sites:['Usine avoine']},
+  /* Ouest et nord : LA RUE DU VILLAGE. Maisons et commerces s'y ALTERNENT, tous
+     jointifs et sous une clôture commune, avec de loin en loin un creux où l'on met un
+     objet de village et des arbres. C'est ce qui fait un village plutôt qu'une zone
+     d'activité : on n'a pas d'un côté les gens et de l'autre les boutiques. */
+  // Trois maisons à l'ouest et non quatre : cette bande porte 95 m de dalles, et une
+  // quatrième mangeait les deux creux.
+  W: [{paquet:['maison', 'Brasserie', 'maison', 'Caviste']},
+      {creux:'village', poids:1},
+      {paquet:['Marché', 'maison', 'Supermarché']},
+      {creux:'village', poids:0.9},
+      {paquet:['Boucherie']}],
+  N: [{paquet:['Boulangerie', 'maison', 'Comptoir agricole']},
+      {creux:'village', poids:1},
+      {paquet:['maison', 'Fromagerie', 'maison']},
+      {creux:'village', poids:0.9},
+      {paquet:['Restaurant', 'maison']}],
+  /* Est : LE QUARTIER INDUSTRIEL. Les six usines y sont rassemblées, en deux paquets
+     jointifs séparés d'un bosquet. Elles étaient dispersées sur les trois bandes, une
+     usine entre deux boutiques : le village n'avait pas de quartiers, il avait un
+     alignement. */
+  E: [{paquet:['Coopérative', 'Atelier textile']},
       {creux:'verdure', poids:1},
-      {sites:['Comptoir agricole']},
-      {creux:'mobilier', poids:0.7},
-      {maisons:1},
-      {sites:['Boulangerie', 'Fromagerie']},
-      {maisons:1},
+      {paquet:['Laiterie', 'Usine céréales']},
       {creux:'verdure', poids:1},
-      {maisons:1}],
-  // Est : trois usines d'un tenant, puis le hameau de la boucherie et du restaurant.
-  E: [{sites:['Coopérative', 'Atelier textile', 'Laiterie']},
-      {creux:'verdure', poids:1.2},
-      {maisons:1},
-      {sites:['Boucherie', 'Restaurant']},
-      {maisons:1},
-      {creux:'mobilier', poids:0.8}]
+      {paquet:['Usine avoine', 'Garage']}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -1570,19 +1568,17 @@ function repartirBandes(){
     // qu'entre une dalle et sa propre chaussée.
     const d0 = (dir === 'N' ? -ROAD_C : ROAD_N) + ROAD_W/2 + RECUL_ROCADE;
     const d1 = (dir === 'N' ?  ROAD_E : ROAD_C) - ROAD_W/2 - RECUL_ROCADE;
-    // Largeur de chaque bloc : la somme des cotes mesurées, sans le moindre jeu à
-    // l'intérieur — c'est ce que « collés » veut dire.
-    let fixe = 0, poids = 0, blocs = 0;
+    /* Largeur de chaque paquet : la somme des cotes mesurées, sans le moindre jeu à
+       l'intérieur — c'est ce que « collés » veut dire. Les maisons sont bâties tout de
+       suite : leur cote de lot n'est connue que du modèle, et c'est elle qui décide de
+       la place à réserver. */
+    let fixe = 0, poids = 0;
     for(const b of plan){
       if(b.creux){ poids += (b.poids || 1); continue; }
-      blocs++;
-      if(b.sites) fixe += b.sites.reduce((t, n)=> t + (parNom[n] ? parNom[n].w : 0), 0);
-      else {
-        // On les bâtit tout de suite : leur cote de lot n'est connue que du modèle, et
-        // c'est elle qui décide de la place à réserver. buildFarm() les posera.
-        b.lots = b.lots || [];
-        while(b.lots.length < (b.maisons || 0)) b.lots.push(lotMaison(RY_BANDE[dir]));
-        fixe += b.lots.reduce((t, L)=> t + L.jw, 0);
+      b.lots = [];
+      for(const e of b.paquet){
+        if(e === 'maison'){ const L = lotMaison(RY_BANDE[dir]); b.lots.push(L); fixe += L.jw; }
+        else fixe += (parNom[e] ? parNom[e].w : 0);
       }
     }
     const marges = Math.max(0, plan.length - 1)*BANDE_JEU;
@@ -1596,24 +1592,34 @@ function repartirBandes(){
         t += l;
         return;
       }
-      if(b.sites){
-        b.sites.forEach((n, i)=>{
-          const S = parNom[n];
-          if(!S) return;
-          S.bat = t + S.w/2;
-          // Qui touche qui : le pan mitoyen appartient au premier des deux.
-          S.colleAvant = i > 0;
-          S.colleApres = i < b.sites.length - 1;
-          t += S.w;
-        });
-        return;
-      }
-      for(const L of (b.lots || [])){
-        BANDE_MAISONS.push({dir, lot:L, a:t, b:t + L.jw});
-        t += L.jw;
-      }
+      let iLot = 0, siteAvant = false;
+      b.paquet.forEach((e, i)=>{
+        if(e === 'maison'){
+          const L = b.lots[iLot++];
+          /* CE QUE LA MAISON NE POSE PAS. Un pan mitoyen appartient à un seul des deux
+             voisins. Le commerce pose toujours les siens — sa clôture court sur toute
+             la profondeur de sa dalle — donc la maison s'efface devant lui des deux
+             côtés ; entre deux maisons, c'est la première qui pose. */
+          BANDE_MAISONS.push({dir, lot:L, a:t, b:t + L.jw,
+                              sansAvant: i > 0,
+                              sansApres: i < b.paquet.length - 1 && b.paquet[i+1] !== 'maison'});
+          t += L.jw;
+          siteAvant = false;
+          return;
+        }
+        const S = parNom[e];
+        if(!S) return;
+        S.bat = t + S.w/2;
+        /* QUI POSE LE PAN MITOYEN. Entre deux commerces, il appartient au premier :
+           deux murets au même centimètre ne se voient qu'une fois et se paient deux.
+           Entre un commerce et une MAISON, c'est le commerce qui le pose — sa clôture
+           court sur toute la profondeur de sa dalle, là où le lot d'une maison n'en
+           fait que quinze mètres : lui laisser le pan ouvrirait un trou derrière. */
+        S.colleAvant = siteAvant;
+        t += S.w;
+        siteAvant = true;
+      });
     });
-    void blocs;
   }
 }
 
@@ -4077,26 +4083,15 @@ function buildFarm(){
      village — l'endroit où l'on s'arrête. Le mobilier qui a sa place au bord d'une
      route s'y installe, aux bornes de lot, c'est-à-dire à mi-chemin de deux portillons ;
      le reste du village continue de se semer derrière. */
-  const RUE_MOBILIER = [vilAbriBus, vilBanc, vilCalvaire, vilPuits, vilEntree, vilPoteau];
-  const RUE_MOB_Z = RANG.z0 - 4.2;
+  /* Il n'y a plus de mobilier sur la verge du rang : trois mètres n'en laissent pas la
+     place, et un objet de village se pose maintenant dans un creux, pas au bord d'un
+     trottoir. Restent les mâts, qui éclairent la chaussée. */
   const RUE_MOB = [];
-  MAISONS.forEach((M, i)=>{
-    if(i === 0 || i % 2) return;             // une borne sur deux, jamais le pignon
-    const f = RUE_MOBILIER[((i/2) - 1) % RUE_MOBILIER.length];
-    const g = poserBloc(f, M.bord, RUE_MOB_Z, Math.PI);
-    RUE_MOB.push({x:M.bord, r:(obstacles[obstacles.length - 1] || {r:3}).r});
-    void g;
-  });
-  /* Et le rang s'éclaire. Les mâts du brin sud sont tous du côté de la ferme, et
-     s'effacent devant sa cour : la moitié de cette route n'avait aucune lumière, et le
-     rang y faisait un aplat noir à la nuit tombée. Ceux-ci sont du côté du village,
-     décalés d'une demi-portée pour alterner avec ceux d'en face, et leur potence
-     surplombe la chaussée comme partout ailleurs. */
-  const RUE_LAMPE_Z = ROC.z1 + ROAD_W/2 + 2.0;
+  const RUE_LAMPE_Z = ROC.z1 + ROAD_W/2 + 1.5;
   for(let x = -50; x <= 110; x += 20){
     if(x <= RANG.x0 + 2 || x >= RANG.x1 - 2) continue;
     // un mât planté dans l'abri de bus ferait deux volumes qui se traversent
-    if(RUE_MOB.some((o)=> Math.hypot(o.x - x, RUE_MOB_Z - RUE_LAMPE_Z) < o.r + 1.6)) continue;
+    if(RUE_MOB.length) continue;
     addLamp(x, RUE_LAMPE_Z, 0);
   }
 
@@ -4104,31 +4099,12 @@ function buildFarm(){
      commerces. Ils passent en revue, l'un après l'autre et en boucle, pour qu'aucun ne
      manque et qu'aucun ne se répète deux fois de suite au même endroit. Le tirage vient
      du flux à graine fixe : le village est le même à chaque partie. */
+  /* LES OBJETS DE VILLAGE NE SE SÈMENT PLUS. Vingt-six d'entre eux étaient répartis
+     le long des quatre bords, au hasard du flux à graine fixe : ils finissaient
+     DERRIÈRE les bâtiments, là où personne ne roule, et n'appartenaient à rien. Ils
+     n'apparaissent plus que là où on les attend — dans les creux ménagés exprès entre
+     deux paquets, avec les arbres. C'est garnirBandes() qui les y pose. */
   const POSES = [];
-  let iVil = 0;
-  const libreObjet = (x, z, r)=>{
-    if(!libreDehors(x, z)) return false;
-    for(const P of POSES) if(Math.hypot(x - P.x, z - P.z) < r + P.r + 3) return false;
-    return true;
-  };
-  for(let k = 0; k < 26; k++){
-    const f = VIL_MODELES[iVil % VIL_MODELES.length];
-    // on tente quelques emplacements le long des bords, puis on passe au suivant
-    for(let essai = 0; essai < 40; essai++){
-      const bord = (iVil + essai) % 4;
-      const x = bord === 0 ? X0 + 6 + alea()*10
-              : bord === 1 ? X1 - 6 - alea()*10
-              : X0 + 12 + alea()*(X1 - X0 - 24);
-      const z = bord === 2 ? Z0 + 6 + alea()*10
-              : bord === 3 ? Z1 - 6 - alea()*10
-              : Z0 + 12 + alea()*(Z1 - Z0 - 24);
-      if(!libreObjet(x, z, 4)) continue;
-      poserBloc(f, x, z, alea()*Math.PI*2);
-      POSES.push({x, z, r:4});
-      break;
-    }
-    iVil++;
-  }
 
   for(let gx=X0+8; gx<=X1-8; gx+=7) for(let gz=Z0+8; gz<=Z1-8; gz+=7){
     const x = gx + (rnd2()-0.5)*4, z = gz + (rnd2()-0.5)*4;
@@ -4602,9 +4578,12 @@ const RUE_PORTE = 1.5*MAI_ECHELLE;         // largeur d'un portillon
 /* LA VERGE, entre le bitume et la clôture. Le rang se tenait à RECUL_ROCADE — les
    trois mètres de verge des commerces — mais un commerce met dix mètres de PARVIS
    entre sa dalle et sa façade, quand une maison n'a que son jardin de devant : vue de
-   la chaussée, la clôture tombait au ras du bitume. Neuf mètres remettent les façades
-   des maisons sur la ligne des façades de commerce, RECUL_ROCADE + PARVIS du bitume. */
-const RUE_VERGE = 9;
+   la chaussée, la clôture tombait au ras du bitume — et l'on est passé à neuf mètres.
+   Mais une maison qui doit se COLLER à un commerce ne peut pas se tenir six mètres
+   derrière lui : la rue n'a qu'une ligne de façades, et c'est celle des dalles. Les
+   maisons du rang du bord sud s'alignent donc sur les mêmes trois mètres que les
+   quinze commerces, comme celles des trois autres bandes. */
+const RUE_VERGE = RECUL_ROCADE;
 function panCloture(g, x0, z0, x1, z1, coupes, sansA, sansB){
   const horiz = Math.abs(x1 - x0) > Math.abs(z1 - z0);
   const a = horiz ? x0 : z0, b = horiz ? x1 : z1;
@@ -4669,7 +4648,7 @@ const BANDE_LOTS = [];                          // ce qui a été posé, pour le
 /* Poser un lot de maison le long d'une bande : le bloc, sa clôture, son raccord
    d'allée et son rectangle de collision. `centre` est sa place le long de la bande,
    `front` la coordonnée de profondeur de sa façade côté route. */
-function poserLotBande(L, dir, centre, front){
+function poserLotBande(L, dir, centre, front, sansAvant, sansApres){
   const surZ = SUR_Z[dir], sortant = SORTANT[dir], sdec = SDEC[dir];
   const prof = front + sortant*L.jd/2;         // profondeur du centre du lot
   const band = centre + sdec*L.dec;            // et sa place le long de la bande
@@ -4683,13 +4662,13 @@ function poserLotBande(L, dir, centre, front){
   if(surZ){
     panCloture(G, av, -hb, av,  hb, [gp], false, false);
     panCloture(G, ar, -hb, ar,  hb, null, false, false);
-    panCloture(G, av, -hb, ar, -hb, null, true,  true);
-    panCloture(G, av,  hb, ar,  hb, null, true,  true);
+    if(!sansAvant) panCloture(G, av, -hb, ar, -hb, null, true, true);
+    if(!sansApres) panCloture(G, av,  hb, ar,  hb, null, true, true);
   } else {
     panCloture(G, -hb, av,  hb, av, [gp], false, false);
     panCloture(G, -hb, ar,  hb, ar, null, false, false);
-    panCloture(G, -hb, av, -hb, ar, null, true,  true);
-    panCloture(G,  hb, av,  hb, ar, null, true,  true);
+    if(!sansAvant) panCloture(G, -hb, av, -hb, ar, null, true, true);
+    if(!sansApres) panCloture(G,  hb, av,  hb, ar, null, true, true);
   }
   // l'allée rejoint son portillon, comme dans le rang du bord sud
   if(L.bout !== null){
@@ -4719,10 +4698,14 @@ function poserLotBande(L, dir, centre, front){
    PRÈS de la route — c'est ce qui donne l'air d'un village plutôt que d'une zone
    d'activité — et la verdure occupe le fond du creux, derrière lui. */
 function garnirBandes(putBush, putRock){
-  const VERGE = 9;                             // la même que celle du rang du bord sud
+  /* LA MAISON EST AU RECUL DE LA DALLE VOISINE, ET PAS UN MÈTRE DE PLUS. Elle se
+     tenait neuf mètres en retrait quand le commerce d'à côté n'en garde que trois : à
+     la fois trop loin de la route, et impossible à coller à son voisin. Un même recul
+     pour les deux, et la rue a une seule ligne de façades. */
   for(const M of BANDE_MAISONS)
     poserLotBande(M.lot, M.dir, (M.a + M.b)/2,
-                  BORD_BANDE[M.dir] + SORTANT[M.dir]*VERGE);
+                  BORD_BANDE[M.dir] + SORTANT[M.dir]*RECUL_ROCADE,
+                  M.sansAvant, M.sansApres);
   const MOB = [vilAbriBus, vilLavoir, vilTonnelle, vilPuits, vilBanc, vilPiqueNique];
   let iMob = 0;
   for(const C of BANDE_CREUX){
@@ -4732,7 +4715,7 @@ function garnirBandes(putBush, putRock){
       const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
       return {x, z, fab, ry};
     };
-    if(C.quoi === 'mobilier' && l > 7){
+    if(C.quoi === 'village' && l > 7){
       const f = MOB[iMob++ % MOB.length];
       const q = pose(5.0, centre, f, RY_BANDE[C.dir]);
       poserBloc(q.fab, q.x, q.z, q.ry);
@@ -4746,7 +4729,7 @@ function garnirBandes(putBush, putRock){
       const t = C.a + 2 + alea()*(l - 4);
       const d = 8 + alea()*16;
       const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
-      if(C.quoi === 'mobilier' && Math.abs(t - centre) < 6 && d < 12) continue;
+      if(C.quoi === 'village' && Math.abs(t - centre) < 6 && d < 12) continue;
       const r = alea();
       if(r < 0.42) addTree(x, z, 0.85 + alea()*0.5, (alea()*5)|0);
       else if(r < 0.74) putBush(x, z, alea);
@@ -6127,8 +6110,19 @@ function itineraire(ax, az, bx, bz){
     pts.push({x:bx, z:hB});
   }
   pts.push({x:bx, z:bz});            // et l'équerre, en dernier
-  // Deux points confondus font tourner l'engin sur place : on les élague.
-  return pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
+  /* Deux points confondus font tourner l'engin sur place : on les élague. Mais élaguer
+     peut RECRÉER une diagonale — le point supprimé était le coude entre deux trajets
+     perpendiculaires. On repasse donc derrière : tout segment qui bouge en x ET en z
+     retrouve son coude. */
+  const net = pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
+  const droit = [net[0]];
+  for(let k = 1; k < net.length; k++){
+    const a = droit[droit.length - 1], b = net[k];
+    if(Math.abs(b.x - a.x) > 0.05 && Math.abs(b.z - a.z) > 0.05)
+      droit.push({x:a.x, z:b.z});             // le coude, à l'équerre
+    droit.push(b);
+  }
+  return droit;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
 function suivreRoute(v, bx, bz, cle, rayon){

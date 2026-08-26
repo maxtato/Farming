@@ -507,6 +507,31 @@ blanc chaud, très clair, qui ressort sans crier.
 
 ## Le village
 
+**Des quartiers, et une seule ligne de façades.** Le village n'avait ni l'un ni l'autre :
+une usine entre deux boutiques, des maisons neuf mètres en retrait quand les dalles n'en
+gardent que trois, et vingt-six objets de village semés au hasard des bords, qui
+finissaient derrière les bâtiments. Trois règles maintenant.
+
+Les **six usines sont rassemblées** sur la bande est — coopérative, atelier textile,
+laiterie, usine céréales, usine avoine, garage — en trois paquets jointifs séparés de
+bosquets. C'est le quartier industriel, et il ne contient que ça.
+
+Les bandes ouest et nord sont **la rue du village** : maisons et commerces y ALTERNENT,
+tous jointifs, sous une clôture commune. Relevé, bande par bande :
+`M B M B ~ B M B ~ B` à l'ouest, `B M B ~ M B M ~ B M` au nord, `U U ~ U U ~ U U` à
+l'est. Deux commerces n'y sont jamais collés l'un à l'autre : c'est une maison qui
+s'intercale.
+
+Une **maison est au recul de la dalle voisine**, trois mètres, et pas un de plus — sans
+quoi on ne peut pas la coller à son voisin, et la rue a deux lignes de façades au lieu
+d'une. Son mur se retrouve en avant de celui du commerce, ce qui est juste : le commerce
+met dix mètres de parvis derrière sa clôture, la maison son jardin de devant.
+
+Un **objet de village ne se pose que dans un creux**, avec les arbres. Le pan mitoyen
+n'appartient qu'à un seul des deux voisins : entre deux commerces au premier, entre un
+commerce et une maison au commerce — sa clôture court sur toute la profondeur de sa
+dalle, là où le lot d'une maison n'en fait que quinze mètres.
+
 **Un village se fait par paquets, pas par un peigne.** Les quinze commerces étaient
 répartis sur leur bande en divisant le jeu restant en parts égales : 8,97 m entre chaque
 dalle à l'ouest, 20,13 à l'est, 31,76 au nord — la même valeur répétée d'un bout à
