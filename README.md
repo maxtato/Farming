@@ -149,8 +149,10 @@ immobilisé : il se traîne au ralenti jusqu'à la cuve.
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
 l'émissif et une bille de lumière s'épanouit autour. Les lampadaires et le gyrophare
-font exactement pareil — c'est la lampe qui brille, rien n'est projeté au sol. Un engin
-garé reste éteint, comme il a le moteur coupé ; le gyrophare bat dès qu'on roule.
+font exactement pareil — c'est la lampe qui brille. Les phares avant posent en plus un
+**cône au sol** devant l'engin, qui s'évase et s'éteint avec la distance : ils éclairent
+là où l'on va, et ils tournent avec la machine. Un engin garé reste éteint, comme il a
+le moteur coupé ; le gyrophare bat dès qu'on roule.
 
 ## La boucle de jeu
 
@@ -209,6 +211,9 @@ Le code est découpé en sections numérotées, dans l'ordre où on les lit :
 
 Quelques partis pris qui expliquent le reste :
 
+- **Un bâtiment n'apporte pas son propre socle.** Le jeu pose une dalle sous chaque
+  commerce ; un socle par-dessus ferait une seconde épaisseur, dans un autre gris. Les
+  places, la terrasse, le plancher d'une halle sont peints SUR la dalle, à plat.
 - **Le sol est une texture peinte**, pas une géométrie. Chaque passage d'outil peint
   le quadrilatère réellement balayé entre deux images, ce qui aligne l'effet au
   centimètre sur la largeur de l'outil et évite les trous dans les virages.
@@ -225,9 +230,12 @@ Quelques partis pris qui expliquent le reste :
   s'allume quand quelque chose se passe dans le monde.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les
   couleurs des faces doivent rendre pleines, pas modelées.
-- **Une lampe brille, elle ne peint pas le sol.** Gyrophare, phares et lampadaires
-  partagent le même dispositif : un corps émissif et une bille additive autour de lui.
-  Les seules marques lumineuses au sol sont les anneaux d'action.
+- **Une lampe brille ; seul un phare éclaire devant lui.** Gyrophare, phares et
+  lampadaires partagent le même dispositif : un corps émissif et une bille additive
+  autour de lui. Les phares avant y ajoutent leur cône au sol — sans bord net, éteint
+  sur les côtés et au loin — parce que c'est ce que fait un phare. Le gyrophare et le
+  lampadaire, eux, ne posent rien par terre : leur tache ne suivait rien et se lisait
+  comme une zone d'action. Les autres marques lumineuses au sol sont les anneaux.
 - **Ce qui allume un anneau est ce qui agira.** La liste des transferts possibles à un
   endroit sert à la fois à colorer l'anneau, à remplir la colonne de choix et à déplacer
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
