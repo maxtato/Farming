@@ -290,6 +290,22 @@ Quelques partis pris qui expliquent le reste :
   Le côté d'entrée se choisit maintenant sur la trame des chemins, et tout
   l'aménagement — clôture, postes, quai, rangs de ruches, sentes — se lit dans un
   repère lié au portail.
+- **Et il TOURNE avec lui.** Le tank, la mangeoire et l'abri étaient déplacés dans ce
+  repère mais jamais pivotés : tant que tous les portails donnaient au nord ça ne se
+  voyait pas, mais depuis qu'un enclos s'ouvre là où passe un chemin, un enclos sur
+  deux avait son tank en travers, sa mangeoire perpendiculaire aux bêtes et son abri
+  ouvert sur une clôture. Ils reçoivent l'angle du portail, et leur emprise de
+  collision suit le quart de tour. L'abri fait demi-tour de plus : sa façade ouverte
+  regarde le pré, pas le fond.
+- **Ce qui arrête un engin est un mur, pas un terrain.** L'emprise de collision d'un
+  commerce couvrait sa dalle entière, parvis compris : l'anneau de livraison tombait
+  4,60 m à l'intérieur, et l'on butait sur du bitume vide six mètres avant la façade.
+  Un engin lancé droit sur l'anneau n'en atteignait aucun des seize ; il les atteint
+  tous, avec quatre mètres de marge. On ne pousse que la bâtisse, aux cotes relevées
+  sur son modèle.
+- **Un sol de couleur se peint, il ne se pose pas.** Le rucher faisait exception : ses
+  fleurs poussaient sur une dalle verte de six centimètres, seul enclos du jeu à
+  empiler un volume coloré sur l'herbe déjà peinte. Les fleurs sont dans l'herbe.
 - **On travaille en escargot, jamais en serpentin.** Le pilote débordait de 2,5 m hors
   de la parcelle pour en travailler les bords : sur une parcelle de bordure, ces
   2,5 m tombaient dans la clôture. Il tourne maintenant autour de la parcelle en se

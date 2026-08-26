@@ -1200,8 +1200,12 @@ function ajusterSitesAuxModeles(){
     // contenir la place où l'on se gare ET l'anneau, sans que rien ne touche le bitume.
     S.parvis = PARVIS + (S.parvisPlus || 0);
     S.corpsMesh = corps;
-    S.w = (bb.max.x - bb.min.x) + 2*MARGE_COTE;
-    S.d = (bb.max.z - bb.min.z) + MARGE_ARRIERE + S.parvis;
+    // Les cotes du BÂTI seul, gardées : la dalle s'en déduit, mais la collision a
+    // besoin du bâtiment et de rien d'autre.
+    S.bbW = bb.max.x - bb.min.x;
+    S.bbD = bb.max.z - bb.min.z;
+    S.w = S.bbW + 2*MARGE_COTE;
+    S.d = S.bbD + MARGE_ARRIERE + S.parvis;
     S.corpsDx = -(bb.max.x + bb.min.x)/2;
     S.corpsDz = (S.d/2 - S.parvis) - bb.max.z;
   }
@@ -3038,10 +3042,23 @@ function buildCommerce(S){
   scene.add(g);
   g.updateMatrixWorld(true);
   if(S.mk){ S.smoke = new THREE.Vector3(); S.mk.getWorldPosition(S.smoke); }
-  // Emprise réelle du bâtiment : profondeur en X et largeur en Z sur les bords
-  // latéraux, l'inverse au nord. Un cercle englobant déclenchait le choc au frôlement.
+  /* CE QUI ARRÊTE UN ENGIN, C'EST LE MUR — PAS LA DALLE.
+     L'emprise poussée ici couvrait S.w × S.d, c'est-à-dire le TERRAIN entier : le
+     bâti, ses trois mètres de marge latérale, ses trois mètres de recul arrière et,
+     surtout, ses dix mètres de parvis. Or l'anneau de livraison est planté À 4,60 M
+     DU BORD CÔTÉ ROUTE, donc en plein dans ce rectangle : on heurtait un mur invisible
+     sur le bitume, cinq mètres avant la façade, et l'anneau restait inatteignable —
+     la coopérative en était l'exemple parfait, son anneau tombait 5,3 m à l'intérieur
+     de son propre obstacle.
+     On ne pousse donc que la bâtisse, aux cotes relevées sur son modèle, replacée
+     derrière son parvis. Le parvis redevient ce qu'il doit être : de la place pour se
+     garer. */
+  const bw = (S.bbW !== undefined) ? S.bbW : W - 2*MARGE_COTE;
+  const bd = (S.bbD !== undefined) ? S.bbD : D - MARGE_ARRIERE - (S.parvis || 0);
+  const recul = S.d/2 - (S.parvis || 0) - bd/2;      // du centre de dalle au centre du bâti
   const lat = (S.dir === 'W' || S.dir === 'E');
-  boxObs.push({x:S.x, z:S.z, hw:(lat ? D : W)/2, hd:(lat ? W : D)/2});
+  boxObs.push({x: S.x + Math.sin(S.rot)*recul, z: S.z + Math.cos(S.rot)*recul,
+               hw:(lat ? bd : bw)/2, hd:(lat ? bw : bd)/2});
 
   // La dalle : bâtiment et parking d'un seul tenant, et non plus deux îlots de béton
   // séparés par une bande d'herbe. Le marquage des places, lui, reste sur le parking —
@@ -5770,11 +5787,13 @@ const autoEl = document.getElementById('auto');
    commerce — résolue en un point par lieuPoint(). C'est la même façon de nommer un
    endroit que dans les actions de transfert, et pour la même raison : deux objets ne
    se comparent pas, deux chaînes si. */
-/* Chaque lieu porte SON rayon d'arrêt, et c'est celui auquel il agit vraiment.
-   Un pilote qui visait trois mètres se plantait devant la coopérative : le point de
-   livraison tombe dans l'emprise du bâtiment, l'engin butait à cinq mètres et
-   attendait indéfiniment un contact qu'il ne pouvait pas obtenir — alors qu'à cinq
-   mètres, le quai l'acceptait déjà. */
+/* Chaque lieu porte SON rayon d'arrêt.
+   Il a valu six mètres pour les commerces, et pour une mauvaise raison : l'emprise de
+   collision d'un commerce couvrait alors sa dalle entière, l'engin butait à 5,60 m du
+   quai et attendait indéfiniment un contact qu'il ne pouvait pas obtenir. On lui
+   demandait donc de se déclarer arrivé avant le mur. Maintenant que ce mur est le
+   bâtiment et rien d'autre, le parvis est libre : l'engin va se garer SUR l'anneau,
+   comme le ferait un joueur, au lieu de s'arrêter six mètres avant, en plein bitume. */
 function lieuxPossibles(){
   const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z, r:4.0},
              {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, r:4.5}];
@@ -5783,7 +5802,7 @@ function lieuxPossibles(){
   });
   for(const S of SITES)
     if(S.achete.length || S.accepte.length)
-      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:QUAI_R - 0.5});
+      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:3.4});
   return L;
 }
 const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
@@ -6925,12 +6944,15 @@ function creerPature(p, espece){
   // L'aménagement dépend de l'espèce : chacune a son poste de collecte à gauche et
   // sa mangeoire à droite, jamais devant le portail. On entre tout droit, puis on se
   // range à gauche pour le produit, à droite pour le grain.
+  // Le cap du portail : l'angle qui amène le +Z d'un modèle sur `din`, c'est-à-dire
+  // vers le fond de l'enclos. Tout ce qu'on pose ici le reçoit.
+  const cap = Math.atan2(C.din.x, C.din.z);
   const uT = -(croix/2 - 2.0), uA = croix/2 - 2.0, dP = 6.0;
   const tx = mx(uT, dP), tz = mz(uT, dP);
   const ax = mx(uA, dP), az = mz(uA, dP);
-  const collecte = E.produit ? posteCollecte(E, tx, tz) : null;
-  const mangeoire = posteMangeoire(E, ax, az);
-  abriEspece(E, mx(0, prof - 4.0), mz(0, prof - 4.0));
+  const collecte = E.produit ? posteCollecte(E, tx, tz, cap) : null;
+  const mangeoire = posteMangeoire(E, ax, az, cap);
+  abriEspece(E, mx(0, prof - 4.0), mz(0, prof - 4.0), cap);
 
   // Quais : là où l'anneau invite à s'arrêter, à côté de l'équipement et non dessus.
   // La zone de pâture, en repère du portail : on laisse la bande d'entrée libre pour
@@ -6947,7 +6969,7 @@ function creerPature(p, espece){
     p, espece:E.cle, collecte, auge:mangeoire.groupe, tas:mangeoire.tas, gx, gz,
     // Le repère de l'enclos, gardé : le placement des ruches et tout ce qui voudra
     // raisonner « en profondeur depuis le portail » en a besoin.
-    cote, din:C.din, dac:C.dac, croix, prof,
+    cote, din:C.din, dac:C.dac, croix, prof, cap,
     // UN SEUL QUAI, planté devant le portail. Trois anneaux dispersés dans l'enclos
     // obligeaient à s'y faufiler entre les bêtes et l'équipement pour trouver le bon,
     // et deux d'entre eux étaient invisibles depuis l'entrée. Tout se fait maintenant
@@ -6979,9 +7001,27 @@ function creerPature(p, espece){
   return P;
 }
 /* --- l'aménagement, espèce par espèce --- */
+/* TOURNER AVEC L'ENCLOS.
+   Les trois équipements — poste de collecte, mangeoire, abri — sont dessinés dans un
+   repère où +Z va vers le fond de l'enclos : le tank couché en long, la mangeoire dans
+   l'axe, la stabulation ouverte sur le pré. Ils étaient seulement DÉPLACÉS, jamais
+   PIVOTÉS. Tant que tous les portails donnaient au nord, ça ne se voyait pas ; depuis
+   qu'un enclos s'ouvre du côté où passe un chemin, un enclos sur deux avait son tank
+   en travers, sa mangeoire perpendiculaire aux bêtes et son abri ouvert sur un mur.
+   Ils reçoivent donc l'angle du portail, et leur emprise de collision le suit. */
+function poserEquipement(g, x, z, cap, hw, hd){
+  g.position.set(x, 0, z);
+  g.rotation.y = cap;
+  scene.add(g);
+  // Un quart de tour échange largeur et profondeur : sans ça, un objet pivoté garde un
+  // rectangle de collision resté dans l'ancien sens, et l'on tape à côté de ce qu'on voit.
+  const quart = Math.abs(Math.cos(cap)) < 0.5;
+  boxObs.push({x, z, hw: quart ? hd : hw, hd: quart ? hw : hd});
+  return g;
+}
 // Poste de collecte : c'est là que le produit s'accumule et qu'une caisse vient le
 // prendre. Un tank pour le lait, un casier pour les œufs, une presse pour la laine.
-function posteCollecte(E, x, z){
+function posteCollecte(E, x, z, cap){
   const g = new THREE.Group();
   if(E.cle === 'vache'){
     g.add(cyl(1.5, 1.5, 4.6, 12, 0xD7DDE0, 0, 1.55, 0, Math.PI/2, 0, 0));
@@ -7016,13 +7056,10 @@ function posteCollecte(E, x, z){
     for(let k=0;k<2;k++)                                         // ballots de laine
       g.add(cyl(0.8, 0.8, 1.5, 10, 0xF0EADA, 0, 0.8, 2.6 + k*1.7, 0, 0, Math.PI/2));
   }
-  g.position.set(x, 0, z);
-  scene.add(g);
-  boxObs.push({x, z, hw:1.6, hd:2.5});
-  return g;
+  return poserEquipement(g, x, z, cap || 0, 1.6, 2.5);
 }
 // Mangeoire : elle reçoit le grain apporté à la benne. Le tas visible dit le niveau.
-function posteMangeoire(E, x, z){
+function posteMangeoire(E, x, z, cap){
   const g = new THREE.Group();
   let tas;
   if(E.cle === 'mouton'){
@@ -7049,13 +7086,11 @@ function posteMangeoire(E, x, z){
     tas = box(0.95, 0.5, 5.2, 0xE0C07A, 0, 0.85, 0);
   }
   g.add(tas);
-  g.position.set(x, 0, z);
-  scene.add(g);
-  boxObs.push({x, z, hw:0.9, hd:3.0});
+  poserEquipement(g, x, z, cap || 0, 0.9, 3.0);
   return {groupe:g, tas};
 }
 // L'abri, au fond de l'enclos : c'est lui qui donne son air à l'élevage vu de loin.
-function abriEspece(E, x, z){
+function abriEspece(E, x, z, cap){
   const g = new THREE.Group();
   if(E.cle === 'poule'){                                          // poulailler sur pilotis
     g.add(box(4.2, 2.0, 3.2, 0xC9773A, 0, 1.6, 0));
@@ -7093,10 +7128,11 @@ function abriEspece(E, x, z){
     for(const sx of [-3.2, -1.1, 1.1, 3.2]) g.add(box(0.3, 2.8, 0.3, 0x9BA3A8, sx, 1.4, 2.3));
     g.add(box(6.4, 0.5, 0.8, 0x8A6B42, 0, 0.25, 2.3));
   }
-  g.position.set(x, 0, z);
-  scene.add(g);
-  boxObs.push({x, z, hw:3.6, hd:2.4});
-  return g;
+  /* L'abri fait DEMI-TOUR par rapport au reste. Il est planté au fond, et sa façade
+     ouverte est du côté +Z de son modèle : posé comme les autres, il présentait son
+     dos au troupeau et bâillait sur la clôture du fond, à un mètre soixante-dix.
+     C'est le seul équipement dont la face utile regarde le portail. */
+  return poserEquipement(g, x, z, (cap || 0) + Math.PI, 3.6, 2.4);
 }
 /* LES ABEILLES. Ce ne sont pas des bêtes au sens du jeu — elles ne mangent pas, ne
    grandissent pas, ne se vendent pas — mais un rucher sans abeilles ne ressemble à
@@ -7119,24 +7155,31 @@ function fleur(g, x, z, c){
   g.add(cyl(0.03, 0.03, 0.34, 4, 0x4E8C4A, x, 0.17, z));
   g.add(cyl(0.11, 0.09, 0.09, 5, c, x, 0.37, z));
 }
-// La bande mellifère et le nuage d'abeilles : c'est ce qui fait qu'un rucher se
-// reconnaît de loin, et ce qui justifie qu'il produise sans qu'on le voie travailler.
+// Les fleurs et le nuage d'abeilles : c'est ce qui fait qu'un rucher se reconnaît de
+// loin, et ce qui justifie qu'il produise sans qu'on le voie travailler.
 function decorRucher(P){
   const g = new THREE.Group();
   const teintes = [0xE8A62E, 0xC0392B, 0xF2E7D2, 0x7A5F8E, 0xE8D24A];
   const B = P.box;
-  // La bande mellifère est DEVANT les ruches, entre elles et le portail : en repère de
-  // l'enclos, donc, et non le long d'un axe du monde. Un quart de tour la ferait
-  // autrement traverser les rangs.
+  /* LES FLEURS POUSSENT DANS L'HERBE, PAS SUR UN TAPIS.
+     Il y avait sous elles une dalle verte de six centimètres, censée figurer une bande
+     mellifère : de près c'était un rectangle de moquette posé sur le pré, avec une
+     arête franche et une teinte qui ne tombait pas juste sur l'herbe peinte. Les
+     fleurs suffisent — elles ont leur propre tige, elles n'ont besoin de rien dessous.
+     Elles restent DEVANT les ruches, entre elles et le portail : en repère de l'enclos,
+     donc, et non le long d'un axe du monde. Un quart de tour les ferait autrement
+     traverser les rangs. */
   const mx = (u, d)=> P.gx + P.dac.x*u + P.din.x*d;
   const mz = (u, d)=> P.gz + P.dac.z*u + P.din.z*d;
   const dB = P.dBox0 + 1.6, bd = Math.min(3.6, Math.max(1.6, (P.dBox1 - P.dBox0)*0.28));
   const lg = P.croix - 3.6;
-  g.add(box(P.din.x ? bd : lg, 0.06, P.din.x ? lg : bd, 0x6E8F4E, mx(0, dB), 0.03, mz(0, dB)));
-  for(let k = 0; k < 70; k++)
-    fleur(g, mx((Math.random() - 0.5)*(lg - 0.6), dB + (Math.random() - 0.5)*(bd - 0.4)),
-             mz((Math.random() - 0.5)*(lg - 0.6), dB + (Math.random() - 0.5)*(bd - 0.4)),
-             teintes[(Math.random()*teintes.length) | 0]);
+  // Sans le rectangle sous elles, il n'y a plus de bord à respecter : on les sème un
+  // peu plus au large, pour que la tache se lise comme un pré fleuri et non comme le
+  // fantôme de la dalle qu'on vient d'enlever.
+  for(let k = 0; k < 84; k++){
+    const u = (Math.random() - 0.5)*lg, d = dB + (Math.random() - 0.5)*(bd + 1.6);
+    fleur(g, mx(u, d), mz(u, d), teintes[(Math.random()*teintes.length) | 0]);
+  }
   scene.add(g);
   const mat2 = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true,
                                             shininess:0, specular:0x000000});
