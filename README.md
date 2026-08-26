@@ -511,8 +511,9 @@ des hauteurs de mur 1,02 : les trois se rejoignent à **1,30**. Une maison couvr
 qu'on veut d'un toit pentu devant un commerce de plain-pied.
 
 **Au bord de la route.** Elles étaient semées sur les trois bords extérieurs, à dix ou
-vingt mètres derrière les chaussées, et **quatre d'entre elles tombaient dans la dalle
-d'un commerce** : les bandes ouest et nord sont pleines du bitume jusqu'au bord de
+vingt mètres derrière les chaussées, et **trois d'entre elles tombaient dans la dalle
+d'un commerce** — quatre dalles en tout, l'une des trois chevauchant deux voisins :
+les bandes ouest et nord sont pleines du bitume jusqu'au bord de
 carte, il ne reste derrière les dalles que trois à cinq mètres. Le brin sud de la rocade
 est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les onze
 maisons s'y alignent, façades tournées vers la chaussée, et le rang le longe d'un bout à
