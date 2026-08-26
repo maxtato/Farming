@@ -148,11 +148,11 @@ immobilisé : il se traîne au ralenti jusqu'à la cuve.
 ## La nuit
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
-l'émissif et une bille de lumière s'épanouit autour. Les lampadaires et le gyrophare
-font exactement pareil — c'est la lampe qui brille. Les phares avant posent en plus un
-**cône au sol** devant l'engin, qui s'évase et s'éteint avec la distance : ils éclairent
-là où l'on va, et ils tournent avec la machine. Un engin garé reste éteint, comme il a
-le moteur coupé ; le gyrophare bat dès qu'on roule.
+l'émissif, une bille de lumière s'épanouit autour, et un **halo se pose à plat sur le
+sol** qu'elles éclairent — devant le nez pour les phares, au pied du mât pour les
+lampadaires. Le halo tourne avec la machine. Un engin garé reste éteint, comme il a le
+moteur coupé ; le gyrophare bat dès qu'on roule, et c'est la seule lampe sans halo :
+sa flaque restait immobile sous l'engin, elle a été retirée.
 
 ## La boucle de jeu
 
@@ -230,12 +230,11 @@ Quelques partis pris qui expliquent le reste :
   s'allume quand quelque chose se passe dans le monde.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les
   couleurs des faces doivent rendre pleines, pas modelées.
-- **Une lampe brille ; seul un phare éclaire devant lui.** Gyrophare, phares et
-  lampadaires partagent le même dispositif : un corps émissif et une bille additive
-  autour de lui. Les phares avant y ajoutent leur cône au sol — sans bord net, éteint
-  sur les côtés et au loin — parce que c'est ce que fait un phare. Le gyrophare et le
-  lampadaire, eux, ne posent rien par terre : leur tache ne suivait rien et se lisait
-  comme une zone d'action. Les autres marques lumineuses au sol sont les anneaux.
+- **Une lampe brille, et pose un halo sur ce qu'elle éclaire.** Trois pièces, les
+  mêmes partout : un corps émissif, une bille additive autour, un disque additif à plat
+  sur le sol. Rien de dégradé, rien de calculé — c'est de la lumière peinte, et elle ne
+  coûte rien. Seul le gyrophare n'a pas de halo : sa flaque ne suivait rien. Les autres
+  marques lumineuses au sol sont les anneaux d'action.
 - **Ce qui allume un anneau est ce qui agira.** La liste des transferts possibles à un
   endroit sert à la fois à colorer l'anneau, à remplir la colonne de choix et à déplacer
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans

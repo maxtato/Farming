@@ -3428,21 +3428,31 @@ function jeuDeFeux(){
     halos: []
   };
 }
-/* Une lampe, c'est partout la même chose dans ce jeu : un corps qui passe à l'émissif
-   et une bille additive qui s'épanouit autour de lui. C'est ce que faisait déjà le
-   gyrophare, et il n'y a aucune raison qu'un phare ou un lampadaire s'y prenne
-   autrement.
-   Les phares avant, eux, posent EN PLUS un cône au sol — c'est ce que fait un phare, et
-   c'est la seule lampe du jeu à le faire. Il est dessiné comme le reflet du gyrophare
-   l'était : une tache additive, sans bord net, qui s'éteint sur les côtés et avec la
-   distance. Il ne se confond pas avec les anneaux d'action, qui sont des cercles jaunes
-   fermés, immobiles et posés le jour comme la nuit. */
+/* Une lampe, c'est partout la même chose dans ce jeu : un corps qui passe à l'émissif,
+   une bille additive qui s'épanouit autour de lui, et un halo posé à plat sur le sol
+   qu'il éclaire. C'était exactement l'effet du gyrophare de la première version — la
+   bille en l'air, le halo par terre — et c'est celui que le joueur a retenu.
+   Le cône dégradé qui l'avait remplacé cherchait à imiter un vrai faisceau ; il est
+   remplacé par ce halo, plus simple et plus lisible. Le gyrophare, lui, garde sa bille
+   sans halo : sa flaque avait été retirée à la demande, elle restait immobile sous la
+   machine et se lisait comme une zone d'action. */
 function billeLumiere(rayon, couleur){
   const m = new THREE.Mesh(new THREE.SphereGeometry(rayon, 8, 6),
     new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:0,
       blending:THREE.AdditiveBlending, depthWrite:false}));
   m.renderOrder = 2;
   m.visible = false;                 // three.js dessine un transparent même à zéro
+  return m;
+}
+// Le halo au sol : un disque additif posé à plat, sans dégradé savant. Même recette que
+// la bille — un seul matériau non éclairé, additif, qui ne coûte rien — mais couché.
+function haloSol(rayon, couleur){
+  const m = new THREE.Mesh(new THREE.CircleGeometry(rayon, 22),
+    new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:0,
+      blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+  m.rotation.x = -Math.PI/2;
+  m.renderOrder = 2;
+  m.visible = false;
   return m;
 }
 // Une optique : boîtier sombre encastré, lentille par-dessus, et la bille de lumière
@@ -3455,8 +3465,8 @@ function optique(g, F, arriere, sx, y, z, w, h){
   lentille.position.set(sx, y, z);
   lentille.receiveShadow = true;
   g.add(lentille);
-  // Discrète : le phare avant a repris son cône au sol, qui porte la portée. La bille
-  // ne dit plus que « la lampe est allumée », et c'est tout ce qu'on lui demande.
+  // Discrète : le phare avant pose son halo au sol, qui dit où il éclaire. La bille ne
+  // dit plus que « la lampe est allumée », et c'est tout ce qu'on lui demande.
   const halo = billeLumiere(Math.max(w, h)*0.78, arriere ? 0xFF7A5E : 0xFFEFC0);
   halo.position.set(sx, y, z + sens*0.08);
   g.add(halo);
@@ -3474,9 +3484,10 @@ function gyrophare(g, x, y, z){
   m.position.set(x, y, z); m.castShadow = true; g.add(m);
   const halo = billeLumiere(0.5, 0xFFC63A);
   halo.position.set(x, y, z); g.add(halo);
-  // Pas de flaque au sol : un gyrophare éclaire l'air autour de lui, pas le bitume
-  // sous la machine, et le disque orange restait immobile sous l'engin. Le phare, lui,
-  // pose bien un cône devant : il éclaire là où l'on va.
+  // Seule lampe du jeu sans halo au sol, et c'est voulu : sa flaque orange restait
+  // immobile SOUS la machine, sans rien éclairer devant, et se lisait comme une
+  // deuxième zone d'action. Le phare, lui, pose bien son halo devant : il éclaire
+  // là où l'on va.
   return {dome, halo};
 }
 function buildTracteur(bodyColor){
@@ -5296,56 +5307,8 @@ function updateJourNuit(dt){
 // Éclairages qui s'allument à la nuit tombée : ampoules des lampadaires, phares et
 // feux arrière des engins. Tout est en matériau non éclairé : c'est de la lumière
 // peinte, pas un calcul d'éclairage — le coût reste nul.
-let nuitGroupe = null, billesLampe = [], ampoules = [];
+let nuitGroupe = null, billesLampe = [], halosLampe = [], ampoules = [];
 
-/* Le cône des phares. Une texture, deux extinctions : en profondeur (v, du proche au
-   lointain) et sur les côtés (u, les deux bords s'éteignent). C'est ce qui donne au
-   cône le bord flou du reflet de gyrophare, plutôt que le triangle net d'un décalque. */
-const CONE_TEX = (function(){
-  const L = 96, W = 48;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = L;
-  const c = cv.getContext('2d');
-  for(let y = 0; y < L; y++){
-    const t = y/(L - 1);                                // 0 tout près, 1 au loin
-    const fond = Math.pow(1 - t, 1.4);                  // extinction en profondeur
-    for(let x = 0; x < W; x++){
-      const u = (x/(W - 1))*2 - 1;                      // -1 à gauche, +1 à droite
-      const bord = Math.max(0, 1 - u*u);                // les deux bords s'éteignent
-      const a = fond * bord * (0.42 + 0.58*bord);
-      c.fillStyle = 'rgba(255,232,180,' + a.toFixed(3) + ')';
-      c.fillRect(x, y, 1, 1);
-    }
-  }
-  return new THREE.CanvasTexture(cv);
-})();
-/* Secteur à plat, ouvert de ±demi autour de +Z, du rayon r0 au rayon r1. On part du
-   rayon r0 et non du sommet : le sommet est sous la machine, où rien ne se verrait, et
-   la troncature évite de peindre le bitume que le châssis cache déjà.
-   v = 1 du côté proche : avec le retournement vertical que three.js applique aux
-   textures de canevas, c'est bien la première ligne du canevas — la plus claire. */
-function coneSol(r0, r1, demi){
-  const N = 14, pos = [], uv = [], idx = [];
-  for(let k = 0; k <= N; k++){
-    const t = k/N, a = (t*2 - 1)*demi, si = Math.sin(a), co = Math.cos(a);
-    pos.push(si*r0, 0, co*r0); uv.push(t, 1);
-    pos.push(si*r1, 0, co*r1); uv.push(t, 0);
-  }
-  for(let k = 0; k < N; k++){
-    const i = k*2;
-    idx.push(i, i + 1, i + 3, i, i + 3, i + 2);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({map:CONE_TEX,
-    color:0xFFE3B0, transparent:true, opacity:0, blending:THREE.AdditiveBlending,
-    depthWrite:false, side:THREE.DoubleSide}));
-  m.renderOrder = 2;
-  m.visible = false;                 // three.js dessine un transparent même à zéro
-  return m;
-}
 function construireEclairagesNuit(){
   nuitGroupe = new THREE.Group(); scene.add(nuitGroupe);
   const ampouleMat = new THREE.MeshBasicMaterial({color:0xFFE9A8});
@@ -5361,10 +5324,14 @@ function construireEclairagesNuit(){
     const h = billeLumiere(1.35, 0xFFD98A);
     h.position.set(L.x + dx, 5.9, L.z + dz);
     nuitGroupe.add(h); billesLampe.push(h);
+    // Et le halo au sol, au pied de la tête du mât : c'est ce que le lampadaire éclaire.
+    const q = haloSol(5.6, 0xFFD98A);
+    q.position.set(L.x + dx, 0.06, L.z + dz);
+    nuitGroupe.add(q); halosLampe.push(q);
   }
-  // Un cône par phare avant, enfant du groupe de l'engin : il tourne avec lui, ce
-  // qu'une tache posée sur le décor ne fait jamais. Il part du nez de la machine —
-  // sous le châssis, il serait caché — et s'éteint dix mètres devant.
+  // Un halo par engin, posé DEVANT le nez et enfant du groupe : il tourne avec la
+  // machine, ce qu'une tache posée sur le décor ne fait jamais. Un seul pour les deux
+  // phares — c'est une flaque de lumière, pas deux pinceaux.
   for(const m of MACHINES){
     const v = m.v, L = v.group.userData.lampes;
     if(!L || !L.avant || !v.group.userData.feux) continue;
@@ -5372,16 +5339,12 @@ function construireEclairagesNuit(){
     // mètres du monde par ce facteur, sinon le fourgon éclairerait 40 % plus loin que
     // le tracteur sans qu'on l'ait décidé.
     const s = v.group.scale.x || 1;
-    const r0 = Math.max(0.5, (L.nez || 2.6) + 0.5 - L.avant.z), r1 = r0 + 9.5/s;
-    v.cones = [];
-    for(const sx of L.avant.x){
-      const c = coneSol(r0, r1, 0.40);
-      // Nommé : c'est de la lumière, pas de la tôle. Qui mesure l'encombrement d'un
-      // engin — largeur de coupe, passage entre deux clôtures — doit l'écarter.
-      c.name = 'coneSol';
-      c.position.set(sx, 0.05, L.avant.z);
-      v.group.add(c); v.cones.push(c);
-    }
+    const h2 = haloSol(4.6/s, 0xFFE3B0);
+    // Nommé : c'est de la lumière, pas de la tôle. Qui mesure l'encombrement d'un
+    // engin — largeur de coupe, passage entre deux clôtures — doit l'écarter.
+    h2.name = 'haloSol';
+    h2.position.set(0, 0.05/s, (L.nez || 2.6) + 3.4/s);
+    v.group.add(h2); v.halo = h2;
   }
 }
 function majEclairagesNuit(){
@@ -5391,6 +5354,8 @@ function majEclairagesNuit(){
   if(on) for(const h of billesLampe){ h.visible = true; h.material.opacity = 0.58*nuitK;
                                      h.scale.setScalar(0.9 + 0.25*nuitK); }
   else for(const h of billesLampe) h.visible = false;
+  if(on) for(const q of halosLampe){ q.visible = true; q.material.opacity = 0.22*nuitK; }
+  else for(const q of halosLampe) q.visible = false;
   for(const m of MACHINES){
     const v = m.v, F = v.group.userData.feux;
     if(!F) continue;
@@ -5409,9 +5374,9 @@ function majEclairagesNuit(){
     // que le trapèze projeté au sol a disparu.
     for(const h of F.halos){ h.visible = allume; h.material.opacity = k*0.55;
                              h.scale.setScalar(0.85 + 0.3*k); }
-    // Le cône au sol : la même consigne que la lentille et la bille, pour que les trois
+    // Le halo au sol : la même consigne que la lentille et la bille, pour que les trois
     // s'allument et s'éteignent ensemble.
-    if(v.cones) for(const c of v.cones){ c.visible = allume; c.material.opacity = k*0.36; }
+    if(v.halo){ v.halo.visible = allume; v.halo.material.opacity = k*0.30; }
   }
 }
 
