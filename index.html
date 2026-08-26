@@ -2723,9 +2723,9 @@ function clotureSite(S){
   scene.add(g);
 }
 // Les maisons du bord de route sont maintenant des BLOCS AUTONOMES — voir
-// MAI_MODELES plus haut. L'ancien buildMaison(), qui dessinait trois silhouettes
-// paramétrées, n'était plus appelé de nulle part : il réservait la place des cinq
-// maisons du bord sud sans jamais les construire.
+// MAI_MODELES et MAI_ECHELLE plus bas. L'ancien buildMaison(), qui dessinait trois
+// silhouettes paramétrées, n'était plus appelé de nulle part : il réservait la place
+// des cinq maisons du bord sud sans jamais les construire.
 // Bulle flottante au-dessus du commerce : elle annonce ce qu'il achète et à quel prix,
 // pour qu'on ajuste ses cultures sans avoir à mémoriser les tarifs.
 // Une bulle peut annoncer plusieurs blocs : ce que le commerce achète, ce qu'il vend.
@@ -3794,25 +3794,50 @@ function buildFarm(){
     addSign(p, p.x + p.w/2 - 2.4, p.z + p.h/2 - 2.4);
   }
 
-  /* LES MAISONS DU PAYSAGE. Trois silhouettes se répétaient en enfilade le long de la
-     façade sud. Onze maisons prises dans six modèles les remplacent, réparties sur les
-     trois bords extérieurs — sud, ouest et nord — et tournées vers la route. Chacune
-     apporte sa clôture, son portillon, son allée et ses abords ; chacune est fusionnée
-     en un seul objet.
+  /* LA RUE DU VILLAGE. Les onze maisons étaient semées sur les trois bords extérieurs
+     — sud, ouest et nord — à dix ou vingt mètres derrière les routes, et TROIS d'entre
+     elles tombaient dans la dalle d'un commerce : les bandes ouest et nord sont pleines
+     du bitume jusqu'au bord de carte, il ne reste derrière les dalles que trois à cinq
+     mètres. Le brin sud de la rocade est le seul bord de route encore libre, et il
+     l'est sur toute sa longueur. Les maisons s'y alignent, façade sur la chaussée, au
+     recul exact des commerces — le même RECUL_ROCADE de trois mètres.
+
+     Les blocs sont bâtis AVANT d'être répartis : c'est leur emprise RÉELLE, mesurée,
+     qui décide de l'écartement, comme repartirBandes() le fait des commerces. Dix
+     maisons plutôt qu'onze, parce que l'écart entre deux jardins doit rester passable :
+     onze les serraient à deux mètres cinquante, moins que la largeur d'un engin.
 
      Les emplacements sont décidés AVANT le semis de verdure pour que le filtre puisse
      les écarter, sinon les arbres poussent dans les jardins. */
   const MAISONS = [];
-  // Bord sud : cinq maisons face à la rocade. Le pas est calculé plutôt qu'écrit : avec
-  // un pas de 44 la dernière tombait sur la chaussée de la rocade est.
-  for(let k = 0; k < 5; k++)
-    MAISONS.push({x:-66 + k*40, z:FRONT + 7, ry:Math.PI, v:k});
-  // Bord ouest : trois maisons tournées vers l'est, donc vers la vallée.
-  for(let k = 0; k < 3; k++)
-    MAISONS.push({x:X0 + 15, z:-40 + k*42, ry:Math.PI/2, v:(k + 2) % 6});
-  // Bord nord : trois maisons tournées vers le sud.
-  for(let k = 0; k < 3; k++)
-    MAISONS.push({x:-30 + k*46, z:Z0 + 15, ry:0, v:(k + 4) % 6});
+  {
+    const bb = new THREE.Box3();
+    for(let k = 0; k < 10; k++){
+      const {g, r} = MAI_MODELES[k % MAI_MODELES.length]();
+      g.scale.setScalar(MAI_ECHELLE);
+      g.rotation.y = Math.PI;                 // façade tournée vers la chaussée
+      g.updateMatrixWorld(true);
+      bb.setFromObject(g);
+      MAISONS.push({g, r:r*MAI_ECHELLE,
+                    bx0:bb.min.x, bx1:bb.max.x, bz0:bb.min.z, bz1:bb.max.z});
+    }
+    // La rue : le brin sud de la rocade, débordant de huit mètres sur chacun de ses
+    // angles. Au-delà, la maison ne longerait plus rien.
+    const RUE_Z  = ROC.z1 + ROAD_W/2 + RECUL_ROCADE;
+    const RUE_X0 = ROC.x0 - 8, RUE_X1 = ROC.x1 + 8;
+    const total = MAISONS.reduce((t, M)=> t + (M.bx1 - M.bx0), 0);
+    // Un engin fait 2,70 m de large : en dessous de quatre mètres cinquante, la rue
+    // n'a plus d'entre-deux et la bande extérieure devient inaccessible.
+    const jeu = Math.max(4.5, ((RUE_X1 - RUE_X0) - total) / (MAISONS.length - 1));
+    let t = (RUE_X0 + RUE_X1)/2 - (total + jeu*(MAISONS.length - 1))/2;
+    for(const M of MAISONS){
+      M.x = t - M.bx0;                        // bord gauche du bloc posé sur t
+      M.z = RUE_Z - M.bz0;                    // façade au recul des commerces
+      M.cx = M.x + (M.bx0 + M.bx1)/2; M.cz = M.z + (M.bz0 + M.bz1)/2;
+      M.hw = (M.bx1 - M.bx0)/2;       M.hd = (M.bz1 - M.bz0)/2;
+      t += (M.bx1 - M.bx0) + jeu;
+    }
+  }
 
   // Bande extérieure : verdure entre les commerces, et lampadaires le long de la route.
   const libreDehors = (x,z)=>{
@@ -3827,12 +3852,20 @@ function buildFarm(){
       if(Math.abs(x-S.x) < ex+7 && Math.abs(z-S.z) < ez+7) return false;
       if(x > S.emp.x0-7 && x < S.emp.x1+7 && z > S.emp.z0-7 && z < S.emp.z1+7) return false;
     }
+    // les jardins : leur emprise mesurée, plus trois mètres de marge
     for(const M of MAISONS)
-      if(Math.abs(x-M.x) < 13 && Math.abs(z-M.z) < 13) return false;
+      if(Math.abs(x - M.cx) < M.hw + 3 && Math.abs(z - M.cz) < M.hd + 3) return false;
     return true;
   };
-  // Les maisons, posées avant la verdure pour que le semis les contourne.
-  for(const M of MAISONS) poserBloc(MAI_MODELES[M.v % MAI_MODELES.length], M.x, M.z, M.ry);
+  /* Les maisons, posées avant la verdure pour que le semis les contourne. Ce qui les
+     entoure est un RECTANGLE et non un disque : un bloc de vingt-deux mètres sur
+     quinze cerclé d'un disque déborderait sur la chaussée qu'il longe. */
+  for(const M of MAISONS){
+    M.g.position.set(M.x, 0, M.z);
+    scene.add(M.g);
+    fusionnerGroupe(M.g);
+    boxObs.push({x:M.cx, z:M.cz, hw:M.hw, hd:M.hd});
+  }
 
   /* LES PETITS OBJETS DU VILLAGE, semés à gauche et à droite entre les maisons et les
      commerces. Ils passent en revue, l'un après l'autre et en boucle, pour qu'aucun ne
@@ -3843,7 +3876,8 @@ function buildFarm(){
   const libreObjet = (x, z, r)=>{
     if(!libreDehors(x, z)) return false;
     for(const P of POSES) if(Math.hypot(x - P.x, z - P.z) < r + P.r + 3) return false;
-    for(const M of MAISONS) if(Math.abs(x - M.x) < 13 && Math.abs(z - M.z) < 13) return false;
+    for(const M of MAISONS)
+      if(Math.abs(x - M.cx) < M.hw + 3 && Math.abs(z - M.cz) < M.hd + 3) return false;
     return true;
   };
   for(let k = 0; k < 26; k++){
@@ -3886,10 +3920,12 @@ function buildFarm(){
 }
 
 /* ==========================================================================
-   LE VILLAGE : SIX MAISONS ET DIX PETITS OBJETS.
+   LE VILLAGE : SIX MODÈLES DE MAISON ET DIX PETITS OBJETS.
    La vallée n'avait que trois silhouettes de maison, posées en enfilade le long de la
    façade sud. Six blocs autonomes les remplacent — chacun avec sa clôture, son
-   portillon, son allée et ses abords — et dix petits objets se sèment entre eux.
+   portillon, son allée et ses abords — et dix petits objets se sèment entre eux. Les
+   six modèles sont tirés dix fois le long du brin sud de la rocade, à MAI_ECHELLE,
+   qui les met au pas des commerces d'en face.
 
    Chaque bloc est FUSIONNÉ en une seule géométrie avant d'entrer dans la scène :
    soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est la
@@ -4267,6 +4303,16 @@ function vilPoteau(){
   return {g, r:0.6};
 }
 
+/* L'ÉCHELLE DES MAISONS. Les six modèles viennent d'une planche dessinée pour
+   elle-même : porte de 2,20 m, corps de 6,40 m sur 5,07 en moyenne. La boutique
+   d'à côté, elle, porte une porte de 2,65 m sur un corps de 8,25 m sur 6,43. Deux
+   échelles dans le même village, et la maison faisait maquette contre le commerce.
+   Le facteur n'est pas choisi, il est relevé : rapport des emprises bâties 1,28,
+   rapport des largeurs de porte 1,37, rapport des hauteurs de mur 1,02 — les trois
+   se rejoignent à 1,30. Le faîtage passe alors de 6,62 m à 8,6 contre 6,2 pour la
+   boutique : une maison à toit pentu domine un commerce de plain-pied, c'est ce
+   qu'on veut. */
+const MAI_ECHELLE = 1.30;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
 const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBucher,
                      vilPuits, vilCalvaire, vilEntree, vilBanc, vilPoteau];

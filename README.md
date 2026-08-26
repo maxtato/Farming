@@ -496,11 +496,34 @@ blanc chaud, très clair, qui ressort sans crier.
 
 Trois silhouettes de maison se répétaient en enfilade le long de la façade sud — et en
 vérité elles n'étaient même pas construites : le code qui les dessinait n'était appelé
-de nulle part, il réservait la place sans rien y poser. **Onze maisons prises dans six
-modèles** occupent maintenant les trois bords extérieurs : chaumière au toit débordant,
-maison de pierre à volets bleus, chalet à balcon, maison de bourg étroite, longère à
-appentis, maison à colombages. Chacune apporte sa clôture, son portillon, son allée et
-ses abords.
+de nulle part, il réservait la place sans rien y poser. **Dix maisons prises dans six
+modèles** forment maintenant une rue : chaumière au toit débordant, maison de pierre à
+volets bleus, chalet à balcon, maison de bourg étroite, longère à appentis, maison à
+colombages. Chacune apporte sa clôture, son portillon, son allée et ses abords.
+
+**À l'échelle des commerces.** Les six modèles venaient d'une planche dessinée pour
+elle-même : porte de 2,20 m, corps de 6,40 × 5,07 m, quand la boutique d'en face porte
+une porte de 2,65 m sur un corps de 8,25 × 6,43. Deux échelles dans le même village, et
+la maison faisait maquette contre le commerce. Le facteur n'a pas été choisi mais
+relevé — rapport des emprises bâties 1,28, rapport des largeurs de porte 1,37, rapport
+des hauteurs de mur 1,02 : les trois se rejoignent à **1,30**. Une maison couvre alors
+86 % de l'aire au sol d'une boutique et monte 26 % plus haut, ce qui est exactement ce
+qu'on veut d'un toit pentu devant un commerce de plain-pied.
+
+**Au bord de la route.** Elles étaient semées sur les trois bords extérieurs, à dix ou
+vingt mètres derrière les chaussées, et **quatre d'entre elles tombaient dans la dalle
+d'un commerce** : les bandes ouest et nord sont pleines du bitume jusqu'au bord de
+carte, il ne reste derrière les dalles que trois à cinq mètres. Le brin sud de la rocade
+est le seul bord de route encore libre, et il l'est sur toute sa longueur. Les dix
+maisons s'y alignent, façade sur la chaussée, au même `RECUL_ROCADE` de trois mètres que
+tiennent les quinze commerces.
+
+L'écartement n'est pas écrit : les blocs sont bâtis d'abord, leur emprise réelle est
+mesurée, et la rue les répartit sur sa façade comme `repartirBandes()` répartit les
+commerces sur la leur. Dix et non onze, parce que l'entre-deux doit rester passable —
+onze les serraient à 2,50 m, moins que la largeur d'un engin ; dix laissent 5,29 m.
+Ce qui arrête l'engin est un **rectangle** et non un disque : un bloc de vingt-deux
+mètres sur quinze cerclé d'un disque déborderait sur la chaussée qu'il longe.
 
 **Vingt-six petits objets** se sèment entre elles : abri de bus, tonnelle, lavoir, table
 de pique-nique, bûcher, puits, calvaire, entrée de village, banc de place, poteau
@@ -509,8 +532,9 @@ appartient au champ et non au village, le second ferait doublon avec les clôtur
 
 Chaque bloc est **fusionné en une seule géométrie** avant d'entrer dans la scène :
 soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est ce qui
-permet d'en poser trente-sept sans que la carte s'alourdisse — 34 000 triangles pour
-l'ensemble, et pas un obstacle sur une route.
+permet d'en poser trente-six sans que la carte s'alourdisse — 32 000 triangles pour
+l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
+échelle ne crée pas de géométrie.
 
 ## Sept cultures, redessinées
 
