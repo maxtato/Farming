@@ -107,7 +107,10 @@
     background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #7FD1E8;color:#7FD1E8;white-space:nowrap;display:none}
   #atelier.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
-  #veh{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
+  /* L'achat de véhicule et l'amélioration s'affichent ensemble, au garage : ils ne
+     peuvent pas partager la rangée des 104 px. Celle des 146 px est libre là-bas —
+     le garage n'a ni transfert ni action de service. */
+  #veh{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #8BE07A;color:#8BE07A;white-space:nowrap;display:none}
@@ -580,10 +583,8 @@ const GYARD = {x:-YARD.x, z:YARD.z, w:YARD.w, h:YARD.h};  // dalle du garage, en
 // Trame des places, partagée : le marquage la dessine, la cuve s'y range.
 const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
 const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
-const HANGAR = {x: 11, z: 54, w: 12, d: 15};   // emprise du bâtiment, sur la dalle de droite
-// Sa porte donne au sud ; on s'arrête juste devant. Défini ici parce que le décor est
-// construit bien avant la zone d'achat qui s'y adosse.
-const QUAI_GARAGE = {x: HANGAR.x, z: HANGAR.z + HANGAR.d/2 + 3.7};
+const HANGAR = {x: 11, z: 54, w: 14, d: 15};   // emprise de l'entrepôt, sur la dalle de droite
+
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
 // vers l'extérieur. Chaque enseigne a son gabarit et son style.
@@ -767,9 +768,13 @@ const SITES = [
   {nom:'Brasserie', enseigne:'potence', picto:'chope', dir:'W', bat:-102, park:-89,
    style:'boutique', crop:1, prix:0.52, cloture:'muret', modele:()=> batBrasserie(),
    w:13.0, d:9.5,  pw:12, ph:12, toit:0xA85440, mur:0xE8D6BC},
-  {nom:'Atelier', enseigne:'logo3d', picto:'cle', dir:'W', bat:-72, park:-59,
+  // Le garage : on y répare, on y améliore, et c'est le SEUL endroit où l'on achète
+  // un véhicule. Il s'appelait « Atelier », ce qui le confondait avec l'atelier de
+  // production de la ferme et avec l'atelier textile du village.
+  {nom:'Garage', enseigne:'logo3d', picto:'cle', dir:'W', bat:-72, park:-59,
    style:'usine', crop:-1, prix:0, atelier:true, cloture:'grillage',
-   w:13.0, d:10.0, pw:16, ph:16, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true},
+   w:13.0, d:10.0, pw:16, ph:16, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true,
+   propose:[{nom:'Vend les véhicules', prix:''}, {nom:'Répare et améliore', prix:''}]},
   {nom:'Caviste', enseigne:'potence', picto:'chope', dir:'W', bat:-42, park:-29,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batCaviste(),
    w:10.0, d:7.5,  pw:10, ph:11, toit:0x6B3A6E, mur:0xEFE4CE},
@@ -1076,7 +1081,10 @@ function repartirBandes(){
 const QUAI_R = 6.5;
 // Repérés par leur nom et non plus par leur rang : le tableau a déjà changé deux
 // fois de composition, et un indice en dur y survit mal.
-const ATELIER = SITES.find(S=>S.atelier);
+// Le garage du village : réparation, améliorations et concession. Le drapeau s'appelle
+// encore `atelier` dans la table — mieux vaut un drapeau au nom daté qu'un
+// rechercher-remplacer sur un mot que trois autres choses du jeu portent aussi.
+const GARAGE = SITES.find(S=>S.atelier);
 const BAKERY  = SITES.find(S=>S.nom === 'Boulangerie');
 const MARCHE  = SITES.find(S=>S.supermarche);
 // La rocade est un anneau : un point est sur la chaussée si l'une de ses deux
@@ -3074,8 +3082,9 @@ function buildFarm(){
 
   for(const S of SITES) buildCommerce(S);
 
-  // Garage : remise fermée pour les véhicules et les outils, sur une dalle de bitume
-  // identique à celle du parking voisin, avec ses propres emplacements à côté.
+  // L'entrepôt : remise fermée de la ferme, sur une dalle de bitume identique à celle
+  // du parking voisin. Il s'appelait « Garage » et vendait les utilitaires ; le garage
+  // est maintenant celui du village, et cette remise n'est plus qu'un entrepôt.
   (function(){
     const GY = GYARD;                                 // même gabarit que la cour
     fillRect(GY.x, GY.z, GY.w, GY.h, '#5C6367', AX);
@@ -3092,21 +3101,17 @@ function buildFarm(){
     g.add(box(W*0.62, H*0.72, 0.3, 0x333A3F, 0, H*0.36, D/2+0.06));   // grande porte
     for(let k=0;k<4;k++) g.add(box(W*0.58, 0.14, 0.12, 0x8A9298, 0, H*0.16+k*H*0.16, D/2+0.24));
     g.add(gable(D+0.8, 3.0, W+0.8, 0x7C4A38, 0, H, 0, Math.PI/2));
-    const tex = enseigneTex('Garage', 0x7C4A38, 'usine', 'cle');
-    const pan = new THREE.Mesh(new THREE.PlaneGeometry(7.0, 2.1),
+    const tex = enseigneTex('Entrepôt', 0x7C4A38, 'usine', 'cle');
+    const pan = new THREE.Mesh(new THREE.PlaneGeometry(W*0.62, 2.1),
       new THREE.MeshBasicMaterial({map:tex}));
     pan.position.set(0, H*0.9, D/2+0.62); g.add(pan);
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
-    // devant la porte, qui donne au sud : le bord nord de l'anneau l'affleure
-    // La concession : jaune tant qu'il reste un utilitaire à vendre ET qu'on a de quoi
-    // le payer. Une fois tout le parc acheté, l'anneau reste au blanc pour de bon.
-    anneauAction(QUAI_GARAGE.x, QUAI_GARAGE.z, 3.7, ()=>{
-      const m = vehiculeAVendre();
-      return !!m && money >= m.prix;
-    });
-    poseBulle('Garage', 0x7C4A38,
+    // Plus d'anneau devant la porte : on n'y achète plus rien. Un anneau jaune veut
+    // dire « ici, maintenant, quelque chose » — devant une remise, il ne voudrait
+    // plus rien dire. La concession est passée au garage du village.
+    poseBulle('Entrepôt', 0x7C4A38,
       [{titre:'ABRITE', lignes:[{nom:'Véhicules', prix:''}, {nom:'Outils et bennes', prix:''}]}],
       11, H + 3.4, 54, 0);
   })();
@@ -3395,7 +3400,7 @@ function marquageParking(){
   // Une séparation qui tomberait sous le garage ressortirait en moignon de part et
   // d'autre du bâtiment : ces places-là sont occupées, on ne les trace pas. La cuve,
   // elle, est centrée dans sa place, donc aucune ligne ne passe dessous.
-  const sousHangar = (x)=> x > HANGAR.x - 7.5 && x < HANGAR.x + 7.5;
+  const sousHangar = (x)=> x > HANGAR.x - HANGAR.w/2 - 1.5 && x < HANGAR.x + HANGAR.w/2 + 1.5;
   worldDraw(COUR_X0-2, ZM-2, COUR_X1+2, ZM+PROF+2, (c)=>{
     c.fillStyle = '#E2E6E8';
     c.beginPath();
@@ -4841,29 +4846,34 @@ function ongletEngins(){
     article(0xFAD201, m.nom, det, i === cur ? 'À bord' : 'Piloter',
       i === cur ? 'ok' : '', ()=>{ setMachine(i); fermerPanneau(); });
   });
+  /* On achetait et on améliorait ICI, sans bouger de sa parcelle. Le menu ne fait plus
+     que MONTRER : ce qu'on possède, ce qui reste à prendre et ce qu'il coûterait. Pour
+     le faire, il faut aller au garage du village — comme on va au silo pour vider une
+     benne. Un menu qui agit à distance vide la carte de ses raisons d'être parcourue. */
   const aVendre = MACHINES.filter(m=>m.verrou);
   if(aVendre.length){
-    titre('Concession');
-    for(const m of aVendre){
-      const ok = money >= m.prix;
-      article(0x8BE07A, m.nom, 'Transport ' + m.v.cargo.capacite + ' kg · ' + eur(m.prix),
-        ok ? 'Acheter' : 'Trop cher', ok ? 'vert' : 'no', ()=>{
-          money -= m.prix; m.verrou = false; m.v.group.visible = true;
-          showHint(m.nom.toUpperCase() + ' ACHETÉ');
-        });
-    }
+    titre('À prendre au garage');
+    for(const m of aVendre)
+      article(0x8BE07A, m.nom, 'Transport ' + m.v.cargo.capacite + ' kg · ' + eur(m.prix)
+        + (money >= m.prix ? ' · de quoi payer' : ' · il manque ' + eur(m.prix - money)),
+        'Au garage', 'no', null);
   }
-  titre('Améliorations');
-  MACHINES.forEach((m, i)=>{
+  titre('Améliorations possibles');
+  MACHINES.forEach((m)=>{
     if(m.verrou) return;
     const c = coutAmelioration(m);
     const det = c === 0 ? 'Matériel au maximum'
-      : 'Vitesse, largeur de travail et capacité · ' + eur(c);
-    const ok = c > 0 && money >= c;
+      : 'Vitesse, largeur de travail et capacité · ' + eur(c)
+        + (money >= c ? ' · de quoi payer' : ' · il manque ' + eur(c - money));
     article(0x7FD1E8, m.nom + ' ' + '★'.repeat(m.v.level - 1),
-      det, c === 0 ? 'Max' : (ok ? 'Améliorer' : 'Trop cher'),
-      (c === 0 || !ok) ? 'no' : '', ()=>{ money -= c; ameliorer(m); });
+      det, c === 0 ? 'Max' : 'Au garage', 'no', null);
   });
+  const bloc = document.createElement('div');
+  bloc.className = 'art';
+  bloc.innerHTML = '<div class="txt"><div class="nom">Le garage, sur la rocade ouest</div>'
+    + '<div class="det">Achat d\'un véhicule, réparation, amélioration : tout se fait '
+    + 'sur son anneau. Arrête-toi dessus, les boutons apparaissent.</div></div>';
+  pliste.appendChild(bloc);
 }
 
 function ongletOutils(){
@@ -5073,10 +5083,10 @@ function refreshAutoButton(){
   const v = MACHINES[cur].v;
   autoEl.classList.toggle('on', !!v.auto);
 }
-/* --- concession du garage : on y achète les utilitaires --- */
-// Centrée devant la porte du hangar plutôt que sur le vague milieu de la dalle :
-// l'anneau posé ici marque exactement la zone où le bouton d'achat apparaît.
-const GARAGE = {x: QUAI_GARAGE.x, z: QUAI_GARAGE.z, r: 10};
+/* --- la concession : au GARAGE DU VILLAGE, et nulle part ailleurs ---
+   On achetait un véhicule devant la remise de la ferme, et aussi depuis le menu, sans
+   bouger. Les deux disparaissent : un véhicule s'achète chez le garagiste, sur son
+   anneau, comme une amélioration. Le menu ne fait plus que montrer le parc. */
 const vehEl = document.getElementById('veh');
 function vehiculeAVendre(){
   for(const m of MACHINES) if(m.verrou) return m;
@@ -5085,9 +5095,7 @@ function vehiculeAVendre(){
 function refreshVehButton(){
   const v = MACHINES[cur].v;
   const m = vehiculeAVendre();
-  if(!m || Math.hypot(v.pos.x-GARAGE.x, v.pos.z-GARAGE.z) > GARAGE.r){
-    vehEl.style.display = 'none'; return;
-  }
+  if(!m || !aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
   vehEl.style.display = 'block';
   const ok = money >= m.prix;
   vehEl.classList.toggle('no', !ok);
@@ -5111,7 +5119,7 @@ function refreshAtelier(){
   const m = MACHINES[cur], v = m.v;
   // Sur l'anneau du parking, et non plus « quelque part autour du bâtiment » : voir le
   // commentaire à la pose de cet anneau. Même rayon que la station et le comptoir.
-  if(!aQuai(v, ATELIER)){ atelEl.style.display='none'; return; }
+  if(!aQuai(v, GARAGE)){ atelEl.style.display='none'; return; }
   const c = coutAmelioration(m);
   atelEl.style.display = 'block';
   if(c === 0){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM'; return; }
@@ -5524,7 +5532,12 @@ function quelqueChoseAFaire(S){
   // celle-là même qui les exécutera.
   if(S.fournisseur) return comptoirServable();
   if(S.abattoir && (v.betail || 0) > 0) return true;
-  if(S.atelier){ const c = coutAmelioration(m); return c > 0 && money >= c; }
+  if(S.atelier){                                   // le garage : améliorer OU acheter
+    const c = coutAmelioration(m);
+    if(c > 0 && money >= c) return true;
+    const av = vehiculeAVendre();
+    return !!av && money >= av.prix;
+  }
   return actionsAuSite(m, S).length > 0;
 }
 (function poserAnneauxCommerces(){
@@ -6175,7 +6188,7 @@ function acheterCuve(){
   money -= CARBU.cuvePrix;
   CARBU.cuveMax = 3000;
   poserCuve();
-  showHint('CUVE INSTALLÉE LE LONG DU GARAGE');
+  showHint('CUVE INSTALLÉE LE LONG DE L\'ENTREPÔT');
   return true;
 }
 function commanderVrac(lots){
