@@ -436,6 +436,32 @@ Quelques partis pris qui expliquent le reste :
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
   anneau jaune.
 
+## Ce que l'écran donne à lire
+
+Les trois tracteurs s'appellent **Tracteur**. « Vert », « Rouge », « Bleu » disaient leur
+couleur là où l'écran la montre déjà : une pastille accompagne chaque nom, dans la liste
+du parc comme sur la carte du plan. Le nom sert donc enfin à dire ce qu'est l'engin, et
+la pastille correspond au modèle — celle du pick-up annonçait du rouge alors que sa
+caisse est bleue depuis toujours.
+
+Le bouton d'**automatisation** est descendu à côté du **garage** : ce sont les deux
+boutons qui parlent de l'engin — lequel je pilote, et est-ce que je le pilote moi-même.
+La rangée du dessus ne garde que ce qui touche à l'outil, l'attelage et le semoir.
+
+**Les listes se resserrent.** Une ligne prenait 58 px de haut pour trois mots et un
+bouton : quatre lignes par écran de téléphone, et l'on passait son temps à faire défiler.
+Tout descend d'un cran — 11 px pour le nom, 9 pour le détail — et les rembourrages d'un
+tiers ; le détail gagne en contraste pour compenser sa taille. La pastille devient un
+filet de quatre pixels plutôt qu'un pavé de dix, et chaque titre de rayon est suivi d'un
+filet horizontal : le groupe se voit avant d'être lu.
+
+**Les bulles des commerces** calaient le nom à gauche et le prix à droite, chacun sans se
+soucier de l'autre : « Aliment premium » et son tarif se chevauchaient. On mesure d'abord
+le prix, on en déduit la place qui reste, et l'on rétrécit le nom jusqu'à ce qu'il tienne
+— comme sur les enseignes et les jauges. Le prix, lui, prenait la couleur du toit du
+commerce : un toit sombre le rendait illisible sur un fond déjà sombre. Il passe à un
+blanc chaud, très clair, qui ressort sans crier.
+
 ## Le décor est tiré au sort, mais toujours le même
 
 Arbres, buissons, rochers, touffes d'herbe, fleurs des ruchers, taches de terre : tout
