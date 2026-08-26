@@ -84,6 +84,56 @@
     right:calc(58px + env(safe-area-inset-right));pointer-events:auto;
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);
     border:2px solid rgba(255,255,255,.25)}
+  /* UNE FENÊTRE PAR ACTION. Les trois boutons de régie ouvraient le menu général sur
+     un onglet : on arrivait dans une barre de huit onglets, au milieu de choses qui
+     n'avaient rien à voir avec le geste demandé. Chacun ouvre maintenant SA fenêtre —
+     un titre, une liste, une croix, rien d'autre. Elle emprunte au menu ses lignes
+     d'article, parce que le joueur en connaît déjà la forme, mais elle n'a ni onglets
+     ni voisins. */
+  #fen{position:absolute;inset:0;display:none;pointer-events:auto;z-index:21}
+  #fenfond{position:absolute;inset:0;background:rgba(10,15,18,.72);backdrop-filter:blur(3px)}
+  #fenboite{position:absolute;inset:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px;
+    max-width:680px;margin:auto;background:#1B2429;border-radius:18px;overflow:hidden;
+    display:flex;flex-direction:column;border:2px solid rgba(255,255,255,.12)}
+  #fentete{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.05)}
+  #fentitre{font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1}
+  #fenargent{font-size:13px;font-weight:bold;color:#FAD201}
+  #fenfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
+    display:flex;align-items:center;justify-content:center;font-size:13px}
+  #fenliste{flex:1;overflow-y:auto;padding:3px 10px 12px}
+  /* Le chiffre qui décide : ce qu'on a en magasin et ce qu'on peut en sortir. Il doit
+     se lire sans lire la phrase autour — d'où la graisse, la taille et la couleur. */
+  .art .det .q{font-weight:bold;font-size:12px;letter-spacing:.3px;color:#8BE07A}
+  .art .det .q.court{color:#E8563F}
+  .art .det .q.neutre{color:#9FD8E8}
+  /* LE CURSEUR DE QUANTITÉ. « Produire » ne lance plus tout le stock : il demande
+     combien. Un peu, la moitié, tout — au doigt. */
+  #dose{position:absolute;inset:0;display:none;pointer-events:auto;z-index:23}
+  #dosefond{position:absolute;inset:0;background:rgba(10,15,18,.78)}
+  #doseboite{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:min(92vw,420px);background:#1B2429;border:2px solid rgba(255,255,255,.16);
+    border-radius:16px;padding:16px 16px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+  #dosetitre{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;opacity:.5;
+    margin-bottom:10px}
+  #dosesortie{font-size:22px;font-weight:bold;letter-spacing:.5px;color:#8BE07A}
+  #dosecout{font-size:11px;opacity:.62;margin-top:5px;line-height:1.5}
+  #dosecurseur{-webkit-appearance:none;appearance:none;width:100%;height:34px;
+    background:none;margin:12px 0 4px;touch-action:pan-x;pointer-events:auto}
+  #dosecurseur::-webkit-slider-runnable-track{height:10px;border-radius:5px;
+    background:rgba(255,255,255,.18)}
+  #dosecurseur::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:30px;height:30px;border-radius:50%;background:#8BE07A;margin-top:-10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  #dosecurseur::-moz-range-track{height:10px;border-radius:5px;background:rgba(255,255,255,.18)}
+  #dosecurseur::-moz-range-thumb{width:30px;height:30px;border:none;border-radius:50%;background:#8BE07A}
+  #dosebtns{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+  #dosebtns2{display:flex;gap:7px;margin-top:7px}
+  #dosebtns2 #dosego{flex:2}
+  #dosebtns .db, #dosebtns2 .db{flex:1;text-align:center;padding:10px 8px;border-radius:11px;
+    font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;
+    border:2px solid rgba(255,255,255,.26);white-space:nowrap}
+  #dosebtns2 .db.pri{border-color:#8BE07A;color:#8BE07A;background:rgba(40,70,45,.5)}
+  #dosebtns2 .db.ann{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.5)}
   /* panneau plein écran : boutique, améliorations et réglages */
   #panneau{position:absolute;inset:0;display:none;pointer-events:auto;z-index:20}
   #pfond{position:absolute;inset:0;background:rgba(10,15,18,.72);backdrop-filter:blur(3px)}
@@ -286,6 +336,35 @@
   <div id="engins" class="pic" aria-label="ENGINS"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctitre">Changer d'engin</div><div id="parcliste"></div></div></div>
   <div id="menuBtn" class="pic" aria-label="Menu"></div>
+  <div id="fen">
+    <div id="fenfond"></div>
+    <div id="fenboite">
+      <div id="fentete">
+        <div id="fentitre"></div>
+        <div id="fenargent">0 €</div>
+        <div id="fenfermer">✕</div>
+      </div>
+      <div id="fenliste"></div>
+    </div>
+  </div>
+  <div id="dose">
+    <div id="dosefond"></div>
+    <div id="doseboite">
+      <div id="dosetitre"></div>
+      <div id="dosesortie"></div>
+      <input id="dosecurseur" type="range" min="1" max="100" value="100">
+      <div id="dosecout"></div>
+      <div id="dosebtns">
+        <div class="db" data-part="0.25">Un quart</div>
+        <div class="db" data-part="0.5">Moitié</div>
+        <div class="db" data-part="1">Tout</div>
+      </div>
+      <div id="dosebtns2">
+        <div class="db ann" id="doseann">Annuler</div>
+        <div class="db pri" id="dosego">Lancer la production</div>
+      </div>
+    </div>
+  </div>
   <div id="panneau">
     <div id="pfond"></div>
     <div id="pboite">
@@ -932,7 +1011,7 @@ const recetteEntrees = (cle)=>{
   return (typeof d === 'string') ? {[d]:1} : d;
 };
 const totalTremie = (U)=>{ let t = 0; for(const k in U.tremie) t += U.tremie[k]; return t; };
-function fabriquer(U, dt){
+function fabriquer(U, dt, plafond){
   const cle = U.recette;
   if(!cle || !PRODUITS[cle] || !PRODUITS[cle].de) return 0;
   const ent = recetteEntrees(cle), P = PRODUITS[cle];
@@ -942,6 +1021,9 @@ function fabriquer(U, dt){
   // plus rare des ingrédients : une recette à trois entrées s'arrête dès qu'il en
   // manque une, sans consommer les deux autres.
   let q = Math.min(U.debit()*dt, place/P.rendement);
+  // Un plafond de SORTIE : l'atelier de la ferme ne travaille plus en continu, il
+  // honore une commande d'une quantité donnée et s'arrête pile dessus.
+  if(plafond !== undefined) q = Math.min(q, plafond/P.rendement);
   if(P.libre){
     // Recette « au choix » : les céréales du petit-déjeuner se font avec du blé, du
     // maïs OU de l'avoine, indifféremment. On prend le tas le plus gros, un pour un ;
@@ -961,7 +1043,10 @@ function fabriquer(U, dt){
   return q;
 }
 
-const HALLE = {x: 84, z: 50, niveau: 1, tremie: {}, stock: {}, recette: 'farine'};
+/* `commande` est ce qui a été DEMANDÉ, et rien ne se fabrique sans elle : ni matière
+   tirée du silo, ni produit fini. `{cle, reste, total}` — `reste` est en kilos de
+   produit fini restant à sortir, et l'atelier s'arrête pile dessus. */
+const HALLE = {x: 84, z: 50, niveau: 1, tremie: {}, stock: {}, recette: 'farine', commande: null};
 // Les cinq modules du cahier des charges, un par palier : moulin, broyeur, pressoir,
 // mélangeur, cave. Le mélangeur réclame trois céréales à la fois, la cave prend le
 // raisin que le silo ne stocke pas.
@@ -5630,6 +5715,52 @@ const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
 // « 30 kg de orge » se lit mal : l'élision est une politesse qui coûte une ligne.
 const dNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'd\u2019' : 'de ') + n;
 
+/* Les lignes d'article vont dans la surface OUVERTE : le menu, ou l'une des trois
+   fenêtres dédiées. Un seul jeu de fonctions dessine les deux. */
+const fen = document.getElementById('fen');
+const fenliste = document.getElementById('fenliste');
+const fentitre = document.getElementById('fentitre');
+const fenargent = document.getElementById('fenargent');
+/* TOUT ce qui se dessine dans une liste passe par `hote` — les lignes d'article
+   comme les blocs sur mesure des rayons. Onze endroits écrivaient encore directement
+   dans la liste du menu : ouverts depuis une fenêtre dédiée, leurs blocs partaient
+   dans le menu fermé, et manquaient donc à l'écran qu'on regardait. */
+let hote = pliste;
+const FENETRES = {
+  stockage:   {titre:'Stockage'},
+  production: {titre:'Production'},
+  prix:       {titre:'Prix des commerces'}
+};
+let fenActive = null;
+function ouvrirFenetre(id){
+  if(!FENETRES[id]) return;
+  fermerPanneau();
+  fenActive = id;
+  fen.style.display = 'block';
+  paused = true;
+  rendreFenetre();
+}
+function rendreFenetre(){
+  if(!fenActive) return;
+  fentitre.textContent = FENETRES[fenActive].titre;
+  fenargent.textContent = eur(money);
+  fenliste.innerHTML = '';
+  hote = fenliste;
+  ({stockage:ongletStockage, production:ongletProduction, prix:ongletPrix})[fenActive]();
+  hote = pliste;
+}
+function fermerFenetre(){
+  fermerDose();
+  fen.style.display = 'none';
+  fenActive = null;
+  paused = false;
+  last = performance.now();
+}
+// Le geste du joueur redessine ce qui est ouvert, quel que soit l'écran.
+function rafraichirEcran(){
+  if(fenActive) rendreFenetre();
+  else if(panneau.style.display === 'block') rendrePanneau();
+}
 function ouvrirPanneau(onglet){
   ongletActif = onglet || ongletActif;
   panneau.style.display = 'block';
@@ -5656,14 +5787,14 @@ function article(couleur, nom, detail, libelle, etat, action){
   const b = document.createElement('div');
   b.className = 'act' + (etat ? ' ' + etat : '');
   b.textContent = libelle;
-  if(action && etat !== 'no') b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); action(); rendrePanneau(); });
+  if(action && etat !== 'no') b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); action(); rafraichirEcran(); });
   d.appendChild(b);
-  pliste.appendChild(d);
+  hote.appendChild(d);
   return d;
 }
 function titre(txt){
   const d = document.createElement('div'); d.className = 'sect'; d.textContent = txt;
-  pliste.appendChild(d);
+  hote.appendChild(d);
 }
 
 function ongletEngins(){
@@ -5712,7 +5843,7 @@ function ongletEngins(){
   bloc.innerHTML = '<div class="txt"><div class="nom">Le garage, sur la rocade ouest</div>'
     + '<div class="det">Achat d\'un véhicule, réparation, amélioration : tout se fait '
     + 'sur son anneau. Arrête-toi dessus, les boutons apparaissent.</div></div>';
-  pliste.appendChild(bloc);
+  hote.appendChild(bloc);
 }
 
 function ongletOutils(){
@@ -5727,7 +5858,7 @@ function ongletOutils(){
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">Un outil se bonifie avec l\'engin qui le tire : ' +
     'attelle-le, puis améliore l\'ensemble depuis l\'onglet Engins ou à l\'atelier.</div></div>';
-  pliste.appendChild(d);
+  hote.appendChild(d);
 }
 
 function ongletGraines(){
@@ -6255,7 +6386,9 @@ autoEl.addEventListener('pointerdown', ouvrirPlan);
 // La régie : trois boutons, trois écrans. Ils ouvrent le panneau directement sur le
 // bon onglet — le menu reste accessible, mais on n'a plus à le traverser.
 for(const b of document.querySelectorAll('#regie .rgb'))
-  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); ouvrirPanneau(b.dataset.p); });
+  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); ouvrirFenetre(b.dataset.p); });
+document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenetre);
+document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
 function refreshAutoButton(){
   autoEl.classList.toggle('on', MACHINES.some((m)=> !m.verrou && m.v.mission));
 }
@@ -8070,14 +8203,26 @@ function retirerMatiere(cle, q){
 }
 // La trémie de l'atelier n'est plus qu'un tampon : on la garde remplie de ce que
 // réclame la recette, au prorata des parts, dans la limite de sa capacité.
-function alimenterAtelier(dt){
+function alimenterAtelier(dt, resteSortie){
   const cle = HALLE.recette, P = PRODUITS[cle];
   if(!P || !P.de) return;
   const ent = recetteEntrees(cle);
   // Le tampon vise deux secondes de débit par part : assez pour que fabriquer() ne
-  // s'arrête jamais, assez peu pour qu'on ne vide pas le silo dans un coin mort.
-  const vise = Math.min(halleEntreeMax(), HALLE.debit()*2 + 1);
-  for(const k in ent){
+  // s'arrête jamais, assez peu pour qu'on ne vide pas le silo dans un coin mort. Et
+  // jamais plus que ce que la commande réclame encore : on ne vide pas le silo pour
+  // trois kilos de farine.
+  const besoin = (resteSortie === undefined) ? Infinity : resteSortie/P.rendement;
+  const vise = Math.min(halleEntreeMax(), HALLE.debit()*2 + 1, besoin);
+  // Recette « au choix » : fabriquer() ne consommera QUE le tas le plus gros. Tirer
+  // les trois céréales viderait trois silos pour n'en moudre qu'un.
+  let cles = Object.keys(ent);
+  if(P.libre){
+    let best = null;
+    for(const k of cles)
+      if(!best || disponible(k) + (HALLE.tremie[k] || 0) > disponible(best) + (HALLE.tremie[best] || 0)) best = k;
+    cles = best ? [best] : [];
+  }
+  for(const k of cles){
     const manque = vise*ent[k] - (HALLE.tremie[k] || 0);
     if(manque <= 0.0001) continue;
     const q = Math.min(manque, disponible(k), 900*dt);
@@ -8098,17 +8243,68 @@ function deverserAtelier(dt){
     halleRetire(k, q); entrepotRange(k, q); reste -= q;
   }
 }
+/* RIEN NE SE PRODUIT TOUT SEUL. L'atelier tournait en permanence sur la dernière
+   recette choisie : on rangeait du blé au silo et l'on retrouvait de la farine à
+   l'entrepôt sans l'avoir demandé, ce qui décidait à la place du joueur de ce que
+   valait sa récolte. Il honore maintenant une COMMANDE — tant de kilos de tel produit
+   — et ne touche à rien tant qu'on ne lui en a pas passé une.
+
+   Le déversement, lui, continue toujours : ce qui est déjà fabriqué doit pouvoir
+   rejoindre l'entrepôt même après la fin de la commande. */
+function commandeFinie(txt){
+  HALLE.commande = null;
+  showHint(txt);
+  rafraichirEcran();
+}
 function updateAtelier(dt){
-  const R = ATELIER_RECETTES.find((r)=> r.cle === HALLE.recette);
-  if(!R || R.niveau > HALLE.niveau) HALLE.recette = 'farine';
-  alimenterAtelier(dt);
-  const q = fabriquer(HALLE, dt);
-  if(q > 0){
-    if(HALLE.recette === 'farine') STAT.mill += q;
-    if(Math.random() < 0.12)
-      puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+  const C = HALLE.commande;
+  if(C){
+    const R = ATELIER_RECETTES.find((r)=> r.cle === C.cle);
+    if(!R || R.niveau > HALLE.niveau) HALLE.commande = null;
+  }
+  if(HALLE.commande){
+    const C2 = HALLE.commande, P = PRODUITS[C2.cle];
+    HALLE.recette = C2.cle;
+    alimenterAtelier(dt, C2.reste);
+    const q = fabriquer(HALLE, dt, C2.reste);
+    if(q > 0){
+      C2.reste = Math.max(0, C2.reste - q*P.rendement);
+      if(C2.cle === 'farine') STAT.mill += q;
+      if(Math.random() < 0.12)
+        puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+      if(C2.reste <= 0.01) commandeFinie('ATELIER — ' + P.nom.toUpperCase() + ' TERMINÉ');
+    } else {
+      // Rien n'est sorti : soit la matière manque, soit l'entrepôt est plein. On ne
+      // laisse pas une commande tourner dans le vide sans le dire.
+      const ent = recetteEntrees(C2.cle);
+      let matiere = 0;
+      for(const k in ent) matiere = Math.max(matiere, disponible(k) + (HALLE.tremie[k] || 0));
+      if(matiere <= 0.01) commandeFinie('ATELIER — PLUS DE MATIÈRE, COMMANDE ARRÊTÉE');
+    }
   }
   deverserAtelier(dt);
+}
+/* Ce que le magasin permet de sortir d'une recette, en kilos de PRODUIT FINI, et
+   l'ingrédient qui manque en premier. C'est le chiffre que l'écran met en avant et
+   celui qui décide si le bouton est vert ou gris. */
+function potentiel(cle){
+  const P = PRODUITS[cle], ent = recetteEntrees(cle);
+  let parts = Infinity, court = null, brut = 0;
+  for(const k in ent){
+    const d = disponible(k) + (HALLE.tremie[k] || 0);
+    const n = d/ent[k];
+    if(P.libre){ if(n > parts || parts === Infinity) { parts = n; court = k; } }
+    else if(n < parts){ parts = n; court = k; }
+  }
+  if(!isFinite(parts)) parts = 0;
+  for(const k in ent) brut += (P.libre ? (k === court ? parts*ent[k] : 0) : parts*ent[k]);
+  return {sortie: parts*P.rendement, parts: parts, brut: brut, court: court, ent: ent};
+}
+function lancerProduction(cle, kgSortie){
+  const q = Math.max(1, Math.round(kgSortie));
+  HALLE.recette = cle;
+  HALLE.commande = {cle: cle, reste: q, total: q};
+  showHint('ATELIER — ' + kg(q) + ' ' + dNom(PRODUITS[cle].nom.toLowerCase()).toUpperCase());
 }
 // Le coût du palier suivant, ou 0 si l'atelier est au maximum.
 function coutAtelier(){
@@ -8520,16 +8716,15 @@ function majJauges(dt){
 
   // — l'atelier : ce qu'il produit en ce moment, et s'il a de quoi. Sa trémie n'est
   //   plus qu'un tampon de deux secondes : ce qui compte, c'est la matière en magasin.
-  const R = PRODUITS[HALLE.recette];
-  const ent = recetteEntrees(HALLE.recette);
-  let matiere = Infinity;
-  for(const k in ent) matiere = Math.min(matiere, (disponible(k) + (HALLE.tremie[k] || 0))/ent[k]);
-  if(!isFinite(matiere)) matiere = 0;
-  montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
-    matiere > 0.5 ? R.nom + ' — ' + Math.round(matiere*PRODUITS[HALLE.recette].rendement) + ' kg à sortir'
-                  : R.nom + ' — plus de matière',
-    Math.min(1, matiere/(halleEntreeMax()*0.6)),
-    matiere > 0.5 ? R.couleur : '#8A9298', dt);
+  // L'atelier ne travaille que sur commande : la jauge dit où en est celle-ci, et
+  // s'efface quand il n'y en a pas — un atelier à l'arrêt n'a rien à annoncer.
+  const CJ = HALLE.commande;
+  if(CJ){
+    const RJ = PRODUITS[CJ.cle];
+    montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
+      RJ.nom + ' — ' + Math.round(CJ.total - CJ.reste) + ' / ' + Math.round(CJ.total) + ' kg',
+      CJ.total > 0 ? (CJ.total - CJ.reste)/CJ.total : 0, RJ.couleur, dt);
+  } else cacherJauge(jaugeAtelier, dt);
 
   // — l'entrepôt : le total, et la nature dont il est le plus encombré
   const et = entrepotTotal();
@@ -8599,10 +8794,10 @@ poserJauges();
 /* ---------- 25. NOUVEAUX ONGLETS DE LA BOUTIQUE ---------- */
 // Le panneau existant sait déjà dessiner des lignes d'article : on lui ajoute
 // trois rayons plutôt que d'inventer une deuxième interface.
+// Stockage, Production et Prix n'y figurent PLUS : chacun a sa fenêtre, ouverte par
+// son bouton de régie. Deux chemins vers le même écran, c'était un de trop.
 ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'},
-                     {id:'filieres', nom:'Filières'},
-                     {id:'stockage', nom:'Stockage'}, {id:'production', nom:'Production'},
-                     {id:'prix', nom:'Prix'});
+                     {id:'filieres', nom:'Filières'});
 ONGLETS[ONGLETS.length-1] = {id:'reglages', nom:'Réglages'};
 
 const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
@@ -8659,7 +8854,7 @@ function ongletComptoir(){
   d.innerHTML = '<div class="txt"><div class="det">À la pompe de la station-service, ' +
     'ou à la cuve de la cour une fois installée. Dans les deux cas il suffit de s\'arrêter ' +
     'sur l\'anneau au sol : le plein se fait tout seul.</div></div>';
-  pliste.appendChild(d);
+  hote.appendChild(d);
 }
 
 function ongletElevage(){
@@ -8689,7 +8884,7 @@ function ongletElevage(){
       'culture.<br><br>Ensuite : du grain du silo dans la mangeoire, des bêtes dans ' +
       'l\'enclos, le produit au poste de collecte. Une bête qui n\'a rien à manger ne ' +
       'donne rien et ne grandit pas.</div></div>';
-    pliste.appendChild(d);
+    hote.appendChild(d);
     return;
   }
   PATURES.forEach((P, i)=>{
@@ -8730,7 +8925,7 @@ function ongletElevage(){
     'Une caisse ne transporte qu\'une seule nature à la fois, et ne prend des bêtes ' +
     'que si elle est vide. L\'onglet Filières donne le détail de toute la chaîne.' +
     '</div></div>';
-  pliste.appendChild(d);
+  hote.appendChild(d);
 }
 
 /* ---------- L'ONGLET FILIÈRES : LA CHAÎNE, EN ENTIER, SUR UN ÉCRAN ---------- */
@@ -8818,7 +9013,7 @@ function ongletStockage(){
     const d = document.createElement('div'); d.className = 'art';
     d.innerHTML = '<div class="txt"><div class="det">Aucun tas ' +
       vides.map((n)=> dNom(n.toLowerCase())).join(', ') + '.</div></div>';
-    pliste.appendChild(d);
+    hote.appendChild(d);
   }
 
   const et = entrepotTotal();
@@ -8830,7 +9025,7 @@ function ongletStockage(){
     d.innerHTML = '<div class="txt"><div class="det">Vide. Il reçoit les récoltes qui ' +
       'ne vont pas au silo — raisin, olives, lait, œufs, laine, miel — et tout ce que ' +
       'l\'atelier produit, sans qu\'on ait à aller le chercher.</div></div>';
-    pliste.appendChild(d);
+    hote.appendChild(d);
   }
   for(const k of cles) ligne(k, ENTREPOT.stock[k], 'Entrepôt');
 
@@ -8853,7 +9048,7 @@ function ongletStockage(){
   if(rien){
     const d = document.createElement('div'); d.className = 'art';
     d.innerHTML = '<div class="txt"><div class="det">Aucune benne chargée.</div></div>';
-    pliste.appendChild(d);
+    hote.appendChild(d);
   }
 }
 
@@ -8861,42 +9056,103 @@ function ongletStockage(){
    bouton qui le met dessus. La conversion est écrite en clair — tant de kilos de blé
    donnent tant de kilos de farine — parce que c'est la seule question qui se pose
    vraiment : vendre brut, ou transformer. */
+/* LE CURSEUR DE QUANTITÉ. « Produire » lançait tout ce que le stock permettait. On
+   choisit maintenant : un quart, la moitié, tout, ou n'importe quoi entre les deux au
+   doigt. Le chiffre du haut est ce qui SORTIRA, celui du bas ce que ça COÛTE en
+   matière — les deux qu'on veut comparer avant de valider. */
+const doseEl = document.getElementById('dose');
+const doseCurseur = document.getElementById('dosecurseur');
+let dose = null;                       // {cle, max}
+function ouvrirDose(cle, max){
+  dose = {cle: cle, max: Math.max(1, Math.floor(max))};
+  doseCurseur.min = 1;
+  doseCurseur.max = dose.max;
+  doseCurseur.value = dose.max;
+  document.getElementById('dosetitre').textContent = 'Produire : ' + PRODUITS[cle].nom;
+  doseEl.style.display = 'block';
+  rendreDose();
+}
+function fermerDose(){ doseEl.style.display = 'none'; dose = null; }
+function rendreDose(){
+  if(!dose) return;
+  const P = PRODUITS[dose.cle], q = +doseCurseur.value;
+  const parts = q/P.rendement, ent = recetteEntrees(dose.cle);
+  document.getElementById('dosesortie').textContent = kg(q) + ' ' + dNom(P.nom.toLowerCase());
+  const pot = potentiel(dose.cle);
+  const cout = P.libre
+    ? kg(parts) + ' ' + dNom(PRODUITS[pot.court].nom.toLowerCase())
+    : Object.keys(ent).map((k)=> kg(parts*ent[k]) + ' ' + dNom(PRODUITS[k].nom.toLowerCase())).join(' + ');
+  document.getElementById('dosecout').innerHTML =
+    'Consomme ' + cout + '<br>Vaudra ' + eur(q*prixDe(dose.cle)) +
+    ' — la même matière vendue brute en vaudrait ' +
+    eur(P.libre ? parts*prixDe(pot.court)
+                : Object.keys(ent).reduce((t, k)=> t + parts*ent[k]*prixDe(k), 0));
+}
+doseCurseur.addEventListener('input', rendreDose);
+for(const b of document.querySelectorAll('#dosebtns .db'))
+  b.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if(!dose) return;
+    doseCurseur.value = Math.max(1, Math.round(dose.max*parseFloat(b.dataset.part)));
+    rendreDose();
+  });
+document.getElementById('doseann').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerDose(); });
+document.getElementById('dosego').addEventListener('pointerdown', (e)=>{
+  e.stopPropagation();
+  if(!dose) return;
+  lancerProduction(dose.cle, +doseCurseur.value);
+  fermerDose();
+  rafraichirEcran();
+});
+document.getElementById('dosefond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerDose(); });
+
 function ongletProduction(){
-  const R0 = PRODUITS[HALLE.recette];
   titre('Atelier de la ferme — niveau ' + HALLE.niveau + ', ' + ATL.PALIERS[HALLE.niveau-1].nom);
-  article(parseInt(R0.couleur.slice(1), 16), 'En production : ' + R0.nom,
-    'Débit ' + dec(HALLE.debit(), 0) + ' kg de matière par seconde<br>' +
-    'Il se sert seul au silo et à l\'entrepôt, et dépose seul à l\'entrepôt.',
-    'En cours', 'ok', null);
+  const C = HALLE.commande;
+  if(C){
+    const PC = PRODUITS[C.cle];
+    article(parseInt(PC.couleur.slice(1), 16), 'En cours : ' + PC.nom,
+      '<span class="q">' + kg(C.total - C.reste) + ' sur ' + kg(C.total) + '</span> — il reste ' +
+      kg(C.reste) + ' à sortir<br>Débit ' + dec(HALLE.debit(), 0) +
+      ' kg de matière par seconde · ce qui sort part à l\'entrepôt',
+      'Arrêter', 'vert', ()=>{ HALLE.commande = null; showHint('ATELIER — COMMANDE ARRÊTÉE'); });
+  } else {
+    article(0x8A9298, 'Atelier à l\'arrêt',
+      'Rien ne se fabrique tant qu\'on ne l\'a pas demandé.<br>' +
+      'Choisis un produit ci-dessous, puis la quantité.',
+      'À l\'arrêt', 'no', null);
+  }
 
   titre('Ce que le stock permet');
   for(const R of ATELIER_RECETTES){
     const P = PRODUITS[R.cle], ent = recetteEntrees(R.cle);
-    const dispo2 = R.niveau <= HALLE.niveau;
+    const ouvert = R.niveau <= HALLE.niveau;
     // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
     const recette = Object.keys(ent).map((k)=>
       Math.round(100*ent[k]) + ' kg ' + dNom(PRODUITS[k].nom.toLowerCase())).join(P.libre ? ' ou ' : ' + ');
-    // Et ce qu'on pourrait en sortir tout de suite, ingrédient le plus rare en tête.
-    let possible = Infinity, court = null;
-    for(const k in ent){
-      const d2 = disponible(k)/ent[k];
-      if(d2 < possible){ possible = d2; court = k; }
-    }
-    if(!isFinite(possible)) possible = 0;
-    const sortie = possible*P.rendement;
+    const pot = potentiel(R.cle);
+    const assez = pot.sortie >= 1;
+    /* LES DEUX CHIFFRES QUI DÉCIDENT, mis en avant : ce qu'on a en matière, et ce
+       qu'on peut en sortir. Leur couleur dit s'ils sont ACTIONNABLES — vert on peut
+       lancer, rouge il manque de la matière, bleu le module n'est pas encore construit.
+       Un module verrouillé n'a pas à s'annoncer en vert : le chiffre serait juste et
+       le bouton gris, ce qui se lit comme une contradiction. */
+    const cl = !ouvert ? 'q neutre' : (assez ? 'q' : 'q court');
+    const enMagasin = Object.keys(ent)
+      .map((k)=> kg(disponible(k) + (HALLE.tremie[k] || 0)) + ' ' + dNom(PRODUITS[k].nom.toLowerCase()))
+      .join(P.libre ? ' · ' : ' + ');
     const det = recette + ' → ' + Math.round(100*P.rendement) + ' kg ' + dNom(P.nom.toLowerCase()) +
-      '<br>En magasin, de quoi sortir ' + kg(sortie) + ' — ' + eur(sortie*prixDe(R.cle)) +
-      (sortie < 1 ? ' (pas assez ' + dNom(PRODUITS[court].nom.toLowerCase()) + ')' : '') +
-      '<br>Brut, la même matière vaudrait ' +
-      eur(Object.keys(ent).reduce((t, k)=> t + possible*ent[k]*prixDe(k), 0));
+      '<br>En magasin : <span class="' + cl + '">' + enMagasin + '</span>' +
+      '<br>De quoi produire au maximum <span class="' + cl + '">' + kg(pot.sortie) + ' ' +
+      dNom(P.nom.toLowerCase()) + '</span>' +
+      (assez ? ' — ' + eur(pot.sortie*prixDe(R.cle))
+             : ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')');
+    const encours = C && C.cle === R.cle;
     article(parseInt(P.couleur.slice(1), 16), R.module + ' — ' + P.nom, det,
-      !dispo2 ? 'Niveau ' + R.niveau + ' requis'
-              : (HALLE.recette === R.cle ? 'En cours' : 'Produire'),
-      !dispo2 ? 'no' : (HALLE.recette === R.cle ? 'ok' : 'vert'),
-      dispo2 && HALLE.recette !== R.cle
-        ? ()=>{ HALLE.recette = R.cle;
-                showHint('ATELIER — ' + R.module.toUpperCase() + ', ' + P.nom.toUpperCase()); }
-        : null);
+      !ouvert ? 'Niveau ' + R.niveau + ' requis'
+              : (encours ? 'En cours' : (assez ? 'Produire' : 'Pas de matière')),
+      !ouvert ? 'no' : (encours ? 'ok' : (assez ? 'vert' : 'no')),
+      ouvert && assez && !encours ? ()=> ouvrirDose(R.cle, pot.sortie) : null);
   }
 
   titre('Agrandir l\'atelier');
@@ -8967,7 +9223,7 @@ function ongletPrix(){
     'transformée, par kilo engagé. Quand ce chiffre dépasse le prix brut, il vaut ' +
     'mieux passer par un atelier — le vôtre ou celui du bord de route.' +
     '</div></div>';
-  pliste.appendChild(d);
+  hote.appendChild(d);
 }
 
 function ongletReglages(){
@@ -9012,7 +9268,7 @@ function ongletReglages(){
   d.innerHTML = '<div class="txt"><div class="nom">' + eur(money) + '</div>' +
     '<div class="det">Crédite le compte pour essayer librement le contenu du jeu. ' +
     'Ce réglage est là pour la mise au point, pas pour la partie.</div></div>';
-  pliste.appendChild(d);
+  hote.appendChild(d);
   for(const v of [1000, 10000, 100000])
     article(0x8BE07A, '+ ' + eur(v), 'Ajouter au budget', 'Créditer', 'vert', ()=>{ money += v; });
   article(0xC4553A, 'Remettre à zéro', 'Vide la trésorerie', 'Vider', '', ()=>{ money = 0; });
@@ -9028,7 +9284,7 @@ function ongletReglages(){
     'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
     'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
     '</div></div>';
-  pliste.appendChild(d2);
+  hote.appendChild(d2);
 }
 let confirmeReset = false;
 
@@ -9047,6 +9303,7 @@ function rendrePanneau(){
     ponglets.appendChild(b);
   }
   pliste.innerHTML = '';
+  hote = pliste;
   ({engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
@@ -9235,6 +9492,7 @@ function etatJeu(){
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
     halle: {niveau: HALLE.niveau, recette: HALLE.recette,
+            commande: HALLE.commande ? Object.assign({}, HALLE.commande) : null,
             tremie: Object.assign({}, HALLE.tremie),
             stock: Object.assign({}, HALLE.stock)},
     entrepot: Object.assign({}, ENTREPOT.stock),
@@ -9417,6 +9675,12 @@ function chargerPartie(S){
       const anc = S.halle.produit;
       HALLE.recette = ATELIER_RECETTES.some((r)=> r.cle === (S.halle.recette || anc))
                       ? (S.halle.recette || anc) : 'farine';
+      // Une partie d'avant tournait en continu : elle revient à l'arrêt, ce qui est
+      // désormais l'état normal d'un atelier à qui l'on n'a rien demandé.
+      const CS2 = S.halle.commande;
+      HALLE.commande = (CS2 && CS2.cle && CS2.reste > 0.01 &&
+                        ATELIER_RECETTES.some((r)=> r.cle === CS2.cle && r.niveau <= HALLE.niveau))
+                       ? {cle: CS2.cle, reste: CS2.reste, total: CS2.total || CS2.reste} : null;
       if(S.halle.entree) HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] =
                          (HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] || 0) + S.halle.entree;
       if(S.flourKg) HALLE.stock.farine = (HALLE.stock.farine || 0) + S.flourKg;

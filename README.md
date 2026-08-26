@@ -165,11 +165,29 @@ deux magasins.
 
 L'**atelier** n'a plus de quai : il tire tout seul de quoi travailler dans les deux
 magasins, et pousse tout seul ce qu'il a fini dans l'entrepôt. On ne s'y arrête plus,
-on n'y verse plus rien, on ne vient plus rien y chercher. Ce qu'on garde, c'est le
-choix de ce qu'il fabrique — et il se fait au bouton **usine**.
+on n'y verse plus rien, on ne vient plus rien y chercher.
+
+**Mais il ne fabrique rien de lui-même.** Il tournait en permanence sur la dernière
+recette choisie : on rangeait du blé au silo et l'on retrouvait de la farine à
+l'entrepôt sans l'avoir demandé, ce qui décidait à la place du joueur de ce que valait
+sa récolte. Il honore maintenant une **commande** — tant de kilos de tel produit — et
+ne touche à rien tant qu'on ne lui en a pas passé une. Il s'arrête pile sur la quantité
+demandée, et s'arrête aussi, en le disant, s'il n'y a plus de matière.
+
+L'écran de production, ouvert au bouton **usine**, met en avant les deux chiffres qui
+décident — ce qu'on a en magasin et ce qu'on peut en sortir — en vert quand on peut
+lancer, en rouge quand la matière manque, en bleu quand le module n'est pas encore
+construit. Le bouton **Produire** suit la même règle : vert s'il y a de quoi, gris
+sinon. Il ouvre un **curseur de quantité** — un quart, la moitié, tout, ou n'importe
+quoi entre les deux — qui annonce ce qui sortira, ce que ça consommera, et ce que la
+même matière vaudrait vendue brute.
 
 Trois boutons en bas à gauche disent l'état de la ferme sans qu'on ait à traverser le
-menu. Chacun est tenu par la couleur de l'écran qu'il ouvre :
+menu. Chacun est tenu par la couleur de l'écran qu'il ouvre, et chacun ouvre **sa
+propre fenêtre** — un titre, une liste, une croix. Ils menaient au menu général sur un
+onglet : on arrivait dans une barre de huit onglets, au milieu de choses qui n'avaient
+rien à voir avec le geste demandé. Ces trois écrans ne sont d'ailleurs plus des onglets
+du menu : deux chemins vers le même endroit, c'était un de trop.
 
 | | |
 |---|---|
