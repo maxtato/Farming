@@ -136,6 +136,17 @@
   #chargetxt{position:absolute;bottom:calc(222px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
     text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
+  /* La rangée de choix : même place et même costume que le bouton de service, dont
+     le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
+  #choix{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
+    transform:translateX(-50%);pointer-events:auto;display:none;
+    flex-direction:column;align-items:center;gap:6px}
+  #choix .ch{padding:8px 18px;border-radius:12px;background:rgba(20,28,33,.82);
+    font-size:12px;font-weight:bold;letter-spacing:1.3px;border:2px solid #E8B44A;
+    color:#E8B44A;white-space:nowrap}
+  #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+  #choix .titre{font-size:10px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
+    padding-bottom:2px}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:12px;font-weight:bold;letter-spacing:1.4px;
@@ -197,6 +208,7 @@
   <div id="buy"></div>
   <div id="atelier"></div>
   <div id="veh"></div>
+  <div id="choix"></div>
   <div id="service"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="thr"><div class="lab up">AV</div><div class="lab dn">AR</div><div id="thrknob"></div></div>
@@ -2224,7 +2236,7 @@ function anneauAction(x, z, phase, actif){
 }
 /* --- de quoi écrire ces conditions sans les réinventer à chaque anneau --- */
 // Ces quatre outils sont volontairement calqués sur les tests que font vraiment
-// cargoUn(), deliverUn(), updatePlein() et updateBetail() : un anneau qui mentirait
+// actionsIci(), updatePlein() et updateBetail() : un anneau qui mentirait
 // serait pire que pas d'anneau du tout.
 const caisseDe = (m)=>{ const T = toolOf(m); return (T && T.cargo) ? T : (m.v.cargo || null); };
 // La moissonneuse est le seul engin dont la trémie se vide sur un point de livraison.
@@ -2938,14 +2950,8 @@ function buildFarm(){
   // quand la caisse porte déjà autre chose.
   anneauAction(SILO.x, SILO.z, 1.1, ()=>{
     const m = MACHINES[cur];
-    const T = caisseDe(m);
-    // La moissonneuse y range sa récolte — mais pas le raisin ni les olives, que le
-    // silo ne prend pas. Une caisse y fait le plein de la céréale qu'elle porte déjà,
-    // ou du plus gros tas si elle est vide.
-    if(tremiePleine(m) && siloStock[CROPS[hopCrop].cle] !== undefined
-       && siloTotal() < siloMax()) return true;
-    const cle = (T && T.load > 0.01) ? T.type : siloPlusGros();
-    return !!cle && siloStock[cle] !== undefined && peutPrendre(T, cle, siloStock[cle]);
+    // Rentrer la trémie, ranger une caisse, ou se servir dans l'un des cinq tas.
+    return actionsAuSilo(m).length > 0;
   });
 
   // maison, à l'écart de la cour
@@ -3310,9 +3316,7 @@ function poserAtelier(){
   if(!HALLE.anneau){
     anneauAction(HALLE.quai.x, HALLE.quai.z, 2.9, ()=>{
       const m = MACHINES[cur], T = caisseDe(m);
-      if(T && T.load > 0.01 && atelierAccepte(T.type)) return true;
-      const sorti = (T && T.load > 0.01) ? T.type : HALLE.recette;
-      if(peutPrendre(T, sorti, halleStock(sorti))) return true;
+      if(actionsAtelier(m).length > 0) return true;
       const c = coutAtelier();
       return c > 0 && money >= c;
     });
@@ -5142,55 +5146,16 @@ document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = 
 
 /* livraison au silo */
 
-// Toutes les caisses passent par le même aiguillage : voir `cargoUn` au chapitre 22,
-// où la NATURE du chargement décide de ce qui peut être pris et de qui l'achète.
+/* Toute la circulation des marchandises passe par un seul aiguillage : `actionsIci`
+   au chapitre 22 dresse ce qui est possible, `executer` le fait. La trémie de la
+   moissonneuse en fait partie comme le reste — elle avait sa propre fonction, avec
+   ses propres règles, et c'est ainsi qu'on se retrouvait avec deux façons de livrer
+   la même récolte au même endroit. */
 function updateCargo(dt){
-  for(const m of MACHINES) if(!m.verrou){ reprendreUn(m, dt); cargoUn(m, dt); }
-}
-function deliver(dt){
-  for(const m of MACHINES){ if(m.key === 'moisson' && !m.verrou) deliverUn(m.v, dt); }
-}
-/* La moissonneuse vide sa trémie là où elle s'arrête. Au silo elle range, sans rien
-   toucher : le silo n'achète pas, il stocke — c'est ensuite au joueur de choisir
-   entre vendre et transformer. Ailleurs, elle décharge chez qui veut bien de sa
-   récolte, au prix de l'acheteur. Le raisin et les olives, que le silo ne prend pas,
-   n'ont que cette porte-là : du champ à l'étal ou au pressoir, directement. */
-function deliverUn(v, dt){
-  if(hopper <= 0 || v.speed > 2.5) return;
-  const cle = CROPS[hopCrop].cle;
-  const auSilo = Math.hypot(v.pos.x-SILO.x, v.pos.z-SILO.z) <= SILO.r
-                 && siloStock[cle] !== undefined && siloTotal() < siloMax();
-  let site = null, mode = null;
-  if(auSilo){ site = SILO; mode = 'silo'; }
-  else for(const S of SITES){
-    if(!aQuai(v, S)) continue;
-    if(acheteMaintenant(S, cle)){ site = S; mode = 'vente'; }
-    else if(accepteMaintenant(S, cle)){ site = S; mode = 'tremie'; }
-    break;
-  }
-  if(!site) return;
-  const q = Math.min(hopper, 420*dt,
-                     mode === 'vente' ? placeChez(site) : Infinity,
-                     mode === 'silo'  ? siloMax() - siloTotal() : Infinity);
-  if(q <= 0.0001) return;
-  hopper -= q; delivered += q;
-  compter(cle, q, mode === 'silo');
-  if(mode === 'silo'){ siloStock[cle] += q; }
-  else if(mode === 'vente'){
-    money += q*prixChez(site, cle);
-    if(site.etal !== undefined) site.reste -= q;
-  } else {
-    site.tremie[cle] = (site.tremie[cle] || 0) + q;
-  }
-  if(Math.random() < 0.6)
-    puff((site.dropX!==undefined?site.dropX:site.x) + (Math.random()-0.5)*3, 3 + Math.random()*3,
-         (site.dropZ!==undefined?site.dropZ:site.z) + (Math.random()-0.5)*3,
-         site.nom ? teinteDe(cle) : 0xFFC65A, 0.4, 0.2);
-  if(hopper <= 0.01){
-    hopper = 0;
-    showHint(mode === 'silo' ? nomDe(cle).toUpperCase() + ' AU SILO'
-           : mode === 'vente' ? site.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'
-           : nomDe(cle).toUpperCase() + ' LIVRÉ À ' + site.nom.toUpperCase());
+  for(const m of MACHINES){
+    if(m.verrou) continue;
+    const A = actionPour(m);
+    if(A) executer(m, A, dt);
   }
 }
 
@@ -5452,24 +5417,14 @@ function comptoirServable(){
    portait sa propre condition écrite à la main : c'est ce qui laissait le supermarché
    éteint devant une benne de vin et la coopérative allumée pour rien. */
 function quelqueChoseAFaire(S){
-  const m = MACHINES[cur], v = m.v, T = caisseDe(m);
+  const m = MACHINES[cur], v = m.v;
+  // Trois commerces n'échangent rien : ils ouvrent un comptoir, améliorent un engin
+  // ou abattent des bêtes. Le reste se lit dans la liste des transferts possibles,
+  // celle-là même qui les exécutera.
   if(S.fournisseur) return comptoirServable();
   if(S.abattoir && (v.betail || 0) > 0) return true;
   if(S.atelier){ const c = coutAmelioration(m); return c > 0 && money >= c; }
-  // une caisse chargée : vendre, ou verser dans la trémie de l'usine
-  if(T && T.load > 0.01 && (acheteMaintenant(S, T.type) || accepteMaintenant(S, T.type)))
-    return true;
-  // une caisse qui a de la place : reprendre un produit fini sur le quai
-  if(T && T.load < T.capacite - 0.01){
-    const cle = (T.load > 0.01) ? T.type : stockASortir(S);
-    if(cle && !S.caisse && (S.stock[cle] || 0) > 0.01 && peutCharger(T, cle)) return true;
-  }
-  // la trémie de la moissonneuse, qui se vide chez qui veut bien de sa récolte
-  if(tremiePleine(m)){
-    const cle = CROPS[hopCrop].cle;
-    if(acheteMaintenant(S, cle) || accepteMaintenant(S, cle)) return true;
-  }
-  return false;
+  return actionsAuSite(m, S).length > 0;
 }
 (function poserAnneauxCommerces(){
   for(const S of SITES){
@@ -6154,124 +6109,242 @@ function poserType(T, type){ T.type = type; }
 function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
 // Remplace la version d'origine : même mécanique de proximité, mais la nature du
 // chargement décide de ce qui peut être pris et de qui l'achète.
-function cargoUn(m, dt){
-  const v = m.v;
-  const tool = toolOf(m);
-  const T = (tool && tool.cargo) ? tool : (v.cargo ? v.cargo : null);
-  if(!T || v.speed > 2.5) return;
-  const debit = 340*dt;
+/* ---------- CE QU'ON PEUT FAIRE ICI, ET QUI CHOISIT ---------- */
+/* Jusqu'ici le jeu décidait seul : arrivé au silo avec une benne vide, il chargeait
+   « le plus gros tas ». C'est commode tant qu'il n'y a qu'une céréale ; avec cinq tas,
+   un atelier qui rend un produit, des usines qui en gardent un autre au quai, deviner
+   à la place du joueur c'est lui charger de l'orge quand il venait chercher du blé.
 
-  /* --- chargements --- */
-  // Au silo on prend la céréale demandée par la benne si elle est entamée, sinon le
-  // plus gros tas : une caisse vide repart avec ce dont la ferme est le plus encombrée.
-  if(prochePoint(v, SILO.x, SILO.z, SILO.r) && T.load < T.capacite){
-    const cle = (T.load > 0.01) ? T.type : siloPlusGros();
-    if(cle && siloStock[cle] > 0.01 && peutCharger(T, cle)){
-      const q = Math.min(debit, T.capacite - T.load, siloStock[cle]);
-      T.load += q; siloStock[cle] -= q; poserType(T, cle);
+   On dresse donc la liste de TOUT ce qui est possible ici, maintenant, avec cet engin
+   et ce chargement. Une seule possibilité : elle se fait toute seule, comme avant, et
+   le jeu reste fluide. Plusieurs : il s'arrête et demande, en une rangée de boutons.
+
+   La même liste sert à décider de la couleur de l'anneau. Il n'y a donc, par
+   construction, ni anneau jaune sans effet, ni effet sans anneau jaune : c'est le même
+   calcul qui allume et qui agit. */
+const nomHaut = (k)=> nomDe(k).toUpperCase();
+const enKg = (q)=> Math.round(q) + ' KG';
+// Chaque lieu dit ce qu'il propose, SANS regarder où est l'engin : c'est ce qui permet
+// à un anneau de s'allumer à l'autre bout de la vallée, et donc de choisir sa
+// destination au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé.
+function actionsAuSilo(m){
+  const T = caisseDe(m), out = [];
+  const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
+  const dePlace = siloTotal() < siloMax();
+  if(tremiePleine(m) && siloStock[CROPS[hopCrop].cle] !== undefined && dePlace)
+    out.push({sens:'tremie', lieu:'silo', cle:CROPS[hopCrop].cle,
+              txt:'RENTRER LA TRÉMIE — ' + nomHaut(CROPS[hopCrop].cle)});
+  if(porte && siloStock[T.type] !== undefined && dePlace)
+    out.push({sens:'ranger', lieu:'silo', cle:T.type, txt:'RENTRER ' + nomHaut(T.type)});
+  if(place) for(const k of SILO_CLES)
+    if(siloStock[k] > 0.01 && peutCharger(T, k))
+      out.push({sens:'prendre', lieu:'silo', cle:k, txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(siloStock[k])});
+  return out;
+}
+function actionsAtelier(m){
+  const T = caisseDe(m), out = [];
+  const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
+  if(porte && atelierAccepte(T.type))
+    out.push({sens:'verserAtelier', lieu:'atelier', cle:T.type, txt:'VERSER ' + nomHaut(T.type)});
+  if(place) for(const k in HALLE.stock)
+    if(HALLE.stock[k] > 0.01 && peutCharger(T, k))
+      out.push({sens:'prendreAtelier', lieu:'atelier', cle:k,
+                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(HALLE.stock[k])});
+  return out;
+}
+function actionsPature(m, pat){
+  const T = caisseDe(m), out = [];
+  const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
+  const E = ESPECES[pat.P.espece] || ESPECES.vache;
+  const lieu = 'pature' + PATURES.indexOf(pat.P);
+  if(pat.quoi === 'auge' && porte && RATION[T.type] && pat.P.grain < pat.P.grainMax)
+    out.push({sens:'auge', lieu:lieu, P:pat.P, cle:T.type, txt:'REMPLIR L\'AUGE'});
+  if(pat.quoi === 'produit' && E.produit && pat.P.produit > 0.01
+     && place && peutCharger(T, E.produit))
+    out.push({sens:'traire', lieu:lieu, P:pat.P, cle:E.produit,
+              txt:'CHARGER ' + nomHaut(E.produit) + ' ' + enKg(pat.P.produit)});
+  return out;
+}
+function actionsAuSite(m, S){
+  const T = caisseDe(m), out = [];
+  const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
+  if(porte && acheteMaintenant(S, T.type))
+    out.push({sens:'vendre', lieu:S.nom, S:S, cle:T.type,
+              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)) + ' €/KG'});
+  if(porte && accepteMaintenant(S, T.type))
+    out.push({sens:'verser', lieu:S.nom, S:S, cle:T.type, txt:'LIVRER ' + nomHaut(T.type)});
+  if(place && !S.caisse) for(const k in S.stock)
+    if(S.stock[k] > 0.01 && peutCharger(T, k))
+      out.push({sens:'reprendre', lieu:S.nom, S:S, cle:k,
+                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(S.stock[k])});
+  if(tremiePleine(m)){
+    const c2 = CROPS[hopCrop].cle;
+    if(acheteMaintenant(S, c2))
+      out.push({sens:'tremieVente', lieu:S.nom, S:S, cle:c2, txt:'VENDRE LA TRÉMIE — ' + nomHaut(c2)});
+    else if(accepteMaintenant(S, c2))
+      out.push({sens:'tremieLivraison', lieu:S.nom, S:S, cle:c2, txt:'LIVRER LA TRÉMIE — ' + nomHaut(c2)});
+  }
+  return out;
+}
+// Et voici ce qui est possible LÀ OÙ L'ENGIN EST ARRÊTÉ.
+function actionsIci(m){
+  const v = m.v;
+  if(v.speed > 2.5) return [];
+  let out = [];
+  if(prochePoint(v, SILO.x, SILO.z, SILO.r)) out = out.concat(actionsAuSilo(m));
+  const pat = patureProche(v);
+  if(pat) out = out.concat(actionsPature(m, pat));
+  if(surQuaiAtelier(v)) out = out.concat(actionsAtelier(m));
+  for(const S of SITES) if(aQuai(v, S)){ out = out.concat(actionsAuSite(m, S)); break; }
+  return out;
+}
+/* Deux actions sont la même quand elles font la même chose au même endroit. La
+   comparaison porte sur des VALEURS et jamais sur des objets : la liste est reconstruite
+   à chaque image, et patureProche() y remet une enveloppe neuve à chaque appel. Comparer
+   ces enveloppes, c'était ne jamais reconnaître l'action en cours — donc l'interrompre
+   au premier kilo, à la pâture comme ailleurs. */
+const memeAction = (A, B)=> !!A && !!B && A.sens === B.sens && A.cle === B.cle
+                            && A.lieu === B.lieu;
+
+/* L'action retenue pour cet arrêt. Elle se choisit au doigt quand il y en a plusieurs,
+   et s'oublie dès qu'on repart ou qu'elle devient impossible — un choix qui survivrait
+   au départ ferait vendre au commerce suivant ce qu'on venait d'y charger. */
+let choixEnCours = null;
+/* Vrai quand un transfert vient de s'achever ici. On ne se relance jamais tout seul sur
+   une DEUXIÈME opération au même arrêt : sinon la benne qu'on vient de remplir au silo
+   s'y reviderait aussitôt — charger et ranger sont tous deux possibles, et il ne reste
+   que le second une fois la caisse pleine. Il faut repartir, ou redemander. */
+let transfertFait = false;
+function actionRetenue(m){
+  const L = actionsIci(m);
+  if(!L.length){ choixEnCours = null; transfertFait = false; return null; }
+  // Une action commencée va jusqu'au bout : elle ne se laisse pas interrompre parce
+  // qu'une autre devient possible en cours de route.
+  const t = L.find((A)=> memeAction(A, choixEnCours));
+  if(t) return t;
+  if(choixEnCours){ choixEnCours = null; transfertFait = true; }
+  if(L.length === 1 && !transfertFait){ choixEnCours = L[0]; return L[0]; }
+  return null;
+}
+// Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
+// première possibilité, exactement comme le jeu le faisait pour tout le monde avant.
+const actionPour = (m)=> (m === MACHINES[cur]) ? actionRetenue(m) : (actionsIci(m)[0] || null);
+
+/* Exécuter une action : c'est le seul endroit du jeu où la matière change de main. */
+function executer(m, A, dt){
+  const v = m.v, T = caisseDe(m);
+  const debit = 340*dt, lent = ELEVAGE.debit*dt;
+  switch(A.sens){
+    case 'tremie': {
+      const q = Math.min(hopper, 420*dt, siloMax() - siloTotal());
+      if(q <= 0.0001) return;
+      hopper -= q; delivered += q; siloStock[A.cle] += q; compter(A.cle, q, true);
+      if(Math.random() < 0.6)
+        puff(SILO.x + (Math.random()-0.5)*3, 4 + Math.random()*3, SILO.z + (Math.random()-0.5)*3,
+             teinteDe(A.cle), 0.4, 0.2);
+      if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
+      return;
+    }
+    case 'ranger': {
+      const q = Math.min(debit, T.load, siloMax() - siloTotal());
+      if(q <= 0.0001) return;
+      T.load -= q; siloStock[A.cle] += q; compter(A.cle, q, true);
       if(Math.random() < 0.4)
         puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
-      if(T.load >= T.capacite - 0.01) showHint(nomDe(cle).toUpperCase() + ' CHARGÉ');
+      if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ'); }
       return;
     }
-  }
-
-  const pat = patureProche(v);
-  const espP = pat ? (ESPECES[pat.P.espece] || ESPECES.vache) : null;
-  if(pat && pat.quoi === 'produit' && espP.produit && peutCharger(T, espP.produit)
-     && pat.P.produit > 0.01 && T.load < T.capacite){
-    const q = Math.min(debit, T.capacite - T.load, pat.P.produit);
-    T.load += q; pat.P.produit -= q; poserType(T, espP.produit);
-    if(Math.random() < 0.3) puff(pat.P.quaiProduit.x, 2.2, pat.P.quaiProduit.z,
-                                 teinteDe(espP.produit), 0.3, 0.25);
-    if(T.load >= T.capacite - 0.01) showHint(nomDe(espP.produit).toUpperCase() + ' CHARGÉ');
-    return;
-  }
-
-  // Atelier de la ferme : on repart d'abord avec ce qu'il a produit, on verse ensuite.
-  // Le chargement passe avant, pour qu'une caisse vide reparte pleine sans manœuvre.
-  if(surQuaiAtelier(v)){
-    const sorti = (T.load > 0.01) ? T.type : HALLE.recette;
-    if(sorti && halleStock(sorti) > 0.01 && peutCharger(T, sorti) && T.load < T.capacite){
-      const q = Math.min(debit, T.capacite - T.load, halleStock(sorti));
-      T.load += q; halleRetire(sorti, q); poserType(T, sorti);
-      if(Math.random() < 0.3) puff(HALLE.quai.x, 2.4, HALLE.quai.z, teinteDe(sorti), 0.35, 0.3);
-      if(T.load >= T.capacite - 0.01) showHint(nomDe(sorti).toUpperCase() + ' CHARGÉ');
+    case 'prendre': {
+      const q = Math.min(debit, T.capacite - T.load, siloStock[A.cle]);
+      if(q <= 0.0001) return;
+      T.load += q; siloStock[A.cle] -= q; poserType(T, A.cle);
+      if(Math.random() < 0.4)
+        puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
-  }
-  if(T.load <= 0.01){ viderType(T); return; }
-
-  // On verse dans la trémie de l'atelier ce que sa recette du moment réclame.
-  if(surQuaiAtelier(v) && atelierAccepte(T.type)){
-    const q = Math.min(debit, T.load, halleEntreeMax() - totalTremie(HALLE));
-    if(q > 0.0001){
-      T.load -= q; HALLE.tremie[T.type] = (HALLE.tremie[T.type] || 0) + q;
+    case 'traire': {
+      const P = A.P;
+      const q = Math.min(debit, T.capacite - T.load, P.produit);
+      if(q <= 0.0001) return;
+      T.load += q; P.produit -= q; poserType(T, A.cle);
+      if(Math.random() < 0.3) puff(P.quaiProduit.x, 2.2, P.quaiProduit.z, teinteDe(A.cle), 0.3, 0.25);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
+    case 'auge': {
+      // L'aliment de l'atelier vaut mieux que la céréale brute, et le premium mieux
+      // encore : la même benne remplit la mangeoire une fois et demie, puis deux fois.
+      const P = A.P, rend = RATION[A.cle];
+      const q = Math.min(lent, T.load, (P.grainMax - P.grain)/rend);
+      if(q <= 0.0001) return;
+      T.load -= q; P.grain += q*rend;
+      if(Math.random() < 0.4) puff(P.quaiAuge.x, 1.8, P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
+      if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
+      return;
+    }
+    case 'verserAtelier': {
+      const q = Math.min(debit, T.load, halleEntreeMax() - totalTremie(HALLE));
+      if(q <= 0.0001) return;
+      T.load -= q; HALLE.tremie[A.cle] = (HALLE.tremie[A.cle] || 0) + q;
       if(Math.random() < 0.3) puff(HALLE.x - 5.5, 4.6, HALLE.z - 1.0, 0xE8DCC0, 0.3, 0.28);
-      if(T.load <= 0.01){ showHint(nomDe(T.type).toUpperCase() + ' VERSÉ À L\'ATELIER'); viderType(T); }
+      if(T.load <= 0.01){ showHint(nomDe(A.cle).toUpperCase() + ' VERSÉ À L\'ATELIER'); viderType(T); }
       return;
     }
-  }
-
-  /* --- déchargements --- */
-  // Le grain nourrit d'abord le troupeau : l'auge passe avant la vente. L'aliment de
-  // l'atelier vaut mieux que la céréale brute, et le premium mieux encore — la même
-  // benne remplit la mangeoire une fois et demie, puis deux fois mieux.
-  if(pat && pat.quoi === 'auge' && RATION[T.type] && pat.P.grain < pat.P.grainMax){
-    const rend = RATION[T.type];
-    const q = Math.min(ELEVAGE.debit*dt, T.load, (pat.P.grainMax - pat.P.grain)/rend);
-    T.load -= q; pat.P.grain += q*rend;
-    if(Math.random() < 0.4) puff(pat.P.quaiAuge.x, 1.8, pat.P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
-    if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
-    return;
-  }
-
-  // Puis les commerces. Un seul balayage : le premier site à quai qui sait quoi faire
-  // de ce chargement le prend — soit il l'achète, soit il le met dans sa trémie.
-  for(const S of SITES){
-    if(!aQuai(v, S)) continue;
-    if(acheteMaintenant(S, T.type)){
-      const q = Math.min(ELEVAGE.debit*dt, T.load, placeChez(S));
-      if(q <= 0.0001) break;
-      T.load -= q; money += q*prixChez(S, T.type);
-      if(S.etal !== undefined) S.reste -= q;
-      if(S === RESTO) avancerCommande(T.type, q);
-      compter(T.type, q);
-      if(Math.random() < 0.4) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.4, 0.3);
+    case 'prendreAtelier': {
+      const q = Math.min(debit, T.capacite - T.load, halleStock(A.cle));
+      if(q <= 0.0001) return;
+      T.load += q; halleRetire(A.cle, q); poserType(T, A.cle);
+      if(Math.random() < 0.3) puff(HALLE.quai.x, 2.4, HALLE.quai.z, teinteDe(A.cle), 0.35, 0.3);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
+    case 'vendre': {
+      const q = Math.min(lent, T.load, placeChez(A.S));
+      if(q <= 0.0001) return;
+      T.load -= q; money += q*prixChez(A.S, A.cle);
+      if(A.S.etal !== undefined) A.S.reste -= q;
+      if(A.S === RESTO) avancerCommande(A.cle, q);
+      compter(A.cle, q);
+      if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
       if(T.load <= 0.01){ viderType(T);
-        showHint(nomDe(T.type).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
+        showHint(nomDe(A.cle).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
       return;
     }
-    if(accepteMaintenant(S, T.type)){
-      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(S));
-      if(q <= 0.0001) break;
-      T.load -= q; S.tremie[T.type] = (S.tremie[T.type] || 0) + q; compter(T.type, q);
-      if(Math.random() < 0.3) puff(S.dropX, 2.6, S.dropZ, teinteDe(T.type), 0.35, 0.3);
-      if(T.load <= 0.01){
-        showHint(nomDe(T.type).toUpperCase() + ' LIVRÉ À ' + S.nom.toUpperCase());
-        viderType(T); }
+    case 'verser': {
+      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(A.S));
+      if(q <= 0.0001) return;
+      T.load -= q; A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q; compter(A.cle, q);
+      if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
+      if(T.load <= 0.01){ showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
+                          viderType(T); }
       return;
     }
-    break;
-  }
-}
-// Reprendre un produit fini sur le quai d'une usine. C'est le geste symétrique du
-// versement, et il a besoin d'être appelé avant lui : sinon une benne vide garée
-// devant l'huilerie repartirait avec ce qu'elle vient d'apporter.
-function reprendreUn(m, dt){
-  const v = m.v;
-  const tool = toolOf(m);
-  const T = (tool && tool.cargo) ? tool : (v.cargo ? v.cargo : null);
-  if(!T || v.speed > 2.5 || T.load >= T.capacite - 0.01) return;
-  for(const S of SITES){
-    if(!aQuai(v, S)) continue;
-    const cle = (T.load > 0.01) ? T.type : stockASortir(S);
-    if(!cle || S.caisse || !(S.stock[cle] > 0.01) || !peutCharger(T, cle)) return;
-    const q = Math.min(340*dt, T.capacite - T.load, S.stock[cle]);
-    T.load += q; S.stock[cle] -= q; poserType(T, cle);
-    if(Math.random() < 0.3) puff(S.dropX, 2.6, S.dropZ, teinteDe(cle), 0.35, 0.3);
-    if(T.load >= T.capacite - 0.01) showHint(nomDe(cle).toUpperCase() + ' CHARGÉ');
-    return;
+    case 'reprendre': {
+      const q = Math.min(debit, T.capacite - T.load, A.S.stock[A.cle]);
+      if(q <= 0.0001) return;
+      T.load += q; A.S.stock[A.cle] -= q; poserType(T, A.cle);
+      if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
+    case 'tremieVente': case 'tremieLivraison': {
+      const vente = A.sens === 'tremieVente';
+      const q = Math.min(hopper, 420*dt, vente ? placeChez(A.S) : Infinity);
+      if(q <= 0.0001) return;
+      hopper -= q; delivered += q; compter(A.cle, q);
+      if(vente){ money += q*prixChez(A.S, A.cle);
+                 if(A.S.etal !== undefined) A.S.reste -= q;
+                 if(A.S === RESTO) avancerCommande(A.cle, q); }
+      else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
+      if(Math.random() < 0.6)
+        puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,
+             teinteDe(A.cle), 0.4, 0.2);
+      if(hopper <= 0.01){ hopper = 0;
+        showHint(vente ? A.S.nom.toUpperCase() + ' — ' + Math.floor(money) + ' €'
+                       : nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()); }
+      return;
+    }
   }
 }
 
@@ -6452,7 +6525,10 @@ function actionService(){
   return null;
 }
 function refreshService(){
-  const a = actionService();
+  // Quand la colonne de choix est ouverte, elle porte déjà l'action de service : deux
+  // boutons au même endroit poseraient deux fois la même question.
+  const a = (choixEl.style.display === 'flex') ? null : actionService();
+  hintEl2.style.opacity = (choixEl.style.display === 'flex') ? 0 : '';
   if(!a){ servEl.style.display = 'none'; servEl._f = null; return false; }
   servEl.style.display = 'block';
   servEl.classList.toggle('no', !a.ok);
@@ -6461,6 +6537,57 @@ function refreshService(){
   return true;
 }
 servEl.addEventListener('pointerdown', ()=>{ if(servEl._f) servEl._f(); refreshService(); });
+
+/* La rangée de choix. Elle n'apparaît que là où PLUSIEURS transferts sont possibles :
+   ailleurs le jeu fait comme avant, tout seul, et on conduit sans rien avoir à
+   toucher. Le choix vaut pour cet arrêt : il s'oublie dès qu'on repart, sinon on
+   vendrait au commerce suivant ce qu'on venait d'y charger. */
+const choixEl = document.getElementById('choix');
+const hintEl2 = document.getElementById('hint');
+let choixSignature = '';
+function refreshChoix(){
+  const m = MACHINES[cur];
+  // C'est le même appel qui tient les comptes pour la simulation : la colonne et le
+  // transfert ne peuvent donc pas être en désaccord sur ce qui est en cours.
+  const retenue = actionRetenue(m);
+  const L = actionsIci(m);
+  // Rien à demander tant qu'une action tourne ou qu'il n'y en a qu'une à faire.
+  const demande = !retenue && L.length > 0 && (L.length > 1 || transfertFait);
+  if(!demande){
+    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
+    return false;
+  }
+  // Vider d'abord, charger ensuite, et le plus gros tas en tête : c'est l'ordre dans
+  // lequel on y pense en arrivant, benne pleine.
+  const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
+                auge:1, verserAtelier:1, prendre:2, reprendre:2, prendreAtelier:2, traire:2};
+  const tri = L.slice().sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt))
+                       .slice(0, 4);
+  // Le bouton de service — améliorer l'atelier, ouvrir le comptoir, embarquer des
+  // bêtes — rejoint la colonne : deux piles de boutons au même endroit, ce serait
+  // deux fois la même question posée différemment.
+  const serv = actionService();
+  const sig = tri.map((A)=> A.txt).join('|') + (serv ? '|' + serv.txt : '');
+  if(sig === choixSignature) return true;      // rien n'a changé : on ne repeint pas
+  choixSignature = sig;
+  choixEl.innerHTML = '';
+  const t = document.createElement('div'); t.className = 'titre'; t.textContent = 'Que faire ici ?';
+  choixEl.appendChild(t);
+  for(const A of tri){
+    const b2 = document.createElement('div');
+    b2.className = 'ch'; b2.textContent = A.txt;
+    b2.addEventListener('pointerdown', ()=>{ choixEnCours = A; refreshChoix(); refreshService(); });
+    choixEl.appendChild(b2);
+  }
+  if(serv){
+    const b3 = document.createElement('div');
+    b3.className = 'ch' + (serv.ok ? '' : ' no'); b3.textContent = serv.txt;
+    if(serv.ok) b3.addEventListener('pointerdown', ()=>{ serv.f(); refreshChoix(); refreshService(); });
+    choixEl.appendChild(b3);
+  }
+  choixEl.style.display = 'flex';
+  return true;
+}
 
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
 const jaugeEl = {
@@ -7461,7 +7588,6 @@ function loop(now){
     work(m, dt);
     grow(dt);
     flushTint();
-    deliver(dt);
     updateCargo(dt);
     updateContrat(dt);
     updateJourNuit(dt);
@@ -7535,7 +7661,7 @@ function loop(now){
   refreshHUD();
   refreshContrat();
   refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
-  refreshService(); refreshJauges();   // quelques dizaines de tests, coût nul
+  refreshChoix(); refreshService(); refreshJauges();   // quelques dizaines de tests, coût nul
   renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);

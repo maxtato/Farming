@@ -38,6 +38,16 @@ moment** :
 | **Jaune, qui pulse** | en s'arrêtant ici maintenant, il se passe quelque chose |
 | **Blanc, fixe** | un point de service, mais rien à y faire avec ce chargement |
 
+Une fois à l'arrêt : s'il n'y a qu'une seule chose à faire, elle se fait toute seule.
+S'il y en a plusieurs — cinq tas au silo, vendre ou livrer chez un commerce, remplir
+l'auge ou charger le lait — le jeu s'arrête et **demande**, en une courte colonne de
+boutons. Deviner à ta place, c'est te charger de l'orge quand tu venais chercher du blé.
+
+Une **jauge flottante** montre le remplissage au-dessus de l'engin pendant le transfert,
+au-dessus du silo, au-dessus de l'atelier, et au-dessus de chaque parcelle qui pousse.
+Elle ne se montre que dans les soixante mètres : de plus loin, la vallée reste un
+paysage.
+
 La caisse est pleine de lait ? Seule la laiterie s'allume, sur toute la vallée. On la
 vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas compte de
 la distance : c'est ce qui permet de choisir sa destination d'un bout à l'autre de la
@@ -77,6 +87,11 @@ trémie de la moissonneuse ne mélange pas, une culture à la fois. La **vigne**
 l'**olivier** sont pérennes — plantés une fois, ils restent sur leur parcelle et
 repartent en croissance dès qu'on les a récoltés. Ils n'entrent pas au silo : du champ
 au pressoir ou à l'étal, directement.
+
+Chacune a sa plante : l'épi barbu de l'orge, la tige haute du maïs et ses feuilles
+retombantes, les grappes de fleurs du colza, la panicule lâche de l'avoine, le rang
+palissé de la vigne, l'olivier noueux. Un rang de vigne sur deux, un olivier toutes les
+seize cellules — une plantation, pas un semis.
 
 ### Les élevages
 
@@ -132,10 +147,10 @@ immobilisé : il se traîne au ralenti jusqu'à la cuve.
 
 ## La nuit
 
-Les optiques sculptées sur chaque engin s'allument elles-mêmes — la lentille passe à
-l'émissif — et projettent un faisceau au sol qui part du nez et s'ouvre devant. Un
-engin garé reste éteint, comme il a le moteur coupé. Le gyrophare bat dès qu'on roule,
-avec une flaque orange au sol la nuit.
+Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
+l'émissif et une bille de lumière s'épanouit autour. Les lampadaires et le gyrophare
+font exactement pareil — c'est la lampe qui brille, rien n'est projeté au sol. Un engin
+garé reste éteint, comme il a le moteur coupé ; le gyrophare bat dès qu'on roule.
 
 ## La boucle de jeu
 
@@ -210,6 +225,13 @@ Quelques partis pris qui expliquent le reste :
   s'allume quand quelque chose se passe dans le monde.
 - **L'éclairage est presque uniforme**, avec des ombres longues mais claires. Les
   couleurs des faces doivent rendre pleines, pas modelées.
+- **Une lampe brille, elle ne peint pas le sol.** Gyrophare, phares et lampadaires
+  partagent le même dispositif : un corps émissif et une bille additive autour de lui.
+  Les seules marques lumineuses au sol sont les anneaux d'action.
+- **Ce qui allume un anneau est ce qui agira.** La liste des transferts possibles à un
+  endroit sert à la fois à colorer l'anneau, à remplir la colonne de choix et à déplacer
+  la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
+  anneau jaune.
 
 ## Sauvegarde
 
