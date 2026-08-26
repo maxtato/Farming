@@ -436,6 +436,35 @@ Quelques partis pris qui expliquent le reste :
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
   anneau jaune.
 
+## Tout ce qu'on peut faire ici, d'un seul coup d'œil
+
+La colonne de l'anneau demandait d'abord **DÉCHARGER** ou **REMPLIR**, puis quoi : deux
+appuis, et la moitié des possibilités cachée derrière le premier. Elles sont maintenant
+toutes montrées, à plat, dans l'ordre où l'on y pense — ce qu'on dépose, ce qu'on prend,
+puis les gestes qui ne passent pas par la benne.
+
+**Et ce qui est empêché s'affiche aussi**, en gris, avec sa raison. C'est ce qui manquait
+le plus : arrivé à l'enclos avec un tracteur nu, on ne voyait pas « charger le lait »,
+rien ne disait qu'il fallait une benne, et l'on en concluait que le jeu ne le permettait
+pas. Le même enclos annonce désormais :
+
+| | |
+|---|---|
+| **ACHETER UNE VACHE · 1 200 €** | en or : on peut |
+| CHARGER LAIT — IL FAUT UNE BENNE OU UN UTILITAIRE | en gris, et l'on sait quoi aller chercher |
+| REMPLIR L'AUGE — IL FAUT APPORTER DE QUOI NOURRIR | |
+| EMBARQUER UNE BÊTE — IL FAUT LE PICK-UP OU LE FOURGON | |
+
+L'entrepôt explique de même qu'il ne prend pas les céréales — elles se rentrent au silo —
+au lieu de rester muet.
+
+**Un curseur de quantité** s'ouvre sur toute action qui se dose. Il est borné par le plus
+contraignant des deux — la benne ou le tas — et la quantité choisie devient la limite du
+transfert, qui s'arrête pile dessus : le dernier pas est raccourci exprès, sans quoi l'on
+chargeait 204 kg là où l'on en avait demandé 200. Choisir le maximum ne pose aucune
+limite. Embarquer des bêtes passe par le même curseur : on vient parfois chercher **une**
+bête, pas tout l'enclos.
+
 ## Ce que l'écran donne à lire
 
 Les trois tracteurs s'appellent **Tracteur**. « Vert », « Rouge », « Bleu » disaient leur
@@ -516,6 +545,16 @@ instances-là ne partaient jamais.
 **La bande passante des tuiles du sol.** Les tuiles font 27,5 m sur 320 px, et
 `flushTiles` n'en réveille que deux par image : 0,78 Mio au pire, contre 3,13 avant
 qu'elles soient coupées en quatre.
+
+**La mémoire des textures.** C'est le poste qui étrangle un téléphone : au-delà de
+quelques centaines de mégaoctets, le navigateur évince des textures et les recharge en
+boucle — le jeu tombe alors à une image par seconde pendant plusieurs secondes. Les
+bulles de prix des seize commerces étaient dessinées en double définition « pour la
+netteté » : 1280 px de large pour une bulle qui en mesure deux cents à l'écran, soit
+trente-six fois trop de pixels, et 59 Mio à elles seules. À définition simple elles
+restent trois fois plus fines que l'écran et tombent à 15 Mio : **la scène passe de
+101,4 à 57,1 Mio de textures**, sans différence visible sur une capture au plus près.
+`SUR`, dans `bulleTex`, est le seul chiffre à toucher pour revenir en arrière.
 
 **L'empaquetage de la sauvegarde.** La grille part toutes les six secondes. Les deux
 tampons de travail sont gardés d'un enregistrement à l'autre : l'ancienne version
