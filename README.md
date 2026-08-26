@@ -26,22 +26,32 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Changer d'engin** | bouton en bas, ou les touches 1 à 4 |
 | **Atteler / dételer** | bouton ATTELER, à portée d'un outil posé au sol |
 | **Pilotage automatique** | bouton AUTO : la machine fait ses allers-retours seule |
+| **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
 Un **anneau lumineux au sol** signale un endroit où s'arrêter : livraison, plein de
-gazole, chargement. Il est posé sur la dalle du commerce, juste en entrant dans le
-parking : on franchit la porte de la clôture, on se gare dessus, ça se fait tout seul.
-Sa couleur dit s'il y a quelque chose à y faire **avec ce qu'on transporte en ce
-moment** :
+gazole, chargement. Il est posé sur la dalle du commerce, **devant la façade, sur l'axe
+du bâtiment**, à la même distance du bord chez les seize : on franchit la porte de la
+clôture, on se gare dessus. Sa couleur dit s'il y a quelque chose à y faire **avec ce
+qu'on transporte en ce moment** :
 
 | | |
 |---|---|
 | **Jaune, qui pulse** | en s'arrêtant ici maintenant, il se passe quelque chose |
 | **Blanc, fixe** | un point de service, mais rien à y faire avec ce chargement |
 
-Une fois à l'arrêt : s'il n'y a qu'une seule chose à faire, elle se fait toute seule.
-S'il y en a plusieurs — cinq tas au silo, vendre ou livrer chez un commerce, remplir
-l'auge ou charger le lait — le jeu s'arrête et **demande**, en une courte colonne de
-boutons. Deviner à ta place, c'est te charger de l'orge quand tu venais chercher du blé.
+Une fois à l'arrêt, **rien ne part tout seul** : le jeu demande, toujours en deux
+temps. D'abord **DÉCHARGER** ou **REMPLIR** — les deux seuls sens possibles. Puis, si ce
+sens offre plusieurs possibilités, la liste de ce qui est disponible, et de quoi
+revenir en arrière. Quand il n'y en a qu'une, le premier clic suffit. Le transfert en
+cours reste affiché, plein, et un clic dessus l'arrête.
+
+Où peut-on faire quoi :
+
+| | |
+|---|---|
+| **Silo, atelier de la ferme, pâtures** | décharger **et** remplir : c'est chez toi |
+| **Usines et points de vente du village** | décharger seulement — ils paient, ils gardent |
+| **Garage, comptoir agricole** | ni l'un ni l'autre : un bouton, pas un transfert |
 
 Une **jauge flottante** montre le remplissage au-dessus de l'engin pendant le transfert,
 au-dessus du silo, au-dessus de l'atelier, et au-dessus de chaque parcelle qui pousse.
@@ -171,19 +181,20 @@ sa flaque restait immobile sous l'engin, elle a été retirée.
                    |            |-> aliment (+ premium) -> les mangeoires
                    |            \-> vin              -> caviste, meilleur prix
                    |
-                   +-> usines du bord de route : on verse, on revient chercher
+                   +-> usines du bord de route : on verse, elles PAIENT
                    |     orge   -> brasserie      -> bière
                    |     avoine -> usine d'avoine -> lait d'avoine
                    |     blé/maïs/avoine -> usine de céréales -> céréales
                    |     colza / olives  -> huilerie -> huiles
                    |     lait   -> laiterie   -> beurre + yaourt
                    |     lait   -> fromagerie -> fromage
-                   |     laine  -> atelier textile (vend sur place)
+                   |     laine  -> atelier textile
+                   |     (elles vendent elles-mêmes : rien à revenir chercher)
                    |
                    \-> mangeoire -> vaches  -> lait
                                  |-> poules  -> œufs
                                  |-> moutons -> laine
-                                 \-> toute bête adulte -> boucherie -> viande
+                                 \-> toute bête adulte -> boucherie (paie sur place)
 
    et au bout : marché du village (petites quantités, bon prix)
                 supermarché (tout, 14 % moins cher)
@@ -223,7 +234,13 @@ Quelques partis pris qui expliquent le reste :
   entamée n'accepte plus rien d'autre : c'est ce qui oblige à planifier ses tournées.
 - **Un transformateur, c'est toujours la même mécanique** : une trémie, un stock, une
   recette entre les deux. L'atelier de la ferme et les usines du bord de route
-  partagent le même code ; seule change la liste des recettes.
+  partagent le même code ; seule change la liste des recettes — et, chez les usines,
+  le stock est remplacé par une caisse : elles vendent ce qu'elles font.
+- **On ne charge que chez soi.** Silo, atelier de la ferme, pâtures : les deux sens. Le
+  village achète, il ne rend rien. Faire des allers-retours pour récupérer chez une
+  usine ce qu'on venait de lui vendre, c'était trois arrêts pour une seule récolte.
+- **Un transfert ne démarre jamais sans qu'on l'ait demandé.** Deux boutons, deux
+  temps, toujours les mêmes : le sens, puis la marchandise.
 - **Une recette n'a rien à déclarer** : le nom du produit suffit, puisque la table des
   produits dit déjà de quoi il est fait, ce qu'il rend et à quel palier il appartient.
 - **Un anneau ne s'allume jamais pour le seul fait qu'un panneau peut s'ouvrir.** Il

@@ -148,6 +148,11 @@
     font-size:12px;font-weight:bold;letter-spacing:1.3px;border:2px solid #E8B44A;
     color:#E8B44A;white-space:nowrap}
   #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+  /* Le transfert en cours : plein, pour qu'on voie d'un coup d'œil ce qui tourne.
+     Cliquer dessus l'arrête. Le retour, lui, s'efface : c'est une sortie, pas un choix. */
+  #choix .ch.on{background:#E8B44A;color:#1B2429;border-color:#E8B44A}
+  #choix .ch.retour{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.55);
+    font-size:11px;letter-spacing:1.1px;padding:6px 16px}
   #choix .titre{font-size:10px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
     padding-bottom:2px}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
@@ -854,13 +859,22 @@ const NEGOCE = {
   // — achète la récolte brute, tout de suite, moins cher que le circuit long
   'Coopérative':     {achete:['ble','mais','orge','avoine','colza'], coef:1.00},
 
-  // — les usines : on verse, on repart, on revient chercher
-  'Usine céréales':  {fabrique:['cerealesPlus','cereales'], choix:'meilleure', debit:16},
-  'Usine avoine':    {fabrique:['laitAvoine'], debit:14},
-  'Brasserie':       {fabrique:['biere'], debit:14},
-  'Huilerie':        {fabrique:['huile','huileOlive'], choix:'toutes', debit:15},
-  'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes', debit:18},
-  'Fromagerie':      {fabrique:['fromage'], debit:12},
+  /* — les usines du village : on verse, elles paient. Elles gardaient leur production
+       en attente et il fallait revenir la chercher pour la revendre ailleurs : trois
+       arrêts pour une seule récolte, et une benne qui repartait pleine d'un produit
+       qu'on ne pouvait vendre nulle part sans un quatrième. Elles ont maintenant leur
+       caisse, comme la boulangerie l'avait déjà. On décharge, on est payé, on repart.
+       Le seul endroit où l'on charge ET décharge, c'est chez nous : le silo, l'atelier
+       de la ferme et les pâtures. */
+  'Usine céréales':  {fabrique:['cerealesPlus','cereales'], choix:'meilleure',
+                      caisse:true, coef:1.00, debit:16},
+  'Usine avoine':    {fabrique:['laitAvoine'], caisse:true, coef:1.00, debit:14},
+  'Brasserie':       {fabrique:['biere'], caisse:true, coef:1.00, debit:14},
+  'Huilerie':        {fabrique:['huile','huileOlive'], choix:'toutes',
+                      caisse:true, coef:1.00, debit:15},
+  'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes',
+                      caisse:true, coef:1.00, debit:18},
+  'Fromagerie':      {fabrique:['fromage'], caisse:true, coef:1.00, debit:12},
   'Boucherie':       {abattoir:true, achete:[], debit:0},
   'Atelier textile': {fabrique:['textile'], caisse:true, coef:1.00, debit:10},
 
@@ -869,16 +883,18 @@ const NEGOCE = {
                       choix:'meilleure', caisse:true, coef:1.00, debit:12},
 
   // — les points de vente finaux
-  'Caviste':         {achete:['vin'], coef:1.15},
-  'Restaurant':      {achete:['viande','oeufs','lait','fromage','beurre','farine',
-                              'huile','huileOlive','vin','laitAvoine','biere'], coef:1.10},
-  'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine','fromage',
-                              'yaourt','viande','huile','huileOlive','vin','cereales',
-                              'cerealesPlus','biere','laitAvoine','beurre'],
-                      coef:0.94, etal:1400},
-  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','cereales',
-                              'cerealesPlus','laitAvoine','huile','huileOlive','vin',
-                              'fromage','beurre','yaourt','viande','biere'], coef:0.86}
+  /* — les points de vente finaux. Ils n'achètent plus que ce qu'on peut réellement
+       leur apporter : la récolte, ce que donnent les bêtes, et ce que l'atelier de la
+       ferme transforme. Le reste — bière, fromage, beurre, yaourt, lait d'avoine —
+       est fabriqué et vendu par les usines elles-mêmes ; l'afficher ici, c'était
+       promettre au joueur des lignes qu'il ne pourrait jamais honorer. */
+  'Caviste':         {achete:['vin','raisin'], coef:1.15},
+  'Restaurant':      {achete:['oeufs','lait','farine','huile','vin','raisin','olives'],
+                      coef:1.10},
+  'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine',
+                              'huile','vin'], coef:0.94, etal:1400},
+  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','vin'],
+                      coef:0.86}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -891,7 +907,7 @@ for(const S of SITES){
   S.accepte = [];
   for(const cle of S.fabrique) for(const k in recetteEntrees(cle))
     if(S.accepte.indexOf(k) < 0) S.accepte.push(k);
-  if(S.abattoir) S.stock.viande = 0;
+
   S.debitKg  = S.debit || 12;
   S.stockMax = ()=> 2600;
   S.debit    = ()=> S.debitKg;
@@ -6324,20 +6340,26 @@ const memeAction = (A, B)=> !!A && !!B && A.sens === B.sens && A.cle === B.cle
    et s'oublie dès qu'on repart ou qu'elle devient impossible — un choix qui survivrait
    au départ ferait vendre au commerce suivant ce qu'on venait d'y charger. */
 let choixEnCours = null;
-/* Vrai quand un transfert vient de s'achever ici. On ne se relance jamais tout seul sur
-   une DEUXIÈME opération au même arrêt : sinon la benne qu'on vient de remplir au silo
-   s'y reviderait aussitôt — charger et ranger sont tous deux possibles, et il ne reste
-   que le second une fois la caisse pleine. Il faut repartir, ou redemander. */
-let transfertFait = false;
+/* DANS QUEL SENS. Toute action de transfert vide la benne ou la remplit — il n'y a
+   pas de troisième cas. C'est ce qui permet de poser au joueur une question en deux
+   temps : d'abord DÉCHARGER ou REMPLIR, ensuite quoi. */
+const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
+                    verser:1, verserAtelier:1, auge:1};
+const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
+/* Le sens choisi au premier temps, ou null tant qu'on n'a pas répondu. */
+let choixMode = null;
+/* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
+   possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
+   ait rien demandé. Désormais on répond toujours — mais une seule fois quand il n'y a
+   qu'une possibilité dans le sens choisi. */
 function actionRetenue(m){
   const L = actionsIci(m);
-  if(!L.length){ choixEnCours = null; transfertFait = false; return null; }
+  if(!L.length){ choixEnCours = null; choixMode = null; return null; }
   // Une action commencée va jusqu'au bout : elle ne se laisse pas interrompre parce
   // qu'une autre devient possible en cours de route.
   const t = L.find((A)=> memeAction(A, choixEnCours));
   if(t) return t;
-  if(choixEnCours){ choixEnCours = null; transfertFait = true; }
-  if(L.length === 1 && !transfertFait){ choixEnCours = L[0]; return L[0]; }
+  choixEnCours = null;                 // finie, ou devenue impossible : on redemande
   return null;
 }
 // Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
@@ -6547,15 +6569,16 @@ function updateBetail(dt){
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
     v.venteT = 0; v.betail--;
-    // La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre
-    // froide. On revient la chercher, et c'est le restaurant qui paie le mieux. Une
-    // bête donne de quoi valoir deux fois son prix de marché — c'est le palier
-    // « produit fini », gagné au prix d'une tournée de plus.
+    // La boucherie paie sur place, comme les usines du village. Elle mettait la
+    // carcasse en chambre froide et il fallait revenir la charger pour aller la
+    // revendre : une bête valait alors deux fois son prix de marché au prix de deux
+    // tournées. Elle vaut maintenant la même chose, payée au débarquement.
     const kgv = (v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI/prixDe('viande');
-    BOUCHERIE.stock.viande = (BOUCHERIE.stock.viande || 0) + kgv;
+    money += kgv*prixDe('viande');
+    compter('viande', kgv);
     STAT.betes++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
-    showHint('BÊTE ABATTUE — ' + Math.round(kgv) + ' KG DE VIANDE À REPRENDRE');
+    showHint('BÊTE ABATTUE — ' + eur(kgv*prixDe('viande')));
   }
 }
 
@@ -6652,9 +6675,9 @@ function refreshService(){
 }
 servEl.addEventListener('pointerdown', ()=>{ if(servEl._f) servEl._f(); refreshService(); });
 
-/* La rangée de choix. Elle n'apparaît que là où PLUSIEURS transferts sont possibles :
-   ailleurs le jeu fait comme avant, tout seul, et on conduit sans rien avoir à
-   toucher. Le choix vaut pour cet arrêt : il s'oublie dès qu'on repart, sinon on
+/* La rangée de choix. Elle apparaît PARTOUT où quelque chose est possible, et elle
+   pose toujours la même question en deux temps : d'abord décharger ou remplir, ensuite
+   quoi. Le choix vaut pour cet arrêt : il s'oublie dès qu'on repart, sinon on
    vendrait au commerce suivant ce qu'on venait d'y charger. */
 const choixEl = document.getElementById('choix');
 const hintEl2 = document.getElementById('hint');
@@ -6665,39 +6688,73 @@ function refreshChoix(){
   // transfert ne peuvent donc pas être en désaccord sur ce qui est en cours.
   const retenue = actionRetenue(m);
   const L = actionsIci(m);
-  // Rien à demander tant qu'une action tourne ou qu'il n'y en a qu'une à faire.
-  const demande = !retenue && L.length > 0 && (L.length > 1 || transfertFait);
-  if(!demande){
+  const serv = actionService();
+  if(!L.length && !serv){
+    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
+    choixMode = null;
+    return false;
+  }
+  // Deux piles : ce qui vide la benne, ce qui la remplit. Le plus gros tas en tête.
+  const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
+                auge:1, verserAtelier:1, prendre:2, reprendre:2, prendreAtelier:2, traire:2};
+  const parSens = {vider:[], remplir:[]};
+  for(const A of L) parSens[modeDe(A)].push(A);
+  for(const k in parSens)
+    parSens[k].sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt));
+  // Un sens qui n'a plus rien ne peut pas rester ouvert.
+  if(choixMode && !parSens[choixMode].length) choixMode = null;
+
+  /* Ce qu'on affiche, en trois états. En cours : le transfert seul, plein, cliquable
+     pour l'arrêter. Premier temps : DÉCHARGER et REMPLIR. Second temps : la liste du
+     sens choisi, et de quoi revenir. */
+  const lignes = [];
+  let titreTxt;
+  if(retenue){
+    titreTxt = 'En cours';
+    lignes.push({txt:'⏹  ' + retenue.txt, cls:'ch on', f:()=>{ choixEnCours = null; choixMode = null; }});
+  } else if(choixMode){
+    titreTxt = choixMode === 'vider' ? 'Décharger quoi ?' : 'Charger quoi ?';
+    // Six : de quoi lister les cinq céréales du silo ou les cinq produits de l'atelier
+    // sans jamais tronquer. Un choix qu'on ne voit pas est un choix qui n'existe pas.
+    for(const A of parSens[choixMode].slice(0, 6))
+      lignes.push({txt:A.txt, cls:'ch', f:()=>{ choixEnCours = A; choixMode = null; }});
+    lignes.push({txt:'← RETOUR', cls:'ch retour', f:()=>{ choixMode = null; }});
+  } else {
+    titreTxt = 'Que faire ici ?';
+    // Un seul choix dans ce sens : on ne fait pas cliquer deux fois pour rien.
+    const ouvrir = (mode)=>{
+      const P = parSens[mode];
+      if(P.length === 1) choixEnCours = P[0]; else choixMode = mode;
+    };
+    if(parSens.vider.length)
+      lignes.push({txt:'DÉCHARGER' + (parSens.vider.length > 1 ? '  ·  ' + parSens.vider.length : ''),
+                   cls:'ch', f:()=> ouvrir('vider')});
+    if(parSens.remplir.length)
+      lignes.push({txt:'REMPLIR' + (parSens.remplir.length > 1 ? '  ·  ' + parSens.remplir.length : ''),
+                   cls:'ch', f:()=> ouvrir('remplir')});
+    // Le bouton de service — améliorer l'atelier, ouvrir le comptoir, embarquer des
+    // bêtes — rejoint la colonne : deux piles de boutons au même endroit, ce serait
+    // deux fois la même question posée différemment.
+    if(serv) lignes.push({txt:serv.txt, cls:'ch' + (serv.ok ? '' : ' no'),
+                          f: serv.ok ? serv.f : null});
+  }
+  if(!lignes.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
     return false;
   }
-  // Vider d'abord, charger ensuite, et le plus gros tas en tête : c'est l'ordre dans
-  // lequel on y pense en arrivant, benne pleine.
-  const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
-                auge:1, verserAtelier:1, prendre:2, reprendre:2, prendreAtelier:2, traire:2};
-  const tri = L.slice().sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt))
-                       .slice(0, 4);
-  // Le bouton de service — améliorer l'atelier, ouvrir le comptoir, embarquer des
-  // bêtes — rejoint la colonne : deux piles de boutons au même endroit, ce serait
-  // deux fois la même question posée différemment.
-  const serv = actionService();
-  const sig = tri.map((A)=> A.txt).join('|') + (serv ? '|' + serv.txt : '');
+  const sig = titreTxt + '|' + lignes.map((x)=> x.cls + x.txt).join('|');
   if(sig === choixSignature) return true;      // rien n'a changé : on ne repeint pas
   choixSignature = sig;
   choixEl.innerHTML = '';
-  const t = document.createElement('div'); t.className = 'titre'; t.textContent = 'Que faire ici ?';
+  const t = document.createElement('div'); t.className = 'titre'; t.textContent = titreTxt;
   choixEl.appendChild(t);
-  for(const A of tri){
+  for(const x of lignes){
     const b2 = document.createElement('div');
-    b2.className = 'ch'; b2.textContent = A.txt;
-    b2.addEventListener('pointerdown', ()=>{ choixEnCours = A; refreshChoix(); refreshService(); });
+    b2.className = x.cls; b2.textContent = x.txt;
+    if(x.f) b2.addEventListener('pointerdown', (e)=>{
+      e.stopPropagation(); x.f(); refreshChoix(); refreshService();
+    });
     choixEl.appendChild(b2);
-  }
-  if(serv){
-    const b3 = document.createElement('div');
-    b3.className = 'ch' + (serv.ok ? '' : ' no'); b3.textContent = serv.txt;
-    if(serv.ok) b3.addEventListener('pointerdown', ()=>{ serv.f(); refreshChoix(); refreshService(); });
-    choixEl.appendChild(b3);
   }
   choixEl.style.display = 'flex';
   return true;
@@ -7090,7 +7147,7 @@ function ongletFilieres(){
     for(const cle of S.fabrique)
       l.push((S.caisse ? 'Cuisine : ' : 'Transforme : ') + flecheur(cle) + PRODUITS[cle].nom +
              ' (' + dec(rendementValeur(cle)*(S.coef || 1)) + ' € par kg apporté)');
-    if(S.abattoir) l.push('Abat les bêtes et rend la viande à charger');
+    if(S.abattoir) l.push('Abat les bêtes et paie la carcasse sur place');
     if(S.achete.length)
       l.push('Achète : ' + S.achete.map((k)=> PRODUITS[k].nom).join(', ') +
              (S.coef !== 1 ? ' — au barème ' + Math.round(S.coef*100) + ' %' : ''));
