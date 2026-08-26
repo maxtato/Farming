@@ -23,12 +23,18 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 |---|---|
 | **Volant** | manche à gauche, ou les flèches ← → |
 | **Gaz** | manette à droite, ou ↑ ↓ |
-| **Changer d'engin** | bouton en bas, ou les touches 1 à 4 |
-| **Atteler / dételer** | bouton ATTELER, à portée d'un outil posé au sol |
+| **Atteler / dételer** | le **crochet**, au centre : il porte un plus quand il y a un outil à prendre, un moins quand il y en a un à laisser |
 | **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
-| **Changer d'engin** | le bouton au nom de l'engin, en bas : la liste du parc s'ouvre |
-| **Automatiser** | bouton **PLAN** : la carte en grand, on compose une file de tâches |
+| **Changer d'engin** | le **garage**, tout en bas, ou les touches 1 à 4 : la liste du parc s'ouvre |
+| **Automatiser** | le **A cerclé**, à droite du crochet : la carte en grand, on compose une file de tâches |
+| **Régler le semoir** | l'**épi**, à gauche du crochet — le seul bouton qui garde un mot, parce qu'aucun dessin ne dit « tournesol » |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
+
+Les boutons de l'écran de jeu **ne portent pas de mot** : un pictogramme seul, tracé
+en `currentColor`, qui prend donc la couleur du bouton — jaune quand un outil est à
+portée, vert quand un plan tourne. Le nom de l'engin, lui, n'a pas disparu : il est
+dans le bandeau qui s'affiche quand on en change, et dans la liste que le bouton du
+garage ouvre. Les tracés sont dans `PICTOS`, et `picto('garage')` en rend un.
 
 Un **anneau lumineux au sol** signale un endroit où s'arrêter : livraison, plein de
 gazole, chargement. Il est posé sur la dalle du commerce, **devant la façade, sur l'axe
@@ -160,16 +166,16 @@ deux magasins.
 L'**atelier** n'a plus de quai : il tire tout seul de quoi travailler dans les deux
 magasins, et pousse tout seul ce qu'il a fini dans l'entrepôt. On ne s'y arrête plus,
 on n'y verse plus rien, on ne vient plus rien y chercher. Ce qu'on garde, c'est le
-choix de ce qu'il fabrique — et il se fait au bouton **PRODUCTION**.
+choix de ce qu'il fabrique — et il se fait au bouton **usine**.
 
 Trois boutons en bas à gauche disent l'état de la ferme sans qu'on ait à traverser le
-menu :
+menu. Chacun est tenu par la couleur de l'écran qu'il ouvre :
 
 | | |
 |---|---|
-| **STOCKAGE** | ce qui dort au silo, à l'entrepôt, et ce qui roule dans les bennes |
-| **PRODUCTION** | pour chaque module, la conversion en clair — cent kilos de blé donnent soixante-douze kilos de farine —, ce que le stock permet d'en sortir, ce que la même matière vaudrait brute, et le bouton qui lance la production |
-| **PRIX** | qui achète quoi et à combien, du mieux-disant au moins cher, avec la place restante sur les étals et ce que la matière rapporterait transformée |
+| **les caisses empilées** | ce qui dort au silo, à l'entrepôt, et ce qui roule dans les bennes |
+| **l'usine** | pour chaque module, la conversion en clair — cent kilos de blé donnent soixante-douze kilos de farine —, ce que le stock permet d'en sortir, ce que la même matière vaudrait brute, et le bouton qui lance la production |
+| **l'étiquette** | qui achète quoi et à combien, du mieux-disant au moins cher, avec la place restante sur les étals et ce que la matière rapporterait transformée |
 
 Cinq paliers, et chacun se voit sur le bâtiment :
 
@@ -195,7 +201,7 @@ immobilisé : il se traîne au ralenti jusqu'à la cuve.
 
 ## Le plan de travail
 
-Le bouton **PLAN** ouvre la carte en grand — la seule vue d'ensemble du jeu. On y
+Le bouton du **A cerclé** ouvre la carte en grand — la seule vue d'ensemble du jeu. On y
 désigne un engin, ce qu'on lui demande, et où :
 
 - **Travailler des parcelles** : on touche les parcelles à la suite. L'engin les fait
