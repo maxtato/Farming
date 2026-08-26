@@ -1534,13 +1534,17 @@ const BAKERY  = SITES.find(S=>S.nom === 'Boulangerie');
 const MARCHE  = SITES.find(S=>S.supermarche);
 // La rocade est un anneau : un point est sur la chaussée si l'une de ses deux
 // coordonnées longe l'un des quatre brins. Un seul test, appliqué partout.
+/* CE TEST DOIT DIRE OÙ EST LE BITUME, ET IL LE DISAIT MAL. Il bornait chaque brin à
+   l'anneau — un point n'était « sur la route » que s'il tombait AUSSI entre les deux
+   brins perpendiculaires — alors que le sol peint quatre bandes qui courent d'un bord
+   du monde à l'autre, et dont les quatre bouts dépassent des angles. Résultat : douze
+   arbres, buissons et rochers plantés en plein sur l'asphalte, au sud du brin sud et au
+   nord du brin nord, là où les bandes ouest et est continuent toutes seules. Sans les
+   deux gardes, le test est plus court et il est juste. */
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
-  const dansZ = z >= ROC.z0 - lim && z <= ROC.z1 + lim;
-  const dansX = x >= ROC.x0 - lim && x <= ROC.x1 + lim;
-  if(dansZ && (Math.abs(x - ROC.x0) < lim || Math.abs(x - ROC.x1) < lim)) return true;
-  if(dansX && (Math.abs(z - ROC.z0) < lim || Math.abs(z - ROC.z1) < lim)) return true;
-  return false;
+  return Math.abs(x - ROC.x0) < lim || Math.abs(x - ROC.x1) < lim ||
+         Math.abs(z - ROC.z0) < lim || Math.abs(z - ROC.z1) < lim;
 }
 function onPath(x,z,margin){
   const m = PATH_W/2 + (margin||0);
@@ -3878,6 +3882,8 @@ function buildFarm(){
     // dehors, c'est-à-dire au-delà de la rocade : le houppier ne doit pas la surplomber
     if(x > ROC.x0 - ROAD_W/2 - 6 && x < ROC.x1 + ROAD_W/2 + 6 &&
        z > ROC.z0 - ROAD_W/2 - 6 && z < ROC.z1 + ROAD_W/2 + 6) return false;
+    // et pas davantage sur les BOUTS des quatre bandes, qui dépassent des angles
+    if(surRoute(x, z, 6)) return false;
     if(x < X0+4 || x > X1-4 || z < Z0+4 || z > Z1-4) return false;
     for(const S of SITES){
       // emprise du bâtiment : profondeur en X et largeur en Z sur les bords latéraux,
@@ -3886,8 +3892,12 @@ function buildFarm(){
       if(Math.abs(x-S.x) < ex+7 && Math.abs(z-S.z) < ez+7) return false;
       if(x > S.emp.x0-7 && x < S.emp.x1+7 && z > S.emp.z0-7 && z < S.emp.z1+7) return false;
     }
-    // le rang : un seul rectangle, puisque les lots sont jointifs, plus trois mètres
-    if(x > RANG.x0 - 3 && x < RANG.x1 + 3 && z > RANG.z0 - 3 && z < RANG.z1 + 3) return false;
+    /* Le rang, et la verge devant lui. Trois mètres de marge autour, et devant :
+       jusqu'au bitume. La verge appartient à la rue, pas au semis — et l'écrire ici
+       vaut mieux que de compter sur le fait que le test précédent s'arrête pile à son
+       bord, ce qui ne tient que tant que RUE_VERGE ne bouge pas. */
+    if(x > RANG.x0 - 3 && x < RANG.x1 + 3 &&
+       z > ROC.z1 + ROAD_W/2 && z < RANG.z1 + 3) return false;
     return true;
   };
   /* Les maisons, posées avant la verdure pour que le semis les contourne. Puis la
@@ -3937,8 +3947,9 @@ function buildFarm(){
   /* Ce qui arrête un engin : le rang entier, d'un seul rectangle. Les lots étant
      jointifs il n'y a plus rien à traverser entre deux maisons, et un disque par
      maison déborderait de toute façon sur la chaussée qu'elles longent. */
+  const DEB = 0.11*MAI_ECHELLE/2;             // le poteau déborde du bord de lot
   boxObs.push({x:(RANG.x0 + RANG.x1)/2, z:(RANG.z0 + RANG.z1)/2,
-               hw:(RANG.x1 - RANG.x0)/2, hd:(RANG.z1 - RANG.z0)/2});
+               hw:(RANG.x1 - RANG.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
 
   /* LES PETITS OBJETS DU VILLAGE, semés à gauche et à droite entre les maisons et les
      commerces. Ils passent en revue, l'un après l'autre et en boucle, pour qu'aucun ne
@@ -4434,6 +4445,11 @@ function panCloture(g, x0, z0, x1, z1, coupes, sansA, sansB){
     const n = Math.max(1, Math.round(L/PAS));
     for(let k = 0; k <= n; k++){
       const t = u + k*L/n;
+      // Un tronçon commence et finit sur le bord d'une ouverture, là où le rang plante
+      // déjà son montant de portillon — plus gros et plus haut. Le poteau ordinaire y
+      // serait entièrement noyé : vingt-deux volumes payés pour rien.
+      if(k === 0 && u > a + 1e-6) continue;
+      if(k === n && v < b - 1e-6) continue;
       if(sansA && Math.abs(t - a) < 1e-6) continue;
       if(sansB && Math.abs(t - b) < 1e-6) continue;
       g.add(box(S, RUE_H, S, RUE_C, horiz ? t : x0, RUE_H/2, horiz ? z0 : t));

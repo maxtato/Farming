@@ -555,10 +555,21 @@ percer — sinon elle s'arrêterait dans l'herbe à un mètre de la barrière.
 **Et le rang n'est pas sur la route.** Il se tenait à `RECUL_ROCADE`, les trois mètres de
 verge des commerces — mais un commerce met dix mètres de **parvis** entre sa dalle et sa
 façade, quand une maison n'a que son jardin de devant : vue de la chaussée, la clôture
-tombait au ras du bitume. `RUE_VERGE` vaut neuf mètres, ce qui remet les façades des
-maisons à 12,2–12,9 m du bitume, contre 13 pour celles des commerces. Ce qui arrête
-l'engin est **un seul rectangle** pour tout le rang : les lots étant jointifs, il n'y a
-plus rien à traverser entre deux maisons.
+tombait au ras du bitume. `RUE_VERGE` vaut neuf mètres, ce qui met les **murs** de
+façade des maisons à 12,64–13,16 m du bitume, contre 13 pour ceux des commerces — la
+même ligne. (L'avant-toit, lui, avance de quarante centimètres devant son mur : 12,2 à
+12,9 m. Deux lignes, à ne pas confondre.) Ce qui arrête l'engin est **un seul
+rectangle** pour tout le rang, élargi de la demi-section d'un poteau : les lots étant
+jointifs, il n'y a plus rien à traverser entre deux maisons — on fait le tour par les
+bouts, avec 6,0 m de marge à l'ouest et 2,1 m à l'est.
+
+**Et plus rien n'est planté sur le bitume.** Le rang a révélé un défaut bien plus vieux
+que lui : `surRoute()` bornait chaque brin à l'anneau — un point n'était « sur la route »
+que s'il tombait *aussi* entre les deux brins perpendiculaires — alors que le sol peint
+quatre bandes qui **courent d'un bord du monde à l'autre**, dont les quatre bouts
+dépassent des angles. Douze arbres, buissons et rochers poussaient donc en plein sur
+l'asphalte, et trois houppiers la surplombaient. Sans les deux gardes, le test est plus
+court et il est juste : **zéro**, et zéro houppier.
 
 **Vingt-six petits objets** se sèment entre elles : abri de bus, tonnelle, lavoir, table
 de pique-nique, bûcher, puits, calvaire, entrée de village, banc de place, poteau
