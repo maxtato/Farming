@@ -123,6 +123,19 @@ seize cellules — une plantation, pas un semis.
 
 ### Les élevages
 
+**Un corps d'un seul tenant.** Le tronc d'une vache ou d'un cochon était un fût coiffé de
+deux billes : trois volumes, et deux **raccords** bien visibles. Le fût a quatorze pans
+réguliers, la bille est un icosaèdre subdivisé — leurs facettes ne tombent jamais en face,
+et l'ombrage à facettes souligne la couture d'un anneau net à chaque épaule et à chaque
+hanche. Un profil tourné donne le même volume — flanc droit, bouts arrondis et aplatis
+comme ils l'étaient — en **une** géométrie, sans raccord, et pour **moins de triangles**
+qu'avant : 356 contre 376 pour la vache, 556 contre 576 pour le cochon. Le flanc garde
+son rayon, donc les taches de robe s'y posent sans rien changer.
+
+Et les deux grandissent : la vache passe de 3,72 à 4,27 m de long et de 1,89 à 2,16 m au
+garrot, le cochon de 2,77 à 3,22 m et de 1,40 à 1,62 m.
+
+
 Une parcelle possédée s'aménage en enclos. Quatre espèces, chacune avec son
 aménagement, son produit et son débouché :
 
@@ -624,6 +637,42 @@ soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est 
 permet d'en poser cinquante sans que la carte s'alourdisse — 31 700 triangles pour
 l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
 échelle ne crée pas de géométrie.
+
+## Le pilote automatique
+
+**L'escargot est strictement orthogonal.** Il ne l'était pas : le tour se refermait sur
+son coin de départ, puis le suivant commençait au coin rentré d'une passe — un saut en
+diagonale à chaque tour, **32 segments obliques** et jusqu'à 17 m de biais par parcelle.
+On resserre maintenant UN bord à la fois, juste après l'avoir longé, et le resserrage est
+bridé au milieu : sans cette butée le rectangle se retournait et il restait au centre une
+bande que les deux passes opposées, trop écartées, n'avaient pas jointe. Le cœur, lui, se
+fait en lignes droites plutôt qu'en un dernier tour : un outil traîné quatre à six mètres
+derrière ne suit pas un chapelet de virages. Mesuré sur cinq outils × quatre tailles de
+parcelle : **0 oblique, 100 % du tracé sur la terre, 0 cellule oubliée**.
+
+**Un point de passage se valide quand on l'a DÉPASSÉ, et c'est l'outil qui doit l'avoir
+dépassé.** Deux défauts d'un coup. Un attelage tourne sur un rayon de 3,5 m et le point
+se validait à 2 : la charrue arrivait sur un coin, le manquait, et tournait autour
+indéfiniment — bloquée au point 3 sur 17 pendant six mille images. Et valider sur la
+position du tracteur, c'est amorcer le virage alors que l'outil n'y est pas encore : il
+coupe l'angle. La couverture réelle, machine pilotée image par image, passe de **37 % au
+pire à 84–98 %**.
+
+Deux autres réglages, chacun mesuré : la marge qui tient le tracteur dans la parcelle
+vaut une demi-largeur d'outil et 1,80 m au plus, au lieu d'une demi-passe — un épandeur
+de 12 m se retrouvait à tracer un carré de 8 m au milieu d'un champ de 19 ; et le
+marquage n'est plus coupé sous 0,60 m/s mais sous 0,05, si bien qu'un virage appuyé
+travaille le sol au lieu de le sauter.
+
+**Et pour aller quelque part, on roule sur la voie.** Le dernier trajet doit tomber
+perpendiculairement sur le point jaune, et la voie qui le dessert est celle dont il est
+le plus proche — on choisissait la voie la plus proche du DÉPART, si bien que le dernier
+trajet se faisait toujours en z : la bonne perpendiculaire pour les quatre commerces de
+la bande nord, et un abordage par le travers pour les onze autres. Un commerce se dessert
+par la rocade et jamais par un chemin de sable, qui s'arrête à la ferme. Et le raccourci
+en ligne droite passe de 18 m à 8 — la longueur d'un attelage, de quoi finir de se
+ranger, pas de quoi couper. Relevé sur 45 trajets : **0 oblique, 0 abordé de travers,
+12,6 m pour le plus long des derniers trajets**.
 
 ## Sept cultures, redessinées
 
