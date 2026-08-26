@@ -4184,11 +4184,13 @@ class Vehicle {
       const kR = Math.min(1, dt*5.0), kP = Math.min(1, dt*4.0);
       this.cRoll  = (this.cRoll  || 0) + (this.roll  - (this.cRoll  || 0))*kR;
       this.cPitch = (this.cPitch || 0) + (this.pitch - (this.cPitch || 0))*kP;
-      ud.caisse.rotation.z = (this.roll  - this.cRoll )*1.7;
-      ud.caisse.rotation.x = (this.pitch - this.cPitch)*1.7;
+      // Un dixième de degré de trop et la caisse se décroche visuellement de la
+      // cabine : le soufflet ne couvre plus le joint. On reste sous les deux degrés.
+      ud.caisse.rotation.z = Math.max(-0.032, Math.min(0.032, (this.roll  - this.cRoll )*1.1));
+      ud.caisse.rotation.x = Math.max(-0.030, Math.min(0.030, (this.pitch - this.cPitch)*1.1));
       // et un léger lacet au braquage : la caisse suit la cabine, elle ne la précède pas
       this.cLacet = (this.cLacet || 0) + ((steerX || 0)*Math.min(1, Math.abs(vf)/6) - (this.cLacet || 0))*Math.min(1, dt*3.2);
-      ud.caisse.rotation.y = -this.cLacet*0.055;
+      ud.caisse.rotation.y = -this.cLacet*0.036;
     }
     if(ud.reel) ud.reel.rotation.x -= Math.max(0.6, Math.abs(vf))*dt*1.6;
     if(ud.auger){
@@ -5618,8 +5620,7 @@ function lieuxPossibles(){
   const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z},
              {cle:'atelier', nom:'Atelier de la ferme', x:HALLE.quai.x, z:HALLE.quai.z}];
   PATURES.forEach((P, i)=>{
-    if(P.quaiProduit) L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1),
-                              x:P.quaiProduit.x, z:P.quaiProduit.z});
+    L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z});
   });
   for(const S of SITES)
     if(S.achete.length || S.accepte.length)
@@ -6718,11 +6719,11 @@ function creerPature(p, espece){
     // Le repère de l'enclos, gardé : le placement des ruches et tout ce qui voudra
     // raisonner « en profondeur depuis le portail » en a besoin.
     cote, din:C.din, dac:C.dac, croix, prof,
-    quaiProduit: E.produit ? {x: mx(uT + 3.6, dP), z: mz(uT + 3.6, dP)} : null,
-    quaiAuge:{x: mx(uA - 3.6, dP), z: mz(uA - 3.6, dP)},
-    // Pas de portail pour un rucher : on n'embarque pas une ruche pour l'abattoir.
-    // Comme pour le poste de collecte du cochon, ce qui n'a pas de sens n'est pas posé.
-    quaiPortail: E.prixBete > 0 ? {x: mx(0, -3.6), z: mz(0, -3.6)} : null,
+    // UN SEUL QUAI, planté devant le portail. Trois anneaux dispersés dans l'enclos
+    // obligeaient à s'y faufiler entre les bêtes et l'équipement pour trouver le bon,
+    // et deux d'entre eux étaient invisibles depuis l'entrée. Tout se fait maintenant
+    // sans franchir la clôture : nourrir, ramasser, acheter, embarquer.
+    quai:{x: mx(0, -4.2), z: mz(0, -4.2)},
     produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
     betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
     box:{x0: Math.min.apply(null, coins.map((c)=> c.x)),
@@ -6732,23 +6733,17 @@ function creerPature(p, espece){
   };
   P.dBox0 = dBox0; P.dBox1 = dBox1; P.uBox = uBox;
   majTasAuge(P);
-  // Les quais de l'enclos, chacun avec sa condition :
-  //   produit — il faut une caisse qui accepte cette nature, et de quoi charger ;
-  //   auge    — il faut porter du grain, et que la mangeoire ne déborde pas ;
-  //   portail — il faut de la place à bord et une bête adulte à embarquer. Le repli
-  //             « ouvrir le panneau Élevage » n'allume pas l'anneau : ce panneau est
-  //             déjà au menu, ce n'est pas ce qu'on vient chercher jusqu'ici.
-  // Un cochon ne donne rien en continu : pas de poste de collecte, donc pas d'anneau
-  // — un anneau posé ne peut plus être retiré, il resterait blanc devant rien.
-  if(P.quaiProduit)
-    anneauAction(P.quaiProduit.x, P.quaiProduit.z, 0.7,
-      ()=> peutPrendre(caisseDe(MACHINES[cur]), E.produit, P.produit));
-  anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
-    ()=>{ const T = caisseDe(MACHINES[cur]);
-          return !!T && !!RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax; });
-  if(P.quaiPortail) anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
-    const m = MACHINES[cur], cap = capaciteBetail(m);
-    return cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
+  // L'anneau s'allume dès qu'UNE des choses possibles ici l'est : verser du grain,
+  // prendre le produit, acheter une bête, en embarquer une. Acheter suffit — c'est le
+  // geste qu'on vient faire quand l'enclos est encore vide, et rien d'autre ne
+  // l'allumerait alors.
+  anneauAction(P.quai.x, P.quai.z, 1.4, ()=>{
+    const m = MACHINES[cur], T = caisseDe(m);
+    if(T && RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax) return true;
+    if(E.produit && peutPrendre(T, E.produit, P.produit)) return true;
+    if(P.betes.length < P.places && money >= E.prix) return true;
+    const cap = capaciteBetail(m);
+    return E.prixBete > 0 && cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
   });
   if(E.decor) E.decor(P);
   PATURES.push(P);
@@ -7084,12 +7079,9 @@ function updateElevage(dt){
 const patureProche = (v, r)=>{
   const R = r || 6.0;
   let best = null, bd = R;
-  // Un enclos de cochons n'a pas de poste de collecte : le quai peut être absent.
-  for(const P of PATURES) for(const q of ['Produit','Auge','Portail']){
-    const Q = P['quai'+q];
-    if(!Q) continue;
-    const d = Math.hypot(v.pos.x-Q.x, v.pos.z-Q.z);
-    if(d < bd){ bd = d; best = {P, quoi:q.toLowerCase()}; }
+  for(const P of PATURES){
+    const d = Math.hypot(v.pos.x-P.quai.x, v.pos.z-P.quai.z);
+    if(d < bd){ bd = d; best = {P, quoi:'enclos'}; }
   }
   return best;
 };
@@ -7245,9 +7237,10 @@ function actionsPature(m, pat){
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
   const E = ESPECES[pat.P.espece] || ESPECES.vache;
   const lieu = 'pature' + PATURES.indexOf(pat.P);
-  if(pat.quoi === 'auge' && porte && RATION[T.type] && pat.P.grain < pat.P.grainMax)
-    out.push({sens:'auge', lieu:lieu, P:pat.P, cle:T.type, txt:'REMPLIR L\'AUGE'});
-  if(pat.quoi === 'produit' && E.produit && pat.P.produit > 0.01
+  if(porte && RATION[T.type] && pat.P.grain < pat.P.grainMax)
+    out.push({sens:'auge', lieu:lieu, P:pat.P, cle:T.type,
+              txt:(E.statique ? 'REMPLIR LE NOURRISSEUR' : 'REMPLIR L\'AUGE')});
+  if(E.produit && pat.P.produit > 0.01
      && place && peutCharger(T, E.produit))
     out.push({sens:'traire', lieu:lieu, P:pat.P, cle:E.produit,
               txt:'CHARGER ' + nomHaut(E.produit) + ' ' + enKg(pat.P.produit)});
@@ -7376,7 +7369,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.capacite - T.load, P.produit);
       if(q <= 0.0001) return;
       T.load += q; P.produit -= q; poserType(T, A.cle);
-      if(Math.random() < 0.3) puff(P.quaiProduit.x, 2.2, P.quaiProduit.z, teinteDe(A.cle), 0.3, 0.25);
+      if(Math.random() < 0.3) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
@@ -7387,7 +7380,7 @@ function executer(m, A, dt){
       const q = Math.min(lent, T.load, (P.grainMax - P.grain)/rend);
       if(q <= 0.0001) return;
       T.load -= q; P.grain += q*rend;
-      if(Math.random() < 0.4) puff(P.quaiAuge.x, 1.8, P.quaiAuge.z, 0xE0C07A, 0.32, 0.3);
+      if(Math.random() < 0.4) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
       if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
       return;
     }
@@ -7600,17 +7593,30 @@ function actionService(){
   }
   if(aQuai(v, COMPTOIR))
     return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
+  // Devant un enclos, deux gestes qui ne passent pas par la benne : acheter une bête,
+  // en embarquer pour la boucherie. Ils sortent ensemble — l'un remplit l'enclos,
+  // l'autre le vide, et on vient souvent faire les deux dans la même halte.
   const pat = patureProche(v);
-  if(pat && pat.quoi === 'portail'){
-    const P = pat.P, cap = capaciteBetail(m), prets = betesAdultes(P);
-    if(cap > 0 && prets > 0 && (v.betail || 0) < cap){
+  if(pat){
+    const P = pat.P, E2 = ESPECES[P.espece] || ESPECES.vache, out = [];
+    if(P.betes.length >= P.places)
+      out.push({txt:E2.pluriel.toUpperCase() + ' — ' + P.betes.length + ' / ' + P.places +
+                    ' · COMPLET', ok:true, f:()=> ouvrirPanneau('elevage')});
+    else if(money >= E2.prix)
+      out.push({txt:'ACHETER ' + E2.un.toUpperCase() + ' · ' + eur(E2.prix), ok:true,
+                f:()=>{ if(acheterBete(P))
+                          showHint(E2.statique ? 'UNE COLONIE DE PLUS AU RUCHER'
+                                               : 'UNE BÊTE DE PLUS AU PRÉ'); }});
+    else
+      out.push({txt:E2.un.toUpperCase() + ' : IL MANQUE ' +
+                    Math.ceil(E2.prix - money).toLocaleString('fr-FR') + ' €', ok:false});
+    const cap = capaciteBetail(m), prets = betesAdultes(P);
+    if(E2.prixBete > 0 && cap > 0 && prets > 0 && (v.betail || 0) < cap){
       const n = Math.min(cap - (v.betail||0), prets);
-      return {txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
-              f:()=>{ chargerBetail(P, v, n); showHint('EN ROUTE POUR LA BOUCHERIE'); }};
+      out.push({txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
+                f:()=>{ chargerBetail(P, v, n); showHint('EN ROUTE POUR LA BOUCHERIE'); }});
     }
-    return {txt:(ESPECES[P.espece] || ESPECES.vache).pluriel.toUpperCase() + ' — ' +
-                 P.betes.length + ' / ' + P.places, ok:true,
-            f:()=> ouvrirPanneau('elevage')};
+    return out;
   }
   // à l'arrêt au milieu d'une parcelle à soi, encore cultivable : proposer l'aménagement
   for(const p of PARCELS){
@@ -7636,7 +7642,9 @@ function actionService(){
 function refreshService(){
   // Quand la colonne de choix est ouverte, elle porte déjà l'action de service : deux
   // boutons au même endroit poseraient deux fois la même question.
-  const a = (choixEl.style.display === 'flex') ? null : actionService();
+  // Le bouton seul ne peut en porter qu'un : le premier de la liste. Les autres
+  // attendent la colonne, qui s'ouvre dès qu'il y a autre chose à faire ici.
+  const a = (choixEl.style.display === 'flex') ? null : [].concat(actionService() || [])[0];
   hintEl2.style.opacity = (choixEl.style.display === 'flex') ? 0 : '';
   if(!a){ servEl.style.display = 'none'; servEl._f = null; return false; }
   servEl.style.display = 'block';
@@ -7660,8 +7668,9 @@ function refreshChoix(){
   // transfert ne peuvent donc pas être en désaccord sur ce qui est en cours.
   const retenue = actionRetenue(m);
   const L = actionsIci(m);
-  const serv = actionService();
-  if(!L.length && !serv){
+  // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
+  const serv = [].concat(actionService() || []);
+  if(!L.length && !serv.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
     choixMode = null;
     return false;
@@ -7707,8 +7716,8 @@ function refreshChoix(){
     // Le bouton de service — améliorer l'atelier, ouvrir le comptoir, embarquer des
     // bêtes — rejoint la colonne : deux piles de boutons au même endroit, ce serait
     // deux fois la même question posée différemment.
-    if(serv) lignes.push({txt:serv.txt, cls:'ch' + (serv.ok ? '' : ' no'),
-                          f: serv.ok ? serv.f : null});
+    for(const S2 of serv) lignes.push({txt:S2.txt, cls:'ch' + (S2.ok ? '' : ' no'),
+                                       f: S2.ok ? S2.f : null});
   }
   if(!lignes.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
@@ -7928,6 +7937,44 @@ function majJauges(dt){
       tr > 0.5 ? tr/halleEntreeMax() : fini/HALLE.stockMax(),
       tr > 0.5 ? '#D8B24A' : R.couleur, dt);
   } else cacherJauge(jaugeAtelier, dt);
+
+  // — les enclos : ce qu'il reste à manger, et où en est le produit. Un troupeau qui
+  //   s'arrête de produire ne le dit nulle part ; il fallait ouvrir le menu pour
+  //   découvrir que la mangeoire était vide depuis dix minutes. Deux jauges empilées
+  //   au-dessus de l'enclos, comme la pousse au-dessus d'une parcelle.
+  for(const P of PATURES){
+    const E2 = ESPECES[P.espece] || ESPECES.vache;
+    const cx = P.p.x, cz = P.p.z;
+    const proche = Math.hypot(v.pos.x - cx, v.pos.z - cz) < JAUGE_PORTEE + 12;
+    if(!P.j2) P.j2 = {};
+    if(!proche){
+      if(P.jauge){ cacherJauge(P.jauge, dt); if(P.jauge.sp.material.opacity < 0.03) rendreJauge(P); }
+      if(P.j2.jauge){ cacherJauge(P.j2.jauge, dt); if(P.j2.jauge.sp.material.opacity < 0.03) rendreJauge(P.j2); }
+      continue;
+    }
+    const kg2 = P.grain/P.grainMax;
+    const rations = P.betes.length*E2.ration;
+    // Le temps qu'il reste à manger vaut mieux qu'un poids : c'est la question qu'on
+    // se pose vraiment en passant devant.
+    const reste = (rations > 0.0001 && P.grain > 0.5)
+      ? ' · ' + Math.max(1, Math.round(P.grain/rations/60)) + ' min'
+      : (P.grain <= 0.5 ? ' — À REMPLIR' : '');
+    montrerJauge(prendreJauge(P), cx, 10.4, cz,
+      (E2.statique ? 'Nourrisseur ' : 'Mangeoire ') + Math.round(P.grain) + ' kg' + reste,
+      kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
+    if(E2.produit){
+      const R2 = PRODUITS[E2.produit];
+      const kp = P.produit/P.produitMax;
+      const nourries = (P.grain > 0.5) ? P.betes.length : 0;
+      montrerJauge(prendreJauge(P.j2), cx, 5.0, cz,
+        R2.nom + ' ' + Math.round(P.produit) + ' kg' +
+        (kp > 0.995 ? ' — CUVE PLEINE' : (nourries ? '' : ' — À L\'ARRÊT')),
+        kp, kp > 0.995 ? '#E8563F' : (nourries ? R2.couleur : '#8A9298'), dt);
+    } else if(P.j2.jauge){
+      cacherJauge(P.j2.jauge, dt);
+      if(P.j2.jauge.sp.material.opacity < 0.03) rendreJauge(P.j2);
+    }
+  }
 
   // — les parcelles semées : où en est la pousse, et quand tout est mûr
   for(const p of PARCELS){

@@ -122,6 +122,17 @@ céréales du silo, apportées à la benne — ou l'aliment de l'atelier, qui re
 mangeoire une fois et demie mieux, deux fois pour l'aliment premium. Une bête qui n'a
 rien à manger ne donne rien et ne grandit pas.
 
+**Tout se fait devant le portail.** Un seul anneau par enclos, planté sur le chemin à
+quatre mètres de l'entrée : on s'y arrête et la colonne propose ce qu'il y a à faire
+ici — acheter une bête, remplir la mangeoire, charger le produit, embarquer pour la
+boucherie. Rien n'oblige plus à franchir la clôture ni à chercher lequel des trois
+anneaux dispersés dans l'enclos était le bon.
+
+Deux jauges flottent au-dessus de chaque enclos, comme la pousse au-dessus d'une
+parcelle : ce qu'il reste à manger et pour combien de temps, puis où en est la cuve du
+produit — grise et « à l'arrêt » quand la mangeoire est vide, rouge quand elle
+déborde.
+
 La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre froide.
 On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
 ainsi deux fois son prix de marché, au prix d'une tournée de plus.
@@ -248,8 +259,18 @@ Quelques partis pris qui expliquent le reste :
   bord nord quoi qu'il y ait devant : sur une parcelle de bordure il donnait droit sur
   la clôture de la ferme, et l'enclos devenait inaccessible sans que rien ne le dise.
   Le côté d'entrée se choisit maintenant sur la trame des chemins, et tout
-  l'aménagement — clôture, postes, quais, rangs de ruches, sentes — se lit dans un
+  l'aménagement — clôture, postes, quai, rangs de ruches, sentes — se lit dans un
   repère lié au portail.
+- **On travaille en escargot, jamais en serpentin.** Le pilote débordait de 2,5 m hors
+  de la parcelle pour en travailler les bords : sur une parcelle de bordure, ces
+  2,5 m tombaient dans la clôture. Il tourne maintenant autour de la parcelle en se
+  resserrant d'une largeur d'outil à chaque tour, en entrant par le coin le plus
+  proche. Rien ne sort du rectangle, et le premier segment est toujours parallèle à
+  un bord.
+- **Un champ ne se traverse que lorsqu'on y travaille.** Pour aller d'un lieu à un
+  autre, l'automatisation rejoint la grille des chemins de sable et des rocades, la
+  suit, et ne la quitte qu'au dernier moment — au lieu de viser sa destination en
+  ligne droite à travers les semis.
 - **Une espèce n'est qu'une ligne de table.** Prix, ration, produit, silhouette,
   places : tout l'élevage se lit dans `ESPECES`, et le reste du code ne connaît aucun
   nom d'animal. C'est ce qui a permis d'ajouter un rucher — une espèce qui ne marche
