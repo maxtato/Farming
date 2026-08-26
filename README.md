@@ -532,7 +532,12 @@ en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'�
 jardin de personne. Les lots sont maintenant **jointifs** — bord contre bord, écart nul
 aux neuf jonctions — et la clôture est **une seule** : un devant qui court sur 155 m et
 s'ouvre d'un portillon devant chaque allée, un fond, deux pignons, et une mitoyenne à
-chaque bord de lot interne.
+chaque bord de lot interne. Le pas des piquets reste celui de `dJardin()` — chaque
+tronçon entre deux points fixes divise sa propre longueur en parts égales, d'où 1,33 à
+1,95 m d'écart. Une trame unique ancrée sur le rang a été essayée pour lisser ce
+rythme : elle l'a empiré (217 % d'écart au lieu de 46), parce que les bords de lot ne
+tombent pas sur la trame et qu'un piquet venait s'y coller à 78 cm d'un piquet d'angle.
+Une clôture rurale n'a pas de trame.
 
 Commune, mais **pas un seul objet**. Fusionnée d'un tenant, elle faisait un maillage de
 177 m dont la sphère englobante mesurait 89 m de rayon : le tronc de vue ne l'écartait
@@ -563,6 +568,20 @@ rectangle** pour tout le rang, élargi de la demi-section d'un poteau : les lots
 jointifs, il n'y a plus rien à traverser entre deux maisons — on fait le tour par les
 bouts, avec 6,0 m de marge à l'ouest et 2,1 m à l'est.
 
+**La verge est une rue, pas une pelouse.** Neuf mètres de large sur cent cinquante-quatre
+de long, interdits à la verdure par le filtre du semis : il en restait une bande d'herbe
+rase, vide et garantie vide, devant tout le village. Le mobilier qui a sa place au bord
+d'une route s'y installe — abri de bus, banc, calvaire, puits — aux bornes de lot,
+c'est-à-dire à mi-chemin de deux portillons ; et sept lampadaires côté village, décalés
+d'une demi-portée pour alterner avec ceux d'en face, éclairent une route dont les mâts
+étaient tous du côté de la ferme et s'effaçaient devant sa cour. Le rang faisait un aplat
+noir à la nuit tombée.
+
+**L'ordre des maisons n'est plus celui de la table.** Pris à la file — 0, 1, 2, 3, 4, 5,
+0, 1, 2, 3 — la moitié est du rang était le calque exact de la moitié ouest : six modèles
+pour dix lots, et le regard fait le rapprochement d'un coup d'œil. `MAI_ORDRE` passe les
+six une fois puis les reprend autrement.
+
 **Et plus rien n'est planté sur le bitume.** Le rang a révélé un défaut bien plus vieux
 que lui : `surRoute()` bornait chaque brin à l'anneau — un point n'était « sur la route »
 que s'il tombait *aussi* entre les deux brins perpendiculaires — alors que le sol peint
@@ -578,7 +597,7 @@ appartient au champ et non au village, le second ferait doublon avec les clôtur
 
 Chaque bloc est **fusionné en une seule géométrie** avant d'entrer dans la scène :
 soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est ce qui
-permet d'en poser quarante-six sans que la carte s'alourdisse — 31 000 triangles pour
+permet d'en poser cinquante sans que la carte s'alourdisse — 31 700 triangles pour
 l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
 échelle ne crée pas de géométrie.
 

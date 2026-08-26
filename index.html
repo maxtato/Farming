@@ -3836,7 +3836,7 @@ function buildFarm(){
     jardinsPoses = false;
     let cumul = 0;
     for(let k = 0; k < 16; k++){
-      const {g} = MAI_MODELES[k % MAI_MODELES.length]();
+      const {g} = MAI_MODELES[MAI_ORDRE[k % MAI_ORDRE.length]]();
       g.scale.setScalar(MAI_ECHELLE);
       g.rotation.y = Math.PI;                 // façade tournée vers la chaussée
       const J = g.userData.jardin, A = g.userData.allee;
@@ -3921,6 +3921,13 @@ function buildFarm(){
   MAISONS.forEach((M, i)=>{
     const G = new THREE.Group();
     const hw = M.jw/2, hd = RANG.prof/2, port = M.porteX - M.cx;
+    /* Le pas des piquets est celui de dJardin() : chaque tronçon entre deux points
+       fixes — bord de lot, bord de portillon — divise sa propre longueur en parts
+       égales. L'écart varie donc d'un tronçon à l'autre, de 1,33 m à 1,95. Une trame
+       unique ancrée sur le rang a été essayée pour lisser ce rythme : elle l'a empiré,
+       parce que les bords de lot et les bords d'ouverture, eux, ne tombent pas sur la
+       trame, et qu'un piquet de trame venait alors se coller à 78 cm d'un piquet
+       d'angle — 217 % d'écart au lieu de 46. Une clôture rurale n'a pas de trame. */
     panCloture(G, -hw, -hd,  hw, -hd, [port], false, i < dernier);   // devant, percé
     panCloture(G, -hw,  hd,  hw,  hd, null,   false, i < dernier);   // fond
     panCloture(G, -hw, -hd, -hw,  hd, null,   true,  true);          // bord gauche
@@ -3950,6 +3957,35 @@ function buildFarm(){
   const DEB = 0.11*MAI_ECHELLE/2;             // le poteau déborde du bord de lot
   boxObs.push({x:(RANG.x0 + RANG.x1)/2, z:(RANG.z0 + RANG.z1)/2,
                hw:(RANG.x1 - RANG.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
+
+  /* LA VERGE EST UNE RUE, PAS UNE PELOUSE. Neuf mètres entre le bitume et la clôture,
+     sur cent cinquante-cinq de long, et le filtre du semis les interdit à la verdure :
+     restait une bande d'herbe rase, vide et garantie vide. Or c'est le devant du
+     village — l'endroit où l'on s'arrête. Le mobilier qui a sa place au bord d'une
+     route s'y installe, aux bornes de lot, c'est-à-dire à mi-chemin de deux portillons ;
+     le reste du village continue de se semer derrière. */
+  const RUE_MOBILIER = [vilAbriBus, vilBanc, vilCalvaire, vilPuits, vilEntree, vilPoteau];
+  const RUE_MOB_Z = RANG.z0 - 4.2;
+  const RUE_MOB = [];
+  MAISONS.forEach((M, i)=>{
+    if(i === 0 || i % 2) return;             // une borne sur deux, jamais le pignon
+    const f = RUE_MOBILIER[((i/2) - 1) % RUE_MOBILIER.length];
+    const g = poserBloc(f, M.bord, RUE_MOB_Z, Math.PI);
+    RUE_MOB.push({x:M.bord, r:(obstacles[obstacles.length - 1] || {r:3}).r});
+    void g;
+  });
+  /* Et le rang s'éclaire. Les mâts du brin sud sont tous du côté de la ferme, et
+     s'effacent devant sa cour : la moitié de cette route n'avait aucune lumière, et le
+     rang y faisait un aplat noir à la nuit tombée. Ceux-ci sont du côté du village,
+     décalés d'une demi-portée pour alterner avec ceux d'en face, et leur potence
+     surplombe la chaussée comme partout ailleurs. */
+  const RUE_LAMPE_Z = ROC.z1 + ROAD_W/2 + 2.0;
+  for(let x = -50; x <= 110; x += 20){
+    if(x <= RANG.x0 + 2 || x >= RANG.x1 - 2) continue;
+    // un mât planté dans l'abri de bus ferait deux volumes qui se traversent
+    if(RUE_MOB.some((o)=> Math.hypot(o.x - x, RUE_MOB_Z - RUE_LAMPE_Z) < o.r + 1.6)) continue;
+    addLamp(x, RUE_LAMPE_Z, 0);
+  }
 
   /* LES PETITS OBJETS DU VILLAGE, semés à gauche et à droite entre les maisons et les
      commerces. Ils passent en revue, l'un après l'autre et en boucle, pour qu'aucun ne
@@ -4409,6 +4445,12 @@ function vilPoteau(){
    qu'on veut. */
 const MAI_ECHELLE = 1.30;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
+/* L'ORDRE DES MAISONS DANS LE RANG. Pris à la file — 0,1,2,3,4,5,0,1,2,3 — la moitié
+   est du rang était le calque exact de la moitié ouest : six modèles pour dix lots,
+   et le regard fait le rapprochement d'un coup d'œil. Cet ordre-ci passe les six une
+   fois, puis les reprend dans un autre ordre : aucune maison ne revoisine la même, et
+   les deux moitiés ne se ressemblent plus. */
+const MAI_ORDRE = [0, 4, 2, 5, 1, 3, 5, 0, 3, 2, 1, 4];
 
 /* LA CLÔTURE DU RANG. C'est celle de dJardin() sortie de son rectangle : la rue
    mitoyenne a besoin d'un pan qui court sur cent soixante-dix mètres et s'ouvre devant
