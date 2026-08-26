@@ -377,11 +377,24 @@ const C = {
 // PX = taille d'un pixel de rendu, exprimée en pixels PHYSIQUES de l'écran.
 // C'est le seul curseur à toucher : 1 = net, 2 = escalier fin, 3 = gros pixels.
 const PX = 1.1;
+/* LE PLAFOND DE NETTETÉ.
+   Sur un téléphone à trois pixels physiques par pixel CSS, on rendait 2,7 fois la
+   définition de l'écran — trois millions de pixels à remplir soixante fois par seconde
+   pour une image qu'on agrandit ensuite au plus proche. C'est beaucoup pour le seul
+   gain qu'on en tire : des contours un cran plus fins.
+   Le plafond se règle donc, et ne s'impose pas. `Infini` garde exactement ce qui
+   existait ; 2 et 1,5 rendent la main au processeur graphique. Sur un écran ordinaire
+   (un ou deux pixels physiques par pixel CSS), aucun de ces choix ne change rien. */
+const NETTETE = {i: 0, choix: [
+  {nom:'Maximale', det:'La définition de l\'écran, telle quelle', max: Infinity},
+  {nom:'Élevée',   det:'Plafonnée à deux fois la définition CSS', max: 2},
+  {nom:'Douce',    det:'Plafonnée à une fois et demie — le plus fluide', max: 1.5}
+]};
 const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
 renderer.setPixelRatio(1);
 function applyResolution(){
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, 3);
+  const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
   const k = Math.max(0.45, Math.min(dpr, dpr/PX));   // k = pixels de rendu par pixel CSS
   renderer.setSize(Math.round(w*k), Math.round(h*k), false);
   const st = renderer.domElement.style;
@@ -438,11 +451,23 @@ function mat(hex){
     {color:hex, flatShading:true, shininess:0, specular:0x000000});
   return matCache[hex];
 }
+/* UNE BRICOLE NE PROJETTE PAS D'OMBRE.
+   La passe d'ombre redessinait deux mille cent quatre-vingt-six objets par image — 79 %
+   du temps de rendu — dont onze cent quarante-deux volumes de moins d'un mètre quarante
+   d'emprise au sol : piquets, cageots, touffes, fleurs, boulons, poignées, sacs. À la
+   distance où la caméra travaille, l'ombre d'un cageot de soixante centimètres fait
+   trois pixels. Mesuré : les couper rend exactement autant que couper les ombres
+   entièrement, parce qu'au voisinage du joueur presque tout ce qui projette est petit.
+   Ils REÇOIVENT toujours l'ombre des autres — c'est ce qui les pose au sol —, ils n'en
+   projettent plus. C'est l'emprise AU SOL qui décide, pas la hauteur : une lisse de
+   clôture de trois mètres garde son ombre, le piquet qui la porte non. */
+const OMBRE_MIN = 1.4;
+const projette = (a, b)=> Math.max(a, b) >= OMBRE_MIN;
 function box(w,h,d,hex,x,y,z,rx,ry,rz){
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(hex));
   m.position.set(x||0,y||0,z||0);
   if(rx) m.rotation.x = rx; if(ry) m.rotation.y = ry; if(rz) m.rotation.z = rz;
-  m.castShadow = true; m.receiveShadow = true;
+  m.castShadow = projette(w, d); m.receiveShadow = true;
   return m;
 }
 // volume à base rectangulaire dont le dessus peut être plus petit, décalé et incliné.
@@ -467,14 +492,16 @@ function slab(o){
   const m=new THREE.Mesh(g, mat(o.c));
   m.position.set(o.x||0, o.y||0, o.z||0);
   if(o.ry) m.rotation.y=o.ry; if(o.rx) m.rotation.x=o.rx; if(o.rz) m.rotation.z=o.rz;
-  m.castShadow=true; m.receiveShadow=true;
+  m.castShadow = projette(w, d); m.receiveShadow=true;
   return m;
 }
 function cyl(rt,rb,h,seg,hex,x,y,z,rx,ry,rz){
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||8), mat(hex));
   m.position.set(x||0,y||0,z||0);
   if(rx) m.rotation.x = rx; if(ry) m.rotation.y = ry; if(rz) m.rotation.z = rz;
-  m.castShadow = true; m.receiveShadow = true;
+  // Couché, un cylindre pose sa longueur au sol : les deux mesures comptent.
+  m.castShadow = projette(Math.max(rt, rb)*2, (rx || rz) ? h : 0);
+  m.receiveShadow = true;
   return m;
 }
 // toit à deux pentes : prisme triangulaire (w = largeur, h = hauteur, d = longueur)
@@ -489,7 +516,46 @@ function gable(w,h,d,hex,x,y,z,ry){
   g.computeVertexNormals();
   const m = new THREE.Mesh(g, mat(hex));
   m.position.set(x||0,y||0,z||0); if(ry) m.rotation.y = ry;
+  m.castShadow = projette(w, d); m.receiveShadow = true;
+  return m;
+}
+/* FUSIONNER UN BÂTIMENT DÉJÀ BÂTI.
+   Un commerce est fait de dizaines de petits volumes — jusqu'à cent vingt-cinq pour le
+   supermarché — et chacun est un appel de dessin. Dans le village on montait à deux
+   cent dix-huit appels par image, et c'est le nombre d'appels, pas le nombre de
+   triangles, qui étrangle un téléphone.
+   Or ces volumes ne bougent jamais. On les recuit donc en UNE géométrie unique, en
+   gardant la couleur de chacun dans ses sommets : mêmes sommets, mêmes couleurs, mêmes
+   ombres, un seul appel. Ce qui bouge — le pneu qui tourne au garage — porte
+   `userData.anime` et reste dehors ; les enseignes, qui ont une texture, aussi.
+   Le mesh fusionné projette l'ombre : les bricoles qui l'avaient perdue la retrouvent
+   ici gratuitement, puisqu'elles ne coûtent plus un appel chacune. */
+const MAT_FUSION = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true,
+                                                shininess:0, specular:0x000000});
+const _fusInv = new THREE.Matrix4();
+function fusionnable(o){
+  if(!o.isMesh || o.userData.anime) return false;
+  const m = o.material;
+  return !!m && m.isMeshPhongMaterial && !m.map && !m.transparent && !m.vertexColors;
+}
+function fusionnerGroupe(g){
+  g.updateMatrixWorld(true);
+  _fusInv.copy(g.matrixWorld).invert();
+  const parts = [], vieux = [];
+  let anime = false;
+  g.traverse((o)=>{
+    if(o.userData && o.userData.anime){ anime = true; return; }
+    if(!fusionnable(o)) return;
+    parts.push({g:o.geometry, c:o.material.color.getHex(),
+                m:_fusInv.clone().multiply(o.matrixWorld)});
+    vieux.push(o);
+  });
+  if(parts.length < 4) return null;           // rien à gagner sur trois volumes
+  for(const o of vieux){ if(o.parent) o.parent.remove(o); o.geometry.dispose(); }
+  const m = new THREE.Mesh(mergeParts(parts), MAT_FUSION);
   m.castShadow = true; m.receiveShadow = true;
+  g.add(m);
+  g.userData.fusion = {n:parts.length, anime};
   return m;
 }
 // fusion de primitives colorées en une seule géométrie (pour l'InstancedMesh du blé)
@@ -860,10 +926,16 @@ const HALLE = {x: 84, z: 50, niveau: 1, tremie: {}, stock: {}, recette: 'farine'
 // Les cinq modules du cahier des charges, un par palier : moulin, broyeur, pressoir,
 // mélangeur, cave. Le mélangeur réclame trois céréales à la fois, la cave prend le
 // raisin que le silo ne stocke pas.
+/* Six recettes pour cinq paliers : le pressoir en porte deux, le colza et l'olive.
+   C'est le seul palier double du jeu, et il l'est parce que l'huilerie du bord de
+   route a été déposée — elle pressait exactement ces deux-là. Le presseur ne travaille
+   qu'une matière à la fois, comme tous les autres modules : on choisit au bouton
+   PRODUCTION. */
 const ATELIER_RECETTES = [
   {cle:'farine',      niveau:1, module:'Moulin'},
   {cle:'aliment',     niveau:2, module:'Broyeur'},
   {cle:'huile',       niveau:3, module:'Pressoir'},
+  {cle:'huileOlive',  niveau:3, module:'Pressoir à olives'},
   {cle:'alimentPlus', niveau:4, module:'Mélangeur'},
   {cle:'vin',         niveau:5, module:'Cave'}
 ];
@@ -905,8 +977,8 @@ function entrepotRetire(cle, q){
 function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) - q); }
 const SITES = [
   // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
-  // le long de la bande ; `modele` nomme la silhouette qui sera bâtie. Les deux seuls
-  // sites sans modèle propre — l'atelier de réparation et l'huilerie — retombent sur
+  // le long de la bande ; `modele` nomme la silhouette qui sera bâtie. Les seuls
+  // sites sans modèle propre — le garage et le comptoir agricole — retombent sur
   // le gabarit générique piloté par leurs drapeaux.
 
   /* --- bande OUEST, six commerces --- */
@@ -936,10 +1008,11 @@ const SITES = [
    style:'usine', crop:0, prix:0.46, cloture:'grillage', modele:()=> batUsineCereales(),
    w:16.0, d:12.0, pw:14, ph:13, toit:0x4A6B8A, mur:0xDCE2E8},
 
-  /* --- bande NORD, cinq commerces --- */
-  {nom:'Huilerie', enseigne:'totem', picto:'goutte', dir:'N', bat:-58, park:-45,
-   style:'usine', crop:2, prix:0.58, cloture:'muret',
-   w:15.0, d:10.5, pw:15, ph:13, toit:0xB0902E, mur:0xF0E4C6, cuves:2, chem:true},
+  /* --- bande NORD, quatre commerces ---
+     L'huilerie a été déposée : elle pressait le colza que l'atelier de la ferme presse
+     déjà, et l'huile d'olive qu'il presse maintenant aussi. Un bâtiment qui refait ce
+     qu'on fait chez soi n'est pas un débouché, c'est un détour. `repartirBandes()`
+     redistribue les quatre restants sur toute la bande, sans rien à réécrire. */
   {nom:'Boulangerie', enseigne:'laterale', picto:'baguette', dir:'N', bat:-20, park:-7,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batBoulangerie(),
    w:11.0, d:8.0,  pw:11, ph:12, toit:0xC06A2E, mur:0xEFE0C4},
@@ -997,7 +1070,7 @@ const SITES = [
    tourner ensemble en partageant le débit. */
 const NEGOCE = {
   // — achète la récolte brute, tout de suite, moins cher que le circuit long
-  'Coopérative':     {achete:['ble','mais','orge','avoine','colza'], coef:1.00},
+  'Coopérative':     {achete:['ble','mais','orge','avoine','colza'], coef:1.00, etal:7000},
 
   /* — les usines du village : on verse, elles paient. Elles gardaient leur production
        en attente et il fallait revenir la chercher pour la revendre ailleurs : trois
@@ -1010,8 +1083,6 @@ const NEGOCE = {
                       caisse:true, coef:1.00, debit:16},
   'Usine avoine':    {fabrique:['laitAvoine'], caisse:true, coef:1.00, debit:14},
   'Brasserie':       {fabrique:['biere'], caisse:true, coef:1.00, debit:14},
-  'Huilerie':        {fabrique:['huile','huileOlive'], choix:'toutes',
-                      caisse:true, coef:1.00, debit:15},
   'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes',
                       caisse:true, coef:1.00, debit:18},
   'Fromagerie':      {fabrique:['fromage'], caisse:true, coef:1.00, debit:12},
@@ -1028,13 +1099,23 @@ const NEGOCE = {
        ferme transforme. Le reste — bière, fromage, beurre, yaourt, lait d'avoine —
        est fabriqué et vendu par les usines elles-mêmes ; l'afficher ici, c'était
        promettre au joueur des lignes qu'il ne pourrait jamais honorer. */
-  'Caviste':         {achete:['vin','raisin'], coef:1.15},
-  'Restaurant':      {achete:['oeufs','lait','farine','huile','vin','raisin','olives','miel'],
-                      coef:1.10},
+  /* CHAQUE ACHETEUR A SON PLAFOND, ET IL EST L'INVERSE DE SON PRIX.
+     Sans plafond, le mieux-disant rafle tout : le Caviste payait 1,15 et prenait tout
+     le vin qu'on lui apportait, le Restaurant payait 1,10 et prenait tout le reste
+     sans limite — le Supermarché était donc STRICTEMENT dominé sur ses huit produits,
+     et le Marché sur huit de ses neuf. Deux commerces sur quatre n'avaient plus aucune
+     raison d'exister.
+     Le plafond est PAR NATURE, et il se recharge en deux minutes : un caviste écoule
+     six cents kilos de vin, un supermarché neuf mille. On vend donc le haut de la
+     benne au prix fort, et on descend l'échelle pour le reste — c'est le choix qu'on
+     veut poser : moins cher, mais tout part. */
+  'Caviste':         {achete:['vin','raisin'], coef:1.15, etal:600},
+  'Restaurant':      {achete:['oeufs','lait','farine','huile','huileOlive','vin','raisin',
+                              'olives','miel'], coef:1.10, etal:900},
   'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine',
-                              'huile','vin','miel'], coef:0.94, etal:1400},
-  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','vin','miel'],
-                      coef:0.86}
+                              'huile','huileOlive','vin','miel'], coef:0.94, etal:2000},
+  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','huileOlive',
+                              'vin','miel'], coef:0.86, etal:9000}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -1051,11 +1132,15 @@ for(const S of SITES){
   S.debitKg  = S.debit || 12;
   S.stockMax = ()=> 2600;
   S.debit    = ()=> S.debitKg;
-  if(S.etal) S.reste = S.etal;
+  // `reste` compte NATURE PAR NATURE : vider la cave d'un caviste ne doit pas
+  // l'empêcher de prendre du raisin, ce sont deux rayons différents.
+  S.reste = {};
+  if(S.etal) for(const k of S.achete) S.reste[k] = S.etal;
 }
-// Le marché du village prend de petites quantités : son étal se remplit, puis il faut
-// le laisser s'écouler. Il se réapprovisionne en une minute et demie environ.
-const ETAL_RECHARGE = 16;
+// Tous les étals se refont en deux minutes, quelle que soit leur taille : c'est ce qui
+// garde l'échelle des prix lisible. Un supermarché reprend quinze fois plus vite qu'un
+// caviste parce qu'il tient quinze fois plus, pas parce qu'il est plus rapide.
+const ETAL_MINUTES = 2;
 
 /* Les quatre questions qu'on pose à un commerce, et qui servent partout ailleurs :
    combien il paie, s'il a encore de la place, s'il achète ceci, s'il l'accepte en
@@ -1066,10 +1151,27 @@ const teinteDe = (cle)=> parseInt((PRODUITS[cle] ? PRODUITS[cle].couleur : '#EEE
 
 // Ce qu'un commerce paie le kilo : le barème du produit, modulé par l'acheteur.
 const prixChez = (S, cle)=> prixDe(cle)*(S.coef || 1);
-// Le marché du village prend de petites quantités : tant que son étal est plein, il
-// n'achète plus. Ailleurs, la question ne se pose pas.
-const placeChez = (S)=> (S.etal === undefined) ? Infinity : Math.max(0, S.reste);
-const acheteMaintenant = (S, cle)=> S.achete.indexOf(cle) >= 0 && placeChez(S) > 0.01;
+// La place qu'un commerce a encore POUR CETTE NATURE-LÀ. Sans étal — il n'y en a plus
+// aucun, mais un site ajouté demain pourrait s'en passer — la question ne se pose pas.
+const placeChez = (S, cle)=>{
+  if(S.etal === undefined) return Infinity;
+  const r = S.reste[cle];
+  const libre = Math.max(0, r === undefined ? S.etal : r);
+  /* UNE COMMANDE EST DE LA PLACE RÉSERVÉE. Le restaurant qui a demandé cent vingt
+     kilos de lait a promis de les prendre : son étal ne peut pas les lui refuser, et
+     une tournée composée pour la prime ne doit jamais buter sur un rayon plein. C'est
+     aussi ce qui donne sa valeur à la commande — un débouché garanti, au meilleur
+     prix, pour ce qu'on a accepté d'aller chercher. */
+  return (S === RESTO) ? Math.max(libre, resteCommande(cle)) : libre;
+};
+// Ce qu'un étal perd vraiment quand on lui vend : la place réservée d'une commande
+// n'entame pas le rayon, elle s'ajoutait par-dessus.
+function entamerEtal(S, cle, q){
+  if(S.etal === undefined) return;
+  const r = S.reste[cle];
+  S.reste[cle] = Math.max(0, (r === undefined ? S.etal : r) - q);
+}
+const acheteMaintenant = (S, cle)=> S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
 // Une usine accepte une matière tant que sa trémie n'est pas pleine…
 const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
 const TREMIE_SITE_MAX = 3000;
@@ -2342,6 +2444,7 @@ function buildMaison(x, z, ry, variante){
   g.add(box(0.7,1.7,0.7, 0xB8A894, V.w*0.30, V.h+1.6, -V.d*0.2));
   g.position.set(x, 0, z); g.rotation.y = ry;
   scene.add(g);
+  fusionnerGroupe(g);
   const cs = Math.abs(Math.cos(ry)), sn = Math.abs(Math.sin(ry));
   boxObs.push({x, z, hw:(V.w*cs + V.d*sn)/2, hd:(V.w*sn + V.d*cs)/2});
   // jardin clôturé
@@ -2972,7 +3075,7 @@ function corpsGenerique(S){
 // Ce que l'enseigne déborde du bâti, selon sa pose : devant la façade, et sur le côté.
 // La dalle doit la contenir. Un totem planté sur l'accotement, c'est une enseigne au
 // milieu de la route — et c'est exactement ce qui se passait pour la coopérative,
-// le marché, l'huilerie et le comptoir agricole.
+// le marché et le comptoir agricole.
 
 function buildCommerce(S){
   const g = new THREE.Group();
@@ -3035,6 +3138,7 @@ function buildCommerce(S){
     }
     pneu.rotation.x = Math.PI/2;
     pneu.position.set(W*0.28, H+2.3, 0);
+    pneu.userData.anime = true;            // il tourne : il reste un objet à part
     g.add(pneu); S.logo = pneu;
     g.add(box(0.4,2.4,0.4, 0x6E767C, W*0.28, H+1.1, 0));
   }
@@ -3042,6 +3146,8 @@ function buildCommerce(S){
   scene.add(g);
   g.updateMatrixWorld(true);
   if(S.mk){ S.smoke = new THREE.Vector3(); S.mk.getWorldPosition(S.smoke); }
+  // Le bâti est posé, mesuré, repéré : plus rien n'a besoin de ses volumes un par un.
+  fusionnerGroupe(g);
   /* CE QUI ARRÊTE UN ENGIN, C'EST LE MUR — PAS LA DALLE.
      L'emprise poussée ici couvrait S.w × S.d, c'est-à-dire le TERRAIN entier : le
      bâti, ses trois mètres de marge latérale, ses trois mètres de recul arrière et,
@@ -3312,6 +3418,7 @@ function buildFarm(){
     pan.position.set(0, H*0.9, D/2+0.62); g.add(pan);
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
+    fusionnerGroupe(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
     // Un quai devant la grande porte, et l'anneau qui va avec : l'entrepôt reçoit de
     // nouveau de la marchandise, il lui faut de nouveau un endroit où s'arrêter.
@@ -3453,7 +3560,7 @@ const ATL = {
   PALIERS: [
     {prix:0,      nom:'Moulin',               det:'Le blé devient farine'},
     {prix:14000,  nom:'Alimentation animale', det:'Les céréales deviennent de l\'aliment'},
-    {prix:26000,  nom:'Pressoir',             det:'Le colza devient de l\'huile'},
+    {prix:26000,  nom:'Pressoir',             det:'Le colza et l\'olive deviennent de l\'huile'},
     {prix:42000,  nom:'Stockage',             det:'Plus de cuves, plus de débit'},
     {prix:68000,  nom:'Version complète',     det:'Étage technique et auvent de quai'}
   ]
@@ -3573,6 +3680,8 @@ function poserAtelier(){
   atelierMesh.position.set(HALLE.x, 0, HALLE.z);
   scene.add(atelierMesh);
   const u = atelierMesh.userData;
+  // Le bâtiment de l'atelier ne bouge pas non plus : on le recuit, en gardant ses cotes.
+  fusionnerGroupe(atelierMesh);
   // Chaque palier pousse un module sur un côté : la trémie seule au niveau 1, le hall
   // d'alimentation au 2, les cuves au 3, l'appentis et le conteneur au 4.
   const N = HALLE.niveau;
@@ -5437,6 +5546,8 @@ function grow(dt){
 /* ---------- PANNEAU : boutique, améliorations, réglages ---------- */
 let paused = false;
 let last = performance.now(), smokeT = 0, chimT = 0, usineT = 0;
+// Deux cadences plus lentes que l'image : la condition des anneaux et l'interface.
+let anneauT = 0, uiT = 0;
 const panneau = document.getElementById('panneau');
 const pliste = document.getElementById('pliste');
 const ponglets = document.getElementById('ponglets');
@@ -7531,9 +7642,14 @@ function actionsPature(m, pat){
 function actionsAuSite(m, S){
   const T = caisseDe(m), out = [];
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
-  if(porte && acheteMaintenant(S, T.type))
+  if(porte && acheteMaintenant(S, T.type)){
+    // La place restante figure dans le libellé : sans elle, on vide sa benne en
+    // croyant tout vendre et l'on repart avec les trois quarts.
+    const pl = placeChez(S, T.type);
     out.push({sens:'vendre', lieu:S.nom, S:S, cle:T.type,
-              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)) + ' €/KG'});
+              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)) + ' €/KG' +
+                  (pl < Infinity ? ' · ' + enKg(Math.min(pl, T.load)) : '')});
+  }
   if(porte && accepteMaintenant(S, T.type))
     out.push({sens:'verser', lieu:S.nom, S:S, cle:T.type, txt:'LIVRER ' + nomHaut(T.type)});
   if(place && !S.caisse) for(const k in S.stock)
@@ -7549,7 +7665,15 @@ function actionsAuSite(m, S){
   }
   return out;
 }
-// Et voici ce qui est possible LÀ OÙ L'ENGIN EST ARRÊTÉ.
+/* CETTE LISTE EST RECONSTRUITE À CHAQUE APPEL, ET C'EST VOULU.
+   Elle fabrique des libellés (« CHARGER BLÉ 2 660 KG ») aussitôt jetés : la mémoriser
+   pour l'image en cours économiserait des milliers de chaînes par seconde. Mais elle
+   est relue JUSTE APRÈS chaque transfert, dans la même image, et une liste vieille
+   d'un transfert ment — un tampon d'image a fait, à l'essai, échouer neuf contrôles
+   de la colonne de choix sur onze. Ce qui a été réduit, c'est le NOMBRE d'appels :
+   les vingt-deux anneaux du sol ne la redemandent plus que huit fois par seconde, et
+   les onze fonctions d'interface vingt. On est passé d'une trentaine d'appels par
+   image à neuf, sans jamais rendre une réponse périmée. */
 function actionsIci(m){
   const v = m.v;
   if(v.speed > 2.5) return [];
@@ -7698,10 +7822,10 @@ function executer(m, A, dt){
       return;
     }
     case 'vendre': {
-      const q = Math.min(lent, T.load, placeChez(A.S));
+      const q = Math.min(lent, T.load, placeChez(A.S, A.cle));
       if(q <= 0.0001) return;
       T.load -= q; money += q*prixChez(A.S, A.cle);
-      if(A.S.etal !== undefined) A.S.reste -= q;
+      entamerEtal(A.S, A.cle, q);
       if(A.S === RESTO) avancerCommande(A.cle, q);
       compter(A.cle, q);
       if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
@@ -7728,11 +7852,11 @@ function executer(m, A, dt){
     }
     case 'tremieVente': case 'tremieLivraison': {
       const vente = A.sens === 'tremieVente';
-      const q = Math.min(hopper, 420*dt, vente ? placeChez(A.S) : Infinity);
+      const q = Math.min(hopper, 420*dt, vente ? placeChez(A.S, A.cle) : Infinity);
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; compter(A.cle, q);
       if(vente){ money += q*prixChez(A.S, A.cle);
-                 if(A.S.etal !== undefined) A.S.reste -= q;
+                 entamerEtal(A.S, A.cle, q);
                  if(A.S === RESTO) avancerCommande(A.cle, q); }
       else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       if(Math.random() < 0.6)
@@ -7749,7 +7873,13 @@ function executer(m, A, dt){
 /* --- les usines du bord de route tournent toutes seules --- */
 function updateUsines(dt){
   for(const S of SITES){
-    if(S.etal !== undefined) S.reste = Math.min(S.etal, S.reste + ETAL_RECHARGE*dt);
+    if(S.etal !== undefined){
+      const parSec = S.etal/(ETAL_MINUTES*60);
+      for(const k of S.achete){
+        const r = (S.reste[k] === undefined) ? S.etal : S.reste[k];
+        if(r < S.etal) S.reste[k] = Math.min(S.etal, r + parSec*dt);
+      }
+    }
     if(!S.fabrique.length) continue;
     if(S.choix === 'toutes'){
       // Beurre et yaourt sortent ensemble de la même cuve de lait : chaque recette
@@ -8513,7 +8643,11 @@ function ongletFilieres(){
     if(S.achete.length)
       l.push('Achète : ' + S.achete.map((k)=> PRODUITS[k].nom).join(', ') +
              (S.coef !== 1 ? ' — au barème ' + Math.round(S.coef*100) + ' %' : ''));
-    if(S.etal !== undefined) l.push('Étal limité : ' + kg(S.reste) + ' de place');
+    if(S.etal !== undefined)
+      l.push('Prend au plus ' + kg(S.etal) + ' de chaque nature, refait en ' +
+             ETAL_MINUTES + ' min — reste ' +
+             S.achete.map((k)=> PRODUITS[k].nom.toLowerCase() + ' ' + Math.round(placeChez(S, k)))
+                     .join(', ') + ' kg');
     if(S.commande) l.push('Commande en cours : ' + S.commande.liste.map((c)=>
       PRODUITS[c.cle].nom + ' ' + Math.round(resteCommande(c.cle)) + ' kg').join(', ') +
       ' — prime ' + eur(S.commande.prime));
@@ -8655,11 +8789,16 @@ function ongletPrix(){
   for(const cle of natures){
     const P = PRODUITS[cle];
     const chez = SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
-      .map((S)=> ({S, prix:prixChez(S, cle), place:(S.etal !== undefined) ? S.reste : Infinity}))
+      .map((S)=> ({S, prix:prixChez(S, cle), place:placeChez(S, cle), max:(S.etal || Infinity)}))
       .sort((a, b)=> b.prix - a.prix);
+    // Ce qu'on gagnerait à VIDER chaque acheteur : c'est là que le moins-disant
+    // reprend l'avantage, et c'est le seul chiffre qui permette de le voir.
     const l = chez.map((q, i)=>
       (i === 0 ? '<b>' : '') + q.S.nom + ' ' + dec(q.prix) + ' €' + (i === 0 ? '</b>' : '') +
-      (q.place === Infinity ? ' · sans limite' : ' · ' + kg(q.place) + ' de place'));
+      (q.place === Infinity ? ' · sans limite'
+        : ' · ' + (q.place > q.max - 1 ? 'prend ' + kg(q.max)
+                                       : kg(q.place) + ' libres sur ' + kg(q.max)) +
+          ' — ' + eur(q.place*q.prix)));
     // Ce qui se transforme vaut plus une fois transformé : on le dit ici aussi.
     const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
       && recetteEntrees(k)[cle] !== undefined);
@@ -8673,10 +8812,14 @@ function ongletPrix(){
   titre('Comment lire ces prix');
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">' +
-    'Le prix affiché est celui du kilo à la vente directe. Un commerce à étal — le ' +
-    'marché, le restaurant — paie mieux mais ne prend qu\'une quantité limitée, qui se ' +
-    'reconstitue au fil de la journée. Le supermarché prend tout ce qu\'on lui apporte, ' +
-    'et paie moins.<br><br>' +
+    'Le prix affiché est celui du kilo à la vente directe. CHAQUE acheteur a un ' +
+    'plafond par nature, et ce plafond est l\'inverse de son prix : le caviste paie le ' +
+    'mieux le vin mais n\'en écoule que six cents kilos, le supermarché paie le moins ' +
+    'et en prend neuf mille. Tous se refont en ' + ETAL_MINUTES + ' minutes.<br><br>' +
+    'D\'où la seule vraie question d\'une tournée : vendre le haut de la benne au prix ' +
+    'fort, puis descendre l\'échelle pour le reste — ou tout donner d\'un coup au ' +
+    'moins-disant et repartir travailler. La colonne « de place » dit ce que chacun ' +
+    'peut encore prendre, et ce que cela ferait.<br><br>' +
     'La dernière ligne de chaque produit dit ce que la même matière rapporterait ' +
     'transformée, par kilo engagé. Quand ce chiffre dépasse le prix brut, il vaut ' +
     'mieux passer par un atelier — le vôtre ou celui du bord de route.' +
@@ -8692,6 +8835,20 @@ function ongletReglages(){
     'Efface la sauvegarde et repart d\'une terre vierge. Sans retour possible.',
     confirmeReset ? 'Confirmer ?' : 'Recommencer', confirmeReset ? 'ok' : '',
     ()=>{ if(confirmeReset) nouvellePartie(); else confirmeReset = true; });
+
+  titre('Image');
+  const NE = NETTETE.choix[NETTETE.i];
+  const px = Math.round(renderer.domElement.width) + ' × ' + Math.round(renderer.domElement.height);
+  article(0x9FD8E8, 'Netteté — ' + NE.nom,
+    NE.det + '<br>Rendu actuel : ' + px + ' pixels' +
+    ((devicePixelRatio || 1) > 1.05
+      ? ' · votre écran en compte ' + (devicePixelRatio || 1).toFixed(1) + ' par pixel CSS'
+      : ' · votre écran n\'est pas à haute densité, ce réglage n\'y change rien'),
+    'Changer', 'vert', ()=>{
+      NETTETE.i = (NETTETE.i + 1) % NETTETE.choix.length;
+      applyResolution();
+      showHint('NETTETÉ — ' + NETTETE.choix[NETTETE.i].nom.toUpperCase());
+    });
 
   titre('Son');
   article(0x7FD1E8, 'Ambiance sonore',
@@ -8913,11 +9070,12 @@ function etatJeu(){
     v: 1, quand: Date.now(),
     money, hopper, hopCrop, delivered, breadKg,
     silo: Object.assign({}, siloStock),
-    // Ce que les usines du bord de route ont en trémie et sur leur quai : sans ça, une
-    // benne d'olives versée à l'huilerie s'évaporerait au rechargement de la partie.
+    // Ce que les usines du bord de route ont en trémie, sur leur quai et sur leur étal :
+    // sans ça, une benne d'orge versée à la brasserie s'évaporerait au rechargement, et
+    // un étal qu'on vient de vider se retrouverait plein.
     negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
                               stock: Object.assign({}, S.stock),
-                              reste: S.reste})),
+                              reste: Object.assign({}, S.reste)})),
     commande: RESTO.commande,
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
@@ -8928,6 +9086,7 @@ function etatJeu(){
     entrepot: Object.assign({}, ENTREPOT.stock),
     stock: {semence: STOCK.semence, engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
+    nettete: NETTETE.i,
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
     contrat: contrat && {stat:contrat.stat, need:contrat.need, base:contrat.base,
                          label:contrat.label, reward:contrat.reward, temps:contrat.temps},
@@ -9069,7 +9228,21 @@ function chargerPartie(S){
       const N = S.negoce && S.negoce[i];
       St.tremie = (N && N.tremie) ? Object.assign({}, N.tremie) : {};
       St.stock  = (N && N.stock)  ? Object.assign({}, N.stock)  : {};
-      if(St.etal !== undefined) St.reste = (N && N.reste !== undefined) ? N.reste : St.etal;
+      // `reste` était un nombre (un seul étal partagé) ; c'est maintenant un tas par
+      // nature. Une vieille sauvegarde apporte un nombre : on le répartit sur toutes
+      // les natures plutôt que de planter, et un étal plein est de toute façon l'état
+      // le plus courant.
+      if(St.etal !== undefined){
+        St.reste = {};
+        for(const k of St.achete) St.reste[k] = St.etal;
+        if(N && N.reste !== undefined){
+          if(typeof N.reste === 'number'){
+            const part = Math.max(0, Math.min(St.etal, N.reste));
+            for(const k of St.achete) St.reste[k] = part;
+          } else for(const k in N.reste)
+            if(St.reste[k] !== undefined) St.reste[k] = Math.max(0, Math.min(St.etal, N.reste[k]));
+        }
+      }
     });
     // La commande du restaurant : une partie d'avant la chaîne n'en a pas, on en tire
     // une neuve plutôt que de laisser le restaurant sans rien à demander.
@@ -9110,6 +9283,11 @@ function chargerPartie(S){
     if(CARBU.cuveMax > 0) poserCuve();
     STOCK.semence = S.stock.semence; STOCK.engrais = S.stock.engrais;
     AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
+    // Une partie d'avant le réglage n'en a pas : elle repart en netteté maximale,
+    // c'est-à-dire exactement ce qu'elle connaissait.
+    if(S.nettete !== undefined && NETTETE.choix[S.nettete]){
+      NETTETE.i = S.nettete; applyResolution();
+    }
     MOISSON.width = S.moisson.width; MOISSON.level = S.moisson.level; HOP_MAX = S.moisson.hopMax;
     S.crops.forEach((verrou, i)=>{ if(CROPS[i]) CROPS[i].verrou = verrou; });
     contrat = S.contrat ? Object.assign({}, S.contrat) : null;
@@ -9352,8 +9530,16 @@ function loop(now){
     // d'une rangée de commerces ou finir de charger une benne fait clignoter la carte.
     // Seul l'anneau actif respire : c'est le mouvement qui attire l'œil, la couleur ne
     // fait que confirmer.
+    /* La CONDITION d'un anneau ne dépend pas du temps : elle ne change que lorsqu'une
+       benne se remplit ou qu'un tas bouge. La recalculer huit fois par seconde suffit
+       — la bascule est de toute façon amortie sur un sixième de seconde. La
+       RESPIRATION, elle, reste à soixante images : c'est elle qu'on voit. */
+    anneauT -= dt;
+    const relire = anneauT <= 0;
+    if(relire) anneauT = 0.125;
     for(const A of ANNEAUX){
-      const on = A.actif ? !!A.actif() : true;
+      if(relire || A.on === undefined) A.on = A.actif ? !!A.actif() : true;
+      const on = A.on;
       A.k = (A.k === null) ? (on ? 1 : 0)
                            : A.k + ((on ? 1 : 0) - A.k) * Math.min(1, dt*6);
       // L'exposant creuse le bas de la sinusoïde : la respiration part de bien plus bas
@@ -9397,10 +9583,20 @@ function loop(now){
   sun.target.position.set(sx, 0, sz); sun.target.updateMatrixWorld();
 
   if(hintT > 0){ hintT -= dt; if(hintT <= 0) el.hint.style.opacity = 0; }
-  refreshHUD();
-  refreshContrat();
-  refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
-  refreshChoix(); refreshService(); refreshJauges();   // quelques dizaines de tests, coût nul
+  /* L'INTERFACE À VINGT IMAGES PAR SECONDE. Onze fonctions qui lisent l'état et
+     écrivent dans le DOM, soixante fois par seconde : aucune n'affiche quoi que ce
+     soit d'animé — de l'argent, une heure, des libellés de boutons. Vingt fois par
+     seconde, un chiffre paraît toujours instantané, et l'on cesse de faire recalculer
+     sa mise en page au navigateur à chaque image. Les gestes du joueur, eux, appellent
+     ces fonctions directement : un clic reste immédiat. */
+  uiT -= (dt || 0.016);
+  if(uiT <= 0){
+    uiT = 0.05;
+    refreshHUD();
+    refreshContrat();
+    refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
+    refreshChoix(); refreshService(); refreshJauges();
+  }
   renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);

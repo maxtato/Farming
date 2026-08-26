@@ -177,7 +177,7 @@ Cinq paliers, et chacun se voit sur le bâtiment :
 |---|---|---|---|
 | **1** | Moulin | blé → farine | la halle, sa trémie, son quai |
 | **2** | Broyeur | maïs → aliment | deuxième trémie, mélangeur, hall latéral |
-| **3** | Pressoir | colza → huile de colza | deux cuves, passerelle, cheminée, bidons |
+| **3** | Pressoir | colza → huile de colza, **et** olives → huile d'olive | deux cuves, passerelle, cheminée, bidons |
 | **4** | Mélangeur | maïs + orge + avoine → aliment premium | appentis, conteneur, palettes en nombre |
 | **5** | Cave | raisin → vin | étage technique, auvent de quai, aire rangée |
 
@@ -242,7 +242,6 @@ sa flaque restait immobile sous l'engin, elle a été retirée.
                    |     orge   -> brasserie      -> bière
                    |     avoine -> usine d'avoine -> lait d'avoine
                    |     blé/maïs/avoine -> usine de céréales -> céréales
-                   |     colza / olives  -> huilerie -> huiles
                    |     lait   -> laiterie   -> beurre + yaourt
                    |     lait   -> fromagerie -> fromage
                    |     laine  -> atelier textile
@@ -255,13 +254,28 @@ sa flaque restait immobile sous l'engin, elle a été retirée.
                                  |-> moutons -> laine
                                  \-> toute bête adulte -> boucherie (paie sur place)
 
-   et au bout : marché du village (petites quantités, bon prix)
-                supermarché (tout, 14 % moins cher)
-                restaurant (surpaie le transformé, 10 % de plus)
+   et au bout, l'échelle des acheteurs — chacun plafonné par nature :
+                caviste      +15 %, 600 kg    (vin, raisin)
+                restaurant   +10 %, 900 kg
+                coopérative    0 %, 7 000 kg  (les cinq céréales)
+                marché        −6 %, 2 000 kg
+                supermarché  −14 %, 9 000 kg
 ```
 
-La vigne et l'olivier court-circuitent le silo : du champ à la cave, au pressoir ou à
-l'étal. Vingt parcelles à racheter une à une, un matériel à améliorer, des contrats à
+**Le mieux-disant ne peut pas tout prendre.** Chaque acheteur a un plafond par nature,
+et ce plafond est l'inverse de son prix : le caviste paie le vin le mieux de tous mais
+n'en écoule que six cents kilos, le supermarché paie le moins et en prend neuf mille.
+Tous se refont en deux minutes. D'où la seule vraie question d'une tournée — vendre le
+haut de la benne au prix fort puis descendre l'échelle, ou tout donner d'un coup au
+moins-disant et repartir travailler. Deux mille kilos de vin rapportent 6 940 € en
+descendant l'échelle, 5 400 € si l'on vide tout au supermarché.
+
+La commande du restaurant échappe au plafond : ce qu'il a demandé, il a promis de le
+prendre. C'est ce qui fait d'elle un débouché garanti, au meilleur prix, et ce qui
+justifie d'aller composer une tournée pour elle.
+
+La vigne et l'olivier court-circuitent le silo : du champ à l'entrepôt, puis à la cave,
+au pressoir ou à l'étal. Vingt parcelles à racheter une à une, un matériel à améliorer, des contrats à
 durée limitée, et une progression en onze paliers.
 
 ## Ce que contient le fichier
@@ -306,6 +320,28 @@ Quelques partis pris qui expliquent le reste :
 - **Un sol de couleur se peint, il ne se pose pas.** Le rucher faisait exception : ses
   fleurs poussaient sur une dalle verte de six centimètres, seul enclos du jeu à
   empiler un volume coloré sur l'herbe déjà peinte. Les fleurs sont dans l'herbe.
+- **Un bâtiment qui refait ce qu'on fait chez soi n'est pas un débouché, c'est un
+  détour.** L'huilerie du bord de route pressait le colza que l'atelier de la ferme
+  presse déjà ; elle a été déposée, et son pressoir à olives est passé à l'atelier — le
+  palier 3 en porte donc deux, seul palier double du jeu.
+- **Aucun acheteur ne doit être strictement dominé.** Un commerce qui paie moins ET
+  prend moins qu'un autre n'a aucune raison d'exister ; c'était le cas du supermarché
+  sur ses huit produits et du marché sur huit de ses neuf. Le prix et le plafond vont
+  maintenant en sens inverse, produit par produit, et la vérification en est un test.
+- **Ce qui ne bouge pas se recuit en une géométrie.** Un commerce était fait de jusqu'à
+  cent vingt-cinq volumes séparés, donc de cent vingt-cinq appels de dessin ; le
+  village en demandait deux cent dix-huit par image, et c'est le nombre d'appels qui
+  étrangle un téléphone. Les parties fixes sont fusionnées, couleurs comprises : mêmes
+  pixels, un appel. Ce qui tourne ou grandit reste dehors, marqué `userData.anime`.
+- **Une bricole ne projette pas d'ombre.** La passe d'ombre redessinait deux mille
+  objets par image — les quatre cinquièmes du temps de rendu — dont la moitié faisait
+  moins d'un mètre quarante d'emprise. À la distance de la caméra, l'ombre d'un cageot
+  fait trois pixels. C'est l'emprise au sol qui décide, pas la hauteur.
+- **Ce qui ne change pas soixante fois par seconde n'est pas calculé soixante fois par
+  seconde.** La condition des anneaux se relit huit fois par seconde, l'interface vingt
+  ; la respiration des anneaux, elle, reste à chaque image — c'est elle qu'on voit. La
+  liste des actions, en revanche, n'est PAS mémorisée : elle est relue juste après
+  chaque transfert, et une liste vieille d'un transfert ment.
 - **On travaille en escargot, jamais en serpentin.** Le pilote débordait de 2,5 m hors
   de la parcelle pour en travailler les bords : sur une parcelle de bordure, ces
   2,5 m tombaient dans la clôture. Il tourne maintenant autour de la parcelle en se
@@ -381,3 +417,10 @@ repeinte selon son état : le champ est un peu plus carré qu'à la sortie de la
 machine, mais il dit exactement la même chose du terrain.
 
 « Nouvelle partie », dans l'onglet Réglages, efface tout et repart d'une terre vierge.
+
+Le même onglet règle la **netteté**. Le jeu rend en basse définition puis agrandit au
+plus proche — c'est ce qui donne l'escalier de pixels des contours — mais sur un écran
+très dense cela revient à remplir près de trois fois la définition de l'écran. Trois
+positions : maximale (ce qui existait), élevée (plafonnée à deux fois la définition
+CSS), douce (une fois et demie, le plus fluide). Sur un écran ordinaire, aucune des
+trois ne change quoi que ce soit.
