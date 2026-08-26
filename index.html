@@ -1497,26 +1497,123 @@ function ajusterSitesAuxModeles(){
    les cotes annoncées : ici deux dalles à soixante centimètres l'une de l'autre, là
    quatre mètres de vide. On les calcule donc, à partir des largeurs mesurées. Il ne
    reste à écrire dans la table que l'ORDRE des commerces sur leur bande. */
+/* LE VILLAGE N'EST PAS UN PEIGNE. Les quinze commerces étaient répartis sur leur bande
+   en divisant le jeu restant en parts égales : 8,97 m entre chaque dalle à l'ouest,
+   20,13 à l'est, 31,76 au nord — la même valeur répétée d'un bout à l'autre, quinze
+   bâtiments à la parade. Un village ne se fait pas comme ça : il se fait par PAQUETS.
+   Deux ou trois usines collées bord à bord, clôture commune ; puis un vrai creux, où
+   poussent des arbres, des buissons et des rochers ; puis quelques boutiques ; les
+   commerces de bouche encadrés de maisons ; et de loin en loin un creux plus court
+   avec un abri de bus ou un lavoir posé sur l'herbe, au bord de la route.
+
+   BANDES dit l'ORDRE et la NATURE de chaque bloc. Ce qui est écrit tient en trois
+   sortes : un paquet de commerces jointifs, un paquet de maisons jointives, un creux.
+   Les largeurs, elles, ne sont pas écrites — ce sont les cotes mesurées des bâtiments
+   et des lots. Le jeu restant se partage entre les CREUX seuls, au prorata de leur
+   poids : c'est ce qui fait qu'un village a des pleins et des vides plutôt qu'un pas
+   régulier.
+
+   L'ordre du tableau SITES, lui, ne bouge pas d'un cran : une sauvegarde y repère un
+   commerce par son INDICE. On ne change que `bat`, l'ancrage le long de la bande. */
+const BANDES = {
+  // Ouest : le quartier industriel au nord, les commerces de bouche au sud, avec une
+  // maison de chaque côté — c'est le bout de bande que l'on croise en sortant de la ferme.
+  // Une seule maison à l'ouest : cette bande porte 127 m de dalles sur 172 de façade,
+  // c'est la plus chargée des trois. Deux maisons y auraient mangé les deux creux.
+  W: [{sites:['Usine céréales', 'Garage', 'Brasserie']},
+      {creux:'verdure', poids:1.2},
+      {maisons:1},
+      {sites:['Caviste', 'Marché', 'Supermarché']},
+      {creux:'mobilier', poids:0.8}],
+  // Nord : la bande la plus vide des trois. Elle se remplit de maisons plutôt que
+  // d'écarter les quatre commerces sur cent soixante-douze mètres.
+  N: [{sites:['Usine avoine']},
+      {creux:'verdure', poids:1},
+      {sites:['Comptoir agricole']},
+      {creux:'mobilier', poids:0.7},
+      {maisons:1},
+      {sites:['Boulangerie', 'Fromagerie']},
+      {maisons:1},
+      {creux:'verdure', poids:1},
+      {maisons:1}],
+  // Est : trois usines d'un tenant, puis le hameau de la boucherie et du restaurant.
+  E: [{sites:['Coopérative', 'Atelier textile', 'Laiterie']},
+      {creux:'verdure', poids:1.2},
+      {maisons:1},
+      {sites:['Boucherie', 'Restaurant']},
+      {maisons:1},
+      {creux:'mobilier', poids:0.8}]
+};
+// Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
+// et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
+// de quoi ne pas se traverser.
+const BANDE_JEU = 2.0;
+/* VERS OÙ REGARDE UNE MAISON. Une maison est bâtie face à son +z ; tournée de `ry`,
+   elle regarde (sin ry, cos ry). Il lui faut faire face à la chaussée qu'elle borde :
+   la bande ouest est à l'ouest de sa rocade et regarde donc vers l'est, la bande est
+   vers l'ouest, la bande nord vers le sud, et le rang du bord sud vers le nord. */
+const RY_BANDE = {W:Math.PI/2, E:-Math.PI/2, N:0, S:Math.PI};
+// Ce que chaque bande a posé : les maisons à bâtir, et les creux à garnir. buildFarm()
+// les reprend une fois les modèles connus.
+const BANDE_MAISONS = [], BANDE_CREUX = [];
+// Le rang du bord sud, décrit une fois posé : ses bornes, sa profondeur, et l'endroit
+// où il reprend la rotation des modèles. Un contrôle doit pouvoir le refaire seul.
+const RANG = {};
 function repartirBandes(){
+  BANDE_MAISONS.length = 0; BANDE_CREUX.length = 0;
   for(const dir of ['W', 'N', 'E']){
-    const b = SITES.filter((S)=> S.dir === dir).sort((A, B)=> A.bat - B.bat);
-    if(!b.length) continue;
-    // Ce que chaque site occupe de part et d'autre de son ancrage : sa demi-largeur,
-    // des deux côtés. La dalle est maintenant symétrique — le parvis est devant, pas
-    // sur le flanc — et les commerces se répartissent d'autant plus au large.
-    const avant = b.map((S)=> S.w/2);
-    const apres = b.map((S)=> S.w/2);
-    const total = b.reduce((t, S, i)=> t + avant[i] + apres[i], 0);
+    const plan = BANDES[dir];
+    if(!plan) continue;
+    const parNom = {};
+    for(const S of SITES) if(S.dir === dir) parNom[S.nom] = S;
     // La bande court d'une rocade perpendiculaire à l'autre, en gardant le même recul
     // qu'entre une dalle et sa propre chaussée.
     const d0 = (dir === 'N' ? -ROAD_C : ROAD_N) + ROAD_W/2 + RECUL_ROCADE;
     const d1 = (dir === 'N' ?  ROAD_E : ROAD_C) - ROAD_W/2 - RECUL_ROCADE;
-    const jeu = Math.max(0, (d1 - d0) - total) / Math.max(1, b.length - 1);
+    // Largeur de chaque bloc : la somme des cotes mesurées, sans le moindre jeu à
+    // l'intérieur — c'est ce que « collés » veut dire.
+    let fixe = 0, poids = 0, blocs = 0;
+    for(const b of plan){
+      if(b.creux){ poids += (b.poids || 1); continue; }
+      blocs++;
+      if(b.sites) fixe += b.sites.reduce((t, n)=> t + (parNom[n] ? parNom[n].w : 0), 0);
+      else {
+        // On les bâtit tout de suite : leur cote de lot n'est connue que du modèle, et
+        // c'est elle qui décide de la place à réserver. buildFarm() les posera.
+        b.lots = b.lots || [];
+        while(b.lots.length < (b.maisons || 0)) b.lots.push(lotMaison(RY_BANDE[dir]));
+        fixe += b.lots.reduce((t, L)=> t + L.jw, 0);
+      }
+    }
+    const marges = Math.max(0, plan.length - 1)*BANDE_JEU;
+    const reste = Math.max(0, (d1 - d0) - fixe - marges);
     let t = d0;
-    b.forEach((S, i)=>{
-      S.bat = t + avant[i];
-      t += avant[i] + apres[i] + jeu;
+    plan.forEach((b, k)=>{
+      if(k) t += BANDE_JEU;
+      if(b.creux){
+        const l = reste*(b.poids || 1)/Math.max(1e-6, poids);
+        BANDE_CREUX.push({dir, quoi:b.creux, a:t, b:t + l});
+        t += l;
+        return;
+      }
+      if(b.sites){
+        b.sites.forEach((n, i)=>{
+          const S = parNom[n];
+          if(!S) return;
+          S.bat = t + S.w/2;
+          // Qui touche qui : le pan mitoyen appartient au premier des deux.
+          S.colleAvant = i > 0;
+          S.colleApres = i < b.sites.length - 1;
+          t += S.w;
+        });
+        return;
+      }
+      for(const L of (b.lots || [])){
+        BANDE_MAISONS.push({dir, lot:L, a:t, b:t + L.jw});
+        t += L.jw;
+      }
     });
+    void blocs;
   }
 }
 
@@ -2098,10 +2195,12 @@ const wheatBase = [];   // fiche de plante par cellule cultivable : {x,z,i,j,rot
 // 2,05. Ils sont donc recalés sur la hauteur de chaque géométrie, de façon à rendre à
 // chaque céréale exactement la taille qu'elle avait avant.
 const CROPS = [
+  // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
+  // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
-   temps:210, kg:12, haut:1.00},
+   temps:210, kg:12, haut:1.00, large:0.80},
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:330, kg:21, haut:1.07, cout:2500, verrou:true},
+   temps:330, kg:21, haut:1.07, large:0.80, cout:2500, verrou:true},
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
    temps:260, kg:15, haut:1.04, cout:4000, verrou:true},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
@@ -2117,14 +2216,17 @@ const CROPS = [
    // 2,80 m à maturité : la hauteur du tunnel de l'enjambeuse, à trente centimètres
    // près. Une vigne palissée d'1,74 m passait sous la machine sans la toucher — on ne
    // voyait pas ce qu'on récoltait.
-   temps:340, kg:9, haut:1.93, cout:9000, verrou:true, perenne:true,
+   // Grandie de 15 % : 3,22 m au fil, pour un tunnel d'enjambeuse porté à 3,55.
+   temps:340, kg:9, haut:1.93, large:1.15, cout:9000, verrou:true, perenne:true,
    rang:true, masque:(i)=> i % 2 === 0},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
    // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
    // coefficient est calé pour que le plus grand des arbres — tirage 1,95 — reste sous
    // les 3,10 m du tunnel. De 2,23 à 3,00 m, contre 4,40 m avant, où la machine
    // passait dans le feuillage.
-   temps:400, kg:8, haut:0.80, cout:11000, verrou:true, perenne:true,
+   // Grandi de 15 % lui aussi : de 2,58 à 3,45 m, le plus gros tirage passant sous les
+   // 3,55 m du tunnel élargi.
+   temps:400, kg:8, haut:0.80, large:1.15, cout:11000, verrou:true, perenne:true,
    masque:(i, j)=> i % 4 === 0 && j % 4 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
@@ -2249,8 +2351,13 @@ function setInstance(n, g, alive){
   // En rang, l'échelle au sol est FIXE : le piquet et le fil font une cellule, et une
   // taille tirée au hasard laisserait un pied sur deux sans fil — le palissage
   // deviendrait un pointillé. Seule la hauteur du feuillage suit la saison.
-  const s = enRang ? 1 : b.sc*pousse;
-  const sy = enRang ? pousse : s*(C2.perenne ? 1 : 0.5 + 0.5*g);
+  /* `large` CHANGE LA TAILLE, `haut` NE FAIT QU'ÉTIRER. Le second ne portait que sur y :
+     s'en servir pour rapetisser le blé l'aurait tassé, pas rétréci. `large` multiplie
+     les trois axes à la fois — c'est une échelle, donc la plante garde ses proportions
+     et son compte de triangles. Absent, il vaut 1 et rien ne bouge. */
+  const ech = C2.large === undefined ? 1 : C2.large;
+  const s = (enRang ? 1 : b.sc*pousse) * ech;
+  const sy = enRang ? pousse*ech : s*(C2.perenne ? 1 : 0.5 + 0.5*g);
   _q.setFromAxisAngle(_axeY, enRang ? 0 : b.rot);
   _v3.set(enRang ? cellX(b.i) : b.x, 0, enRang ? cellZ(b.j) : b.z);
   _s3.set(s, sy*C2.haut, s);
@@ -2711,14 +2818,20 @@ function clotureSite(S){
   };
   const cx = (E.x0 + E.x1)/2, cz = (E.z0 + E.z1)/2;
   const LX = E.x1 - E.x0, LZ = E.z1 - E.z0;
+  /* LE PAN MITOYEN N'EST POSÉ QU'UNE FOIS. Deux dalles collées bord à bord dresseraient
+     chacune son pignon sur la même ligne, au centimètre près : deux murets superposés,
+     payés deux fois et vus une. Le pan appartient au PREMIER des deux voisins le long
+     de la bande, et le second ne pose que son autre pignon. */
   if(S.dir === 'W' || S.dir === 'E'){
-    bande(LX, EP, cx, E.z0); bande(LX, EP, cx, E.z1);          // pignons nord et sud
+    if(!S.colleAvant) bande(LX, EP, cx, E.z0);                 // pignon nord
+    bande(LX, EP, cx, E.z1);                                   // pignon sud
     bande(EP, LZ, S.dir === 'W' ? E.x0 : E.x1, cz);            // fond, dos à la route
     cote(E.z0, E.z1, [[S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
       (u, v)=> bande(EP, v - u, S.dir === 'W' ? E.x1 : E.x0, (u + v)/2));
     for(const s2 of [-1, 1]) pilier(S.dir === 'W' ? E.x1 : E.x0, S.quaiZ + s2*PORTE/2);
   } else {
-    bande(EP, LZ, E.x0, cz); bande(EP, LZ, E.x1, cz);          // pignons est et ouest
+    if(!S.colleAvant) bande(EP, LZ, E.x0, cz);                 // pignon ouest
+    bande(EP, LZ, E.x1, cz);                                   // pignon est
     bande(LX, EP, cx, E.z0);                                   // fond, au nord
     cote(E.x0, E.x1, [[S.quaiX - PORTE/2, S.quaiX + PORTE/2]],
       (u, v)=> bande(v - u, EP, (u + v)/2, E.z1));
@@ -3773,6 +3886,11 @@ function buildFarm(){
     if(p) p.decor.push(m);
   };
 
+  // Les bandes se garnissent ici, et pas plus tôt : il leur faut les deux semeurs
+  // ci-dessus, et il faut que ce soit fait AVANT le semis général pour que son filtre
+  // sache ce qui est déjà occupé.
+  garnirBandes(putBush, putRock);
+
   // Friches : peuplement calibré, distance minimale entre arbres, panneau À VENDRE
   for(const p of PARCELS){
     if(p.owned) continue;
@@ -3820,7 +3938,6 @@ function buildFarm(){
      Les emplacements sont décidés AVANT le semis de verdure pour que le filtre puisse
      les écarter, sinon les arbres poussent dans les jardins. */
   const MAISONS = [];
-  const RANG = {};
   {
     /* Les blocs sont bâtis AVANT d'être répartis : c'est le lot que chaque modèle
        DÉCLARE — sa cote de jardin, le décalage de son rectangle, l'axe de son allée —
@@ -3833,27 +3950,20 @@ function buildFarm(){
        leur axe, pour tout z. Le rang doit leur laisser la même verge qu'à la chaussée
        de devant, sans quoi ses deux pignons se retrouvent au ras de l'asphalte. */
     const RUE_LIB = (ROC.x1 - ROAD_W/2) - (ROC.x0 + ROAD_W/2) - 2*RUE_VERGE;
-    jardinsPoses = false;
+    // Où en est la rotation des modèles quand le rang commence : les maisons de bande
+    // sont bâties avant lui et ont déjà fait tourner le compteur. C'est ce qui empêche
+    // une maison de bande et sa voisine de rang d'être le même modèle.
+    RANG.mai0 = maiSuivante;
     let cumul = 0;
     for(let k = 0; k < 16; k++){
-      const {g} = MAI_MODELES[MAI_ORDRE[k % MAI_ORDRE.length]]();
-      g.scale.setScalar(MAI_ECHELLE);
-      g.rotation.y = Math.PI;                 // façade tournée vers la chaussée
-      const J = g.userData.jardin, A = g.userData.allee;
-      const jw = J.w*MAI_ECHELLE;
-      if(cumul + jw > RUE_LIB){               // le rang est plein, celle-ci ne tient pas
-        g.traverse((o)=>{ if(o.geometry) o.geometry.dispose(); });
+      const L = lotMaison(RY_BANDE.S);        // façade tournée vers la chaussée
+      if(cumul + L.jw > RUE_LIB){             // le rang est plein, celle-ci ne tient pas
+        L.g.traverse((o)=>{ if(o.geometry) o.geometry.dispose(); });
         break;
       }
-      cumul += jw;
-      MAISONS.push({g, jw, jd:J.d*MAI_ECHELLE,
-                    dec:J.decalX*MAI_ECHELLE,
-                    port:(A ? A.x : J.xPortillon)*MAI_ECHELLE,
-                    // le bout de l'allée du modèle, et sa largeur : le rang la
-                    // prolongera jusqu'au portillon qu'il vient de percer
-                    bout:A ? A.z1*MAI_ECHELLE : null, larg:A ? A.w*MAI_ECHELLE : 0});
+      cumul += L.jw;
+      MAISONS.push(L);
     }
-    jardinsPoses = true;
     // Un seul fond pour tout le rang : sinon la mitoyenne entre deux lots de
     // profondeurs différentes finirait en marche d'escalier.
     const PROF = Math.max.apply(null, MAISONS.map((M)=> M.jd));
@@ -3884,6 +3994,9 @@ function buildFarm(){
        z > ROC.z0 - ROAD_W/2 - 6 && z < ROC.z1 + ROAD_W/2 + 6) return false;
     // et pas davantage sur les BOUTS des quatre bandes, qui dépassent des angles
     if(surRoute(x, z, 6)) return false;
+    // ni dans un lot de maison de bande, ni sur le mobilier posé dans un creux
+    for(const L of BANDE_LOTS)
+      if(x > L.x0 - 3 && x < L.x1 + 3 && z > L.z0 - 3 && z < L.z1 + 3) return false;
     if(x < X0+4 || x > X1-4 || z < Z0+4 || z > Z1-4) return false;
     for(const S of SITES){
       // emprise du bâtiment : profondeur en X et largeur en Z sur les bords latéraux,
@@ -4451,6 +4564,28 @@ const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, m
    fois, puis les reprend dans un autre ordre : aucune maison ne revoisine la même, et
    les deux moitiés ne se ressemblent plus. */
 const MAI_ORDRE = [0, 4, 2, 5, 1, 3, 5, 0, 3, 2, 1, 4];
+/* UN LOT DE MAISON, BÂTI ET MESURÉ. Le rang du bord sud et les trois bandes de
+   commerces en demandent les uns comme les autres : le modèle est mis à l'échelle,
+   tourné vers la route, et l'on relève la cote de lot qu'il DÉCLARE — largeur,
+   profondeur, décalage du rectangle, axe de l'allée, bout de l'allée. `jardinsPoses`
+   lui retire sa clôture : c'est le rang, ou la bande, qui clôture. Le compteur tourne
+   sur tout le village, de sorte que deux maisons voisines ne sont jamais du même
+   modèle, où qu'elles soient. */
+let maiSuivante = 0;
+function lotMaison(ry){
+  const k = MAI_ORDRE[maiSuivante++ % MAI_ORDRE.length];
+  const avant = jardinsPoses;
+  jardinsPoses = false;
+  const {g} = MAI_MODELES[k]();
+  jardinsPoses = avant;
+  g.scale.setScalar(MAI_ECHELLE);
+  g.rotation.y = ry;
+  const J = g.userData.jardin, A = g.userData.allee;
+  return {g, modele:k, jw:J.w*MAI_ECHELLE, jd:J.d*MAI_ECHELLE,
+          dec:J.decalX*MAI_ECHELLE,
+          port:(A ? A.x : J.xPortillon)*MAI_ECHELLE,
+          bout:A ? A.z1*MAI_ECHELLE : null, larg:A ? A.w*MAI_ECHELLE : 0};
+}
 
 /* LA CLÔTURE DU RANG. C'est celle de dJardin() sortie de son rectangle : la rue
    mitoyenne a besoin d'un pan qui court sur cent soixante-dix mètres et s'ouvre devant
@@ -4515,6 +4650,110 @@ function panCloture(g, x0, z0, x1, z1, coupes, sansA, sansB){
 }
 const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBucher,
                      vilPuits, vilCalvaire, vilEntree, vilBanc, vilPoteau];
+
+/* CE QUI REMPLIT LES BANDES ENTRE LES COMMERCES.
+   `repartirBandes()` a réservé la place : les maisons qui encadrent les commerces de
+   bouche, et les creux entre deux paquets. Reste à les poser.
+
+   Les quatre bandes ne diffèrent que par deux choses : l'AXE le long duquel elles
+   courent, et le SENS dans lequel on s'éloigne de la chaussée. Tout le reste s'en
+   déduit — le lot centré sur son créneau, la façade sur la ligne des façades de
+   commerce, l'allée face à la route, la clôture autour. D'où deux petites tables
+   plutôt que quatre branches de code. */
+const BORD_BANDE = {W:ROC.x0 - ROAD_W/2, E:ROC.x1 + ROAD_W/2,
+                    N:ROC.z0 - ROAD_W/2, S:ROC.z1 + ROAD_W/2};
+const SORTANT = {W:-1, E:1, N:-1, S:1};        // vers où l'on s'éloigne du bitume
+const SUR_Z   = {W:true, E:true, N:false, S:false};  // la bande court-elle le long de z
+const SDEC    = {W:1, E:-1, N:-1, S:1};        // le sens du décalage de lot, une fois tourné
+const BANDE_LOTS = [];                          // ce qui a été posé, pour le filtre du semis
+/* Poser un lot de maison le long d'une bande : le bloc, sa clôture, son raccord
+   d'allée et son rectangle de collision. `centre` est sa place le long de la bande,
+   `front` la coordonnée de profondeur de sa façade côté route. */
+function poserLotBande(L, dir, centre, front){
+  const surZ = SUR_Z[dir], sortant = SORTANT[dir], sdec = SDEC[dir];
+  const prof = front + sortant*L.jd/2;         // profondeur du centre du lot
+  const band = centre + sdec*L.dec;            // et sa place le long de la bande
+  L.g.position.set(surZ ? prof : band, 0, surZ ? band : prof);
+  scene.add(L.g);
+  fusionnerGroupe(L.g);
+  const hb = L.jw/2, hd = L.jd/2;
+  const gp = sdec*(L.dec - L.port);            // l'axe du portillon, en local
+  const av = -sortant*hd, ar = sortant*hd;     // le devant côté route, et le fond
+  const G = new THREE.Group();
+  if(surZ){
+    panCloture(G, av, -hb, av,  hb, [gp], false, false);
+    panCloture(G, ar, -hb, ar,  hb, null, false, false);
+    panCloture(G, av, -hb, ar, -hb, null, true,  true);
+    panCloture(G, av,  hb, ar,  hb, null, true,  true);
+  } else {
+    panCloture(G, -hb, av,  hb, av, [gp], false, false);
+    panCloture(G, -hb, ar,  hb, ar, null, false, false);
+    panCloture(G, -hb, av, -hb, ar, null, true,  true);
+    panCloture(G,  hb, av,  hb, ar, null, true,  true);
+  }
+  // l'allée rejoint son portillon, comme dans le rang du bord sud
+  if(L.bout !== null){
+    const b0 = -sortant*L.bout, d = Math.abs(b0 - av);
+    if(d >= 0.15){
+      const m = (b0 + av)/2;
+      const pave = (w, l, c, y)=> surZ ? box(l, 0.08, w, c, m, y, gp)
+                                       : box(w, 0.08, l, c, gp, y, m);
+      G.add(pave(L.larg, d, 0xC9B99A, 0.04));
+      const n = Math.max(1, Math.round(d/(0.8*MAI_ECHELLE)));
+      for(let k = 0; k < n; k++){
+        const t = av + (b0 - av)*(k + 0.5)/n;
+        G.add(surZ ? box(d/n*0.55, 0.04, L.larg*0.82, 0xB8A88A, t, 0.09, gp)
+                   : box(L.larg*0.82, 0.04, d/n*0.55, 0xB8A88A, gp, 0.09, t));
+      }
+    }
+  }
+  G.position.set(surZ ? prof : centre, 0, surZ ? centre : prof);
+  scene.add(G);
+  fusionnerGroupe(G);
+  const bx = surZ ? prof : centre, bz = surZ ? centre : prof;
+  const ox = surZ ? hd : hb, oz = surZ ? hb : hd;
+  boxObs.push({x:bx, z:bz, hw:ox, hd:oz});
+  BANDE_LOTS.push({x0:bx - ox, x1:bx + ox, z0:bz - oz, z1:bz + oz});
+}
+/* Les maisons de bande et le contenu des creux. Le mobilier se pose sur l'herbe TOUT
+   PRÈS de la route — c'est ce qui donne l'air d'un village plutôt que d'une zone
+   d'activité — et la verdure occupe le fond du creux, derrière lui. */
+function garnirBandes(putBush, putRock){
+  const VERGE = 9;                             // la même que celle du rang du bord sud
+  for(const M of BANDE_MAISONS)
+    poserLotBande(M.lot, M.dir, (M.a + M.b)/2,
+                  BORD_BANDE[M.dir] + SORTANT[M.dir]*VERGE);
+  const MOB = [vilAbriBus, vilLavoir, vilTonnelle, vilPuits, vilBanc, vilPiqueNique];
+  let iMob = 0;
+  for(const C of BANDE_CREUX){
+    const surZ = SUR_Z[C.dir], sortant = SORTANT[C.dir], bord = BORD_BANDE[C.dir];
+    const centre = (C.a + C.b)/2, l = C.b - C.a;
+    const pose = (d, t, fab, ry)=>{
+      const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
+      return {x, z, fab, ry};
+    };
+    if(C.quoi === 'mobilier' && l > 7){
+      const f = MOB[iMob++ % MOB.length];
+      const q = pose(5.0, centre, f, RY_BANDE[C.dir]);
+      poserBloc(q.fab, q.x, q.z, q.ry);
+      BANDE_LOTS.push({x0:q.x - 4, x1:q.x + 4, z0:q.z - 4, z1:q.z + 4});
+    }
+    // La verdure du creux : semée sur le flux à graine fixe, donc la même à chaque
+    // partie, et jamais à moins de six mètres du bitume — la vue depuis la route
+    // reste dégagée sur ce qu'il y a derrière.
+    const n = Math.max(2, Math.round(l/6));
+    for(let k = 0; k < n; k++){
+      const t = C.a + 2 + alea()*(l - 4);
+      const d = 8 + alea()*16;
+      const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
+      if(C.quoi === 'mobilier' && Math.abs(t - centre) < 6 && d < 12) continue;
+      const r = alea();
+      if(r < 0.42) addTree(x, z, 0.85 + alea()*0.5, (alea()*5)|0);
+      else if(r < 0.74) putBush(x, z, alea);
+      else putRock(x, z, alea);
+    }
+  }
+}
 
 /* Pose un bloc : on le construit, on le fusionne en un seul objet, on l'oriente, et
    l'on déclare son emprise pour que les engins ne le traversent pas. */
@@ -5021,7 +5260,12 @@ function buildEnjambeuse(){
   const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
         JAUNE = 0xF0C24A, JAUNE2 = 0xB99630, CREME = 0xF2E7D2, INOX = 0xC9CFD3;
   // Garde au sol sous les jambes, hauteur libre du tunnel, demi-écartement, longueur.
-  const GARDE = 0.5, H = 2.6 + GARDE, E = 1.65, L = 5.6, hF = 2.0, yT = H + hF + 0.5;
+  /* LE TUNNEL SUIT LA VIGNE. Il tenait 3,10 m de haut sur 3,30 de large pour une vigne
+     de 2,80 et un olivier montant à 3,00 sur 3,12 : dix centimètres de jeu au plus
+     grand tirage. Les deux plantes ayant grandi de 15 %, le tunnel les suit — 3,55 m
+     sous le pont, 3,90 entre les jambes — et l'engin passe à 5,20 m de large dans des
+     chemins de sable qui en font 6,40. */
+  const GARDE = 0.5, H = 3.05 + GARDE, E = 1.95, L = 5.6, hF = 2.0, yT = H + hF + 0.5;
   const wr = [], wf = [];
 
   // --- colonnes et pont ---
@@ -5738,23 +5982,55 @@ function planAuto(m, cible){
     const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
     if(d < dMin){ dMin = d; depart = k; }
   });
-  const pts = [];
-  let garde = 0;
-  while(x1 - x0 > pas*0.4 && z1 - z0 > pas*0.4 && garde++ < 80){
-    const c = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+  /* ET IL EST STRICTEMENT ORTHOGONAL. Il ne l'était pas : le tour se refermait sur son
+     coin de départ, puis le tour suivant commençait au coin RENTRÉ d'une passe — un
+     saut en DIAGONALE de pas·√2 à chaque tour, dix à dix-sept mètres de biais par
+     parcelle, qu'on voyait très bien depuis la cabine. On ne resserre donc plus les
+     quatre bords d'un coup à la fin d'un tour, mais UN SEUL, juste après l'avoir
+     longé. Chaque déplacement n'a alors qu'une seule coordonnée qui change : le
+     quart de tour se prend à l'équerre, comme le ferait un conducteur.
+
+     Les quatre trajets, dans l'ordre — chacun part du coin `d` et arrive au coin
+     `d+1`, puis rentre le bord qu'il vient de longer :
+        0  vers l'est, le long du bord nord   -> z0 rentre
+        1  vers le sud, le long du bord est   -> x1 rentre
+        2  vers l'ouest, le long du bord sud  -> z1 rentre
+        3  vers le nord, le long du bord ouest-> x0 rentre  */
+  const pts = [{x:coins0[depart][0], z:coins0[depart][1]}];
+  let d = depart, garde = 0;
+  while(garde++ < 200){
+    const lx = x1 - x0, lz = z1 - z0;
+    if(lx < -1e-9 || lz < -1e-9) break;
+    /* QUAND S'ARRÊTER, POUR NE RIEN LAISSER. Les deux passes opposées d'un tour
+       couvrent chacune une largeur d'outil autour de leur ligne : elles se rejoignent
+       dès que les deux lignes sont à moins d'une largeur l'une de l'autre. Ce tour-ci
+       est donc le dernier si le rectangle restant tient dans une largeur d'outil, dans
+       les deux sens — et alors on ne resserre plus, on le referme.
+       Une version antérieure coupait dès qu'UN des deux côtés passait sous la largeur
+       d'outil et traçait une médiane : sur une petite parcelle prise avec un épandeur
+       de douze mètres, cela donnait UNE SEULE ligne pour dix-neuf mètres de large, et
+       trois mètres quatre-vingts jamais touchés en haut comme en bas. */
+    const dernier = (lx <= T.width && lz <= T.width);
+    /* ET LE RESSERRAGE NE DÉPASSE JAMAIS LE MILIEU. Sans cette butée, un tour de plus
+       d'une largeur d'outil retournait le rectangle — bord droit passé à gauche du bord
+       gauche — la boucle s'arrêtait là, et il restait au milieu une bande que les deux
+       passes opposées, trop écartées, n'avaient pas jointe : trente cellules sur une
+       parcelle de 19,6 sur 30,4 prise à la moissonneuse. Bridé au milieu, le tour
+       suivant repasse simplement sur l'axe, et la bande est balayée. */
     for(let k = 0; k < 4; k++){
-      const q = c[(depart + k) % 4];
-      pts.push({x:q[0], z:q[1]});
+      const mx = (x0 + x1)/2, mz = (z0 + z1)/2;
+      if(d === 0){ pts.push({x:x1, z:z0}); if(!dernier) z0 = Math.min(z0 + pas, mz); }
+      else if(d === 1){ pts.push({x:x1, z:z1}); if(!dernier) x1 = Math.max(x1 - pas, mx); }
+      else if(d === 2){ pts.push({x:x0, z:z1}); if(!dernier) z1 = Math.max(z1 - pas, mz); }
+      else             { pts.push({x:x0, z:z0}); if(!dernier) x0 = Math.min(x0 + pas, mx); }
+      d = (d + 1) % 4;
     }
-    pts.push({x:c[depart][0], z:c[depart][1]});     // on referme le tour
-    x0 += pas; x1 -= pas; z0 += pas; z1 -= pas;
+    if(dernier) break;
   }
-  // Le cœur : ce qui reste est plus étroit qu'une passe, une seule ligne suffit.
-  if(x1 - x0 > 0 || z1 - z0 > 0){
-    if(x1 - x0 >= z1 - z0) pts.push({x:x0, z:(z0+z1)/2}, {x:x1, z:(z0+z1)/2});
-    else                   pts.push({x:(x0+x1)/2, z:z0}, {x:(x0+x1)/2, z:z1});
-  }
-  return {pts, i:0, replans:0, p:best};
+  // Deux points confondus font tourner l'engin sur place : on les élague.
+  const net = pts.filter((q, k)=> k === 0 ||
+    Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
+  return {pts:net, i:0, replans:0, p:best};
 }
 
 /* ALLER D'UN POINT À UN AUTRE SANS PIÉTINER LES CHAMPS.

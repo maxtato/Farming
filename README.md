@@ -494,6 +494,30 @@ blanc chaud, très clair, qui ressort sans crier.
 
 ## Le village
 
+**Un village se fait par paquets, pas par un peigne.** Les quinze commerces étaient
+répartis sur leur bande en divisant le jeu restant en parts égales : 8,97 m entre chaque
+dalle à l'ouest, 20,13 à l'est, 31,76 au nord — la même valeur répétée d'un bout à
+l'autre, quinze bâtiments à la parade. `BANDES` écrit maintenant l'ORDRE et la NATURE
+de chaque bloc : deux ou trois usines **collées bord à bord**, clôture commune ; un vrai
+creux planté d'arbres, de buissons et de rochers ; les commerces de bouche encadrés de
+maisons ; et de loin en loin un creux plus court où un abri de bus ou un lavoir se pose
+sur l'herbe, à cinq mètres du bitume. Les largeurs ne sont pas écrites — ce sont les
+cotes mesurées des bâtiments et des lots — et le jeu restant se partage entre les creux
+seuls, au prorata. Relevé : **huit dalles jointives** à zéro centimètre, et des creux de
+7 à 25 m au lieu d'un pas régulier.
+
+Le pan mitoyen n'est posé qu'une fois : il appartient au premier des deux voisins le
+long de la bande, sinon deux murets se superposent au centimètre près. Et l'ordre du
+tableau `SITES` ne bouge pas d'un cran — une sauvegarde y repère un commerce par son
+indice ; on ne change que `bat`, l'ancrage le long de la bande.
+
+Les maisons de bande suivent la même mécanique que le rang du bord sud : `lotMaison()`
+bâtit, met à l'échelle et mesure ; `poserLotBande()` pose. Les quatre bandes ne diffèrent
+que par l'axe le long duquel elles courent et le sens dans lequel on s'éloigne de la
+chaussée — d'où deux petites tables plutôt que quatre branches de code. La rotation des
+modèles court sur tout le village : une maison de bande et sa voisine de rang ne sont
+jamais le même modèle.
+
 Trois silhouettes de maison se répétaient en enfilade le long de la façade sud — et en
 vérité elles n'étaient même pas construites : le code qui les dessinait n'était appelé
 de nulle part, il réservait la place sans rien y poser. **Dix maisons prises dans six
