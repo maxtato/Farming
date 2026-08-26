@@ -1367,6 +1367,8 @@ const SWATH = {
   semis:   {base:C.seed,    line:'rgba(0,0,0,.28)',      step:0.80, lw:0.18, grain:null, seeds:'#4E3A1C'},
   moisson: {base:'#63482A', line:'rgba(0,0,0,.16)',      step:0.95, lw:0.16, grain:null, debris:true},
   engrais: {base:null,      line:null,                   step:0,    lw:0,    grain:null}
+  // Rien pour 'vendange' : l'enjambeuse passe AU-DESSUS du rang, elle ne fauche pas.
+  // Un outil sans entrée ici ne peint pas — c'est ce que dit le test de work().
 };
 /* Un passage n'est PAS un simple quadrilatère : quand l'engin tourne vite en avançant
    peu, les deux extrémités se croisent et la figure se replie sur elle-même. Le test
@@ -1445,7 +1447,9 @@ function paintSwath(key, a, ar, b, br, w){
       c.fillRect(minx, minz, maxx-minx, maxz-minz);
       c.strokeStyle = st.line; c.lineWidth = st.lw;
       const ext = 0.4;
-      for(let off = -w/2 - ext; off < w/2 + ext; off += st.step){
+      // Un pas nul ferait tourner cette boucle pour toujours — le genre de faute qui
+      // ne se voit qu'en ajoutant un style d'andain incomplet.
+      for(let off = -w/2 - ext; st.step > 0 && off < w/2 + ext; off += st.step){
         c.beginPath();
         c.moveTo(a.x + ar.x*off - ux*ext, a.z + ar.z*off - uz*ext);
         c.lineTo(b.x + br.x*off + ux*ext, b.z + br.z*off + uz*ext);
@@ -3820,6 +3824,110 @@ function buildMoissonneuse(){
   return g;
 }
 
+/* L'ENJAMBEUSE. Une machine qui passe AU-DESSUS du rang : deux jambes de part et
+   d'autre, un tunnel libre de 2,60 m entre elles, les roues à l'extérieur. C'est la
+   seule façon de récolter une vigne palissée ou un olivier en haie — une moissonneuse
+   les coucherait. Le modèle vient de la planche de présentation ; on lui a greffé les
+   feux, le gyrophare et les cotes de lampes du reste du parc. */
+function buildEnjambeuse(){
+  const g = new THREE.Group();
+  const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
+        JAUNE = 0xF0C24A, JAUNE2 = 0xB99630, CREME = 0xF2E7D2, INOX = 0xC9CFD3;
+  // Garde au sol sous les jambes, hauteur libre du tunnel, demi-écartement, longueur.
+  const GARDE = 0.5, H = 2.6 + GARDE, E = 1.65, L = 5.6, hF = 2.0, yT = H + hF + 0.5;
+  const wr = [], wf = [];
+
+  // --- colonnes et pont ---
+  for(const sx of [-E, E]){
+    g.add(slab({w:1.15, h:hF, d:L, tw:1.05, td:L - 0.4, c:ORANGE, x:sx, y:H}));
+    for(const sz of [L*0.32, -L*0.32])
+      g.add(box(1.0, H - GARDE, 1.0, ORANGE2, sx, GARDE + (H - GARDE)/2, sz));
+    g.add(box(1.35, 0.42, L, ORANGE2, sx, H, 0));
+    for(const sz of [1, -1]){                       // renforts en croix
+      const d = box(0.16, 0.16, L*0.42, GRIS2, sx, H*0.62, sz*L*0.15);
+      d.rotation.x = sz*0.55; g.add(d);
+    }
+    for(let k = 0; k < 3; k++)                      // marchepieds
+      g.add(box(1.3, 0.07, 0.3, GRIS, sx, 0.85 + k*0.6, L*0.32 + 0.6));
+  }
+  g.add(box(E*2 + 1.3, 0.5, L - 0.8, ORANGE, 0, H + hF, -0.2));
+  g.add(box(E*2 + 1.5, 0.24, L - 0.6, ORANGE2, 0, H + hF + 0.28, -0.2));
+
+  // --- tunnel : les batteurs sont sur les flancs, rien ne barre le passage ---
+  for(let k = 0; k < 5; k++){
+    const y = 0.75 + k*0.45;
+    for(const sx of [-0.88, 0.88]) g.add(cyl(0.07, 0.07, L*0.62, 6, GRIS, sx, y, 0, Math.PI/2));
+  }
+  for(const sx of [-1.05, 1.05]) for(const sz of [1, -1])
+    g.add(box(0.14, H - GARDE - 0.2, 0.14, GRIS2, sx, GARDE + (H - GARDE)/2, sz*L*0.28));
+
+  // --- tapis de remontée, le long de chaque colonne ---
+  for(const sx of [-E, E]){
+    const t = new THREE.Group();
+    t.add(box(0.5, 0.24, L*0.66, GRIS, 0, 0, 0));
+    for(let k = 0; k < 7; k++)
+      t.add(box(0.56, 0.22, 0.14, GRIS2, 0, 0.2, -L*0.33 + 0.4 + k*(L*0.66 - 0.8)/6));
+    t.position.set(sx, H - 0.6, 0.6);
+    t.rotation.x = -0.5;
+    g.add(t);
+  }
+
+  // --- trémie arrière ---
+  const tw = E*1.7, th = 2.0, td = L*0.46, tz = -L*0.28;
+  g.add(slab({w:tw, h:th, d:td, tw:tw*1.16, td:td*1.12, c:JAUNE, y:yT, z:tz}));
+  g.add(box(tw*1.16, 0.18, td*1.12, JAUNE2, 0, yT + th, tz));
+  for(let k = 0; k < 3; k++)
+    g.add(box(tw*1.18, 0.1, 0.12, JAUNE2, 0, yT + 0.5 + k*0.55, tz));
+  g.add(box(tw*0.62, 0.8, 0.16, ORANGE2, 0, yT + 0.5, tz - td*0.58));
+
+  // --- cabine ---
+  const cy = yT, cz = L*0.34, cw = 2.3, ch = 2.0, cd = 2.0;
+  g.add(slab({w:cw, h:ch, d:cd, tw:cw - 0.2, td:cd - 0.2, c:CREME, y:cy, z:cz}));
+  g.add(box(cw - 0.3, ch*0.55, 0.14, C.glass, 0, cy + ch*0.62, cz + cd/2 + 0.02));
+  for(const sx of [-1, 1])
+    g.add(box(0.12, ch*0.5, cd - 0.4, C.glass, sx*(cw/2 - 0.05), cy + ch*0.6, cz));
+  g.add(box(cw + 0.2, 0.16, cd + 0.2, 0x3A4046, 0, cy + ch, cz));
+  for(const sx of [-1.28, 1.28]){                   // rétroviseurs
+    g.add(box(0.09, 0.5, 0.09, CREME, sx, cy + 1.5, cz + 0.9));
+    g.add(box(0.3, 0.42, 0.09, 0x22303A, sx, cy + 1.82, cz + 0.9));
+  }
+  // --- garde-corps des deux passerelles ---
+  for(const sx of [-(E + 0.1), E + 0.1]){
+    const Lg = L*0.7, n = 5;
+    for(let k = 0; k <= n; k++)
+      g.add(box(0.07, 0.9, 0.07, GRIS, sx, yT + 0.45, -0.6 - Lg/2 + k*(Lg/n)));
+    for(const y of [yT + 0.88, yT + 0.5]) g.add(box(0.06, 0.06, Lg, GRIS, sx, y, -0.6));
+  }
+  // --- roues À L'EXTÉRIEUR des jambes, garde-boue au-dessus ---
+  const rR = 0.95;
+  for(const sz of [L*0.32, -L*0.32]) for(const cote of [1, -1]){
+    const x = cote*(E + 0.95);
+    const w = wheelMesh(rR, 0.46);
+    w.position.set(x, rR, sz);
+    g.add(w);
+    (sz > 0 ? wf : wr).push(w);
+    g.add(cyl(0.2, 0.2, 0.7, 8, GRIS, x - cote*0.35, rR, sz, 0, 0, Math.PI/2));
+    const gb = new THREE.Group();
+    gb.add(box(0.7, 0.14, rR*2.6, ORANGE2, 0, 0, 0));
+    for(const s2 of [1, -1]) gb.add(box(0.7, 0.34, 0.14, ORANGE2, 0, -0.2, s2*rR*1.25));
+    gb.add(box(0.16, 0.5, 0.16, GRIS, 0, -0.3, 0));
+    gb.position.set(x, rR*2 + 0.22, sz);
+    g.add(gb);
+  }
+  // --- feux, gyrophare et échappement, comme sur tout le parc ---
+  const gyro = gyrophare(g, 0.95, cy + 2.31, cz - 0.5);
+  const F = jeuDeFeux();
+  for(const sx of [-0.85, 0.85]) optique(g, F, false, sx, cy + 0.30, cz + 1.10, 0.42, 0.26);
+  for(const sx of [-0.9, 0.9])   optique(g, F, true,  sx, yT + 0.55, tz - td*0.60, 0.34, 0.22);
+  const exh = new THREE.Object3D();
+  exh.position.set(0.5, yT + 3.0, -L*0.42); g.add(exh);
+  g.add(box(0.3, 0.3, 1.3, INOX, 0.5, yT + 2.3, -L*0.42));
+  g.userData = {wr, wf, exhaust:exh, gyro, feux:F,
+    lampes:{avant:  {x:[-0.85,0.85], y:cy + 0.30, z:cz + 1.10, w:0.42, h:0.26},
+            arriere:{x:[-0.9, 0.9],  y:yT + 0.55, z:tz - td*0.60, w:0.34, h:0.22},
+            nez:3.0}};
+  return g;
+}
 function buildBenne(){
   const outer = new THREE.Group(); const g = new THREE.Group(); g.position.z = -1.6; outer.add(g);
   g.add(box(0.4,0.4,1.5,C.dark,0,1.0,0.85));                       // timon
@@ -4651,10 +4759,21 @@ const MACHINES = [
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
     })},
+  // AJOUTÉE EN FIN DE TABLE, et c'est impératif : la sauvegarde sérialise MACHINES en
+  // tableau positionnel et relit par indice. Insérer au milieu décalerait tout et
+  // ferait repartir chaque partie en cours sur la mauvaise machine.
   {key:'moisson', nom:'Moisson', teinte:0xE0A02E, v:new Vehicle({
       x:COUR_X0 + 4*PLACE_PAS, z:47, cap:Math.PI, vmax:9.5, accel:7, turn:1.5, grip:4.0, trackW:1.7,
       susp:{k:20, d:3.8, roll:0.052, pitch:0.024, rough:1.3},
       toolOffset:4.6, build:buildMoissonneuse
+    })},
+  {key:'enjambeuse', nom:'Enjambeuse', teinte:0xE07B24, verrou:true, prix:26000,
+   v:new Vehicle({
+      x:placeCentre(5), z:47, cap:Math.PI, vmax:8.5, accel:6.5, turn:1.35, grip:4.2,
+      trackW:2.6,
+      susp:{k:18, d:3.4, roll:0.062, pitch:0.030, rough:1.4},
+      // Le tunnel travaille SOUS la machine, pas devant : le décalage est court.
+      toolOffset:0.8, build:buildEnjambeuse
     })}
 ];
 
@@ -4662,7 +4781,14 @@ const MACHINES = [
    et n'importe quel tracteur peut venir le reprendre. Ses caractéristiques de travail
    (largeur, états acceptés, état produit) voyagent avec lui, pas avec le véhicule. */
 const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, level:1,
-                 from:[ST.MUR], to:ST.CHAUME};
+                 from:[ST.MUR], to:ST.CHAUME, recolte:true, perennes:false};
+/* Le tunnel de l'enjambeuse. Même nature d'outil intégré que la coupe : il ne se
+   dételle pas, il n'a pas de modèle propre, il décrit seulement le travail. Deux
+   différences : il ne prend QUE les cultures pérennes — vigne et oliviers, qu'une
+   coupe coucherait — et ce qu'il récolte va dans la benne de la machine, pas dans la
+   trémie globale. Sa largeur est celle du rang, pas d'un andain. */
+const VENDANGE = {key:'vendange', nom:'Tunnel', width:2.8, level:1,
+                  from:[ST.MUR], to:ST.SEME, recolte:true, perennes:true, caisse:true};
 function makeTool(def){
   const T = Object.assign({}, def);
   T.group = def.build();
@@ -4706,12 +4832,18 @@ function detachTool(v){
 // outil de travail effectif du véhicule courant
 function toolOf(m){
   if(m.key === 'moisson') return MOISSON;
+  if(m.key === 'enjambeuse') return VENDANGE;
   const T = m.v.tool;
   return (T && T.attached === m.v) ? T : null;
 }
 // Les utilitaires transportent eux-mêmes : ils chargent au silo et vendent aux commerces.
 MACHINES.find(m=>m.key==='pickup').v.cargo = {capacite:600, load:0};
 MACHINES.find(m=>m.key==='fourgon').v.cargo = {capacite:1400, load:0};
+// L'enjambeuse a sa propre trémie, et c'est une CAISSE, pas la trémie globale de la
+// moissonneuse : le raisin et les olives ne vont pas au silo mais au pressoir et à
+// l'étal, et c'est le circuit des caisses qui sait les y conduire. Deux récolteuses
+// qui partageraient une trémie se bloqueraient l'une l'autre.
+MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:900, load:0};
 for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
@@ -4791,6 +4923,35 @@ function inQuad(px,pz, aLx,aLz, aRx,aRz, bRx,bRz, bLx,bLz){
   const pos = (s1>0)||(s2>0)||(s3>0)||(s4>0);
   return !(neg && pos);
 }
+/* CE QUE LA MACHINE REMPLIT EN RÉCOLTANT. La moissonneuse verse dans la trémie
+   globale, l'enjambeuse dans sa propre benne. Deux réservoirs, une seule règle : une
+   culture à la fois. Le reste de work() ne veut pas savoir lequel des deux il a. */
+function reservoirRecolte(m, T){
+  if(!T.caisse) return {
+    plein: ()=> hopper >= HOP_MAX,
+    nature: ()=> hopper > 0.01 ? hopCrop : -1,
+    verser: (c, q)=>{
+      const was = hopper;
+      if(hopper <= 0.01) hopCrop = c;
+      hopper = Math.min(HOP_MAX, hopper + q);
+      if(was < HOP_MAX && hopper >= HOP_MAX) showHint('TRÉMIE PLEINE — DIRECTION SILO');
+      return hopper - was;
+    }};
+  const K = caisseDe(m);
+  if(!K) return null;
+  return {
+    plein: ()=> K.load >= K.capacite - 0.01,
+    nature: ()=> (K.load > 0.01 && K.type) ? CROPS.findIndex((C)=> C.cle === K.type) : -1,
+    verser: (c, q)=>{
+      const cle = CROPS[c].cle;
+      if(!peutCharger(K, cle)) return 0;
+      const was = K.load;
+      K.load = Math.min(K.capacite, K.load + q);
+      poserType(K, cle);
+      if(was < K.capacite - 0.01 && K.load >= K.capacite - 0.01) showHint('BENNE PLEINE');
+      return K.load - was;
+    }};
+}
 function work(m, dt){
   const v = m.v;
   const T = toolOf(m);
@@ -4799,7 +4960,8 @@ function work(m, dt){
   // Trémie pleine : plus rien n'est coupé, donc plus rien n'est peint ni décompté.
   // On mémorise quand même la position pour que la reprise après vidange ne fabrique
   // pas un passage géant entre l'ancienne position et la nouvelle.
-  if(T.key === 'moisson' && hopper >= HOP_MAX){
+  const RES = T.recolte ? reservoirRecolte(m, T) : null;
+  if(T.recolte && (!RES || RES.plein())){
     v.prevWork = {x:v.toolX, z:v.toolZ, r:right(v.toolCap)};
     return;
   }
@@ -4837,6 +4999,10 @@ function work(m, dt){
     if(state[id] === ST.HORS) continue;
     if(T.from.indexOf(state[id]) < 0) continue;
     if(T.key === 'engrais' && fert[id]) continue;
+    // Une coupe couche ce qu'elle traverse : elle ne passe pas dans une vigne. Une
+    // enjambeuse enjambe un rang : elle n'a rien à faire dans un blé. Chaque
+    // récolteuse ne prend donc que sa famille de cultures, et laisse l'autre debout.
+    if(T.recolte && !!(CROPS[cropCell[id]] || {}).perenne !== !!T.perennes) continue;
     // Point de test = la position réelle de l'épi, pas le centre de sa cellule.
     // Un épi planté avec un décalage aléatoire de ±28 cm pouvait rester debout alors
     // que le sol autour de lui était peint : d'où les touffes isolées au milieu du
@@ -4862,10 +5028,13 @@ function work(m, dt){
   // n'accepte plus qu'une seule nature. Un andain qui mordrait sur une autre culture
   // est refusé en entier — et rien n'est peint, sinon la moissonneuse laisserait du
   // chaume sur du blé encore debout.
-  if(T.key === 'moisson' && hopper > 0.01 && touched.length
-     && touched.some((id)=> cropCell[id] !== hopCrop)){
-    touched.length = 0; eligible = false;
-    showHint('TRÉMIE OCCUPÉE PAR DU ' + CROPS[hopCrop].nom.toUpperCase());
+  if(T.recolte && RES && touched.length){
+    const nat = RES.nature();
+    if(nat >= 0 && touched.some((id)=> cropCell[id] !== nat)){
+      touched.length = 0; eligible = false;
+      showHint((T.caisse ? 'BENNE OCCUPÉE PAR DU ' : 'TRÉMIE OCCUPÉE PAR DU ')
+               + CROPS[nat].nom.toUpperCase());
+    }
   }
   consommerStock(T, touched.length);
 
@@ -4877,14 +5046,10 @@ function work(m, dt){
   for(const id of touched){
     if(T.key === 'engrais'){ fert[id] = 1; continue; }
     if(state[id] === T.to) continue;   // déjà à l'état cible : on repeint, on ne retraite pas
-    if(T.key === 'moisson'){
-      const was = hopper;
+    if(T.recolte){
       const C2 = CROPS[cropCell[id]];
       const gain = C2.kg*growth[id]*(fert[id]?1.55:1);
-      if(hopper <= 0.01) hopCrop = cropCell[id];
-      hopper = Math.min(HOP_MAX, hopper + gain);
-      STAT.moisson += gain;
-      if(was < HOP_MAX && hopper >= HOP_MAX) showHint('TRÉMIE PLEINE — DIRECTION SILO');
+      STAT.moisson += RES.verser(cropCell[id], gain);
       fert[id] = 0;
       // La vigne et l'olivier ne se ressèment pas : on leur retire leur récolte et ils
       // repartent en croissance sur place. La cellule reste semée, donc l'andain ne
@@ -4912,12 +5077,14 @@ function work(m, dt){
     champsAJour();
   }
   const anyField = eligible;
-  if(anyField) paintSwath(T.key, prev, prev.r, cur, cur.r, w);
+  // Un outil qui n'a pas de style d'andain ne laisse pas de trace au sol.
+  if(anyField && SWATH[T.key]) paintSwath(T.key, prev, prev.r, cur, cur.r, w);
   const cx = cur.x, cz = cur.z, r = cur.r;
   // particules liées au travail
   if(anyField && Math.random() < 0.5){
     const s = (Math.random()-0.5)*T.width;
-    if(T.key === 'moisson') puff(cx + r.x*s, 1.3, cz + r.z*s, 0xFFD27A, 0.5, 0.5);
+    if(T.recolte) puff(cx + r.x*s, T.caisse ? 1.9 : 1.3, cz + r.z*s,
+                       T.caisse ? 0xC9B4C4 : 0xFFD27A, 0.5, 0.5);
     else if(T.key === 'labour') puff(cx + r.x*s, 0.6, cz + r.z*s, 0x8A7357, 0.45, 0.4);
     else if(T.key === 'engrais'){
       for(let n=0;n<2;n++){
@@ -4927,8 +5094,9 @@ function work(m, dt){
     }
     else puff(cx + r.x*s, 0.5, cz + r.z*s, 0xC9B79A, 0.32, 0.3);
   }
+  // La menue paille sort du batteur d'une moissonneuse ; une enjambeuse n'en fait pas.
   if(T.key === 'moisson' && anyField && Math.random() < 0.25){
-    puff(v.pos.x - Math.sin(v.toolCap)*3, 4.2, v.pos.z - Math.cos(v.toolCap)*3, 0xFFF0D0, 0.5, 1.1); // menue paille
+    puff(v.pos.x - Math.sin(v.toolCap)*3, 4.2, v.pos.z - Math.cos(v.toolCap)*3, 0xFFF0D0, 0.5, 1.1);
   }
 }
 function right(cap){ return {x:Math.cos(cap), z:-Math.sin(cap)}; }
@@ -5025,7 +5193,10 @@ function ongletEngins(){
     if(m.verrou) return;
     const T = toolOf(m);
     const det = m.v.cargo
-      ? 'Transport · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
+      ? (m.key === 'enjambeuse'
+          ? 'Vendange · tunnel ' + VENDANGE.width.toFixed(1) + ' m · benne '
+            + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
+          : 'Transport · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg')
       : (m.key === 'moisson' ? 'Coupe ' + MOISSON.width.toFixed(1) + ' m · trémie ' + HOP_MAX + ' kg'
                              : (T ? 'Attelé : ' + T.nom : 'Sans outil'))
         + ' · niveau ' + m.v.level;
@@ -5040,7 +5211,10 @@ function ongletEngins(){
   if(aVendre.length){
     titre('À prendre au garage');
     for(const m of aVendre)
-      article(0x8BE07A, m.nom, 'Transport ' + m.v.cargo.capacite + ' kg · ' + eur(m.prix)
+      article(0x8BE07A, m.nom,
+        (m.key === 'enjambeuse' ? 'Récolte la vigne et les oliviers · benne '
+                                  + (m.v.cargo ? m.v.cargo.capacite : 0) + ' kg · '
+         : m.v.cargo ? 'Transport ' + m.v.cargo.capacite + ' kg · ' : '') + eur(m.prix)
         + (money >= m.prix ? ' · de quoi payer' : ' · il manque ' + eur(m.prix - money)),
         'Au garage', 'no', null);
   }
@@ -5181,6 +5355,8 @@ function ouvrirParc(){
     const d = Math.round(Math.hypot(m.v.pos.x - MACHINES[cur].v.pos.x,
                                     m.v.pos.z - MACHINES[cur].v.pos.z));
     const det = (m.key === 'moisson' ? 'Moissonneuse'
+              : m.key === 'enjambeuse' ? 'Enjambeuse · ' + Math.round(m.v.cargo.load) + ' / '
+                                         + m.v.cargo.capacite + ' kg'
               : m.v.cargo ? 'Transport ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
               : (T ? T.nom : 'sans outil'))
       + (i === cur ? ' · à bord' : (m.v.mission ? ' · en mission' : ' · à ' + d + ' m'));
@@ -5212,6 +5388,8 @@ function machineLabel(i){
   const m = MACHINES[i];
   const T = toolOf(m);
   if(m.key === 'moisson') return 'MOISSONNEUSE' + etoiles(m.v.level) + ' — Récolte ce qui est mûr';
+  if(m.key === 'enjambeuse') return 'ENJAMBEUSE' + etoiles(m.v.level)
+       + ' — Vendange et olives · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
   if(m.v.cargo) return m.nom.toUpperCase() + etoiles(m.v.level) + ' — Transporte '
        + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
   return 'TRACTEUR ' + m.nom.toUpperCase() + etoiles(m.v.level) + ' — '
@@ -5259,6 +5437,11 @@ function ameliorer(m){
       const head = v.group.userData.head;
       if(head) head.scale.x = MOISSON.width/8.0;
       HOP_MAX = Math.round(900 * Math.pow(1.35, v.level-1));   // trémie agrandie
+    }
+    if(m.key === 'enjambeuse'){
+      VENDANGE.level = v.level;
+      VENDANGE.width *= 1.10;                      // un tunnel un peu plus large
+      v.cargo.capacite = Math.round(900 * Math.pow(1.35, v.level-1));
     }
   }
   if(T && T.level < UP_MAX && T !== MOISSON){
@@ -5833,7 +6016,7 @@ const CARBU = {
 // qu'un tracteur : c'est voulu, elle doit imposer des retours réguliers.
 const RESERVOIRS = {t1:{max:90, c:0.052}, t2:{max:95, c:0.055}, t3:{max:100, c:0.058},
                     pickup:{max:65, c:0.030}, fourgon:{max:85, c:0.042},
-                    moisson:{max:230, c:0.115}};
+                    moisson:{max:230, c:0.115}, enjambeuse:{max:170, c:0.088}};
 for(const m of MACHINES){
   const R = RESERVOIRS[m.key] || {max:90, c:0.05};
   m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;

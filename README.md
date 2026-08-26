@@ -25,6 +25,7 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Gaz** | manette à droite, ou ↑ ↓ |
 | **Changer d'engin** | bouton en bas, ou les touches 1 à 4 |
 | **Atteler / dételer** | bouton ATTELER, à portée d'un outil posé au sol |
+| **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
 | **Changer d'engin** | le bouton au nom de l'engin, en bas : la liste du parc s'ouvre |
 | **Automatiser** | bouton **PLAN** : la carte en grand, on compose une file de tâches |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
@@ -252,6 +253,11 @@ Quelques partis pris qui expliquent le reste :
   centimètre sur la largeur de l'outil et évite les trous dans les virages.
 - **Les outils sont indépendants des tracteurs.** Un outil dételé reste au sol ; ses
   caractéristiques de travail voyagent avec lui, pas avec l'engin qui le tire.
+- **Chaque récolteuse ses cultures.** Une coupe couche ce qu'elle traverse : elle ne
+  passe pas dans une vigne. Une enjambeuse enjambe un rang : elle n'a rien à faire dans
+  un blé. La moissonneuse ne prend que les annuelles, l'enjambeuse que les pérennes, et
+  chacune remplit son propre réservoir — la trémie globale pour l'une, sa benne pour
+  l'autre. Deux récolteuses qui partageraient une trémie se bloqueraient l'une l'autre.
 - **Un chargement a une nature** — une clé de la table des produits. Une caisse
   entamée n'accepte plus rien d'autre : c'est ce qui oblige à planifier ses tournées.
 - **Un transformateur, c'est toujours la même mécanique** : une trémie, un stock, une
