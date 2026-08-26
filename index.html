@@ -1479,14 +1479,17 @@ function geoVigne(){
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, o.ry || 0, o.rz || 0)),
       new THREE.Vector3(o.sx || 1, o.sy || 1, o.sz || 1))});
   };
-  put(new THREE.BoxGeometry(0.07, 0.88, 0.07), 0x6B4E24, 0, 0.44, 0);       // piquet
-  put(new THREE.BoxGeometry(0.025, 0.025, 0.80), 0x9AA2A7, 0, 0.60, 0);     // fil
-  put(new THREE.CylinderGeometry(0.05, 0.08, 0.32, 6), 0x6B4E24, 0.02, 0.16, 0);   // cep
+  // Écrite à la taille réelle, puisque l'échelle vaut 1. Le fil fait 1,32 m pour une
+  // cellule de 1,30 : deux voisins se recouvrent toujours de deux centimètres, et le
+  // rang se reconstitue par construction plutôt que par chance.
+  put(new THREE.BoxGeometry(0.10, 1.45, 0.10), 0x6B4E24, 0, 0.72, 0);       // piquet
+  put(new THREE.BoxGeometry(0.04, 0.04, 1.32), 0x9AA2A7, 0, 1.00, 0);       // fil
+  put(new THREE.CylinderGeometry(0.08, 0.13, 0.52, 6), 0x6B4E24, 0.03, 0.26, 0);   // cep
   for(let i = 0; i < 2; i++)                                                // feuillage
-    put(new THREE.IcosahedronGeometry(0.25, 0), 0x5E8C46,
-        (i-0.5)*0.12, 0.56 + i*0.12, (i-0.5)*0.30, {sx:0.8, sy:0.95, sz:1.15});
-  for(const dz of [-0.16, 0.18])                                            // grappes
-    put(new THREE.IcosahedronGeometry(0.10, 0), 0x7A4A82, 0.07, 0.36, dz, {sy:1.25});
+    put(new THREE.IcosahedronGeometry(0.40, 0), 0x5E8C46,
+        (i-0.5)*0.20, 0.92 + i*0.20, (i-0.5)*0.48, {sx:0.8, sy:0.95, sz:1.15});
+  for(const dz of [-0.26, 0.30])                                            // grappes
+    put(new THREE.IcosahedronGeometry(0.16, 0), 0x7A4A82, 0.11, 0.58, dz, {sy:1.25});
   return mergeParts(P);
 }
 /* Un olivier. Tronc noueux en trois fûts décalés, couronne en boules, olives semées
@@ -1526,7 +1529,16 @@ const GEO_CULTURE = [geoBle, geoMais, geoColza, geoAvoine, geoOrge, geoVigne, ge
    garde le tableau compact et sans trou. */
 const CHAMPS = [];                                        // culture -> InstancedMesh
 const champRec = [];                                      // culture -> [place -> fiche]
-const champSale = [];                                     // culture -> à renvoyer au GPU
+/* three renvoie TOUT le tampon d'un maillage dès qu'on lève `needsUpdate` : 608 ko par
+   culture, quel que soit le nombre d'instances réellement modifiées. Une seule plante
+   qui grandit coûtait donc un demi-mégaoctet, et sept cultures qui mûrissent ensemble
+   quatre. On retient la plage des places touchées depuis le dernier envoi, et on ne
+   renvoie qu'elle. */
+const champLo = [], champHi = [];                         // culture -> plage à renvoyer
+function salir(c, place){
+  if(champLo[c] === undefined || place < champLo[c]) champLo[c] = place;
+  if(champHi[c] === undefined || place > champHi[c]) champHi[c] = place;
+}
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(),
       _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _col = new THREE.Color();
 const _axeY = new THREE.Vector3(0, 1, 0);
@@ -1537,17 +1549,23 @@ const wheatBase = [];   // fiche de plante par cellule cultivable : {x,z,i,j,rot
 // chaque cellule, donc on ajoute à la fin, jamais au milieu.
 // Les deux dernières sont pérennes : la vigne et l'olivier restent sur leur parcelle
 // et repartent en croissance dès qu'on les a récoltés — on ne les ressème pas.
+// `haut` corrige la hauteur de la plante, il ne la fixe pas. Tant que les sept
+// cultures partageaient la géométrie du blé, ces coefficients suffisaient à les
+// distinguer. Maintenant que chaque plante a sa propre taille, ils s'AJOUTAIENT à
+// elle : le maïs montait à 5,79 m, plus haut que la moissonneuse, l'avoine tombait à
+// 2,05. Ils sont donc recalés sur la hauteur de chaque géométrie, de façon à rendre à
+// chaque céréale exactement la taille qu'elle avait avant.
 const CROPS = [
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
    temps:210, kg:12, haut:1.00},
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:330, kg:21, haut:1.45, cout:2500, verrou:true},
+   temps:330, kg:21, haut:1.07, cout:2500, verrou:true},
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:260, kg:15, haut:0.85, cout:4000, verrou:true},
+   temps:260, kg:15, haut:1.04, cout:4000, verrou:true},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:190, kg:10, haut:0.95, cout:3000, verrou:true},
+   temps:190, kg:10, haut:1.29, cout:3000, verrou:true},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
-   temps:200, kg:11, haut:1.05, cout:2200, verrou:true},
+   temps:200, kg:11, haut:0.79, cout:2200, verrou:true},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
   // ne poussent pas non plus à chaque cellule — un olivier tous les cinq mètres, un
@@ -1641,10 +1659,12 @@ function retirerDuChamp(n){
       M.setColorAt(place, _col);
     }
     liste[place] = autre; champSlot[autre] = place;
+    salir(c, place);
   }
+  // Retirer la dernière instance ne réécrit rien : seul `count` bouge, et `count`
+  // n'est pas un tampon.
   M.count = dernier;
   champCrop[n] = -1; champSlot[n] = -1;
-  champSale[c] = true;
 }
 function setInstance(n, g, alive){
   const b = wheatBase[n];
@@ -1661,24 +1681,41 @@ function setInstance(n, g, alive){
   const enRang = !!C2.rang;
   // Une plante permanente ne rétrécit pas quand on la récolte : on lui a pris ses
   // fruits, pas son bois. Son échelle ne varie donc qu'à peine.
-  const s = b.sc * (C2.perenne ? 0.88 + 0.12*g : 0.22 + 0.78*g);
+  const pousse = C2.perenne ? 0.88 + 0.12*g : 0.22 + 0.78*g;
+  // En rang, l'échelle au sol est FIXE : le piquet et le fil font une cellule, et une
+  // taille tirée au hasard laisserait un pied sur deux sans fil — le palissage
+  // deviendrait un pointillé. Seule la hauteur du feuillage suit la saison.
+  const s = enRang ? 1 : b.sc*pousse;
+  const sy = enRang ? pousse : s*(C2.perenne ? 1 : 0.5 + 0.5*g);
   _q.setFromAxisAngle(_axeY, enRang ? 0 : b.rot);
   _v3.set(enRang ? cellX(b.i) : b.x, 0, enRang ? cellZ(b.j) : b.z);
-  _s3.set(s, s*(C2.perenne ? 1 : 0.5 + 0.5*g)*C2.haut, s);
+  _s3.set(s, sy*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
   _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
   const M = CHAMPS[c], place = champSlot[n];
   M.setMatrixAt(place, _m4);
   M.setColorAt(place, _col);
-  champSale[c] = true;
+  salir(c, place);
 }
-// Renvoie au GPU les seuls maillages qui ont bougé.
+/* Renvoie au GPU la seule plage d'instances qui a bougé, et seulement pour les cultures
+   qui ont bougé. Les décalages sont en ÉLÉMENTS du tableau, pas en octets ni en
+   instances : seize flottants par matrice, trois par couleur. three remet la plage à
+   -1 après chaque envoi, et on la repose avant chaque `needsUpdate` — aucune plage ne
+   peut donc se périmer. */
 function champsAJour(){
   for(let c = 0; c < CHAMPS.length; c++){
-    if(!champSale[c]) continue;
-    CHAMPS[c].instanceMatrix.needsUpdate = true;
-    if(CHAMPS[c].instanceColor) CHAMPS[c].instanceColor.needsUpdate = true;
-    champSale[c] = false;
+    const lo = champLo[c];
+    if(lo === undefined) continue;
+    const M = CHAMPS[c], n = champHi[c] - lo + 1;
+    M.instanceMatrix.updateRange.offset = lo*16;
+    M.instanceMatrix.updateRange.count  = n*16;
+    M.instanceMatrix.needsUpdate = true;
+    if(M.instanceColor){
+      M.instanceColor.updateRange.offset = lo*3;
+      M.instanceColor.updateRange.count  = n*3;
+      M.instanceColor.needsUpdate = true;
+    }
+    champLo[c] = champHi[c] = undefined;
   }
 }
 
@@ -6625,14 +6662,22 @@ function refreshJauges(){
    même si on la fait tourner un jour, et il coûte moins qu'un plan réorienté à chaque
    image. Sa texture n'est redessinée que lorsque le remplissage bouge d'un centième —
    sinon une jauge qui se remplit repeindrait un canevas soixante fois par seconde. */
-const JAUGE_L = 256, JAUGE_H = 76;
+// Sa largeur est celle qu'il faut sur un TÉLÉPHONE, pas sur un écran de bureau : à
+// 7,2 m elle ne faisait que 113 pixels de large et son texte 11 de haut, quand le
+// bandeau du jeu n'écrit jamais en dessous de 10. La caméra restant à 82 m de sa
+// cible, une taille en mètres est une taille en pixels — ce réglage vaut partout.
+const JAUGE_L = 384, JAUGE_H = 114, JAUGE_LARGE = 10.5;
 function creerJauge(){
   const cv = document.createElement('canvas');
   cv.width = JAUGE_L; cv.height = JAUGE_H;
   const tex = new THREE.CanvasTexture(cv);
+  // Comme les enseignes : filtrage linéaire, pas de mipmaps. Sans ça le pilote
+  // reconstruit toute la pyramide à chaque kilo chargé.
+  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
     depthWrite:false, depthTest:false, opacity:0}));
-  sp.scale.set(7.2, 7.2*JAUGE_H/JAUGE_L, 1);
+  sp.scale.set(JAUGE_LARGE, JAUGE_LARGE*JAUGE_H/JAUGE_L, 1);
   sp.renderOrder = 4;
   sp.visible = false;
   scene.add(sp);
@@ -6646,19 +6691,26 @@ function peindreJauge(J, txt, k, coul){
   const c = J.ctx;
   c.clearRect(0, 0, JAUGE_L, JAUGE_H);
   c.fillStyle = 'rgba(24,31,36,.82)';
-  const r = 14;
+  const r = 20;
   c.beginPath();
   c.moveTo(r, 0); c.lineTo(JAUGE_L-r, 0); c.quadraticCurveTo(JAUGE_L, 0, JAUGE_L, r);
   c.lineTo(JAUGE_L, JAUGE_H-r); c.quadraticCurveTo(JAUGE_L, JAUGE_H, JAUGE_L-r, JAUGE_H);
   c.lineTo(r, JAUGE_H); c.quadraticCurveTo(0, JAUGE_H, 0, JAUGE_H-r);
   c.lineTo(0, r); c.quadraticCurveTo(0, 0, r, 0); c.closePath(); c.fill();
   c.fillStyle = '#F2E9D6';
-  c.font = 'bold 26px "Trebuchet MS",Verdana,sans-serif';
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText(txt, JAUGE_L/2, 26, JAUGE_L - 28);
+  // On RÉDUIT la fonte jusqu'à ce que le texte tienne, au lieu de le comprimer :
+  // « Aliment premium 980 kg prêts » sortait à 61 % de sa largeur, et une lettre
+  // étirée se lit moins bien qu'une lettre petite.
+  let t = 38;
+  c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
+  while(t > 22 && c.measureText(txt).width > JAUGE_L - 40){
+    t -= 2; c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
+  }
+  c.fillText(txt, JAUGE_L/2, 38);
   // la barre : un fond creux, un remplissage plein, pas de dégradé — c'est la longueur
   // qui doit se lire d'un coup d'œil, pas la matière
-  const bx = 18, by = 48, bw = JAUGE_L - 36, bh = 14;
+  const bx = 26, by = 70, bw = JAUGE_L - 52, bh = 20;
   c.fillStyle = 'rgba(255,255,255,.16)';
   c.fillRect(bx, by, bw, bh);
   c.fillStyle = coul;
@@ -6683,13 +6735,26 @@ function cacherJauge(J, dt){
   J.sp.visible = J.sp.material.opacity > 0.02;
 }
 
-// Les quatre jauges du monde. Celles des parcelles sont créées à la demande, une par
-// parcelle semée, et rendues au tas quand la parcelle ne pousse plus.
+/* Les trois jauges fixes, plus un petit tas pour les parcelles. La règle de portée
+   fait qu'on n'en voit jamais plus de deux ou trois à la fois : en allouer vingt au
+   démarrage, c'était un mégaoctet et demi de canevas dont dix-sept ne servaient
+   jamais. Une parcelle en emprunte une quand elle pousse à portée, et la rend dès
+   qu'elle sort du champ de vision. */
 let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null;
-const jaugesParcelle = [];
+const jaugesLibres = [];
 function poserJauges(){
   jaugeEngin = creerJauge(); jaugeSilo = creerJauge(); jaugeAtelier = creerJauge();
-  for(let k = 0; k < PARCELS.length; k++) jaugesParcelle.push(creerJauge());
+}
+function prendreJauge(p){
+  if(p.jauge) return p.jauge;
+  p.jauge = jaugesLibres.pop() || creerJauge();
+  p.jauge.k = -1;                      // elle vient d'ailleurs : elle doit se repeindre
+  return p.jauge;
+}
+function rendreJauge(p){
+  if(!p.jauge) return;
+  p.jauge.sp.visible = false; p.jauge.sp.material.opacity = 0;
+  jaugesLibres.push(p.jauge); p.jauge = null;
 }
 
 /* La pousse moyenne d'une parcelle. On ne la recalcule qu'une fois par seconde :
@@ -6759,16 +6824,18 @@ function majJauges(dt){
   } else cacherJauge(jaugeAtelier, dt);
 
   // — les parcelles semées : où en est la pousse, et quand tout est mûr
-  PARCELS.forEach((p, k)=>{
-    const J = jaugesParcelle[k];
-    if(!J) return;
-    if(!p.owned || p.pature || !p.pousseN){ cacherJauge(J, dt); return; }
+  for(const p of PARCELS){
+    const proche = Math.hypot(v.pos.x - p.x, v.pos.z - p.z) < JAUGE_PORTEE + 12;
+    if(!p.owned || p.pature || !p.pousseN || !proche){
+      if(p.jauge){ cacherJauge(p.jauge, dt); if(p.jauge.sp.material.opacity < 0.03) rendreJauge(p); }
+      continue;
+    }
     const C2 = CROPS[p.pousseCrop] || CROPS[0];
     const mur = p.murN >= p.pousseN;
-    montrerJauge(J, p.x, 5.4, p.z,
+    montrerJauge(prendreJauge(p), p.x, 5.4, p.z,
       C2.nom + (mur ? ' — à moissonner' : ' ' + Math.round(p.pousse*100) + ' %'),
       p.pousse, mur ? '#FFD21E' : '#8BE07A', dt);
-  });
+  }
 }
 poserJauges();
 
