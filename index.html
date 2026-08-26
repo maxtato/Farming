@@ -4673,17 +4673,25 @@ function itineraire(ax, az, bx, bz){
   return pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
-function suivreRoute(v, bx, bz, cle){
+function suivreRoute(v, bx, bz, cle, rayon){
+  const R = rayon || 3.0;
+  const d0 = Math.hypot(bx - v.pos.x, bz - v.pos.z);
+  /* ARRIVÉ, ET ON Y RESTE. Sans cette mémoire, l'engin qui vient de toucher son but
+     voyait son itinéraire s'effacer, en refabriquait un à l'image suivante, repartait
+     d'un demi-gaz, dépassait, revenait — et tournait autour du silo sans jamais s'y
+     poser assez longtemps pour charger. On retient donc le but atteint : tant qu'on
+     ne s'en éloigne pas franchement, on ne repart pas. */
+  if(v.routeArr === cle && d0 < R + 3.5) return null;
+  if(d0 < R){ v.route = null; v.routeBut = null; v.routeArr = cle; return null; }
   if(!v.route || v.routeBut !== cle){
     v.route = itineraire(v.pos.x, v.pos.z, bx, bz); v.routeI = 0; v.routeBut = cle;
+    v.routeArr = null;
   }
   const wp = v.route[v.routeI];
   if(!wp){ v.route = null; v.routeBut = null; return null; }
-  const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
-  // Le dernier point demande de la précision, les intermédiaires non : on les valide
-  // au large, sinon l'engin fait des ronds autour d'un croisement pour le toucher.
-  const seuil = (v.routeI === v.route.length - 1) ? 3.0 : 5.5;
-  if(d < seuil){ v.routeI++; return [0, 0.5]; }
+  // Les points intermédiaires se valident au large : sinon l'engin fait des ronds
+  // autour d'un croisement pour le toucher au mètre près.
+  if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 5.5){ v.routeI++; return [0, 0.5]; }
   return viser(v, wp.x, wp.z, 2.4);
 }
 /* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
@@ -4691,7 +4699,7 @@ function suivreRoute(v, bx, bz, cle){
 function tacheSuivante(m){
   const v = m.v, M = v.mission;
   v.plan = null; v.sensVoulu = 'route'; M.etape = 0; M.attente = 0;
-  v.route = null; v.routeBut = null;
+  v.route = null; v.routeBut = null; v.routeArr = null;
   M.i++;
   if(M.i < M.taches.length) return;
   if(M.boucle){ M.i = 0; return; }
@@ -4709,7 +4717,7 @@ function missionDrive(m, dt){
       if(hopper <= 0.5) v.goSilo = false;
       else {
         v.sensVoulu = 'vider';
-        const r = suivreRoute(v, SILO.x, SILO.z, 'silo');
+        const r = suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0);
         return r || [0, 0];
       }
     }
@@ -4736,10 +4744,15 @@ function missionDrive(m, dt){
   const P = lieuPoint(M.etape === 0 ? t.a : t.b);
   if(!P){ tacheSuivante(m); return [0, 0]; }
   v.sensVoulu = 'route';
-  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape);
+  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r);
   if(r){ M.attente = 0; return r; }
   v.sensVoulu = (M.etape === 0) ? 'remplir' : 'vider';
   M.attente = (M.attente || 0) + dt;
+  // On ne juge « plus rien à faire ici » QU'À L'ARRÊT. Une benne qui arrive encore
+  // lancée ne voit aucune action possible — actionsIci() se tait au-dessus de
+  // 2,5 m/s — et repartirait donc à vide dès la première image, sans jamais rien
+  // charger. Le temps d'attente court quand même : un engin coincé finit par céder.
+  if(v.speed > 2.0 && M.attente < 40) return [0, 0];
   const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu);
   // Quarante secondes : de quoi vider la plus grosse benne au débit le plus lent, et
   // de quoi repartir quand même si le lieu ne peut rien nous donner.
@@ -4757,7 +4770,7 @@ function autoDrive(m, dt){
   if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
   if(v.goSilo){
     if(hopper <= 0.5){ v.goSilo = false; }
-    else return suivreRoute(v, SILO.x, SILO.z, 'silo') || [0, 0];
+    else return suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0) || [0, 0];
   }
   if(!v.plan){
     v.plan = planAuto(m);
@@ -5757,15 +5770,20 @@ const autoEl = document.getElementById('auto');
    commerce — résolue en un point par lieuPoint(). C'est la même façon de nommer un
    endroit que dans les actions de transfert, et pour la même raison : deux objets ne
    se comparent pas, deux chaînes si. */
+/* Chaque lieu porte SON rayon d'arrêt, et c'est celui auquel il agit vraiment.
+   Un pilote qui visait trois mètres se plantait devant la coopérative : le point de
+   livraison tombe dans l'emprise du bâtiment, l'engin butait à cinq mètres et
+   attendait indéfiniment un contact qu'il ne pouvait pas obtenir — alors qu'à cinq
+   mètres, le quai l'acceptait déjà. */
 function lieuxPossibles(){
-  const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z},
-             {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z}];
+  const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z, r:4.0},
+             {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, r:4.5}];
   PATURES.forEach((P, i)=>{
-    L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z});
+    L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z, r:5.0});
   });
   for(const S of SITES)
     if(S.achete.length || S.accepte.length)
-      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ});
+      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:QUAI_R - 0.5});
   return L;
 }
 const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
@@ -5957,7 +5975,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
-  M.v.route = null; M.v.routeBut = null;
+  M.v.route = null; M.v.routeBut = null; M.v.routeArr = null;
   showHint(M.nom.toUpperCase() + ' — PLAN ARRÊTÉ');
 }
 autoEl.addEventListener('pointerdown', ouvrirPlan);
