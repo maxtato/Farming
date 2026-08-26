@@ -2030,16 +2030,40 @@ function setInstance(n, g, alive){
   M.setColorAt(place, _col);
   salir(c, place);
 }
-/* Renvoie au GPU la seule plage d'instances qui a bougé, et seulement pour les cultures
-   qui ont bougé. Les décalages sont en ÉLÉMENTS du tableau, pas en octets ni en
-   instances : seize flottants par matrice, trois par couleur. three remet la plage à
-   -1 après chaque envoi, et on la repose avant chaque `needsUpdate` — aucune plage ne
-   peut donc se périmer. */
-function champsAJour(){
+/* Renvoie au GPU la plage d'instances qui a bougé, et seulement pour les cultures qui
+   ont bougé. Les décalages sont en ÉLÉMENTS du tableau, pas en octets ni en instances :
+   seize flottants par matrice, trois par couleur.
+
+   DEUX PIÈGES, tous deux mesurés.
+
+   Le premier est un plafond de débit. La plage est un simple min-max : il suffit que
+   deux plantes éloignées franchissent un palier de croissance dans la même image pour
+   qu'elle s'étale d'un bout à l'autre du maillage, et l'on renvoie alors le TAMPON
+   ENTIER — 594 Kio de matrices plus 36 Kio de couleurs. Sur une ferme semée d'un coup,
+   tous les pieds franchissent leur palier ensemble : relevé sur vingt secondes de
+   pousse, cinq images à 630 Kio chacune, et ce serait sept fois cela si sept cultures
+   poussaient en même temps. On plafonne donc le nombre d'instances renvoyées par image
+   et l'on garde le reste pour la suivante. C'est sans risque : le tableau côté
+   processeur fait foi, une instance renvoyée deux images plus tard porte exactement la
+   même matrice. Un palier de croissance qui met cent millisecondes de plus à
+   apparaître sur un pied ne se voit pas — il en met trois mille à venir.
+
+   Le second est un envoi perdu. three ne lit `updateRange` qu'au rendu ; appeler cette
+   fonction deux fois dans la même image — ce que faisaient `work()` puis `grow()` —
+   écrasait la première plage par la seconde, et les instances de la première ne
+   partaient jamais. L'émission se fait donc maintenant en un seul endroit, une fois
+   par image, juste avant le rendu. Les appels immédiats qui restent (chargement,
+   achat d'une parcelle, mise en pâture) passent `true` : là, on veut tout, tout de
+   suite, et il n'y a pas d'image à tenir. */
+const CHAMP_BUDGET = 1000;            // instances renvoyées par image, toutes cultures confondues
+function champsAJour(tout){
+  let reste = tout ? Infinity : CHAMP_BUDGET;
   for(let c = 0; c < CHAMPS.length; c++){
     const lo = champLo[c];
     if(lo === undefined) continue;
-    const M = CHAMPS[c], n = champHi[c] - lo + 1;
+    if(reste <= 0) break;
+    const M = CHAMPS[c], n = Math.min(champHi[c] - lo + 1, reste);
+    reste -= n;
     M.instanceMatrix.updateRange.offset = lo*16;
     M.instanceMatrix.updateRange.count  = n*16;
     M.instanceMatrix.needsUpdate = true;
@@ -2048,8 +2072,15 @@ function champsAJour(){
       M.instanceColor.updateRange.count  = n*3;
       M.instanceColor.needsUpdate = true;
     }
-    champLo[c] = champHi[c] = undefined;
+    if(lo + n > champHi[c]) champLo[c] = champHi[c] = undefined;
+    else champLo[c] = lo + n;         // le reliquat part à l'image suivante
   }
+}
+// Reste-t-il quelque chose à renvoyer ? La boucle s'en sert pour ne rien appeler quand
+// rien n'a bougé.
+function champsEnAttente(){
+  for(let c = 0; c < CHAMPS.length; c++) if(champLo[c] !== undefined) return true;
+  return false;
 }
 
 /* teinte de sol par cellule, étalée sur plusieurs frames */
@@ -5522,9 +5553,8 @@ function work(m, dt){
     }
     state[id] = T.to;
   }
-  if(did){
-    champsAJour();
-  }
+  // On ne renvoie rien ici : `setInstance` a marqué la plage, et la boucle l'émet une
+  // seule fois par image. Émettre ici écrasait la plage de `grow()`, ou l'inverse.
   const anyField = eligible;
   // Un outil qui n'a pas de style d'andain ne laisse pas de trace au sol.
   if(anyField && SWATH[T.key]) paintSwath(T.key, prev, prev.r, cur, cur.r, w);
@@ -5552,14 +5582,13 @@ function right(cap){ return {x:Math.cos(cap), z:-Math.sin(cap)}; }
 
 /* --- croissance --- */
 function grow(dt){
-  let dirty = false;
   for(let k=growingList.length-1;k>=0;k--){
     const id = growingList[k];
     if(state[id] !== ST.SEME){ growingList.splice(k,1); continue; }
-    const before = Math.floor(growth[id]*40);
+    const before = Math.floor(growth[id]*40);   // la plage part à la fin de l'image
     growth[id] = Math.min(1, growth[id] + dt/CROPS[cropCell[id]].temps*(fert[id]?1.8:1));
     if(Math.floor(growth[id]*40) !== before){
-      setInstance(instOf[id], growth[id], 1); dirty = true;
+      setInstance(instOf[id], growth[id], 1);
       // La couche d'engrais s'efface par voiles successifs de terre, un par dixième
       // de croissance. Elle a donc totalement disparu quand l'épi est sorti.
       if(fert[id] && growth[id] > 0.55) queueTint(id, 'rgba(101,72,42,.28)');
@@ -5569,16 +5598,13 @@ function grow(dt){
       // La couleur n'était rafraîchie qu'aux paliers de dixième : la dernière mise à
       // jour tombait vers 0,95, où le mélange contient encore 9 % de vert. On force
       // ici la maturité exacte, donc le jaune pur.
-      setInstance(instOf[id], 1, 1); dirty = true;
+      setInstance(instOf[id], 1, 1);
       // Voile final très couvrant : il efface la couche même sur une cellule fertilisée
       // tardivement, qui n'aurait pas eu le temps de recevoir les voiles intermédiaires.
       // C'est ce cas qui laissait des carrés sombres isolés.
       if(fert[id]) queueTint(id, 'rgba(101,72,42,.92)');
       growingList.splice(k,1);
     }
-  }
-  if(dirty){
-    champsAJour();
   }
 }
 
@@ -7136,7 +7162,7 @@ function creerPature(p, espece){
     state[id] = ST.PATURE; fert[id] = 0; growth[id] = 0;
     if(instOf[id] >= 0) setInstance(instOf[id], 0, 0);
   }
-  champsAJour();
+  champsAJour(true);
   peindrePature(p);
   p.pature = true;
 
@@ -9114,23 +9140,34 @@ addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx
    plages identiques, la compression est donc excellente — avant de passer en base64. */
 const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true, pret:false};
 
+/* Les deux tampons sont gardés d'un enregistrement à l'autre. L'ancienne version
+   allouait, toutes les six secondes, un tableau de 180 Kio PUIS un tableau JS de près
+   de cinquante mille nombres — des nombres boîtés, pas des octets — puis une copie par
+   tranche de huit mille. C'est le genre de rafale qui finit par déclencher un ramassage
+   de miettes au beau milieu d'une image. La sortie, elle, est identique au bit près :
+   `unpackGrille` n'a pas bougé. */
+const _packPlans = new Uint8Array(NCELL*4);
+let _packRLE = new Uint8Array(1 << 16);
 function packGrille(){
-  const n = NCELL, buf = new Uint8Array(n*4);
+  const n = NCELL, buf = _packPlans;
   for(let i=0;i<n;i++){
     buf[i]       = state[i];
     buf[n+i]     = Math.round(Math.max(0, Math.min(1, growth[i]))*255);
     buf[n*2+i]   = fert[i];
     buf[n*3+i]   = cropCell[i];
   }
-  const out = [];
-  let i = 0;
+  let out = _packRLE, m = 0, i = 0;
   while(i < buf.length){
     const v = buf[i]; let l = 1;
     while(i+l < buf.length && buf[i+l] === v && l < 255) l++;
-    out.push(v, l); i += l;
+    if(m + 2 > out.length){
+      const grand = new Uint8Array(out.length*2); grand.set(out); out = _packRLE = grand;
+    }
+    out[m++] = v; out[m++] = l; i += l;
   }
   let s = '';
-  for(let k=0;k<out.length;k+=8192) s += String.fromCharCode.apply(null, out.slice(k, k+8192));
+  for(let k=0;k<m;k+=8192)
+    s += String.fromCharCode.apply(null, out.subarray(k, Math.min(k+8192, m)));
   return btoa(s);
 }
 // `gnx`/`gnz` disent la trame de la grille enregistrée. Une sauvegarde d'avant
@@ -9329,7 +9366,7 @@ function chargerPartie(S){
       wheatBase[n].crop = cropCell[id];
       setInstance(n, growth[id], vivant);
     }
-    champsAJour();
+    champsAJour(true);
     repeindreSol();
 
     // 4. l'exploitation
@@ -9686,6 +9723,8 @@ function loop(now){
     updatePuffs(dt);
     updateColis(dt);
     flushTiles(2);
+    // Un seul renvoi d'instances par image, plafonné : voir champsAJour().
+    if(champsEnAttente()) champsAJour();
   }
 
   // caméra : orientation fixe, suivi amorti avec anticipation

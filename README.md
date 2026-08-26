@@ -418,6 +418,40 @@ Quelques partis pris qui expliquent le reste :
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
   anneau jaune.
 
+## Ce qui tient la fluidité
+
+Trois plafonds, chacun posé après mesure, chacun tenu par un contrôle qui échoue si on
+les retire.
+
+**Les instances de cultures.** Chaque culture est un maillage instancié, et l'on ne
+renvoie au GPU que la plage qui a bougé. Mais cette plage est un simple min-max : il
+suffit que deux plantes éloignées franchissent un palier de croissance dans la même
+image pour qu'elle s'étale d'un bout à l'autre du maillage, et l'on renvoie alors le
+tampon entier — 594 Kio de matrices plus 36 Kio de couleurs, à multiplier par le nombre
+de cultures qui poussent. Sur une ferme semée d'un coup, c'est exactement ce qui arrive :
+tous les pieds franchissent leur palier ensemble. Relevé sur vingt secondes de pousse,
+avant : cinq images à 630 Kio d'un bloc. On plafonne donc à mille instances par image,
+toutes cultures confondues, et le reliquat part à l'image suivante — le tableau côté
+processeur fait foi, une instance renvoyée deux images plus tard porte la même matrice.
+Après : trente-trois images à 74 Kio. Un palier qui met cent millisecondes de plus à
+paraître ne se voit pas ; il en met trois mille à venir.
+
+L'émission se fait en **un seul endroit, une fois par image**, juste avant le rendu.
+three ne lit `updateRange` qu'au rendu : appeler deux fois dans la même image — ce que
+faisaient `work()` puis `grow()` — écrasait la première plage par la seconde, et ces
+instances-là ne partaient jamais.
+
+**La bande passante des tuiles du sol.** Les tuiles font 27,5 m sur 320 px, et
+`flushTiles` n'en réveille que deux par image : 0,78 Mio au pire, contre 3,13 avant
+qu'elles soient coupées en quatre.
+
+**L'empaquetage de la sauvegarde.** La grille part toutes les six secondes. Les deux
+tampons de travail sont gardés d'un enregistrement à l'autre : l'ancienne version
+allouait à chaque fois 180 Kio, puis un tableau JS de près de cinquante mille nombres
+boîtés, puis une copie par tranche de huit mille — le genre de rafale qui finit par
+déclencher un ramassage de miettes au milieu d'une image. La sortie est identique au
+bit près.
+
 ## Sauvegarde
 
 La partie s'enregistre toute seule dans le stockage local du navigateur, toutes les
