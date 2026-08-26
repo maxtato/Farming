@@ -605,8 +605,23 @@ const DZ_NORD = 31*1.3;                  // 40,3 m — 31 cellules pile
 // l'ouest et au nord, on le rend à l'est et au sud, où il restait 17 et 55 m de vide.
 const DECAL = 4*1.3;                     // 5,2 m — quatre cellules pile
 const X0 = -110 - DECAL, Z0 = -110 - DZ_NORD - DECAL;
-const TSIZE = 55, TPX = 640;             // tuiles de 55 m rendues sur 640 px
-const TNX = 5, TNZ = 5;                  // 5 x 5 tuiles
+/* LA TAILLE D'UNE TUILE EST UN BUDGET DE BANDE PASSANTE.
+   Le sol était découpé en vingt-cinq tuiles de 55 m rendues sur 640 px. Peindre une
+   traînée d'outil salit sa tuile, et une tuile sale est REDONNÉE EN ENTIER à la carte
+   graphique : 640 × 640 × 4 octets, soit 1,56 Mo par image, tant qu'on travaille.
+   Le long d'une couture, l'outil salit DEUX tuiles à la fois — 3,1 Mo par image — et
+   la couture se traverse à chaque aller-retour.
+   Or l'ajout de la rangée nord a décalé l'origine du sol de 45,5 m : une couture qui
+   tombait à z = −55, en pleine parcelle, est venue se placer à z = −45,5, c'est-à-dire
+   à cinq mètres du chemin de sable de z = −40. Toute la bande de travail autour de ce
+   chemin — de −50 à −41 — envoie donc deux tuiles par image. C'est exactement là que
+   le ralentissement se sent, et c'est bien depuis ce décalage.
+   On divise donc la tuile par deux dans chaque sens : quatre fois moins d'octets par
+   envoi. La DÉFINITION DU SOL NE CHANGE PAS D'UN PIXEL — 320/27,5 vaut exactement
+   640/55 —, seule la découpe change. Une tuile sale coûte 0,39 Mo au lieu de 1,56, et
+   la bande à cheval sur une couture 0,78 au lieu de 3,1. */
+const TSIZE = 27.5, TPX = 320;           // tuiles de 27,5 m rendues sur 320 px
+const TNX = 10, TNZ = 10;                // 10 x 10 tuiles, même emprise qu'avant
 const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 275 x 220
 const X1 = X0 + WX, Z1 = Z0 + WZ;        // 159,8 à l'est, 119,5 au sud
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
@@ -628,12 +643,31 @@ for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
   scene.add(mesh);
   tiles.push({ctx, tex, x0:X0+TSIZE*i, z0:Z0+TSIZE*j, dirty:false});
 }
-function flushTiles(){ for(const t of tiles){ if(t.dirty){ t.tex.needsUpdate = true; t.dirty = false; } } }
+/* On n'en redonne que quelques-unes par image. Une tuile qui attend une image de plus
+   avant d'être renvoyée est invisible à soixante images par seconde — mais quatre
+   tuiles renvoyées d'un coup, à l'angle de deux coutures, se sentent. Sans argument,
+   on vide tout : c'est ce qu'attendent les appels qui suivent une grosse repeinture
+   (achat de parcelle, chargement de partie), et le jeu y est de toute façon à l'arrêt. */
+let tuileTour = 0;
+function flushTiles(max){
+  const n = tiles.length;
+  let reste = (max === undefined) ? n : max;
+  for(let k = 0; k < n && reste > 0; k++){
+    const t = tiles[(tuileTour + k) % n];
+    if(!t.dirty) continue;
+    t.tex.needsUpdate = true; t.dirty = false; reste--;
+    tuileTour = (tuileTour + k + 1) % n;
+  }
+}
 
 /* Tampon : rectangle orienté de longueur l (axe d'avance) et largeur w,
    centré en (x,z), cap = angle de cap. draw(ctx,l,w) dessine en unités monde. */
 function stamp(x, z, l, w, cap, draw){
-  const r = Math.max(l,w)*0.75 + 1;
+  // La demi-diagonale suffit : c'est le rayon exact d'un rectangle l×w quelle que soit
+  // son orientation. `max*0.75 + 1` déclarait sale, autour de chaque tampon, une
+  // couronne d'un mètre de large qui ne recevait jamais un pixel — et une tuile
+  // déclarée sale est redonnée en entier à la carte graphique.
+  const r = Math.hypot(l, w)/2 + 0.25;
   for(const t of tiles){
     if(x+r < t.x0 || x-r > t.x0+TSIZE || z+r < t.z0 || z-r > t.z0+TSIZE) continue;
     const c = t.ctx;
@@ -9568,7 +9602,7 @@ function loop(now){
     updateBirds(dt, v.pos.x, v.pos.z);
     updatePuffs(dt);
     updateColis(dt);
-    flushTiles();
+    flushTiles(2);
   }
 
   // caméra : orientation fixe, suivi amorti avec anticipation

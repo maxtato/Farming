@@ -337,6 +337,14 @@ Quelques partis pris qui expliquent le reste :
   objets par image — les quatre cinquièmes du temps de rendu — dont la moitié faisait
   moins d'un mètre quarante d'emprise. À la distance de la caméra, l'ombre d'un cageot
   fait trois pixels. C'est l'emprise au sol qui décide, pas la hauteur.
+- **Le sol est une texture, et une texture se paie en octets.** Une tuile salie par un
+  passage d'outil est redonnée en entier à la carte graphique. Elle mesure donc 27,5 m
+  pour 320 pixels et non 55 m pour 640 : même définition au pixel près (11,64 px/m),
+  même mémoire (39 Mo), mais quatre fois moins d'octets par envoi. La boucle n'en
+  redonne que deux par image, en tourniquet. Le budget — 0,8 Mo par image, où qu'on
+  travaille — est vérifié par un test, parce que c'est le genre d'invariant qu'un
+  décalage d'origine casse sans prévenir : c'est exactement ce qui était arrivé quand
+  la rangée nord a déplacé une couture à cinq mètres d'un chemin de sable.
 - **Ce qui ne change pas soixante fois par seconde n'est pas calculé soixante fois par
   seconde.** La condition des anneaux se relit huit fois par seconde, l'interface vingt
   ; la respiration des anneaux, elle, reste à chaque image — c'est elle qu'on voit. La
