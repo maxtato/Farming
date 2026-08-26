@@ -244,6 +244,12 @@ Quelques partis pris qui expliquent le reste :
 - **Un bâtiment n'apporte pas son propre socle.** Le jeu pose une dalle sous chaque
   commerce ; un socle par-dessus ferait une seconde épaisseur, dans un autre gris. Les
   places, la terrasse, le plancher d'une halle sont peints SUR la dalle, à plat.
+- **Un enclos s'ouvre sur un chemin, jamais ailleurs.** Le portail était au milieu du
+  bord nord quoi qu'il y ait devant : sur une parcelle de bordure il donnait droit sur
+  la clôture de la ferme, et l'enclos devenait inaccessible sans que rien ne le dise.
+  Le côté d'entrée se choisit maintenant sur la trame des chemins, et tout
+  l'aménagement — clôture, postes, quais, rangs de ruches, sentes — se lit dans un
+  repère lié au portail.
 - **Une espèce n'est qu'une ligne de table.** Prix, ration, produit, silhouette,
   places : tout l'élevage se lit dans `ESPECES`, et le reste du code ne connaît aucun
   nom d'animal. C'est ce qui a permis d'ajouter un rucher — une espèce qui ne marche

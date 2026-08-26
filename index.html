@@ -6455,6 +6455,45 @@ function geoBete(E, r){
 // terrain, pas un réglage qu'on bascule ; et cela évite d'avoir à défaire proprement
 // une clôture, un tank et un troupeau à chaque va-et-vient.
 ST.PATURE = 6;
+/* DE QUEL CÔTÉ ON ENTRE DANS UN ENCLOS.
+   Le portail était toujours au milieu du bord nord, quoi qu'il y ait devant. Sur une
+   parcelle de bordure il donnait droit sur la clôture de la ferme ou sur la rocade :
+   l'enclos devenait inaccessible, et rien ne le disait.
+   Il s'ouvre maintenant sur un CHEMIN, et seulement sur un chemin — c'est par là qu'on
+   circule, et c'est la seule garantie qu'on puisse arriver jusqu'au portail. Les deux
+   côtés « du bas », ceux qu'on a face à soi, passent en premier ; quand tous deux
+   conviennent on tire au sort, mais toujours le même tirage pour une parcelle donnée,
+   sinon l'enclos changerait d'entrée au rechargement de la partie. */
+const COTES = {
+  N:{din:{x:0, z: 1}, dac:{x: 1, z:0}},
+  S:{din:{x:0, z:-1}, dac:{x:-1, z:0}},
+  E:{din:{x:-1, z:0}, dac:{x:0, z: 1}},
+  W:{din:{x: 1, z:0}, dac:{x:0, z:-1}}
+};
+function coteEnclos(p){
+  const RECUL = 3.0;                    // de quoi manœuvrer devant le portail
+  const surChemin = (v, liste)=> liste.some((c)=> Math.abs(v - c) < PATH_W/2 + 2.0);
+  const ok = [];
+  if(surChemin(p.x + p.w/2 + RECUL, PATHS_V)) ok.push('E');   // en bas à droite
+  if(surChemin(p.z + p.h/2 + RECUL, PATHS_H)) ok.push('S');   // en bas à gauche
+  if(surChemin(p.z - p.h/2 - RECUL, PATHS_H)) ok.push('N');
+  if(surChemin(p.x - p.w/2 - RECUL, PATHS_V)) ok.push('W');
+  if(!ok.length) return 'N';
+  /* Les deux colonnes de bordure n'ont qu'un seul côté praticable et c'est celui-là
+     qu'on prend, sans tirage : à l'ouest de la carte on ouvre à droite, à l'est on
+     ouvre en bas — de l'autre côté il n'y a que la rocade. */
+  const colG = P_COLS[0].x, colD = P_COLS[P_COLS.length - 1].x;
+  if(Math.abs(p.x - colG) < 0.5 && ok.indexOf('E') >= 0) return 'E';
+  if(Math.abs(p.x - colD) < 0.5 && ok.indexOf('S') >= 0) return 'S';
+  if(ok.length > 1 && ok[0] === 'E' && ok[1] === 'S'){
+    // Un vrai brassage : les coordonnées de la trame sont toutes paires ou presque, et
+    // une somme pondérée y retombait toujours du même côté — seize enclos sur vingt
+    // ouvraient à droite. Deux grands nombres premiers et un ou-exclusif suffisent.
+    const h = Math.abs((Math.round(p.x*10)*73856093) ^ (Math.round(p.z*10)*19349663));
+    return (h % 2) ? 'S' : 'E';
+  }
+  return ok[0];
+}
 function peindrePature(p){
   fillRect(p.x, p.z, p.w, p.h, '#4E7A47', AX);
   const n = Math.round(p.w*p.h/16);
@@ -6464,13 +6503,17 @@ function peindrePature(p){
     fillRect(x, z, 0.4+Math.random()*1.6, 0.3+Math.random()*1.0,
       r < 0.42 ? 'rgba(255,255,255,.10)' : (r < 0.84 ? 'rgba(0,0,0,.13)' : 'rgba(214,196,120,.22)'), AX);
   }
-  // sentes tracées par le passage des bêtes, du portail vers le centre
+  // Sentes tracées par le passage des bêtes, DU PORTAIL vers le centre — elles
+  // suivent donc le côté d'entrée, sinon elles partaient d'un mur.
+  const C = COTES[coteEnclos(p)], prof = (C.din.x ? p.w : p.h);
+  const gx = p.x - C.din.x*(p.w/2), gz = p.z - C.din.z*(p.h/2);
   for(let k=0;k<3;k++){
     const a = -0.6 + k*0.6;
     for(let t=0;t<14;t++){
-      const d = 1.5 + t*(p.h*0.36)/14;
-      fillRect(p.x + Math.sin(a)*d*0.7 + (Math.random()-0.5)*0.6,
-               p.z - p.h/2 + 1.5 + d, 0.9+Math.random()*0.5, 0.7, 'rgba(120,96,54,.20)', AX);
+      const d = 1.5 + t*(prof*0.36)/14, u = Math.sin(a)*d*0.7 + (Math.random()-0.5)*0.6;
+      fillRect(gx + C.dac.x*u + C.din.x*(d + 1.5),
+               gz + C.dac.z*u + C.din.z*(d + 1.5), 0.9+Math.random()*0.5, 0.7,
+               'rgba(120,96,54,.20)', AX);
     }
   }
 }
@@ -6489,47 +6532,74 @@ function creerPature(p, espece){
   peindrePature(p);
   p.pature = true;
 
-  // Clôture sur les quatre côtés, portail au milieu du côté nord — celui qui donne
-  // sur le chemin de sable, donc celui d'où l'on arrive toujours.
+  /* Clôture sur les quatre côtés, portail au milieu du côté qui donne sur un chemin.
+     Tout l'aménagement se lit ensuite dans un repère lié au portail : `u` en travers,
+     `d` en profondeur depuis la clôture d'entrée. C'est ce qui permet de tourner
+     l'enclos d'un quart de tour sans rien réécrire. */
+  const cote = coteEnclos(p), C = COTES[cote];
   const x0 = p.x - p.w/2 + 0.6, x1 = p.x + p.w/2 - 0.6;
   const z0 = p.z - p.h/2 + 0.6, z1 = p.z + p.h/2 - 0.6;
+  // largeur en travers du portail, et profondeur depuis lui, entre clôtures
+  const croix = C.din.x ? (z1 - z0) : (x1 - x0);
+  const prof  = C.din.x ? (x1 - x0) : (z1 - z0);
+  // le portail, au milieu de son côté, sur la ligne de clôture
+  const gx = p.x - C.din.x*(C.din.x ? (x1 - x0)/2 : 0);
+  const gz = p.z - C.din.z*(C.din.z ? (z1 - z0)/2 : 0);
+  const mx = (u, d)=> gx + C.dac.x*u + C.din.x*d;
+  const mz = (u, d)=> gz + C.dac.z*u + C.din.z*d;
   // Même mesure qu'aux trouées de la clôture de ferme : un portail de 8,4 m est
   // exactement la largeur d'une moissonneuse, on ne passait qu'au millimètre.
-  const gx = p.x, gz = z0, demi = Math.min(6.0, p.w*0.22);
-  fenceLine(x0, z0, gx - demi, z0, 0xB4A183);
-  fenceLine(gx + demi, z0, x1, z0, 0xB4A183);
-  fenceLine(x0, z1, x1, z1, 0xB4A183);
-  fenceLine(x0, z0, x0, z1, 0xB4A183);
-  fenceLine(x1, z0, x1, z1, 0xB4A183);
-  for(const sx of [-demi, demi]){                        // montants du portail
-    scene.add(box(0.42, 2.6, 0.42, 0xE8B44A, gx + sx, 1.3, gz));
-    obstacles.push({x:gx+sx, z:gz, r:0.5});
+  const demi = Math.min(6.0, croix*0.22);
+  // les trois côtés pleins, puis le côté d'entrée en deux tronçons
+  fenceLine(mx(-croix/2, 0), mz(-croix/2, 0), mx(-demi, 0), mz(-demi, 0), 0xB4A183);
+  fenceLine(mx(demi, 0), mz(demi, 0), mx(croix/2, 0), mz(croix/2, 0), 0xB4A183);
+  fenceLine(mx(-croix/2, prof), mz(-croix/2, prof), mx(croix/2, prof), mz(croix/2, prof), 0xB4A183);
+  fenceLine(mx(-croix/2, 0), mz(-croix/2, 0), mx(-croix/2, prof), mz(-croix/2, prof), 0xB4A183);
+  fenceLine(mx(croix/2, 0), mz(croix/2, 0), mx(croix/2, prof), mz(croix/2, prof), 0xB4A183);
+  for(const su of [-demi, demi]){                        // montants du portail
+    scene.add(box(0.42, 2.6, 0.42, 0xE8B44A, mx(su, 0), 1.3, mz(su, 0)));
+    obstacles.push({x:mx(su, 0), z:mz(su, 0), r:0.5});
   }
 
   // L'aménagement dépend de l'espèce : chacune a son poste de collecte à gauche et
   // sa mangeoire à droite, jamais devant le portail. On entre tout droit, puis on se
   // range à gauche pour le produit, à droite pour le grain.
-  const tx = x0 + 2.0, tz = z0 + 6.0;
-  const ax = x1 - 2.0, az = z0 + 6.0;
+  const uT = -(croix/2 - 2.0), uA = croix/2 - 2.0, dP = 6.0;
+  const tx = mx(uT, dP), tz = mz(uT, dP);
+  const ax = mx(uA, dP), az = mz(uA, dP);
   const collecte = E.produit ? posteCollecte(E, tx, tz) : null;
   const mangeoire = posteMangeoire(E, ax, az);
-  abriEspece(E, p.x, z1 - 4.0);
+  abriEspece(E, mx(0, prof - 4.0), mz(0, prof - 4.0));
 
   // Quais : là où l'anneau invite à s'arrêter, à côté de l'équipement et non dessus.
-  const P = {
-    p, espece:E.cle, collecte, auge:mangeoire.groupe, tas:mangeoire.tas, gx, gz,
-    quaiProduit: E.produit ? {x: tx + 3.6, z: tz} : null,
-    quaiAuge:{x: ax - 3.6, z: az},
-    // Pas de portail pour un rucher : on n'embarque pas une ruche pour l'abattoir.
-    // Comme pour le poste de collecte du cochon, ce qui n'a pas de sens n'est pas posé.
-    quaiPortail: E.prixBete > 0 ? {x: gx, z: gz - 3.6} : null,
-    produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
-    betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
-    box:{x0:x0+2.6, x1:x1-2.6, z0:z0+10.0, z1:z1-1.5}
-  };
+  // La zone de pâture, en repère du portail : on laisse la bande d'entrée libre pour
+  // manœuvrer, et une marge au fond. Elle est ensuite ramenée en rectangle du monde —
+  // les quarts de tour gardent les côtés alignés sur les axes.
+  let dBox0 = 10.0, dBox1 = prof - 1.5;
   // Une parcelle étroite ne laisse pas 10 m avant la zone de pâture : on garde
   // au moins une bande praticable, quitte à ce que les bêtes frôlent l'équipement.
-  if(P.box.z0 > P.box.z1 - 3) P.box.z0 = Math.max(z0 + 3.5, P.box.z1 - 3);
+  if(dBox0 > dBox1 - 3) dBox0 = Math.max(3.5, dBox1 - 3);
+  const uBox = croix/2 - 2.6;
+  const coins = [[-uBox, dBox0], [uBox, dBox0], [-uBox, dBox1], [uBox, dBox1]]
+    .map(([u, d])=> ({x:mx(u, d), z:mz(u, d)}));
+  const P = {
+    p, espece:E.cle, collecte, auge:mangeoire.groupe, tas:mangeoire.tas, gx, gz,
+    // Le repère de l'enclos, gardé : le placement des ruches et tout ce qui voudra
+    // raisonner « en profondeur depuis le portail » en a besoin.
+    cote, din:C.din, dac:C.dac, croix, prof,
+    quaiProduit: E.produit ? {x: mx(uT + 3.6, dP), z: mz(uT + 3.6, dP)} : null,
+    quaiAuge:{x: mx(uA - 3.6, dP), z: mz(uA - 3.6, dP)},
+    // Pas de portail pour un rucher : on n'embarque pas une ruche pour l'abattoir.
+    // Comme pour le poste de collecte du cochon, ce qui n'a pas de sens n'est pas posé.
+    quaiPortail: E.prixBete > 0 ? {x: mx(0, -3.6), z: mz(0, -3.6)} : null,
+    produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
+    betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
+    box:{x0: Math.min.apply(null, coins.map((c)=> c.x)),
+         x1: Math.max.apply(null, coins.map((c)=> c.x)),
+         z0: Math.min.apply(null, coins.map((c)=> c.z)),
+         z1: Math.max.apply(null, coins.map((c)=> c.z))}
+  };
+  P.dBox0 = dBox0; P.dBox1 = dBox1; P.uBox = uBox;
   majTasAuge(P);
   // Les quais de l'enclos, chacun avec sa condition :
   //   produit — il faut une caisse qui accepte cette nature, et de quoi charger ;
@@ -6699,12 +6769,18 @@ function fleur(g, x, z, c){
 function decorRucher(P){
   const g = new THREE.Group();
   const teintes = [0xE8A62E, 0xC0392B, 0xF2E7D2, 0x7A5F8E, 0xE8D24A];
-  const B = P.box, cx = (B.x0 + B.x1)/2;
-  const bz = B.z0 + 1.6, bd = Math.min(3.6, Math.max(1.6, (B.z1 - B.z0)*0.28));
-  g.add(box(B.x1 - B.x0 - 1.0, 0.06, bd, 0x6E8F4E, cx, 0.03, bz));
+  const B = P.box;
+  // La bande mellifère est DEVANT les ruches, entre elles et le portail : en repère de
+  // l'enclos, donc, et non le long d'un axe du monde. Un quart de tour la ferait
+  // autrement traverser les rangs.
+  const mx = (u, d)=> P.gx + P.dac.x*u + P.din.x*d;
+  const mz = (u, d)=> P.gz + P.dac.z*u + P.din.z*d;
+  const dB = P.dBox0 + 1.6, bd = Math.min(3.6, Math.max(1.6, (P.dBox1 - P.dBox0)*0.28));
+  const lg = P.croix - 3.6;
+  g.add(box(P.din.x ? bd : lg, 0.06, P.din.x ? lg : bd, 0x6E8F4E, mx(0, dB), 0.03, mz(0, dB)));
   for(let k = 0; k < 70; k++)
-    fleur(g, cx + (Math.random() - 0.5)*(B.x1 - B.x0 - 1.6),
-             bz + (Math.random() - 0.5)*(bd - 0.4),
+    fleur(g, mx((Math.random() - 0.5)*(lg - 0.6), dB + (Math.random() - 0.5)*(bd - 0.4)),
+             mz((Math.random() - 0.5)*(lg - 0.6), dB + (Math.random() - 0.5)*(bd - 0.4)),
              teintes[(Math.random()*teintes.length) | 0]);
   scene.add(g);
   const mat2 = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true,
@@ -6712,7 +6788,7 @@ function decorRucher(P){
   for(let k = 0; k < 14; k++){
     const m = new THREE.Mesh(geoAbeille(), mat2);
     scene.add(m);
-    ABEILLES.push({m, P, cx, cz:(B.z0 + B.z1)/2, r:1.2 + Math.random()*4.5,
+    ABEILLES.push({m, P, cx:(B.x0 + B.x1)/2, cz:(B.z0 + B.z1)/2, r:1.2 + Math.random()*4.5,
                    ang:Math.random()*6.28, v:0.8 + Math.random()*1.2,
                    y0:1.0 + Math.random()*1.4, ph:Math.random()*6.28,
                    amp:0.16 + Math.random()*0.3});
@@ -6778,9 +6854,13 @@ function ajouterBete(P, age, robe){
     const R = E.rang || {n:6, pas:1.9, ecart:2.2};
     const k = P.betes.length, rang = Math.floor(k/R.n), col = k % R.n;
     const large = Math.min(R.n, P.places - rang*R.n);
-    px = (P.box.x0 + P.box.x1)/2 - (large - 1)*R.pas/2 + col*R.pas;
-    pz = P.box.z1 - 1.2 - rang*R.ecart;
-    cp = 0;                                   // toutes tournées du même côté
+    // En repère du portail : les rangs s'alignent en travers, au FOND de l'enclos, et
+    // se rapprochent du portail à mesure qu'on en ajoute. Toutes tournées vers lui.
+    const u = -(large - 1)*R.pas/2 + col*R.pas;
+    const d = (P.dBox1 === undefined ? P.prof - 1.5 : P.dBox1) - 1.2 - rang*R.ecart;
+    px = P.gx + P.dac.x*u + P.din.x*d;
+    pz = P.gz + P.dac.z*u + P.din.z*d;
+    cp = Math.atan2(-P.din.x, -P.din.z);
   } else {
     px = P.box.x0 + Math.random()*(P.box.x1-P.box.x0);
     pz = P.box.z0 + Math.random()*(P.box.z1-P.box.z0);
