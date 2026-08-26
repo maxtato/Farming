@@ -1708,10 +1708,17 @@ const CROPS = [
   // pied de vigne tous les 1,3 m mais un rang sur deux — d'où le masque, calculé sur
   // la cellule pour que la plantation soit régulière et non semée au hasard.
   {nom:'Raisin', cle:'raisin', lo:new THREE.Color(0xBCCDA8), hi:new THREE.Color(0xC9B4C4),
-   temps:340, kg:9, haut:1.20, cout:9000, verrou:true, perenne:true,
+   // 2,80 m à maturité : la hauteur du tunnel de l'enjambeuse, à trente centimètres
+   // près. Une vigne palissée d'1,74 m passait sous la machine sans la toucher — on ne
+   // voyait pas ce qu'on récoltait.
+   temps:340, kg:9, haut:1.93, cout:9000, verrou:true, perenne:true,
    rang:true, masque:(i)=> i % 2 === 0},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
-   temps:400, kg:8, haut:1.35, cout:11000, verrou:true, perenne:true,
+   // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
+   // coefficient est calé pour que le plus grand des arbres — tirage 1,95 — reste sous
+   // les 3,10 m du tunnel. De 2,23 à 3,00 m, contre 4,40 m avant, où la machine
+   // passait dans le feuillage.
+   temps:400, kg:8, haut:0.80, cout:11000, verrou:true, perenne:true,
    masque:(i, j)=> i % 4 === 0 && j % 4 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
@@ -3711,13 +3718,23 @@ function buildPickup(){
     g.add(box(0.09,0.5,0.09, CREME, sx,1.82,1.5));
     g.add(box(0.3,0.42,0.09, SOMBRE, sx,2.14,1.5));
   }
-  g.add(box(2.15,0.14,3.2, 0x6B5A44, 0,0.79,-1.85));
-  for(const sx of [-1.05,1.05]) g.add(box(0.1,0.62,3.2, CAISSE, sx,1.15,-1.85));
-  g.add(box(2.15,0.66,0.12, CAISSE, 0,1.17,-0.28));
-  g.add(box(2.15,0.62,0.1, CAISSE, 0,1.15,-3.42));
-  for(const sx of [-0.78,0.78]){
-    g.add(box(0.44,0.46,1.55, CAISSE, sx,1.09,-1.9));
-    g.add(box(0.46,0.06,1.57, CAISSE2, sx,1.33,-1.9));
+  /* LA BENNE. Trois défauts corrigés d'un coup. Les ridelles montaient à 62 cm : on
+     voyait par-dessus le fond, et rien de ce qu'on y pose ne se serait vu dépasser.
+     Les passages de roue étaient posés à 78 cm de l'axe alors que la roue est à 1,02 :
+     le haut du pneu traversait la tôle. Et la benne faisait la largeur de la cabine,
+     alors qu'un plateau déborde toujours un peu sur les ailes. */
+  const BW = 1.24;                                   // demi-largeur extérieure de benne
+  g.add(box(BW*2, 0.14, 3.4, 0x6B5A44, 0, 0.79, -1.9));                    // plancher
+  for(const sx of [-BW, BW]) g.add(box(0.1, 0.88, 3.4, CAISSE, sx, 1.28, -1.9));
+  g.add(box(BW*2, 0.92, 0.12, CAISSE, 0, 1.30, -0.24));                    // face avant
+  g.add(box(BW*2, 0.88, 0.1, CAISSE, 0, 1.28, -3.56));                     // hayon
+  for(const sx of [-BW, BW]) g.add(box(0.13, 0.08, 3.46, CAISSE2, sx, 1.74, -1.9));
+  g.add(box(BW*2 + 0.03, 0.08, 0.15, CAISSE2, 0, 1.78, -0.24));            // liserés
+  g.add(box(BW*2 + 0.03, 0.08, 0.13, CAISSE2, 0, 1.74, -3.56));
+  // passages de roue : centrés SUR la roue et assez hauts pour la coiffer
+  for(const sx of [-1.02, 1.02]){
+    g.add(box(0.56, 0.52, 1.72, CAISSE, sx, 1.12, -1.9));
+    g.add(box(0.62, 0.07, 1.78, CAISSE2, sx, 1.41, -1.9));
   }
   g.add(cyl(0.22,0.22,1.9,8, CREME, 0,1.42,-0.62, 0,0,Math.PI/2));
   const gyro = gyrophare(g, 0.72, 2.52, 0.2);
@@ -3748,18 +3765,33 @@ function buildFourgon(){
   g.add(box(2.35,0.24,0.6, 0x8A9298, 0,0.72,3.3));
   const F = jeuDeFeux();
   for(const sx of [-0.9,0.9]) optique(g, F, false, sx, 1.02,  3.36, 0.34, 0.22);
-  for(const sx of [-0.9,0.9]) optique(g, F, true,  sx, 1.25, -3.99, 0.32, 0.20);
   for(const sx of [-1.24,1.24]){
     g.add(box(0.09,0.5,0.09, 0xF2E7D2, sx,2.25,2.9));
     g.add(box(0.3,0.42,0.09, SOMBRE, sx,2.57,2.9));
   }
   g.add(box(2.3,0.2,2.1, 0xB33A31, 0,2.92,2.2));
-  g.add(slab({w:2.4,h:2.5,d:4.6, tw:2.4,td:4.6, c:CAISSE, y:0.87, z:-1.6}));
-  g.add(box(2.5,0.22,4.7, ARETE, 0,3.44,-1.6));
-  for(let k=0;k<5;k++) g.add(box(2.44,2.4,0.08, 0xE2D9C4, 0,2.1,-0.1-k*0.95));
-  g.add(box(2.3,2.2,0.14, 0xDCD2BB, 0,2.05,-3.92));
-  for(let k=0;k<6;k++) g.add(box(2.1,0.1,0.1, ARETE, 0,1.1+k*0.34,-4.0));
-  g.add(box(1.9,0.16,0.5, 0x8A9298, 0,0.7,-4.05));
+  /* LA CAISSE, ARTICULÉE. Elle était soudée à la cabine : un fourgon roulait d'une
+     pièce, comme un jouet taillé dans un bloc. Elle vit maintenant dans son propre
+     groupe, articulé juste derrière la cabine, et prend le roulis et le tangage avec
+     un temps de retard — c'est ce décalage qui donne le poids d'un volume vide traîné
+     derrière une cabine. Le groupe est déclaré dans userData.caisse ; le pivot est à
+     son origine, d'où les cotes exprimées en repère local. */
+  const caisse = new THREE.Group();
+  caisse.position.set(0, 0, 0.9);                    // l'articulation, derrière la cabine
+  const CZ = -2.7;                                   // centre de la caisse, en local
+  const CW = 2.62, CD = 5.4;                         // un peu plus large, un peu plus longue
+  caisse.add(slab({w:CW, h:2.5, d:CD, tw:CW, td:CD, c:CAISSE, y:0.87, z:CZ}));
+  caisse.add(box(CW + 0.12, 0.22, CD + 0.1, ARETE, 0, 3.44, CZ));
+  for(let k=0;k<6;k++) caisse.add(box(CW + 0.06, 2.4, 0.08, 0xE2D9C4, 0, 2.1, CZ + CD/2 - 0.5 - k*0.95));
+  caisse.add(box(CW - 0.12, 2.2, 0.14, 0xDCD2BB, 0, 2.05, CZ - CD/2 - 0.02));
+  for(let k=0;k<6;k++) caisse.add(box(CW - 0.3, 0.1, 0.1, ARETE, 0, 1.1 + k*0.34, CZ - CD/2 - 0.1));
+  caisse.add(box(1.9, 0.16, 0.5, 0x8A9298, 0, 0.7, CZ - CD/2 - 0.15));
+  // le soufflet de liaison : deux plis sombres qui masquent le jeu de l'articulation
+  for(const dz of [0.02, 0.16])
+    caisse.add(box(CW - 0.18, 2.3, 0.1, 0x3A4046, 0, 1.0 + 1.15, -dz));
+  // Les feux arrière appartiennent à la caisse : ils doivent bouger avec elle.
+  for(const sx of [-0.9, 0.9]) optique(caisse, F, true, sx, 1.25, CZ - CD/2 - 0.06, 0.32, 0.20);
+  g.add(caisse);
   const gyro = gyrophare(g, 0.8, 3.05, 1.8);
   const wr = [], wf = [];
   for(const sx of [-1.06,1.06]){
@@ -3769,9 +3801,9 @@ function buildFourgon(){
   // Même correction d'échelle que le pick-up, un peu plus mesurée : un fourgon
   // de livraison arrive à la hauteur du toit d'un tracteur, pas au-dessus.
   g.scale.setScalar(1.40);
-  g.userData = {wr, wf, gyro, feux:F,
+  g.userData = {wr, wf, gyro, feux:F, caisse,
     lampes:{avant:  {x:[-0.9, 0.9],  y:1.02, z: 3.36, w:0.34, h:0.22},
-            arriere:{x:[-0.9, 0.9],  y:1.25, z:-3.99, w:0.32, h:0.20},
+            arriere:{x:[-0.9, 0.9],  y:1.25, z:-4.56, w:0.32, h:0.20},
             nez:3.5}};
   return g;
 }
@@ -4143,6 +4175,21 @@ class Vehicle {
       G.halo.material.opacity = k*0.62;
       G.halo.scale.setScalar(0.68 + 0.62*k);
     }
+    /* La caisse d'un fourgon n'est pas soudée à sa cabine. Elle est déjà dans `body`,
+       qui porte le roulis et le tangage ; on ne lui ajoute donc que le RETARD — la
+       différence entre ce que fait la cabine maintenant et ce que la caisse a eu le
+       temps de suivre. Un fourgon vide flotte derrière sa cabine, il ne pivote pas
+       d'une pièce avec elle. */
+    if(ud.caisse){
+      const kR = Math.min(1, dt*5.0), kP = Math.min(1, dt*4.0);
+      this.cRoll  = (this.cRoll  || 0) + (this.roll  - (this.cRoll  || 0))*kR;
+      this.cPitch = (this.cPitch || 0) + (this.pitch - (this.cPitch || 0))*kP;
+      ud.caisse.rotation.z = (this.roll  - this.cRoll )*1.7;
+      ud.caisse.rotation.x = (this.pitch - this.cPitch)*1.7;
+      // et un léger lacet au braquage : la caisse suit la cabine, elle ne la précède pas
+      this.cLacet = (this.cLacet || 0) + ((steerX || 0)*Math.min(1, Math.abs(vf)/6) - (this.cLacet || 0))*Math.min(1, dt*3.2);
+      ud.caisse.rotation.y = -this.cLacet*0.055;
+    }
     if(ud.reel) ud.reel.rotation.x -= Math.max(0.6, Math.abs(vf))*dt*1.6;
     if(ud.auger){
       const target = this.augerOut ? 1 : 0;
@@ -4395,6 +4442,16 @@ function refreshContrat(){
 }
 
 /* --- pilote automatique : la machine fait ses allers-retours toute seule --- */
+/* LE TRAVAIL EN ESCARGOT.
+   Le pilote traçait un serpentin dont les extrémités DÉBORDAIENT de 2,5 m hors de la
+   parcelle, pour que les bords soient travaillés. Sur une parcelle de bordure, ces
+   2,5 m tombaient droit dans la clôture de la ferme : l'engin s'y encastrait et le
+   plan ne finissait jamais.
+   On tourne donc autour de la parcelle en se resserrant : le premier tour longe le
+   bord, chaque tour suivant rentre d'une largeur d'outil, et RIEN ne sort du
+   rectangle. Un escargot a en prime deux vertus qu'un serpentin n'a pas — on commence
+   toujours parallèle à un bord, et on ne fait jamais deux fois le même demi-tour au
+   même endroit. */
 function planAuto(m, cible){
   const T = toolOf(m);
   if(!T || !T.from) return null;
@@ -4412,30 +4469,88 @@ function planAuto(m, cible){
     if(n > bestN){ bestN = n; best = p; }
   }
   if(!best) return null;
-  // Serpentin. Deux réglages qui comptent :
-  //  - les extrémités de passe DÉBORDENT de la parcelle, sinon les bords ne sont
-  //    jamais travaillés (l'outil ne peint que la partie clipée à la parcelle) ;
-  //  - le nombre de passes est calculé par excès puis réparti, pour que la dernière
-  //    passe tombe exactement sur le bord opposé au lieu de s'arrêter avant.
+  const v = m.v;
   const pas = T.width*0.88;
-  const x0 = best.x - best.w/2 - 2.5, x1 = best.x + best.w/2 + 2.5;
-  const za = best.z - best.h/2 + pas/2, zb = best.z + best.h/2 - pas/2;
-  const n = Math.max(1, Math.ceil((zb - za)/pas));
+  // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
+  // affleure la clôture sans que la machine s'en approche.
+  const marge = Math.min(pas/2 + 0.4, Math.min(best.w, best.h)/2 - 0.6);
+  let x0 = best.x - best.w/2 + marge, x1 = best.x + best.w/2 - marge;
+  let z0 = best.z - best.h/2 + marge, z1 = best.z + best.h/2 - marge;
+  // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
+  // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
+  const coins0 = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+  let depart = 0, dMin = Infinity;
+  coins0.forEach(([cx, cz], k)=>{
+    const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
+    if(d < dMin){ dMin = d; depart = k; }
+  });
   const pts = [];
-  let dir = 1;
-  for(let k=0; k<=n; k++){
-    const z = za + (zb - za)*k/n;
-    pts.push({x: dir > 0 ? x0 : x1, z});
-    pts.push({x: dir > 0 ? x1 : x0, z});
-    dir = -dir;
+  let garde = 0;
+  while(x1 - x0 > pas*0.4 && z1 - z0 > pas*0.4 && garde++ < 80){
+    const c = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+    for(let k = 0; k < 4; k++){
+      const q = c[(depart + k) % 4];
+      pts.push({x:q[0], z:q[1]});
+    }
+    pts.push({x:c[depart][0], z:c[depart][1]});     // on referme le tour
+    x0 += pas; x1 -= pas; z0 += pas; z1 -= pas;
   }
-  return {pts, i:0, replans:0};
+  // Le cœur : ce qui reste est plus étroit qu'une passe, une seule ligne suffit.
+  if(x1 - x0 > 0 || z1 - z0 > 0){
+    if(x1 - x0 >= z1 - z0) pts.push({x:x0, z:(z0+z1)/2}, {x:x1, z:(z0+z1)/2});
+    else                   pts.push({x:(x0+x1)/2, z:z0}, {x:(x0+x1)/2, z:z1});
+  }
+  return {pts, i:0, replans:0, p:best};
+}
+
+/* ALLER D'UN POINT À UN AUTRE SANS PIÉTINER LES CHAMPS.
+   Le pilote visait sa destination en ligne droite : il traversait tout ce qu'il y
+   avait entre les deux, semis compris. Les chemins de sable et les rocades forment
+   une grille ; on la rejoint par le plus court, on la suit, et on ne la quitte qu'au
+   dernier moment. Un champ ne se traverse que lorsqu'on y travaille. */
+const GRILLE_V = PATHS_V.concat([-ROAD_C, ROAD_E]).sort((a, b)=> a - b);
+const GRILLE_H = PATHS_H.concat([ROAD_N, ROAD_C]).sort((a, b)=> a - b);
+const voieProche = (v, liste)=>
+  liste.reduce((p, c)=> Math.abs(c - v) < Math.abs(p - v) ? c : p, liste[0]);
+function itineraire(ax, az, bx, bz){
+  // Déjà sur place, ou si près que passer par la grille serait un détour absurde.
+  if(Math.hypot(bx - ax, bz - az) < 18) return [{x:bx, z:bz}];
+  const vA = voieProche(ax, GRILLE_V), hA = voieProche(az, GRILLE_H);
+  const vB = voieProche(bx, GRILLE_V), hB = voieProche(bz, GRILLE_H);
+  const pts = [];
+  if(Math.abs(ax - vA) <= Math.abs(az - hA)){
+    pts.push({x:vA, z:az});          // on gagne la voie verticale la plus proche
+    pts.push({x:vA, z:hB});          // on la suit jusqu'à la voie horizontale d'arrivée
+    pts.push({x:bx, z:hB});          // puis celle-ci jusqu'à l'aplomb du but
+  } else {
+    pts.push({x:ax, z:hA});
+    pts.push({x:vB, z:hA});
+    pts.push({x:vB, z:bz});
+  }
+  pts.push({x:bx, z:bz});
+  // Deux points confondus font tourner l'engin sur place : on les élague.
+  return pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
+}
+// Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
+function suivreRoute(v, bx, bz, cle){
+  if(!v.route || v.routeBut !== cle){
+    v.route = itineraire(v.pos.x, v.pos.z, bx, bz); v.routeI = 0; v.routeBut = cle;
+  }
+  const wp = v.route[v.routeI];
+  if(!wp){ v.route = null; v.routeBut = null; return null; }
+  const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+  // Le dernier point demande de la précision, les intermédiaires non : on les valide
+  // au large, sinon l'engin fait des ronds autour d'un croisement pour le toucher.
+  const seuil = (v.routeI === v.route.length - 1) ? 3.0 : 5.5;
+  if(d < seuil){ v.routeI++; return [0, 0.5]; }
+  return viser(v, wp.x, wp.z, 2.4);
 }
 /* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
    celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
 function tacheSuivante(m){
   const v = m.v, M = v.mission;
   v.plan = null; v.sensVoulu = 'route'; M.etape = 0; M.attente = 0;
+  v.route = null; v.routeBut = null;
   M.i++;
   if(M.i < M.taches.length) return;
   if(M.boucle){ M.i = 0; return; }
@@ -4451,7 +4566,11 @@ function missionDrive(m, dt){
     if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
     if(v.goSilo){
       if(hopper <= 0.5) v.goSilo = false;
-      else { v.sensVoulu = 'vider'; return viser(v, SILO.x, SILO.z, 7); }
+      else {
+        v.sensVoulu = 'vider';
+        const r = suivreRoute(v, SILO.x, SILO.z, 'silo');
+        return r || [0, 0];
+      }
     }
     v.sensVoulu = 'route';
     if(!v.plan){
@@ -4460,6 +4579,13 @@ function missionDrive(m, dt){
     }
     const wp = v.plan.pts[v.plan.i];
     if(!wp){ tacheSuivante(m); return [0, 0]; }
+    // On rejoint le premier point du travail PAR LES CHEMINS. Sans ça, l'engin part en
+    // diagonale et laboure au passage toutes les parcelles qui le séparent du chantier.
+    if(!v.plan.entre){
+      const r = suivreRoute(v, wp.x, wp.z, 'p' + t.p);
+      if(r) return r;
+      v.plan.entre = true;
+    }
     if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 2.0){ v.plan.i++; return [0, 0.5]; }
     return viser(v, wp.x, wp.z, 2.0);
   }
@@ -4468,10 +4594,9 @@ function missionDrive(m, dt){
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
   const P = lieuPoint(M.etape === 0 ? t.a : t.b);
   if(!P){ tacheSuivante(m); return [0, 0]; }
-  if(Math.hypot(P.x - v.pos.x, P.z - v.pos.z) > 3.0){
-    v.sensVoulu = 'route'; M.attente = 0;
-    return viser(v, P.x, P.z, 2.4);
-  }
+  v.sensVoulu = 'route';
+  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape);
+  if(r){ M.attente = 0; return r; }
   v.sensVoulu = (M.etape === 0) ? 'remplir' : 'vider';
   M.attente = (M.attente || 0) + dt;
   const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu);
@@ -4491,7 +4616,7 @@ function autoDrive(m, dt){
   if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
   if(v.goSilo){
     if(hopper <= 0.5){ v.goSilo = false; }
-    else return viser(v, SILO.x, SILO.z, 7);
+    else return suivreRoute(v, SILO.x, SILO.z, 'silo') || [0, 0];
   }
   if(!v.plan){
     v.plan = planAuto(m);
@@ -4507,6 +4632,11 @@ function autoDrive(m, dt){
       return [0, 0.5];
     }
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
+  }
+  if(!v.plan.entre){
+    const r = suivreRoute(v, wp.x, wp.z, 'a' + PARCELS.indexOf(v.plan.p));
+    if(r) return r;
+    v.plan.entre = true;
   }
   if(Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < 2.0){ v.plan.i++; return [0, 0.5]; }
   return viser(v, wp.x, wp.z, 2.0);
@@ -5685,6 +5815,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
+  M.v.route = null; M.v.routeBut = null;
   showHint(M.nom.toUpperCase() + ' — PLAN ARRÊTÉ');
 }
 autoEl.addEventListener('pointerdown', ouvrirPlan);
