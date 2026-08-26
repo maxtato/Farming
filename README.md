@@ -436,6 +436,34 @@ Quelques partis pris qui expliquent le reste :
   la marchandise : il ne peut donc exister ni anneau jaune sans effet, ni effet sans
   anneau jaune.
 
+## Le décor est tiré au sort, mais toujours le même
+
+Arbres, buissons, rochers, touffes d'herbe, fleurs des ruchers, taches de terre : tout
+cela était semé avec `Math.random()`, donc redessiné autrement à chaque lancement. Un
+joueur qui reprenait sa partie ne reconnaissait pas sa vallée. Relevé sur la version
+d'avant : **294 objets fixes changeaient de place entre deux ouvertures**, dont les
+cent trente arbres, et le sol peint avec eux.
+
+Deux générateurs, et plus un seul `Math.random()` dans la construction du monde.
+
+`alea()` est un **flux global**, semé sur une graine fixe. La construction initiale se
+fait toujours dans le même ordre, donc il rend toujours la même suite, donc le monde est
+toujours le même. **Changer `GRAINE` change toute la vallée d'un coup** : c'est le
+bouton à tourner quand un décor ne plaît pas, et il n'y en a qu'un.
+
+`aleaLieu(x, z)` rend un flux **propre à un endroit**. Il sert à tout ce qui se construit
+en cours de partie — une parcelle achetée au bout d'une heure, un rucher posé après coup
+— car ceux-là ne peuvent pas dépendre de l'endroit où en est le flux global. Le même
+point rend toujours la même suite, quel que soit le moment : une parcelle achetée à la
+première minute ou à la trentième porte exactement les mêmes pieds.
+
+Ce qui est **passager** garde `Math.random()` : la fumée, la poussière, les oiseaux, les
+traces d'outil, l'allure d'une bête qu'on vient d'acheter. On ne veut surtout pas qu'une
+bouffée de fumée soit identique d'une partie à l'autre — et rien de cela n'est du décor.
+
+Rien de tout ceci n'est recalculé en cours de partie : le décor se construit une fois au
+chargement. Ce qui change, c'est qu'il se construit **à l'identique**.
+
 ## Ce qui tient la fluidité
 
 Trois plafonds, chacun posé après mesure, chacun tenu par un contrôle qui échoue si on
