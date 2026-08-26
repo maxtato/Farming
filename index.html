@@ -255,12 +255,17 @@
     text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
   /* La rangée de choix : même place et même costume que le bouton de service, dont
      le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
+  /* La colonne porte maintenant TOUTES les possibilités du lieu, empêchements compris :
+     elle peut compter huit lignes au silo. Elle se resserre d'un cran et défile plutôt
+     que de sortir par le haut de l'écran. */
   #choix{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;display:none;
-    flex-direction:column;align-items:center;gap:6px}
-  #choix .ch{padding:8px 18px;border-radius:12px;background:rgba(20,28,33,.82);
-    font-size:11px;font-weight:bold;letter-spacing:1.3px;border:2px solid #E8B44A;
-    color:#E8B44A;white-space:nowrap}
+    flex-direction:column;align-items:center;gap:5px;
+    max-height:calc(100% - 210px - env(safe-area-inset-bottom));overflow-y:auto;
+    padding:2px 0}
+  #choix .ch{padding:7px 15px;border-radius:11px;background:rgba(20,28,33,.86);
+    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid #E8B44A;
+    color:#E8B44A;white-space:nowrap;flex:none}
   #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   /* Le transfert en cours : plein, pour qu'on voie d'un coup d'œil ce qui tourne.
      Cliquer dessus l'arrête. Le retour, lui, s'efface : c'est une sortie, pas un choix. */
@@ -2679,11 +2684,22 @@ function buildMaison(x, z, ry, variante){
 function bulleTex(nom, toit, blocs){
   let lignes = 0;
   for(const B of blocs) lignes += 1 + B.lignes.length;      // titre + entrées
+  /* LA DÉFINITION DES BULLES. Elles étaient dessinées en DOUBLE définition « pour la
+     netteté » : 1280 px de large chacune, seize commerces, cinquante-neuf mégaoctets de
+     canevas — plus que le sol peint, et le plus gros poste de textures du jeu. Or une
+     bulle mesure environ deux cents pixels à l'écran : la texture était six fois trop
+     fine dans chaque axe, soit trente-six fois trop de pixels pour ce que la dalle peut
+     montrer. À définition simple elle reste trois fois plus fine que l'écran, et les
+     seize bulles passent de 59 à 15 Mio.
+
+     SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
+     restent écrits dans l'espace LW x LH, quelle que soit sa valeur. */
+  const SUR = 1;
   const LW = 640, LH = 150 + lignes*64;
   const cv = document.createElement('canvas');
-  cv.width = LW*2; cv.height = LH*2;                        // double définition
+  cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
-  c.scale(2, 2);
+  c.scale(SUR, SUR);
   const r = 40, w = 620, h = LH - 26, x = 10, y = 8;
   c.fillStyle = 'rgba(28,35,40,.80)';
   c.beginPath();
@@ -6628,7 +6644,26 @@ function updateCargo(dt){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const A = actionPour(m);
-    if(A) executer(m, A, dt);
+    if(A){
+      // Une quantité demandée au curseur : on mesure ce que le transfert a déplacé et
+      // l'on s'arrête pile dessus. Sans limite, rien ne change.
+      const avant = (choixLimite !== null && m === MACHINES[cur]) ? chargePortee(m) : 0;
+      /* Le dernier pas est raccourci pour tomber PILE sur la quantité demandée. Sans
+         cela, `executer` déplace un plein débit — jusqu'à quatorze kilos à soixante
+         images — et l'on chargeait 204 kg là où l'on en avait demandé 200. Le débit le
+         plus rapide de tous les cas sert de borne : aucun ne peut alors dépasser. */
+      const DEBIT_MAX = 420;
+      const dtA = (choixLimite !== null && m === MACHINES[cur])
+                  ? Math.min(dt, choixLimite/DEBIT_MAX) : dt;
+      executer(m, A, dtA);
+      if(choixLimite !== null && m === MACHINES[cur]){
+        choixLimite -= Math.abs(chargePortee(m) - avant);
+        if(choixLimite <= 0.01){
+          choixLimite = null; choixEnCours = null;
+          showHint('QUANTITÉ ATTEINTE');
+        }
+      }
+    }
     majColis(m, A, dt);
   }
 }
@@ -8037,6 +8072,66 @@ function actionsAuSite(m, S){
    les vingt-deux anneaux du sol ne la redemandent plus que huit fois par seconde, et
    les onze fonctions d'interface vingt. On est passé d'une trentaine d'appels par
    image à neuf, sans jamais rendre une réponse périmée. */
+/* CE QU'ON POURRAIT FAIRE ICI, ET QUI MANQUE POUR LE FAIRE.
+   Une action impossible était simplement absente de la liste : arrivé à l'enclos avec
+   un tracteur nu, on ne voyait pas « charger le lait », et rien ne disait qu'il fallait
+   une benne — on en concluait que le jeu ne le permettait pas. Ces empêchements
+   s'affichent donc en gris, avec leur raison. Ils ne se cliquent pas ; ils se lisent. */
+function empechementsIci(m){
+  const v = m.v, T = caisseDe(m), out = [];
+  if(v.speed > 2.5) return out;
+  const dit = (quoi, raison)=> out.push({txt: quoi + ' — ' + raison});
+  const pat = patureProche(v);
+  if(pat){
+    const P = pat.P, E = ESPECES[P.espece] || ESPECES.vache;
+    // le produit de l'élevage
+    if(E.produit && P.produit > 0.01){
+      const nom = 'CHARGER ' + nomHaut(E.produit);
+      if(!T) dit(nom, 'IL FAUT UNE BENNE OU UN UTILITAIRE');
+      else if(T.load >= T.capacite - 0.01) dit(nom, 'LA BENNE EST PLEINE');
+      else if(!peutCharger(T, E.produit))
+        dit(nom, 'VIDER LA BENNE D\'ABORD (' + nomHaut(T.type) + ')');
+    }
+    // l'auge
+    if(P.grain < P.grainMax){
+      if(!T) dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
+                 'IL FAUT APPORTER DE QUOI NOURRIR');
+      else if(T.load <= 0.01) dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
+                                  'LA BENNE EST VIDE');
+      else if(!RATION[T.type]) dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
+                                   nomHaut(T.type) + ' NE SE MANGE PAS');
+    }
+    // embarquer des bêtes
+    if(E.prixBete > 0){
+      const cap = capaciteBetail(m), prets = betesAdultes(P);
+      if(cap <= 0) dit('EMBARQUER UNE BÊTE', 'IL FAUT LE PICK-UP OU LE FOURGON');
+      else if(prets <= 0) dit('EMBARQUER UNE BÊTE',
+        P.betes.length ? 'AUCUNE N\'EST ENCORE ADULTE' : 'L\'ENCLOS EST VIDE');
+      else if((v.betail || 0) >= cap) dit('EMBARQUER UNE BÊTE', 'LE CHARGEMENT EST COMPLET');
+    }
+  }
+  // L'entrepôt ne prend pas les céréales — elles vont au silo. Sans un mot, on croit
+  // que le quai est fermé.
+  if(T && T.load > 0.01 && ENTREPOT.quai
+     && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r)
+     && siloStock[T.type] !== undefined)
+    dit('RANGER ' + nomHaut(T.type), 'LES CÉRÉALES SE RENTRENT AU SILO');
+  // au silo et à l'entrepôt : dire qu'il manque le contenant plutôt que rien
+  if(!T){
+    if(prochePoint(v, SILO.x, SILO.z, SILO.r) && siloTotal() > 0.5)
+      dit('CHARGER AU SILO', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
+    if(ENTREPOT.quai && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r)
+       && entrepotTotal() > 0.5)
+      dit('CHARGER À L\'ENTREPÔT', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
+    for(const S of SITES) if(aQuai(v, S) && !S.caisse){
+      let stock = 0;
+      for(const k in S.stock) stock += S.stock[k];
+      if(stock > 0.5) dit('CHARGER ICI', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
+      break;
+    }
+  }
+  return out;
+}
 function actionsIci(m){
   const v = m.v;
   if(v.speed > 2.5) return [];
@@ -8061,26 +8156,58 @@ const memeAction = (A, B)=> !!A && !!B && A.sens === B.sens && A.cle === B.cle
    et s'oublie dès qu'on repart ou qu'elle devient impossible — un choix qui survivrait
    au départ ferait vendre au commerce suivant ce qu'on venait d'y charger. */
 let choixEnCours = null;
+/* Combien il reste à transférer, ou null quand on va jusqu'au bout. Il est tenu ICI et
+   non sur l'action : la liste est refabriquée à chaque image, et actionRetenue() rend
+   l'exemplaire neuf — une limite posée sur l'objet retenu disparaîtrait à l'image
+   suivante. */
+let choixLimite = null;
+// Ce que porte l'engin, tous contenants confondus : c'est la variation de ce nombre
+// qui mesure ce qu'un transfert a réellement déplacé, quel que soit son sens.
+function chargePortee(m){
+  const T = caisseDe(m);
+  return (T ? T.load : 0) + hopper;
+}
+/* Le maximum transférable ici et maintenant, pour proposer un curseur qui ne ment pas.
+   Chaque cas reprend la borne que `executer` s'impose déjà, sans le débit. */
+function quantiteMax(m, A){
+  const T = caisseDe(m);
+  const place = T ? T.capacite - T.load : 0, porte = T ? T.load : 0;
+  switch(A.sens){
+    case 'tremie': return Math.min(hopper, siloMax() - siloTotal());
+    case 'tremieVente': case 'tremieLivraison': return hopper;
+    case 'ranger': return Math.min(porte, siloMax() - siloTotal());
+    case 'prendre': return Math.min(place, siloStock[A.cle] || 0);
+    case 'rangerEntrepot': return Math.min(porte, entrepotPlace());
+    case 'prendreEntrepot': return Math.min(place, entrepotStock(A.cle));
+    case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
+    case 'traire': return Math.min(place, A.P.produit);
+    case 'vendre': return Math.min(porte, placeChez(A.S, A.cle));
+    case 'verser': return porte;
+    case 'reprendre': return Math.min(place, A.S.stock[A.cle] || 0);
+    default: return porte;
+  }
+}
 /* DANS QUEL SENS. Toute action de transfert vide la benne ou la remplit — il n'y a
    pas de troisième cas. C'est ce qui permet de poser au joueur une question en deux
    temps : d'abord DÉCHARGER ou REMPLIR, ensuite quoi. */
 const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
                     verser:1, rangerEntrepot:1, auge:1};
 const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
-/* Le sens choisi au premier temps, ou null tant qu'on n'a pas répondu. */
-let choixMode = null;
+/* `modeDe` sert encore au pilote automatique, qui raisonne toujours en « je viens
+   vider » ou « je viens remplir ». La colonne, elle, ne pose plus la question : elle
+   montre tout. */
 /* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
    possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
    ait rien demandé. Désormais on répond toujours — mais une seule fois quand il n'y a
    qu'une possibilité dans le sens choisi. */
 function actionRetenue(m){
   const L = actionsIci(m);
-  if(!L.length){ choixEnCours = null; choixMode = null; return null; }
+  if(!L.length){ choixEnCours = null; choixLimite = null; return null; }
   // Une action commencée va jusqu'au bout : elle ne se laisse pas interrompre parce
   // qu'une autre devient possible en cours de route.
   const t = L.find((A)=> memeAction(A, choixEnCours));
   if(t) return t;
-  choixEnCours = null;                 // finie, ou devenue impossible : on redemande
+  choixEnCours = null; choixLimite = null;   // finie, ou devenue impossible : on redemande
   return null;
 }
 /* Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
@@ -8486,8 +8613,19 @@ function actionService(){
     const cap = capaciteBetail(m), prets = betesAdultes(P);
     if(E2.prixBete > 0 && cap > 0 && prets > 0 && (v.betail || 0) < cap){
       const n = Math.min(cap - (v.betail||0), prets);
+      // Au curseur : on vient parfois chercher UNE bête, pas tout l'enclos.
       out.push({txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
-                f:()=>{ chargerBetail(P, v, n); showHint('EN ROUTE POUR LA BOUCHERIE'); }});
+                f:()=>{
+                  if(n <= 1){ chargerBetail(P, v, 1); showHint('EN ROUTE POUR LA BOUCHERIE'); return; }
+                  ouvrirQuantite({
+                    max: n, titre: 'Embarquer ' + dNom(E2.pluriel.toLowerCase()),
+                    sortie: (q)=> q + ' ' + (q > 1 ? E2.pluriel.toLowerCase() : E2.un.toLowerCase().replace(/^une? /, '')),
+                    detail: (q)=> 'Sur ' + n + ' adulte' + (n>1?'s':'') + ' au pré · ' +
+                                  'place à bord pour ' + (cap - (v.betail||0)) +
+                                  '<br>La boucherie rendra de la viande à charger.',
+                    valider: (q)=>{ chargerBetail(P, v, q); showHint('EN ROUTE POUR LA BOUCHERIE'); }
+                  });
+                }});
     }
     return out;
   }
@@ -8543,54 +8681,50 @@ function refreshChoix(){
   const L = actionsIci(m);
   // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
   const serv = [].concat(actionService() || []);
-  if(!L.length && !serv.length){
+  // Les empêchements comptent comme du contenu : un lieu où l'on ne peut rien faire
+  // FAUTE D'ÉQUIPEMENT doit le dire, sinon il a l'air de ne rien proposer du tout.
+  const emp = empechementsIci(m);
+  if(!L.length && !serv.length && !emp.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
-    choixMode = null;
     return false;
   }
-  // Deux piles : ce qui vide la benne, ce qui la remplit. Le plus gros tas en tête.
+  /* TOUT CE QU'ON PEUT FAIRE ICI, D'UN SEUL COUP D'ŒIL.
+     La colonne demandait d'abord DÉCHARGER ou REMPLIR, puis quoi : deux appuis, et la
+     moitié des possibilités cachée derrière le premier. On les montre toutes, à plat,
+     dans l'ordre où l'on y pense — ce qu'on dépose, ce qu'on prend, puis les gestes qui
+     ne passent pas par la benne. Ce qui est EMPÊCHÉ figure en gris avec sa raison :
+     c'est ce qui manquait le plus, car une action absente se lit comme une action qui
+     n'existe pas. */
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
                 auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2, traire:2};
-  const parSens = {vider:[], remplir:[]};
-  for(const A of L) parSens[modeDe(A)].push(A);
-  for(const k in parSens)
-    parSens[k].sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt));
-  // Un sens qui n'a plus rien ne peut pas rester ouvert.
-  if(choixMode && !parSens[choixMode].length) choixMode = null;
-
-  /* Ce qu'on affiche, en trois états. En cours : le transfert seul, plein, cliquable
-     pour l'arrêter. Premier temps : DÉCHARGER et REMPLIR. Second temps : la liste du
-     sens choisi, et de quoi revenir. */
+  const tri = L.slice().sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt));
   const lignes = [];
   let titreTxt;
   if(retenue){
     titreTxt = 'En cours';
-    lignes.push({txt:'⏹  ' + retenue.txt, cls:'ch on', f:()=>{ choixEnCours = null; choixMode = null; }});
-  } else if(choixMode){
-    titreTxt = choixMode === 'vider' ? 'Décharger quoi ?' : 'Charger quoi ?';
-    // Six : de quoi lister les cinq céréales du silo ou les cinq produits de l'atelier
-    // sans jamais tronquer. Un choix qu'on ne voit pas est un choix qui n'existe pas.
-    for(const A of parSens[choixMode].slice(0, 6))
-      lignes.push({txt:A.txt, cls:'ch', f:()=>{ choixEnCours = A; choixMode = null; }});
-    lignes.push({txt:'← RETOUR', cls:'ch retour', f:()=>{ choixMode = null; }});
+    lignes.push({txt:'⏹  ' + retenue.txt + (choixLimite !== null ? '  ·  ' + enKg(choixLimite) : ''),
+                 cls:'ch on', f:()=>{ choixEnCours = null; choixLimite = null; }});
   } else {
     titreTxt = 'Que faire ici ?';
-    // Un seul choix dans ce sens : on ne fait pas cliquer deux fois pour rien.
-    const ouvrir = (mode)=>{
-      const P = parSens[mode];
-      if(P.length === 1) choixEnCours = P[0]; else choixMode = mode;
-    };
-    if(parSens.vider.length)
-      lignes.push({txt:'DÉCHARGER' + (parSens.vider.length > 1 ? '  ·  ' + parSens.vider.length : ''),
-                   cls:'ch', f:()=> ouvrir('vider')});
-    if(parSens.remplir.length)
-      lignes.push({txt:'REMPLIR' + (parSens.remplir.length > 1 ? '  ·  ' + parSens.remplir.length : ''),
-                   cls:'ch', f:()=> ouvrir('remplir')});
-    // Le bouton de service — améliorer l'atelier, ouvrir le comptoir, embarquer des
-    // bêtes — rejoint la colonne : deux piles de boutons au même endroit, ce serait
-    // deux fois la même question posée différemment.
+    for(const A of tri){
+      /* Un transfert passe par le curseur dès qu'il y a matière à doser. En dessous de
+         deux kilos il n'y a rien à régler : on lance. */
+      const max = quantiteMax(m, A);
+      lignes.push({txt:A.txt, cls:'ch', f:()=>{
+        if(max >= 2)
+          ouvrirQuantite({
+            max: max, titre: A.txt,
+            sortie: (q)=> enKg(q),
+            detail: (q)=> 'Sur ' + enKg(max) + ' possibles' +
+                          (A.S && A.sens === 'vendre' ? '<br>Soit ' + eur(q*prixChez(A.S, A.cle)) : ''),
+            valider: (q)=>{ choixEnCours = A; choixLimite = (q >= max - 0.5) ? null : q; }
+          });
+        else { choixEnCours = A; choixLimite = null; }
+      }});
+    }
     for(const S2 of serv) lignes.push({txt:S2.txt, cls:'ch' + (S2.ok ? '' : ' no'),
                                        f: S2.ok ? S2.f : null});
+    for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:null});
   }
   if(!lignes.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
@@ -9147,33 +9281,46 @@ function ongletStockage(){
    choisit maintenant : un quart, la moitié, tout, ou n'importe quoi entre les deux au
    doigt. Le chiffre du haut est ce qui SORTIRA, celui du bas ce que ça COÛTE en
    matière — les deux qu'on veut comparer avant de valider. */
+/* UN SEUL CURSEUR POUR TOUT CE QUI SE DOSE : une production à lancer, une benne à
+   remplir, des bêtes à embarquer. Il ne connaît rien de son sujet — l'appelant lui
+   donne un titre, un maximum, et deux fonctions qui écrivent ce que la quantité
+   choisie représente. */
 const doseEl = document.getElementById('dose');
 const doseCurseur = document.getElementById('dosecurseur');
-let dose = null;                       // {cle, max}
-function ouvrirDose(cle, max){
-  dose = {cle: cle, max: Math.max(1, Math.floor(max))};
-  doseCurseur.min = 1;
-  doseCurseur.max = dose.max;
-  doseCurseur.value = dose.max;
-  document.getElementById('dosetitre').textContent = 'Produire : ' + PRODUITS[cle].nom;
+let dose = null;   // {max, titre, sortie(q), detail(q), valider(q)}
+function ouvrirQuantite(o){
+  dose = o;
+  const max = Math.max(1, Math.floor(o.max));
+  doseCurseur.min = 1; doseCurseur.max = max; doseCurseur.value = max;
+  document.getElementById('dosetitre').textContent = o.titre;
   doseEl.style.display = 'block';
   rendreDose();
 }
 function fermerDose(){ doseEl.style.display = 'none'; dose = null; }
 function rendreDose(){
   if(!dose) return;
-  const P = PRODUITS[dose.cle], q = +doseCurseur.value;
-  const parts = q/P.rendement, ent = recetteEntrees(dose.cle);
-  document.getElementById('dosesortie').textContent = kg(q) + ' ' + dNom(P.nom.toLowerCase());
-  const pot = potentiel(dose.cle);
-  const cout = P.libre
-    ? kg(parts) + ' ' + dNom(PRODUITS[pot.court].nom.toLowerCase())
-    : Object.keys(ent).map((k)=> kg(parts*ent[k]) + ' ' + dNom(PRODUITS[k].nom.toLowerCase())).join(' + ');
-  document.getElementById('dosecout').innerHTML =
-    'Consomme ' + cout + '<br>Vaudra ' + eur(q*prixDe(dose.cle)) +
-    ' — la même matière vendue brute en vaudrait ' +
-    eur(P.libre ? parts*prixDe(pot.court)
-                : Object.keys(ent).reduce((t, k)=> t + parts*ent[k]*prixDe(k), 0));
+  const q = +doseCurseur.value;
+  document.getElementById('dosesortie').textContent = dose.sortie(q);
+  document.getElementById('dosecout').innerHTML = dose.detail(q);
+}
+// La production : ce qu'elle sortira, ce qu'elle consommera, ce que ça vaudra.
+function ouvrirDose(cle, max){
+  const P = PRODUITS[cle], ent = recetteEntrees(cle), pot = potentiel(cle);
+  ouvrirQuantite({
+    max: max, titre: 'Produire : ' + P.nom,
+    sortie: (q)=> kg(q) + ' ' + dNom(P.nom.toLowerCase()),
+    detail: (q)=>{
+      const parts = q/P.rendement;
+      const cout = P.libre
+        ? kg(parts) + ' ' + dNom(PRODUITS[pot.court].nom.toLowerCase())
+        : Object.keys(ent).map((k)=> kg(parts*ent[k]) + ' ' + dNom(PRODUITS[k].nom.toLowerCase())).join(' + ');
+      return 'Consomme ' + cout + '<br>Vaudra ' + eur(q*prixDe(cle)) +
+             ' — la même matière vendue brute en vaudrait ' +
+             eur(P.libre ? parts*prixDe(pot.court)
+                         : Object.keys(ent).reduce((t, k)=> t + parts*ent[k]*prixDe(k), 0));
+    },
+    valider: (q)=> lancerProduction(cle, q)
+  });
 }
 doseCurseur.addEventListener('input', rendreDose);
 for(const b of document.querySelectorAll('#dosebtns .db'))
@@ -9187,9 +9334,11 @@ document.getElementById('doseann').addEventListener('pointerdown', (e)=>{ e.stop
 document.getElementById('dosego').addEventListener('pointerdown', (e)=>{
   e.stopPropagation();
   if(!dose) return;
-  lancerProduction(dose.cle, +doseCurseur.value);
+  const f = dose.valider, q = +doseCurseur.value;
   fermerDose();
+  f(q);
   rafraichirEcran();
+  refreshChoix(); refreshService();
 });
 document.getElementById('dosefond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerDose(); });
 
