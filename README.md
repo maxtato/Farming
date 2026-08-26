@@ -207,6 +207,8 @@ sa flaque restait immobile sous l'engin, elle a été retirée.
                    |     laine  -> atelier textile
                    |     (elles vendent elles-mêmes : rien à revenir chercher)
                    |
+                   +-> nourrisseur -> ruches -> miel (le brut le mieux payé)
+                   |
                    \-> mangeoire -> vaches  -> lait
                                  |-> poules  -> œufs
                                  |-> moutons -> laine
@@ -241,6 +243,10 @@ Quelques partis pris qui expliquent le reste :
 - **Un bâtiment n'apporte pas son propre socle.** Le jeu pose une dalle sous chaque
   commerce ; un socle par-dessus ferait une seconde épaisseur, dans un autre gris. Les
   places, la terrasse, le plancher d'une halle sont peints SUR la dalle, à plat.
+- **Une espèce n'est qu'une ligne de table.** Prix, ration, produit, silhouette,
+  places : tout l'élevage se lit dans `ESPECES`, et le reste du code ne connaît aucun
+  nom d'animal. C'est ce qui a permis d'ajouter un rucher — une espèce qui ne marche
+  pas, ne se revend pas et n'a pas de portail — sans toucher à la mécanique.
 - **Le sol est une texture peinte**, pas une géométrie. Chaque passage d'outil peint
   le quadrilatère réellement balayé entre deux images, ce qui aligne l'effet au
   centimètre sur la largeur de l'outil et évite les trous dans les virages.

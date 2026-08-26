@@ -724,6 +724,10 @@ const PRODUITS = {
   lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:0.62},
   oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', brut:1.45},
   laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:2.10},
+  // Le miel se récolte en petites quantités et se vend cher : c'est le produit brut
+  // le mieux payé de la ferme, et un rucher tient sur une parcelle qu'on n'aurait pas
+  // labourée. Une ruche donne peu, mais elle donne toute la journée.
+  miel:   {nom:'Miel',      couleur:'#E8A62E', brut:3.20},
 
   /* --- une transformation --- */
   farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME'},
@@ -980,11 +984,11 @@ const NEGOCE = {
        est fabriqué et vendu par les usines elles-mêmes ; l'afficher ici, c'était
        promettre au joueur des lignes qu'il ne pourrait jamais honorer. */
   'Caviste':         {achete:['vin','raisin'], coef:1.15},
-  'Restaurant':      {achete:['oeufs','lait','farine','huile','vin','raisin','olives'],
+  'Restaurant':      {achete:['oeufs','lait','farine','huile','vin','raisin','olives','miel'],
                       coef:1.10},
   'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine',
-                              'huile','vin'], coef:0.94, etal:1400},
-  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','vin'],
+                              'huile','vin','miel'], coef:0.94, etal:1400},
+  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','vin','miel'],
                       coef:0.86}
 };
 for(const S of SITES){
@@ -4750,7 +4754,7 @@ const RATION = {ble:1, mais:1, orge:1, avoine:1, aliment:1.5, alimentPlus:2};
 // La farine n'y figure pas : `mill` compte ce que L'ATELIER a moulu, pas ce qu'on
 // revend ensuite. Sans quoi une benne de farine achetée au marché gonflerait le
 // compteur du moulin.
-const COMPTEUR = {lait:'lait', oeufs:'oeufs', laine:'laine', huile:'huile',
+const COMPTEUR = {lait:'lait', oeufs:'oeufs', laine:'laine', miel:'miel', huile:'huile',
                   huileOlive:'huile', pain:'pain', viennoiserie:'pain',
                   patisserie:'pain', patisseriePlus:'pain'};
 // On compte dès que la marchandise QUITTE LES MAINS DU JOUEUR : vendue, ou versée
@@ -4765,7 +4769,7 @@ function compter(cle, q, entreeSilo){
 }
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
-const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, betes:0,
+const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel:0, betes:0,
               oeufs:0, laine:0, huile:0};
 // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
 // n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
@@ -6081,6 +6085,33 @@ function teteVache(R){
   return w.geo();
 }
 /* Poule : corps ovoïde, crête et caroncules rouges, queue relevée */
+/* Ruche : socle sur pieds, corps, hausses empilées, planche d'envol. Le nombre de
+   hausses dit la vigueur de la colonie, et c'est la robe qui le porte — trois robes,
+   une à deux hausses, lisible d'un coup d'œil comme la robe d'une vache. */
+function corpsRuche(R){
+  const w = piecier();
+  const B = (lx, ly, lz)=> new THREE.BoxGeometry(lx, ly, lz);
+  w.put(B(0.62, 0.09, 0.54), R.corne, 0, 0.30, 0);               // support
+  for(const sx of [-0.23, 0.23]) w.put(B(0.09, 0.30, 0.09), R.corne, sx, 0.15, 0);
+  w.put(B(0.58, 0.30, 0.50), R.fond, 0, 0.49, 0);                // corps de ruche
+  const n = 1 + (R.hausses || 1);
+  for(let k = 0; k < n; k++)
+    w.put(B(0.56, 0.20, 0.48), k % 2 ? R.tache : R.fond, 0, 0.74 + k*0.21, 0);
+  w.put(B(0.40, 0.035, 0.11), R.corne, 0, 0.335, 0.30);          // planche d'envol
+  w.put(B(0.32, 0.04, 0.04), R.peau, 0, 0.36, 0.27);             // l'entrée, sombre
+  return w.geo();
+}
+// Le toit : c'est lui que le jeu appelle « tête ». Il ne bouge pas — une ruche a
+// plonge:0 — mais geoBete() exige les deux pièces, et séparer le toit du corps donne
+// au passage un chapeau qui déborde franchement, ce qui fait la silhouette.
+function teteRuche(R){
+  const w = piecier();
+  w.put(new THREE.BoxGeometry(0.70, 0.06, 0.62), R.corne, 0, 0, 0);     // couvre-cadres
+  for(const s2 of [-1, 1])                                             // les deux pans
+    w.put(new THREE.BoxGeometry(0.68, 0.05, 0.36), R.tache,
+          0, 0.09, s2*0.16, {rx: -s2*0.42});
+  return w.geo();
+}
 function corpsPoule(R){
   const w = piecier();
   w.put(gBille(0.28), R.fond, 0, 0.40, 0, {sy:1.05, sz:1.35});
@@ -6184,6 +6215,23 @@ const ESPECES = {
            {fond:0xE9A8A2, tache:0x4A4038, corne:0xD3908B, peau:0xD3908B},
            {fond:0xB9857C, tache:0x8A5F58, corne:0xD3908B, peau:0xD3908B}]
   },
+  /* LA RUCHE. Une espèce d'un genre nouveau : elle ne marche pas, elle ne se vend pas,
+     et ce qu'on lui apporte n'est pas du fourrage mais du sirop — que le jeu compte en
+     céréales, faute d'en fabriquer. Tout le reste est celui des autres élevages : on
+     achète l'enclos, on achète les colonies une à une, on vient chercher le produit.
+     `statique` dit qu'on ne l'anime pas et qu'on la range en rangs, `prixBete: 0` qu'il
+     n'y a pas de portail à ouvrir : on n'embarque pas une ruche pour l'abattoir. */
+  ruche: {
+    cle:'ruche', nom:'Ruche', pluriel:'Ruches', un:'une ruche', des:'ruches',
+    prix:260, prixBete:0, maturite:260, ration:0.009, m2:14, places:12, echelle:1.5,
+    produit:'miel', nomProduit:'Miel', parSec:0.017, cuveMax:420,
+    statique:true, rang:{n:6, pas:1.9, ecart:2.4}, decor:(P)=> decorRucher(P),
+    corps:corpsRuche, tete:teteRuche, cou:{y:1.11, z:0}, plonge:0,
+    patte:null, queue:null,
+    robes:[{fond:0xE8C24A, tache:0xC9A23E, corne:0x8A6A3A, peau:0x2E3438, hausses:1},
+           {fond:0xF2E7D2, tache:0xDCD2BC, corne:0x8A6A3A, peau:0x2E3438, hausses:2},
+           {fond:0x8FB4C4, tache:0x6E93A4, corne:0x8A6A3A, peau:0x2E3438, hausses:2}]
+  },
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
     prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
@@ -6196,7 +6244,7 @@ const ESPECES = {
            {fond:0x4A453D, tache:0x38342E, corne:0x2A2622, peau:0x2A2622}]
   }
 };
-const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton'];
+const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton', 'ruche'];
 // Le prix du produit d'une bête n'est plus écrit ici : il vient du barème commun,
 // comme celui d'une récolte. Une seule table de valeurs pour toute la ferme.
 for(const k of ESP_CLES){ const E = ESPECES[k];
@@ -6289,7 +6337,9 @@ function creerPature(p, espece){
     p, espece:E.cle, collecte, auge:mangeoire.groupe, tas:mangeoire.tas, gx, gz,
     quaiProduit: E.produit ? {x: tx + 3.6, z: tz} : null,
     quaiAuge:{x: ax - 3.6, z: az},
-    quaiPortail:{x: gx, z: gz - 3.6},
+    // Pas de portail pour un rucher : on n'embarque pas une ruche pour l'abattoir.
+    // Comme pour le poste de collecte du cochon, ce qui n'a pas de sens n'est pas posé.
+    quaiPortail: E.prixBete > 0 ? {x: gx, z: gz - 3.6} : null,
     produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
     betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
     box:{x0:x0+2.6, x1:x1-2.6, z0:z0+10.0, z1:z1-1.5}
@@ -6312,10 +6362,11 @@ function creerPature(p, espece){
   anneauAction(P.quaiAuge.x, P.quaiAuge.z, 2.1,
     ()=>{ const T = caisseDe(MACHINES[cur]);
           return !!T && !!RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax; });
-  anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
+  if(P.quaiPortail) anneauAction(P.quaiPortail.x, P.quaiPortail.z, 3.4, ()=>{
     const m = MACHINES[cur], cap = capaciteBetail(m);
     return cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
   });
+  if(E.decor) E.decor(P);
   PATURES.push(P);
   return P;
 }
@@ -6335,6 +6386,22 @@ function posteCollecte(E, x, z){
     for(let k=0;k<3;k++)                                         // plateaux d'œufs
       g.add(box(1.5, 0.28, 1.0, 0xF2E7D2, 0, 1.85 + k*0.3, -1.2 + k*1.2));
     g.add(box(0.5, 0.9, 0.5, 0x6E767C, 0, 0.45, 2.3));
+  } else if(E.cle === 'ruche'){                                  // la miellerie
+    const W = 3.2, D = 2.8, H = 2.3;
+    g.add(box(W + 0.5, 0.14, D + 0.5, 0xDCD2BC, 0, 0.07, 0));
+    g.add(box(W, H, D, 0xF2E7D2, 0, H/2 + 0.14, 0));
+    g.add(gable(D + 0.4, 0.9, W + 0.4, 0x9C4A32, 0, H + 0.14, 0, Math.PI/2));
+    g.add(box(1.1, 1.8, 0.14, 0x6B4E24, -0.6, 1.04, D/2 + 0.08));     // porte ouverte
+    g.add(box(1.1, 1.8, 0.1, 0x2E3438, 0.5, 1.04, D/2 + 0.02));
+    g.add(box(0.9, 0.8, 0.14, 0x44647A, 1.0, 1.6, D/2 + 0.08));       // fenêtre
+    g.add(cyl(0.38, 0.38, 1.0, 12, 0xB9C1C6, 0.5, 0.64, D/2 - 0.8));  // extracteur
+    g.add(cyl(0.40, 0.40, 0.1, 12, 0x8A9298, 0.5, 1.2, D/2 - 0.8));
+    for(let k = 0; k < 3; k++){                                       // seaux à miel
+      g.add(cyl(0.22, 0.19, 0.4, 10, 0xB9C1C6, -1.9 + k*0.5, 0.2, D/2 + 1.1));
+      g.add(cyl(0.23, 0.23, 0.05, 10, 0x8A9298, -1.9 + k*0.5, 0.42, D/2 + 1.1));
+    }
+    for(let k = 0; k < 4; k++)                                        // hausses en attente
+      g.add(box(0.8, 0.24, 0.7, k % 2 ? 0xE8C24A : 0xF2E7D2, 1.9, 0.13 + k*0.25, D/2 + 1.2));
   } else {
     g.add(box(2.1, 2.2, 3.0, 0x8A9298, 0, 1.1, 0));              // presse à balles
     g.add(box(2.3, 0.3, 3.2, 0x6E767C, 0, 2.3, 0));
@@ -6360,6 +6427,13 @@ function posteMangeoire(E, x, z){
     g.add(cyl(1.2, 1.2, 0.3, 12, 0x7E868C, 0, 0.15, -1.8));
     g.add(box(1.3, 0.3, 4.4, 0x8A6B42, 0, 0.15, 0.9));
     tas = box(0.9, 0.3, 4.0, 0xE0C07A, 0, 0.35, 0.9);
+  } else if(E.cle === 'ruche'){                                   // nourrisseur et enfumoir
+    g.add(box(1.2, 0.42, 4.6, 0x8A6B42, 0, 0.21, 0));
+    g.add(box(0.9, 0.26, 4.3, 0x6B5335, 0, 0.44, 0));
+    for(const sz of [-2.0, 2.0]) g.add(box(1.3, 0.7, 0.3, 0x6B5335, 0, 0.35, sz));
+    g.add(cyl(0.16, 0.2, 0.46, 8, 0x9AA2A7, 0.0, 0.23, 2.7));          // enfumoir
+    g.add(cyl(0.1, 0.16, 0.2, 8, 0x9AA2A7, 0.0, 0.56, 2.7));
+    tas = box(0.8, 0.36, 4.0, 0xE0C07A, 0, 0.56, 0);
   } else {
     g.add(box(1.5, 0.7, 6.0, 0x8A6B42, 0, 0.35, 0));
     g.add(box(1.1, 0.4, 5.6, 0x4E3A22, 0, 0.75, 0));
@@ -6393,6 +6467,18 @@ function abriEspece(E, x, z){
     g.add(gable(4.6, 1.2, 7.0, 0x8A9298, 0, 2.4, 0, Math.PI/2));
     g.add(box(6.4, 1.3, 0.2, 0xC9BDA2, 0, 0.65, 2.1));            // muret de façade
     for(const sx of [-2.9, 0, 2.9]) g.add(box(0.28, 2.4, 0.28, 0xB9A882, sx, 1.2, 2.1));
+  } else if(E.cle === 'ruche'){                    // haie brise-vent et abreuvoir
+    for(let k = 0; k < 9; k++){
+      const h = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 0),
+                               mat(k % 2 ? 0x3E6B4E : 0x4E8C4A));
+      h.position.set(-5.6 + k*1.4, 0.78, 0); h.scale.set(0.9, 1.25, 0.8);
+      h.castShadow = true; h.receiveShadow = true; g.add(h);
+    }
+    g.add(cyl(0.62, 0.62, 0.3, 12, 0xDCD2BC, 4.6, 0.15, 1.8));         // abreuvoir
+    g.add(cyl(0.5, 0.5, 0.26, 12, 0x5B7E86, 4.6, 0.2, 1.8));
+    for(let k = 0; k < 4; k++)                                          // flotteurs de liège
+      g.add(cyl(0.08, 0.08, 0.06, 6, 0xA98A5A,
+                4.6 + Math.cos(k*1.6)*0.28, 0.34, 1.8 + Math.sin(k*1.6)*0.28));
   } else {                                                         // stabulation ouverte
     g.add(box(7.0, 2.8, 4.6, 0xDDE3E6, 0, 1.4, 0));
     g.add(gable(5.0, 1.2, 7.6, 0x6E8AA0, 0, 2.8, 0, Math.PI/2));
@@ -6403,6 +6489,62 @@ function abriEspece(E, x, z){
   scene.add(g);
   boxObs.push({x, z, hw:3.6, hd:2.4});
   return g;
+}
+/* LES ABEILLES. Ce ne sont pas des bêtes au sens du jeu — elles ne mangent pas, ne
+   grandissent pas, ne se vendent pas — mais un rucher sans abeilles ne ressemble à
+   rien. Elles tournent autour des ruches et se balancent, et c'est tout ce qu'on leur
+   demande. Une géométrie fusionnée, partagée par toutes. */
+let GEO_ABEILLE = null;
+const ABEILLES = [];
+function geoAbeille(){
+  if(GEO_ABEILLE) return GEO_ABEILLE;
+  const w = piecier();
+  const B = (lx, ly, lz)=> new THREE.BoxGeometry(lx, ly, lz);
+  w.put(B(0.15, 0.11, 0.11), 0xE8A62E, 0, 0, 0);
+  w.put(B(0.05, 0.10, 0.10), 0x2E3438, 0.05, 0, 0);
+  w.put(B(0.08, 0.09, 0.09), 0x2E3438, -0.08, 0, 0);
+  for(const sz of [-0.07, 0.07]) w.put(B(0.10, 0.02, 0.09), 0xE8EEF2, 0, 0.05, sz);
+  GEO_ABEILLE = w.geo();
+  return GEO_ABEILLE;
+}
+function fleur(g, x, z, c){
+  g.add(cyl(0.03, 0.03, 0.34, 4, 0x4E8C4A, x, 0.17, z));
+  g.add(cyl(0.11, 0.09, 0.09, 5, c, x, 0.37, z));
+}
+// La bande mellifère et le nuage d'abeilles : c'est ce qui fait qu'un rucher se
+// reconnaît de loin, et ce qui justifie qu'il produise sans qu'on le voie travailler.
+function decorRucher(P){
+  const g = new THREE.Group();
+  const teintes = [0xE8A62E, 0xC0392B, 0xF2E7D2, 0x7A5F8E, 0xE8D24A];
+  const B = P.box, cx = (B.x0 + B.x1)/2;
+  const bz = B.z0 + 1.6, bd = Math.min(3.6, Math.max(1.6, (B.z1 - B.z0)*0.28));
+  g.add(box(B.x1 - B.x0 - 1.0, 0.06, bd, 0x6E8F4E, cx, 0.03, bz));
+  for(let k = 0; k < 70; k++)
+    fleur(g, cx + (Math.random() - 0.5)*(B.x1 - B.x0 - 1.6),
+             bz + (Math.random() - 0.5)*(bd - 0.4),
+             teintes[(Math.random()*teintes.length) | 0]);
+  scene.add(g);
+  const mat2 = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true,
+                                            shininess:0, specular:0x000000});
+  for(let k = 0; k < 14; k++){
+    const m = new THREE.Mesh(geoAbeille(), mat2);
+    scene.add(m);
+    ABEILLES.push({m, P, cx, cz:(B.z0 + B.z1)/2, r:1.2 + Math.random()*4.5,
+                   ang:Math.random()*6.28, v:0.8 + Math.random()*1.2,
+                   y0:1.0 + Math.random()*1.4, ph:Math.random()*6.28,
+                   amp:0.16 + Math.random()*0.3});
+  }
+  return g;
+}
+function animerAbeilles(dt, t){
+  for(const b of ABEILLES){
+    b.ang += b.v*dt;
+    b.m.position.set(b.cx + Math.cos(b.ang)*b.r,
+                     b.y0 + Math.sin(t*3.4 + b.ph)*b.amp,
+                     b.cz + Math.sin(b.ang)*b.r);
+    b.m.rotation.y = -b.ang;
+    b.m.rotation.z = Math.sin(t*9 + b.ph)*0.25;
+  }
 }
 function majTasAuge(P){
   const k = P.grain / P.grainMax;
@@ -6446,10 +6588,23 @@ function ajouterBete(P, age, robe){
   // La caméra est haute et lointaine : à l'échelle réelle une bête devient un point.
   // On la grossit, comme les engins le sont déjà par rapport au décor.
   g.scale.setScalar(E.echelle);
+  // Une espèce statique ne se promène pas : elle se range en rangs réguliers, comme
+  // un rucher se range. Le rang se remplit d'abord, puis on ouvre le suivant.
+  let px, pz, cp;
+  if(E.statique){
+    const R = E.rang || {n:6, pas:1.9, ecart:2.2};
+    const k = P.betes.length, rang = Math.floor(k/R.n), col = k % R.n;
+    const large = Math.min(R.n, P.places - rang*R.n);
+    px = (P.box.x0 + P.box.x1)/2 - (large - 1)*R.pas/2 + col*R.pas;
+    pz = P.box.z1 - 1.2 - rang*R.ecart;
+    cp = 0;                                   // toutes tournées du même côté
+  } else {
+    px = P.box.x0 + Math.random()*(P.box.x1-P.box.x0);
+    pz = P.box.z0 + Math.random()*(P.box.z1-P.box.z0);
+    cp = Math.random()*Math.PI*2;
+  }
   const V = {g, cou, corps, pattes, queue,
-             x: P.box.x0 + Math.random()*(P.box.x1-P.box.x0),
-             z: P.box.z0 + Math.random()*(P.box.z1-P.box.z0),
-             cap: Math.random()*Math.PI*2, robe:r,
+             x: px, z: pz, cap: cp, robe:r,
              age: age === undefined ? 0 : age,
              mode:'broute', t: 1 + Math.random()*4, tx:0, tz:0,
              tete0: 0, balance: Math.random()*6, pas: Math.random()*6};
@@ -6477,6 +6632,9 @@ function updateElevage(dt){
         nourries++;
         V.age = Math.min(1, V.age + dt/E.maturite);
       }
+      // Une ruche ne marche pas et ne broute pas : elle est posée, et elle y reste.
+      // Tout ce qui suit — trajets, cou qui plonge, pattes, queue — ne la concerne pas.
+      if(E.statique) continue;
       // déplacement : de longues pauses à brouter, de courts trajets entre deux touffes
       V.t -= dt;
       if(V.t <= 0){
@@ -6525,6 +6683,7 @@ function updateElevage(dt){
       P.produit = Math.min(P.produitMax, P.produit + nourries*E.parSec*dt);
     majTasAuge(P);
   }
+  if(ABEILLES.length) animerAbeilles(dt, performance.now()/1000);
 }
 // Le quai le plus proche, tous élevages confondus. Le rayon vaut celui de l'anneau
 // posé au sol : ce qu'on voit est exactement ce qui déclenche.
@@ -7463,10 +7622,14 @@ function ongletElevage(){
     const gain = E.produit
       ? dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() + ' / s, revendus ' + dec(E.prixProduit) + ' € le kg'
       : 'aucun produit continu : elle se vend à la boucherie, et cher';
+    // Une ruche ne se revend pas et ne part pas à l'abattoir : le libellé ne doit pas
+    // promettre une valeur de revente qui vaut zéro.
+    const suite = E.prixBete > 0
+      ? 'Adulte en ' + Math.round(E.maturite/60) + ' min · revendue ' + eur(E.prixBete)
+      : 'En pleine production après ' + Math.round(E.maturite/60) + ' min · ne se revend pas';
     article(E.robes[0].fond, E.pluriel,
-      eur(E.prix) + ' la bête · ' + gain + '<br>' +
-      'Adulte en ' + Math.round(E.maturite/60) + ' min · revendue ' + eur(E.prixBete) +
-      ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos',
+      eur(E.prix) + ' la ' + (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
+      suite + ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos',
       i === especeChoisie ? 'Choisie' : 'Choisir', i === especeChoisie ? 'ok' : '',
       ()=>{ especeChoisie = i; });
   });
@@ -7487,9 +7650,10 @@ function ongletElevage(){
     titre('Enclos ' + (i+1) + ' — ' + E.pluriel.toLowerCase() + ' · ' +
           Math.round(P.p.w) + ' × ' + Math.round(P.p.h) + ' m');
     const adultes = betesAdultes(P);
-    article(E.robes[0].fond, 'Troupeau',
-      P.betes.length + ' / ' + P.places + ' bêtes · ' + adultes + ' prête' + (adultes>1?'s':'') +
-      ' pour la boucherie<br>Mangeoire : ' + kg(P.grain) + ' / ' + kg(P.grainMax) +
+    article(E.robes[0].fond, E.statique ? 'Rucher' : 'Troupeau',
+      P.betes.length + ' / ' + P.places + (E.statique ? ' ruches · ' : ' bêtes · ') + adultes +
+      (E.statique ? ' en pleine production' : ' prête' + (adultes>1?'s':'') + ' pour la boucherie') +
+      '<br>' + (E.statique ? 'Nourrisseur : ' : 'Mangeoire : ') + kg(P.grain) + ' / ' + kg(P.grainMax) +
       (E.produit ? ' · ' + E.nomProduit + ' : ' + kg(P.produit) + ' / ' + kg(P.produitMax) : ''),
       'État', 'no', null);
     const plein = P.betes.length >= P.places;
@@ -7500,7 +7664,8 @@ function ongletElevage(){
           ' par seconde tant qu\'elle est nourrie'
         : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
       plein ? 'Enclos plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
-      ()=>{ if(acheterBete(P)) showHint('UNE BÊTE DE PLUS AU PRÉ'); });
+      ()=>{ if(acheterBete(P))
+              showHint(E.statique ? 'UNE COLONIE DE PLUS AU RUCHER' : 'UNE BÊTE DE PLUS AU PRÉ'); });
   });
   titre('Où mène chaque produit');
   const d = document.createElement('div'); d.className = 'art';
@@ -7509,8 +7674,12 @@ function ongletElevage(){
     'Il se vend aussi tel quel au marché, au supermarché et au restaurant.<br>' +
     'Œufs : ingrédient de la boulangerie, ou vente directe.<br>' +
     'Laine : l\'atelier textile la file et vend lui-même ses pièces.<br>' +
-    'Bêtes : la boucherie les abat et garde la viande en chambre froide — on revient ' +
-    'la charger, et c\'est le restaurant qui la paie le mieux.<br><br>' +
+    'Miel : rien ne le transforme, et c\'est le produit brut le mieux payé de la ' +
+    'ferme. Marché, supermarché, restaurant.<br>' +
+    'Bêtes : la boucherie les abat et paie la carcasse sur place.<br><br>' +
+    'Un rucher ne se conduit pas comme un troupeau : les ruches ne bougent pas, ne se ' +
+    'revendent pas, et il n\'y a pas de portail à ouvrir. On les nourrit, on vient ' +
+    'chercher le miel.<br><br>' +
     'Une caisse ne transporte qu\'une seule nature à la fois, et ne prend des bêtes ' +
     'que si elle est vide. L\'onglet Filières donne le détail de toute la chaîne.' +
     '</div></div>';
@@ -7536,7 +7705,7 @@ function ongletFilieres(){
     .join(' · ');
 
   titre('Ce qui sort de la terre et de la bête');
-  for(const cle of ['ble','mais','orge','avoine','colza','raisin','olives','lait','oeufs','laine']){
+  for(const cle of ['ble','mais','orge','avoine','colza','raisin','olives','lait','oeufs','laine','miel']){
     const P = PRODUITS[cle];
     const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
       && recetteEntrees(k)[cle] !== undefined).map((k)=> PRODUITS[k].nom);
