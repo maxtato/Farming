@@ -998,14 +998,19 @@ for(const S of SITES){
 disposerSites();
 
 /* Les treize modèles de commerce viennent d'une planche de présentation : chacun y
-   avait été dessiné sur son propre socle, avec son parvis, sa terrasse ou son quai
-   DEVANT la façade. Posés le long de la rocade, tous ces avant-corps tombaient sur la
-   chaussée — quatre mètres pour la plupart, treize pour le supermarché et son parking
-   de démonstration. Rien ne le disait : les cotes déclarées dans SITES ne décrivaient
-   que le bâtiment.
-   On mesure donc chaque modèle une fois pour toutes, on le recentre dans son emprise
-   et on donne au site ses cotes RÉELLES. La dalle, la clôture, le quai et l'anneau
-   suivent, puisqu'ils s'en déduisent. */
+   avait été dessiné sur son propre socle, avec son parvis, ses places de parking, sa
+   terrasse ou son quai DEVANT la façade. Posés le long de la rocade, tous ces
+   avant-corps tombaient sur la chaussée — quatre mètres pour la plupart, treize pour
+   le supermarché et son parking de démonstration. Rien ne le disait : les cotes
+   déclarées dans SITES ne décrivaient que le bâtiment.
+   Les socles ont donc été retirés des modèles : le jeu pose déjà une dalle sous chaque
+   commerce, et un socle par-dessus faisait une seconde épaisseur, dans un autre gris,
+   à deux centimètres au-dessus de la première. Ce qu'il faut vraiment marquer au sol —
+   les places, la terrasse de l'auberge, le plancher de la halle — est peint SUR la
+   dalle, à plat.
+   On mesure ensuite chaque modèle une fois pour toutes, on le recentre dans son
+   emprise et on donne au site ses cotes RÉELLES. La dalle, la clôture, le quai et
+   l'anneau suivent, puisqu'ils s'en déduisent. */
 const MARGE_DALLE = 1.0;                  // ce qui reste de dalle derrière et de côté
 const ECART_PARKING = 13;                 // le parking, à droite du bâtiment sur la bande
 const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle de sa chaussée
@@ -2330,11 +2335,12 @@ const CM = {
   VITRE:0x44647A, CUIVRE:0xB5783A, BRIQUE:0xA85440, CREME:0xF6EFE0
 };
 // ---- pièces communes ----
-function cmDalle(g, x, z, w, d, c, lignes){
-  g.add(box(w, 0.16, d, c || CM.BETON, x, 0.08, z));
-  g.add(box(w + 0.3, 0.1, d + 0.3, CM.BETON2, x, 0.03, z));
-  if(lignes) for(let k = -1; k <= 1; k++)
-    g.add(box(0.14, 0.04, d * 0.7, 0xF0F2F3, x + k * w * 0.28, 0.18, z));
+// Un sol de couleur — terrasse d'auberge, plancher de halle — n'est PAS une dalle
+// posée sur la dalle du jeu : ce serait une seconde épaisseur, dans un autre gris, à
+// deux centimètres au-dessus de la première. C'est une peinture. Le modèle note où et
+// de quelle teinte ; buildCommerce l'applique au sol quand il connaît sa place réelle.
+function cmSol(g, x, z, w, d, c){
+  (g.userData.sols || (g.userData.sols = [])).push({x, z, w, d, c});
 }
 function cmVitrine(g, x, y, z, w, h, cadre){
   g.add(box(w, h, 0.16, cadre || CM.CREME, x, y, z));
@@ -2389,7 +2395,6 @@ function cmPalette(g, x, z, n, c){
 function cmBoutique(g, W, D, H, mur, toit){
   g.add(slab({w:W, h:H, d:D, tw:W - 0.4, td:D - 0.3, c:mur, y:0}));
   g.add(gable(D + 0.5, 2.0, W + 0.5, toit, 0, H, 0, Math.PI/2));
-  cmDalle(g, 0, D/2 + 2.6, W + 1, 4.0, CM.BETON, false);
 }
 // corps industriel : halle bardée à toit plat
 function cmHalle(g, W, D, H, mur, toit){
@@ -2400,7 +2405,6 @@ function cmHalle(g, W, D, H, mur, toit){
   g.add(box(W * 0.3, H * 0.6, 0.26, CM.SOMBRE, -W * 0.22, H * 0.3, D/2 + 0.05));
   for(let k = 0; k < 3; k++)
     g.add(box(W * 0.26, 0.12, 0.1, 0x8A9298, -W * 0.22, H * 0.17 + k * 0.16, D/2 + 0.18));
-  cmDalle(g, 0, D/2 + 3.4, W + 1, 5.0, CM.BETON, true);
 }
 
 /* 1 — Coopérative agricole */
@@ -2530,7 +2534,6 @@ function batTextile(){
   g.add(box(W * 0.28, H * 0.6, 0.24, CM.SOMBRE, -W * 0.24, H * 0.3, D/2 + 0.05));
   cmVitrine(g, 2.4, 2.4, D/2 + 0.05, 3.0, 2.0, 0xE8DCC0);
   cmEnseigne(g, 2.4, 4.1, D/2 + 0.1, 4.0, 0x7A5F8E);
-  cmDalle(g, 0, D/2 + 3.0, W, 4.4, CM.BETON, false);
   for(let k = 0; k < 4; k++)                                         // balles de laine
     g.add(cyl(0.62, 0.62, 1.1, 12, CM.CREME, -3.6 + k*1.5, 0.62, D/2 + 3.0, 0, 0, Math.PI/2));
   return g;
@@ -2600,7 +2603,7 @@ function batRestaurant(){
   g.add(box(0.8, 2.2, 0.8, CM.PIERRE, -3.4, H + 1.1, -1.6));       // cheminée
   g.add(box(1.0, 0.24, 1.0, 0x8E8172, -3.4, H + 2.3, -1.6));
   // terrasse : dallage, tables rondes, parasols, jardinières et lampions
-  cmDalle(g, 0, D/2 + 4.2, W + 1.5, 6.0, 0xC9B99A, false);
+  cmSol(g, 0, D/2 + 4.2, W + 1.5, 6.0, 0xC9B99A);
   for(const px of [-3.0, 0.2, 3.4]){
     g.add(cyl(0.13, 0.13, 0.9, 8, 0x8A9298, px, 0.5, D/2 + 3.6));
     g.add(cyl(0.9, 0.9, 0.12, 14, CM.CREME, px, 0.96, D/2 + 3.6));
@@ -2643,7 +2646,7 @@ function batCaviste(){
 function batMarche(){
   const g = new THREE.Group();
   const W = 13, D = 9;
-  cmDalle(g, 0, 0, W + 1.5, D + 1.5, 0xC9B99A, false);
+  cmSol(g, 0, 0, W + 1.5, D + 1.5, 0xC9B99A);
   for(const px of [-W/2 + 0.8, W/2 - 0.8]) for(const pz of [-D/2 + 0.8, 0, D/2 - 0.8])
     g.add(cyl(0.22, 0.26, 4.2, 8, CM.BOIS2, px, 2.1, pz));
   g.add(gable(D + 1.2, 1.8, W + 1.2, CM.TUILE, 0, 4.2, 0, Math.PI/2));
@@ -2698,7 +2701,6 @@ function batFromagerie(){
                 -W/2 - 2.0 + k * 0.8, 0.68 + i * 0.62, D/2 + 2.2));
   }
   for(const px of [-4.6, 4.4, 5.3]) g.add(cyl(0.36, 0.32, 0.95, 12, 0xE8EDF0, px, 0.48, D/2 + 3.6));
-  cmDalle(g, 0, D/2 + 3.0, W + 4, 4.4, CM.BETON, false);
   return g;
 }
 
@@ -2861,6 +2863,19 @@ function buildCommerce(S){
     }
     c.fill();
   });
+  // Les sols de couleur des modèles — la terrasse de l'auberge, le plancher de la halle
+  // du marché — sont peints ICI, sur la dalle, une fois le bâtiment posé et orienté.
+  // Le modèle ne les connaît qu'en repère local ; un quart de tour échange largeur et
+  // profondeur, d'où le test sur `dir`, le même que pour l'emprise.
+  const sols = corps.userData.sols;
+  if(sols){
+    const p = new THREE.Vector3();
+    for(const So of sols){
+      p.set(So.x, 0, So.z); corps.localToWorld(p);
+      fillRect(p.x, p.z, lat ? So.d : So.w, lat ? So.w : So.d,
+               '#' + So.c.toString(16).padStart(6, '0'), AX);
+    }
+  }
   // Point de déchargement : l'anneau est posé SUR la dalle, en entrant dans le
   // parking, et non plus à cheval sur l'accotement. On franchit la porte de la
   // clôture, on s'arrête sur l'anneau : c'est le même geste que dans une vraie cour.
