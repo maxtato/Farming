@@ -50,7 +50,8 @@ qu'on transporte en ce moment** :
 Une fois à l'arrêt, **rien ne part tout seul** : le jeu demande. Et il montre **tout ce
 qui est possible ici d'un seul coup** — ce qu'on dépose, ce qu'on prend, les gestes qui
 ne passent pas par la benne, et jusqu'à ce qui est **empêché**, en gris, avec sa raison.
-Un appui sur une action ouvre le **curseur de quantité** dès qu'il y a matière à doser.
+Un appui sur une action ouvre le **curseur de quantité** quand il y a quelque chose à
+doser — et seulement alors : un dépôt part d'un seul appui, en entier.
 Le transfert en cours reste affiché, plein, avec ce qu'il lui reste à faire ; un clic
 dessus l'arrête.
 
@@ -119,7 +120,28 @@ au pressoir ou à l'étal, directement.
 Chacune a sa plante : l'épi barbu de l'orge, la tige haute du maïs et ses feuilles
 retombantes, les grappes de fleurs du colza, la panicule lâche de l'avoine, le rang
 palissé de la vigne, l'olivier noueux. Un rang de vigne sur deux, un olivier toutes les
-seize cellules — une plantation, pas un semis.
+vingt-cinq cellules — une plantation, pas un semis.
+
+**La vigne n'est plus plate.** Sa souche était écrite petite et c'est `haut` qui la
+montait — or ce coefficient ne multiplie QUE l'axe y. À 1,93 il étirait le pied de près du
+double en hauteur sans rien lui donner en épaisseur : les boules de 0,40 m du feuillage
+sortaient en ellipsoïdes de 0,63 m de large pour 1,44 de haut, et le fil devenait un ruban
+deux fois plus haut que large. Relevé sur un pied mûr : 0,86 m en x pour 3,22 en y, un
+rapport de 0,27 — vue de la caméra, la parcelle se lisait comme une suite de lames. Tout
+est réécrit EN MÈTRES, à la cote que la plante doit vraiment avoir, `haut` et `large`
+retombés à 1,00 : l'épaisseur passe de 0,86 à **1,26 m** pour un sommet inchangé à 3,21,
+et le rapport épaisseur sur longueur de rang de 0,56 à 0,85. Trois masses de feuillage au
+lieu de deux, décalées en x autant qu'en z. Huit triangles de plus par pied.
+
+**L'olivier était plus bas qu'un pied de maïs.** 3,45 m au plus gros tirage, contre 3,80
+pour le maïs et 3,54 pour l'orge, quand les arbres d'ornement de la même parcelle montent
+à dix mètres : une oliveraie se lisait comme un champ de buissons. Il passe à **4,59 m**,
+un tiers de plus, pour un houppier de 4,57 m. La maille suit l'arbre — une cellule sur
+vingt-cinq au lieu d'une sur seize, 6,50 m d'entraxe au lieu de 5,20 — sans quoi il ne
+resterait que huit centimètres entre deux voisins, c'est-à-dire le maquis que la maille
+était censée éviter. Le rendement ne bouge pas : il se compte à la cellule récoltée, pas à
+l'arbre. Et le tunnel de l'enjambeuse suit, 3,55 → **4,75 m**, avec sa tête de colonne
+raccourcie en même temps pour que l'engin ne grandisse que de 55 cm au lieu de 1,20 m.
 
 ### Les élevages
 
@@ -249,11 +271,27 @@ un engin en mission ne touche à rien : il traverse le silo sans s'y vider.
 ## La nuit
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
-l'émissif, une bille de lumière s'épanouit autour, et un **halo se pose à plat sur le
-sol** qu'elles éclairent — devant le nez pour les phares, au pied du mât pour les
-lampadaires. Le halo tourne avec la machine. Un engin garé reste éteint, comme il a le
-moteur coupé ; le gyrophare bat dès qu'on roule, et c'est la seule lampe sans halo :
-sa flaque restait immobile sous l'engin, elle a été retirée.
+l'émissif et une bille de lumière s'épanouit autour. Un engin garé reste éteint, comme il
+a le moteur coupé ; le gyrophare bat dès qu'on roule.
+
+**La lumière s'éteint sur ses bords.** La bille et le halo au sol étaient d'une couleur
+unie : ils se terminaient au couteau. Mesuré à la verticale d'un lampadaire, la flaque
+perdait 43,8 niveaux de luminance sur 255 en un pixel, et la bille 103,4 — c'est cette
+découpe qu'on voyait, pas de la lumière. Une seule texture de dégradé radial, 64 × 64 et
+16 Ko, partagée par les quatre-vingt-dix halos du jeu : la marche tombe à 7,2 et 27,8, le
+cœur ne bouge pas (75,1 avant comme après), et la bille devenue lutin coûte deux triangles
+au lieu de quatre-vingts. Le dégradé ne mord que sur le dernier tiers du rayon.
+
+**Deux cônes par engin, un par phare.** Il n'y avait qu'un rond posé devant le nez, sans
+lien visible avec les deux optiques. Chaque phare avant projette maintenant son faisceau,
+tronqué à la largeur du verre, incliné vers le sol et ouvert de 8,8° — et il s'y dissout
+au loin par une couleur de sommet qui tend vers le noir, ce qui en mélange additif revient
+à disparaître. La pente n'est pas écrite, elle se déduit de la hauteur du phare : 12° pour
+un tracteur qui porte ses feux à 1,75 m, 27° pour l'enjambeuse qui les porte à 6,90. Les
+cônes sont enfants de la CAISSE, pas du groupe : le faisceau prend le roulis et le
+tangage, et balaie le paysage quand la machine passe une bosse. Le halo au sol des engins
+a disparu avec eux — le cône entre dans le sol, et le sol opaque y découpe la flaque tout
+seul, à la bonne place et de la bonne forme. Les lampadaires gardent le leur.
 
 ## La boucle de jeu
 
@@ -472,12 +510,24 @@ pas. Le même enclos annonce désormais :
 L'entrepôt explique de même qu'il ne prend pas les céréales — elles se rentrent au silo —
 au lieu de rester muet.
 
-**Un curseur de quantité** s'ouvre sur toute action qui se dose. Il est borné par le plus
-contraignant des deux — la benne ou le tas — et la quantité choisie devient la limite du
-transfert, qui s'arrête pile dessus : le dernier pas est raccourci exprès, sans quoi l'on
-chargeait 204 kg là où l'on en avait demandé 200. Choisir le maximum ne pose aucune
-limite. Embarquer des bêtes passe par le même curseur : on vient parfois chercher **une**
-bête, pas tout l'enclos.
+**Un curseur de quantité, mais pas pour un dépôt.** Il s'ouvrait sur TOUT transfert de
+plus de deux kilos : rentrer une benne au silo demandait deux appuis — l'action, puis
+« valider » sur un curseur déjà poussé au maximum — pour un geste où il n'y a rien à
+choisir. On ne dépose pas les trois quarts d'une benne dans la grille du silo, on la vide.
+Le dosage ne survit que là où la quantité change ce qu'on emporte ou ce qu'on gagne : ce
+qu'on **récupère** d'un stock — silo, entrepôt, étal, traite — parce qu'une caisse entamée
+n'accepte plus d'autre nature ; ce qu'on **vend**, parce que l'étal a un plafond et qu'on
+garde le reste pour le mieux-disant ; et les **bêtes qu'on embarque**, parce qu'on vient
+parfois chercher une bête et pas tout l'enclos. Silo, entrepôt, auge et trémie d'usine
+partent d'un appui : personne n'y est payé au kilo versé, et rien n'y est plafonné qu'on
+puisse ménager — le curseur de la trémie d'usine mentait d'ailleurs, faute d'être borné
+par la place restante. On peut encore n'en déposer qu'une partie : le bouton ⏹ de la ligne
+« En cours » arrête le transfert où il en est.
+
+Quand il s'ouvre, il est borné par le plus contraignant des deux — la benne ou le tas — et
+la quantité choisie devient la limite du transfert, qui s'arrête pile dessus : le dernier
+pas est raccourci exprès, sans quoi l'on chargeait 204 kg là où l'on en avait demandé 200.
+Choisir le maximum ne pose aucune limite.
 
 ## Ce que l'écran donne à lire
 
@@ -518,19 +568,41 @@ bosquets. C'est le quartier industriel, et il ne contient que ça.
 
 Les bandes ouest et nord sont **la rue du village** : maisons et commerces y ALTERNENT,
 tous jointifs, sous une clôture commune. Relevé, bande par bande :
-`M B M B ~ B M B ~ B` à l'ouest, `B M B ~ M B M ~ B M` au nord, `U U ~ U U ~ U U` à
-l'est. Deux commerces n'y sont jamais collés l'un à l'autre : c'est une maison qui
-s'intercale.
+`M B B ~ B M B ~ B` à l'ouest, `B M B ~ M B M ~ B M` au nord, `U U ~ U U ~ U U` à l'est.
+Une seule jointure commerce-contre-commerce dans tout le village, à l'ouest : cette bande
+porte cinq dalles dont le supermarché, et depuis que le bâti est à l'échelle des engins
+elle ne tient plus que deux maisons. On la place entre la brasserie et le caviste, les
+deux plus petites — trente-neuf mètres de devanture d'un tenant — plutôt qu'entre le
+marché et le supermarché, qui en feraient cinquante-deux. Partout ailleurs c'est une
+maison qui s'intercale.
 
 Une **maison est au recul de la dalle voisine**, trois mètres, et pas un de plus — sans
 quoi on ne peut pas la coller à son voisin, et la rue a deux lignes de façades au lieu
 d'une. Son mur se retrouve en avant de celui du commerce, ce qui est juste : le commerce
 met dix mètres de parvis derrière sa clôture, la maison son jardin de devant.
 
-Un **objet de village ne se pose que dans un creux**, avec les arbres. Le pan mitoyen
-n'appartient qu'à un seul des deux voisins : entre deux commerces au premier, entre un
-commerce et une maison au commerce — sa clôture court sur toute la profondeur de sa
-dalle, là où le lot d'une maison n'en fait que quinze mètres.
+Un **objet de village ne se pose que dans un creux**, avec les arbres, et il se CHOISIT à
+la taille du creux : on prend le plus gros des dix modèles qui y tienne, un mètre de jeu
+compris, et l'on ne réserve que son encombrement déclaré. Il fallait sept mètres pour
+recevoir quoi que ce soit et l'objet réservait ensuite huit mètres quelle que soit sa
+taille — un banc de 4,65 m comme un lavoir de 5,60 : les creux ayant rétréci, deux sur
+quatre auraient perdu leur objet en silence. Chaque modèle est rayé de la liste une fois
+posé, si bien que quatre creux donnent quatre objets différents.
+
+**Une maison qui n'a personne à qui se coller garde sa propre barrière.** Le pan mitoyen
+n'appartient qu'à un seul des deux voisins : entre deux maisons à la première, entre une
+maison et un commerce au commerce — sa clôture court sur toute la profondeur de sa dalle,
+là où le lot d'une maison n'en fait que quinze mètres. Encore faut-il que le voisin ferme
+pour de bon : cinq commerces sont déclarés `cloture:'trottoir'` et ne posent qu'une
+bordure de vingt-six centimètres. La maison s'effaçait quand même, et celle qui est prise
+entre le marché et le supermarché n'avait AUCUN de ses deux flancs fermé.
+
+Et surtout, `panCloture()` **jetait en silence tout pan décrit à l'envers** : sa longueur
+partait négative et la fonction sortait sans poser un piquet, sans une erreur. Or les deux
+mitoyennes de toute maison de bande étaient décrites du fond vers la route, et sur les
+bandes ouest et nord on s'éloigne du bitume dans le sens décroissant. Pas une des sept
+maisons n'avait jamais eu de clôture latérale à elle. Relevé : **118,83 m de jardin sans
+barrière, ramenés à 0,00**.
 
 **Un village se fait par paquets, pas par un peigne.** Les quinze commerces étaient
 répartis sur leur bande en divisant le jeu restant en parts égales : 8,97 m entre chaque
@@ -541,8 +613,20 @@ creux planté d'arbres, de buissons et de rochers ; les commerces de bouche enca
 maisons ; et de loin en loin un creux plus court où un abri de bus ou un lavoir se pose
 sur l'herbe, à cinq mètres du bitume. Les largeurs ne sont pas écrites — ce sont les
 cotes mesurées des bâtiments et des lots — et le jeu restant se partage entre les creux
-seuls, au prorata. Relevé : **huit dalles jointives** à zéro centimètre, et des creux de
-7 à 25 m au lieu d'un pas régulier.
+seuls, au prorata. Relevé : **huit dalles jointives** à zéro centimètre.
+
+**Mais un creux a une largeur maximale.** Tout le mou de la bande allait aux creux et rien
+qu'aux creux : la bande nord, la moins chargée des trois, leur donnait 18,6 et 16,8 m —
+soit 22,6 et 20,8 m d'un bord de dalle au bord de dalle suivant une fois les deux jeux
+comptés. Ce n'est plus le creux d'un village, c'est un terrain vague entre deux hameaux.
+La bande ouest, elle, est pleine et n'en lâche que 8,4 : c'est ce chiffre-là qui fait une
+rue, et on le prend pour plafond (`CREUX_MAX = 8,5`). Ce que le plafond refuse ne va
+surtout pas dans les marges — dans nos trois plans chaque marge borde un creux, l'y verser
+rouvrirait exactement l'écart qu'on vient de fermer — mais RECULE LES DEUX BOUTS de la
+bande, où il se confond avec le recul qu'elle garde déjà sur la rocade perpendiculaire :
+un abord de carrefour dégagé se lit comme un abord de carrefour, là où le même vide entre
+deux boutiques se lit comme un bâtiment manquant. Relevé, une fois le bâti à l'échelle :
+le plus grand écart d'un bord de dalle au suivant tombe de **22,62 à 12,50 m**.
 
 Le pan mitoyen n'est posé qu'une fois : il appartient au premier des deux voisins le
 long de la bande, sinon deux murets se superposent au centimètre près. Et l'ordre du
@@ -572,6 +656,26 @@ des hauteurs de mur 1,02 : les trois se rejoignent à **1,30**. Une maison couvr
 86 % de l'aire au sol d'une boutique et monte 26 % plus haut, ce qui est exactement ce
 qu'on veut d'un toit pentu devant un commerce de plain-pied.
 
+**Et tout le bâti à l'échelle des engins.** 1,30 est un RAPPORT, pas une cote : le jeu
+s'était mis à avoir deux mètres au lieu d'un. Les engins ont été agrandis deux fois et à
+la main — le pick-up de 1,38, le fourgon de 1,40 — et le tracteur lui-même, mesuré contre
+le vrai, sort à 1,136 en longueur, 1,376 en largeur, 1,466 au toit et 1,594 au gyrophare :
+moyenne géométrique 1,383. Le monde roulant est bâti à 1,38 ; les bâtiments étaient restés
+à 1,00. Relevés de la même façon, ils demandaient 1,216 (commerces) et 1,138 (maisons),
+soit **`BAT_ECHELLE = 1,18`** pour les deux — ce qui laisse le rapport maison/commerce
+intact à 1,30. La preuve ne demande aucune référence extérieure : la grande porte de
+l'entrepôt de la ferme montait à 4,61 m sous linteau pour un tracteur de 5,18 m hors-tout,
+et la porte roulante du garage du village — là où l'on ACHÈTE les tracteurs — à 4,08 m. Ni
+la remise ni le magasin ne laissaient entrer leur propre machine. Elles passent à 5,44 et
+5,78 m. L'échelle est posée AVANT la mesure du modèle : la dalle, la clôture, le parvis,
+le quai, l'anneau et l'emprise de collision s'en déduisent tous et suivent d'un coup.
+
+Le prix est payé sur la **bande ouest**, la plus chargée des trois : elle demandait 177,4 m
+pour 172,3 disponibles, et rien ne l'aurait dit — `repartirBandes()` borne le reste à zéro,
+si bien que la dalle de la boucherie serait simplement allée finir deux mètres sur le
+bitume. Elle perd donc une maison sur trois. Un budget de bande négatif se partage
+désormais entre les DEUX bouts au lieu de crever par le bas.
+
 **Au bord de la route.** Elles étaient semées sur les trois bords extérieurs, à dix ou
 vingt mètres derrière les chaussées, et **trois d'entre elles tombaient dans la dalle
 d'un commerce** — quatre dalles en tout, l'une des trois chevauchant deux voisins :
@@ -585,9 +689,22 @@ brins de la rocade **courent d'un bord du monde à l'autre** — ils ne s'arrêt
 angles, c'est ce qui leur donne l'air d'une route de passage — et le bitume des brins
 ouest et est passe donc au droit du rang, pour tout `z`. Le rang doit leur laisser la
 même verge qu'à la chaussée de devant. On empile donc les lots tant qu'ils tiennent
-entre les deux chaussées latérales, verge comprise : dix, et la onzième (une longère de
-22,4 m) ne rentre plus. Relevé : 11,52 m de verge à l'ouest comme à l'est. Sans cette
-borne, les deux pignons tombaient à **34 cm** de l'asphalte.
+entre les deux chaussées latérales, verge comprise, une fois l'écart déduit : huit, et la
+neuvième (18,1 m) ne rentre plus. Relevé : 5,31 m de verge à l'ouest comme à l'est. Sans
+cette borne, les deux pignons tombaient à **34 cm** de l'asphalte.
+
+**Et un écart au milieu.** Huit maisons collées sur cent cinquante-sept mètres, cela se lit
+comme un mur depuis la chaussée, et le village n'a nulle part où poser un calvaire. Dix
+mètres s'ouvrent donc au milieu du rang — le nombre est relevé, pas choisi : il faut qu'un
+engin puisse passer À CÔTÉ de ce qu'on y met, et la collision ajoute 1,35 m de demi-machine
+au rayon de l'obstacle. La mitoyenne coupée est celle dont l'écart tombe le plus près du
+milieu, à l'exclusion de celle qui mettrait deux fois le même modèle en vis-à-vis. Le rang
+n'est alors plus d'un seul tenant : sa clôture ferme chaque tronçon par son propre pignon
+est, et son rectangle d'obstacle devient DEUX rectangles — un seul reboucherait l'écart
+pour les engins et en ferait un mur invisible de dix mètres. Relevé : 1,80 m de couloir
+franchissable, 432 sommets de clôture sur chacun des deux jambages. Dedans : un calvaire,
+un banc et un puits, trois des dix modèles de mobilier que le village ne montrait nulle
+part.
 
 **Mitoyennes, et clôturées en commun.** Chaque maison avait sa clôture, et deux voisines
 en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'était le

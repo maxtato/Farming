@@ -1406,6 +1406,30 @@ nouvelleCommande();
    avec un engin — un tracteur fait 2,55 m de large. */
 const MARGE_COTE = 3.0;                   // de dalle libre à gauche et à droite du bâti
 const MARGE_ARRIERE = 3.0;                // et derrière lui, entre le mur et la clôture
+/* L'ÉCHELLE DES BÂTIMENTS FACE AUX ENGINS. Le jeu s'était mis à avoir deux mètres au
+   lieu d'un. Les ENGINS ont été agrandis, deux fois et à la main : le pick-up de 1,38 et
+   le fourgon de 1,40, « à côté d'un tracteur de 4,6 m de haut ». Le tracteur lui-même,
+   mesuré contre le vrai — son capot fait 2,55 m, la largeur d'un vrai tracteur, celle
+   que la marge ci-dessus invoque déjà —, sort à 1,136 en longueur, 1,376 en largeur,
+   1,466 au toit de cabine et 1,594 au gyrophare : moyenne géométrique 1,383. Trois
+   relevés indépendants du même nombre : LE MONDE ROULANT EST BÂTI À 1,38. LES BÂTIMENTS,
+   EUX, SONT RESTÉS À 1,00 — personne ne les a suivis.
+   On les relève de la même façon, chaque cote du jeu divisée par sa cote réelle ramenée
+   à 1,383 :
+     porte de commerce   2,667 m pour 2,10 ......... 1,089
+     faîtage de boutique  6,42 m pour 6,60 ......... 1,421
+     façade de boutique  12,49 m pour 10,50 ........ 1,162   → 1,216
+     porte de maison     2,860 m pour 2,10 ......... 1,015
+     faîtage de maison    9,12 m pour 8,30 ......... 1,258
+     façade de maison    10,17 m pour 8,50 ......... 1,155   → 1,138
+   Les deux familles se rejoignent à 1,18. Un seul facteur pour les deux, et non un pour
+   chacune : l'écart entre elles ne vaut que 3 %, et le rapport maison/commerce de 1,30
+   dérivé plus bas reste intact.
+   LA PREUVE TIENT EN UNE COTE, ET ELLE NE DEMANDE AUCUNE RÉFÉRENCE EXTÉRIEURE : la
+   grande porte de l'entrepôt de la ferme monte à 4,61 m sous linteau, et le tracteur
+   qu'on y range fait 5,18 m hors-tout. Le hangar ne laissait pas entrer sa propre
+   machine. À 1,18 la porte passe à 5,44 et laisse vingt-six centimètres d'air. */
+const BAT_ECHELLE = 1.18;
 /* LE PARVIS. La cour devant la façade, sur toute la largeur de la dalle. C'est là
    qu'on se gare — les places y sont peintes — et c'est là qu'est posé le cercle jaune.
    Le parking latéral qui l'a précédé mettait l'anneau À CÔTÉ du commerce, treize
@@ -1474,6 +1498,14 @@ function ajusterSitesAuxModeles(){
   for(const S of SITES){
     if(S.w0 === undefined){ S.w0 = S.w; S.d0 = S.d; }
     const corps = S.modele ? S.modele() : corpsGenerique(S);
+    /* L'ÉCHELLE EST POSÉE AVANT LA MESURE, ET C'EST TOUT L'INTÉRÊT DE L'ENDROIT. Tout ce
+       qui entoure un commerce se déduit de S.bbW, S.bbD, S.w et S.d : la dalle, la
+       clôture, le parvis, le marquage des places, le quai, l'anneau et l'emprise de
+       collision. Mise ici, la mise à l'échelle les emmène tous d'un coup et il n'y a rien
+       à corriger derrière. Mise après, elle n'aurait agrandi que le volume et laissé la
+       dalle, la clôture et la collision à leurs anciennes cotes : les murs auraient
+       traversé leur propre clôture. */
+    corps.scale.setScalar(BAT_ECHELLE);
     corps.updateMatrixWorld(true);
     bb.setFromObject(corps);
     // Le parvis : le même pour les seize, sauf à le demander plus profond. Il doit
@@ -1484,6 +1516,11 @@ function ajusterSitesAuxModeles(){
     // besoin du bâtiment et de rien d'autre.
     S.bbW = bb.max.x - bb.min.x;
     S.bbD = bb.max.z - bb.min.z;
+    // La hauteur relevée, qui manquait. La bulle d'annonce était posée à une hauteur
+    // écrite en dur — 4,8 m pour une boutique, 6,8 pour une usine — sans rapport avec le
+    // toit du modèle : celle de l'usine à céréales flottait déjà quinze centimètres SOUS
+    // son propre faîtage. On la posera désormais au-dessus de ce qu'on a mesuré.
+    S.bbH = bb.max.y;
     S.w = S.bbW + 2*MARGE_COTE;
     S.d = S.bbD + MARGE_ARRIERE + S.parvis;
     S.corpsDx = -(bb.max.x + bb.min.x)/2;
@@ -1520,9 +1557,18 @@ const BANDES = {
      jointifs et sous une clôture commune, avec de loin en loin un creux où l'on met un
      objet de village et des arbres. C'est ce qui fait un village plutôt qu'une zone
      d'activité : on n'a pas d'un côté les gens et de l'autre les boutiques. */
-  // Trois maisons à l'ouest et non quatre : cette bande porte 95 m de dalles, et une
-  // quatrième mangeait les deux creux.
-  W: [{paquet:['maison', 'Brasserie', 'maison', 'Caviste']},
+  /* DEUX MAISONS À L'OUEST, ET NON PLUS TROIS. Cette bande est la plus chargée des
+     trois : cinq commerces, dont le supermarché. Le bâti ayant grandi de 18 %, elle
+     demandait 177,4 m pour 172,3 disponibles — elle débordait de cinq mètres, ses deux
+     creux tombaient à zéro et la dalle de la boucherie finissait DEUX MÈTRES SUR LE
+     BITUME de la rocade, sans que rien le signale (repartirBandes borne le reste à zéro).
+     C'est le même arbitrage que « trois maisons et non quatre », poussé d'un cran.
+     C'est la maison du PREMIER paquet qu'on retire, et pas celle du troisième : à
+     nombre égal, cela laisse la seule jointure commerce-contre-commerce de la bande
+     entre la brasserie et le caviste — trente-neuf mètres de devanture d'un tenant —
+     au lieu de la mettre entre le marché et le supermarché, qui en feraient cinquante-
+     deux. Les deux plus grosses dalles restent séparées par une maison. */
+  W: [{paquet:['maison', 'Brasserie', 'Caviste']},
       {creux:'village', poids:1},
       {paquet:['Marché', 'maison', 'Supermarché']},
       {creux:'village', poids:0.9},
@@ -1546,6 +1592,16 @@ const BANDES = {
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
 // de quoi ne pas se traverser.
 const BANDE_JEU = 2.0;
+/* CE QU'UN CREUX A LE DROIT DE PRENDRE. Tout le mou de la bande allait aux creux et rien
+   qu'aux creux, au prorata de leur poids. La bande nord est la moins chargée des trois :
+   elle leur donnait 18,6 et 16,8 m, soit 22,6 et 20,8 m d'un bord de dalle au bord de
+   dalle suivant une fois les deux jeux comptés. Ce n'est plus le creux d'un village,
+   c'est un terrain vague entre deux hameaux — et la bande est en donnait deux de 21,4 m.
+   La bande ouest, elle, est pleine et n'en lâche que 8,4 : c'est ce chiffre-là qui fait
+   une rue de village, et non celui d'en face. On le prend pour plafond, arrondi à 8,5 m.
+   Le plafond ne mord jamais sur une bande serrée : dès que les dalles s'élargissent, les
+   parts tombent d'elles-mêmes sous 8,5 m et la règle du prorata reprend la main. */
+const CREUX_MAX = 8.5;
 /* VERS OÙ REGARDE UNE MAISON. Une maison est bâtie face à son +z ; tournée de `ry`,
    elle regarde (sin ry, cos ry). Il lui faut faire face à la chaussée qu'elle borde :
    la bande ouest est à l'ouest de sa rocade et regarde donc vers l'est, la bande est
@@ -1582,12 +1638,33 @@ function repartirBandes(){
       }
     }
     const marges = Math.max(0, plan.length - 1)*BANDE_JEU;
-    const reste = Math.max(0, (d1 - d0) - fixe - marges);
-    let t = d0;
+    /* CE QUE LE PLAFOND REFUSE NE VA SURTOUT PAS DANS LES MARGES. Dans nos trois plans,
+       un paquet ne touche jamais un autre paquet : chacune des quatre marges borde un
+       creux. Élargir les marges rouvrirait donc exactement l'écart qu'on vient de fermer —
+       au nord, les douze mètres rendus aux marges auraient ramené l'écart vu de la route
+       à ce qu'il était avant, à trente centimètres près. Le refus RECULE LES DEUX BOUTS de
+       la bande à parts égales, où il se confond avec le recul que la bande garde déjà sur
+       la rocade perpendiculaire : un abord de carrefour dégagé se lit comme un abord de
+       carrefour, là où le même vide entre deux boutiques se lit comme un bâtiment
+       manquant. Un mètre repris à chaque bout est un mètre rendu à chaque creux : c'est le
+       seul réglage à toucher si la verge des carrefours paraît trop large. */
+    const brut = (d1 - d0) - fixe - marges;
+    const reste = Math.max(0, brut);
+    const largeurs = plan.map((b)=> b.creux
+      ? Math.min(reste*(b.poids || 1)/Math.max(1e-6, poids), CREUX_MAX) : 0);
+    const rendu = reste - largeurs.reduce((s, l)=> s + l, 0);
+    /* UNE BANDE QUI NE TIENT PAS DÉBORDE DES DEUX CÔTÉS, ET NON D'UN SEUL. `brut` passe
+       sous zéro dès que les dalles et les marges dépassent la longueur utile, et la bande
+       ouest n'en est qu'à quelques mètres près. Le Math.max() masquait ce dépassement au
+       lieu de le traiter — les creux tombaient à zéro, puis le dernier bâtiment continuait
+       tout seul et finissait par recouvrir la rocade. En partant de d0 + brut/2, le
+       trop-plein se partage entre les deux bouts, où les trois mètres de RECUL_ROCADE
+       l'absorbent : la bande se serre proprement au lieu de crever par le bas. */
+    let t = d0 + (brut < 0 ? brut : rendu)/2;
     plan.forEach((b, k)=>{
       if(k) t += BANDE_JEU;
       if(b.creux){
-        const l = reste*(b.poids || 1)/Math.max(1e-6, poids);
+        const l = largeurs[k];
         BANDE_CREUX.push({dir, quoi:b.creux, a:t, b:t + l});
         t += l;
         return;
@@ -1597,12 +1674,26 @@ function repartirBandes(){
         if(e === 'maison'){
           const L = b.lots[iLot++];
           /* CE QUE LA MAISON NE POSE PAS. Un pan mitoyen appartient à un seul des deux
-             voisins. Le commerce pose toujours les siens — sa clôture court sur toute
-             la profondeur de sa dalle — donc la maison s'efface devant lui des deux
-             côtés ; entre deux maisons, c'est la première qui pose. */
+             voisins : entre deux maisons c'est la première qui pose, et devant un
+             commerce c'est le commerce, dont la clôture court sur toute la profondeur de
+             sa dalle là où le lot d'une maison n'en fait que quinze mètres — lui laisser
+             le pan ouvrirait un trou derrière.
+             MAIS TOUS LES COMMERCES NE CLÔTURENT PAS. Cinq d'entre eux — le Caviste, le
+             Marché, le Supermarché, la Boulangerie et le Restaurant — sont déclarés
+             `cloture:'trottoir'`, et un trottoir n'est pas une barrière : clotureSite()
+             n'y pose qu'une bordure de vingt-six centimètres, faite exprès pour rester
+             basse et qu'on voie la boutique derrière. La maison s'effaçait quand même et
+             son jardin donnait de plain-pied sur le parking du voisin ; celle qui est
+             prise entre le Marché et le Supermarché n'avait AUCUN de ses deux flancs
+             fermé. On ne s'efface donc que devant un voisin qui ferme pour de bon. Un nom
+             inconnu de `parNom` compte comme ne fermant pas : en cas de doute la maison
+             pose sa barrière, c'est le mauvais côté le moins cher. */
+          const ferme = (v)=> v === 'maison' ||
+                              (parNom[v] && (parNom[v].cloture || 'muret') !== 'trottoir');
           BANDE_MAISONS.push({dir, lot:L, a:t, b:t + L.jw,
-                              sansAvant: i > 0,
-                              sansApres: i < b.paquet.length - 1 && b.paquet[i+1] !== 'maison'});
+                              sansAvant: i > 0 && ferme(b.paquet[i-1]),
+                              sansApres: i < b.paquet.length - 1 &&
+                                         b.paquet[i+1] !== 'maison' && ferme(b.paquet[i+1])});
           t += L.jw;
           siteAvant = false;
           return;
@@ -2093,10 +2184,27 @@ function geoAvoine(){
   }
   return mergeParts(P);
 }
-/* Une souche de vigne, avec son piquet et son bout de fil. Les cellules d'un même rang
-   se suivent à 1,3 m et leurs fils se rejoignent : c'est ce qui reconstitue le
-   palissage sans avoir à modéliser un rang entier. D'où l'alignement strict — une
-   vigne plantée de travers ne fait plus de rang. */
+/* Une souche de vigne palissée, avec son piquet, son fil et ses grappes. Les cellules
+   d'un même rang se suivent à 1,3 m et leurs fils se rejoignent : c'est ce qui
+   reconstitue le palissage sans avoir à modéliser un rang entier. D'où l'alignement
+   strict — une vigne plantée de travers ne fait plus de rang.
+
+   POURQUOI ELLE ÉTAIT PLATE. La souche était écrite petite et c'est `haut` qui la
+   montait — or `haut` ne multiplie QUE l'axe y (voir setInstance). À 1,93, il étirait le
+   pied de près du double en hauteur sans rien lui donner en épaisseur : les deux boules
+   de 0,40 m du feuillage sortaient en ellipsoïdes de 0,63 m de large pour 1,44 m de
+   haut, les grappes en fuseaux de 0,94 m, et le fil lui-même devenait un ruban deux fois
+   plus haut que large. Relevé sur un pied mûr, hors-tout dans le monde : 0,86 m en x,
+   3,22 m en y, 1,52 m en z — un rapport épaisseur sur hauteur de 0,27, et de 0,56
+   seulement entre l'épaisseur perpendiculaire au rang et la longueur du fil. La caméra
+   plongeant à 49°, la parcelle se lisait comme une suite de lames.
+
+   Tout est donc réécrit EN MÈTRES, à la cote que la plante doit vraiment avoir, pour que
+   `haut` et `large` retombent à 1,00 et n'étirent plus rien. Deux cotes ne bougent pas
+   d'un centimètre : le sommet reste à 3,21 m — c'est ce qui garde la vigne sous le
+   tunnel de l'enjambeuse — et le fil garde son recouvrement. L'épaisseur, elle, passe de
+   0,86 à 1,26 m : il reste 0,18 m de jeu de chaque côté avec les batteurs de la machine,
+   qui pendent à 0,81 m de l'axe du rang. Huit triangles de plus par pied. */
 function geoVigne(){
   const P = [];
   const put = (g, c, x, y, z, o)=>{
@@ -2106,22 +2214,37 @@ function geoVigne(){
       new THREE.Quaternion().setFromEuler(new THREE.Euler(0, o.ry || 0, o.rz || 0)),
       new THREE.Vector3(o.sx || 1, o.sy || 1, o.sz || 1))});
   };
-  // Écrite à la taille réelle, puisque l'échelle vaut 1. Le fil fait 1,32 m pour une
-  // cellule de 1,30 : deux voisins se recouvrent toujours de deux centimètres, et le
-  // rang se reconstitue par construction plutôt que par chance.
-  put(new THREE.BoxGeometry(0.10, 1.45, 0.10), 0x6B4E24, 0, 0.72, 0);       // piquet
-  put(new THREE.BoxGeometry(0.04, 0.04, 1.32), 0x9AA2A7, 0, 1.00, 0);       // fil
-  put(new THREE.CylinderGeometry(0.08, 0.13, 0.52, 6), 0x6B4E24, 0.03, 0.26, 0);   // cep
-  for(let i = 0; i < 2; i++)                                                // feuillage
-    put(new THREE.IcosahedronGeometry(0.40, 0), 0x5E8C46,
-        (i-0.5)*0.20, 0.92 + i*0.20, (i-0.5)*0.48, {sx:0.8, sy:0.95, sz:1.15});
-  for(const dz of [-0.26, 0.30])                                            // grappes
-    put(new THREE.IcosahedronGeometry(0.16, 0), 0x7A4A82, 0.11, 0.58, dz, {sy:1.25});
+  // Le piquet monte à 3,21 m : la cote exacte que le pied atteignait avec l'ancien
+  // étirement. Sa tête dépasse de quatre centimètres au-dessus du feuillage, ce qui donne
+  // au rang sa ponctuation vue de la caméra.
+  put(new THREE.BoxGeometry(0.11, 3.21, 0.11), 0x6B4E24, 0, 1.605, 0);      // piquet
+  // Le fil fait 1,40 m pour une cellule de 1,30 : dix centimètres de recouvrement à
+  // chaque jonction, donc le rang se reconstitue par construction plutôt que par chance.
+  // Il est enfin de section carrée — l'étirement en faisait un feuillard.
+  put(new THREE.BoxGeometry(0.05, 0.05, 1.40), 0x9AA2A7, 0, 2.22, 0);       // fil
+  // Le cep monte jusque DANS le feuillage, qui cache son sommet : on peut donc lui
+  // retirer ses deux fonds et rendre douze triangles à la souche.
+  put(new THREE.CylinderGeometry(0.10, 0.16, 1.34, 6, 1, true), 0x6B4E24, 0.03, 0.67, 0);  // cep
+  /* Trois masses au lieu de deux, décalées en x AUTANT qu'en z. C'est le décalage en x
+     qui fait la haie : la masse basse porte l'épaisseur, les deux hautes se croisent en
+     diagonale de part et d'autre du fil, si bien que la silhouette reste pleine aussi
+     bien dans l'axe du rang que vue du dessus. */
+  for(const [dx, dy, dz, r, sx, sy, sz] of                                  // feuillage
+      [[ 0.000, 1.78,  0.000, 0.62, 1.19, 0.99, 1.33],
+       [-0.075, 2.64, -0.235, 0.56, 1.15, 1.12, 1.05],
+       [ 0.085, 2.58,  0.245, 0.56, 1.15, 1.10, 1.05]])
+    put(new THREE.IcosahedronGeometry(r, 0), 0x5E8C46, dx, dy, dz, {sx, sy, sz});
+  // Les grappes pendent sous le bord du feuillage, une de chaque côté du rang : il en
+  // reste une de visible quel que soit le côté d'où l'on regarde.
+  for(const [dx, dy, dz] of [[-0.28, 1.20, -0.40], [0.30, 1.16, 0.38]])     // grappes
+    put(new THREE.IcosahedronGeometry(0.16, 0), 0x7A4A82, dx, dy, dz, {sy:1.55});
   return mergeParts(P);
 }
 /* Un olivier. Tronc noueux en trois fûts décalés, couronne en boules, olives semées
-   dedans. Il occupe cinq mètres de large : une cellule sur seize en porte un, sinon
-   la parcelle deviendrait un maquis impénétrable. */
+   dedans. La géométrie n'a pas bougé : ce sont `haut` et `large` de la culture qui la
+   dimensionnent, et l'arbre est passé à 4,59 m de haut pour 4,57 m de houppier sans
+   qu'on touche un seul sommet. Il occupe donc six mètres et demi de large : une cellule
+   sur VINGT-CINQ en porte un, sinon la parcelle deviendrait un maquis. */
 function geoOlivier(){
   const P = [];
   const put = (g, c, x, y, z, o)=>{
@@ -2215,25 +2338,41 @@ const CROPS = [
    temps:200, kg:11, haut:0.79, cout:2200, verrou:true},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
-  // ne poussent pas non plus à chaque cellule — un olivier tous les cinq mètres, un
-  // pied de vigne tous les 1,3 m mais un rang sur deux — d'où le masque, calculé sur
-  // la cellule pour que la plantation soit régulière et non semée au hasard.
+  // ne poussent pas non plus à chaque cellule — un olivier tous les 6,50 m, un pied de
+  // vigne tous les 1,3 m mais un rang sur deux — d'où le masque, calculé sur la cellule
+  // pour que la plantation soit régulière et non semée au hasard.
   {nom:'Raisin', cle:'raisin', lo:new THREE.Color(0xBCCDA8), hi:new THREE.Color(0xC9B4C4),
    // 2,80 m à maturité : la hauteur du tunnel de l'enjambeuse, à trente centimètres
    // près. Une vigne palissée d'1,74 m passait sous la machine sans la toucher — on ne
    // voyait pas ce qu'on récoltait.
-   // Grandie de 15 % : 3,22 m au fil, pour un tunnel d'enjambeuse porté à 3,55.
-   temps:340, kg:9, haut:1.93, large:1.15, cout:9000, verrou:true, perenne:true,
+   // Grandie de 15 % : 3,22 m au sommet, pour un tunnel d'enjambeuse alors porté à 3,55.
+   // La souche porte maintenant ces 3,21 m dans sa propre géométrie, en mètres : `haut`
+   // n'étirait que l'axe y et c'est lui qui aplatissait le pied. Les deux coefficients
+   // retombent donc à 1,00 et la vigne garde exactement la taille qu'elle avait.
+   // Le tunnel, lui, est depuis monté à 4,75 pour l'olivier, qu'il partage avec la
+   // vigne : celle-ci passe donc 1,54 m sous la poutre au lieu de 0,34. Ce n'est pas la
+   // régression d'avant, où la machine survolait un fil qu'elle ne touchait pas — les
+   // peignes batteurs, eux, restent accrochés aux jambes dès 0,75 m et brassent toujours
+   // le feuillage sur toute sa hauteur.
+   temps:340, kg:9, haut:1.00, large:1.00, cout:9000, verrou:true, perenne:true,
    rang:true, masque:(i)=> i % 2 === 0},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
    // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
    // coefficient est calé pour que le plus grand des arbres — tirage 1,95 — reste sous
-   // les 3,10 m du tunnel. De 2,23 à 3,00 m, contre 4,40 m avant, où la machine
-   // passait dans le feuillage.
-   // Grandi de 15 % lui aussi : de 2,58 à 3,45 m, le plus gros tirage passant sous les
-   // 3,55 m du tunnel élargi.
-   temps:400, kg:8, haut:0.80, large:1.15, cout:11000, verrou:true, perenne:true,
-   masque:(i, j)=> i % 4 === 0 && j % 4 === 0}
+   // le tunnel de l'enjambeuse.
+   // IL ÉTAIT TROP PETIT, et c'est une question d'échelle, pas de goût : à 3,45 m le plus
+   // gros olivier était plus BAS qu'un pied de maïs (3,80 m) et à peine plus haut qu'une
+   // orge (3,54 m), alors que les arbres d'ornement de la même parcelle montent à 10 m.
+   // Une oliveraie ressemblait à un champ de buissons.
+   // On le porte à 4,59 m au plus gros tirage et 3,42 m au plus petit — un tiers de plus —
+   // pour un houppier de 4,57 m de diamètre. Le tunnel de l'enjambeuse suit : 4,75 m.
+   // LA MAILLE SUIT L'ARBRE. Un houppier de 4,57 m sur l'ancienne maille de 5,20 m ne
+   // laissait plus que huit centimètres entre deux voisins — zéro là où le semis tire ses
+   // ±27 cm — c'est-à-dire le maquis que la maille était censée éviter. Une cellule sur
+   // vingt-cinq, soit 6,50 m d'entraxe, rend 1,38 m de jour entre les branches. Le
+   // rendement ne bouge pas : il se compte à la CELLULE récoltée, pas à l'arbre.
+   temps:400, kg:8, haut:0.94, large:1.30, cout:11000, verrou:true, perenne:true,
+   masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
 CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
@@ -3437,8 +3576,15 @@ function corpsGenerique(S){
         CG.add(box(1.5,0.7,1.5, 0x9AA2A7, -W/3+k*W/3, H+0.9, -D*0.15));
       // bardage : rainures verticales
       for(let k=-3;k<=3;k++) CG.add(box(0.14, H*0.9, 0.1, 0xB9C1C6, k*W*0.13, H*0.45, D/2+0.03));
-      CG.add(box(W*0.34, H*0.6, 0.25, 0x333A3F, -W*0.24, H*0.30, D/2+0.04));   // porte roulante
-      for(let k=0;k<3;k++) CG.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.13, D/2+0.16));
+      /* LA PORTE DU GARAGE LAISSE ENTRER CE QU'ON Y ACHÈTE. Elle montait à 0,60 fois la
+         hauteur de mur, soit 4,08 m, et l'on y vend des tracteurs de 5,18 m hors-tout :
+         le magasin ne pouvait pas contenir sa propre marchandise. C'est l'illustration la
+         plus littérale du décalage d'échelle que BAT_ECHELLE corrige — et l'échelle seule
+         n'y suffisait pas, il manquait encore quarante-cinq centimètres. On reprend la
+         proportion du hangar de la ferme, 0,72, qui laisse un demi-mètre au-dessus du
+         gyrophare. */
+      CG.add(box(W*0.34, H*0.72, 0.25, 0x333A3F, -W*0.24, H*0.36, D/2+0.04));  // porte roulante
+      for(let k=0;k<3;k++) CG.add(box(W*0.30, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.16+k*H*0.16, D/2+0.16));
     } else {
       CG.add(gable(D+0.5, 2.7, W+0.5, S.toit, 0, H, 0, Math.PI/2));
       // vitrine de boutique et auvent
@@ -3494,7 +3640,11 @@ function buildCommerce(S){
   const g = new THREE.Group();
   const W = S.w, D = S.d;
   const usine = S.style === 'usine';
-  const H = usine ? 6.8 : 4.8;
+  // Cette hauteur de mur est écrite en dur alors que le bâti, lui, est mis à l'échelle.
+  // Elle sert d'accroche aux enseignes des trois sites sans modèle — la plaque et le pneu
+  // du garage, le totem du comptoir agricole. Sans le facteur, la plaque du garage
+  // redescendait aux deux tiers de sa façade et son pneu s'enfonçait dans la toiture.
+  const H = (usine ? 6.8 : 4.8) * BAT_ECHELLE;
   // Le bâti — modèle dédié ou gabarit générique — a été mesuré puis recentré dans son
   // emprise par ajusterSitesAuxModeles(). On ne fait que le poser à sa place.
   const corps = S.corpsMesh || (S.modele ? S.modele() : corpsGenerique(S));
@@ -3608,7 +3758,11 @@ function buildCommerce(S){
     const p = new THREE.Vector3();
     for(const So of sols){
       p.set(So.x, 0, So.z); corps.localToWorld(p);
-      fillRect(p.x, p.z, lat ? So.d : So.w, lat ? So.w : So.d,
+      // La POSITION passe par localToWorld et porte déjà l'échelle du corps ; les COTES,
+      // elles, viennent brutes du modèle. Sans le facteur, la terrasse du restaurant et
+      // le plancher de la halle du marché se seraient décalés de leur bâtiment : la
+      // peinture aurait suivi le mur en se déplaçant, mais pas en grandissant.
+      fillRect(p.x, p.z, (lat ? So.d : So.w)*BAT_ECHELLE, (lat ? So.w : So.d)*BAT_ECHELLE,
                '#' + So.c.toString(16).padStart(6, '0'), AX);
     }
   }
@@ -3626,7 +3780,12 @@ function buildCommerce(S){
   // et la seule zone qui marchait n'était signalée par rien. Le quai devient l'anneau
   // lui-même — ce qu'on voit est ce qui déclenche.
   clotureSite(S);
-  ajouteBulle(S, S.style === 'usine' ? 6.8 : 4.8);
+  // La bulle est posée au-dessus du toit MESURÉ et non plus d'une hauteur de mur écrite
+  // en dur. poseBulle reçoit le BAS de la bulle : 4,8 + 3,2 = 8,0 m passait déjà sous le
+  // faîtage du comptoir agricole (7,50 m), et 6,8 + 3,2 = 10,0 tombait carrément dans
+  // celui de l'usine à céréales (10,15 m). Avec la cote relevée, les seize flottent à
+  // 3,20 m de leur toit, quelle que soit leur taille.
+  ajouteBulle(S, S.bbH);
 }
 function buildFarm(){
   // Les cotes réelles des commerces ne sont connues qu'ici : les modèles sont déclarés
@@ -3771,6 +3930,12 @@ function buildFarm(){
   h.add(box(0.75,1.9,0.75,0xB8A894, 2.5, 5.4, -1.4));      // souche de cheminée
   h.add(box(0.95,0.22,0.95,0x8E8172, 2.5, 6.4, -1.4));      // mitre
   const cm = new THREE.Object3D(); cm.position.set(2.5, 6.7, -1.4); h.add(cm);
+  // La maison de ferme suit le village : c'est le bâtiment que le joueur a le plus
+  // souvent sous les yeux, au bord de la cour où sont garés des engins qui ont grandi
+  // sans elle. Elle ne pousse aucun obstacle et rien ne dépend de son emprise ; le seul
+  // point qui en dépende, la souche de cheminée, est relevé deux lignes plus bas par
+  // getWorldPosition et suit donc tout seul.
+  h.scale.setScalar(BAT_ECHELLE);
   h.position.set(-58,0,57); h.rotation.y = 0.4 - Math.PI/2 + Math.PI;
   scene.add(h);
   h.updateMatrixWorld(true);
@@ -3836,19 +4001,31 @@ function buildFarm(){
     const pan = new THREE.Mesh(new THREE.PlaneGeometry(W*0.62, 2.1),
       new THREE.MeshBasicMaterial({map:tex}));
     pan.position.set(0, H*0.9, D/2+0.62); g.add(pan);
+    /* L'entrepôt est le bâtiment qui PROUVE le décalage d'échelle. Sa grande porte fait
+       6,4 × 0,72 = 4,61 m sous linteau et le tracteur qu'on y range en fait 5,18
+       hors-tout : on rangeait la machine dans une remise trop basse pour elle, et le
+       fourgon comme la moissonneuse n'y entraient pas davantage. Le groupe porte
+       l'échelle ; l'emprise de collision et le quai, eux, sont calculés sur W et D AVANT
+       échelle et doivent la reprendre à la main — l'oublier laisserait 1,26 m de mur de
+       chaque côté hors de l'obstacle, et on roulerait au travers. */
+    g.scale.setScalar(BAT_ECHELLE);
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     fusionnerGroupe(g);
-    boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2, hd:D/2});
+    boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2*BAT_ECHELLE, hd:D/2*BAT_ECHELLE});
     // Un quai devant la grande porte, et l'anneau qui va avec : l'entrepôt reçoit de
-    // nouveau de la marchandise, il lui faut de nouveau un endroit où s'arrêter.
-    ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2 + 4.0};
+    // nouveau de la marchandise, il lui faut de nouveau un endroit où s'arrêter. Quatre
+    // mètres devant la façade, mais la façade a reculé : sans le facteur l'anneau se
+    // serait retrouvé À L'INTÉRIEUR de la nouvelle emprise de collision.
+    ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2*BAT_ECHELLE + 4.0};
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
       ()=> actionsEntrepot(MACHINES[cur]).length > 0);
     poseBulle('Entrepôt', 0x7C4A38,
       [{titre:'STOCKE', lignes:[{nom:'Hors céréales', prix:''},
                                 {nom:'Produits finis', prix:''}]}],
-      HANGAR.x, H + 3.4, HANGAR.z, 0);
+      // La bulle ne flottait que quarante centimètres au-dessus du faîtage de l'entrepôt ;
+      // celui-ci ayant grandi, sans le facteur elle lui serait rentrée dedans.
+      HANGAR.x, (H + 3.4)*BAT_ECHELLE, HANGAR.z, 0);
   })();
 
   // géométries partagées du petit décor
@@ -3956,6 +4133,17 @@ function buildFarm(){
        leur axe, pour tout z. Le rang doit leur laisser la même verge qu'à la chaussée
        de devant, sans quoi ses deux pignons se retrouvent au ras de l'asphalte. */
     const RUE_LIB = (ROC.x1 - ROAD_W/2) - (ROC.x0 + ROAD_W/2) - 2*RUE_VERGE;
+    /* UN ÉCART AU MILIEU DU RANG. Les lots jointifs donnaient huit maisons collées sur
+       cent cinquante-sept mètres sans un trou : depuis la chaussée, le rang se lit comme
+       un mur, et le village n'a nulle part où poser un calvaire ou un banc. On ouvre donc
+       un écart au milieu, et le rang prend simplement une maison de moins s'il le faut.
+       DIX MÈTRES, et le nombre est relevé, pas choisi. Plancher : il faut qu'un engin
+       puisse passer À CÔTÉ de ce qu'on met dedans — la collision ajoute 1,35 m de
+       demi-machine au rayon de l'obstacle, soit 7,1 m rien que pour la table de
+       pique-nique, jambages non compris. Plafond : le lot le plus étroit du rang mesure
+       quinze mètres ; au-delà, l'écart ne se lit plus comme un écart mais comme une
+       maison qui manque. */
+    const RANG_TROU = 10.0;
     // Où en est la rotation des modèles quand le rang commence : les maisons de bande
     // sont bâties avant lui et ont déjà fait tourner le compteur. C'est ce qui empêche
     // une maison de bande et sa voisine de rang d'être le même modèle.
@@ -3963,7 +4151,9 @@ function buildFarm(){
     let cumul = 0;
     for(let k = 0; k < 16; k++){
       const L = lotMaison(RY_BANDE.S);        // façade tournée vers la chaussée
-      if(cumul + L.jw > RUE_LIB){             // le rang est plein, celle-ci ne tient pas
+      // Le trou prend sa part de la largeur libre AVANT les maisons : c'est lui qui décide
+      // combien il en tient, et non le reste qui décide de sa taille.
+      if(cumul + L.jw > RUE_LIB - RANG_TROU){ // le rang est plein, celle-ci ne tient pas
         L.g.traverse((o)=>{ if(o.geometry) o.geometry.dispose(); });
         break;
       }
@@ -3976,11 +4166,29 @@ function buildFarm(){
     RANG.z0 = ROC.z1 + ROAD_W/2 + RUE_VERGE;
     RANG.z1 = RANG.z0 + PROF;
     RANG.prof = PROF;                         // la clôture en a besoin, hors de ce bloc
+    /* SUR QUELLE MITOYENNE COUPER. Pas un indice écrit : les lots n'ont pas tous la même
+       cote, et un indice figé se décalerait au premier modèle qui change de largeur. On
+       essaie CHAQUE mitoyenne et l'on garde celle dont le trou tombe le plus près du
+       milieu du rang. Une seule est écartée d'office : celle qui mettrait DEUX FOIS LE
+       MÊME MODÈLE de part et d'autre du vide. Le trou ne sépare pas ces deux-là, il les
+       met face à face en ôtant tout ce qui s'intercalait entre elles — et la répétition,
+       que MAI_ORDRE existe précisément pour éviter, sauterait aux yeux depuis la route. */
+    RANG.coupe = -1; RANG.trou = null;
+    {
+      let acc = 0, mieux = Infinity;
+      for(let i = 0; i < MAISONS.length - 1; i++){
+        acc += MAISONS[i].jw;                 // acc : la mitoyenne entre i et i+1
+        if(MAISONS[i].modele === MAISONS[i+1].modele) continue;
+        const d = Math.abs(acc + RANG_TROU/2 - (cumul + RANG_TROU)/2);
+        if(d < mieux){ mieux = d; RANG.coupe = i; }
+      }
+    }
+    if(RANG.coupe >= 0) cumul += RANG_TROU;   // le trou compte dans la longueur du rang
     // centré entre les deux chaussées latérales : la verge est la même des deux bouts
     RANG.x0 = (ROC.x0 + ROC.x1)/2 - cumul/2;
     RANG.x1 = RANG.x0 + cumul;
     let t = RANG.x0;
-    for(const M of MAISONS){
+    MAISONS.forEach((M, i)=>{
       /* Repère tourné d'un demi-tour : le monde DÉCROÎT quand le local croît. Le lot
          est centré sur `decalX` dans le repère du modèle, l'allée sur son axe. */
       M.bord = t;                             // la mitoyenne à sa gauche
@@ -3990,7 +4198,15 @@ function buildFarm(){
       M.z = M.cz;
       M.porteX = M.x - M.port;                // et l'axe du portillon
       t += M.jw;
-    }
+      // et l'on saute le trou : le lot suivant reprend dix mètres plus loin
+      if(i === RANG.coupe){ RANG.trou = {x0:t, x1:t + RANG_TROU}; t += RANG_TROU; }
+    });
+    /* LE RANG N'EST PLUS D'UN SEUL TENANT. Tout ce qui le prenait pour un bloc — la
+       clôture, le rectangle qui arrête les engins — travaille désormais sur cette liste,
+       et continue de marcher si le trou venait à disparaître. */
+    RANG.troncons = RANG.trou
+      ? [{x0:RANG.x0, x1:RANG.trou.x0}, {x0:RANG.trou.x1, x1:RANG.x1}]
+      : [{x0:RANG.x0, x1:RANG.x1}];
   }
 
   // Bande extérieure : verdure entre les commerces, et lampadaires le long de la route.
@@ -4047,10 +4263,17 @@ function buildFarm(){
        parce que les bords de lot et les bords d'ouverture, eux, ne tombent pas sur la
        trame, et qu'un piquet de trame venait alors se coller à 78 cm d'un piquet
        d'angle — 217 % d'écart au lieu de 46. Une clôture rurale n'a pas de trame. */
-    panCloture(G, -hw, -hd,  hw, -hd, [port], false, i < dernier);   // devant, percé
-    panCloture(G, -hw,  hd,  hw,  hd, null,   false, i < dernier);   // fond
+    /* FIN DE TRONÇON. Le rang a maintenant DEUX bouts est et non plus un : le dernier lot
+       du rang, et le lot qui borde le trou par l'ouest. Ni l'un ni l'autre n'a de voisin à
+       droite pour poser le poteau partagé et fermer le jardin ; ils se ferment eux-mêmes,
+       par leur pignon est et par leurs propres poteaux de bout. Le premier lot APRÈS le
+       trou, lui, n'a besoin de rien : tout lot pose déjà la clôture de son bord gauche,
+       c'est le découpage mitoyen d'origine. */
+    const finTroncon = (i === dernier) || (i === RANG.coupe);
+    panCloture(G, -hw, -hd,  hw, -hd, [port], false, !finTroncon);   // devant, percé
+    panCloture(G, -hw,  hd,  hw,  hd, null,   false, !finTroncon);   // fond
     panCloture(G, -hw, -hd, -hw,  hd, null,   true,  true);          // bord gauche
-    if(i === dernier)
+    if(finTroncon)
       panCloture(G,  hw, -hd,  hw,  hd, null,  true,  true);         // pignon est
     /* Et l'allée rejoint son portillon. Le modèle arrête la sienne au bord de SON
        jardin, qui n'est plus le bord du lot : le rang a un fond unique et un devant
@@ -4074,8 +4297,32 @@ function buildFarm(){
      jointifs il n'y a plus rien à traverser entre deux maisons, et un disque par
      maison déborderait de toute façon sur la chaussée qu'elles longent. */
   const DEB = 0.11*MAI_ECHELLE/2;             // le poteau déborde du bord de lot
-  boxObs.push({x:(RANG.x0 + RANG.x1)/2, z:(RANG.z0 + RANG.z1)/2,
-               hw:(RANG.x1 - RANG.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
+  /* UN RECTANGLE PAR TRONÇON, et non plus un seul pour tout le rang : un rectangle unique
+     reboucherait le trou pour les engins, et l'écart qu'on vient d'ouvrir serait un mur
+     invisible de dix mètres de large. */
+  for(const T of RANG.troncons)
+    boxObs.push({x:(T.x0 + T.x1)/2, z:(RANG.z0 + RANG.z1)/2,
+                 hw:(T.x1 - T.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
+
+  /* CE QU'IL Y A DANS L'ÉCART. Trois objets que le village ne montrait NULLE PART : les
+     creux entre commerces n'en posent que quatre, quand VIL_MODELES en déclare dix. Le
+     calvaire donne au creux sa silhouette haute, celle qu'on voit du bitume par-dessus la
+     clôture ; le banc et la table meublent le fond.
+     ILS SONT RANGÉS EN PROFONDEUR ET DÉCALÉS VERS L'EST. En profondeur, parce que l'écart
+     fait dix mètres de large mais dix-sept de fond : c'est la seule direction où il y a de
+     la place. Vers l'est, parce que le mât de la verge tombe déjà de ce côté de la bouche
+     du trou — mieux vaut un lampadaire au-dessus du calvaire qu'un lampadaire planté au
+     milieu du seul passage — et que la moitié ouest reste ainsi franchissable. */
+  if(RANG.trou){
+    const tx = RANG.trou.x1 - 3.2;            // l'axe des objets, côté est de l'écart
+    poserBloc(vilCalvaire, tx, RANG.z0 + 2.9,  RY_BANDE.S);
+    poserBloc(vilBanc,     tx, RANG.z0 + 7.6,  RY_BANDE.S);
+    // Le puits et non la table : les creux des bandes prennent le plus gros objet qui
+    // leur tienne, et la table de pique-nique y passe déjà. Deux fois le même meuble à
+    // deux cents mètres l'un de l'autre, cela se remarque ; le puits, lui, n'était nulle
+    // part alors qu'il est ce qu'un village a de plus reconnaissable.
+    poserBloc(vilPuits,    tx, RANG.z0 + 11.4, RY_BANDE.S);
+  }
 
   /* LA VERGE EST UNE RUE, PAS UNE PELOUSE. Neuf mètres entre le bitume et la clôture,
      sur cent cinquante-cinq de long, et le filtre du semis les interdit à la verdure :
@@ -4531,8 +4778,16 @@ function vilPoteau(){
    rapport des largeurs de porte 1,37, rapport des hauteurs de mur 1,02 — les trois
    se rejoignent à 1,30. Le faîtage passe alors de 6,62 m à 8,6 contre 6,2 pour la
    boutique : une maison à toit pentu domine un commerce de plain-pied, c'est ce
-   qu'on veut. */
-const MAI_ECHELLE = 1.30;
+   qu'on veut.
+   LE RAPPORT NE BOUGE PAS, LE PIED DE MESURE SI. Les trois rapports ci-dessus disent
+   1,30 CONTRE LA BOUTIQUE D'À CÔTÉ — c'est un rapport, pas une cote absolue. Les
+   commerces viennent d'être agrandis de BAT_ECHELLE pour rejoindre l'échelle des engins ;
+   si 1,30 restait écrit tel quel, la maison redeviendrait maquette contre son voisin,
+   exactement le défaut que ce commentaire décrit. On l'écrit donc comme il a été trouvé,
+   pour que les deux ne puissent plus se désaccorder. Le produit vaut 1,53, et le faîtage
+   moyen d'une maison passe de 9,12 m à 10,76 contre 7,58 pour la boutique : le rapport,
+   lui, ne bouge pas d'un centième. */
+const MAI_ECHELLE = 1.30 * BAT_ECHELLE;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
 /* L'ORDRE DES MAISONS DANS LE RANG. Pris à la file — 0,1,2,3,4,5,0,1,2,3 — la moitié
    est du rang était le calque exact de la moitié ouest : six modèles pour dix lots,
@@ -4586,7 +4841,25 @@ const RUE_PORTE = 1.5*MAI_ECHELLE;         // largeur d'un portillon
 const RUE_VERGE = RECUL_ROCADE;
 function panCloture(g, x0, z0, x1, z1, coupes, sansA, sansB){
   const horiz = Math.abs(x1 - x0) > Math.abs(z1 - z0);
-  const a = horiz ? x0 : z0, b = horiz ? x1 : z1;
+  let a = horiz ? x0 : z0, b = horiz ? x1 : z1;
+  /* UN PAN DÉCRIT À L'ENVERS NE SE DESSINAIT PAS DU TOUT, ET SANS RIEN DIRE. Tout ce qui
+     suit tient pour acquis que `a` précède `b` : `troncon()` mesure sa longueur par
+     `v - u` et abandonne dès qu'elle tombe sous vingt-cinq centimètres. Un appelant qui
+     donnait ses deux extrémités dans l'ordre DÉCROISSANT obtenait donc une longueur
+     négative, aucun piquet, aucune lisse — et pas la moindre erreur pour le dire.
+     C'est ce qui arrivait aux DEUX MITOYENNES DE TOUTE MAISON DE BANDE. poserLotBande()
+     passe `av` — le devant, côté route — avant `ar` — le fond du jardin ; or `av` vaut
+     -sortant*hd et `ar` +sortant*hd, et sur les bandes OUEST et NORD on s'éloigne du
+     bitume dans le sens décroissant, si bien que av > ar. Les sept maisons de bande sont
+     sur ces deux bandes : pas une n'a jamais eu de clôture latérale à elle, et le jardin
+     restait ouvert partout où le voisin n'en posait pas une à sa place — cent dix-huit
+     mètres de terrain sans barrière, relevés.
+     On remet les bornes dans l'ordre ICI plutôt qu'aux quatre appels : un pan est un
+     segment, et un segment n'a pas de sens de lecture. `sansA` et `sansB` désignent les
+     deux extrémités et suivent donc l'échange ; les coordonnées FIXES du pan — z0 quand
+     il est horizontal, x0 quand il est vertical — valent déjà la même chose aux deux
+     bouts et ne bougent pas. */
+  if(a > b){ const q = a; a = b; b = q; const s = sansA; sansA = sansB; sansB = s; }
   const S = 0.11*MAI_ECHELLE, LIS = 0.07*MAI_ECHELLE;
   const PAS = 1.5*MAI_ECHELLE, DEMI = RUE_PORTE/2;
   const ouv = (coupes || []).filter((c)=> c > a + DEMI && c < b - DEMI)
@@ -4706,8 +4979,20 @@ function garnirBandes(putBush, putRock){
     poserLotBande(M.lot, M.dir, (M.a + M.b)/2,
                   BORD_BANDE[M.dir] + SORTANT[M.dir]*RECUL_ROCADE,
                   M.sansAvant, M.sansApres);
-  const MOB = [vilAbriBus, vilLavoir, vilTonnelle, vilPuits, vilBanc, vilPiqueNique];
-  let iMob = 0;
+  /* LE MOBILIER SE CHOISIT À LA TAILLE DU CREUX. Il fallait sept mètres pour qu'un creux
+     reçoive quoi que ce soit, et l'objet réservait ensuite huit mètres quelle que soit sa
+     taille — un banc de 4,65 m comme un lavoir de 5,60. Les creux ayant rétréci — les
+     bâtiments ont grandi et le joueur les voulait plus fins —, deux creux sur six sont
+     passés sous la barre et la bande ouest a perdu son mobilier d'un coup. On prend donc
+     le PLUS GROS objet qui tienne VRAIMENT dans le creux, et l'on ne réserve que son
+     encombrement déclaré. Le plus gros, et non le premier venu : sinon les creux étroits
+     ramèneraient les petits objets, et l'abri de bus comme le lavoir — ceux qui font le
+     plus un village — ne seraient jamais posés. Chaque modèle est retiré de la liste une
+     fois posé : quatre creux, quatre objets différents, sans compteur de rotation.
+     La liste est celle de VIL_MODELES au complet : quatre fabriques sur dix n'étaient
+     dans aucune partie, faute d'être citées ici. */
+  const MOB = [vilAbriBus, vilLavoir, vilTonnelle, vilBucher, vilEntree, vilPiqueNique,
+               vilBanc, vilCalvaire, vilPuits, vilPoteau];
   for(const C of BANDE_CREUX){
     const surZ = SUR_Z[C.dir], sortant = SORTANT[C.dir], bord = BORD_BANDE[C.dir];
     const centre = (C.a + C.b)/2, l = C.b - C.a;
@@ -4715,11 +5000,25 @@ function garnirBandes(putBush, putRock){
       const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
       return {x, z, fab, ry};
     };
-    if(C.quoi === 'village' && l > 7){
-      const f = MOB[iMob++ % MOB.length];
-      const q = pose(5.0, centre, f, RY_BANDE[C.dir]);
-      poserBloc(q.fab, q.x, q.z, q.ry);
-      BANDE_LOTS.push({x0:q.x - 4, x1:q.x + 4, z0:q.z - 4, z1:q.z + 4});
+    if(C.quoi === 'village' && l > 4){
+      /* On bâtit les modèles encore disponibles pour connaître leur encombrement DÉCLARÉ,
+         et l'on garde le plus gros qui tienne dans le creux, un mètre de jeu compris.
+         Celui qu'on a bâti pour le mesurer est celui qu'on pose : rien n'est construit
+         deux fois, et ce qui a servi est rayé de la liste. */
+      let objet = null, iChoix = -1;
+      for(let k = 0; k < MOB.length; k++){
+        const cand = MOB[k]();
+        if(2*cand.r + 1.0 <= l && (!objet || cand.r > objet.r)){ objet = cand; iChoix = k; }
+      }
+      if(objet){
+        MOB.splice(iChoix, 1);
+        const q = pose(5.0, centre, objet, RY_BANDE[C.dir]);
+        poserBloc(objet, q.x, q.z, q.ry);
+        // L'emprise réservée est celle de l'objet, et non plus huit mètres pour tout le
+        // monde : c'est elle qui écarte la verdure et les lots voisins.
+        const e = objet.r + 0.6;
+        BANDE_LOTS.push({x0:q.x - e, x1:q.x + e, z0:q.z - e, z1:q.z + e});
+      }
     }
     // La verdure du creux : semée sur le flux à graine fixe, donc la même à chaque
     // partie, et jamais à moins de six mètres du bitume — la vue depuis la route
@@ -4740,8 +5039,11 @@ function garnirBandes(putBush, putRock){
 
 /* Pose un bloc : on le construit, on le fusionne en un seul objet, on l'oriente, et
    l'on déclare son emprise pour que les engins ne le traversent pas. */
-function poserBloc(fabrique, x, z, ry){
-  const {g, r} = fabrique();
+function poserBloc(quoi, x, z, ry){
+  // On accepte la fabrique ou l'objet déjà bâti : le garnissage des creux essaie
+  // plusieurs modèles pour trouver celui qui tient, et il serait absurde de reconstruire
+  // celui qu'il vient de mesurer.
+  const {g, r} = (typeof quoi === 'function') ? quoi() : quoi;
   g.position.set(x, 0, z);
   if(ry) g.rotation.y = ry;
   scene.add(g);
@@ -4886,6 +5188,10 @@ let atelierMesh = null, atelierObs = null;
 function poserAtelier(){
   if(atelierMesh){ scene.remove(atelierMesh); }
   atelierMesh = modeleAtelier(HALLE.niveau);
+  // La halle suit le bâti du village : c'est un bâtiment de la ferme, et l'engin qui vient
+  // s'y ranger a grandi sans elle. fusionnerGroupe() prend l'inverse de la matrice DU
+  // groupe, donc une échelle posée sur le groupe lui-même survit à la cuisson.
+  atelierMesh.scale.setScalar(BAT_ECHELLE);
   atelierMesh.position.set(HALLE.x, 0, HALLE.z);
   scene.add(atelierMesh);
   const u = atelierMesh.userData;
@@ -4894,13 +5200,19 @@ function poserAtelier(){
   // Chaque palier pousse un module sur un côté : la trémie seule au niveau 1, le hall
   // d'alimentation au 2, les cuves au 3, l'appentis et le conteneur au 4.
   const N = HALLE.niveau;
-  const demi = u.W/2 + (N >= 4 ? 4.5 : (N >= 3 ? 3.4 : (N >= 2 ? 3.2 : 2.7)));
-  if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd:u.D/2}; boxObs.push(atelierObs); }
-  else { atelierObs.hw = demi; atelierObs.hd = u.D/2; }
+  /* CES PALIERS SONT DES MÈTRES ABSOLUS, PAS DES FRACTIONS DU BÂTIMENT. L'échelle posée
+     sur le groupe éloigne les modules latéraux d'autant : le facteur doit donc porter sur
+     la SOMME et non sur le seul demi-mur. L'écrire à moitié laisserait au niveau 5 deux
+     mètres de module hors de l'obstacle, et on roulerait au travers du conteneur et de
+     l'appentis — dans la cour de transformation, là où l'on manœuvre le plus. */
+  const demi = (u.W/2 + (N >= 4 ? 4.5 : (N >= 3 ? 3.4 : (N >= 2 ? 3.2 : 2.7))))*BAT_ECHELLE;
+  const hd = u.D/2*BAT_ECHELLE;
+  if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd}; boxObs.push(atelierObs); }
+  else { atelierObs.hw = demi; atelierObs.hd = hd; }
   // PLUS D'ANNEAU DEVANT L'ATELIER. Il se sert tout seul au silo et à l'entrepôt, et
   // dépose tout seul à l'entrepôt : il n'y a plus rien à venir y faire. On garde le
   // point de quai, qui sert encore à situer le bâtiment et sa fumée.
-  HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2 + 4.0};
+  HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2*BAT_ECHELLE + 4.0};
 }
 
 /* Marquage du parking — UNE seule trame pour toute l'aire, cour et garage confondus.
@@ -4957,27 +5269,121 @@ function jeuDeFeux(){
    une bille additive qui s'épanouit autour de lui, et un halo posé à plat sur le sol
    qu'il éclaire. C'était exactement l'effet du gyrophare de la première version — la
    bille en l'air, le halo par terre — et c'est celui que le joueur a retenu.
-   Le cône dégradé qui l'avait remplacé cherchait à imiter un vrai faisceau ; il est
-   remplacé par ce halo, plus simple et plus lisible. Le gyrophare, lui, garde sa bille
-   sans halo : sa flaque avait été retirée à la demande, elle restait immobile sous la
-   machine et se lisait comme une zone d'action. */
+   Le cône dégradé qui l'avait remplacé partait du MILIEU de l'engin, en un seul pinceau,
+   et se coupait net au bout : c'est ce cône-là qui a été retiré, pas l'idée du faisceau.
+   Les phares avant en ont DEUX maintenant, un par optique — voir faisceauPhare() plus
+   bas — et ce sont eux qui remplacent le halo au sol des ENGINS ; les lampadaires
+   gardent le leur. Le gyrophare, lui, garde sa bille sans halo : sa flaque avait été
+   retirée à la demande, elle restait immobile sous la machine et se lisait comme une
+   zone d'action. */
+/* LE DÉGRADÉ DES EXTRÉMITÉS. La bille et le halo au sol étaient d'une couleur uniforme :
+   ils se terminaient donc AU COUTEAU. Vu de dessus, la flaque d'un lampadaire perdait
+   43,8 niveaux de luminance sur 255 en un seul pixel, et la bille 103,4 — c'est cette
+   découpe que le joueur voyait, pas de la lumière. Une lumière diffuse, elle, s'éteint
+   progressivement sur ses bords.
+   Une couleur par sommet n'y suffit pas : les soixante-trois sommets d'une sphère sont
+   TOUS à la même distance du centre, aucun n'est « au bord » — le bord d'une sphère
+   dépend d'où on la regarde. Et three.js ne connaît pas d'alpha par sommet.
+   D'où une seule et unique texture de 64 × 64, partagée par les quatre-vingt-dix halos
+   du jeu : seize kilo-octets, quand les textures de la scène en pèsent déjà cinquante-
+   sept millions. Le disque au sol la prend en `map` sans changer un seul triangle ; la
+   bille devient un LUTIN toujours face à la caméra, qui coûte deux triangles au lieu
+   des quatre-vingts de la sphère — la modification fait donc BAISSER le compte.
+   Le dégradé ne mord que sur le dernier tiers : plein jusqu'à 0,62 fois le rayon, puis
+   extinction. Le joueur a demandé « un tout petit peu de dégradé aux extrémités », pas
+   un flou général : le cœur du halo garde exactement la luminance qu'il avait. C'est ce
+   palier de 0,62 — et lui seul — qu'on touche si l'on trouve l'effet trop discret ou
+   trop marqué. Surtout pas l'opacité : elle délaverait aussi le cœur. */
+const TEX_HALO = (function(){
+  const N = 64, cv = document.createElement('canvas');
+  cv.width = cv.height = N;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(N/2, N/2, 0, N/2, N/2, N/2);
+  // Les paliers dessinent une extinction en S. Une rampe droite laisserait une cassure
+  // nette là où le plein s'arrête : on n'aurait fait que déplacer le bord franc.
+  g.addColorStop(0.00, '#ffffff');
+  g.addColorStop(0.62, '#ffffff');
+  g.addColorStop(0.74, '#d8d8d8');
+  g.addColorStop(0.86, '#7a7a7a');
+  g.addColorStop(0.94, '#303030');
+  g.addColorStop(1.00, '#000000');
+  c.fillStyle = g; c.fillRect(0, 0, N, N);
+  return new THREE.CanvasTexture(cv);
+})();
+/* La bille : un lutin face caméra qui porte cette texture. Le rayon vit dans l'échelle
+   du lutin, et le groupe qui l'enveloppe ne sert qu'à garder l'usage d'avant — les
+   trois appelants écrivent `bille.scale.setScalar(facteur)` et `bille.material.opacity`,
+   et ces deux lignes-là continuent de marcher telles quelles. Le rendu ne collecte que
+   les maillages, les lignes, les points et les lutins : un groupe nu ne coûte rien. */
 function billeLumiere(rayon, couleur){
-  const m = new THREE.Mesh(new THREE.SphereGeometry(rayon, 8, 6),
-    new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:0,
-      blending:THREE.AdditiveBlending, depthWrite:false}));
-  m.renderOrder = 2;
-  m.visible = false;                 // three.js dessine un transparent même à zéro
+  const mat = new THREE.SpriteMaterial({color:couleur, map:TEX_HALO, transparent:true,
+    opacity:0, blending:THREE.AdditiveBlending, depthWrite:false});
+  const lutin = new THREE.Sprite(mat);
+  lutin.scale.setScalar(rayon*2);   // le lutin mesure 1 × 1 : son échelle EST son diamètre
+  lutin.renderOrder = 2;            // c'est le lutin qu'on dessine, pas le groupe
+  // Nommés tous les deux, comme le sont le halo au sol et les faisceaux : c'est de la
+  // lumière, pas de la tôle, et qui mesure l'encombrement d'un engin doit l'écarter.
+  // Un lutin PORTE une géométrie : contrairement à ce qu'on croirait, Box3 le compte.
+  lutin.name = 'billeLumiere';
+  const m = new THREE.Group();
+  m.name = 'billeLumiere';
+  m.add(lutin);
+  m.material = mat;                 // pour que les appelants pilotent l'opacité comme avant
+  m.visible = false;                // three.js dessine un transparent même à zéro
   return m;
 }
-// Le halo au sol : un disque additif posé à plat, sans dégradé savant. Même recette que
-// la bille — un seul matériau non éclairé, additif, qui ne coûte rien — mais couché.
+// Le halo au sol : exactement le même disque additif qu'avant, posé à plat, avec la même
+// géométrie et le même nombre de triangles. Seule la texture s'ajoute, et c'est elle qui
+// éteint le disque sur son pourtour. Les coordonnées de texture d'un CircleGeometry vont
+// de 0 à 1 sur le carré englobant, centre en (0,5 ; 0,5) : le dégradé radial tombe donc
+// pile sur le bord du disque, sans un seul calcul de notre part.
 function haloSol(rayon, couleur){
   const m = new THREE.Mesh(new THREE.CircleGeometry(rayon, 22),
-    new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:0,
+    new THREE.MeshBasicMaterial({color:couleur, map:TEX_HALO, transparent:true, opacity:0,
       blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
   m.rotation.x = -Math.PI/2;
   m.renderOrder = 2;
   m.visible = false;
+  return m;
+}
+/* LE FAISCEAU EN CÔNE, UN PAR PHARE. Le halo au sol des engins disait bien OÙ l'on
+   éclaire, mais pas d'où part la lumière : un rond posé devant le nez, sans lien visible
+   avec les deux optiques — et le joueur n'y voyait qu'« un rond ». On revient donc au
+   cône, mais pas à celui d'autrefois : celui-là partait du MILIEU de l'engin et n'en
+   faisait qu'un. Ici il y en a DEUX, aux cotes exactes des deux optiques avant.
+   Le cône est TRONQUÉ — un tronc de cylindre, pas une pointe — parce qu'une lentille de
+   trente-six centimètres de large n'est pas un point : le faisceau sort avec la largeur
+   du verre. Le dégradé qui le fait se dissoudre au loin est porté par les COULEURS DE
+   SOMMET : en mélange additif, un sommet noir n'ajoute rien du tout. Le bout du cône
+   s'efface donc de lui-même, et l'on ne voit jamais l'arête de la géométrie — ce qui
+   avait perdu l'ancien cône, coupé net à son extrémité. */
+function faisceauPhare(long, r0, r1, couleur){
+  // openEnded : sans lui, three.js ferme le tronc par deux disques, et l'on verrait une
+  // rondelle claire collée au phare et une autre en l'air, au bout du faisceau.
+  const g = new THREE.CylinderGeometry(r1, r0, long, 14, 8, true);
+  // L'axe d'un cylindre three.js est +Y. On le couche vers +Z — l'avant du groupe — une
+  // fois pour toutes DANS la géométrie, et l'on ramène l'origine sur le phare : le
+  // maillage n'a plus alors à porter que la position de l'optique et la pente vers le sol.
+  g.rotateX(Math.PI/2);
+  g.translate(0, 0, long/2);
+  const p = g.attributes.position, col = new Float32Array(p.count*3);
+  for(let i = 0; i < p.count; i++){
+    const u = Math.min(1, Math.max(0, p.getZ(i)/long));       // 0 au phare, 1 au bout
+    // (1 - u) puissance 1,35 : la lumière tient sur la première moitié du trajet, puis
+    // lâche. Un dégradé strictement linéaire laissait encore un quart d'intensité au
+    // dernier anneau, et ce dernier anneau se lisait alors comme un bord net.
+    const a = Math.pow(1 - u, 1.35);
+    col[i*3] = col[i*3 + 1] = col[i*3 + 2] = a;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  // DoubleSide : le regard traverse la paroi proche ET la paroi lointaine, toutes deux
+  // additives. C'est ce doublement qui donne au cône un cœur plus clair que ses bords —
+  // du volume obtenu sans une seule ligne de nuanceur.
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({color:couleur,
+    vertexColors:true, transparent:true, opacity:0, blending:THREE.AdditiveBlending,
+    depthWrite:false, side:THREE.DoubleSide}));
+  m.renderOrder = 2;
+  m.visible = false;                 // three.js dessine un transparent même à zéro
   return m;
 }
 // Une optique : boîtier sombre encastré, lentille par-dessus, et la bille de lumière
@@ -4990,7 +5396,7 @@ function optique(g, F, arriere, sx, y, z, w, h){
   lentille.position.set(sx, y, z);
   lentille.receiveShadow = true;
   g.add(lentille);
-  // Discrète : le phare avant pose son halo au sol, qui dit où il éclaire. La bille ne
+  // Discrète : le phare avant projette son cône, qui dit où il éclaire. La bille ne
   // dit plus que « la lampe est allumée », et c'est tout ce qu'on lui demande.
   const halo = billeLumiere(Math.max(w, h)*0.78, arriere ? 0xFF7A5E : 0xFFEFC0);
   halo.position.set(sx, y, z + sens*0.08);
@@ -5243,12 +5649,22 @@ function buildEnjambeuse(){
   const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
         JAUNE = 0xF0C24A, JAUNE2 = 0xB99630, CREME = 0xF2E7D2, INOX = 0xC9CFD3;
   // Garde au sol sous les jambes, hauteur libre du tunnel, demi-écartement, longueur.
-  /* LE TUNNEL SUIT LA VIGNE. Il tenait 3,10 m de haut sur 3,30 de large pour une vigne
-     de 2,80 et un olivier montant à 3,00 sur 3,12 : dix centimètres de jeu au plus
-     grand tirage. Les deux plantes ayant grandi de 15 %, le tunnel les suit — 3,55 m
-     sous le pont, 3,90 entre les jambes — et l'engin passe à 5,20 m de large dans des
-     chemins de sable qui en font 6,40. */
-  const GARDE = 0.5, H = 3.05 + GARDE, E = 1.95, L = 5.6, hF = 2.0, yT = H + hF + 0.5;
+  /* LE TUNNEL SUIT L'OLIVIER. Il tenait 3,55 m pour un olivier de 3,45 : dix centimètres
+     de jeu au plus grand tirage, et le houppier frôlait déjà à deux centimètres près un
+     taquet du tapis de remontée. L'olivier étant porté à 4,59 m, le tunnel passe à 4,75 —
+     toujours dix centimètres de marge sur le tirage maximal, et 0,90 m de jeu mesuré
+     entre le feuillage et la poutre de pont.
+     LA TÊTE DE COLONNE MAIGRIT EN MÊME TEMPS, et c'est ce qui garde l'engin crédible :
+     tout ce qui est au-dessus du pont — tablier, trémie, cabine, gyrophare — monte avec
+     H. À hF inchangé l'enjambeuse serait passée de 8,86 à 10,06 m, presque le double
+     d'une moissonneuse. En ramenant hF de 2,00 à 1,35 elle ne monte qu'à 9,41 m, et la
+     masse au-dessus du tunnel tombe de 2,50 à 1,98 fois sa hauteur libre : des jambes
+     plus longues sous une superstructure plus courte, c'est-à-dire la silhouette d'une
+     vraie enjambeuse.
+     La largeur, elle, ne bouge PAS : E reste à 1,95, l'engin garde ses 6,50 m hors-tout
+     garde-boue compris, et il n'y a pas un centimètre à prendre — les chemins de sable
+     en font 6,40. */
+  const GARDE = 0.5, H = 4.25 + GARDE, E = 1.95, L = 5.6, hF = 1.35, yT = H + hF + 0.5;
   const wr = [], wf = [];
 
   // --- colonnes et pont ---
@@ -6100,13 +6516,24 @@ function itineraire(ax, az, bx, bz){
      perpendiculaire que pour les quatre commerces de la bande nord. Les onze autres
      étaient abordés par le travers — on quittait la chaussée bien avant, on longeait la
      façade, et l'on arrivait sur l'anneau de côté. */
+  /* LA VOIE SE CALE SUR LE BUT QUAND ELLE N'EN EST QU'À UN MÈTRE OU DEUX. Une chaussée
+     fait dix mètres de large : rouler deux mètres à côté de son axe, c'est toujours
+     rouler dessus. Sans ce calage, un but posé à 1,3 m de l'axe de la voie donnait un
+     dernier trajet de 1,3 m PERPENDICULAIRE au bon sens d'approche : l'élagage des
+     points trop rapprochés, plus bas, supprimait le coude d'entrée et le redressement
+     le replaçait au BOUT du parcours. On se rangeait tout droit sur cent mètres pour
+     aborder l'anneau par le travers au dernier mètre. C'est arrivé au restaurant le jour
+     où les dalles ont grandi et où les commerces ont glissé le long de leur bande. */
+  const CALE = 2.0;
+  const vA2 = Math.abs(vA - bx) < CALE ? bx : vA;
+  const hA2 = Math.abs(hA - bz) < CALE ? bz : hA;
   if(Math.abs(bx - vB) <= Math.abs(bz - hB)){
-    pts.push({x:ax, z:hA});          // on gagne la voie horizontale la plus proche
-    pts.push({x:vB, z:hA});          // on la suit jusqu'à la voie qui dessert le but
+    pts.push({x:ax, z:hA2});         // on gagne la voie horizontale la plus proche
+    pts.push({x:vB, z:hA2});         // on la suit jusqu'à la voie qui dessert le but
     pts.push({x:vB, z:bz});          // puis celle-ci jusqu'à la hauteur du but
   } else {
-    pts.push({x:vA, z:az});
-    pts.push({x:vA, z:hB});
+    pts.push({x:vA2, z:az});
+    pts.push({x:vA2, z:hB});
     pts.push({x:bx, z:hB});
   }
   pts.push({x:bx, z:bz});            // et l'équerre, en dernier
@@ -7952,22 +8379,57 @@ function construireEclairagesNuit(){
     q.position.set(L.x + dx, 0.06, L.z + dz);
     nuitGroupe.add(q); halosLampe.push(q);
   }
-  // Un halo par engin, posé DEVANT le nez et enfant du groupe : il tourne avec la
-  // machine, ce qu'une tache posée sur le décor ne fait jamais. Un seul pour les deux
-  // phares — c'est une flaque de lumière, pas deux pinceaux.
+  /* DEUX CÔNES PAR ENGIN, UN PAR PHARE, et enfants de la CAISSE : ils sont accrochés
+     aux optiques, et les optiques sont sur la caisse — le faisceau prend donc le roulis,
+     le tangage et le pompage de la suspension, et balaie le paysage quand la machine
+     passe une bosse. Le halo au sol des ENGINS, lui, disparaît : c'était le « rond » que
+     le joueur voyait, et deux cônes disent mieux que lui où l'on éclaire. Les cônes
+     entrent dans le sol, le sol est opaque et écrit sa profondeur : cette découpe dessine
+     la flaque toute seule, à la bonne place et de la bonne forme, sans qu'on ait à la
+     peindre. Mesuré : la surface éclairée ne perd que 16 %, et l'on gagne de savoir d'où
+     part la lumière. (haloSol() reste : les lampadaires s'en servent toujours.) */
   for(const m of MACHINES){
     const v = m.v, L = v.group.userData.lampes;
     if(!L || !L.avant || !v.group.userData.feux) continue;
-    // Le groupe des utilitaires est mis à l'échelle : on divise les cotes voulues en
-    // mètres du monde par ce facteur, sinon le fourgon éclairerait 40 % plus loin que
-    // le tracteur sans qu'on l'ait décidé.
+    // Le groupe des utilitaires est mis à l'échelle : on raisonne en mètres du monde,
+    // puis on divise par ce facteur avant de fabriquer la géométrie, sinon le fourgon
+    // éclairerait 40 % plus loin que le tracteur sans qu'on l'ait décidé.
     const s = v.group.scale.x || 1;
-    const h2 = haloSol(4.6/s, 0xFFE3B0);
-    // Nommé : c'est de la lumière, pas de la tôle. Qui mesure l'encombrement d'un
-    // engin — largeur de coupe, passage entre deux clôtures — doit l'écarter.
-    h2.name = 'haloSol';
-    h2.position.set(0, 0.05/s, (L.nez || 2.6) + 3.4/s);
-    v.group.add(h2); v.halo = h2;
+    const A = L.avant, yM = A.y*s, zM = A.z*s;
+    // Le faisceau pose son axe au sol là où la flaque posait son bord : nez + 8,0 m.
+    // C'est la portée que le jeu avait déjà — un disque de 4,6 m centré 3,4 m devant le
+    // nez — et on ne la change pas au passage : un seul changement à la fois.
+    const dz = Math.max(3.0, (L.nez || 2.6)*s + 8.0 - zM);
+    // La pente se DÉDUIT de la hauteur du phare, elle n'est pas écrite : un tracteur
+    // porte ses feux à 1,75 m, une moissonneuse à 3,90 et une enjambeuse à 6,90. À pente
+    // fixe, ces deux-là éclaireraient l'horizon. Plafonnée à 27,2° : au-delà, la tache au
+    // sol devient plus large que longue et cesse de se lire comme un faisceau ; la
+    // machine haute éclaire alors simplement plus loin devant elle. Le plafond est calé
+    // sur l'ENJAMBEUSE, seul engin à l'atteindre : ses feux sont montés de 6,35 à 6,90 m
+    // le jour où le tunnel a suivi l'olivier, et à 26° son faisceau touchait le sol à
+    // 14,1 m — hors de la fourchette que le contrôle exige. À 27,2° il retombe à 13,4.
+    const pente = Math.min(0.475, Math.atan2(yM, dz));
+    const port = yM/Math.tan(pente);                  // portée horizontale, en mètres
+    const lon = Math.hypot(port, yM);                 // longueur, le long de l'axe
+    // Rayon au phare : un peu plus que la demi-largeur du verre, pour que le cône semble
+    // sortir de la lentille et non d'un point posé devant elle. Rayon au bout : demi-angle
+    // de 8,8°, l'ouverture d'un feu de croisement — au-delà, les deux cônes se confondent
+    // en un seul éventail et l'on perd ce qui était demandé.
+    const r0 = 0.60*A.w*s, r1 = r0 + lon*0.155;
+    v.faisceaux = [];
+    for(const sx of A.x){
+      const c = faisceauPhare(lon/s, r0/s, r1/s, 0xFFE3B0);
+      // Nommé, comme l'était le halo : c'est de la lumière, pas de la tôle. Qui mesure
+      // l'encombrement d'un engin — largeur de coupe, passage entre deux clôtures —
+      // doit écarter ce nom-là aussi.
+      c.name = 'faisceauPhare';
+      c.position.set(sx, A.y, A.z);
+      // rotation.x pique le +Z vers le sol ; rotation.y ouvre les deux faisceaux vers
+      // l'extérieur de 6,3°, sans quoi ils se recouvrent et l'on n'en voit plus qu'un.
+      c.rotation.set(pente, Math.sign(sx)*0.11, 0);
+      (v.body || v.group).add(c);
+      v.faisceaux.push(c);
+    }
   }
 }
 function majEclairagesNuit(){
@@ -7997,9 +8459,12 @@ function majEclairagesNuit(){
     // que le trapèze projeté au sol a disparu.
     for(const h of F.halos){ h.visible = allume; h.material.opacity = k*0.55;
                              h.scale.setScalar(0.85 + 0.3*k); }
-    // Le halo au sol : la même consigne que la lentille et la bille, pour que les trois
-    // s'allument et s'éteignent ensemble.
-    if(v.halo){ v.halo.visible = allume; v.halo.material.opacity = k*0.30; }
+    // Les deux faisceaux : même consigne que la lentille et que la bille, pour que tout
+    // s'allume et s'éteigne ensemble. 0,22 et non 0,30 comme l'ancienne flaque : un cône
+    // ouvert est traversé DEUX fois par le regard, et ses deux parois additives
+    // s'ajoutent — 0,22 en vaut 0,44 à l'écran.
+    if(v.faisceaux) for(const c of v.faisceaux){ c.visible = allume;
+                                                 c.material.opacity = k*0.22; }
   }
 }
 
@@ -9340,6 +9805,26 @@ const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
 /* `modeDe` sert encore au pilote automatique, qui raisonne toujours en « je viens
    vider » ou « je viens remplir ». La colonne, elle, ne pose plus la question : elle
    montre tout. */
+/* DOSER OU DÉPOSER. Le curseur s'ouvrait pour TOUT transfert de plus de deux kilos :
+   rentrer une benne au silo demandait deux appuis — l'action, puis « valider » sur un
+   curseur déjà poussé au maximum — pour un geste où il n'y a rien à choisir. On ne
+   dépose pas les trois quarts d'une benne dans la grille du silo, on la vide.
+   Le dosage n'a de sens que quand la quantité change ce qu'on emporte ou ce qu'on
+   gagne : ce qu'on RÉCUPÈRE d'un stock, parce qu'on ne vient chercher que deux cents
+   kilos d'orge et qu'une caisse entamée n'accepte plus d'autre nature ; ce qu'on VEND,
+   parce que l'étal a un plafond et qu'on garde le reste pour le mieux-disant ; et les
+   bêtes qu'on embarque, parce qu'on vient parfois en chercher une, pas tout l'enclos.
+   Tout le reste — silo, entrepôt, auge, trémie d'usine — part d'un seul appui et en
+   entier : personne n'y est payé au kilo versé, et rien n'y est plafonné qu'on puisse
+   ménager. Le curseur de `verser` mentait d'ailleurs, faute de borner par la place
+   restante dans la trémie de l'usine : il annonçait six cents kilos pour cent de place.
+   Cette table est SÉPARÉE de SENS_VIDER : celle-là dit dans quel sens la matière
+   circule et sert au pilote automatique, celle-ci dit seulement si l'on pose une
+   question au joueur. Les confondre remettrait le curseur sur « ranger » et
+   l'enlèverait à « prendre » — les deux tables se croisent, elles ne se complètent
+   pas : `traire` et `prendre` remplissent, `vendre` vide, et les trois se dosent. */
+const SENS_DOSABLE = {prendre:1, prendreEntrepot:1, reprendre:1, traire:1,
+                      vendre:1, tremieVente:1};
 /* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
    possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
    ait rien demandé. Désormais on répond toujours — mais une seule fois quand il n'y a
@@ -9851,11 +10336,19 @@ function refreshChoix(){
   } else {
     titreTxt = 'Que faire ici ?';
     for(const A of tri){
-      /* Un transfert passe par le curseur dès qu'il y a matière à doser. En dessous de
-         deux kilos il n'y a rien à régler : on lance. */
+      /* UN DÉPÔT NE SE DOSE PAS. Le curseur s'ouvrait pour tout transfert de plus de
+         deux kilos, y compris pour rentrer une benne au silo : deux appuis — l'action,
+         puis « valider » sur un curseur déjà poussé au maximum — pour un geste où il
+         n'y avait rien à choisir, et une benne qui ne bougeait pas d'un kilo tant que
+         la fenêtre restait ouverte. Seuls les sens de SENS_DOSABLE la posent encore, et
+         seulement s'il y a plus de deux kilos en jeu : en dessous, il n'y a rien à
+         régler. Un dépôt, lui, garde `choixLimite` à null — c'est ce qui le laisse
+         aller jusqu'au dernier kilo au lieu de s'arrêter en route. Et l'on peut encore
+         n'en déposer qu'une partie : le bouton ⏹ de la ligne « En cours » arrête le
+         transfert où il en est. */
       const max = quantiteMax(m, A);
       lignes.push({txt:A.txt, cls:'ch', f:()=>{
-        if(max >= 2)
+        if(SENS_DOSABLE[A.sens] && max >= 2)
           ouvrirQuantite({
             max: max, titre: A.txt,
             sortie: (q)=> enKg(q),
@@ -10097,7 +10590,9 @@ function majJauges(dt){
     let gros = null;
     for(const k in ENTREPOT.stock)
       if(!gros || ENTREPOT.stock[k] > ENTREPOT.stock[gros]) gros = k;
-    montrerJauge(jaugeEntrepot, HANGAR.x, 11.5, HANGAR.z,
+    // La jauge flottait 2,10 m au-dessus du faîtage de l'entrepôt ; celui-ci ayant
+    // grandi, sans le facteur elle lui serait rentrée dedans à quarante centimètres près.
+    montrerJauge(jaugeEntrepot, HANGAR.x, 11.5*BAT_ECHELLE, HANGAR.z,
       'Entrepôt ' + Math.round(et) + ' kg' + (gros ? ' · ' + nomDe(gros) : ''),
       et/ENTREPOT.stockMax(), et > ENTREPOT.stockMax()*0.92 ? '#E8563F' : '#9FD8E8', dt);
   } else cacherJauge(jaugeEntrepot, dt);
