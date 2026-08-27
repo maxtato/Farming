@@ -27,6 +27,7 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
 | **Changer d'engin** | le **garage**, tout en bas, ou les touches 1 à 4 : la liste du parc s'ouvre |
 | **Automatiser** | le **A cerclé**, à droite du crochet : la carte en grand, on compose une file de tâches |
+| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les quatre commandes, et les quinze paliers à venir |
 | **Régler le semoir** | l'**épi**, à gauche du crochet — le seul bouton qui garde un mot, parce qu'aucun dessin ne dit « tournesol » |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
@@ -81,6 +82,121 @@ La caisse est pleine de lait ? Seule la laiterie s'allume, sur toute la vallée.
 vide, elle s'éteint et le silo s'allume à sa place. La condition ne tient pas compte de
 la distance : c'est ce qui permet de choisir sa destination d'un bout à l'autre de la
 carte, au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé de tournée.
+
+## La campagne
+
+Le jeu donnait tout tout de suite : sept cultures achetables à la première minute,
+cinq espèces, six modules d'atelier, et l'unique frein était le prix. Qui accumulait
+assez d'argent achetait le jeu entier sans avoir rien appris.
+
+Une campagne le remplace, avec **deux valeurs globales** et pas une de plus :
+
+- l'**argent** dit à quelle vitesse on exploite ce qu'on a ;
+- l'**expérience** dit ce à quoi on a droit.
+
+On ne peut donc pas sauter un maillon en payant. Et l'on ne peut pas non plus rester
+bloqué : les commandes libres donnent de l'expérience elles aussi, et tout ce qui sort
+de la ferme en donne un filet — un centième d'euro de marchandise vendue.
+
+La règle de découverte est toujours la même : **un acheteur réclame quelque chose
+qu'on ne sait pas encore produire**. C'est la demande qui enseigne la mécanique.
+
+### Les quinze paliers
+
+| | ouvre |
+|---|---|
+| 1 · Le fermier | blé, charrue, semoir, benne, tracteur, moissonneuse, pick-up, coopérative, usine de céréales |
+| 2 · Productivité | l'épandeur, 350 € |
+| 3 · Première transformation | le moulin, la farine, la boulangerie |
+| 4 · Expansion | deuxième parcelle, maïs, deuxième tracteur |
+| 5 · Élevage léger | broyeur, poules, marché |
+| 6 · L'orge | troisième parcelle, orge, brasserie, fourgon |
+| 7 · L'avoine | avoine, usine d'avoine, mélangeur premium, ruches |
+| 8 · Les vaches | vaches, laiterie, fromagerie du village |
+| 9 · Fromage fermier | fromagerie de la ferme, restaurant, troisième tracteur |
+| 10 · Les moutons | moutons, brebis, atelier textile, fromagerie de brebis |
+| 11 · Le colza | colza, pressoir, huile de colza |
+| 12 · Les olives | oliveraie, enjambeuse, huile d'olive |
+| 13 · Le raisin | vigne, cave, caviste |
+| 14 · Les cochons | cochons, boucherie |
+| 15 · Exploitation complète | supermarché, toute la vallée |
+
+Un commerce est **bâti dès le premier jour** — on le voit, on passe devant — mais il
+ne traite avec la ferme qu'à son palier, et sa bulle le dit depuis la route. C'est ce
+qui donne à un village construit d'un bloc l'allure d'un village qui s'ouvre.
+
+La table `NIVEAUX` est la seule source de tout cela. Elle est retournée **une fois**
+en index inverse : les douze verrous du fichier l'interrogent vingt fois par seconde
+sans jamais parcourir quinze niveaux.
+
+### Les missions, et les seuils qui s'en déduisent
+
+Vingt et une missions de campagne, une à la fois, dans l'ordre. Deux formes : **livrer**
+des lignes chez un commerce nommé, ou **faire** quelque chose qui ne se livre pas —
+s'équiper d'un épandeur, acheter une deuxième parcelle, monter un poulailler.
+
+Les seuils d'expérience **ne se règlent pas** : le seuil du palier *n+1* est la somme
+des expériences des missions du palier *n* et de tous ceux d'avant. Deux tables réglées
+à la main finissent toujours par se contredire — un palier qu'on n'atteint pas en
+faisant exactement ce que le jeu demande, ou un palier franchi avant sa mission. Faire
+la campagne suffit donc toujours, très exactement, et les commandes libres permettent
+d'aller plus vite sans jamais permettre de sauter un maillon.
+
+### Les quatre commandes
+
+Quatre commandes visibles en permanence, et chacune a son caractère :
+
+| | |
+|---|---|
+| **Brute** | ce qui sort de la terre ou de la bête, tel quel |
+| **Transformée** | un produit de l'atelier. Demande une chaîne |
+| **Composée** | deux ou trois produits chez le même client. Demande une tournée |
+| **Urgente** | une seule marchandise, en quantité, avec un délai. Paie double, et se perd |
+
+On les refuse d'un doigt et une autre prend la place. **La récompense ne casse pas
+l'économie** : on est payé le prix normal de la marchandise au moment où on la livre —
+le circuit habituel, celui des étals et des caisses d'usine — puis la prime s'ajoute à
+la clôture. Les prix du village restent donc exacts.
+
+Le **client se choisit avant les lignes**, et pas l'inverse : en composant d'abord un
+panier puis en cherchant qui le prend, une commande finissait par réclamer de l'huile
+d'olive à l'usine de céréales. Relevé : **4 000 tirages, 0 commande indélivrable**.
+
+Une case honorée se remplit **vingt-cinq secondes plus tard**. Sans ce délai, une seule
+benne de deux cents kilos soldait la commande, en faisait apparaître une neuve du même
+produit chez le même client, et la soldait aussi — cinq fois de suite, sans bouger :
+587 € pour une livraison qui devait en rapporter deux cents.
+
+### Les temps
+
+| | pousse | avec engrais |
+|---|---|---|
+| Blé | 75 s | 55 s |
+| Avoine | 90 s | 66 s |
+| Orge | 100 s | 73 s |
+| Maïs | 120 s | 88 s |
+| Colza | 150 s | 110 s |
+| Raisin | 210 s, puis **150** | 175 s |
+| Olives | 240 s, puis **180** | 200 s |
+
+Une permanente **repart plus vite qu'elle ne s'installe** : c'est ce qui paie l'attente
+initiale, et ce qui la distingue d'une annuelle autrement que par le fait de ne pas
+relabourer. Un cinquième plan de la grille, `replante[]`, dit qu'un pied est en place ;
+il n'entre pas dans la sauvegarde compressée — quatre plans y sont empilés et leur
+ordre est figé dans les parties enregistrées — il se redéduit à la relecture.
+
+L'engrais gagne **27 % de temps sur les annuelles** et 17 % sur les permanentes, au lieu
+de 44 % partout : à 44 %, la même terre devenait presque deux fois plus productive pour
+trois euros d'épandage, et la décision n'en était plus une.
+
+### L'échelle des prix
+
+La première parcelle à racheter valait 4 000 € quand la ferme commence à zéro et qu'une
+première livraison rapporte 135 : il fallait une trentaine de tournées avant le premier
+agrandissement. Elle vaut **1 200 €**. L'échelle monte ensuite de moitié à chaque cran —
+1 200, 2 500, 4 500, 7 500, 12 000 — puis s'aplatit à partir de la dixième : un empire
+ne doit pas doubler de prix indéfiniment. Le total reste du même ordre qu'avant ; c'est
+sa **répartition** qui change, et avec elle les vingt premières minutes.
 
 ## La chaîne
 
@@ -187,6 +303,56 @@ déborde.
 La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre froide.
 On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
 ainsi deux fois son prix de marché, au prix d'une tournée de plus.
+
+## L'atelier : huit métiers, trois réglages
+
+Il portait cinq paliers, chacun donnant à la fois un module et de la capacité, et le
+premier était offert. Les deux choses se séparent.
+
+**Huit métiers**, qu'on monte un par un — et chacun a son propre temps, qui dit sa
+valeur :
+
+| | | les 100 kg engagés |
+|---|---|---|
+| Moulin | blé → farine | 20 s |
+| Broyeur | maïs → aliment | 15 s |
+| Mélangeur premium | maïs + orge + avoine → aliment premium | 30 s |
+| Fromagerie | lait → fromage | 90 s |
+| Fromagerie de brebis | lait de brebis → fromage de brebis | 120 s |
+| Pressoir à colza | colza → huile | 60 s |
+| Pressoir à olives | olives → huile d'olive | 90 s |
+| Cave | raisin → vin | 120 s |
+
+**Trois réglages universels**, qui ne donnent aucun métier neuf mais changent le
+rythme : la **capacité** d'un lot (100 → 250 → 500 → 1 000 kg de matière engagée), la
+**vitesse** (100 → 150 %), et la **file** (1 → 5 lots empilés). En début de partie on
+revient lancer chaque transformation ; à la fin on prépare cinq lots et l'on part faire
+les foins. Un joueur qui ne fera jamais de vin n'a plus à payer la cave pour avoir du
+débit.
+
+Un lot se mesure en **matière engagée** et non en produit sorti : « cent kilos par lot »
+doit vouloir dire la même chose au moulin, où cent kilos de blé donnent 72 kg de farine,
+et à la cave, où cent kilos de raisin en donnent 70.
+
+La silhouette du bâtiment grandit en **huit crans** au lieu de cinq et finit exactement
+aux mêmes cotes qu'avant — 13,4 m de large. Ce qui change, c'est qu'on la voit grandir
+huit fois.
+
+## Le lait de brebis et les deux fromages
+
+La brebis se conduit comme un mouton — même silhouette, mêmes robes claires, même
+clôture — mais elle donne du **lait en plus de la laine**. C'est la première espèce du
+jeu à porter deux produits, sur deux tanks et une seule jauge : celle-ci suit le tank le
+plus plein, c'est-à-dire celui qui va déborder, et son étiquette nomme les deux.
+
+Cent kilos de lait de vache font **12 kg** de fromage ; cent kilos de lait de brebis en
+font **20**. Le fromage de brebis n'est pas un fromage plus cher : c'est un **produit
+fini**, qui vaut donc le palier ×2 et non ×1,5 — le mieux payé que la ferme sache
+fabriquer, à 11,00 € le kilo contre 7,75.
+
+La fromagerie du village reste utile : elle achète le lait directement. Le choix est
+donc entier — lait à la fromagerie, argent tout de suite ; ou lait à l'atelier, fromage
+au restaurant, davantage d'argent contre du temps et du transport.
 
 ## Deux magasins, et un atelier qui travaille seul
 
@@ -1078,6 +1244,20 @@ Les traînées d'outil, elles, ne sont pas sauvegardées — les rejouer à l'id
 demanderait de conserver toutes les trajectoires. Au chargement, chaque cellule est
 repeinte selon son état : le champ est un peu plus carré qu'à la sortie de la
 machine, mais il dit exactement la même chose du terrain.
+
+**La version de la sauvegarde ne bouge jamais.** La garde de relecture est une égalité
+stricte — `S.v !== 1` — et l'incrémenter rejetterait d'un coup toutes les parties en
+cours avec « sauvegarde illisible ». La campagne s'y est donc greffée en **champs
+facultatifs** : une partie d'avant n'a pas de bloc `campagne`, et se relit sans lui.
+
+Elle reçoit alors le palier que son avancement mérite, **déduit de ce qu'elle possède**
+— ses cultures, ses engins, ses outils, ses métiers d'atelier, ses enclos, ses parcelles.
+C'est la lecture la plus généreuse, et c'est voulu : mieux vaut rendre un palier de trop
+que reprendre un tracteur payé. La règle générale est que **les paliers sont un plancher,
+la propriété l'emporte toujours** — rien de ce qui a été acheté n'est jamais reverrouillé.
+
+Ses cinq anciens paliers d'atelier deviennent les six métiers correspondants, rendus
+gratuitement : un joueur qui avait payé la cave se réveillerait sans elle autrement.
 
 « Nouvelle partie », dans l'onglet Réglages, efface tout et repart d'une terre vierge.
 
