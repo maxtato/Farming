@@ -320,8 +320,10 @@
     letter-spacing:.4px;pointer-events:none}
   #plancarte{flex:1;min-height:0;position:relative;margin:0 10px;border-radius:12px;
     overflow:hidden;background:#26332B}
+  /* touch-action:none — sans quoi le navigateur s'empare du pincement pour zoomer la
+     PAGE, et la carte ne voit jamais le second doigt. */
   #plancv{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;
-    image-rendering:auto}
+    image-rendering:auto;touch-action:none}
   #planaide{font-size:8px;letter-spacing:.8px;opacity:.45;padding:5px 12px 0;flex:none;
     text-align:center}
   #planpied{display:flex;gap:8px;padding:8px 10px;flex:none}
@@ -6386,7 +6388,19 @@ function planAuto(m, cible){
   }
   if(!isFinite(rx0)) return null;
   const v = m.v;
-  const pas = T.width*0.88;
+  /* LE TOUR SUIVANT MORD SUR LE PRÉCÉDENT. Deux passes espacées d'une largeur d'outil se
+     touchent en théorie et se manquent en pratique : l'outil est traîné quatre à six
+     mètres derrière le tracteur, il coupe donc les virages, et c'est dans les angles que
+     restaient des coins jamais travaillés. Un recouvrement d'un huitième ne suffisait
+     pas ; à un quart, la passe intérieure repasse franchement sur le bord de la
+     précédente et les coins se referment. Ce qu'on paie, c'est un tour de plus par
+     parcelle — quelques secondes — pour ne plus laisser de terre derrière soi.
+     Le chiffre est relevé et non choisi : sur les seize cas du banc de couverture — quatre
+     outils par quatre tailles de parcelle, pilotés image par image — la couverture du pire
+     cas passe de 77,7 % à 88,9 et la moyenne de 92,6 à 93,6. Le paysage n'est pas lisse,
+     l'outil traînant derrière coupant les virages : 0,70 redescend à 81,3 et 0,86 à 78,6.
+     C'est 0,74 qui tient les deux bouts. */
+  const pas = T.width*0.74;
   // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
   // affleure la clôture sans que la machine s'en approche.
   /* LA MARGE TIENT LE TRACTEUR DANS LA PARCELLE, PAS L'OUTIL. Elle valait une
@@ -6402,9 +6416,21 @@ function planAuto(m, cible){
      78,6 % au pire à 73,5 — parce qu'un rectangle plus petit fait des tours plus
      courts, où un outil traîné quatre à six mètres derrière suit encore moins bien.
      Ce qui rattrape les trous, c'est de REPASSER, en entrant par un autre coin. */
-  let x0 = best.x - best.w/2 + marge, x1 = best.x + best.w/2 - marge;
-  let z0 = best.z - best.h/2 + marge, z1 = best.z + best.h/2 - marge;
-  void rx0; void rx1; void rz0; void rz1;
+  /* ET LE PREMIER TOUR PASSE UN PEU DEHORS. La marge tenait le tracteur À L'INTÉRIEUR :
+     l'outil, centré sur lui, n'affleurait le bord de la parcelle que pour les outils
+     larges. Un outil étroit — la charrue fait trois mètres — voyait sa bordure extérieure
+     tomber pile sur la limite, et il suffisait de quelques centimètres de dérive pour
+     que la dernière rangée de cellules ne soit jamais retournée. Le premier tour, celui
+     qui longe les quatre bords, sort donc de la parcelle : le tracteur roule sur la
+     bande de sable qui la sépare de sa voisine — six mètres quarante de large, il y a la
+     place — et l'outil couvre franchement la limite. Les tours suivants rentrent d'eux-
+     mêmes, le resserrage se chargeant du reste. Le débord est borné par la largeur de
+     l'outil : un outil étroit n'a pas besoin de sortir loin, et un outil large sortait
+     déjà tout seul. */
+  const DEBORD = Math.min(0.9, T.width*0.30);
+  let x0 = best.x - best.w/2 - DEBORD, x1 = best.x + best.w/2 + DEBORD;
+  let z0 = best.z - best.h/2 - DEBORD, z1 = best.z + best.h/2 + DEBORD;
+  void marge; void rx0; void rx1; void rz0; void rz1;
   // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
   // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
   const coins0 = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
@@ -6561,10 +6587,41 @@ function suivreRoute(v, bx, bz, cle, rayon){
      poser assez longtemps pour charger. On retient donc le but atteint : tant qu'on
      ne s'en éloigne pas franchement, on ne repart pas. */
   if(v.routeArr === cle && d0 < R + 3.5) return null;
-  if(d0 < R){ v.route = null; v.routeBut = null; v.routeArr = cle; return null; }
+  if(d0 < R){
+    /* PAR OÙ L'ON EST ENTRÉ, ON RESSORTIRA. Le dernier trajet d'un itinéraire tombe à
+       l'équerre sur le point jaune : on retient son COUDE, c'est-à-dire l'endroit de la
+       chaussée d'où l'on est descendu. Sans cette mémoire, l'engin qui a fini son
+       chargement refabrique un itinéraire depuis le point de dépose et pivote sur place
+       pour le prendre — un demi-tour de dix mètres de rayon collé au bâtiment, qui
+       balaie la tour du silo avec sa remorque. */
+    v.sortie = (v.routeSortieCle === cle) ? v.routeSortie : null;
+    v.route = null; v.routeBut = null; v.routeArr = cle; return null;
+  }
   if(!v.route || v.routeBut !== cle){
     v.route = itineraire(v.pos.x, v.pos.z, bx, bz); v.routeI = 0; v.routeBut = cle;
     v.routeArr = null;
+    /* LE COUDE SE RETIENT À LA CONSTRUCTION, PAS À L'ARRIVÉE. Le dernier point de passage
+       se valide à cinq mètres et demi, et l'itinéraire est jeté dès qu'il ne reste plus
+       rien à suivre : à l'instant où l'on entre dans le rayon d'arrêt, il n'y a plus de
+       route à consulter. On note donc l'avant-dernier point tout de suite — et l'on ne
+       l'écrase JAMAIS par un itinéraire dégénéré : les huit derniers mètres se font en
+       ligne droite, sans coude, et cet itinéraire-là d'un seul point effaçait justement
+       le coude qu'on venait de retenir. Le coude porte donc le nom du but auquel il mène :
+       c'est ce qui empêche de ressortir d'un lieu par le coude d'un autre. */
+    const r2 = v.route;
+    if(r2 && r2.length >= 2){
+      /* ON RECULE UN PEU AU-DELÀ DU COUDE, ET C'EST CE QUI ÉVITE LE DEMI-TOUR. Reculer
+         jusqu'au coude exactement laisse la machine sur la chaussée mais LE NEZ VERS
+         L'IMPASSE : son prochain point de passage est alors derrière elle, elle fait
+         demi-tour sur place, et c'est ce demi-tour-là — dix mètres de rayon pour une
+         moissonneuse — qui allait chercher la tour du silo. Six mètres de plus en
+         arrière, et le coude repasse DEVANT elle : elle repart en marche avant, sans
+         jamais se retourner à côté du bâtiment. */
+      const A = r2[r2.length - 2], B = r2[r2.length - 1];
+      const dx = A.x - B.x, dz = A.z - B.z, LL = Math.hypot(dx, dz) || 1;
+      v.routeSortie = {x:A.x + dx/LL*SORTIE_LOIN, z:A.z + dz/LL*SORTIE_LOIN};
+      v.routeSortieCle = cle;
+    }
   }
   const wp = v.route[v.routeI];
   if(!wp){ v.route = null; v.routeBut = null; return null; }
@@ -6573,12 +6630,62 @@ function suivreRoute(v, bx, bz, cle, rayon){
   if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 5.5){ v.routeI++; return [0, 0.5]; }
   return viser(v, wp.x, wp.z, 2.4);
 }
+/* De combien on recule AU-DELÀ du coude. Relevé sur la sortie du silo, la plus serrée du
+   jeu — la tour se dresse à sept mètres de la grille : 4 m de recul laissent 1,55 m entre
+   la machine et la tour, 6 m en laissent 2,56, 8 m en laissent 3,44 et 10 m, 4,20. On
+   prend huit : au-delà, on recule longtemps pour gagner peu, et sur la rocade on
+   traverserait la chaussée d'en face. */
+const SORTIE_LOIN = 8;
+/* ON RESSORT EN MARCHE ARRIÈRE, JUSQU'À LA CHAUSSÉE.
+   Un point de dépose est au fond d'une impasse : dix mètres de parvis entre la façade et
+   le bitume, ou la grille du silo au pied de sa tour. Repartir en pivotant sur place y
+   demande un demi-tour plus large que l'impasse, et la remorque va chercher le mur. Un
+   conducteur ne fait pas ça : il ressort par où il est entré, en marche arrière, et ne
+   se retourne qu'une fois sur la route.
+   La marche arrière est celle de l'engin, pas une astuce : `update()` accepte des gaz
+   négatifs et inverse alors le braquage tout seul, comme le fait un vrai train arrière.
+   D'où le signe de `st` — pour que le CUL de la machine parte vers le but.
+   On ne recule que si le but est bien DERRIÈRE : passé un radian de travers, c'est qu'on
+   s'est déjà retourné, et reculer ne ferait que reculer. */
+function marcheArriere(v, tx, tz, rayon){
+  const dx = tx - v.pos.x, dz = tz - v.pos.z;
+  if(Math.hypot(dx, dz) < (rayon || 3.0)) return null;
+  let dd = Math.atan2(dx, dz) - (v.cap + Math.PI);
+  while(dd >  Math.PI) dd -= Math.PI*2;
+  while(dd < -Math.PI) dd += Math.PI*2;
+  if(Math.abs(dd) > 1.1) return null;
+  return [Math.max(-1, Math.min(1, -dd*2.4)), -0.55];
+}
+/* Le pas de recul, appelé au tout début de chaque tour de pilote : tant qu'il rend une
+   commande, l'engin n'a rien d'autre à faire. Le compte à rebours est une sécurité — une
+   machine qui bute sur quelque chose en reculant ne doit pas y rester la nuit entière. */
+function pasDeRecul(v, dt){
+  if(!v.reculer) return null;
+  v.reculT = (v.reculT || 0) + dt;
+  const r = (v.reculT < 8) ? marcheArriere(v, v.reculer.x, v.reculer.z, 3.5) : null;
+  if(r) return r;
+  v.reculer = null; v.reculT = 0;
+  return null;
+}
+// On quitte un lieu : on note par où ressortir, et l'itinéraire ne se calculera qu'une
+// fois revenu sur la chaussée.
+function quitterLieu(v){
+  v.reculer = v.sortie; v.reculT = 0; v.sortie = null;
+  v.route = null; v.routeBut = null; v.routeArr = null;
+  /* ET L'ON REGAGNE SON CHANTIER PAR LA ROUTE. Le plan de travail garde son point
+     courant, mais le drapeau « déjà entré » retombe : sans lui, la moissonneuse qui
+     vient de vider sa trémie visait sa passe suivante EN LIGNE DROITE depuis la grille
+     du silo — c'est-à-dire à travers la tour, où elle restait plantée pleins gaz. */
+  if(v.plan) v.plan.entre = false;
+}
 /* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
    celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
 function tacheSuivante(m){
   const v = m.v, M = v.mission;
   v.plan = null; v.sensVoulu = 'route'; M.etape = 0; M.attente = 0;
   v.route = null; v.routeBut = null; v.routeArr = null;
+  // On ne remet PAS `reculer` à zéro : la tâche change, mais l'engin est encore au fond
+  // de son impasse et doit d'abord en sortir.
   M.i++;
   if(M.i < M.taches.length) return;
   if(M.boucle){ M.i = 0; return; }
@@ -6589,11 +6696,13 @@ function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
   if(!t){ tacheSuivante(m); return [0, 0]; }
+  const rec = pasDeRecul(v, dt);
+  if(rec) return rec;
   if(t.quoi === 'parcelle'){
     // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
     if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
     if(v.goSilo){
-      if(hopper <= 0.5) v.goSilo = false;
+      if(hopper <= 0.5){ v.goSilo = false; quitterLieu(v); }
       else {
         v.sensVoulu = 'vider';
         const r = suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0);
@@ -6637,6 +6746,7 @@ function missionDrive(m, dt){
   // de quoi repartir quand même si le lieu ne peut rien nous donner.
   if(!encore || M.attente > 40){
     v.sensVoulu = 'route'; M.attente = 0;
+    quitterLieu(v);                      // on ressort d'abord, on s'oriente ensuite
     if(M.etape === 0) M.etape = 1;       // chargé : on va livrer
     else tacheSuivante(m);               // livré : l'aller-retour est fait
   }
@@ -6645,10 +6755,12 @@ function missionDrive(m, dt){
 function autoDrive(m, dt){
   const v = m.v;
   if(v.mission) return missionDrive(m, dt);
+  const rec = pasDeRecul(v, dt);
+  if(rec) return rec;
   // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
   if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
   if(v.goSilo){
-    if(hopper <= 0.5){ v.goSilo = false; }
+    if(hopper <= 0.5){ v.goSilo = false; quitterLieu(v); }
     else return suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0) || [0, 0];
   }
   if(!v.plan){
@@ -7847,6 +7959,9 @@ function ouvrirPlan(){
   planTaches = (M.v.mission ? M.v.mission.taches.slice() : []);
   planBoucle = !!(M.v.mission && M.v.mission.boucle);
   planNav = null;
+  // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
+  // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
+  planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
   planEl.style.display = 'block';
   paused = true;
   majPlan();
@@ -7894,9 +8009,13 @@ function majPlan(){
     const b = planPuce(nom + '   ✕', false, ()=>{ planTaches.splice(k, 1); majPlan(); });
     b.classList.add('tache'); rT.appendChild(b);
   });
-  document.getElementById('planaide').textContent = (planMode === 'parcelle')
+  // Le pincement ne se devine pas : on le dit, et seulement tant qu'on ne s'en est pas
+  // servi — une fois la carte grossie, la ligne redevient l'aide au choix.
+  const zoomDit = planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.';
+  document.getElementById('planaide').textContent = ((planMode === 'parcelle')
     ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
-    : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.');
+    : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.'))
+    + zoomDit;
   document.getElementById('planboucle').classList.toggle('on', planBoucle);
   const lancer = document.getElementById('planlancer');
   lancer.classList.toggle('no', !planTaches.length);
@@ -7908,17 +8027,42 @@ function majPlan(){
    d'ensemble du jeu. Elle ne montre que ce qu'on peut désigner — les parcelles, les
    lieux où l'on charge et décharge, les engins — plus les routes pour se repérer. */
 let planEch = 1, planOx = 0, planOy = 0;
+/* ON ZOOME À DEUX DOIGTS. La carte tenait le monde entier dans un rectangle de trois
+   cents pixels : une parcelle y faisait vingt pixels de côté et un point de chargement
+   cinq de rayon, si bien que désigner le bon au doigt relevait de la chance. Le
+   grossissement et le recentrage vivent dans deux variables — le facteur, et le point du
+   MONDE qui doit tomber au milieu du cadre — et tout le tracé passe déjà par px()/pz(),
+   qui s'en déduisent. Rien d'autre à retoucher. */
+let planZoom = 1, planCx = null, planCz = null;
+const PLAN_ZOOM_MAX = 6;
+// Le cadrage ne sort jamais de la carte : à zoom 1 il est exactement centré, et plus on
+// grossit, plus le centre peut s'écarter — d'exactement ce que le cadre laisse voir.
+function planCadrer(L, H, base){
+  planZoom = Math.max(1, Math.min(PLAN_ZOOM_MAX, planZoom));
+  if(planCx === null){ planCx = X0 + WX/2; planCz = Z0 + WZ/2; }
+  const demiX = Math.max(0, WX/2 - L/(2*base*planZoom));
+  const demiZ = Math.max(0, WZ/2 - H/(2*base*planZoom));
+  planCx = Math.max(X0 + WX/2 - demiX, Math.min(X0 + WX/2 + demiX, planCx));
+  planCz = Math.max(Z0 + WZ/2 - demiZ, Math.min(Z0 + WZ/2 + demiZ, planCz));
+}
 function dessinerCarte(){
   const box = planCv.parentElement;
   const L = box.clientWidth, H = box.clientHeight;
   if(!L || !H) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  planCv.width = Math.round(L*dpr); planCv.height = Math.round(H*dpr);
+  // Redimensionner un canevas l'efface et le réalloue : on ne le fait que si la taille
+  // a vraiment changé, sinon chaque image de pincement repart d'une allocation.
+  const cw = Math.round(L*dpr), ch = Math.round(H*dpr);
+  if(planCv.width !== cw || planCv.height !== ch){ planCv.width = cw; planCv.height = ch; }
   const c = planCv.getContext('2d');
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // même échelle sur les deux axes, centrée : la carte du monde est carrée
-  planEch = Math.min(L/WX, H/WZ);
-  planOx = (L - WX*planEch)/2; planOy = (H - WZ*planEch)/2;
+  // même échelle sur les deux axes : la carte du monde est carrée
+  const base = Math.min(L/WX, H/WZ);
+  planCadrer(L, H, base);
+  planEch = base*planZoom;
+  planOx = L/2 - (planCx - X0)*planEch;
+  planOy = H/2 - (planCz - Z0)*planEch;
+  c.clearRect(0, 0, L, H);
   const px = (x)=> planOx + (x - X0)*planEch, pz = (z)=> planOy + (z - Z0)*planEch;
   c.fillStyle = '#26332B'; c.fillRect(0, 0, L, H);
   // les quatre brins de rocade
@@ -7985,7 +8129,72 @@ function carteVersMonde(ev){
   return {x: X0 + (ev.clientX - r.left - planOx)/planEch,
           z: Z0 + (ev.clientY - r.top - planOy)/planEch};
 }
+/* LE DOIGT : UN POUR DÉSIGNER ET FAIRE GLISSER, DEUX POUR GROSSIR.
+   La désignation se fait au RELÂCHEMENT et non plus à l'appui : tant qu'on appuie, on ne
+   sait pas encore si le doigt va rester en place — c'est une désignation — ou partir —
+   c'est un déplacement de la carte. Huit pixels de tolérance, la largeur d'un doigt qui
+   tremble. Le second doigt, lui, ne désigne jamais rien : il ouvre ou resserre. */
+const planDoigts = new Map();
+let planPince = 0, planBouge = false;
+const planMilieu = ()=>{
+  let sx = 0, sy = 0;
+  for(const p of planDoigts.values()){ sx += p.x; sy += p.y; }
+  return {x:sx/planDoigts.size, y:sy/planDoigts.size};
+};
+const planEcart = ()=>{
+  const t = Array.from(planDoigts.values());
+  return t.length < 2 ? 0 : Math.hypot(t[0].x - t[1].x, t[0].y - t[1].y);
+};
 planCv.addEventListener('pointerdown', (ev)=>{
+  // La capture garde le doigt sur le canevas même s'il sort du cadre en glissant. Elle
+  // n'est pas indispensable et elle refuse un pointeur qu'elle ne connaît pas : si elle
+  // échoue, on continue sans — l'important est que la carte réponde.
+  try { planCv.setPointerCapture(ev.pointerId); } catch(e){}
+  planDoigts.set(ev.pointerId, {x:ev.clientX, y:ev.clientY,
+                                x0:ev.clientX, y0:ev.clientY});
+  if(planDoigts.size === 2){ planPince = planEcart(); planBouge = true; }
+});
+planCv.addEventListener('pointermove', (ev)=>{
+  const p = planDoigts.get(ev.pointerId);
+  if(!p) return;
+  const avant = planMilieu(), ec0 = planEcart();
+  p.x = ev.clientX; p.y = ev.clientY;
+  if(Math.hypot(p.x - p.x0, p.y - p.y0) > 8) planBouge = true;
+  const apres = planMilieu(), ec1 = planEcart();
+  // Le glissement : le point du monde sous le milieu des doigts ne doit pas bouger.
+  planCx -= (apres.x - avant.x)/planEch;
+  planCz -= (apres.y - avant.y)/planEch;
+  if(planDoigts.size === 2 && ec0 > 10 && ec1 > 10){
+    /* On grossit AUTOUR DU MILIEU DES DOIGTS : c'est ce qui donne l'impression de tirer
+       la carte elle-même. Sans cela le cadre grossit autour de son centre et l'endroit
+       qu'on visait s'échappe sur le côté. */
+    const r = planCv.getBoundingClientRect();
+    const vise = {x: X0 + (apres.x - r.left - planOx)/planEch,
+                  z: Z0 + (apres.y - r.top - planOy)/planEch};
+    const k = Math.max(0.5, Math.min(2, ec1/ec0));
+    const z0 = planZoom;
+    planZoom = Math.max(1, Math.min(PLAN_ZOOM_MAX, planZoom*k));
+    const f = planZoom/z0;
+    planCx = vise.x + (planCx - vise.x)/f;
+    planCz = vise.z + (planCz - vise.z)/f;
+    planPince = ec1;
+  }
+  dessinerCarte();
+});
+const planDoigtFin = (ev)=>{
+  const p = planDoigts.get(ev.pointerId);
+  planDoigts.delete(ev.pointerId);
+  if(!p) return;
+  // Un seul doigt, resté sur place : c'est une désignation. Sinon on a fait glisser.
+  const immobile = !planBouge && Math.hypot(ev.clientX - p.x0, ev.clientY - p.y0) <= 8;
+  if(planDoigts.size === 0){
+    if(immobile) planDesigner(ev);
+    planBouge = false;
+  }
+};
+planCv.addEventListener('pointerup', planDoigtFin);
+planCv.addEventListener('pointercancel', planDoigtFin);
+function planDesigner(ev){
   const w = carteVersMonde(ev);
   if(planMode === 'parcelle'){
     const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
@@ -8006,7 +8215,7 @@ planCv.addEventListener('pointerdown', (ev)=>{
     else planNav = null;
   }
   majPlan();
-});
+}
 document.getElementById('planfermer').addEventListener('pointerdown', fermerPlan);
 document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
   planBoucle = !planBoucle; majPlan();
@@ -8400,25 +8609,49 @@ function construireEclairagesNuit(){
     // C'est la portée que le jeu avait déjà — un disque de 4,6 m centré 3,4 m devant le
     // nez — et on ne la change pas au passage : un seul changement à la fois.
     const dz = Math.max(3.0, (L.nez || 2.6)*s + 8.0 - zM);
+    /* C'EST LA GÉNÉRATRICE BASSE QUI VISE LE SOL, PAS L'AXE. En pointant l'AXE sur le
+       point d'atterrissage, la moitié basse du tronc passait sous le sol bien avant le
+       bout — et le sol, opaque, écrit sa profondeur : cette paroi-là était retirée. Or
+       c'est de la TRAVERSÉE DES DEUX PAROIS que le cône tient son cœur clair. Le joueur
+       voyait donc son faisceau se fendre en deux rails lumineux encadrant une arche
+       sombre : mesuré, le milieu tombait à 46 % de ses bords sur le quart à la moitié de
+       la longueur, le fourgon et le pick-up étant les pires parce que leurs phares sont
+       bas. On vise donc avec le BAS du faisceau, et l'on coupe le cône là où ce bas
+       touche la terre : tout le volume reste alors au-dessus du sol, les deux parois se
+       voient partout, et le cône ne se termine pas sur une arête puisque sa couleur y
+       est déjà nulle.
+       Et il est ÉCRASÉ. Un faisceau de phare est plus large que haut ; un tronc de
+       révolution monte aussi haut qu'il s'étale, ce qui lui fait éclairer le ciel autant
+       que la route et l'oblige à plonger plus fort pour poser sa tache. Écrasé de moitié,
+       il rase le sol comme un vrai feu de croisement. */
+    const APLAT = 0.5;                                // écrasement vertical du faisceau
+    const EVASE = 0.155;                              // demi-angle d'ouverture, en pente
     // La pente se DÉDUIT de la hauteur du phare, elle n'est pas écrite : un tracteur
     // porte ses feux à 1,75 m, une moissonneuse à 3,90 et une enjambeuse à 6,90. À pente
     // fixe, ces deux-là éclaireraient l'horizon. Plafonnée à 27,2° : au-delà, la tache au
     // sol devient plus large que longue et cesse de se lire comme un faisceau ; la
     // machine haute éclaire alors simplement plus loin devant elle. Le plafond est calé
     // sur l'ENJAMBEUSE, seul engin à l'atteindre : ses feux sont montés de 6,35 à 6,90 m
-    // le jour où le tunnel a suivi l'olivier, et à 26° son faisceau touchait le sol à
-    // 14,1 m — hors de la fourchette que le contrôle exige. À 27,2° il retombe à 13,4.
-    const pente = Math.min(0.475, Math.atan2(yM, dz));
-    const port = yM/Math.tan(pente);                  // portée horizontale, en mètres
-    const lon = Math.hypot(port, yM);                 // longueur, le long de l'axe
+    // le jour où le tunnel a suivi l'olivier.
+    const pente = Math.min(0.475, Math.max(0.03, Math.atan2(yM, dz) - Math.atan(EVASE*APLAT)));
     // Rayon au phare : un peu plus que la demi-largeur du verre, pour que le cône semble
     // sortir de la lentille et non d'un point posé devant elle. Rayon au bout : demi-angle
     // de 8,8°, l'ouverture d'un feu de croisement — au-delà, les deux cônes se confondent
     // en un seul éventail et l'on perd ce qui était demandé.
-    const r0 = 0.60*A.w*s, r1 = r0 + lon*0.155;
+    const r0 = 0.60*A.w*s;
+    /* Où la génératrice basse rencontre le sol, le long de l'axe : sa hauteur y vaut
+       yM - t·sin(pente) - (r0 + EVASE·t)·APLAT·cos(pente), et l'on cherche où elle
+       s'annule. Un cinquième de plus, et pas davantage : le cône trempe alors dans la
+       terre juste ce qu'il faut pour y dessiner sa flaque, sur la portion où sa couleur
+       est déjà tombée sous un dixième. */
+    const bas = Math.sin(pente) + EVASE*APLAT*Math.cos(pente);
+    const lon = Math.max(3.0, (yM - r0*APLAT*Math.cos(pente))/bas) * 1.2;
+    const port = lon*Math.cos(pente);                 // portée horizontale, en mètres
+    const r1 = r0 + lon*EVASE;
     v.faisceaux = [];
     for(const sx of A.x){
       const c = faisceauPhare(lon/s, r0/s, r1/s, 0xFFE3B0);
+      c.scale.y = APLAT;                              // écrasé, perpendiculairement à son axe
       // Nommé, comme l'était le halo : c'est de la lumière, pas de la tôle. Qui mesure
       // l'encombrement d'un engin — largeur de coupe, passage entre deux clôtures —
       // doit écarter ce nom-là aussi.
@@ -9843,9 +10076,27 @@ function actionRetenue(m){
    première possibilité. Et quand un plan leur dit d'aller CHARGER quelque part, on ne
    retient que les actions de ce sens : sans ce filtre, une benne pleine arrivant au
    silo pour y prendre du blé s'y reviderait, « ranger » venant en tête de liste. */
+/* LE SEUL GESTE QUI NE SE DEMANDE PAS : VIDER LA TRÉMIE AU SILO.
+   « Rien ne démarre tout seul » vaut pour tout ce qui se choisit — et vider la trémie
+   d'une moissonneuse ne se choisit pas. On y arrive avec neuf cents kilos d'une seule
+   céréale, le silo tient un tas de cette céréale-là, et il n'existe aucune autre chose
+   à en faire : poser la question, c'est demander au joueur de confirmer la seule réponse
+   possible, à chaque tour de champ. La trémie se vide donc d'office, sans un bouton, dès
+   que la machine est à l'arrêt sur la grille. Le reste ne bouge pas : une BENNE arrivant
+   au silo pose bien la question, parce qu'elle a le choix — rentrer ce qu'elle porte, ou
+   charger l'un quelconque des cinq tas. */
+const depotDOffice = (m, L)=> (m.key === 'moisson' && hopper > 0.01)
+                              ? (L.find((A)=> A.sens === 'tremie') || null) : null;
 const actionPour = (m)=>{
   const v = m.v;
-  if(m === MACHINES[cur] && !v.auto && !v.mission) return actionRetenue(m);
+  if(m === MACHINES[cur] && !v.auto && !v.mission){
+    // On ne pose rien dans `choixEnCours` : ce dépôt-là n'est pas un choix retenu, c'est
+    // un geste qui va de soi. Le laisser hors de la mémoire de choix évite qu'il occupe
+    // la ligne « En cours » et qu'il survive au départ de l'engin.
+    const off = depotDOffice(m, actionsIci(m));
+    if(off) return off;
+    return actionRetenue(m);
+  }
   // 'route' : en chemin, l'engin ne touche à rien. Sans ça, une benne pleine arrêtée
   // sur le silo entre deux étapes s'y reviderait toute seule — « ranger » vient en tête.
   if(v.sensVoulu === 'route') return null;
@@ -10113,8 +10364,13 @@ function updateAtelier(dt){
     if(q > 0){
       C2.reste = Math.max(0, C2.reste - q*P.rendement);
       if(C2.cle === 'farine') STAT.mill += q;
+      // La bouffée sort de la souche de cheminée, qui vit DANS le groupe mis à l'échelle
+      // et a donc monté avec lui : ces trois cotes étaient calées à la main en mètres
+      // bruts, et la fumée naissait sous la ligne de toiture — l'atelier fumait par le
+      // milieu de sa façade.
       if(Math.random() < 0.12)
-        puff(HALLE.x + 3.2, 6.4, HALLE.z - 2.0, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
+        puff(HALLE.x + 3.2*BAT_ECHELLE, 6.4*BAT_ECHELLE, HALLE.z - 2.0*BAT_ECHELLE,
+             0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
       if(C2.reste <= 0.01) commandeFinie('ATELIER — ' + P.nom.toUpperCase() + ' TERMINÉ');
     } else {
       // Rien n'est sorti : soit la matière manque, soit l'entrepôt est plein. On ne
@@ -10307,7 +10563,12 @@ function refreshChoix(){
   // C'est le même appel qui tient les comptes pour la simulation : la colonne et le
   // transfert ne peuvent donc pas être en désaccord sur ce qui est en cours.
   const retenue = actionRetenue(m);
-  const L = actionsIci(m);
+  /* LA TRÉMIE QUI SE VIDE D'OFFICE NE FIGURE NULLE PART. Elle part toute seule dès que
+     la moissonneuse s'arrête sur la grille du silo : l'annoncer en bouton demanderait de
+     confirmer ce qui est déjà en train de se faire, et la montrer en « En cours »
+     rouvrirait une colonne pour un geste sur lequel il n'y a rien à décider. */
+  const dOffice = depotDOffice(m, actionsIci(m));
+  const L = actionsIci(m).filter((A)=> !memeAction(A, dOffice));
   // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
   const serv = [].concat(actionService() || []);
   // Les empêchements comptent comme du contenu : un lieu où l'on ne peut rien faire
@@ -10329,10 +10590,15 @@ function refreshChoix(){
   const tri = L.slice().sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt));
   const lignes = [];
   let titreTxt;
-  if(retenue){
+  if(retenue && !memeAction(retenue, dOffice)){
+    /* CE QUI EST EN COURS SE LIT, IL NE SE CLIQUE PLUS. La ligne portait un ⏹ qui
+       arrêtait le transfert : un bouton pour rien, puisqu'il suffit de repartir —
+       actionsIci() se tait dès que l'engin dépasse 2,5 m/s, et l'action s'oublie
+       d'elle-même. On garde la ligne, qui dit ce qui se passe et combien il reste à
+       faire, et l'on retire le bouton. */
     titreTxt = 'En cours';
-    lignes.push({txt:'⏹  ' + retenue.txt + (choixLimite !== null ? '  ·  ' + enKg(choixLimite) : ''),
-                 cls:'ch on', f:()=>{ choixEnCours = null; choixLimite = null; }});
+    lignes.push({txt:retenue.txt + (choixLimite !== null ? '  ·  ' + enKg(choixLimite) : ''),
+                 cls:'ch on', f:null});
   } else {
     titreTxt = 'Que faire ici ?';
     for(const A of tri){
@@ -10579,7 +10845,11 @@ function majJauges(dt){
   const CJ = HALLE.commande;
   if(CJ){
     const RJ = PRODUITS[CJ.cle];
-    montrerJauge(jaugeAtelier, HALLE.x, 11.0, HALLE.z,
+    // La jauge suit le bâtiment : la halle ayant grandi de BAT_ECHELLE, elle serait
+    // venue se plaquer SUR la toiture de l'étage technique dès le troisième niveau — et
+    // comme elle se dessine par-dessus tout, on aurait vu une étiquette collée au toit.
+    // Sa voisine de l'entrepôt avait bien reçu le facteur ; celle-ci avait été oubliée.
+    montrerJauge(jaugeAtelier, HALLE.x, 11.0*BAT_ECHELLE, HALLE.z,
       RJ.nom + ' — ' + Math.round(CJ.total - CJ.reste) + ' / ' + Math.round(CJ.total) + ' kg',
       CJ.total > 0 ? (CJ.total - CJ.reste)/CJ.total : 0, RJ.couleur, dt);
   } else cacherJauge(jaugeAtelier, dt);

@@ -268,6 +268,15 @@ désigne un engin, ce qu'on lui demande, et où :
 La file se lit en bas de la carte et se défait au doigt. En chemin entre deux étapes,
 un engin en mission ne touche à rien : il traverse le silo sans s'y vider.
 
+**La carte se pince pour grossir.** Elle tenait le monde entier dans un rectangle de
+trois cents pixels : une parcelle y faisait vingt pixels de côté et un point de
+chargement cinq de rayon, si bien que désigner le bon relevait de la chance. Deux doigts
+qui s'écartent grossissent jusqu'à six fois, autour du point qu'ils encadrent ; un doigt
+qui glisse déplace le cadrage, qui ne sort jamais de la carte. La désignation se fait
+alors au RELÂCHEMENT et non plus à l'appui : tant qu'on appuie, on ne sait pas encore si
+le doigt va rester en place — c'est un choix — ou partir — c'est un déplacement. Huit
+pixels de tolérance, la largeur d'un doigt qui tremble.
+
 ## La nuit
 
 Les optiques sculptées sur chaque engin s'allument elles-mêmes : la lentille passe à
@@ -286,12 +295,23 @@ au lieu de quatre-vingts. Le dégradé ne mord que sur le dernier tiers du rayon
 lien visible avec les deux optiques. Chaque phare avant projette maintenant son faisceau,
 tronqué à la largeur du verre, incliné vers le sol et ouvert de 8,8° — et il s'y dissout
 au loin par une couleur de sommet qui tend vers le noir, ce qui en mélange additif revient
-à disparaître. La pente n'est pas écrite, elle se déduit de la hauteur du phare : 12° pour
-un tracteur qui porte ses feux à 1,75 m, 27° pour l'enjambeuse qui les porte à 6,90. Les
-cônes sont enfants de la CAISSE, pas du groupe : le faisceau prend le roulis et le
-tangage, et balaie le paysage quand la machine passe une bosse. Le halo au sol des engins
-a disparu avec eux — le cône entre dans le sol, et le sol opaque y découpe la flaque tout
-seul, à la bonne place et de la bonne forme. Les lampadaires gardent le leur.
+à disparaître. La pente n'est pas écrite, elle se déduit de la hauteur du phare — 1,75 m
+sur un tracteur, 6,90 sur l'enjambeuse. Les cônes sont enfants de la CAISSE, pas du
+groupe : le faisceau prend le roulis et le tangage, et balaie le paysage quand la machine
+passe une bosse. Le halo au sol des engins a disparu avec eux — le cône entre dans le sol,
+et le sol opaque y découpe la flaque tout seul, à la bonne place et de la bonne forme. Les
+lampadaires gardent le leur.
+
+**Et c'est le BAS du faisceau qui vise le sol, pas son axe.** En pointant l'axe sur le
+point d'atterrissage, la moitié basse du tronc passait sous le sol bien avant le bout — et
+le sol, opaque, écrit sa profondeur : cette paroi-là était retirée. Or c'est de la
+traversée des DEUX parois que le cône tient son cœur clair. Le faisceau se fendait donc en
+deux rails lumineux encadrant une arche sombre : mesuré, le milieu tombait à 46 % de ses
+bords sur le quart à la moitié de la longueur, le fourgon et le pick-up étant les pires
+parce que leurs phares sont bas. On vise maintenant avec le bas du cône, on le coupe là où
+ce bas touche la terre — plus un cinquième, où sa couleur est déjà sous un dixième — et on
+l'écrase de moitié, un faisceau de phare étant plus large que haut. La part creuse tombe
+de 25-57 % à **16 %**, sur la seule portion où l'on ne voit plus rien.
 
 ## La boucle de jeu
 
@@ -521,8 +541,20 @@ garde le reste pour le mieux-disant ; et les **bêtes qu'on embarque**, parce qu
 parfois chercher une bête et pas tout l'enclos. Silo, entrepôt, auge et trémie d'usine
 partent d'un appui : personne n'y est payé au kilo versé, et rien n'y est plafonné qu'on
 puisse ménager — le curseur de la trémie d'usine mentait d'ailleurs, faute d'être borné
-par la place restante. On peut encore n'en déposer qu'une partie : le bouton ⏹ de la ligne
-« En cours » arrête le transfert où il en est.
+par la place restante.
+
+**Et la trémie de la moissonneuse ne se demande même pas.** On arrive au silo avec neuf
+cents kilos d'une seule céréale, le silo tient un tas de cette céréale-là, et il n'y a
+rien d'autre à en faire : poser la question, c'était demander de confirmer la seule
+réponse possible, à chaque tour de champ. La trémie se vide donc d'office dès que la
+machine s'arrête sur la grille — sans bouton, sans colonne, sans rien. Le reste ne bouge
+pas : une BENNE qui arrive au silo se voit bien demander lequel des cinq tas elle charge,
+parce qu'elle a le choix.
+
+**Ce qui est en cours se lit, il ne se clique plus.** La ligne portait un ⏹ qui arrêtait
+le transfert : un bouton pour rien, puisqu'il suffit de repartir — la liste des actions se
+tait dès que l'engin dépasse 2,5 m/s, et le transfert s'oublie de lui-même. La ligne reste,
+elle dit ce qui se passe ; le bouton est parti.
 
 Quand il s'ouvre, il est borné par le plus contraignant des deux — la benne ou le tas — et
 la quantité choisie devient la limite du transfert, qui s'arrête pile dessus : le dernier
@@ -791,6 +823,31 @@ bande que les deux passes opposées, trop écartées, n'avaient pas jointe. Le c
 fait en lignes droites plutôt qu'en un dernier tour : un outil traîné quatre à six mètres
 derrière ne suit pas un chapelet de virages. Mesuré sur cinq outils × quatre tailles de
 parcelle : **0 oblique, 100 % du tracé sur la terre, 0 cellule oubliée**.
+
+**Le tour suivant mord sur le précédent, et le premier sort de la parcelle.** Deux
+passes espacées d'une largeur d'outil se touchent en théorie et se manquent en pratique :
+l'outil est traîné quatre à six mètres derrière le tracteur, il coupe donc les virages, et
+c'est dans les angles que restaient des coins jamais travaillés. Le recouvrement passe
+d'un huitième à un quart. Et la marge tenait le TRACTEUR à l'intérieur, pas l'outil : une
+charrue de trois mètres voyait sa bordure extérieure tomber pile sur la limite, et
+quelques centimètres de dérive suffisaient à ce que la dernière rangée ne soit jamais
+retournée. Le premier tour — celui qui longe les quatre bords — sort donc de la parcelle,
+sur la bande de sable de 6,40 m qui la sépare de sa voisine. Relevé sur les seize cas du
+banc, machine pilotée image par image : le pire cas passe de **77,7 % à 88,9 %** et la
+moyenne de 92,6 à 93,6. Les deux chiffres sont mesurés et non choisis — le paysage n'est
+pas lisse, 0,70 de recouvrement redescend à 81,3 % et 0,86 à 78,6.
+
+**On ressort d'une impasse en marche arrière.** Un point de dépose est au fond d'un
+cul-de-sac : dix mètres de parvis entre la façade et le bitume, ou la grille du silo au
+pied de sa tour. Repartir en pivotant sur place y demande un demi-tour plus large que
+l'impasse — et la moissonneuse allait chercher la tour du silo, s'y plantait pleins gaz
+et n'en repartait jamais. Elle ressort maintenant par où elle est entrée : l'itinéraire
+retient le COUDE de son dernier trajet, celui où il quitte la chaussée à l'équerre, et
+l'engin y recule — vraie marche arrière, gaz négatifs, braquage inversé par le train
+arrière comme sur un vrai engin. Il recule même huit mètres AU-DELÀ du coude, et c'est ce
+qui évite le demi-tour : le coude repasse alors devant lui, il repart en marche avant sans
+jamais se retourner à côté du bâtiment. Relevé au silo, le passage le plus serré du jeu :
+la distance à la tour passe de **1,35 m — c'est-à-dire collé dessus — à 3,44 m**.
 
 **Un point de passage se valide quand on l'a DÉPASSÉ, et c'est l'outil qui doit l'avoir
 dépassé.** Deux défauts d'un coup. Un attelage tourne sur un rayon de 3,5 m et le point
