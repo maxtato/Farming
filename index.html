@@ -6150,7 +6150,12 @@ function buildPickup(){
     g.add(box(0.56, 0.52, 1.72, CAISSE, sx, 1.12, -1.9));
     g.add(box(0.62, 0.07, 1.78, CAISSE2, sx, 1.41, -1.9));
   }
-  g.add(cyl(0.22,0.22,1.9,8, CREME, 0,1.42,-0.62, 0,0,Math.PI/2));
+  /* LA BÂCHE ROULÉE SE RANGE CONTRE LA CLOISON, PAS AU-DESSUS DU CHARGEMENT. Elle
+     était à 1,42 m, c'est-à-dire posée sur le premier rang de caisses : celles-ci
+     disparaissaient dedans dès qu'on les a grossies. Elle remonte à 1,62 et recule de
+     douze centimètres vers la cloison avant, dont le haut est à 1,76 — elle s'y appuie,
+     et le plateau est libre sur toute sa longueur. */
+  g.add(cyl(0.20,0.20,1.9,8, CREME, 0,1.62,-0.50, 0,0,Math.PI/2));
   const gyro = gyrophare(g, 0.72, 2.52, 0.2);
   const wr = [], wf = [];
   for(const sx of [-1.02,1.02]){
@@ -6165,7 +6170,7 @@ function buildPickup(){
   // colis où poser les sacs — quatre rangs de deux, sur le plancher, entre les
   // passages de roue. Un engin qui n'a pas de `benne` n'en reçoit simplement pas.
   g.userData = {wr, wf, gyro, feux:F,
-    benne:{x:[-0.55, 0.55], z:[-0.85, -3.05], y:0.88, n:8, ech:0.62},
+    benne:{x:[-0.56, 0.56], z:[-0.95, -3.05], y:0.88, n:8, ech:0.88},
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
             arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
             nez:3.0}};
@@ -6726,6 +6731,7 @@ function colisLibre(){
 function rendreColis(c){
   c.pris = false; c.sol = false; c.hote = null; c.mourant = false; c.fin = 0;
   c.m.visible = false; c.m.material.opacity = 0;
+  c.m.scale.setScalar(1);
   if(c.m.parent && c.m.parent !== scene){ c.m.parent.remove(c.m); scene.add(c.m); }
 }
 // Poser un colis DANS une benne : il devient enfant du groupe de l'engin, donc il
@@ -6750,7 +6756,7 @@ function colisAuSol(hote, x, z, cle){
   if(c.m.parent && c.m.parent !== scene){ c.m.parent.remove(c.m); scene.add(c.m); }
   c.m.position.set(x, 0.55, z);
   c.m.rotation.set(0, Math.random()*Math.PI*2, 0);
-  c.m.scale.setScalar(1.15);
+  c.m.scale.setScalar(1.55);
   teindreColis(c.m, cle);
   c.m.visible = true; c.m.material.opacity = 0;
   return c;
@@ -6761,7 +6767,9 @@ function updateColis(dt){
     c.t += dt;
     // Apparition : un demi-tiers de seconde de fondu, et une chute pour ceux du sol.
     const ap = Math.min(1, c.t/0.3);
-    c.m.material.opacity = c.mourant ? Math.max(0, 1 - (c.t - c.fin)/0.45) : ap;
+    // Le fondu ne commence qu'après le sursis : tant que `c.t` n'a pas rattrapé
+    // `c.fin`, le rapport est négatif et l'opacité vaut plus de un, donc pleine.
+    c.m.material.opacity = c.mourant ? Math.max(0, Math.min(1, 1 - (c.t - c.fin)/0.8)) : ap;
     if(c.sol && c.m.position.y > 0.02)
       c.m.position.y = Math.max(0, 0.55*(1 - ap*ap));
     if(!c.sol) c.m.scale.setScalar(0.6 + ap*0.4);
@@ -6769,7 +6777,16 @@ function updateColis(dt){
   }
 }
 // Marquer pour extinction : le colis s'efface en une demi-seconde, puis rend sa place.
-function effacerColis(c){ if(c && !c.mourant){ c.mourant = true; c.fin = c.t; } }
+/* UN COLIS POSÉ AU SOL RESTE EN VUE. Il s'effaçait à la seconde où la barre de
+   transfert se terminait, en moins d'une demi-seconde : on repartait sans avoir vu ce
+   qu'on venait de livrer. Il tient maintenant trois secondes de plus, puis s'efface en
+   huit dixièmes — le temps de faire demi-tour et de le voir dans le rétroviseur.
+   Ceux qui sont DANS une benne, eux, disparaissent tout de suite : ils représentent
+   une charge qui n'y est plus. */
+const COLIS_SURSIS = 3.0;
+function effacerColis(c, sursis){
+  if(c && !c.mourant){ c.mourant = true; c.fin = c.t + (sursis || 0); }
+}
 
 /* --- traînées de pneus : ruban dynamique de 6 m qui s'efface, pas une peinture définitive --- */
 const TRAIL_N = 16, TRAIL_STEP = 0.42, TRAIL_LIFE = 2.4, TRAIL_HW = 0.30;
@@ -9813,7 +9830,13 @@ function majColis(m, A, dt){
       const rangs = Math.ceil(B.n/2), r = Math.floor(k/2), col = k % 2;
       const x = B.x[col];
       const z = B.z[0] + (B.z[1] - B.z[0])*(rangs > 1 ? r/(rangs - 1) : 0);
-      const c = colisEnBenne(m, v.group, x, B.y, z, T.type);
+      /* DANS LA CARROSSERIE, ET NON SUR LE CHÂSSIS. La suspension fait rouler et
+         tanguer `v.body` — tout l'engin sauf les roues — pendant que `v.group` reste
+         d'aplomb. Des caisses accrochées au groupe restaient donc horizontales pendant
+         que la benne penchait autour d'elles : dans un virage un peu appuyé, on les
+         voyait traverser la ridelle. Elles vivent maintenant dans la caisse, et
+         penchent avec elle. */
+      const c = colisEnBenne(m, v.body || v.group, x, B.y, z, T.type);
       if(!c) break;
       c.m.scale.setScalar(B.ech);
       v.colis.push(c);
@@ -9840,7 +9863,7 @@ function majColis(m, A, dt){
       if(c) v.colisSol.push(c);
     }
   } else if(v.colisSol.length){
-    for(const c of v.colisSol) effacerColis(c);
+    for(const c of v.colisSol) effacerColis(c, COLIS_SURSIS);
     v.colisSol.length = 0;
     v.colisT = 9;                       // le premier colis du prochain arrêt, sans attendre
   }
