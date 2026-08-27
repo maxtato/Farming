@@ -339,11 +339,61 @@ trois euros d'épandage, et la décision n'en était plus une.
 ### L'échelle des prix
 
 La première parcelle à racheter valait 4 000 € quand la ferme commence à zéro et qu'une
-première livraison rapporte 135 : il fallait une trentaine de tournées avant le premier
-agrandissement. Elle vaut **1 200 €**. L'échelle monte ensuite de moitié à chaque cran —
+première livraison rapporte 187 — trente kilos de blé à 2,22 €, plus 120 € de prime : il
+fallait une vingtaine de tournées avant le premier agrandissement. Elle vaut **1 200 €**. L'échelle monte ensuite de moitié à chaque cran —
 1 200, 2 500, 4 500, 7 500, 12 000 — puis s'aplatit à partir de la dixième : un empire
 ne doit pas doubler de prix indéfiniment. Le total reste du même ordre qu'avant ; c'est
 sa **répartition** qui change, et avec elle les vingt premières minutes.
+
+### Ce que l'audit de l'échelle a trouvé
+
+Diviser tous les kilos d'un jeu par 4,44 et tous les contenants par trois laisse forcément
+des constantes derrière. Une relecture systématique en a trouvé quarante-trois, dont
+vingt-huit tenaient à la vérification. Les défauts de jeu :
+
+- **La trémie de l'enjambeuse sautait à 1 215 kg au premier cran d'amélioration.** Sa
+  formule disait `900 × 1,35ⁿ` quand la caisse neuve en valait 300 : une seule
+  amélioration la triplait déjà avant le facteur. La remise à l'échelle a divisé la caisse
+  par trois sans toucher à la formule, et l'écart est passé de ×4 à ×12 — plus que
+  l'entrepôt entier, de quoi emporter cinq parcelles de raisin d'un coup. Elle fait
+  maintenant **100 / 135 / 182**, exactement comme la trémie de la moissonneuse.
+- **Améliorer une enjambeuse au garage plantait le jeu.** La garde de l'amélioration
+  d'outil excluait la coupe de la moissonneuse par son nom, pas le tunnel de
+  l'enjambeuse : `T.group.scale` sur un outil intégré qui n'a pas de modèle. L'argent
+  était déjà retiré, et l'exception emportait la fin du gestionnaire. La garde teste
+  maintenant la présence du modèle, ce qui couvre les deux.
+- **L'enseigne du comptoir agricole annonçait 0,35 € le kilo de semences quand la caisse
+  en prenait 1,55.** C'était le seul prix au kilo du jeu écrit en toutes lettres, et il
+  vivait quatre mille lignes avant la table qui le contredisait. Une seule constante
+  sert maintenant aux deux.
+- **La migration divisait par 4,44 des choses qui ne sont pas des kilos.** `STAT` mêle des
+  poids et trois compteurs : `betes`, `labour`, `semis`. Un joueur qui avait vendu six
+  bêtes se réveillait à 1,35, ce qui décochait la mission du palier 14 et ses 20 000 € de
+  prime. Liste blanche des dix clés qui sont des poids.
+- **Cinq champs de kilos des versions antérieures échappaient à la conversion** —
+  `siloKg`, `flourKg` et les trois tas de la halle. Le pire était `siloKg`, affecté
+  directement au silo sans garde de capacité : 8 000 kg de l'époque revenaient tels quels
+  dans un silo qui en tient 2 700, soit 13 764 € offerts.
+- **Une partie migrée n'avait pas la même benne qu'une partie neuve.** Les contenants
+  n'ont pas été divisés par exactement trois — la benne est passée de 400 à 135, le
+  pick-up de 200 à 70 — alors que la migration applique un trois rond : 133 et 67 au lieu
+  de 135 et 70, définitivement. Au niveau 1, c'est désormais la table qui fait foi.
+- **Quatre espèces sur cinq annonçaient « 0,00 kg / s ».** Deux décimales suffisaient tant
+  qu'une vache donnait 0,07 kg/s ; les cadences sont maintenant à la **minute** — vache
+  0,95, mouton 0,08 — et le jeu ne dit plus au joueur que sa bête ne produit rien.
+- **La borne du dernier pas d'un transfert dosé** valait 420 kg/s pour un débit réel de
+  47 : chaque image ne résorbait plus que 11 % du reste, et l'engin restait immobilisé
+  près d'une seconde à écouler des grammes. Elle vaut 140.
+- **Le premier palier de lot d'atelier** avait été divisé par 2,5 quand les onze autres
+  contenants l'étaient par trois : le lot du débutant immobilisait l'atelier 1,78 fois
+  plus longtemps qu'avant au lieu des 1,48 accordés partout ailleurs — et c'est le palier
+  qu'on subit le plus longtemps, le suivant coûtant 900 €. Les quatre paliers sont
+  maintenant les anciens divisés par trois : **17, 40, 84, 167**.
+
+Le reste était de la dérive de commentaire — un écran qui expliquait au joueur que le
+caviste écoule six cents kilos de vin quand son étal en tient trente-cinq, un en-tête qui
+faisait le calcul de la farine avec l'ancien prix du blé. L'écran des prix lit maintenant
+les deux plafonds dans la table plutôt que de les recopier.
 
 ## La chaîne
 

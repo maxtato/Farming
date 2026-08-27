@@ -307,6 +307,16 @@
     left:calc(24px + env(safe-area-inset-left));pointer-events:auto;
     display:flex;gap:6px;align-items:center}
   #hud.btn #regie{bottom:calc(108px + env(safe-area-inset-bottom))}
+  /* SAUF SUR UN ÉCRAN ÉTROIT, où il n'y a pas la place des deux. La régie descendue
+     occupe la bande des 108-152 px, que la rangée du bouton d'achat de parcelle traverse
+     à 104-139. Ils ne se rencontrent que si le bouton, centré, atteint la colonne de
+     gauche : « PALIER ATTEINT — 3 PARCELLES » fait 280 px, la régie en occupe 168, et
+     les deux se touchent en dessous de 660 px de large. Là, la régie reprend sa hauteur
+     d'avant — mieux vaut trois boutons un peu loin des flèches que deux qui se
+     recouvrent devant un panneau à vendre. */
+  @media (max-width: 660px){
+    #hud.btn #regie{bottom:calc(146px + env(safe-area-inset-bottom))}
+  }
   /* La pastille de couleur qui précédait le mot n'a plus lieu d'être : c'est le tracé
      lui-même qui porte la teinte de l'écran qu'il ouvre. */
   #regie .rgb{padding:9px;border-radius:11px;background:rgba(20,28,33,.62);
@@ -1196,9 +1206,9 @@ const FRONT_N = FRONT + DZ_NORD;         // la bande nord a suivi son brin de ro
      recette à plusieurs ingrédients ...... ×2,5
      commande ou contrat .................. ×3
 
-   Le prix au kilo s'en déduit tout seul. Un kilo de blé vaut 0,50 € ; moulu il rend
+   Le prix au kilo s'en déduit tout seul. Un kilo de blé vaut 2,22 € ; moulu il rend
    0,72 kg de farine, laquelle doit valoir une fois et demie le blé de départ : la
-   farine vaut donc 0,50 × 1,5 / 0,72 = 1,04 € le kilo. C'est ce qui garantit qu'une
+   farine vaut donc 2,22 × 1,5 / 0,72 = 4,63 € le kilo. C'est ce qui garantit qu'une
    transformation est toujours gagnante sans jamais avoir à équilibrer un prix à la
    main : on ne règle qu'un rendement et un palier. */
 const PALIER = {BRUT:1, TRANSFORME:1.5, FINI:2, COMPOSE:2.5, CONTRAT:3};
@@ -1364,8 +1374,10 @@ const HALLE = {x: 84, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
    monte de moitié à chaque fois — le moulin est à portée de la première récolte, la
    cave est un objectif de fin de partie.
    `duree` est le temps qu'il faut pour engager CENT KILOS de matière première. C'est
-   ce chiffre-là qui dit la valeur d'une transformation : vingt secondes pour moudre
-   du blé, deux minutes pour faire du vin. */
+   ce chiffre-là qui dit la valeur d'une transformation : une minute et demie pour
+   moudre du blé, presque neuf pour faire du vin. Ces durées ont été multipliées par
+   4,44 en même temps que les kilos étaient divisés d'autant : une parcelle met donc
+   toujours le même temps à passer au moulin. */
 const ATELIER_MODULES = [
   {cle:'farine',        module:'Moulin',                prix:650,   duree:90},
   {cle:'aliment',       module:'Broyeur',               prix:1400,  duree:65},
@@ -1384,10 +1396,16 @@ const atelierA = (cle)=> HALLE.modules.indexOf(cle) >= 0;
 const moduleSuivant = ()=> ATELIER_MODULES.find((M)=> !atelierA(M.cle)) || null;
 
 /* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne donnent aucun métier neuf : elles
-   changent le RYTHME. En début de partie on revient lancer chaque lot de cent kilos ;
-   à la fin on en empile cinq de mille, et l'atelier tourne pendant qu'on est ailleurs. */
+   changent le RYTHME. En début de partie on revient lancer chaque lot de dix-sept
+   kilos ; à la fin on en empile cinq de cent soixante-sept, et l'atelier tourne
+   pendant qu'on est ailleurs.
+   Les quatre paliers sont les anciens — 50, 120, 250, 500 — divisés par trois comme
+   tous les contenants du jeu. Ils avaient d'abord été divisés par 2,50 et 2,67 sur les
+   deux premiers crans seulement : le lot du débutant immobilisait l'atelier 1,78 fois
+   plus longtemps qu'avant au lieu des 1,48 accordés partout ailleurs, et c'est
+   justement le palier qu'on subit le plus longtemps, le suivant coûtant 900 €. */
 const ATELIER_UP = {
-  capa:  {nom:'Capacité',  det:'Kilos de matière par lot',    paliers:[20, 45, 85, 170],
+  capa:  {nom:'Capacité',  det:'Kilos de matière par lot',    paliers:[17, 40, 84, 167],
           prix:[0, 900, 3400, 9000]},
   vite:  {nom:'Vitesse',   det:'Cadence de transformation',   paliers:[1, 1.15, 1.30, 1.50],
           prix:[0, 1600, 5200, 14000]},
@@ -1397,8 +1415,8 @@ const ATELIER_UP = {
 const halleLotMax  = ()=> ATELIER_UP.capa.paliers[HALLE.capa - 1];
 const halleFileMax = ()=> ATELIER_UP.queue.paliers[HALLE.queue - 1];
 const halleVitesse = ()=> ATELIER_UP.vite.paliers[HALLE.vite - 1];
-/* LE DÉBIT DÉPEND DE LA RECETTE, PLUS DU BÂTIMENT. Un moulin moud cent kilos en vingt
-   secondes, une cave met deux minutes : c'est ce qui donne son poids à chaque maillon
+/* LE DÉBIT DÉPEND DE LA RECETTE, PLUS DU BÂTIMENT. Un moulin moud cent kilos en une
+   minute et demie, une cave en met neuf : c'est ce qui donne son poids à chaque maillon
    de la chaîne, et c'est ce qui fait qu'on lance le vin AVANT d'aller faire autre
    chose. La vitesse achetée multiplie tout. */
 const dureeRecette = (cle)=>{ const M = moduleDe(cle); return M ? M.duree : 90; };
@@ -1444,6 +1462,15 @@ function entrepotRetire(cle, q){
   if(ENTREPOT.stock[cle] < 0.005) delete ENTREPOT.stock[cle];
 }
 function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) - q); }
+/* LE TARIF DES INTRANTS, ÉCRIT UNE SEULE FOIS. Il vivait à deux endroits : en toutes
+   lettres sur l'enseigne du comptoir agricole — « 0,35 € / kg » —, et en nombre dans
+   STOCK, quatre mille lignes plus bas. La remise à l'échelle des prix a multiplié la
+   caisse par 4,44 et laissé la façade à l'ancien tarif : on lisait 0,35 € depuis la
+   route et l'on se voyait facturer 1,55 €, pendant que l'onglet Comptoir du même
+   commerce affichait le vrai prix. C'était le seul prix au kilo du jeu écrit à la main ;
+   il est maintenant dérivé, comme tous les autres, et la façade ne peut plus mentir. */
+const PRIX_INTRANT = {semence: 1.55, engrais: 2.22};
+const tarifKg = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
 const SITES = [
   // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
   // le long de la bande ; `modele` nomme la silhouette qui sera bâtie. Les seuls
@@ -1489,7 +1516,8 @@ const SITES = [
   {nom:'Comptoir agricole', enseigne:'totem', picto:'graine', dir:'N', bat:18, park:31,
    style:'boutique', crop:-1, prix:0, cloture:'muret', fournisseur:true,
    w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2,
-   vend:[{nom:'Semences', prix:'0,35 € / kg'}, {nom:'Engrais', prix:'0,50 € / kg'}]},
+   vend:[{nom:'Semences', prix:tarifKg(PRIX_INTRANT.semence)},
+         {nom:'Engrais',  prix:tarifKg(PRIX_INTRANT.engrais)}]},
   {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'N', bat:56, park:69,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A6A3A, mur:0xEFE4CE},
@@ -1579,7 +1607,7 @@ const NEGOCE = {
      et le Marché sur huit de ses neuf. Deux commerces sur quatre n'avaient plus aucune
      raison d'exister.
      Le plafond est PAR NATURE, et il se recharge en deux minutes : un caviste écoule
-     six cents kilos de vin, un supermarché neuf mille. On vend donc le haut de la
+     trente-cinq kilos de vin, un supermarché cinq cents. On vend donc le haut de la
      benne au prix fort, et on descend l'échelle pour le reste — c'est le choix qu'on
      veut poser : moins cher, mais tout part. */
   'Caviste':         {achete:['vin','raisin'], coef:1.15, etal:35},
@@ -7082,7 +7110,7 @@ function updatePuffs(dt){
 
 /* ---------- LES COLIS : LA MARCHANDISE, ENFIN VISIBLE ---------- */
 /* Un transfert ne se voyait qu'à une barre qui montait et à trois billes de poussière.
-   La benne d'un pick-up qu'on venait de remplir de six cents kilos de farine restait
+   La benne d'un pick-up qu'on venait de remplir de soixante-dix kilos de farine restait
    vide à l'œil. On y pose donc des sacs et des cageots, un par un, au rythme réel du
    chargement — et, quand on décharge, les mêmes se posent au sol à l'endroit où l'on
    s'est arrêté, puis s'effacent une fois la barre finie.
@@ -7437,8 +7465,8 @@ function tirerLigne(cle, cible){
 }
 /* Tirer une commande d'un type donné, ou rien si le palier ne permet rien de tel.
    La quantité suit le palier de campagne : une commande de blé au premier niveau vaut
-   trente kilos, au quinzième elle en vaut mille. C'est la même courbe que celle des
-   parcelles — le jeu grandit d'un bloc. */
+   une vingtaine de kilos, au quinzième deux cent soixante-dix. C'est la même courbe que
+   celle des parcelles — le jeu grandit d'un bloc. */
 function tirerCommande(type){
   const T = CMD_TYPES.find((t)=> t.cle === type) || CMD_TYPES[0];
   let dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length && capaciteFerme(cle) > 5);
@@ -7488,11 +7516,11 @@ function tirerCommande(type){
              prime: Math.max(20, Math.round(brut*T.mult/5)*5),
              xp: Math.max(4, Math.round(brut*T.mult/26)),
              temps: T.delai ? Math.round(150 + lignes.reduce((t, l)=>
-               /* LE TEMPS DE FABRIQUER COMPTE. Cent kilos d'huile d'olive, c'est cinq
-                  cents kilos d'olives, et le pressoir met quatre minutes et demie rien
-                  qu'à les presser : une commande urgente qui n'accordait que trois
-                  minutes était perdue avant d'être lue. On ajoute donc le temps réel du
-                  métier, à la vitesse qu'a l'atelier en ce moment. */
+               /* LE TEMPS DE FABRIQUER COMPTE. Le pressoir met près de sept minutes
+                  rien qu'à engager cent kilos d'olives : une commande urgente qui
+                  n'accordait que trois minutes était perdue avant d'être lue. On ajoute
+                  donc le temps réel du métier, à la vitesse qu'a l'atelier en ce
+                  moment. */
                t + l.need*1.65 + (moduleDe(l.cle)
                  ? l.need/PRODUITS[l.cle].rendement/100*dureeRecette(l.cle)/halleVitesse()
                  : 0), 0)) : 0};
@@ -9424,7 +9452,13 @@ function stickMove(e, rect){
 }
 function thrMove(e, rect){
   const dy = e.clientY - (rect.top + rect.height/2);
-  const max = rect.height/2 - 12;
+  /* La marge doit tenir compte du RAYON du bouton, pas seulement d'un liseré. À 12 px
+     le bouton de 54 sortait de quinze pixels par le haut de sa glissière de 150, et
+     venait recouvrir la jauge de gazole posée juste au-dessus — vert sur jaune, à plein
+     gaz, c'est-à-dire au moment précis où l'on consomme et où la jauge sert. Vingt-quatre
+     le garde dedans. La course perd 19 %, la commande rien : la poussée est ramenée à
+     [-1, 1] par cette même valeur. */
+  const max = rect.height/2 - 24;
   const k = Math.max(-1, Math.min(1, dy/max));
   thrKnob.style.transform = `translateY(${k*max}px)`;
   throttle = -k;
@@ -9779,7 +9813,7 @@ function coutAmelioration(m){
   const v = m.v, T = toolOf(m);
   let c = 0;
   if(v.level < UP_MAX) c += prixUp(v.level);
-  if(T && T.level < UP_MAX && T !== MOISSON) c += Math.round(prixUp(T.level)*0.6);
+  if(T && T.group && T.level < UP_MAX) c += Math.round(prixUp(T.level)*0.6);
   return c;
 }
 function ameliorer(m){
@@ -9797,10 +9831,24 @@ function ameliorer(m){
     if(m.key === 'enjambeuse'){
       VENDANGE.level = v.level;
       VENDANGE.width *= 1.10;                      // un tunnel un peu plus large
-      v.cargo.capacite = Math.round(900 * Math.pow(1.35, v.level-1));
+      /* LA MÊME FORMULE QUE LA MOISSONNEUSE, ET SUR LA MÊME BASE. Elle disait 900 quand
+         la caisse neuve en valait 300 : une seule amélioration la TRIPLAIT avant même le
+         facteur 1,35. La remise à l'échelle a divisé la caisse par trois sans toucher à
+         la formule, et l'écart est passé de ×4 à ×12 — 1 215 kg au premier cran, plus
+         que l'entrepôt entier, de quoi emporter cinq parcelles de raisin d'un coup et
+         court-circuiter tout le circuit vigne. La constante est la caisse de départ,
+         exactement comme HOP_MAX est la trémie de départ : 100, 135, 182. */
+      v.cargo.capacite = Math.round(100 * Math.pow(1.35, v.level-1));
     }
   }
-  if(T && T.level < UP_MAX && T !== MOISSON){
+  /* UN OUTIL INTÉGRÉ N'A PAS DE MODÈLE À ÉLARGIR. La coupe de la moissonneuse et le
+     tunnel de l'enjambeuse décrivent un travail, ils ne sont pas dans la cour : ni
+     `group` ni `width0`. La garde ne nommait que la coupe, si bien qu'améliorer une
+     ENJAMBEUSE au garage jetait `T.group.scale` — l'argent était déjà retiré et la
+     machine ne gagnait rien, l'exception tuant la fin du gestionnaire. On teste
+     maintenant la présence du modèle, ce qui couvre les deux et tout futur outil du
+     même genre. */
+  if(T && T.group && T.level < UP_MAX){
     T.level++;
     T.width *= 1.22;
     T.group.scale.x = T.width / T.width0;
@@ -10481,10 +10529,14 @@ function updateCargo(dt){
       // l'on s'arrête pile dessus. Sans limite, rien ne change.
       const avant = (choixLimite !== null && m === MACHINES[cur]) ? chargePortee(m) : 0;
       /* Le dernier pas est raccourci pour tomber PILE sur la quantité demandée. Sans
-         cela, `executer` déplace un plein débit — jusqu'à quatorze kilos à soixante
-         images — et l'on chargeait 204 kg là où l'on en avait demandé 200. Le débit le
-         plus rapide de tous les cas sert de borne : aucun ne peut alors dépasser. */
-      const DEBIT_MAX = 420;
+         cela, `executer` déplace un plein débit — jusqu'à 0,78 kg à soixante images —
+         et l'on chargeait 204 kg là où l'on en avait demandé 200. Le débit le plus
+         rapide de tous les cas sert de borne : aucun ne peut alors dépasser. Il valait
+         140 kg/s, il en vaut 47 depuis que les transferts ont été divisés par trois ;
+         la borne l'a suivi. À 420 elle était neuf fois trop haute et non trois, si bien
+         que chaque image ne résorbait plus que 11 % du reste : une fin de transfert de
+         cinq kilos immobilisait l'engin près d'une seconde à écouler des grammes. */
+      const DEBIT_MAX = 140;
       const dtA = (choixLimite !== null && m === MACHINES[cur])
                   ? Math.min(dt, choixLimite/DEBIT_MAX) : dt;
       executer(m, A, dtA);
@@ -10855,7 +10907,8 @@ function remplir(v, dt, source){
 // qui s'achète au comptoir agricole, exactement au tarif affiché sur son enseigne.
 const STOCK = {
   semence: 68, engrais: 27, max: 450,
-  prixSemence: 1.55, prixEngrais: 2.22,
+  // Le même tarif que l'enseigne, parce que c'est littéralement le même objet.
+  prixSemence: PRIX_INTRANT.semence, prixEngrais: PRIX_INTRANT.engrais,
   parCellSemence: 0.043, parCellEngrais: 0.036
 };
 // Ce qu'un outil consomme par cellule traitée, et dans quel bac il puise.
@@ -10971,7 +11024,8 @@ const aQuai = (v, S, r)=> S && prochePoint(v, S.dropX, S.dropZ, r || QUAI_R);
 
 /* Équilibrage — les deux débouchés doivent rester un vrai choix, pas un calcul évident.
      lait  : rente régulière, qui ne demande que des tournées. Un troupeau de dix bêtes
-             remplit son tank en sept minutes, soit un peu plus d'un plein de fourgon.
+             remplit son tank de 135 kg en quatorze minutes — un peu moins qu'un plein
+             de fourgon, qui en prend 155.
      viande: coup par coup. Une bête achetée 1 200 € en vaut 1 750 une fois adulte,
              mais la vendre supprime sa production de lait. C'est là que se joue
              l'arbitrage entre le revenu qui coule et le revenu qui tombe. */
@@ -12193,7 +12247,7 @@ const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
    Tout le reste — silo, entrepôt, auge, trémie d'usine — part d'un seul appui et en
    entier : personne n'y est payé au kilo versé, et rien n'y est plafonné qu'on puisse
    ménager. Le curseur de `verser` mentait d'ailleurs, faute de borner par la place
-   restante dans la trémie de l'usine : il annonçait six cents kilos pour cent de place.
+   restante dans la trémie de l'usine : il annonçait toute la benne pour trente de place.
    Cette table est SÉPARÉE de SENS_VIDER : celle-là dit dans quel sens la matière
    circule et sert au pilote automatique, celle-ci dit seulement si l'on pose une
    question au joueur. Les confondre remettrait le curseur sur « ranger » et
@@ -12974,7 +13028,10 @@ function refreshChoix(){
    rectangle. Un point DERRIÈRE la caméra sort de la projection avec ses signes
    inversés : on le retourne, sans quoi la flèche pointerait à l'exact opposé. */
 const viseursEl = document.getElementById('viseurs');
-const VISEUR = {haut:100, bas:158, cote:64, pool:[]};
+/* La marge du haut tient compte de la deuxième rangée du bandeau : le bouton de graine
+   descend à 94 px, et une vignette de viseur mesure 42 px autour de son centre. À 100 la
+   pointe de la flèche — la moitié qui porte la direction — passait DERRIÈRE lui. */
+const VISEUR = {haut:120, bas:158, cote:64, pool:[]};
 /* LA FLÈCHE : UN TRIANGLE, MAIS POINTU.
    Le premier était équilatéral — trois angles de soixante degrés — et un triangle dont
    tous les angles se valent ne pointe nulle part : tourné d'un quart de tour on le
@@ -13053,7 +13110,12 @@ function refreshJauges(){
   const m = MACHINES[cur], v = m.v;
   const k = v.fuel / v.resMax;
   jaugeEl.fuel.style.width = (k*100) + '%';
-  jaugeEl.fuel.style.background = k < 0.12 ? '#E8563F' : (k < 0.28 ? '#F0A030' : '#8BE07A');
+  // La pompe est en `currentColor` : elle prend la teinte de la boîte, qui prend celle
+  // du niveau. Sans cette ligne la piste virait au rouge et clignotait pendant que le
+  // pictogramme d'à côté restait vert vif.
+  const teinte = k < 0.12 ? '#E8563F' : (k < 0.28 ? '#F0A030' : '#8BE07A');
+  jaugeEl.fuel.style.background = teinte;
+  jaugeEl.fuelBox.style.color = teinte;
   jaugeEl.fuelBox.classList.toggle('bas', k < 0.12);
   const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
   jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
@@ -13444,11 +13506,16 @@ function ongletElevage(){
     const E = ESPECES[cle];
     // Le prix de CHAQUE produit : « revendus 2,10 € le kg » pour la laine ET le lait de
     // brebis annonçait la laine pour les deux, et se trompait du double sur le lait.
+    /* PAR MINUTE, ET NON PAR SECONDE. Deux décimales suffisaient tant qu'une vache
+       donnait 0,07 kg/s ; depuis que les cadences sont divisées par 4,44, quatre
+       espèces sur cinq annonçaient « 0,00 kg de laine / s » — le jeu disait au joueur
+       que sa bête ne produit rien, et c'était l'argument de vente. La minute rend des
+       chiffres qu'on lit : vache 0,95, mouton 0,08, ruche 0,04. */
     const gain = E.produit
-      ? dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() + ' / s à ' +
+      ? dec(E.parSec*60) + ' kg de ' + E.nomProduit.toLowerCase() + ' / min à ' +
         dec(prixDe(E.produit)) + ' € le kg' +
-        (E.second ? ', et ' + dec(E.second.parSec) + ' kg de ' + E.second.nom.toLowerCase() +
-                    ' / s à ' + dec(prixDe(E.second.cle)) + ' €' : '')
+        (E.second ? ', et ' + dec(E.second.parSec*60) + ' kg de ' + E.second.nom.toLowerCase() +
+                    ' / min à ' + dec(prixDe(E.second.cle)) + ' €' : '')
       : 'aucun produit continu : elle se vend à la boucherie, et cher';
     // Une ruche ne se revend pas et ne part pas à l'abattoir : le libellé ne doit pas
     // promettre une valeur de revente qui vaut zéro.
@@ -13459,7 +13526,7 @@ function ongletElevage(){
     article(E.robes[0].fond, E.pluriel,
       eur(prixPature(cle)) + ' l\'enclos · ' + eur(E.prix) + ' la ' +
       (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
-      suite + ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos' +
+      suite + ' · ration ' + dec(E.ration*60, 2) + ' kg/min · jusqu\'à ' + E.places + ' par enclos' +
       (libre ? '' : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
       !libre ? 'Niveau ' + niv : (i === especeChoisie ? 'Choisie' : 'Choisir'),
       !libre ? 'no' : (i === especeChoisie ? 'ok' : ''),
@@ -13494,8 +13561,8 @@ function ongletElevage(){
     const ok = !plein && money >= E.prix;
     article(E.robes[1].fond, 'Acheter ' + E.un,
       eur(E.prix) + (E.produit
-        ? ' · elle donne ' + dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() +
-          ' par seconde tant qu\'elle est nourrie'
+        ? ' · elle donne ' + dec(E.parSec*60) + ' kg de ' + E.nomProduit.toLowerCase() +
+          ' par minute tant qu\'elle est nourrie'
         : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
       plein ? 'Enclos plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ()=>{ if(acheterBete(P))
@@ -13868,8 +13935,9 @@ function ongletPrix(){
   d.innerHTML = '<div class="txt"><div class="det">' +
     'Le prix affiché est celui du kilo à la vente directe. CHAQUE acheteur a un ' +
     'plafond par nature, et ce plafond est l\'inverse de son prix : le caviste paie le ' +
-    'mieux le vin mais n\'en écoule que six cents kilos, le supermarché paie le moins ' +
-    'et en prend neuf mille. Tous se refont en ' + ETAL_MINUTES + ' minutes.<br><br>' +
+    'mieux le vin mais n\'en écoule que ' + kg(NEGOCE['Caviste'].etal) + ', le ' +
+    'supermarché paie le moins et en prend ' + kg(NEGOCE['Supermarché'].etal) + '. ' +
+    'Tous se refont en ' + ETAL_MINUTES + ' minutes.<br><br>' +
     'D\'où la seule vraie question d\'une tournée : vendre le haut de la benne au prix ' +
     'fort, puis descendre l\'échelle pour le reste — ou tout donner d\'un coup au ' +
     'moins-disant et repartir travailler. La colonne « de place » dit ce que chacun ' +
@@ -14475,7 +14543,18 @@ function remettreAEchelle(S){
   const c = (x)=> (typeof x === 'number' && isFinite(x)) ? Math.round(x/ECH_CONTENANT) : x;
   const tas = (o)=>{ if(o && typeof o === 'object') for(const k in o) o[k] = q(o[k]); };
   S.hopper = q(S.hopper); S.delivered = q(S.delivered); S.breadKg = q(S.breadKg);
-  tas(S.silo); tas(S.entrepot); tas(S.STAT);
+  tas(S.silo); tas(S.entrepot);
+  /* STAT N'EST PAS UN TAS DE KILOS. Il mêle des poids — silo, farine, pain, moisson,
+     lait, miel, œufs, laine, huile, fromage — et trois COMPTES : `betes` est un nombre
+     de bêtes vendues, `labour` et `semis` des nombres de cellules. Les diviser par 4,44
+     décochait la mission du palier 14, « vendre six bêtes à la boucherie » et ses
+     20 000 € de prime : un joueur qui en avait vendu six se réveillait à 1,35, et il
+     lui en fallait vingt-sept dans son ancienne partie pour la garder acquise.
+     Liste blanche et non liste noire : une clé de STAT ajoutée plus tard sera presque
+     toujours un poids, mais elle ne doit pas être convertie sans qu'on l'ait décidé. */
+  const STAT_KG = ['silo', 'mill', 'pain', 'moisson', 'lait', 'miel', 'oeufs',
+                   'laine', 'huile', 'fromage'];
+  if(S.STAT) for(const k of STAT_KG) if(k in S.STAT) S.STAT[k] = q(S.STAT[k]);
   if(S.stock){ S.stock.semence = q(S.stock.semence); S.stock.engrais = q(S.stock.engrais); }
   if(Array.isArray(S.negoce)) for(const N of S.negoce){
     if(!N) continue; tas(N.tremie); tas(N.stock); tas(N.reste);
@@ -14497,6 +14576,19 @@ function remettreAEchelle(S){
     if(Array.isArray(S.campagne.faits)) S.campagne.faits = S.campagne.faits.map(q);
     if(Array.isArray(S.campagne.contrats)) for(const C of S.campagne.contrats)
       if(C && Array.isArray(C.lignes)) for(const l of C.lignes){ l.need = q(l.need); l.fait = q(l.fait); }
+  }
+  /* LES CINQ CHAMPS DES VERSIONS D'AVANT. chargerPartie relit encore siloKg, flourKg et
+     les trois tas de la halle, hérités de sauvegardes plus anciennes. Toute partie qui
+     les porte est par construction d'avant la remise à l'échelle — elle n'a pas de champ
+     `echelle` — donc elle passe bien ici, mais la fonction ne les nommait pas et les
+     laissait intacts. Le pire était `siloKg`, affecté DIRECTEMENT à siloStock.ble sans
+     garde de capacité : un silo de l'époque rempli à 8 000 kg revenait à 8 000 dans un
+     silo qui en tient 2 700, et valait 13 764 € de trop. */
+  S.siloKg = q(S.siloKg); S.flourKg = q(S.flourKg);
+  if(S.halle){
+    S.halle.entree  = q(S.halle.entree);
+    S.halle.aliment = q(S.halle.aliment);
+    S.halle.huile   = q(S.halle.huile);
   }
   S.echelle = 2;
 }
@@ -14676,7 +14768,17 @@ function chargerPartie(S){
       v.fuel = Math.min(q.fuel, v.resMax); v.sec = v.fuel <= 0;
       v.betail = q.betail; v.auto = false; v.mission = null; v.sensVoulu = null;
       v.cleVoulue = null; desarmerRecul(v);
-      if(v.cargo && q.cargo){ v.cargo.load = q.cargo.load; v.cargo.capacite = q.cargo.capacite; v.cargo.type = q.cargo.type; }
+      /* AU NIVEAU 1, C'EST LA TABLE QUI DIT LA CAPACITÉ, PAS LA SAUVEGARDE. Les
+         contenants n'ont pas été divisés par exactement trois — la benne est passée de
+         400 à 135, le pick-up de 200 à 70 — alors que la migration applique un trois
+         rond. Une partie migrée revenait donc avec 133 et 67 au lieu de 135 et 70, et
+         plus rien ne le recalculait : deux joueurs au même niveau n'avaient pas la même
+         benne selon qu'ils avaient migré ou commencé après. Un engin amélioré, lui,
+         garde ce que la sauvegarde dit : sa capacité vient d'une formule, pas de la table. */
+      if(v.cargo && q.cargo){
+        v.cargo.load = q.cargo.load; v.cargo.type = q.cargo.type;
+        if((q.level || 1) > 1) v.cargo.capacite = q.cargo.capacite;
+      }
       if(m.key === 'moisson'){
         const head = v.group.userData.head;
         if(head) head.scale.x = MOISSON.width/8.0;
@@ -14685,7 +14787,7 @@ function chargerPartie(S){
     S.outils.forEach((q, i)=>{
       const T = TOOLS[i]; if(!T) return;
       T.level = q.level; T.width = q.width; T.crop = q.crop;
-      if(q.capacite) T.capacite = q.capacite;
+      if(q.capacite && (q.level || 1) > 1) T.capacite = q.capacite;   // idem : la table au niveau 1
       T.load = q.load; T.type = q.type;
       T.group.scale.x = T.width / T.width0;
       T.group.position.set(q.x, 0, q.z); T.group.rotation.y = q.cap;
@@ -14776,6 +14878,7 @@ let fini = false;
    maintenant les deux seules valeurs du jeu : le palier de campagne, et le chemin
    qui reste avant le suivant. La campagne finie, la barre se remplit une dernière
    fois et le bandeau le dit. */
+let siloPrevenu = false;
 function refreshHUD(){
   const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
   const acheve = n >= NIVEAUX.length && !missionCourante();
@@ -14783,6 +14886,16 @@ function refreshHUD(){
   el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI'
                                : 'NIVEAU ' + n + ' — ' + N.nom;
   el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
+  /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
+     au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
+     ligne du poids. Sans lui on moissonne, on rentre au silo, et le transfert s'arrête
+     sans qu'aucun élément de l'écran n'ait prévenu — `Math.min(hopper, siloMax() -
+     siloTotal())` rend zéro en silence. Une phrase au passage du seuil vaut mieux qu'un
+     chiffre qu'on ne regardait pas ; elle ne se répète qu'après être redescendu sous
+     85 %, sinon elle reviendrait toutes les cinquante millisecondes. */
+  const partSilo = siloTotal()/siloMax();
+  if(partSilo > 0.92 && !siloPrevenu){ siloPrevenu = true; showHint('SILO PRESQUE PLEIN'); }
+  else if(partSilo < 0.85) siloPrevenu = false;
   // La part parcourue DANS le palier courant, pas depuis le début : une barre qui
   // n'avance plus que d'un cheveu au dixième niveau ne dit plus rien.
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
