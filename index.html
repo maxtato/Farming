@@ -939,8 +939,8 @@ for(const c of P_COLS) for(const r of P_ROWS){
      jamais. Le total reste du même ordre qu'avant, à peu près deux millions et demi ;
      c'est sa RÉPARTITION qui change, et avec elle les vingt premières minutes. */
   const GRILLE = [1200, 2500, 4500, 7500, 12000, 18000, 27000, 40000, 60000,
-                  77000, 98000, 125000, 160000, 205000, 262000, 335000,
-                  430000, 550000, 700000, 900000, 1150000];
+                  73000, 89000, 109000, 133000, 162000, 198000, 241000,
+                  294000, 359000, 438000, 534000, 651000];
   rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
@@ -1633,19 +1633,31 @@ function gagnerXp(n){
     annoncerNiveau(v);
   }
 }
+/* LES BULLES SUIVENT L'ÉTAT DES COMMERCES, PAS L'ÉVÉNEMENT QUI L'A CHANGÉ.
+   On ne refaisait que celles du palier qu'on venait d'atteindre. Deux cas passaient à
+   travers : une grosse commande qui fait sauter DEUX paliers d'un coup — les commerces
+   du palier intermédiaire gardaient « FERMÉ » pour toujours — et une partie rechargée
+   à un palier avancé, dont aucune bulle n'était jamais refaite puisqu'aucun palier
+   n'était franchi. On compare donc l'état AFFICHÉ à l'état réel, et l'on refait ce qui
+   ne correspond plus. C'est un parcours de quinze commerces, fait aux seuls moments où
+   quelque chose peut avoir changé. */
+function majBulles(){
+  for(const S of SITES){
+    if(!S.bulle) continue;
+    const o = siteOuvert(S);
+    if(S.bulleOuvert === o) continue;
+    S.bulleOuvert = o;
+    ajouteBulle(S, S.bulleH);
+  }
+}
 // Ce qu'un palier vient d'ouvrir, dit en clair. Sans cette phrase, on monte de niveau
 // sans savoir ce qu'on a gagné, et l'on ne pense pas à retourner voir la boutique.
 function annoncerNiveau(n){
   const N = NIVEAUX[n-1];
   if(!N) return;
   showHint('NIVEAU ' + n + ' — ' + N.nom.toUpperCase());
-  // Les commerces qui viennent d'ouvrir doivent le dire depuis la route : leur bulle
-  // affichait « FERMÉ · ouvre au niveau 6 », il faut la refaire.
-  for(const c of (N.sites || [])){
-    const S = SITES.find((x)=> x.nom === c);
-    if(S && S.bulle) ajouteBulle(S, S.bulleH);
-  }
-  if(N.especes && N.especes.length) caleEspece();
+  majBulles();
+  caleEspece();
   // Le restaurant qui vient d'ouvrir, ou qui voit apparaître un produit de plus,
   // refait sa commande : elle portait sur ce que la ferme ne savait pas encore faire.
   if(mondePret && siteOuvert(RESTO)) nouvelleCommande();
@@ -3718,6 +3730,7 @@ function ajouteBulleRendu(S, H, blocs){
                if(i >= 0) BULLES.splice(i, 1); }
   S.bulle = poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
   S.bulleH = H;
+  S.bulleOuvert = siteOuvert(S);
 }
 /* ---------- LES COMMERCES DU VILLAGE ----------
    Treize bâtiments, chacun avec sa silhouette et ses attributs : on reconnaît une
@@ -5743,18 +5756,36 @@ function poserAtelier(){
   atelierMesh.position.set(HALLE.x, 0, HALLE.z);
   scene.add(atelierMesh);
   const u = atelierMesh.userData;
+  /* L'EMPRISE SE MESURE, ELLE NE SE RÈGLE PLUS — et elle se mesure AVANT la cuisson.
+     C'était une échelle de quatre valeurs écrites à la main, une par palier, et le
+     passage à huit métiers l'a laissée court de presque un mètre par côté sur les trois
+     derniers crans : on roulait au travers du tank de la fromagerie. On la prend
+     maintenant sur la géométrie, en ne retenant que CE QU'UN TRACTEUR PEUT HEURTER —
+     ce qui commence sous 2,50 m et dépasse 1,20 m. La dalle de quai, haute de seize
+     centimètres, est donc ignorée, et l'auvent, qui commence à cinq mètres, aussi : on
+     passe dessous.
+     Une fois `fusionnerGroupe` passé, tout le bâtiment ne fait plus qu'une poignée de
+     maillages et le filtre en hauteur ne discrimine plus rien — l'emprise couvrirait
+     alors le quai et le conteneur, soit vingt-six mètres de profondeur au lieu de
+     neuf. La mesure vient donc avant. */
+  const hd = u.D/2*BAT_ECHELLE;
+  const bbObs = new THREE.Box3(), _bbM = new THREE.Box3();
+  bbObs.makeEmpty();
+  atelierMesh.updateMatrixWorld(true);
+  atelierMesh.traverse((o)=>{
+    if(!o.geometry) return;
+    _bbM.setFromObject(o);
+    // On ne mesure QUE la largeur, et QUE sur ce qui est à hauteur de capot : un
+    // obstacle est un rectangle aligné sur les axes, il ne sait pas faire un L. Le
+    // conteneur et les palettes de la cour, plantés DEVANT le bâtiment, allongeraient
+    // l'emprise jusqu'à couvrir le quai — on ne pourrait plus s'en approcher.
+    if(Math.abs((_bbM.min.z + _bbM.max.z)/2 - HALLE.z) > hd + 1) return;
+    if(_bbM.min.y < 2.5*BAT_ECHELLE && _bbM.max.y > 1.2*BAT_ECHELLE) bbObs.union(_bbM);
+  });
+  const demi = bbObs.isEmpty() ? (u.W/2 + 2.7)*BAT_ECHELLE
+             : Math.max(HALLE.x - bbObs.min.x, bbObs.max.x - HALLE.x);
   // Le bâtiment de l'atelier ne bouge pas non plus : on le recuit, en gardant ses cotes.
   fusionnerGroupe(atelierMesh);
-  // Chaque palier pousse un module sur un côté : la trémie seule au niveau 1, le hall
-  // d'alimentation au 2, les cuves au 3, l'appentis et le conteneur au 4.
-  const N = HALLE.niveau;
-  /* CES PALIERS SONT DES MÈTRES ABSOLUS, PAS DES FRACTIONS DU BÂTIMENT. L'échelle posée
-     sur le groupe éloigne les modules latéraux d'autant : le facteur doit donc porter sur
-     la SOMME et non sur le seul demi-mur. L'écrire à moitié laisserait au niveau 5 deux
-     mètres de module hors de l'obstacle, et on roulerait au travers du conteneur et de
-     l'appentis — dans la cour de transformation, là où l'on manœuvre le plus. */
-  const demi = (u.W/2 + (N >= 7 ? 4.5 : (N >= 6 ? 3.4 : (N >= 2 ? 3.2 : 2.7))))*BAT_ECHELLE;
-  const hd = u.D/2*BAT_ECHELLE;
   if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd}; boxObs.push(atelierObs); }
   else { atelierObs.hw = demi; atelierObs.hd = hd; }
   // PLUS D'ANNEAU DEVANT L'ATELIER. Il se sert tout seul au silo et à l'entrepôt, et
@@ -9512,7 +9543,8 @@ function refreshBuyButton(){
   const ok = money >= p.price && permis;
   buyEl.classList.toggle('no', !ok);
   buyEl.textContent = !permis
-    ? 'PALIER ATTEINT — ' + parcellesPermises() + ' PARCELLES'
+    ? 'PALIER ATTEINT — ' + parcellesPermises() + ' PARCELLE'
+      + (parcellesPermises() > 1 ? 'S' : '')
     : (ok ? 'ACHETER ' + p.price.toLocaleString('fr-FR') + ' €'
           : 'IL MANQUE ' + Math.ceil(p.price - money).toLocaleString('fr-FR') + ' €');
   buyEl._p = p;
@@ -13009,14 +13041,11 @@ const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true, 
    `unpackGrille` n'a pas bougé. */
 const _packPlans = new Uint8Array(NCELL*4);
 let _packRLE = new Uint8Array(1 << 16);
-function packGrille(){
-  const n = NCELL, buf = _packPlans;
-  for(let i=0;i<n;i++){
-    buf[i]       = state[i];
-    buf[n+i]     = Math.round(Math.max(0, Math.min(1, growth[i]))*255);
-    buf[n*2+i]   = fert[i];
-    buf[n*3+i]   = cropCell[i];
-  }
+// La compression, séparée de ce qu'on compresse : quatre plans empilés pour la grille
+// d'origine, un seul pour celui qu'on a ajouté depuis. Le format du premier ne peut
+// PAS changer — sa longueur est vérifiée à la relecture, et une partie enregistrée
+// serait rejetée en entier.
+function packRLE(buf){
   let out = _packRLE, m = 0, i = 0;
   while(i < buf.length){
     const v = buf[i]; let l = 1;
@@ -13030,6 +13059,56 @@ function packGrille(){
   for(let k=0;k<m;k+=8192)
     s += String.fromCharCode.apply(null, out.subarray(k, Math.min(k+8192, m)));
   return btoa(s);
+}
+function packGrille(){
+  const n = NCELL, buf = _packPlans;
+  for(let i=0;i<n;i++){
+    buf[i]       = state[i];
+    buf[n+i]     = Math.round(Math.max(0, Math.min(1, growth[i]))*255);
+    buf[n*2+i]   = fert[i];
+    buf[n*3+i]   = cropCell[i];
+  }
+  return packRLE(buf);
+}
+/* LE PLAN DES PIEDS EN PLACE, ENREGISTRÉ À PART.
+   Il ne peut pas rejoindre les quatre autres : `unpackGrille` vérifie que la longueur
+   décompressée vaut exactement quatre plans et REJETTE la sauvegarde sinon — une
+   partie enregistrée par cette version serait illisible par la précédente, et
+   réciproquement. Il a donc son propre champ, facultatif : une partie qui ne le porte
+   pas repart de zéro, ce qui allonge une repousse en cours mais n'en raccourcit
+   jamais aucune. Le déduire de l'état, comme on l'a fait d'abord, offrait au contraire
+   soixante secondes sur la PREMIÈRE pousse d'une vigne à chaque rechargement. */
+function packReplante(){
+  const n = NCELL, buf = _packPlans.subarray(0, n);
+  for(let i=0;i<n;i++) buf[i] = replante[i];
+  return packRLE(buf);
+}
+function unpackReplante(b64, gnx, gnz, sx0, sz0){
+  replante.fill(0);
+  if(!b64) return false;
+  const AX0 = gnx || 169, AZ0 = gnz || 169;
+  const di = Math.round(((sx0 === undefined ? -110 : sx0) - X0)/CS);
+  const dj = Math.round(((sz0 === undefined ? -110 : sz0) - Z0)/CS);
+  let s2;
+  try { s2 = atob(b64); } catch(e){ return false; }
+  const n = AX0*AZ0, buf = new Uint8Array(n);
+  let p2 = 0;
+  for(let i=0;i<s2.length;i+=2){
+    const v = s2.charCodeAt(i), l = s2.charCodeAt(i+1);
+    for(let k=0;k<l && p2<n;k++) buf[p2++] = v;
+  }
+  if(p2 !== n) return false;
+  for(let j=0;j<AZ0;j++){
+    const jd = j + dj;
+    if(jd < 0 || jd >= GNZ) continue;
+    const a2 = j*AX0, b2 = jd*GNX;
+    for(let i=0;i<AX0;i++){
+      const id2 = i + di;
+      if(id2 < 0 || id2 >= GNX) continue;
+      replante[b2 + id2] = buf[a2 + i] ? 1 : 0;
+    }
+  }
+  return true;
 }
 // `gnx`/`gnz` disent la trame de la grille enregistrée. Une sauvegarde d'avant
 // l'élargissement n'en porte pas : elle vient forcément d'une carte carrée de 169×169.
@@ -13055,7 +13134,7 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
   }
   if(p !== buf.length) return false;         // sauvegarde tronquée : on n'y touche pas
   growingList.length = 0;
-  state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0); replante.fill(0);
+  state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0);
   for(let j=0;j<AZ0;j++){
     const jd = j + dj;
     if(jd < 0 || jd >= GNZ) continue;
@@ -13069,10 +13148,6 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
       fert[dst]     = buf[n*2+src];
       cropCell[dst] = buf[n*3+src];
       if(state[dst] === ST.SEME) growingList.push(dst);
-      // Une permanente déjà semée est un pied installé : sa prochaine récolte est
-      // une repousse, pas une plantation.
-      replante[dst] = (CROPS[cropCell[dst]] && CROPS[cropCell[dst]].perenne &&
-                       (state[dst] === ST.SEME || state[dst] === ST.MUR)) ? 1 : 0;
     }
   }
   // Une sauvegarde d'avant l'agrandissement du pool d'épis porte des cellules restées
@@ -13147,7 +13222,8 @@ function etatJeu(){
       vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
     gnx: GNX, gnz: GNZ, x0: X0, z0: Z0,
-    grille: packGrille()
+    grille: packGrille(),
+    grilleR: packReplante()
   };
 }
 function sauvegarder(explicite){
@@ -13228,6 +13304,9 @@ function chargerPartie(S){
       activateParcel(p);
     });
     if(!unpackGrille(S.grille, S.gnx, S.gnz, S.x0, S.z0)) return false;
+    // Les pieds en place, s'ils ont été enregistrés. Sinon tout repart en plantation :
+    // une repousse en cours s'allonge, mais aucune première pousse n'est raccourcie.
+    unpackReplante(S.grilleR, S.gnx, S.gnz, S.x0, S.z0);
     // 2. les pâtures : elles reposent clôture, tank et auge sur leur parcelle
     for(const q of S.patures){
       const p = PARCELS[q.parcelle];
@@ -13372,7 +13451,14 @@ function chargerPartie(S){
     S.machines.forEach((q, i)=>{
       const m = MACHINES[i]; if(!m) return;
       const v = m.v;
-      m.verrou = q.verrou; v.group.visible = !q.verrou;
+      /* LES VERROUS D'ENGINS SONT UN PLANCHER, EUX AUSSI. Le pick-up était à neuf mille
+         euros ; il est maintenant donné au premier palier, parce que sans lui on ne
+         peut RIEN sortir de la ferme. Une partie d'avant où il n'avait pas été acheté
+         le rendait donc verrouillé et invisible, et il fallait deviner qu'on pouvait
+         aller le « racheter » zéro euro au garage. Un engin gratuit et ouvert n'est
+         jamais repris. */
+      m.verrou = q.verrou && !(m.prix === 0 && ouvert('engins', m.key));
+      v.group.visible = !m.verrou;
       v.level = q.level; v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn;
       v.pos.set(q.x, 0, q.z); v.cap = q.cap;
       v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
@@ -13403,6 +13489,8 @@ function chargerPartie(S){
        cela doit donc être déjà en place. */
     chargerCampagne(S);
     for(const T of TOOLS) T.group.visible = !T.verrou;
+    majBulles();
+    caleEspece();
     setMachine(MACHINES[S.cur] && !MACHINES[S.cur].verrou ? S.cur : 0);
     updateJourNuit(0);
     flushTiles();
