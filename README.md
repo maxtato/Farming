@@ -925,9 +925,52 @@ du parc comme sur la carte du plan. Le nom sert donc enfin à dire ce qu'est l'e
 la pastille correspond au modèle — celle du pick-up annonçait du rouge alors que sa
 caisse est bleue depuis toujours.
 
-Le bouton d'**automatisation** est descendu à côté du **garage** : ce sont les deux
-boutons qui parlent de l'engin — lequel je pilote, et est-ce que je le pilote moi-même.
-La rangée du dessus ne garde que ce qui touche à l'outil, l'attelage et le semoir.
+### Le bandeau se range par sujet
+
+Six éléments ont changé de place le même jour, et pour la même raison : chacun était posé
+là où il y avait de la place, pas là où l'œil le cherche.
+
+**Une seule rangée pour l'engin.** Le garage, l'attelage et le plan de travail parlent
+tous de la machine qu'on pilote — lequel, ce qu'il traîne, qui le conduit. Ils tenaient
+sur deux rangées, l'attelage seul au-dessus : on montait d'un étage pour atteler, et la
+rangée du bas restait une paire dépareillée. Ils sont maintenant sur une ligne **souple** :
+quand l'attelage n'a pas lieu d'être — moissonneuse, utilitaire — il disparaît et les
+deux autres se recentrent d'eux-mêmes. C'est ce que trois boutons posés en `left: 50% ± 60px`
+n'auraient pas su faire : masquer celui du milieu aurait laissé un trou de 72 px. La rangée
+passe de 108 à **168 px**, toujours centrée. Au passage elle corrige un défaut ancien —
+l'attelage montait à 112 px alors que le bouton d'achat commence à 104, et les deux se
+recouvraient de huit pixels au garage.
+
+**Le type de graine monte en haut.** En bas il occupait une rangée à lui tout seul pour un
+réglage qu'on change une fois par parcelle. Il se pose sous le menu et la pause, contre le
+bord droit — et **non à côté d'eux** : la barre de palier est centrée et large de 282 px,
+un téléphone en paysage fait 568, et la mesure dit que les deux ne tiennent sur la même
+ligne qu'au-delà de 696 px de large. Sur la deuxième rangée il n'a plus de voisin : le
+bandeau des contrats est borné à 52 % de la largeur depuis la gauche. Il reste accroché
+par son bord **droit**, car c'est le seul bouton qui grandit avec son texte — de 80 px pour
+« BLÉ » à 105 pour « AVOINE » — et il pousse donc vers la gauche, où il n'y a personne.
+
+**La régie descend contre la commande.** Les trois boutons — stockage, production, prix —
+flottaient à 56 px au-dessus des flèches de direction : trois pastilles perdues au milieu
+du décor, qu'on ne rattachait à rien. Elles se posent à **dix pixels** de la commande. Le
+pédalier et le manche ne montent pas à la même hauteur, alors une classe sur `#hud` dit au
+CSS lequel des deux est à l'écran — c'est la seule chose que la feuille de style ait besoin
+de savoir du mode de conduite.
+
+**Les deux jauges de droite portent leur signe.** C'étaient deux traits de huit pixels,
+nus, l'un sur l'autre : rien ne disait lequel comptait le gazole et lequel la charge, il
+fallait en vider un pour l'apprendre. Chacune reçoit son pictogramme — une **pompe**, un
+**poids de balance** — et le gazole passe **en bas**, à huit pixels de la pédale
+d'accélérateur : c'est la jauge qu'on surveille en roulant, elle se lit sans quitter le
+pouce des yeux. Une barre claire à 22 % sur un champ de blé au soleil ne se voyait pas :
+un liseré sombre d'un pixel la détache de n'importe quel fond, et le pictogramme porte la
+même ombre. Ni l'un ni l'autre ne bouge, le filtre ne coûte donc qu'un calcul, une fois —
+contrairement aux flèches du bord, qui se déplacent.
+
+**Et le bandeau du haut perd une ligne.** Le poids du silo occupait celle du milieu : un
+chiffre qu'on ne lit qu'au moment de rentrer une récolte, et qui figure déjà en toutes
+lettres dans l'écran Stockage. Restent l'argent — ce qui décide de tout — et l'heure, qui
+décide du reste. La pilule passe de 71 à **52 px** de haut.
 
 **Les listes se resserrent.** Une ligne prenait 58 px de haut pour trois mots et un
 bouton : quatre lignes par écran de téléphone, et l'on passait son temps à faire défiler.

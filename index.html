@@ -101,10 +101,6 @@
   /* Le bouton de l'engin ouvre la fenêtre rapide du parc, où l'on change d'engin
      d'un doigt sans quitter la partie. Le nom qu'il portait vit maintenant dans son
      aria-label, et dans la liste qu'il ouvre. */
-  #engins{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));
-    left:calc(50% - 30px);transform:translateX(-50%);pointer-events:auto;
-    padding:11px;border-radius:14px;
-    background:rgba(20,28,33,.62);border:2px solid rgba(255,255,255,.34)}
   /* La fenêtre rapide du parc : rien que les engins qu'on possède, un par ligne. */
   #parc{position:absolute;inset:0;display:none;z-index:22}
   #parcfond{position:absolute;inset:0;background:rgba(10,15,18,.66);pointer-events:auto}
@@ -257,27 +253,33 @@
   .sect::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.12)}
   #stick::before{content:'◀     ▶';position:absolute;left:0;right:0;top:50%;margin-top:-7px;
     text-align:center;font-size:10px;letter-spacing:2px;opacity:.3}
-  #hitch{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;
-    transform:translateX(-50%);pointer-events:auto;padding:11px;border-radius:12px;
-    background:rgba(20,28,33,.55);border:2px solid rgba(255,255,255,.25)}
+  /* LA RANGÉE DE L'ENGIN. Trois boutons qui parlent tous de la machine qu'on pilote :
+     lequel, ce qu'il traîne, et qui le conduit. L'attelage vivait seul sur la rangée
+     du dessus — on montait d'un étage pour atteler, et la rangée du bas restait une
+     paire dépareillée. Ils tiennent maintenant sur une seule ligne souple : quand
+     l'attelage n'a pas lieu d'être — moissonneuse, utilitaire — il disparaît et les
+     deux autres se recentrent d'eux-mêmes, ce qu'un positionnement en pourcentage ne
+     savait pas faire. Douze pixels les séparent : assez pour qu'un doigt ne se trompe
+     pas, assez peu pour qu'on lise la rangée. */
+  #engbar{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;
+    transform:translateX(-50%);display:flex;gap:12px;align-items:center}
+  #engbar > div{pointer-events:auto;padding:11px;border-radius:14px;
+    background:rgba(20,28,33,.62);border:2px solid rgba(255,255,255,.3)}
   #hitch.on{border-color:#FAD201;color:#FAD201}
-  /* L'automatisation descend à côté du garage : ce sont les deux boutons qui parlent
-     de l'ENGIN — lequel je pilote, et est-ce que je le pilote moi-même. La rangée du
-     dessus ne garde que ce qui touche à l'outil, l'attelage et le semoir. Douze pixels
-     les séparent : assez pour qu'un doigt ne se trompe pas, assez peu pour qu'on lise
-     la paire. */
-  #auto{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));
-    left:calc(50% + 30px);transform:translateX(-50%);pointer-events:auto;
-    padding:11px;border-radius:14px;background:rgba(20,28,33,.55);
-    border:2px solid rgba(255,255,255,.25)}
   #auto.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.6)}
-  /* Le semoir est le seul bouton qui grandit avec son texte — « TOURNESOL » est trois
-     fois plus long que « BLÉ ». On l'accroche donc par son bord DROIT, à huit pixels
-     de l'attelage : il pousse vers la gauche, où il n'y a personne, au lieu de venir
-     recouvrir le centre. */
-  #crop{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));
-    right:calc(50% + 32px);pointer-events:auto;
-    padding:11px 12px;border-radius:12px;background:rgba(20,28,33,.55);
+  /* Le semoir monte EN HAUT. En bas il occupait une rangée à lui seul pour un réglage
+     qu'on change une fois par parcelle. Il se pose SOUS le menu et la pause, contre le
+     bord droit, et non à côté d'eux : la barre de progression est centrée et large de
+     282 px, si bien qu'un écran de téléphone en paysage — 568 px — n'a pas la place
+     des deux sur la même ligne. Sur la deuxième rangée il n'a plus de voisin du tout,
+     le bandeau des contrats étant borné à 52 % de la largeur depuis la gauche.
+     Il est accroché par son bord DROIT, car c'est le seul bouton qui grandit avec son
+     texte : il pousse vers la gauche, où il n'y a personne.
+     Le z-index le met au-dessus des flèches du bord, qui montent jusqu'à y = 79 :
+     mieux vaut qu'une flèche passe derrière un libellé que par-dessus. */
+  #crop{position:absolute;top:calc(56px + env(safe-area-inset-top));
+    right:calc(12px + env(safe-area-inset-right));pointer-events:auto;z-index:7;
+    padding:6px 11px;border-radius:12px;background:rgba(20,28,33,.62);
     font-size:10px;font-weight:bold;letter-spacing:1.4px;gap:7px;
     border:2px solid #F0C24A;color:#F0C24A;white-space:nowrap;display:none}
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
@@ -297,9 +299,14 @@
      ce qui est en magasin, ce qu'on peut en faire, et à quel prix ça se vend. Ils
      restent à gauche, au-dessus du manche, pour ne jamais recouvrir la colonne de
      choix ni les boutons de l'engin, qui sont tous centrés. */
-  #regie{position:absolute;bottom:calc(154px + env(safe-area-inset-bottom));
+  /* Ils flottaient à cinquante pixels au-dessus des flèches : trois boutons perdus au
+     milieu du décor, qu'on ne rattachait à rien. Ils descendent se poser à dix pixels
+     de la commande — au-dessus du manche en mode manche, au-dessus des flèches en mode
+     boutons, qui ne montent pas à la même hauteur. */
+  #regie{position:absolute;bottom:calc(152px + env(safe-area-inset-bottom));
     left:calc(24px + env(safe-area-inset-left));pointer-events:auto;
     display:flex;gap:6px;align-items:center}
+  #hud.btn #regie{bottom:calc(108px + env(safe-area-inset-bottom))}
   /* La pastille de couleur qui précédait le mot n'a plus lieu d'être : c'est le tracé
      lui-même qui porte la teinte de l'écran qu'il ouvre. */
   #regie .rgb{padding:9px;border-radius:11px;background:rgba(20,28,33,.62);
@@ -349,18 +356,37 @@
   .ped{transition:transform .07s;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65))}
   .ped svg{display:block}
   .ped.on{transform:translateY(3px) scale(.97)}
-  #hopper{position:absolute;bottom:calc(190px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
-    width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .3s}
-  #hopfill{height:100%;width:0%;background:#FFAE2E}
-  /* jauge de gazole : toujours visible, elle clignote quand le réservoir se vide */
-  #fuel{position:absolute;bottom:calc(206px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
-    width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
-  #fuelfill{height:100%;width:100%;background:#8BE07A;transition:width .2s,background .3s}
+  /* LES DEUX JAUGES DE DROITE. Deux traits de huit pixels, nus, l'un sur l'autre : rien
+     ne disait lequel comptait le gazole et lequel la charge, et il fallait les vider
+     une fois pour l'apprendre. Chacune porte maintenant son signe — une pompe, un poids
+     de balance — et le GAZOLE passe en bas, contre la pédale d'accélérateur : c'est la
+     jauge qu'on surveille en roulant, elle se lit sans quitter le pouce des yeux. Le
+     pédalier et le manche ne montent pas à la même hauteur, d'où les deux jeux de
+     cotes ; l'écart de huit pixels entre les rangées est le même dans les deux modes. */
+  #fuel,#hopper{position:absolute;right:calc(26px + env(safe-area-inset-right));
+    display:flex;align-items:center;gap:6px}
+  /* Une barre claire à vingt pour cent sur un champ de blé au soleil ne se voit pas.
+     Un liseré sombre d'un pixel la détache de n'importe quel fond, et le pictogramme
+     porte la même ombre : ni l'un ni l'autre ne bouge, le filtre ne coûte donc qu'un
+     calcul, une fois — contrairement aux flèches du bord, qui se déplacent. */
+  .jtrack{display:block;width:66px;height:8px;border-radius:4px;
+    background:rgba(255,255,255,.22);overflow:hidden;flex:none;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+  .jic{display:block;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+  #fuelfill,#hopfill{display:block;height:100%}
+  #fuel{bottom:calc(182px + env(safe-area-inset-bottom));color:#8BE07A}
+  #fuelfill{width:100%;background:#8BE07A;transition:width .2s,background .3s}
   #fuel.bas{animation:clig 1s infinite}
   @keyframes clig{50%{opacity:.35}}
-  #chargetxt{position:absolute;bottom:calc(222px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
+  #hopper{bottom:calc(208px + env(safe-area-inset-bottom));color:#FFAE2E;
+    opacity:0;transition:opacity .3s}
+  #hopfill{width:0%;background:#FFAE2E}
+  #chargetxt{position:absolute;bottom:calc(234px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     font-size:9px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
     text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
+  #hud.btn #fuel{bottom:calc(167px + env(safe-area-inset-bottom))}
+  #hud.btn #hopper{bottom:calc(193px + env(safe-area-inset-bottom))}
+  #hud.btn #chargetxt{bottom:calc(219px + env(safe-area-inset-bottom))}
   /* La rangée de choix : même place et même costume que le bouton de service, dont
      le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
   /* La colonne porte maintenant TOUTES les possibilités du lieu, empêchements compris :
@@ -457,9 +483,12 @@
 </head>
 <body>
 <div id="hud">
+  <!-- DEUX LIGNES, PAS TROIS. Le poids du silo occupait la ligne du milieu : un chiffre
+       qu'on ne lit qu'au moment de rentrer une récolte, et qui figure déjà en toutes
+       lettres dans l'écran Stockage. Restent l'argent — ce qui décide de tout — et
+       l'heure, qui décide du reste. -->
   <div class="pill" id="stats">
     <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span></div>
-    <div class="stat"><span class="dot" style="background:#FFAE2E"></span><span id="silo">0 kg</span></div>
     <div class="stat"><span class="dot" style="background:#7FD1E8"></span><span id="heure">09:00</span></div>
   </div>
   <div id="goalwrap"><div id="bar"><div id="barfill"></div></div><div id="star">★</div></div>
@@ -472,7 +501,6 @@
   <div id="viseurs"></div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
-  <div id="engins" class="pic" aria-label="ENGINS"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctitre">Changer d'engin</div><div id="parcliste"></div></div></div>
   <div id="menuBtn" class="pic" aria-label="Menu"></div>
   <div id="fen">
@@ -535,8 +563,12 @@
       <div id="pliste"></div>
     </div>
   </div>
-  <div id="hitch" class="pic" aria-label="Atteler"></div>
-  <div id="auto" class="pic" aria-label="Plan de travail"></div>
+  <!-- La rangée de l'engin : lequel je pilote, ce qu'il traîne, qui le conduit. -->
+  <div id="engbar">
+    <div id="engins" class="pic" aria-label="ENGINS"></div>
+    <div id="hitch" class="pic" aria-label="Atteler"></div>
+    <div id="auto" class="pic" aria-label="Plan de travail"></div>
+  </div>
   <div id="crop" class="pic" aria-label="Culture du semoir"></div>
   <div id="buy"></div>
   <div id="atelier"></div>
@@ -558,8 +590,8 @@
     <div id="pedales"><div class="ped" id="pacc"></div><div class="ped" id="pfre"></div></div>
   </div>
   <div id="chargetxt"></div>
-  <div id="fuel"><div id="fuelfill"></div></div>
-  <div id="hopper"><div id="hopfill"></div></div>
+  <div id="hopper"><span class="jic"></span><span class="jtrack"><i id="hopfill"></i></span></div>
+  <div id="fuel"><span class="jic"></span><span class="jtrack"><i id="fuelfill"></i></span></div>
 </div>
 <div id="plan">
   <div id="planboite">
@@ -9541,9 +9573,13 @@ function commandesBoutons(dt){
   }
   throttle = 0;
 }
+const hudEl = document.getElementById('hud');
 function appliquerCommandes(){
   const b = COMMANDES.mode === 'boutons';
   boutonsEl.classList.toggle('on', b);
+  /* Le pédalier monte moins haut que le manche, et la régie comme les jauges se posent
+     contre la commande : c'est la seule chose que le CSS a besoin de savoir du mode. */
+  hudEl.classList.toggle('btn', b);
   stickEl.style.display = b ? 'none' : '';
   thrEl.style.display   = b ? 'none' : '';
   // On repart de zéro : un doigt encore posé sur un manche qu'on vient de cacher
@@ -9616,6 +9652,16 @@ const PICTOS = {
     '<path d="M11.4 3.2H20v8.6l-8.8 8.8a1.6 1.6 0 0 1-2.3 0l-6.3-6.3a1.6 1.6 0 0 1 0-2.3z" ' +
     'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<circle cx="16.4" cy="6.8" r="1.3" fill="currentColor"/>',
+  // gazole : pompe de station — cuve, hublot, et le pistolet sur son flexible
+  pompe:
+    '<path d="M4 20.6V5.4A2 2 0 0 1 6 3.4h5.2a2 2 0 0 1 2 2v15.2M2.6 20.6h12.2' +
+    'M6.4 6.6h4.4v3.6H6.4zM13.2 9.6h2.6a1.8 1.8 0 0 1 1.8 1.8v5.4a1.6 1.6 0 0 0 3.2 0V8.2l-2.3-2.3" ' +
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  // charge : un poids de balance, anse et corps évasé
+  poids:
+    '<path d="M9.4 7.6a2.6 3.4 0 0 1 5.2 0M7.4 7.6h9.2l2.7 11.7a1.1 1.1 0 0 1-1.1 1.3H5.8' +
+    'a1.1 1.1 0 0 1-1.1-1.3z" ' +
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   // menu
   menu:
     '<path d="M4 7h16M4 12h16M4 17h16" ' +
@@ -9630,6 +9676,11 @@ function picto(nom, taille){
    fonction de rafraîchissement, et seulement quand le signe change vraiment. */
 for(const [id, nom] of [['menuBtn','menu'], ['engins','garage'], ['auto','auto']])
   document.getElementById(id).innerHTML = picto(nom);
+// Les jauges de droite : la pompe pour le gazole, le poids pour ce qu'on transporte.
+// Dix-huit pixels — la hauteur d'une barre de huit plus ce qu'il faut pour que le
+// tracé se lise, sans faire de la vignette un bouton qu'on aurait envie de toucher.
+for(const [id, nom] of [['fuel','pompe'], ['hopper','poids']])
+  document.querySelector('#' + id + ' .jic').innerHTML = picto(nom, 18);
 for(const b of document.querySelectorAll('#regie .rgb'))
   b.innerHTML = picto(b.dataset.p === 'stockage' ? 'stocks' : b.dataset.p);
 
@@ -10392,7 +10443,7 @@ hitchEl.addEventListener('pointerdown', ()=>{
 
 /* HUD */
 const el = {
-  money: document.getElementById('money'), silo: document.getElementById('silo'),
+  money: document.getElementById('money'),
   bar: document.getElementById('barfill'), hint: document.getElementById('hint'),
   goal: document.getElementById('goaltxt'),
   ctr: document.getElementById('ctr'),
@@ -14732,12 +14783,6 @@ function refreshHUD(){
   el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI'
                                : 'NIVEAU ' + n + ' — ' + N.nom;
   el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
-  // Ce qui dort au silo, pas le cumul livré depuis le début : c'est ce chiffre-là qui
-  // décide si la moissonneuse pourra encore rentrer sa trémie. Il vire à l'orange
-  // quand la tour est presque pleine — il faut alors écouler avant de remoissonner.
-  const st = siloTotal();
-  el.silo.textContent = Math.floor(st) + ' kg';
-  el.silo.style.color = st > siloMax()*0.92 ? '#FFAE2E' : '';
   // La part parcourue DANS le palier courant, pas depuis le début : une barre qui
   // n'avance plus que d'un cheveu au dixième niveau ne dit plus rien.
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
