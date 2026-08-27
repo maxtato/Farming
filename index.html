@@ -1541,16 +1541,30 @@ const teinteDe = (cle)=> parseInt((PRODUITS[cle] ? PRODUITS[cle].couleur : '#EEE
 const prixChez = (S, cle)=> prixDe(cle)*(S.coef || 1);
 // La place qu'un commerce a encore POUR CETTE NATURE-LÀ. Sans étal — il n'y en a plus
 // aucun, mais un site ajouté demain pourrait s'en passer — la question ne se pose pas.
+/* CE QU'ON S'EST ENGAGÉ À LIVRER, ET QUI EST DONC RÉSERVÉ CHEZ LUI. La liste elle-même
+   est déclarée ici, tout en haut, parce que `placeChez` la lit et que `placeChez` sert
+   dès la construction du village — le reste du contrat, lui, vit avec la campagne. */
+const CONTRATS = [];              // ce qu'on a accepté, et rien d'autre
+function resteContrat(nom, cle){
+  let t = 0;
+  for(const C of CONTRATS){
+    if(C.lieu !== nom) continue;
+    for(const l of C.lignes) if(l.cle === cle) t += Math.max(0, l.need - l.fait);
+  }
+  return t;
+}
 const placeChez = (S, cle)=>{
   if(S.etal === undefined) return Infinity;
   const r = S.reste[cle];
   const libre = Math.max(0, r === undefined ? S.etal : r);
-  /* UNE COMMANDE EST DE LA PLACE RÉSERVÉE. Le restaurant qui a demandé cent vingt
+  /* UN CONTRAT ACCEPTÉ EST DE LA PLACE RÉSERVÉE. Le commerce qui a demandé cent vingt
      kilos de lait a promis de les prendre : son étal ne peut pas les lui refuser, et
-     une tournée composée pour la prime ne doit jamais buter sur un rayon plein. C'est
-     aussi ce qui donne sa valeur à la commande — un débouché garanti, au meilleur
-     prix, pour ce qu'on a accepté d'aller chercher. */
-  return (S === RESTO) ? Math.max(libre, resteCommande(cle)) : libre;
+     une tournée montée pour la prime ne doit jamais buter sur un rayon plein. C'est
+     aussi ce qui donne sa valeur à un contrat — un débouché garanti, au meilleur prix,
+     pour ce qu'on s'est engagé à aller chercher. La règle ne valait que pour le
+     restaurant, parce qu'il était le seul à commander ; elle vaut maintenant partout
+     où l'on a signé. */
+  return Math.max(libre, resteContrat(S.nom, cle));
 };
 // Ce qu'un étal perd vraiment quand on lui vend : la place réservée d'une commande
 // n'entame pas le rayon, elle s'ajoutait par-dessus.
@@ -1794,9 +1808,6 @@ function annoncerNiveau(n){
   showHint('NIVEAU ' + n + ' — ' + N.nom.toUpperCase());
   majBulles();
   caleEspece();
-  // Le restaurant qui vient d'ouvrir, ou qui voit apparaître un produit de plus,
-  // refait sa commande : elle portait sur ce que la ferme ne savait pas encore faire.
-  if(mondePret && siteOuvert(RESTO)) nouvelleCommande();
   rafraichirEcran();
 }
 
@@ -1937,54 +1948,20 @@ function veillerMission(){
   if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - 0.01)) finirMission();
 }
 
-const RESTO    = SITES.find(S=>S.nom === 'Restaurant');
+/* LE RESTAURANT NE COMMANDE PLUS TOUT SEUL.
+   Il portait une commande PERMANENTE de trois produits, tirée au sort à l'ouverture,
+   affichée sur son enseigne et payée d'une grosse prime dès qu'on l'avait remplie —
+   sans qu'on l'ait jamais acceptée. C'était le dernier contrat du jeu qu'on subissait
+   au lieu de le prendre, et il n'y avait aucun endroit où le refuser.
 
-/* La commande du restaurant : trois produits à la fois, une grosse prime à la clé.
-   C'est le palier ×3 du barème appliqué à un panier plutôt qu'à une seule
-   marchandise — et c'est la seule chose du jeu qui demande de composer une tournée
-   au lieu de remplir une benne d'un seul tenant. Chaque livraison la fait avancer,
-   et elle se renouvelle dès qu'elle est honorée. */
+   Il propose maintenant comme tout le monde : anneau vert au sol, on s'arrête, on lit,
+   on accepte ou l'on refuse. Sa tournée composée n'est pas perdue pour autant — c'est
+   exactement ce que fait le contrat COMPOSÉ, deux ou trois produits chez le même
+   client, et le restaurant est celui qui en accepte le plus.
+
+   `mondePret` reste : il dit que toutes les tables sont bâties, et le tirage des
+   contrats s'en sert pour ne réclamer que ce que la ferme sait produire. */
 let mondePret = false;      // levé une fois toutes les tables construites
-function nouvelleCommande(){
-  /* Le restaurant ne réclame que ce que la ferme sait produire À CE PALIER : sans ce
-     filtre il demandait de l'huile d'olive au troisième niveau, et sa bulle promettait
-     une prime que personne ne pouvait toucher. Le filtre ne s'applique qu'une fois le
-     monde construit — à l'amorçage, cette fonction tourne avant les tables de cultures
-     et d'espèces. */
-  let choix = RESTO.achete.slice();
-  if(mondePret){
-    const ouverts = produitsOuverts();
-    const f = choix.filter((c)=> ouverts.indexOf(c) >= 0);
-    if(f.length >= 2) choix = f;
-  }
-  const liste = [];
-  for(let k = 0; k < 3 && choix.length; k++){
-    const c = choix.splice((Math.random()*choix.length)|0, 1)[0];
-    liste.push({cle:c, need: Math.round((50 + Math.random()*100)/10)*10, fait:0});
-  }
-  RESTO.commande = {liste,
-    prime: liste.reduce((t, l)=> t + prixDe(l.cle)*l.need*(PALIER.CONTRAT - 1), 0)};
-  if(RESTO.bulle) ajouteBulle(RESTO, RESTO.bulleH);
-}
-// Ce qu'il reste à apporter d'un produit pour la commande en cours, ou 0.
-const resteCommande = (cle)=>{
-  if(!RESTO.commande) return 0;
-  const l = RESTO.commande.liste.find((x)=> x.cle === cle);
-  return l ? Math.max(0, l.need - l.fait) : 0;
-};
-// Créditer la commande de ce qu'on vient de livrer, et la solder si elle est complète.
-function avancerCommande(cle, q){
-  const C = RESTO.commande;
-  if(!C) return;
-  const l = C.liste.find((x)=> x.cle === cle);
-  if(!l) return;
-  l.fait = Math.min(l.need, l.fait + q);
-  if(!C.liste.every((x)=> x.fait >= x.need - 0.01)) return;
-  money += C.prime;
-  showHint('COMMANDE DU RESTAURANT — PRIME DE ' + Math.round(C.prime).toLocaleString('fr-FR') + ' €');
-  nouvelleCommande();
-}
-nouvelleCommande();
 
 /* CE QUI ENTOURE LE BÂTIMENT. La dalle faisait la largeur du bâti à cinquante
    centimètres près : le mur touchait presque la clôture, et on ne pouvait pas en faire
@@ -4006,12 +3983,7 @@ function ajouteBulle(S, H){
   }
   // Trois lignes au plus : au-delà, la bulle devient un panneau d'affichage et on ne
   // la lit plus depuis la route. Le détail complet est dans l'onglet Filières.
-  // Un commerce qui tient une commande l'affiche À LA PLACE de sa liste d'achats : le
-  // restaurant prend onze produits, mais ce qui intéresse le joueur depuis la route,
-  // c'est ce qu'il réclame en ce moment.
-  if(S.commande) blocs.push({titre:'COMMANDE', lignes:S.commande.liste.map((l)=>
-    ({nom:PRODUITS[l.cle].nom, prix:Math.round(l.need) + ' kg'}))});
-  else if(S.achete && S.achete.length)
+  if(S.achete && S.achete.length)
     blocs.push({titre:'ACHÈTE', lignes:S.achete.slice(0, 3)
       .map((n)=> ({nom:PRODUITS[n].nom, prix:eur(prixChez(S, n))}))
       .concat(S.achete.length > 3 ? [{nom:'et ' + (S.achete.length - 3) + ' autres', prix:''}] : [])});
@@ -7373,7 +7345,6 @@ function tirerCommande(type){
    l'attente entre deux propositions. Un commerce qu'on a plusieurs fois éconduit
    finit par ne presque plus rien offrir — sans jamais se fermer tout à fait, parce
    qu'un débouché perdu pour de bon serait une partie perdue. */
-const CONTRATS = [];              // ce qu'on a accepté
 const CONTRAT_MAX = 4;            // au-delà, on ne peut plus rien accepter
 const OFFRE_MAX = 3;              // offres en attente dans le village, en même temps
 const RENOM_MIN = -6, RENOM_MAX = 10;
@@ -7553,11 +7524,14 @@ function refreshCommandes(){
   const M = missionCourante();
   if(M){
     const part = avanceMission();
-    const sous = M.faire
-      ? 'Mission de campagne  ·  +' + M.xp + ' XP' + (M.prime ? '  ·  ' + eur(M.prime) : '')
+    /* ELLE DIT QU'ELLE EST UNE MISSION, ET PAS UN CONTRAT. C'est la seule chose du
+       bandeau qu'on n'a pas acceptée quelque part : sans le mot, elle se lit comme un
+       contrat tombé du ciel — précisément ce qu'on vient de supprimer partout. */
+    const sous = 'Mission  ·  ' + (M.faire
+      ? '+' + M.xp + ' XP' + (M.prime ? '  ·  ' + eur(M.prime) : '')
       : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) + ' / ' +
                               Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')
-        + '  ·  ' + eur(M.prime) + '  ·  +' + M.xp + ' XP';
+        + '  ·  ' + eur(M.prime) + '  ·  +' + M.xp + ' XP');
     el.ctr.appendChild(pilule('mis', titreMission(M), sous, part));
   }
   /* LES CONTRATS TIENNENT SUR UNE LIGNE. Ils occupaient quatre blocs de deux lignes,
@@ -12016,7 +11990,6 @@ function executer(m, A, dt){
       if(q <= 0.0001) return;
       T.load -= q; encaisser(q*prixChez(A.S, A.cle));
       entamerEtal(A.S, A.cle, q);
-      if(A.S === RESTO) avancerCommande(A.cle, q);
       livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
       if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
@@ -12048,8 +12021,7 @@ function executer(m, A, dt){
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; livraison(A.S.nom, A.cle, q); compter(A.cle, q);
       if(vente){ encaisser(q*prixChez(A.S, A.cle));
-                 entamerEtal(A.S, A.cle, q);
-                 if(A.S === RESTO) avancerCommande(A.cle, q); }
+                 entamerEtal(A.S, A.cle, q); }
       else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       if(Math.random() < 0.6)
         puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,
@@ -13134,9 +13106,12 @@ function ongletFilieres(){
              ETAL_MINUTES + ' min — reste ' +
              S.achete.map((k)=> PRODUITS[k].nom.toLowerCase() + ' ' + Math.round(placeChez(S, k)))
                      .join(', ') + ' kg');
-    if(S.commande) l.push('Commande en cours : ' + S.commande.liste.map((c)=>
-      PRODUITS[c.cle].nom + ' ' + Math.round(resteCommande(c.cle)) + ' kg').join(', ') +
-      ' — prime ' + eur(S.commande.prime));
+    // Ce qu'on a SIGNÉ ici, et rien d'autre : une proposition qui attend sur place ne
+    // se lit pas depuis un menu, elle se lit sur place.
+    const C0 = contratChez(S.nom);
+    if(C0) l.push('Contrat accepté : ' + C0.lignes.map((c)=>
+      PRODUITS[c.cle].nom + ' ' + Math.round(Math.max(0, c.need - c.fait)) + ' kg restants')
+      .join(', ') + ' — prime ' + eur(C0.prime));
     article(S.toit, S.nom, l.join('<br>'), 'Fiche', 'no', null);
   }
 }
@@ -13595,10 +13570,11 @@ function ongletCampagne(){
     for(const S2 of relations)
       article(S2.offre ? 0x62D84E : 0x8A9298, S2.nom,
         'Renommée <span class="q">' + libelleRenom(S2) + '</span>' +
-        (S2.offre ? '<br>Un contrat attend sur place : ' +
-                    S2.offre.lignes.map((l)=> Math.round(l.need) + ' kg ' +
-                      nomDe(l.cle).toLowerCase()).join(' + ') +
-                    '  ·  ' + eur(S2.offre.prime) + ' de prime'
+        /* CE QU'IL PROPOSE NE SE LIT PAS D'ICI. Un menu qui déroulerait les lignes et
+           la prime d'une offre rendrait l'anneau vert décoratif : on choisirait ses
+           contrats depuis un tableau, sans jamais aller voir personne. On dit qu'il y
+           a quelque chose, et où. Le reste se lit sur place. */
+        (S2.offre ? '<br>Quelque chose à proposer — passer devant son quai pour l\'entendre'
                   : ''),
         S2.offre ? 'Contrat' : (S2.renom > 0 ? '+' + S2.renom : '' + S2.renom),
         S2.offre ? 'vert' : (S2.renom > 0 ? 'ok' : 'no'), null);
@@ -13851,7 +13827,6 @@ function etatJeu(){
     negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
                               stock: Object.assign({}, S.stock),
                               reste: Object.assign({}, S.reste)})),
-    commande: RESTO.commande,
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
@@ -14045,11 +14020,6 @@ function chargerPartie(S){
         }
       }
     });
-    // La commande du restaurant : une partie d'avant la chaîne n'en a pas, on en tire
-    // une neuve plutôt que de laisser le restaurant sans rien à demander.
-    if(S.commande && S.commande.liste && S.commande.liste.every((l)=> PRODUITS[l.cle]))
-      RESTO.commande = S.commande;
-    else nouvelleCommande();
     Object.assign(STAT, S.STAT); etape = S.etape; fini = !!S.fini;
     JOUR.heure = S.jour.heure; JOUR.jours = S.jour.jours; JOUR.sec = S.jour.sec;
     CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
@@ -14298,7 +14268,6 @@ function ouvrirFin(){
 /* ---------- 30. BOUCLE ---------- */
 mondePret = true;
 caleEspece();
-nouvelleCommande();
 remplirCommandes(0);
 construireEclairagesNuit();
 updateJourNuit(0);

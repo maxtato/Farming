@@ -182,6 +182,18 @@ rien proposer de plus.
 au moment où on la livre — le circuit habituel, celui des étals et des caisses d'usine —
 puis la prime s'ajoute à la clôture. Les prix du village restent donc exacts.
 
+### Rien à l'écran qu'on n'ait accepté
+
+C'est la règle, et elle n'a pas d'exception. Une proposition qui attend sur un anneau vert
+ne pose **aucune** puce au bandeau, et ne déroule ses lignes ni dans l'onglet Campagne, ni
+dans l'onglet Filières : la Campagne dit seulement qu'un commerce « a quelque chose à
+proposer — passer devant son quai pour l'entendre ». Un menu qui donnerait le détail
+rendrait l'anneau décoratif : on choisirait ses contrats depuis un tableau, sans jamais
+aller voir personne.
+
+La seule chose du bandeau qu'on n'a pas acceptée quelque part est la **mission de
+campagne**, et elle porte le mot pour qu'on ne la confonde pas avec un contrat.
+
 ### Le bandeau ne mange plus l'écran
 
 Quatre pilules de commande, deux lignes chacune, occupaient la moitié gauche de
@@ -246,10 +258,13 @@ kilo. Aucun prix n'est écrit à la main — on ne règle qu'un rendement et un 
 L'onglet **Filières** affiche la chaîne entière, prix compris, relue dans les mêmes
 tables que celles qui paient. Ce qui est affiché est ce qui sera versé.
 
-Le **restaurant** tient une commande permanente : trois produits à la fois, une grosse
-prime à la clé. C'est la seule chose du jeu qui demande de composer une tournée au lieu
-de remplir une benne d'un seul tenant. Elle s'affiche sur son enseigne, elle avance à
-chaque livraison, et une nouvelle prend sa place dès qu'elle est honorée.
+Le **restaurant** portait une commande permanente : trois produits tirés au sort à
+l'ouverture, peints sur son enseigne, payés d'une grosse prime dès qu'on l'avait remplie —
+sans qu'on l'ait jamais acceptée. C'était le dernier contrat du jeu qu'on subissait au
+lieu de le prendre, et il n'y avait nulle part où le refuser. Il propose maintenant comme
+tout le monde, par son anneau vert. Sa tournée composée n'est pas perdue : c'est
+exactement ce que fait le contrat **composé**, et le restaurant est celui qui accepte le
+plus de produits.
 
 ### Sept cultures
 
@@ -579,9 +594,11 @@ haut de la benne au prix fort puis descendre l'échelle, ou tout donner d'un cou
 moins-disant et repartir travailler. Deux mille kilos de vin rapportent 6 940 € en
 descendant l'échelle, 5 400 € si l'on vide tout au supermarché.
 
-La commande du restaurant échappe au plafond : ce qu'il a demandé, il a promis de le
-prendre. C'est ce qui fait d'elle un débouché garanti, au meilleur prix, et ce qui
-justifie d'aller composer une tournée pour elle.
+**Un contrat accepté échappe au plafond** : le commerce qui a demandé cent vingt kilos de
+lait a promis de les prendre, et son étal ne peut pas les lui refuser même à zéro de
+place. C'est ce qui fait d'un contrat un débouché garanti, au meilleur prix, et ce qui
+justifie d'aller monter une tournée pour lui. La règle ne valait que pour le restaurant,
+parce qu'il était le seul à commander ; elle vaut maintenant partout où l'on a signé.
 
 La vigne et l'olivier court-circuitent le silo : du champ à l'entrepôt, puis à la cave,
 au pressoir ou à l'étal. Vingt parcelles à racheter une à une, un matériel à améliorer, des contrats à
