@@ -229,10 +229,10 @@ C'est cet écart, et lui seul, qui dit où aller. Trois sommets, rien de plus.
 recalculés vingt fois par seconde : chaque écriture remettait l'élément en page, et le
 pas d'un pixel se voyait. Elle est posée par `transform`, au centième de pixel, à
 **soixante images par seconde** — le compositeur s'en charge sans remise en page.
-L'ombre portée en flou a sauté avec : un filtre force un repeint complet à chaque
-déplacement, et c'était cher pour un halo qu'on ne regardait pas. Le contour sombre est
-tracé dans le SVG lui-même, **sous** le remplissage : il ne coûte rien et se lit sur
-n'importe quel fond.
+
+Trois sommets, un aplat, **rien d'autre** : ni contour, ni ombre, ni filtre. Un filtre
+force un repeint complet à chaque déplacement, et c'était cher pour un halo qu'on ne
+regardait pas ; le vert vif se détache seul.
 
 ### Rien à l'écran qu'on n'ait accepté
 
@@ -1356,7 +1356,8 @@ rien de ce choix, puisque les boutons écrivent dans les mêmes `steer` et `thro
 
 Les tracés viennent de la planche du joueur : une flèche pleine aux angles arrondis — pas
 un chevron —, une grande **semelle d'accélérateur** dont le bord gauche est décroché en
-bas, et un petit **frein** carré à deux barrettes. C'est le décrochement, plus que la
+bas, et un petit **frein** carré à deux barrettes. Les deux flèches se touchent presque,
+et les deux pédales aussi : le pouce passe de l'une à l'autre sans lever la main. C'est le décrochement, plus que la
 taille, qui distingue l'accélérateur au premier coup d'œil. Aucun dégradé : le contraste
 vient du fond sombre de la pédale et d'une ombre portée statique — elle ne bouge pas,
 donc le filtre ne coûte qu'un calcul, une fois.
