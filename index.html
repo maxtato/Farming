@@ -29,15 +29,32 @@
   #star{font-size:13px;color:#fff;opacity:.85}
   #goaltxt{position:absolute;top:calc(40px + env(safe-area-inset-top));text-shadow:0 1px 3px rgba(0,0,0,.6);left:50%;transform:translateX(-50%);
     font-size:9px;letter-spacing:2.5px;opacity:.6;white-space:nowrap;text-transform:uppercase}
+  /* LA PILE DES COMMANDES. Une seule pilule affichait le contrat unique ; il y en a
+     maintenant cinq — la mission de campagne, puis les quatre commandes — empilées
+     sous la barre de progression. Elles gardent le gabarit d'origine : c'est le même
+     bloc, répété, et le CSS ne connaît qu'une pilule. */
   #ctr{position:absolute;top:calc(78px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
-    padding:8px 12px;border-radius:14px;background:rgba(20,28,33,.55);backdrop-filter:blur(6px);
-    max-width:52vw;display:none}
-  #ctrtxt{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
-  #ctrsub{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
-  #ctrbar{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
-  #ctrfill{height:100%;width:0%;background:#FAD201;border-radius:3px;transition:width .25s}
-  #ctr.urgent #ctrfill{background:#E8563F}
-  #ctr.urgent #ctrsub{opacity:.9;color:#E8563F}
+    max-width:52vw;display:none;flex-direction:column;gap:5px;pointer-events:auto}
+  #ctr .pil{padding:6px 11px;border-radius:13px;background:rgba(20,28,33,.55);
+    backdrop-filter:blur(6px)}
+  /* Une commande tient en DEUX lignes : son libellé et sa barre. Cinq pilules à trois
+     lignes prenaient les deux tiers de la hauteur d'un téléphone couché — le détail
+     (prime, expérience, avancement chiffré) est sur l'écran Campagne, qui est fait
+     pour ça. Seule la mission de campagne garde sa ligne de sous-titre. */
+  #ctr .pil.cmd .ct{padding-right:14px}
+  #ctr .pil.cmd .cb{margin-top:4px}
+  #ctr .pil.mis{background:rgba(28,40,26,.62);box-shadow:inset 0 0 0 1px rgba(139,224,122,.35)}
+  #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
+  #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
+  #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
+  #ctrfill,#ctr .cf{height:100%;width:0%;background:#FAD201;border-radius:3px;transition:width .25s}
+  #ctr .pil.mis .cf{background:#8BE07A}
+  #ctr .urgent .cf{background:#E8563F}
+  #ctr .urgent .cs{opacity:.9;color:#E8563F}
+  /* La croix qui jette une commande : elle doit être touchable au doigt sans être un
+     bouton de plus à l'écran, donc elle vit dans le coin de la pilule. */
+  #ctr .cx{position:absolute;top:4px;right:6px;font-size:10px;opacity:.35;padding:4px 6px}
+  #ctr .pil{position:relative}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
     display:flex;align-items:center;justify-content:center;gap:4px}
@@ -353,11 +370,7 @@
   </div>
   <div id="goalwrap"><div id="bar"><div id="barfill"></div></div><div id="star">★</div></div>
   <div id="goaltxt"></div>
-  <div id="ctr">
-    <div id="ctrtxt"></div>
-    <div id="ctrsub"></div>
-    <div id="ctrbar"><div id="ctrfill"></div></div>
-  </div>
+  <div id="ctr"></div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
   <div id="engins" class="pic" aria-label="ENGINS"></div>
@@ -861,6 +874,13 @@ const state  = new Uint8Array(NCELL);
 const growth = new Float32Array(NCELL);
 const instOf = new Int32Array(NCELL).fill(-1);
 const fert   = new Uint8Array(NCELL);
+/* UN PIED EN PLACE REPART PLUS VITE. Cinquième plan de la grille : il ne vaut que
+   pour les cultures permanentes, et il dit que la cellule a DÉJÀ donné une récolte.
+   La vigne s'installe en trois minutes et demie ; elle refait sa vendange en deux et
+   demie. Il n'entre PAS dans la sauvegarde compressée — quatre plans y sont empilés
+   et leur ordre est figé dans les parties enregistrées — il se déduit à la relecture :
+   une cellule permanente déjà semée est un pied en place. */
+const replante = new Uint8Array(NCELL);
 const growingList = [];
 let arableCount = 0;
 
@@ -909,9 +929,18 @@ for(const c of P_COLS) for(const r of P_ROWS){
   const home = PARCELS.find(p => p.owned);
   const rest = PARCELS.filter(p => !p.owned)
     .sort((a,b)=> Math.hypot(a.x-home.x,a.z-home.z) - Math.hypot(b.x-home.x,b.z-home.z));
-  const GRILLE = [4000, 7000, 11000, 16000, 22000, 30000, 40000, 52000, 66000, 82000,
-                  100000, 120000, 145000, 175000, 210000, 250000, 300000,
-                  360000, 430000, 510000, 600000];
+  /* L'ÉCHELLE PART BEAUCOUP PLUS BAS QU'AVANT. La première parcelle à racheter valait
+     quatre mille euros quand la ferme commence à zéro et qu'une première livraison
+     rapporte cent trente-cinq : il fallait une trentaine de tournées avant le premier
+     agrandissement, et l'on jouait tout ce temps-là sur un seul champ. Elle vaut mille
+     deux cents. L'échelle monte ensuite de moitié à chaque cran — 1 200, 2 500, 4 500,
+     7 500, 12 000 — puis s'aplatit à partir de la dixième : un empire ne doit pas
+     doubler de prix indéfiniment, sans quoi les dernières parcelles ne se prennent
+     jamais. Le total reste du même ordre qu'avant, à peu près deux millions et demi ;
+     c'est sa RÉPARTITION qui change, et avec elle les vingt premières minutes. */
+  const GRILLE = [1200, 2500, 4500, 7500, 12000, 18000, 27000, 40000, 60000,
+                  77000, 98000, 125000, 160000, 205000, 262000, 335000,
+                  430000, 550000, 700000, 900000, 1150000];
   rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
@@ -988,6 +1017,11 @@ const PRODUITS = {
   // le mieux payé de la ferme, et un rucher tient sur une parcelle qu'on n'aurait pas
   // labourée. Une ruche donne peu, mais elle donne toute la journée.
   miel:   {nom:'Miel',      couleur:'#E8A62E', brut:3.20},
+  /* LE LAIT DE BREBIS. Plus riche que celui de vache — une brebis en donne moins, mais
+     cent kilos font vingt kilos de fromage là où le lait de vache n'en fait que douze.
+     C'est ce qui en fait le produit haut de gamme de la ferme, et c'est ce qui donne
+     une raison de monter un troupeau de brebis en plus des vaches. */
+  laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:1.10},
 
   /* --- une transformation --- */
   farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME'},
@@ -998,7 +1032,15 @@ const PRODUITS = {
   laitAvoine: {nom:'Lait d\'avoine',couleur:'#EFE6CE', de:'avoine', rendement:2.00, palier:'TRANSFORME'},
   beurre:     {nom:'Beurre',        couleur:'#F2DC8A', de:'lait',   rendement:0.20, palier:'TRANSFORME'},
   yaourt:     {nom:'Yaourt',        couleur:'#F4F0E4', de:'lait',   rendement:0.95, palier:'TRANSFORME'},
-  fromage:    {nom:'Fromage',       couleur:'#F0D68A', de:'lait',   rendement:0.15, palier:'TRANSFORME'},
+  // Le rendement fromager est volontairement bas : c'est ce qui fait monter le prix au
+  // kilo, et c'est ce qui rend une tournée de fromage plus légère qu'une tournée de
+  // lait pour la même valeur. Douze kilos pour cent, c'est un fromage de lait de vache.
+  fromage:    {nom:'Fromage',       couleur:'#F0D68A', de:'lait',   rendement:0.12, palier:'TRANSFORME'},
+  /* Le fromage de brebis n'est pas un fromage plus cher : c'est un PRODUIT FINI. Il ne
+     se transforme plus, il se mange — et il vaut donc le palier ×2 et non ×1,5. C'est
+     le produit le mieux payé que la ferme sache fabriquer. */
+  fromageBrebis: {nom:'Fromage de brebis', couleur:'#F6EFDC', de:'laitBrebis',
+                  rendement:0.20, palier:'FINI'},
   textile:    {nom:'Textile',       couleur:'#C8CEDC', de:'laine',  rendement:0.70, palier:'TRANSFORME'},
   // Les céréales du petit-déjeuner acceptent le blé, le maïs ou l'avoine sans
   // distinction : leur prix se cale sur le mélange à parts égales des trois.
@@ -1106,27 +1148,61 @@ function fabriquer(U, dt, plafond){
 /* `commande` est ce qui a été DEMANDÉ, et rien ne se fabrique sans elle : ni matière
    tirée du silo, ni produit fini. `{cle, reste, total}` — `reste` est en kilos de
    produit fini restant à sortir, et l'atelier s'arrête pile dessus. */
-const HALLE = {x: 84, z: 50, niveau: 1, tremie: {}, stock: {}, recette: 'farine', commande: null};
-// Les cinq modules du cahier des charges, un par palier : moulin, broyeur, pressoir,
-// mélangeur, cave. Le mélangeur réclame trois céréales à la fois, la cave prend le
-// raisin que le silo ne stocke pas.
-/* Six recettes pour cinq paliers : le pressoir en porte deux, le colza et l'olive.
-   C'est le seul palier double du jeu, et il l'est parce que l'huilerie du bord de
-   route a été déposée — elle pressait exactement ces deux-là. Le presseur ne travaille
-   qu'une matière à la fois, comme tous les autres modules : on choisit au bouton
-   PRODUCTION. */
-const ATELIER_RECETTES = [
-  {cle:'farine',      niveau:1, module:'Moulin'},
-  {cle:'aliment',     niveau:2, module:'Broyeur'},
-  {cle:'huile',       niveau:3, module:'Pressoir'},
-  {cle:'huileOlive',  niveau:3, module:'Pressoir à olives'},
-  {cle:'alimentPlus', niveau:4, module:'Mélangeur'},
-  {cle:'vin',         niveau:5, module:'Cave'}
+/* ---------- L'ATELIER DE LA FERME ----------
+   Il portait cinq paliers, chacun donnant à la fois un module et de la capacité, et
+   le premier était offert. Les deux choses se séparent : on achète des MODULES, un
+   par métier, et l'on achète à part de la CAPACITÉ, de la VITESSE et de la FILE.
+   Un joueur qui ne fera jamais de vin n'a plus à payer la cave pour avoir du débit. */
+const HALLE = {x: 84, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
+               file: [], modules: [], capa: 1, vite: 1, queue: 1};
+/* LES HUIT MODULES, DANS L'ORDRE DE LA CAMPAGNE.
+   L'ordre du tableau est celui des paliers de campagne, et c'est lui qui décide de la
+   silhouette du bâtiment : chaque module acheté agrandit la halle d'un cran. Le prix
+   monte de moitié à chaque fois — le moulin est à portée de la première récolte, la
+   cave est un objectif de fin de partie.
+   `duree` est le temps qu'il faut pour engager CENT KILOS de matière première. C'est
+   ce chiffre-là qui dit la valeur d'une transformation : vingt secondes pour moudre
+   du blé, deux minutes pour faire du vin. */
+const ATELIER_MODULES = [
+  {cle:'farine',        module:'Moulin',                prix:650,   duree:20},
+  {cle:'aliment',       module:'Broyeur',               prix:1400,  duree:15},
+  {cle:'alimentPlus',   module:'Mélangeur premium',     prix:3200,  duree:30},
+  {cle:'fromage',       module:'Fromagerie',            prix:6000,  duree:90},
+  {cle:'fromageBrebis', module:'Fromagerie de brebis',  prix:11000, duree:120},
+  {cle:'huile',         module:'Pressoir à colza',      prix:18000, duree:60},
+  {cle:'huileOlive',    module:'Pressoir à olives',     prix:30000, duree:90},
+  {cle:'vin',           module:'Cave',                  prix:48000, duree:120}
 ];
-// Capacités et débit : c'est là que se voient les niveaux 4 et 5.
-const halleEntreeMax = ()=> 900 + HALLE.niveau*700;
-HALLE.stockMax = ()=> 700 + HALLE.niveau*500;
-HALLE.debit    = ()=> 12 + HALLE.niveau*7;            // kg de matière engagés par seconde
+const moduleDe = (cle)=> ATELIER_MODULES.find((M)=> M.cle === cle) || null;
+// Le palier de campagne d'un module, c'est sa place dans le tableau : les deux listes
+// sont rangées dans le même ordre, et NIVEAUX en est la seule source.
+const atelierA = (cle)=> HALLE.modules.indexOf(cle) >= 0;
+// Le prochain module à prendre : le premier de la liste qu'on n'a pas encore.
+const moduleSuivant = ()=> ATELIER_MODULES.find((M)=> !atelierA(M.cle)) || null;
+
+/* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne donnent aucun métier neuf : elles
+   changent le RYTHME. En début de partie on revient lancer chaque lot de cent kilos ;
+   à la fin on en empile cinq de mille, et l'atelier tourne pendant qu'on est ailleurs. */
+const ATELIER_UP = {
+  capa:  {nom:'Capacité',  det:'Kilos de matière par lot',    paliers:[100, 250, 500, 1000],
+          prix:[0, 900, 3400, 9000]},
+  vite:  {nom:'Vitesse',   det:'Cadence de transformation',   paliers:[1, 1.15, 1.30, 1.50],
+          prix:[0, 1600, 5200, 14000]},
+  queue: {nom:'File',      det:'Lots qu\'on peut empiler',    paliers:[1, 2, 3, 5],
+          prix:[0, 1200, 4200, 11000]}
+};
+const halleLotMax  = ()=> ATELIER_UP.capa.paliers[HALLE.capa - 1];
+const halleFileMax = ()=> ATELIER_UP.queue.paliers[HALLE.queue - 1];
+const halleVitesse = ()=> ATELIER_UP.vite.paliers[HALLE.vite - 1];
+/* LE DÉBIT DÉPEND DE LA RECETTE, PLUS DU BÂTIMENT. Un moulin moud cent kilos en vingt
+   secondes, une cave met deux minutes : c'est ce qui donne son poids à chaque maillon
+   de la chaîne, et c'est ce qui fait qu'on lance le vin AVANT d'aller faire autre
+   chose. La vitesse achetée multiplie tout. */
+const dureeRecette = (cle)=>{ const M = moduleDe(cle); return M ? M.duree : 20; };
+HALLE.debit = ()=> 100/dureeRecette(HALLE.recette)*halleVitesse();
+// La trémie tient de quoi honorer un lot entier, et le magasin trois lots.
+const halleEntreeMax = ()=> Math.max(600, halleLotMax()*1.6);
+HALLE.stockMax = ()=> Math.max(1200, halleLotMax()*3);
 const halleStock = (n)=> HALLE.stock[n] || 0;
 
 /* ---------- L'ENTREPÔT DE LA FERME ---------- */
@@ -1269,7 +1345,11 @@ const NEGOCE = {
   'Brasserie':       {fabrique:['biere'], caisse:true, coef:1.00, debit:14},
   'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes',
                       caisse:true, coef:1.00, debit:18},
-  'Fromagerie':      {fabrique:['fromage'], caisse:true, coef:1.00, debit:12},
+  /* L'ordre du tableau EST la priorité : `choix:'meilleure'` prend la première recette
+     réalisable. Le fromage de brebis vient donc en tête — quand on lui apporte les deux
+     laits, la fromagerie fait le plus cher. */
+  'Fromagerie':      {fabrique:['fromageBrebis', 'fromage'], choix:'meilleure',
+                      caisse:true, coef:1.00, debit:12},
   'Boucherie':       {abattoir:true, achete:[], debit:0},
   'Atelier textile': {fabrique:['textile'], caisse:true, coef:1.00, debit:10},
 
@@ -1295,11 +1375,13 @@ const NEGOCE = {
      veut poser : moins cher, mais tout part. */
   'Caviste':         {achete:['vin','raisin'], coef:1.15, etal:600},
   'Restaurant':      {achete:['oeufs','lait','farine','huile','huileOlive','vin','raisin',
-                              'olives','miel'], coef:1.10, etal:900},
-  'Marché':          {achete:['olives','raisin','oeufs','lait','laine','farine',
-                              'huile','huileOlive','vin','miel'], coef:0.94, etal:2000},
-  'Supermarché':     {achete:['olives','raisin','oeufs','lait','farine','huile','huileOlive',
-                              'vin','miel'], coef:0.86, etal:9000}
+                              'olives','miel','fromage','fromageBrebis'], coef:1.10, etal:900},
+  'Marché':          {achete:['olives','raisin','oeufs','lait','laitBrebis','laine','farine',
+                              'huile','huileOlive','vin','miel','fromage','fromageBrebis'],
+                      coef:0.94, etal:2000},
+  'Supermarché':     {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
+                              'huile','huileOlive','vin','miel','fromage','fromageBrebis'],
+                      coef:0.86, etal:9000}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -1355,18 +1437,336 @@ function entamerEtal(S, cle, q){
   const r = S.reste[cle];
   S.reste[cle] = Math.max(0, (r === undefined ? S.etal : r) - q);
 }
-const acheteMaintenant = (S, cle)=> S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
+/* UN COMMERCE OUVRE À SON PALIER. La brasserie est bâtie du premier jour — on la voit,
+   on passe devant — mais elle ne traite avec la ferme qu'au sixième palier. C'est ce
+   qui donne à un village construit d'un bloc l'allure d'un village qui s'ouvre : on
+   découvre un débouché parce qu'on a appris à produire ce qu'il achète, pas parce
+   qu'un bâtiment est apparu. La bulle au-dessus de l'enseigne dit le palier qui
+   manque, et les deux fournisseurs — le garage et le comptoir agricole — ne sont
+   jamais fermés : sans eux on ne pourrait rien acheter du tout. */
+const siteOuvert = (S)=> !!S && ouvert('sites', S.nom);
+const acheteMaintenant = (S, cle)=> siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
 // Une usine accepte une matière tant que sa trémie n'est pas pleine…
 const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
 const TREMIE_SITE_MAX = 3000;
 const accepteMaintenant = (S, cle)=>
-  S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX;
+  siteOuvert(S) && S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX;
 // …et rend un produit tant qu'il en reste sur son quai.
 function stockASortir(S, cle){
-  if(S.caisse) return 0;               // il vend lui-même, il n'y a rien à emporter
+  if(S.caisse || !siteOuvert(S)) return 0;   // il vend lui-même, il n'y a rien à emporter
   return (cle === undefined)
     ? Object.keys(S.stock).find((k)=> S.stock[k] > 0.01) || null
     : (S.stock[cle] || 0);
+}
+
+
+/* ---------- LA CAMPAGNE : QUINZE PALIERS, DEUX VALEURS ----------
+   Le jeu donnait tout tout de suite : sept cultures achetables dès la première minute,
+   cinq espèces, six modules d'atelier, et l'unique frein était le prix. Quiconque
+   accumulait assez d'argent pouvait acheter le jeu entier sans avoir rien appris.
+
+   Une campagne le remplace, avec DEUX valeurs globales et pas une de plus :
+     • l'ARGENT dit à quelle vitesse on exploite ce qu'on a ;
+     • l'EXPÉRIENCE dit ce à quoi on a droit.
+   On ne peut donc pas sauter un maillon en payant, et l'on ne peut pas non plus être
+   bloqué par un niveau qu'on ne saurait pas atteindre : les commandes libres donnent
+   de l'expérience elles aussi.
+
+   La règle de découverte est toujours la même : un acheteur réclame quelque chose
+   qu'on ne sait pas encore produire. C'est la demande qui enseigne la mécanique, pas
+   un didacticiel.
+
+   CETTE TABLE EST DÉCLARÉE TRÈS HAUT ET LUE TRÈS BAS. Elle ne contient que des chaînes
+   et des nombres : rien n'y est évalué au chargement, et tous les verrous du fichier —
+   graines, outils, engins, parcelles, espèces, modules, commerces — peuvent donc
+   l'interroger sans se soucier de l'ordre des déclarations. */
+const CAMPAGNE = {niveau:1, xp:0, mission:0};
+
+/* Ce que chaque palier ouvre. Une famille par colonne, la clé de l'objet dans la
+   famille. `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder — un
+   compte, pas une liste, parce que le joueur choisit lesquelles. */
+const NIVEAUX = [
+  {nom:'Le fermier', resume:'Le blé, la coopérative, une parcelle',
+   cultures:['ble'], outils:['labour', 'semis', 'benne'], engins:['t1', 'moisson', 'pickup'],
+   sites:['Coopérative', 'Comptoir agricole', 'Garage', 'Usine céréales'], parcelles:1},
+  {nom:'Productivité', resume:'L\'épandeur : la même terre, plus vite',
+   outils:['engrais'], parcelles:1},
+  {nom:'Première transformation', resume:'Le moulin, la farine, la boulangerie',
+   modules:['farine'], sites:['Boulangerie'], parcelles:1},
+  {nom:'Expansion', resume:'Une deuxième parcelle et le maïs',
+   cultures:['mais'], engins:['t2'], parcelles:2},
+  {nom:'Élevage léger', resume:'Le broyeur, les poules, le marché',
+   modules:['aliment'], especes:['poule'], sites:['Marché'], parcelles:2},
+  {nom:'L\'orge', resume:'Une troisième parcelle, l\'orge et la brasserie',
+   cultures:['orge'], engins:['fourgon'], sites:['Brasserie'], parcelles:3},
+  {nom:'L\'avoine', resume:'L\'avoine, son usine, et l\'aliment premium',
+   cultures:['avoine'], modules:['alimentPlus'], especes:['ruche'],
+   sites:['Usine avoine'], parcelles:3},
+  {nom:'Les vaches', resume:'Le lait, la laiterie, la fromagerie du village',
+   especes:['vache'], sites:['Laiterie', 'Fromagerie'], parcelles:4},
+  {nom:'Fromage fermier', resume:'La fromagerie de la ferme et le restaurant',
+   modules:['fromage'], engins:['t3'], sites:['Restaurant'], parcelles:5},
+  {nom:'Les moutons', resume:'La laine, le lait de brebis, le fromage de brebis',
+   especes:['mouton', 'brebis'], modules:['fromageBrebis'],
+   sites:['Atelier textile'], parcelles:6},
+  {nom:'Le colza', resume:'Le pressoir et l\'huile de colza',
+   cultures:['colza'], modules:['huile'], parcelles:7},
+  {nom:'Les olives', resume:'L\'oliveraie, l\'enjambeuse, l\'huile d\'olive',
+   cultures:['olives'], engins:['enjambeuse'], modules:['huileOlive'], parcelles:8},
+  {nom:'Le raisin', resume:'La vigne, la cave, le caviste',
+   cultures:['raisin'], modules:['vin'], sites:['Caviste'], parcelles:9},
+  {nom:'Les cochons', resume:'L\'engraissement et la boucherie',
+   especes:['cochon'], sites:['Boucherie'], parcelles:10},
+  {nom:'Exploitation complète', resume:'Le supermarché, et toute la vallée à prendre',
+   sites:['Supermarché'], parcelles:99}
+];
+const FAMILLES_NIV = ['cultures', 'outils', 'engins', 'modules', 'especes', 'sites'];
+/* À quel palier tel objet s'ouvre. La table est retournée UNE FOIS en index inverse :
+   les verrous sont relus vingt fois par seconde par l'interface, ils ne peuvent pas
+   parcourir quinze niveaux à chaque fois. */
+const _ouverture = {};
+NIVEAUX.forEach((N, i)=>{
+  for(const f of FAMILLES_NIV)
+    for(const c of (N[f] || [])) _ouverture[f + ':' + c] = i + 1;
+});
+// Un objet qu'aucun palier ne nomme est ouvert d'emblée : c'est ce qui permet
+// d'ajouter demain un outil ou un commerce sans avoir à le déclarer ici.
+const niveauDe = (famille, cle)=> _ouverture[famille + ':' + cle] || 1;
+const ouvert = (famille, cle)=> CAMPAGNE.niveau >= niveauDe(famille, cle);
+// Combien de parcelles on a le droit de posséder au palier courant.
+const parcellesPermises = ()=> NIVEAUX[Math.min(NIVEAUX.length, CAMPAGNE.niveau) - 1].parcelles;
+
+/* LES MISSIONS DE CAMPAGNE. Une seule à la fois, dans l'ordre, et c'est elle qui
+   ouvre le palier suivant. Deux formes :
+     • LIVRER — des lignes {cle, need} à porter chez un commerce nommé ;
+     • FAIRE  — un `test` sur l'état du jeu, pour ce qui ne se livre pas (s'équiper,
+       acheter une parcelle, monter un enclos).
+   Une mission de campagne ne remplace pas les quatre commandes libres : elle donne la
+   direction, elles donnent le rythme. */
+const MISSIONS = [
+  {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:120, xp:20,
+   texte:'La coopérative t\'attend avec 30 kg de blé. Laboure, sème, moissonne, rentre au silo, charge la benne et va livrer.'},
+  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:250, xp:35,
+   texte:'L\'usine de céréales en prend 80 kg d\'un coup, et elle paie mieux que la coopérative.'},
+  {niv:2, faire:'engrais', prime:0, xp:15,
+   texte:'Prends l\'épandeur au garage : la même terre pousse un quart plus vite.',
+   titre:'S\'équiper d\'un épandeur'},
+  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:200}], prime:400, xp:45,
+   texte:'200 kg de blé pour l\'usine. Avec l\'épandeur, c\'est une récolte de moins.'},
+  {niv:3, faire:'moulin', prime:0, xp:20, titre:'Monter le moulin',
+   texte:'Le moulin s\'installe à l\'atelier de la ferme. 100 kg de blé y donnent 72 kg de farine.'},
+  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:50}], prime:600, xp:70,
+   texte:'50 kg de farine à la boulangerie — soit 70 kg de blé au moulin. Champ, silo, atelier, entrepôt, benne, client : la chaîne entière.'},
+  {niv:4, faire:'parcelle2', prime:0, xp:30, titre:'Acheter une deuxième parcelle',
+   texte:'Une seule parcelle ne suffira plus. La deuxième se prend au menu Parcelles.'},
+  {niv:4, lieu:'Coopérative', lignes:[{cle:'mais', need:120}], prime:500, xp:80,
+   texte:'Le maïs rend plus au mètre que le blé, mais il pousse plus lentement. 120 kg à la coopérative.'},
+  {niv:5, faire:'poules', prime:0, xp:40, titre:'Monter un poulailler',
+   texte:'Aménage une parcelle en enclos et prends-y trois poules. Elles mangent ton grain et pondent toute la journée.'},
+  {niv:5, lieu:'Boulangerie', lignes:[{cle:'farine', need:60}, {cle:'oeufs', need:40}],
+   prime:1200, xp:100,
+   texte:'Première commande à deux chaînes : de la farine ET des œufs, dans la même tournée.'},
+  {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:200}], prime:900, xp:120,
+   texte:'La brasserie ne prend que de l\'orge. 200 kg, et elle brasse elle-même.'},
+  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:250}], prime:1400, xp:150,
+   texte:'250 kg d\'avoine. Tu peux aussi la garder pour l\'aliment premium — c\'est ton arbitrage.'},
+  {niv:8, faire:'vaches', prime:0, xp:60, titre:'Monter une pâture et deux vaches',
+   texte:'Une pâture, deux vaches. Le lait coule tout seul tant que l\'auge est pleine.'},
+  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:300}], prime:2200, xp:170,
+   texte:'300 kg de lait à la laiterie. Ou garde-le pour le fromage — mais ça, ce sera au palier suivant.'},
+  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:40}, {cle:'farine', need:60}],
+   prime:4000, xp:220,
+   texte:'Le restaurant paie le fromage de ferme au prix fort. 40 kg de fromage et 60 kg de farine.'},
+  {niv:10, lieu:'Atelier textile', lignes:[{cle:'laine', need:120}], prime:6000, xp:280,
+   texte:'120 kg de laine à l\'atelier textile. Tes brebis donnent aussi du lait : il fait le fromage le plus cher de la ferme.'},
+  {niv:11, lieu:'Marché', lignes:[{cle:'huile', need:150}], prime:8000, xp:330,
+   texte:'150 kg d\'huile de colza au marché. Le colza pousse lentement, le pressoir presse lentement : lance-le et va faire autre chose.'},
+  {niv:12, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:100}], prime:12000, xp:400,
+   texte:'100 kg d\'huile d\'olive — 500 kg d\'olives. L\'oliveraie reste en place après la récolte.'},
+  {niv:13, lieu:'Caviste', lignes:[{cle:'vin', need:200}], prime:16000, xp:480,
+   texte:'200 kg de vin au caviste. La cave met deux minutes pour cent kilos de raisin : c\'est la plus longue attente du jeu, et la mieux payée.'},
+  {niv:14, faire:'betes6', prime:20000, xp:560, titre:'Vendre six bêtes à la boucherie',
+   texte:'Six bêtes adultes à la boucherie. Une bête vendue, c\'est un lait ou une laine en moins : à toi de voir.'},
+  {niv:15, faire:'parcelles12', prime:30000, xp:700, titre:'Douze parcelles',
+   texte:'La vallée est ouverte. Douze parcelles, et le supermarché prend tout ce que tu produis.'}
+];
+/* LES SEUILS D'EXPÉRIENCE SE DÉDUISENT DES MISSIONS, ILS NE SE RÈGLENT PAS.
+   Deux tables réglées à la main finissent toujours par se contredire — un palier
+   qu'on n'atteint pas en faisant exactement ce que le jeu demande, ou un palier
+   franchi avant sa mission. Le seuil du palier n+1, c'est la somme des expériences
+   des missions du palier n et de tous ceux d'avant. Faire la campagne suffit donc
+   toujours, très exactement ; et les commandes libres, qui donnent de l'expérience
+   elles aussi, permettent d'aller plus vite sans jamais permettre de sauter un
+   maillon. */
+const XP_SEUIL = (function(){
+  const s = [0];
+  for(let n = 1; n <= NIVEAUX.length; n++){
+    let t = s[n-1];
+    for(const M of MISSIONS) if(M.niv === n) t += M.xp;
+    s.push(t);
+  }
+  return s;
+})();
+const xpNiveau = (n)=> XP_SEUIL[Math.max(0, Math.min(XP_SEUIL.length - 1, n - 1))];
+// Le palier que vaut une expérience donnée. Borné au dernier : la campagne finie,
+// l'expérience continue de monter mais n'ouvre plus rien.
+function niveauPourXp(xp){
+  let n = 1;
+  while(n < NIVEAUX.length && xp >= xpNiveau(n + 1)) n++;
+  return n;
+}
+
+/* GAGNER DE L'EXPÉRIENCE. Deux sources, et c'est voulu :
+     • les missions et les commandes, qui en donnent des paquets ;
+     • tout ce qui SORT de la ferme, qui en donne un filet — un centième d'euro de
+       marchandise vendue. Le filet ne remplace pas les commandes : il évite seulement
+       qu'un joueur qui refuse toutes les commandes reste bloqué pour toujours. Faire
+       la campagne mène au palier suivant en quelques livraisons ; ne rien faire d'autre
+       que vendre y mène aussi, dix fois plus lentement. */
+const XP_PAR_EURO = 0.01;
+function gagnerXp(n){
+  if(!(n > 0)) return;
+  CAMPAGNE.xp += n;
+  const v = niveauPourXp(CAMPAGNE.xp);
+  if(v > CAMPAGNE.niveau){
+    CAMPAGNE.niveau = v;
+    annoncerNiveau(v);
+  }
+}
+// Ce qu'un palier vient d'ouvrir, dit en clair. Sans cette phrase, on monte de niveau
+// sans savoir ce qu'on a gagné, et l'on ne pense pas à retourner voir la boutique.
+function annoncerNiveau(n){
+  const N = NIVEAUX[n-1];
+  if(!N) return;
+  showHint('NIVEAU ' + n + ' — ' + N.nom.toUpperCase());
+  // Les commerces qui viennent d'ouvrir doivent le dire depuis la route : leur bulle
+  // affichait « FERMÉ · ouvre au niveau 6 », il faut la refaire.
+  for(const c of (N.sites || [])){
+    const S = SITES.find((x)=> x.nom === c);
+    if(S && S.bulle) ajouteBulle(S, S.bulleH);
+  }
+  if(N.especes && N.especes.length) caleEspece();
+  // Le restaurant qui vient d'ouvrir, ou qui voit apparaître un produit de plus,
+  // refait sa commande : elle portait sur ce que la ferme ne savait pas encore faire.
+  if(mondePret && siteOuvert(RESTO)) nouvelleCommande();
+  rafraichirEcran();
+}
+
+/* LES MISSIONS DE CAMPAGNE, EN MARCHE.
+   `CAMPAGNE.mission` est l'indice de celle qui court, `CAMPAGNE.faits` ce qui a déjà
+   été livré ligne par ligne. Les deux sont sauvegardés ; l'indice suffirait, mais on
+   perdrait une livraison à moitié faite à chaque rechargement. */
+CAMPAGNE.faits = [];
+const missionCourante = ()=> MISSIONS[CAMPAGNE.mission] || null;
+function titreMission(M){
+  if(!M) return '';
+  if(M.titre) return M.titre;
+  return 'Livrer ' + M.lignes.map((l)=> Math.round(l.need) + ' kg ' + dNom(nomDe(l.cle).toLowerCase()))
+                             .join(' et ') + ' — ' + M.lieu;
+}
+// De 0 à 1. Une mission « faire » n'a pas de quantité : elle vaut 0 ou 1.
+function avanceMission(){
+  const M = missionCourante();
+  if(!M) return 1;
+  if(M.faire) return testerFaire(M.faire) ? 1 : 0;
+  let a = 0, b = 0;
+  M.lignes.forEach((l, i)=>{ a += Math.min(l.need, CAMPAGNE.faits[i] || 0); b += l.need; });
+  return b ? a/b : 0;
+}
+/* CE QUI NE SE LIVRE PAS. S'équiper, acheter une parcelle, monter un enclos : ces
+   missions-là s'observent sur l'état du jeu au lieu de se compter en kilos. Chaque
+   test est une ligne, et il est relu vingt fois par seconde — donc jamais rien de
+   coûteux ici. */
+function testerFaire(quoi){
+  switch(quoi){
+    case 'engrais':     return !outilVerrou('engrais');
+    case 'moulin':      return atelierA('farine');
+    case 'parcelle2':   return PARCELS.filter((p)=> p.owned).length >= 2;
+    case 'parcelles12': return PARCELS.filter((p)=> p.owned).length >= 12;
+    case 'poules':      return PATURES.some((P)=> P.espece === 'poule' && P.betes.length >= 3);
+    case 'vaches':      return PATURES.some((P)=> P.espece === 'vache' && P.betes.length >= 2);
+    case 'betes6':      return STAT.betes >= 6;
+  }
+  return false;
+}
+function finirMission(){
+  const M = missionCourante();
+  if(!M) return;
+  if(M.prime > 0) money += M.prime;
+  CAMPAGNE.mission++;
+  CAMPAGNE.faits = [];
+  const suite = missionCourante();
+  showHint('MISSION FAITE' + (M.prime > 0 ? '  +' + eur(M.prime) : '')
+           + (M.xp ? '  ·  +' + M.xp + ' XP' : ''));
+  gagnerXp(M.xp);
+  void suite;
+}
+/* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
+   Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
+   serait la perdre ; la remettre au premier palier reverrouillerait tout ce que son
+   joueur avait acheté — ses tracteurs, ses cultures, sa cave. On lui donne donc le
+   palier que son avancement mérite, déduit de ce qu'elle possède déjà, et l'on ne
+   reverrouille JAMAIS ce qui est acheté : les paliers sont un plancher, la propriété
+   l'emporte toujours.
+   Tout est lu sous garde. Le chargement achète et active les parcelles AVANT de
+   pouvoir échouer, et l'exception est avalée par un try/catch : une seule lecture non
+   gardée ferait échouer le chargement complet de toutes les parties antérieures et
+   laisserait un monde à moitié construit, sur lequel l'enregistrement automatique
+   écrirait six secondes plus tard. */
+function chargerCampagne(S){
+  const C = S && S.campagne;
+  if(C && typeof C.xp === 'number'){
+    CAMPAGNE.xp = Math.max(0, C.xp);
+    CAMPAGNE.mission = Math.max(0, Math.min(MISSIONS.length, C.mission | 0));
+    CAMPAGNE.faits = Array.isArray(C.faits) ? C.faits.slice() : [];
+    CAMPAGNE.niveau = Math.max(niveauPourXp(CAMPAGNE.xp),
+                               Math.max(1, Math.min(NIVEAUX.length, C.niveau | 0)));
+    for(let k = 0; k < COMMANDES.length; k++){
+      const D = C.commandes && C.commandes[k];
+      COMMANDES[k] = (D && Array.isArray(D.lignes) && D.lignes.length)
+        ? {type:D.type || CMD_TYPES[k].cle, lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
+           temps:D.temps || 0,
+           lignes:D.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait || 0}))}
+        : null;
+    }
+  } else {
+    // Une partie d'avant : on lui rend le palier qu'elle a gagné sur le terrain.
+    CAMPAGNE.niveau = niveauRetrouve();
+    CAMPAGNE.xp = xpNiveau(CAMPAGNE.niveau);
+    CAMPAGNE.mission = 0;
+    while(CAMPAGNE.mission < MISSIONS.length &&
+          MISSIONS[CAMPAGNE.mission].niv < CAMPAGNE.niveau) CAMPAGNE.mission++;
+    CAMPAGNE.faits = [];
+    for(let k = 0; k < COMMANDES.length; k++) COMMANDES[k] = null;
+  }
+  remplirCommandes(0);
+}
+/* LE PALIER D'UNE PARTIE QUI N'EN AVAIT PAS. On le déduit de ce qu'elle possède :
+   chaque niveau ouvre des choses, et posséder une de ces choses prouve qu'on avait au
+   moins ce niveau-là. C'est la lecture la plus généreuse, et c'est voulu — mieux vaut
+   rendre un palier de trop que reprendre un tracteur payé. */
+function niveauRetrouve(){
+  let n = 1;
+  const atteint = (k)=>{ if(k > n) n = k; };
+  for(const c of CROPS) if(!c.verrou) atteint(niveauDe('cultures', c.cle));
+  for(const m of MACHINES) if(!m.verrou) atteint(niveauDe('engins', m.key));
+  for(const T of TOOLS) if(!T.verrou) atteint(niveauDe('outils', T.key));
+  for(const c of HALLE.modules) atteint(niveauDe('modules', c));
+  for(const P of PATURES) atteint(niveauDe('especes', P.espece));
+  // et le nombre de parcelles : une ferme de six parcelles vaut au moins le palier
+  // qui en donne six.
+  const np = PARCELS.filter((p)=> p.owned).length;
+  const kp = NIVEAUX.findIndex((N)=> N.parcelles >= np);
+  if(kp >= 0) atteint(kp + 1);
+  return Math.max(1, Math.min(NIVEAUX.length, n));
+}
+// Appelée par le tic d'interface : les missions « faire » n'ont personne pour les
+// prévenir, il faut bien les regarder.
+function veillerMission(){
+  const M = missionCourante();
+  if(!M) return;
+  if(M.faire){ if(testerFaire(M.faire)) finirMission(); return; }
+  if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - 0.01)) finirMission();
 }
 
 const RESTO    = SITES.find(S=>S.nom === 'Restaurant');
@@ -1376,8 +1776,20 @@ const RESTO    = SITES.find(S=>S.nom === 'Restaurant');
    marchandise — et c'est la seule chose du jeu qui demande de composer une tournée
    au lieu de remplir une benne d'un seul tenant. Chaque livraison la fait avancer,
    et elle se renouvelle dès qu'elle est honorée. */
+let mondePret = false;      // levé une fois toutes les tables construites
 function nouvelleCommande(){
-  const choix = RESTO.achete.slice(), liste = [];
+  /* Le restaurant ne réclame que ce que la ferme sait produire À CE PALIER : sans ce
+     filtre il demandait de l'huile d'olive au troisième niveau, et sa bulle promettait
+     une prime que personne ne pouvait toucher. Le filtre ne s'applique qu'une fois le
+     monde construit — à l'amorçage, cette fonction tourne avant les tables de cultures
+     et d'espèces. */
+  let choix = RESTO.achete.slice();
+  if(mondePret){
+    const ouverts = produitsOuverts();
+    const f = choix.filter((c)=> ouverts.indexOf(c) >= 0);
+    if(f.length >= 2) choix = f;
+  }
+  const liste = [];
   for(let k = 0; k < 3 && choix.length; k++){
     const c = choix.splice((Math.random()*choix.length)|0, 1)[0];
     liste.push({cle:c, need: Math.round((50 + Math.random()*100)/10)*10, fait:0});
@@ -2360,15 +2772,15 @@ const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
-   temps:210, kg:12, haut:1.00, large:0.80},
+   temps:75, kg:12, haut:1.00, large:0.80},
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:330, kg:21, haut:1.07, large:0.80, cout:2500, verrou:true},
+   temps:120, kg:21, haut:1.07, large:0.80, cout:600, verrou:true},
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:260, kg:15, haut:1.04, cout:4000, verrou:true},
+   temps:150, kg:15, haut:1.04, cout:2400, verrou:true},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:190, kg:10, haut:1.29, cout:3000, verrou:true},
+   temps:90, kg:10, haut:1.29, cout:900, verrou:true},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
-   temps:200, kg:11, haut:0.79, cout:2200, verrou:true},
+   temps:100, kg:11, haut:0.79, cout:700, verrou:true},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
   // ne poussent pas non plus à chaque cellule — un olivier tous les 6,50 m, un pied de
@@ -2387,7 +2799,7 @@ const CROPS = [
    // régression d'avant, où la machine survolait un fil qu'elle ne touchait pas — les
    // peignes batteurs, eux, restent accrochés aux jambes dès 0,75 m et brassent toujours
    // le feuillage sur toute sa hauteur.
-   temps:340, kg:9, haut:1.00, large:1.00, cout:9000, verrou:true, perenne:true,
+   temps:210, repousse:150, kg:9, haut:1.00, large:1.00, cout:6000, verrou:true, perenne:true,
    rang:true, masque:(i)=> i % 2 === 0},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
    // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
@@ -2404,7 +2816,7 @@ const CROPS = [
    // ±27 cm — c'est-à-dire le maquis que la maille était censée éviter. Une cellule sur
    // vingt-cinq, soit 6,50 m d'entraxe, rend 1,38 m de jour entre les branches. Le
    // rendement ne bouge pas : il se compte à la CELLULE récoltée, pas à l'arbre.
-   temps:400, kg:8, haut:0.94, large:1.30, cout:11000, verrou:true, perenne:true,
+   temps:240, repousse:180, kg:8, haut:0.94, large:1.30, cout:7500, verrou:true, perenne:true,
    masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
@@ -3255,6 +3667,16 @@ const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
 function ajouteBulle(S, H){
   const eur = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
   const blocs = [];
+  /* UN COMMERCE FERMÉ DIT CE QU'IL ATTEND. Sans cette ligne, on s'arrête sur un
+     anneau éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
+     apporte. La bulle est la seule chose qu'on lit depuis la route : c'est là que la
+     réponse doit être. */
+  if(!ouvert('sites', S.nom)){
+    const niv = niveauDe('sites', S.nom);
+    ajouteBulleRendu(S, H, [{titre:'FERMÉ', lignes:[{nom:'Ouvre au niveau ' + niv, prix:''},
+                                                    {nom:NIVEAUX[niv-1].nom, prix:''}]}]);
+    return;
+  }
   // Trois lignes au plus : au-delà, la bulle devient un panneau d'affichage et on ne
   // la lit plus depuis la route. Le détail complet est dans l'onglet Filières.
   // Un commerce qui tient une commande l'affiche À LA PLACE de sa liste d'achats : le
@@ -3276,13 +3698,19 @@ function ajouteBulle(S, H){
     const d = S.demande.split(' — ');
     blocs.push({titre:'ACHÈTERA', lignes:[{nom:d[0], prix:''}]});
   }
+  ajouteBulleRendu(S, H, blocs);
+}
+// La pose elle-même, séparée : la bulle d'un commerce fermé n'a pas de contenu à
+// composer, mais elle se pose exactement comme les autres.
+function ajouteBulleRendu(S, H, blocs){
   if(!blocs.length) blocs.push({titre:'', lignes:[{nom:S.nom, prix:''}]});
   // La caméra regarde toujours depuis les X et Z positifs. Une bulle orientée comme la
   // façade d'un commerce du bord est lui tournait donc le dos et restait invisible.
   // On garde le parallélisme à la route, mais du côté d'où l'on regarde.
   const rotB = (S.dir === 'W' || S.dir === 'E') ? Math.PI/2 : 0;
   // Une enseigne est une image cuite une fois : on garde de quoi la refaire, pour le
-  // commerce dont le contenu change — le restaurant et sa commande.
+  // commerce dont le contenu change — le restaurant et sa commande, un commerce qui
+  // vient d'ouvrir.
   if(S.bulle){ scene.remove(S.bulle); const i = BULLES.findIndex((b)=> b.m === S.bulle);
                if(i >= 0) BULLES.splice(i, 1); }
   S.bulle = poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
@@ -5161,29 +5589,24 @@ function poserBloc(quoi, x, z, ry){
   return g;
 }
 
-/* ---------- L'ATELIER DE LA FERME, EN CINQ NIVEAUX ----------
+/* ---------- LA SILHOUETTE DE L'ATELIER, EN HUIT CRANS ----------
    Le moulin du bord de route a fermé : c'est ici qu'on moud son propre blé. Chaque
-   niveau AJOUTE un module sans jamais redessiner le bâtiment, et le volume principal
-   grandit à chaque fois — la progression se lit de loin, d'un seul coup d'œil.
+   MÉTIER monté agrandit le bâtiment sans jamais le redessiner — la progression se lit
+   de loin, d'un seul coup d'œil, et l'on voit du bout du champ où en est sa ferme.
 
-     1  moulin                blé -> farine
-     2  alimentation animale  céréales -> aliment, plus nourrissant que le grain brut
-     3  pressoir              colza -> huile
-     4  stockage              la cour tient plus de marchandise, et le débit monte
-     5  version complète      étage technique, auvent de quai, aire logistique rangée */
+     0  halle nue             le premier jour
+     2  alimentation animale  deuxième trémie et mélangeur
+     4  fromagerie            deux tanks à lait et la salle de fabrication
+     6  pressoir              cuves, passerelle, cheminée, bidons
+     7  stockage              appentis, conteneur, aire logistique
+     8  version complète      étage technique et auvent de quai */
 const ATL = {
   // Palette agricole sobre, reprise du bâti existant.
   BARDAGE:0xD6DDE2, VERT:0x3E6B4E, BETON:0x9BA3A8, BETON2:0x848C91,
   METAL:0xC9CFD3, SOMBRE:0x2E3438, BOIS:0x8A6A3A, BOIS2:0x6B4E24, ENDUIT:0xEFE4CE,
-  ARDOISE:0x4A5359, BLE:0xE8C24A,
-  // Prix des paliers, et ce que chacun débloque.
-  PALIERS: [
-    {prix:0,      nom:'Moulin',               det:'Le blé devient farine'},
-    {prix:14000,  nom:'Alimentation animale', det:'Les céréales deviennent de l\'aliment'},
-    {prix:26000,  nom:'Pressoir',             det:'Le colza et l\'olive deviennent de l\'huile'},
-    {prix:42000,  nom:'Stockage',             det:'Plus de cuves, plus de débit'},
-    {prix:68000,  nom:'Version complète',     det:'Étage technique et auvent de quai'}
-  ]
+  ARDOISE:0x4A5359, BLE:0xE8C24A
+  // Les prix ne sont plus ici : un palier ne donne plus à la fois un métier et de la
+  // capacité. Les métiers sont dans ATELIER_MODULES, les capacités dans ATELIER_UP.
 };
 // dalle de chargement : béton, bordure et marquage
 function quaiBeton(x, z, w, d){
@@ -5229,9 +5652,15 @@ function enseigneAtl(g, x, z, c, ry){
 }
 // Construit la halle au niveau demandé. Tout est dans un seul groupe : monter d'un
 // niveau, c'est jeter ce groupe et en rebâtir un — le bâtiment n'a pas d'état.
+/* HUIT CRANS AU LIEU DE CINQ, ET LE MÊME BÂTIMENT AU BOUT. La halle grandissait de
+   80 cm par palier sur cinq paliers ; elle grandit de 50 sur huit, et arrive donc
+   exactement aux mêmes cotes qu'avant — 13,4 m de large — une fois tous les modules
+   pris. Ce qui change, c'est qu'on la voit grandir huit fois au lieu de cinq. Le
+   niveau 0 existe : une halle nue, sans un seul métier, telle qu'on la trouve au
+   premier jour. */
 function modeleAtelier(niveau){
   const g = new THREE.Group();
-  const W = 9.4 + niveau*0.8, D = 6.6 + niveau*0.3, H = 3.9 + niveau*0.42;
+  const W = 9.4 + niveau*0.50, D = 6.6 + niveau*0.19, H = 3.9 + niveau*0.26;
   g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:ATL.BARDAGE, y:0}));
   g.add(slab({w:W + 0.6, h:0.5, d:D + 0.6, tw:W + 0.1, td:D + 0.1, c:ATL.VERT, y:H}));
   for(let k = -3; k <= 3; k++)
@@ -5241,13 +5670,13 @@ function modeleAtelier(niveau){
     g.add(box(W*0.26, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.17 + k*0.16, D/2 + 0.18));
   g.add(box(1.6, 1.2, 0.16, 0xCBD2D6, W*0.22, H*0.62, D/2 + 0.03));
   g.add(box(1.35, 1.0, 0.2, 0x44647A, W*0.22, H*0.62, D/2 + 0.07));
-  g.add(quaiBeton(0, D/2 + 4.0, 7 + niveau*0.9, 4.6 + niveau*0.2));
+  g.add(quaiBeton(0, D/2 + 4.0, 7 + niveau*0.56, 4.6 + niveau*0.13));
   sacsEmpiles(g, -W*0.24, D/2 + 1.6, 4);
-  palettes(g, W*0.1, D/2 + 3.2, Math.min(3, niveau), 0xEDE3CC);
-  tremieAtl(g, -W/2 - 1.6, -1.0, 1.0, 3.0 + niveau*0.25);            // trémie à céréales
+  palettes(g, W*0.1, D/2 + 3.2, Math.min(3, Math.ceil(niveau/2)), 0xEDE3CC);
+  tremieAtl(g, -W/2 - 1.6, -1.0, 1.0, 3.0 + niveau*0.16);            // trémie à céréales
 
   if(niveau >= 2){                        // alimentation animale : deuxième trémie et mélangeur
-    tremieAtl(g, -W/2 - 1.6, 1.8, 0.85, 2.4 + niveau*0.2, 0xD8B24A);
+    tremieAtl(g, -W/2 - 1.6, 1.8, 0.85, 2.4 + niveau*0.13, 0xD8B24A);
     g.add(box(1.6, 1.4, 1.6, 0x8A9298, -W/2 - 1.6, 0.7, 4.0));
     g.add(cyl(0.5, 0.5, 1.8, 10, ATL.METAL, -W/2 - 1.6, 2.3, 4.0));
     g.add(box(0.3, 0.3, 3.0, 0x8A9298, -W/2 - 1.6, 3.4, 0.4));       // convoyeur
@@ -5255,7 +5684,14 @@ function modeleAtelier(niveau){
     g.add(slab({w:3.4, h:0.34, d:D - 0.8, tw:3.0, td:D - 1.2, c:ATL.VERT, x:-W/2 - 1.5, y:2.4}));
     sacsEmpiles(g, -W*0.02, D/2 + 1.6, 6);
   }
-  if(niveau >= 3){                        // pressoir : cuves, passerelle, cheminée, bidons
+  if(niveau >= 4){                        // fromagerie : deux tanks à lait et leur laverie
+    cuveAtl(g, -W/2 - 1.5, -4.2, 0.9, 2.6);
+    cuveAtl(g, -W/2 - 3.4, -4.2, 0.9, 2.6);
+    g.add(box(2.0, 1.5, 1.4, 0xE8EDF0, -W/2 - 2.4, 0.75, -1.8));     // salle de fabrication
+    g.add(box(2.1, 0.22, 1.5, 0x9BA3A8, -W/2 - 2.4, 1.55, -1.8));
+    g.add(box(0.24, 0.24, 2.6, 0x8A9298, -W/2 - 2.4, 2.9, -3.0));    // conduite de lait
+  }
+  if(niveau >= 6){                        // pressoir : cuves, passerelle, cheminée, bidons
     cuveAtl(g, W/2 + 2.0, -1.6, 1.05, 3.2);
     cuveAtl(g, W/2 + 2.0, 1.4, 1.05, 3.2);
     g.add(box(2.4, 1.8, 2.2, ATL.BETON2, W/2 + 2.0, 0.9, 4.2));
@@ -5268,7 +5704,7 @@ function modeleAtelier(niveau){
       g.add(cyl(0.3, 0.3, 0.7, 8, ATL.BLE, W*0.3 + (k % 2)*0.7, 0.35,
                 D/2 + 2.4 + Math.floor(k/2)*0.7));
   }
-  if(niveau >= 4){                        // stockage : appentis, palettes, caisses, conteneur
+  if(niveau >= 7){                        // stockage : appentis, palettes, caisses, conteneur
     g.add(slab({w:4.2, h:H - 0.6, d:D + 0.6, tw:4.2, td:D + 0.6, c:0xC9D2D8, x:W/2 + 2.1, y:0}));
     g.add(slab({w:4.8, h:0.4, d:D + 1.0, tw:4.4, td:D + 0.6, c:ATL.VERT, x:W/2 + 2.1, y:H - 0.6}));
     g.add(box(1.6, (H-0.6)*0.6, 0.22, ATL.SOMBRE, W/2 + 2.1, (H-0.6)*0.3, D/2 + 0.62));
@@ -5278,7 +5714,7 @@ function modeleAtelier(niveau){
     g.add(box(2.6, 2.2, 5.6, 0x4E6B7A, -W/2 - 3.6, 1.1, D/2 + 3.0));
     g.add(box(2.7, 0.2, 5.7, 0x3E5766, -W/2 - 3.6, 2.25, D/2 + 3.0));
   }
-  if(niveau >= 5){                        // étage technique et auvent de quai
+  if(niveau >= 8){                        // étage technique et auvent de quai
     g.add(slab({w:W*0.5, h:2.2, d:D*0.6, tw:W*0.5, td:D*0.6, c:0xC9D2D8, x:-W*0.12, y:H + 0.5}));
     g.add(slab({w:W*0.56, h:0.36, d:D*0.66, tw:W*0.5, td:D*0.6, c:ATL.VERT, x:-W*0.12, y:H + 2.7}));
     for(let k = -1; k <= 1; k++)
@@ -5314,7 +5750,7 @@ function poserAtelier(){
      la SOMME et non sur le seul demi-mur. L'écrire à moitié laisserait au niveau 5 deux
      mètres de module hors de l'obstacle, et on roulerait au travers du conteneur et de
      l'appentis — dans la cour de transformation, là où l'on manœuvre le plus. */
-  const demi = (u.W/2 + (N >= 4 ? 4.5 : (N >= 3 ? 3.4 : (N >= 2 ? 3.2 : 2.7))))*BAT_ECHELLE;
+  const demi = (u.W/2 + (N >= 7 ? 4.5 : (N >= 6 ? 3.4 : (N >= 2 ? 3.2 : 2.7))))*BAT_ECHELLE;
   const hd = u.D/2*BAT_ECHELLE;
   if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd}; boxObs.push(atelierObs); }
   else { atelierObs.hw = demi; atelierObs.hd = hd; }
@@ -6377,74 +6813,292 @@ function updateBirds(dt, vx, vz){
   }
 }
 
-/* --- contrats : missions courtes, une à la fois, avec délai --- */
-// Une commande, c'est le palier ×3 du barème : la prime s'ajoute à ce que la
-// marchandise vaut déjà, de sorte qu'un contrat honoré rapporte trois fois le brut
-// de départ. Elle se déduit donc du prix, comme tout le reste.
+/* ---------- LES QUATRE COMMANDES ----------
+   Le jeu ne portait qu'un contrat à la fois, tiré au sort dans une liste de huit
+   modèles, et il ne se refusait pas : on le subissait, ou on l'ignorait. Quatre
+   commandes sont visibles en permanence, et chacune a son caractère :
+
+     BRUTE      ce qui sort de la terre ou de la bête, tel quel. Toujours faisable.
+     TRANSFORMÉE un produit de l'atelier ou d'une usine. Demande une chaîne.
+     COMBINÉE   deux ou trois produits à la fois, chez le même client. Demande une
+                tournée composée, et c'est le vrai saut de difficulté du jeu.
+     PREMIUM    une seule marchandise, en quantité, avec un délai. Elle paie double
+                et elle se perd.
+
+   Le joueur choisit celles qu'il honore et jette les autres. Une commande jetée est
+   remplacée tout de suite : il n'y a jamais de case vide, donc jamais de temps mort.
+
+   LA RÉCOMPENSE NE CASSE PAS L'ÉCONOMIE. On est payé le prix normal de la
+   marchandise au moment où on la livre — c'est le circuit habituel, celui des étals
+   et des caisses d'usine — PUIS la prime du contrat s'ajoute à la clôture. Les prix
+   du village restent donc exacts, et une commande vaut toujours mieux qu'une vente
+   sèche sans jamais la remplacer. */
 const prime = (cle)=> prixDe(cle)*(PALIER.CONTRAT - 1);
-const MODELES = [
-  {stat:'silo',    txt:n=>'Rentrer '+n+' kg de céréales au silo',  min:250, max:800,  pay:prime('ble'),  sec:150},
-  {stat:'mill',    txt:n=>'Moudre '+n+' kg à l\'atelier',          min:250, max:800,  pay:prime('ble'),  sec:180},
-  {stat:'pain',    txt:n=>'Vendre '+n+' kg de la boulangerie',     min:150, max:300,  pay:prime('pain'), sec:210},
-  {stat:'moisson', txt:n=>'Moissonner '+n+' kg',                   min:300, max:900,  pay:prime('ble'),  sec:170},
-  {stat:'labour',  txt:n=>'Labourer '+n+' m² de terre',            min:300, max:800,  pay:0.09, sec:150},
-  {stat:'semis',   txt:n=>'Semer '+n+' m²',                        min:300, max:800,  pay:0.11, sec:160},
-  // Les deux circuits d'élevage ont aussi leurs commandes, bornées par ce que le
-  // troupeau peut sortir avant l'échéance (voir `plafond` dans nouveauContrat).
-  // Pour le lait : ce qui dort déjà dans les tanks, plus ce que les bêtes nourries
-  // produiront d'ici là. Le quart retiré paie les allers-retours à la laiterie et
-  // les moments où l'auge est vide.
-  {stat:'lait',    txt:n=>'Livrer '+n+' kg de lait',  min:250, max:900, pay:prime('lait'), sec:230,
-   plafond:(m)=> PATURES.reduce((a,P)=>
-     a + (P.espece === 'vache' ? P.produit + P.betes.length*ESPECES.vache.parSec*m.sec*0.75 : 0), 0)},
-  // Pour le bétail : seules comptent les bêtes DÉJÀ adultes. Un veau met 420 s à
-  // grandir, soit plus que l'échéance du contrat — l'inclure serait mentir.
-  {stat:'betes',   txt:n=>'Vendre '+n+' bête'+(n>1?'s':'')+' à la boucherie',
-   min:2, max:5, pas:1, pay:420, sec:300,
-   plafond:()=> PATURES.reduce((a,P)=> a + betesAdultes(P), 0)}
+
+const CMD_TYPES = [
+  {cle:'brute',       nom:'Brut',        mult:1.00, delai:0},
+  {cle:'transformee', nom:'Transformé',  mult:1.15, delai:0},
+  {cle:'combinee',    nom:'Composé',     mult:1.35, delai:0},
+  {cle:'premium',     nom:'Urgent',      mult:1.90, delai:1}
 ];
-let contrat = null;
-function nouveauContrat(){
-  // Un contrat ne doit porter que sur ce que la ferme peut RÉELLEMENT honorer avant
-  // l'échéance. `plafond` sert donc deux fois : il écarte le modèle quand la ferme
-  // n'a pas de quoi atteindre le minimum, et il borne la quantité tirée. Sans lui,
-  // une seule vache suffisait à déclencher une commande de 250 kg de lait qu'elle
-  // ne pouvait pas produire dans le temps imparti — un contrat impossible n'est
-  // pas un défi, c'est une case perdue d'avance.
-  const capa = (m)=> m.plafond ? m.plafond(m) : Infinity;
-  const ouverts = MODELES.filter(m => capa(m) >= m.min);
-  const m = ouverts[(Math.random()*ouverts.length)|0];
-  const pas = m.pas || 50;
-  const haut = Math.min(m.max, capa(m));
-  let n = Math.round((m.min + Math.random()*(haut - m.min))/pas)*pas;
-  n = Math.max(pas, Math.min(n, Math.floor(capa(m)/pas)*pas));
-  contrat = {stat:m.stat, need:n, base:STAT[m.stat], label:m.txt(n),
-             reward:Math.round(n*m.pay/10)*10, temps:m.sec};
-}
-function updateContrat(dt){
-  if(!contrat) return;
-  const fait = STAT[contrat.stat] - contrat.base;
-  if(fait >= contrat.need){
-    money += contrat.reward;
-    showHint('CONTRAT REMPLI  +' + contrat.reward + ' €');
-    nouveauContrat();
-    return;
+const COMMANDES = [null, null, null, null];
+/* UNE CASE HONORÉE NE SE REMPLIT PAS TOUT DE SUITE. Sans ce délai, une seule benne de
+   deux cents kilos soldait la commande, en faisait apparaître une neuve du même
+   produit chez le même client, et la soldait aussi — cinq fois de suite, sans bouger.
+   Mesuré : 587 € pour une livraison qui devait en rapporter deux cents. Vingt-cinq
+   secondes, c'est le temps d'un aller-retour : on peut enchaîner deux commandes, on ne
+   peut plus les enchaîner sur le même déchargement. */
+const CMD_DELAI = [0, 0, 0, 0];
+const CMD_ATTENTE = 25;
+
+/* CE QU'UN CLIENT PEUT DEMANDER, ET CE QU'ON PEUT LUI PORTER. Une commande ne doit
+   jamais réclamer ce que la ferme ne sait pas encore faire : on croise donc ce que le
+   commerce accepte avec ce que le palier de campagne a ouvert. Sans ce croisement, le
+   restaurant réclamerait de l'huile d'olive au troisième palier, et la case serait
+   perdue d'avance. */
+function produitsOuverts(){
+  const out = [];
+  for(const c of CROPS) if(!c.verrou) out.push(c.cle);
+  for(const cle of ESP_CLES){
+    const E = ESPECES[cle];
+    if(!ouvert('especes', cle)) continue;
+    if(E.produit) out.push(E.produit);
+    if(E.second) out.push(E.second.cle);
   }
-  contrat.temps -= dt;
-  if(contrat.temps <= 0){
-    showHint('CONTRAT EXPIRÉ');
-    nouveauContrat();
+  for(const M of ATELIER_MODULES) if(atelierA(M.cle)) out.push(M.cle);
+  // Ce que les usines du village rendent elles-mêmes ne se transporte pas : elles
+  // encaissent sur place. On ne le met donc pas dans les commandes.
+  return out;
+}
+// Les clients ouverts qui achètent au comptant l'un de ces produits.
+function clientsPour(cle){
+  const out = [];
+  for(const S of SITES){
+    if(!siteOuvert(S)) continue;
+    if(S.achete.indexOf(cle) >= 0 || S.accepte.indexOf(cle) >= 0) out.push(S);
+  }
+  return out;
+}
+const estTransforme = (cle)=> !!(PRODUITS[cle] && PRODUITS[cle].de);
+/* CE QUE LA FERME PEUT RAISONNABLEMENT EN SORTIR. Une commande de trois cents kilos
+   de fromage au palier où l'on a deux vaches n'est pas un défi, c'est une case perdue
+   d'avance. Mais borner sur ce qui est DÉJÀ en stock serait pire encore : on
+   commanderait cinq kilos de blé à qui n'a pas encore semé. On borne donc sur ce que
+   la ferme PEUT produire — la terre qu'elle possède, les bêtes qu'elle nourrit, la
+   matière qu'un module peut transformer — et non sur ce qu'elle a sous la main.
+
+   La récursion sur les recettes est bornée à deux crans : `prixDe` suit `de` sans
+   détection de cycle, et l'on ne veut pas d'une deuxième fonction récursive sans
+   garde-fou dans le même fichier. */
+// La part des cellules d'une parcelle qu'une culture occupe réellement : une vigne
+// n'occupe qu'un rang sur deux, un olivier une cellule sur vingt-cinq.
+CROPS.forEach((c)=>{
+  if(!c.masque){ c.part = 1; return; }
+  let n = 0;
+  for(let j = 0; j < 25; j++) for(let i = 0; i < 25; i++) if(c.masque(i, j)) n++;
+  c.part = n/625;
+});
+const terreCultivable = ()=>
+  PARCELS.reduce((t, p)=> t + ((p.owned && !p.pature) ? (p.cellules || 0) : 0), 0);
+function capaciteFerme(cle, prof){
+  const d = prof || 0;
+  let t = (siloStock[cle] || 0) + entrepotStock(cle) + halleStock(cle);
+  const ic = CROPS.findIndex((c)=> c.cle === cle);
+  // Ce qu'UNE récolte donnerait si toute la terre en portait : c'est le plafond
+  // honnête d'une commande de matière première.
+  if(ic >= 0 && !CROPS[ic].verrou) t += terreCultivable()*CROPS[ic].kg*CROPS[ic].part;
+  for(const P of PATURES){
+    const E = ESPECES[P.espece] || ESPECES.vache;
+    if(E.produit === cle) t += P.produit + P.betes.length*E.parSec*180;
+    if(E.second && E.second.cle === cle) t += (P.produit2 || 0) + P.betes.length*E.second.parSec*180;
+  }
+  // Ce qu'un module d'atelier peut tirer de sa matière — celle en magasin, et celle
+  // que la ferme sait produire.
+  if(atelierA(cle) && d < 2){
+    const P = PRODUITS[cle], ent = recetteEntrees(cle);
+    let parts = Infinity;
+    for(const k in ent){
+      const n = capaciteFerme(k, d + 1)/ent[k];
+      if(P.libre){ if(n > parts || parts === Infinity) parts = n; }
+      else if(n < parts) parts = n;
+    }
+    if(isFinite(parts)) t += parts*P.rendement;
+  }
+  return t;
+}
+// Le pas d'arrondi : on ne commande pas 137 kg de miel.
+const pasCommande = (n)=> n >= 400 ? 50 : (n >= 120 ? 20 : (n >= 40 ? 10 : 5));
+function tirerLigne(cle, cible){
+  const capa = capaciteFerme(cle);
+  const n = Math.min(cible, Math.max(pasCommande(cible), capa*0.55));
+  const pas = pasCommande(n);
+  return {cle:cle, need: Math.max(pas, Math.round(n/pas)*pas), fait:0};
+}
+/* Tirer une commande d'un type donné, ou rien si le palier ne permet rien de tel.
+   La quantité suit le palier de campagne : une commande de blé au premier niveau vaut
+   trente kilos, au quinzième elle en vaut mille. C'est la même courbe que celle des
+   parcelles — le jeu grandit d'un bloc. */
+function tirerCommande(type){
+  const T = CMD_TYPES.find((t)=> t.cle === type) || CMD_TYPES[0];
+  let dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length && capaciteFerme(cle) > 5);
+  if(type === 'brute')       dispo = dispo.filter((cle)=> !estTransforme(cle));
+  if(type === 'transformee' || type === 'premium') dispo = dispo.filter(estTransforme);
+  if(!dispo.length) dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length);
+  if(!dispo.length) return null;
+
+  const ech = 22 + CAMPAGNE.niveau*CAMPAGNE.niveau*4.5;      // 26 kg au palier 1, 1 034 au 15
+  /* LE CLIENT SE CHOISIT AVANT LES LIGNES, et pas l'inverse. En composant d'abord un
+     panier puis en cherchant qui le prend, une commande finissait par réclamer de
+     l'huile d'olive à l'usine de céréales : il suffisait qu'une ligne n'ait aucun
+     client commun avec les autres pour qu'on garde le client des précédentes, et la
+     ligne devenait indélivrable. On tire donc un premier produit, on prend un de SES
+     clients, et toutes les lignes suivantes sont choisies dans ce que CE client
+     accepte. */
+  const tete = dispo[(Math.random()*dispo.length)|0];
+  const clients = clientsPour(tete);
+  if(!clients.length) return null;
+  const S = clients[(Math.random()*clients.length)|0];
+  const combien = (type === 'combinee') ? (CAMPAGNE.niveau >= 9 ? 3 : 2) : 1;
+  const reste = dispo.filter((cle)=> cle !== tete && clientsPour(cle).indexOf(S) >= 0);
+  const lignes = [tirerLigne(tete, ech*(type === 'premium' ? 1.6 : 1)/combien)];
+  for(let k = 1; k < combien && reste.length; k++){
+    const cle = reste.splice((Math.random()*reste.length)|0, 1)[0];
+    lignes.push(tirerLigne(cle, ech/combien));
+  }
+  const brut = lignes.reduce((t, l)=> t + prime(l.cle)*l.need, 0);
+  // Une commande composée d'une seule ligne n'est pas composée : au premier palier il
+  // n'existe qu'un produit, et l'annoncer « composé » serait mentir sur l'étiquette.
+  let vrai = type;
+  if(type === 'combinee' && lignes.length < 2) vrai = 'brute';
+  if(type === 'transformee' && !lignes.every((l)=> estTransforme(l.cle))) vrai = 'brute';
+  const C = {type:vrai, lieu:S.nom, lignes:lignes,
+             prime: Math.max(20, Math.round(brut*T.mult/5)*5),
+             xp: Math.max(4, Math.round(brut*T.mult/26)),
+             temps: T.delai ? Math.round(150 + lignes.reduce((t, l)=> t + l.need, 0)*0.55) : 0};
+  return C;
+}
+function remplirCommandes(dt){
+  for(let k = 0; k < COMMANDES.length; k++){
+    if(COMMANDES[k]) continue;
+    if(CMD_DELAI[k] > 0){ CMD_DELAI[k] -= (dt || 0); continue; }
+    const C = tirerCommande(CMD_TYPES[k].cle);
+    // La case garde SON type même si le tirage a dû se rabattre : c'est la case qui
+    // décide de ce qu'on retire dedans la prochaine fois.
+    if(C){ C.case = CMD_TYPES[k].cle; COMMANDES[k] = C; }
   }
 }
-function refreshContrat(){
-  if(!contrat){ el.ctr.style.display = 'none'; return; }
-  el.ctr.style.display = 'block';
-  const fait = Math.min(contrat.need, Math.max(0, STAT[contrat.stat] - contrat.base));
-  el.ctrTxt.textContent = contrat.label;
-  el.ctrSub.textContent = Math.round(fait) + ' / ' + contrat.need
-    + '   ·   +' + contrat.reward + ' €   ·   ' + Math.max(0, Math.ceil(contrat.temps)) + ' s';
-  el.ctrBar.style.width = (fait/contrat.need*100) + '%';
-  el.ctr.classList.toggle('urgent', contrat.temps < 30);
+// Refuser une commande la remplace TOUT DE SUITE : c'est un geste du joueur, pas une
+// récompense, et le faire attendre pour ça ne punirait que l'envie de choisir.
+function jeterCommande(k){
+  COMMANDES[k] = null; CMD_DELAI[k] = 0;
+  remplirCommandes(0);
+  rafraichirEcran();
+}
+/* UNE LIVRAISON, ET TOUT CE QU'ELLE FAIT AVANCER. Le point de passage unique : cinq
+   endroits d'`executer` l'appellent, et rien d'autre ne compte une livraison. Les
+   commandes libres, la mission de campagne et la commande du restaurant y puisent la
+   même information — sans quoi il faudrait recopier la même règle trois fois. */
+function livraison(lieu, cle, q){
+  if(!(q > 0)) return;
+  for(let k = 0; k < COMMANDES.length; k++){
+    const C = COMMANDES[k];
+    if(!C || C.lieu !== lieu) continue;
+    const l = C.lignes.find((x)=> x.cle === cle);
+    if(!l) continue;
+    l.fait = Math.min(l.need, l.fait + q);
+    if(C.lignes.every((x)=> x.fait >= x.need - 0.01)) solderCommande(k);
+  }
+  const M = missionCourante();
+  if(M && !M.faire && M.lieu === lieu){
+    M.lignes.forEach((l, i)=>{
+      if(l.cle !== cle) return;
+      CAMPAGNE.faits[i] = Math.min(l.need, (CAMPAGNE.faits[i] || 0) + q);
+    });
+  }
+}
+function solderCommande(k){
+  const C = COMMANDES[k];
+  if(!C) return;
+  money += C.prime;
+  showHint('COMMANDE HONORÉE — ' + eur(C.prime) + '  ·  +' + C.xp + ' XP');
+  gagnerXp(C.xp);
+  COMMANDES[k] = null; CMD_DELAI[k] = CMD_ATTENTE;
+  rafraichirEcran();
+}
+// Le temps qui court sur la commande urgente, et le remplissage des cases vides.
+function updateCommandes(dt){
+  for(let k = 0; k < COMMANDES.length; k++){
+    const C = COMMANDES[k];
+    if(!C) continue;
+    if(!C.temps) continue;
+    C.temps -= dt;
+    if(C.temps <= 0){
+      showHint('COMMANDE EXPIRÉE — ' + C.lieu.toUpperCase());
+      COMMANDES[k] = null; CMD_DELAI[k] = CMD_ATTENTE;
+    }
+  }
+  remplirCommandes(dt);
+  veillerMission();
+}
+// Le libellé court d'une commande, pour la pile du bandeau et pour l'écran.
+function libelleCommande(C){
+  return C.lignes.map((l)=> Math.round(l.need) + ' kg ' + nomDe(l.cle).toLowerCase()).join(' + ')
+         + ' — ' + C.lieu;
+}
+const avanceCommande = (C)=>{
+  let a = 0, b = 0;
+  for(const l of C.lignes){ a += Math.min(l.need, l.fait); b += l.need; }
+  return b ? a/b : 0;
+};
+
+/* LA PILE, À L'ÉCRAN. Cinq pilules : la mission de campagne en tête, puis les quatre
+   commandes. Elle est reconstruite vingt fois par seconde comme l'était la pilule
+   unique — cinq blocs de trois lignes, c'est le même ordre de grandeur que ce que le
+   reste de l'interface réécrit déjà. Ce qui coûterait cher, ce serait de recalculer
+   les commandes ici : elles ne le sont qu'à la livraison. */
+function pilule(cls, titre, sous, part, jeter){
+  const d = document.createElement('div');
+  d.className = 'pil' + (cls ? ' ' + cls : '');
+  const t = document.createElement('div'); t.className = 'ct'; t.textContent = titre;
+  const u = sous === null ? null : document.createElement('div');
+  if(u){ u.className = 'cs'; u.textContent = sous; }
+  const b2 = document.createElement('div'); b2.className = 'cb';
+  const f = document.createElement('div'); f.className = 'cf';
+  f.style.width = Math.max(0, Math.min(100, part*100)) + '%';
+  b2.appendChild(f);
+  d.appendChild(t); if(u) d.appendChild(u); d.appendChild(b2);
+  if(jeter){
+    const x = document.createElement('div'); x.className = 'cx'; x.textContent = '✕';
+    x.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); jeter(); });
+    d.appendChild(x);
+  }
+  return d;
+}
+function refreshCommandes(){
+  el.ctr.innerHTML = '';
+  el.ctr.style.display = 'flex';
+  const M = missionCourante();
+  if(M){
+    const part = avanceMission();
+    const sous = M.faire
+      ? 'Mission de campagne  ·  +' + M.xp + ' XP' + (M.prime ? '  ·  ' + eur(M.prime) : '')
+      : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) + ' / ' +
+                              Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')
+        + '  ·  ' + eur(M.prime) + '  ·  +' + M.xp + ' XP';
+    el.ctr.appendChild(pilule('mis', titreMission(M), sous, part, null));
+  }
+  COMMANDES.forEach((C, k)=>{
+    if(!C) return;
+    const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
+    const txt = T.nom + ' · ' +
+      C.lignes.map((l)=> Math.round(l.fait) + '/' + Math.round(l.need) + ' ' +
+                         nomDe(l.cle).toLowerCase()).join(' + ') +
+      ' · ' + C.lieu + (C.temps ? ' · ' + Math.max(0, Math.ceil(C.temps)) + ' s' : '');
+    el.ctr.appendChild(pilule(
+      'cmd' + (C.temps && C.temps < 45 ? ' urgent' : ''),
+      txt, null, avanceCommande(C), ()=> jeterCommande(k)));
+  });
+  if(!el.ctr.children.length) el.ctr.style.display = 'none';
 }
 
 /* --- pilote automatique : la machine fait ses allers-retours toute seule --- */
@@ -7339,22 +7993,26 @@ const MACHINES = [
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  {key:'t2', nom:'Tracteur', teinte:0xD44435, v:new Vehicle({
+  {key:'t2', nom:'Tracteur', teinte:0xD44435, verrou:true, prix:4500, v:new Vehicle({
       x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Tracteur', teinte:0x2F6FB5, v:new Vehicle({
+  {key:'t3', nom:'Tracteur', teinte:0x2F6FB5, verrou:true, prix:18000, v:new Vehicle({
       x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
       build:()=>buildTracteur(0x3574C6)
     })},
-  {key:'pickup', nom:'Pick-up', teinte:0x3E7CB8, verrou:true, prix:9000, v:new Vehicle({
+  /* LE PICK-UP EST DONNÉ. Sans lui on ne peut RIEN sortir de la ferme : la benne se
+     tire, mais il faut un tracteur, et un tracteur qui tire une benne ne laboure pas.
+     Le jeu commence donc avec de quoi faire un aller-retour complet — labourer, semer,
+     moissonner, rentrer, livrer — et pas un outil de plus. */
+  {key:'pickup', nom:'Pick-up', teinte:0x3E7CB8, prix:0, v:new Vehicle({
       x:placeCentre(10), z:51.1, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
-  {key:'fourgon', nom:'Fourgon', teinte:0xB4BBC0, verrou:true, prix:18000, v:new Vehicle({
+  {key:'fourgon', nom:'Fourgon', teinte:0xB4BBC0, verrou:true, prix:9000, v:new Vehicle({
       x:placeCentre(11), z:51.1, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
@@ -7393,6 +8051,9 @@ function makeTool(def){
   const T = Object.assign({}, def);
   T.group = def.build();
   T.group.castShadow = true;
+  // Un outil qu'on n'a pas encore acheté n'est pas dans la cour : il est chez le
+  // garagiste, et l'on ne s'y attelle pas par mégarde.
+  T.group.visible = !def.verrou;
   scene.add(T.group);
   T.attached = null;
   T.level = 1;
@@ -7407,8 +8068,12 @@ const TOOLS = [
             aide:'Prépare la terre'}),
   makeTool({key:'semis',   nom:'Semoir',  build:buildSemoir,   hitch:2.0, L:2.5,  width:6.4,
             from:[ST.LABOURE], to:ST.SEME, aide:'Sème la culture choisie'}),
+  /* L'ÉPANDEUR S'ACHÈTE. C'est le premier vrai choix d'investissement du jeu : trois
+     cent cinquante euros pour que la même terre pousse un quart plus vite. On peut
+     s'en passer — et c'est exactement ce qui en fait un choix. */
   makeTool({key:'engrais', nom:'Épandeur',build:buildEpandeur, hitch:2.0, L:3.9,  width:12.0,
-            from:[ST.SEME], to:ST.SEME, aide:'Booste la croissance'}),
+            from:[ST.SEME], to:ST.SEME, aide:'Booste la croissance',
+            verrou:true, prix:350}),
   // La benne ne travaille pas la terre : elle transporte. C'est elle qui relie le
   // moulin à la boulangerie, deuxième maillon de la chaîne économique.
   makeTool({key:'benne', nom:'Benne', build:buildBenne, hitch:2.0, L:3.2,
@@ -7486,15 +8151,23 @@ const RATION = {ble:1, mais:1, orge:1, avoine:1, aliment:1.5, alimentPlus:2};
 // La farine n'y figure pas : `mill` compte ce que L'ATELIER a moulu, pas ce qu'on
 // revend ensuite. Sans quoi une benne de farine achetée au marché gonflerait le
 // compteur du moulin.
-const COMPTEUR = {lait:'lait', oeufs:'oeufs', laine:'laine', miel:'miel', huile:'huile',
+/* Une clé ajoutée ICI doit avoir sa contrepartie dans STAT, sinon `STAT[undefined] += q`
+   rend NaN et contamine la mesure de toutes les commandes en cours. */
+const COMPTEUR = {lait:'lait', laitBrebis:'lait', oeufs:'oeufs', laine:'laine',
+                  miel:'miel', huile:'huile',
                   huileOlive:'huile', pain:'pain', viennoiserie:'pain',
-                  patisserie:'pain', patisseriePlus:'pain'};
+                  patisserie:'pain', patisseriePlus:'pain',
+                  fromage:'fromage', fromageBrebis:'fromage'};
 // On compte dès que la marchandise QUITTE LES MAINS DU JOUEUR : vendue, ou versée
 // dans une trémie. C'est ce que demandent les contrats — « livrer du lait » doit se
 // valider en livrant à la laiterie, qui ne paie plus au comptant.
 // Les céréales font exception : elles ne comptent qu'à L'ENTRÉE DU SILO, sinon le
 // même grain serait compté deux fois, une fois rentré et une fois revendu.
 function compter(cle, q, entreeSilo){
+  // Le filet d'expérience : un centième d'euro de marchandise sortie. Il est ici et
+  // nulle part ailleurs — c'est le seul endroit du jeu par où passe TOUT ce qui quitte
+  // la ferme, les sept canaux de sortie confondus.
+  if(!entreeSilo) gagnerXp(q*prixDe(cle)*XP_PAR_EURO);
   const c = COMPTEUR[cle];
   if(c) STAT[c] += q;
   else if(entreeSilo && PRODUITS[cle] && PRODUITS[cle].cereale) STAT.silo += q;
@@ -7502,7 +8175,7 @@ function compter(cle, q, entreeSilo){
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel:0, betes:0,
-              oeufs:0, laine:0, huile:0};
+              oeufs:0, laine:0, huile:0, fromage:0};
 // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
 // n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
 let hopCrop = 0;
@@ -7671,13 +8344,15 @@ function work(m, dt){
         // Repasser en SEME, et pas seulement remettre la croissance à zéro : grow()
         // ne suit que les cellules semées et laisserait la vigne à l'état mûr, taillée
         // pour toujours. C'est l'état qui la remet dans la file de croissance.
-        state[id] = ST.SEME; growth[id] = 0; growingList.push(id);
+        // Et l'on note que le pied est EN PLACE : sa prochaine récolte sera plus
+        // rapide que la première.
+        state[id] = ST.SEME; growth[id] = 0; replante[id] = 1; growingList.push(id);
         setInstance(instOf[id], 0, 1);
         continue;
       }
       setInstance(instOf[id], 0, 0);
     } else if(T.key === 'semis'){
-      growth[id] = 0; fert[id] = 0; growingList.push(id);
+      growth[id] = 0; fert[id] = 0; replante[id] = 0; growingList.push(id);
       cropCell[id] = T.crop || 0;
       wheatBase[instOf[id]].crop = cropCell[id];
       setInstance(instOf[id], 0, 1);
@@ -7714,12 +8389,34 @@ function work(m, dt){
 function right(cap){ return {x:Math.cos(cap), z:-Math.sin(cap)}; }
 
 /* --- croissance --- */
+/* LE TEMPS D'UNE POUSSE, ET CE QUE L'ENGRAIS Y GAGNE.
+   Deux règles qui n'y étaient pas.
+
+   LA REPOUSSE N'EST PAS LA PREMIÈRE POUSSE. Une vigne met trois minutes et demie à
+   s'installer ; une fois installée elle ne se replante pas, et sa vendange suivante
+   arrive en deux minutes et demie. C'est ce qui paie l'attente initiale, et c'est ce
+   qui distingue une culture permanente d'une culture annuelle autrement que par le
+   fait de ne pas relabourer. On reconnaît une repousse à ce que la cellule a DÉJÀ
+   porté : la plante est en place, elle ne fait que refaire son fruit.
+
+   L'ENGRAIS NE GAGNE PAS AUTANT PARTOUT. Il faisait pousser tout 80 % plus vite, ce
+   qui rendait la même terre presque deux fois plus productive pour trois euros
+   d'épandage — la décision n'en était plus une. Il gagne maintenant un peu plus d'un
+   quart de temps sur les annuelles (75 s de blé tombent à 55) et un sixième sur les
+   permanentes, dont le cycle est plus long et moins dépendant de la fumure. */
+const FERT_ANNUEL = 1.365;      // 1/1,365 = 0,733 : 26,7 % de temps en moins
+const FERT_PERENNE = 1.20;      // 1/1,20  = 0,833 : 16,7 % de temps en moins
+function tempsPousse(id){
+  const C = CROPS[cropCell[id]];
+  return (C.repousse && replante[id]) ? C.repousse : C.temps;
+}
+const boostEngrais = (id)=> CROPS[cropCell[id]].perenne ? FERT_PERENNE : FERT_ANNUEL;
 function grow(dt){
   for(let k=growingList.length-1;k>=0;k--){
     const id = growingList[k];
     if(state[id] !== ST.SEME){ growingList.splice(k,1); continue; }
     const before = Math.floor(growth[id]*40);   // la plage part à la fin de l'image
-    growth[id] = Math.min(1, growth[id] + dt/CROPS[cropCell[id]].temps*(fert[id]?1.8:1));
+    growth[id] = Math.min(1, growth[id] + dt/tempsPousse(id)*(fert[id] ? boostEngrais(id) : 1));
     if(Math.floor(growth[id]*40) !== before){
       setInstance(instOf[id], growth[id], 1);
       // La couche d'engrais s'efface par voiles successifs de terre, un par dixième
@@ -7823,6 +8520,14 @@ function fermerPanneau(){
 document.getElementById('pfermer').addEventListener('pointerdown', fermerPanneau);
 document.getElementById('pfond').addEventListener('pointerdown', fermerPanneau);
 document.getElementById('menuBtn').addEventListener('pointerdown', ()=> ouvrirPanneau('outils'));
+/* LA BARRE DE PROGRESSION OUVRE LA CAMPAGNE. C'est là qu'on regarde quand on se
+   demande où l'on en est : le geste naturel est de la toucher. Elle ne coûte pas un
+   bouton de plus à l'écran, et le bandeau ne servait à rien d'autre. */
+for(const id of ['goalwrap', 'goaltxt']){
+  const e = document.getElementById(id);
+  if(e){ e.style.pointerEvents = 'auto';
+         e.addEventListener('pointerdown', ()=> ouvrirPanneau('campagne')); }
+}
 
 // fabrique une ligne d'article : pastille de couleur, texte, bouton d'action
 function article(couleur, nom, detail, libelle, etat, action){
@@ -7897,10 +8602,23 @@ function ongletEngins(){
 function ongletOutils(){
   titre('Outils attelables');
   for(const T of TOOLS){
+    if(T.verrou) continue;
     const porteur = T.attached ? MACHINES.find(m=>m.v === T.attached) : null;
     const det = (T.cargo ? 'Benne ' + T.capacite + ' kg' : 'Largeur ' + T.width.toFixed(1) + ' m')
       + ' · niveau ' + T.level + (porteur ? ' · attelé au ' + porteur.nom : ' · au sol');
     article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null);
+  }
+  const aPrendre = TOOLS.filter((T)=> T.verrou);
+  if(aPrendre.length){
+    titre('À prendre au garage');
+    for(const T of aPrendre){
+      const niv = niveauDe('outils', T.key), libre = CAMPAGNE.niveau >= niv;
+      article(0x8BE07A, T.nom,
+        (T.aide ? T.aide + ' · ' : '') + 'largeur ' + T.width.toFixed(1) + ' m · ' + eur(T.prix || 0) +
+        (libre ? (money >= (T.prix || 0) ? ' · de quoi payer' : ' · il manque ' + eur((T.prix||0) - money))
+               : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
+        libre ? 'Au garage' : 'Niveau ' + niv, 'no', null);
+    }
   }
   titre('Comment améliorer un outil');
   const d = document.createElement('div'); d.className = 'art';
@@ -7909,12 +8627,24 @@ function ongletOutils(){
   hote.appendChild(d);
 }
 
+/* LES GRAINES SE PAIENT ET SE MÉRITENT. Le prix seul ne suffisait pas : avec assez
+   d'argent, on achetait la vigne à la première minute et l'on sautait dix maillons de
+   la chaîne. Chaque culture a maintenant SON PALIER de campagne, et le palier passe
+   avant le prix — l'argent dit à quelle vitesse on exploite, l'expérience dit ce à
+   quoi on a droit. */
 function ongletGraines(){
   titre('Cultures disponibles');
   CROPS.forEach((c, i)=>{
     const det = 'Pousse en ' + c.temps + ' s · ' + c.kg + ' kg par cellule · '
               + dec(prixDe(c.cle)) + ' € le kg' + (c.perenne ? ' · repart toute seule' : '');
     if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
+    const niv = niveauDe('cultures', c.cle);
+    if(CAMPAGNE.niveau < niv){
+      article(c.hi.getHex(), c.nom,
+        det + '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom,
+        'Niveau ' + niv, 'no', null);
+      return;
+    }
     const ok = money >= c.cout;
     article(c.hi.getHex(), c.nom, det + ' · ' + eur(c.cout),
       ok ? 'Acheter' : 'Trop cher', ok ? 'vert' : 'no', ()=>{
@@ -7922,19 +8652,43 @@ function ongletGraines(){
         showHint(c.nom.toUpperCase() + ' DISPONIBLE AU SEMOIR');
       });
   });
+  const reste = CROPS.filter((c)=> c.verrou && CAMPAGNE.niveau < niveauDe('cultures', c.cle));
+  if(reste.length){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Les ' + reste.length +
+      ' cultures qui restent s\'ouvrent en avançant dans la campagne. Une culture ' +
+      'ne s\'achète jamais avant son palier, quel que soit l\'argent en caisse.</div></div>';
+    hote.appendChild(d);
+  }
 }
 
+/* ON N'ACHÈTE PAS LA VALLÉE AVEC SON PREMIER BLÉ. Le palier de campagne dit COMBIEN
+   de parcelles on a le droit de tenir ; l'argent dit lesquelles et quand. Les deux
+   chemins d'achat — le menu et le panneau planté sur la friche — passent par le même
+   test, sinon l'un des deux laisserait passer ce que l'autre refuse. */
+const peutAcheterParcelle = ()=> PARCELS.filter((p)=> p.owned).length < parcellesPermises();
 function ongletParcelles(){
   const mien = PARCELS.filter(p=>p.owned).length;
+  const permis = parcellesPermises();
   titre('Exploitation — ' + mien + ' parcelle' + (mien>1?'s':''));
   const libres = PARCELS.filter(p=>!p.owned).sort((a,b)=>a.price-b.price);
   if(!libres.length){ titre('Toute la vallée est à toi'); return; }
+  if(mien >= permis){
+    const suivant = NIVEAUX.findIndex((N, k)=> k + 1 > CAMPAGNE.niveau && N.parcelles > permis);
+    article(0xC4553A, 'Exploitation au complet pour ce palier',
+      'Le niveau ' + CAMPAGNE.niveau + ' donne droit à ' + permis + ' parcelle' +
+      (permis > 1 ? 's' : '') + '.' +
+      (suivant >= 0 ? '<br>La suivante s\'ouvre au niveau ' + (suivant + 1) + ' — ' +
+                      NIVEAUX[suivant].nom : ''),
+      'Niveau ' + (suivant >= 0 ? suivant + 1 : CAMPAGNE.niveau), 'no', null);
+  }
   for(const p of libres){
-    const ok = money >= p.price;
+    const ok = money >= p.price && peutAcheterParcelle();
     const dist = Math.round(Math.hypot(p.x, p.z));
     article(0xC4553A, Math.round(p.w) + ' × ' + Math.round(p.h) + ' m',
       'À ' + dist + ' m du centre · ' + eur(p.price),
-      ok ? 'Acheter' : 'Trop cher', ok ? 'vert' : 'no', ()=>{
+      ok ? 'Acheter' : (peutAcheterParcelle() ? 'Trop cher' : 'Palier atteint'), ok ? 'vert' : 'no', ()=>{
+        if(money < p.price || !peutAcheterParcelle()) return;
         money -= p.price;
         for(const o of p.decor){
           if(o.isObject3D) scene.remove(o);
@@ -8126,7 +8880,7 @@ const PICKUP_R = 11;                 // portée pour reprendre un outil au sol
 function nearestFreeTool(v){
   let best = null, bd = PICKUP_R;
   for(const T of TOOLS){
-    if(T.attached) continue;
+    if(T.attached || T.verrou) continue;
     const d = Math.hypot(v.pos.x - T.group.position.x, v.pos.z - T.group.position.z);
     if(d < bd){ bd = d; best = T; }
   }
@@ -8653,29 +9407,60 @@ function refreshAutoButton(){
    bouger. Les deux disparaissent : un véhicule s'achète chez le garagiste, sur son
    anneau, comme une amélioration. Le menu ne fait plus que montrer le parc. */
 const vehEl = document.getElementById('veh');
-function vehiculeAVendre(){
-  for(const m of MACHINES) if(m.verrou) return m;
-  return null;
+const outilVerrou = (cle)=>{ const T = TOOLS.find((x)=> x.key === cle); return !!(T && T.verrou); };
+/* CE QUE LE GARAGE A EN VITRINE. Un engin OU un outil, et seulement ce que le palier
+   de campagne a ouvert : le fourgon est visible du premier jour dans le menu, mais il
+   ne se vend qu'au sixième palier. On prend le moins cher d'abord — c'est l'ordre dans
+   lequel un joueur les veut, et cela évite qu'un pressoir à quarante mille euros
+   masque un épandeur à trois cent cinquante. */
+function articleAVendre(){
+  let best = null;
+  for(const m of MACHINES)
+    if(m.verrou && ouvert('engins', m.key) && (!best || m.prix < best.prix))
+      best = {quoi:'engin', m:m, nom:m.nom, prix:m.prix};
+  for(const T of TOOLS)
+    if(T.verrou && ouvert('outils', T.key) && (!best || (T.prix || 0) < best.prix))
+      best = {quoi:'outil', T:T, nom:T.nom, prix:T.prix || 0};
+  return best;
 }
+function vehiculeAVendre(){ const a2 = articleAVendre(); return a2 && a2.quoi === 'engin' ? a2.m : null; }
 function refreshVehButton(){
   const v = MACHINES[cur].v;
-  const m = vehiculeAVendre();
-  if(!m || !aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
+  const a2 = articleAVendre();
+  if(!a2 || !aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
   vehEl.style.display = 'block';
-  const ok = money >= m.prix;
+  const ok = money >= a2.prix;
   vehEl.classList.toggle('no', !ok);
-  vehEl.textContent = (ok ? 'ACHETER ' + m.nom.toUpperCase() + ' ' + m.prix.toLocaleString('fr-FR') + ' €'
-                          : 'IL MANQUE ' + Math.ceil(m.prix-money).toLocaleString('fr-FR') + ' €');
-  vehEl._m = m;
+  vehEl.textContent = (ok ? 'ACHETER ' + a2.nom.toUpperCase() + ' ' + a2.prix.toLocaleString('fr-FR') + ' €'
+                          : 'IL MANQUE ' + Math.ceil(a2.prix-money).toLocaleString('fr-FR') + ' €');
+  vehEl._a = a2;
 }
 vehEl.addEventListener('pointerdown', ()=>{
-  const m = vehEl._m;
-  if(!m || !m.verrou || money < m.prix) return;
-  money -= m.prix;
-  m.verrou = false;
-  m.v.group.visible = true;
-  showHint(m.nom.toUpperCase() + ' ACHETÉ');
-  setMachine(MACHINES.indexOf(m));
+  const a2 = vehEl._a;
+  if(!a2 || money < a2.prix) return;
+  if(a2.quoi === 'engin'){
+    const m = a2.m;
+    if(!m.verrou) return;
+    money -= m.prix;
+    m.verrou = false;
+    m.v.group.visible = true;
+    showHint(m.nom.toUpperCase() + ' ACHETÉ');
+    setMachine(MACHINES.indexOf(m));
+  } else {
+    const T = a2.T;
+    if(!T.verrou) return;
+    money -= (T.prix || 0);
+    T.verrou = false;
+    T.group.visible = true;
+    /* L'OUTIL ACHETÉ ARRIVE SUR LE PARKING DE LA FERME, pas devant le garage : c'est
+       là que sont les trois autres, et c'est là qu'on va chercher un outil. Le livrer
+       sous les roues de l'acheteur l'aurait fait apparaître au milieu de la rocade. */
+    const k = TOOLS.indexOf(T), q = TOOL_PARK[k] || TOOL_PARK[0];
+    T.group.position.set(q[0], 0, q[1]);
+    T.group.rotation.y = Math.PI;
+    T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
+    showHint(T.nom.toUpperCase() + ' ACHETÉ — IL EST AU PARKING DE LA FERME');
+  }
   refreshVehButton();
 });
 
@@ -8720,15 +9505,18 @@ function refreshBuyButton(){
   const p = parcelForSale(MACHINES[cur].v);
   if(!p){ buyEl.style.display = 'none'; return; }
   buyEl.style.display = 'block';
-  const ok = money >= p.price;
+  const permis = peutAcheterParcelle();
+  const ok = money >= p.price && permis;
   buyEl.classList.toggle('no', !ok);
-  buyEl.textContent = (ok ? 'ACHETER ' : 'IL MANQUE ' + Math.ceil(p.price - money).toLocaleString('fr-FR'))
-                    + (ok ? p.price.toLocaleString('fr-FR') + ' €' : ' €');
+  buyEl.textContent = !permis
+    ? 'PALIER ATTEINT — ' + parcellesPermises() + ' PARCELLES'
+    : (ok ? 'ACHETER ' + p.price.toLocaleString('fr-FR') + ' €'
+          : 'IL MANQUE ' + Math.ceil(p.price - money).toLocaleString('fr-FR') + ' €');
   buyEl._p = p;
 }
 buyEl.addEventListener('pointerdown', ()=>{
   const p = buyEl._p;
-  if(!p || p.owned || money < p.price) return;
+  if(!p || p.owned || money < p.price || !peutAcheterParcelle()) return;
   money -= p.price;
   // le décor de la friche disparaît, la terre est mise en culture
   for(const o of p.decor){
@@ -8765,8 +9553,7 @@ const el = {
   money: document.getElementById('money'), silo: document.getElementById('silo'),
   bar: document.getElementById('barfill'), hint: document.getElementById('hint'),
   goal: document.getElementById('goaltxt'),
-  ctr: document.getElementById('ctr'), ctrTxt: document.getElementById('ctrtxt'),
-  ctrSub: document.getElementById('ctrsub'), ctrBar: document.getElementById('ctrfill'),
+  ctr: document.getElementById('ctr'),
   hopper: document.getElementById('hopper'), hopfill: document.getElementById('hopfill')
 };
 let hintT = 0;
@@ -8777,17 +9564,11 @@ function showHint(t){
   el.hint.textContent = t; el.hint.style.opacity = 1; hintT = 2.4;
   if(sonPret) AUDIO.signal(t);
 }
-// Paliers de progression : chacun se termine par l'achat d'une nouvelle parcelle.
-const ETAPES = [
-  {txt:'Récolter et livrer 1 000 kg',   test:()=> delivered >= 1000,  prog:()=> delivered/1000},
-  {txt:'Acheter une deuxième parcelle', test:()=> PARCELS.filter(p=>p.owned).length >= 2,
-                                        prog:()=> money/4000},
-  {txt:'Moudre 360 kg de farine',       test:()=> STAT.mill >= 360,   prog:()=> STAT.mill/360},
-  {txt:'Livrer de la farine à la boulangerie', test:()=> breadKg >= 300, prog:()=> breadKg/300},
-  {txt:'Étendre la ferme à 4 parcelles',test:()=> PARCELS.filter(p=>p.owned).length >= 4,
-                                        prog:()=> (PARCELS.filter(p=>p.owned).length-2)/2},
-  {txt:'Atteindre 50 000 €',            test:()=> money >= 50000,     prog:()=> money/50000}
-];
+/* Les onze paliers écrits à la main ont disparu : c'est la campagne, avec ses quinze
+   niveaux et ses vingt et une missions, qui dit maintenant où en est le joueur. Il
+   reste `etape`, écrit dans la sauvegarde depuis toujours : une partie enregistrée le
+   porte, et le relire coûte moins cher que d'inventer une migration pour un nombre
+   dont plus personne ne se sert. */
 let etape = 0;
 document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'EN ROUTE'); });
 
@@ -9243,7 +10024,7 @@ function quelqueChoseAFaire(S){
   // ou abattent des bêtes. Le reste se lit dans la liste des transferts possibles,
   // celle-là même qui les exécutera.
   if(S.fournisseur) return comptoirServable();
-  if(S.abattoir && (v.betail || 0) > 0) return true;
+  if(S.abattoir) return siteOuvert(S) && (v.betail || 0) > 0;
   if(S.atelier){                                   // le garage : améliorer OU acheter
     const c = coutAmelioration(m);
     if(c > 0 && money >= c) return true;
@@ -9284,6 +10065,11 @@ const ELEVAGE = {
   prixPature: 2500,     // aménager une parcelle possédée : clôture, abri, mangeoire
   debit: 260            // kg par seconde aux transferts mangeoire et collecte
 };
+/* CHAQUE ENCLOS A SON PRIX. Deux mille cinq cents euros pour tout le monde, c'était
+   demander autant pour un poulailler que pour une étable — et le poulailler est le
+   premier élevage du jeu, à un moment où l'on a deux mille euros en tout. Le prix
+   suit l'espèce, comme le prix de la bête, sa ration et son maturité. */
+const prixPature = (cle)=>{ const E = ESPECES[cle]; return (E && E.pature) || ELEVAGE.prixPature; };
 // Ce que chaque espèce apporte, et qui l'achète. Les prix, les cadences et la
 // maturité vivent dans ESPECES : ici on ne garde que ce qui ne dépend pas de l'espèce.
 const PATURES = [];
@@ -9494,7 +10280,7 @@ const ESPECES = {
   vache: {
     cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
     // 1,15 -> 1,32 : une vache faisait 1,90 m au garrot pour un tracteur de 4,84 de haut
-    prix:1200, prixBete:1750, maturite:420, ration:0.12, m2:88, places:14, echelle:1.32,
+    pature:3500, prix:1200, prixBete:1750, maturite:420, ration:0.12, m2:88, places:14, echelle:1.32,
     produit:'lait', nomProduit:'Lait', parSec:0.42, cuveMax:1800,
     acheteur:()=> LAITERIE, acheteurNom:'LA LAITERIE',
     corps:corpsVache, tete:teteVache, cou:{y:1.16, z:1.28}, plonge:0.55,
@@ -9506,7 +10292,7 @@ const ESPECES = {
   },
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
-    prix:90, prixBete:135, maturite:160, ration:0.014, m2:13, places:26, echelle:1.55,
+    pature:900, prix:90, prixBete:135, maturite:160, ration:0.014, m2:13, places:26, echelle:1.55,
     produit:'oeufs', nomProduit:'Œufs', parSec:0.034, cuveMax:400,
     acheteur:()=> BAKERY, acheteurNom:'LA BOULANGERIE',
     corps:corpsPoule, tete:tetePoule, cou:{y:0.72, z:0.16}, plonge:0.62,
@@ -9518,7 +10304,7 @@ const ESPECES = {
   cochon: {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     // 1,25 -> 1,45 : un cochon reste plus bas qu'une vache, mais on le voit
-    prix:480, prixBete:820, maturite:320, ration:0.10, m2:30, places:16, echelle:1.45,
+    pature:2800, prix:480, prixBete:820, maturite:320, ration:0.10, m2:30, places:16, echelle:1.45,
     produit:null, nomProduit:null, parSec:0, cuveMax:0,
     acheteur:()=> BOUCHERIE, acheteurNom:'LA BOUCHERIE',
     corps:corpsCochon, tete:teteCochon, cou:{y:0.74, z:0.82}, plonge:0.42,
@@ -9535,7 +10321,7 @@ const ESPECES = {
      n'y a pas de portail à ouvrir : on n'embarque pas une ruche pour l'abattoir. */
   ruche: {
     cle:'ruche', nom:'Ruche', pluriel:'Ruches', un:'une ruche', des:'ruches',
-    prix:260, prixBete:0, maturite:260, ration:0.009, m2:14, places:12, echelle:1.5,
+    pature:1200, prix:260, prixBete:0, maturite:260, ration:0.009, m2:14, places:12, echelle:1.5,
     produit:'miel', nomProduit:'Miel', parSec:0.017, cuveMax:420,
     statique:true, rang:{n:6, pas:1.9, ecart:2.4}, decor:(P)=> decorRucher(P),
     corps:corpsRuche, tete:teteRuche, cou:{y:1.11, z:0}, plonge:0,
@@ -9546,7 +10332,7 @@ const ESPECES = {
   },
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
-    prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
+    pature:2200, prix:380, prixBete:560, maturite:380, ration:0.042, m2:40, places:18, echelle:1.2,
     produit:'laine', nomProduit:'Laine', parSec:0.036, cuveMax:600,
     acheteur:()=> TEXTILE, acheteurNom:'L\'ATELIER TEXTILE',
     corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
@@ -9554,9 +10340,29 @@ const ESPECES = {
     robes:[{fond:0xF0EADA, tache:0xDED6C2, corne:0x3A3630, peau:0x3A3630},
            {fond:0xE0D6C0, tache:0xC9BDA2, corne:0x3A3630, peau:0x3A3630},
            {fond:0x4A453D, tache:0x38342E, corne:0x2A2622, peau:0x2A2622}]
+  },
+  /* LA BREBIS. Elle se conduit comme un mouton — même silhouette, mêmes robes claires,
+     même clôture — mais elle donne du LAIT en plus de la laine. C'est la première
+     espèce du jeu à porter deux produits, et c'est ce qui en fait le troupeau le plus
+     rentable de la ferme : une tonte pour l'atelier textile, un tank pour la
+     fromagerie. Elle est ajoutée EN FIN DE TABLE, et sa clé en fin de ESP_CLES :
+     `especeChoisie` est un indice dans cette liste, et l'insérer au milieu changerait
+     silencieusement l'espèce choisie de toutes les parties en cours. */
+  brebis: {
+    cle:'brebis', nom:'Brebis', pluriel:'Brebis', un:'une brebis', des:'brebis',
+    pature:3000, prix:620, prixBete:780, maturite:400, ration:0.048, m2:42, places:16,
+    echelle:1.24,
+    produit:'laine', nomProduit:'Laine', parSec:0.028, cuveMax:520,
+    second:{cle:'laitBrebis', nom:'Lait de brebis', parSec:0.21, cuveMax:900},
+    acheteur:()=> TEXTILE, acheteurNom:'L\'ATELIER TEXTILE',
+    corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
+    patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
+    robes:[{fond:0xF6F2E8, tache:0xE4DED0, corne:0x4A453D, peau:0x4A453D},
+           {fond:0xEDE7D8, tache:0xD8D0BE, corne:0x4A453D, peau:0x4A453D},
+           {fond:0xDCD4C2, tache:0xC2B9A4, corne:0x3A3630, peau:0x3A3630}]
   }
 };
-const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton', 'ruche'];
+const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton', 'ruche', 'brebis'];
 // Le prix du produit d'une bête n'est plus écrit ici : il vient du barème commun,
 // comme celui d'une récolte. Une seule table de valeurs pour toute la ferme.
 for(const k of ESP_CLES){ const E = ESPECES[k];
@@ -9727,6 +10533,10 @@ function creerPature(p, espece){
     // sans franchir la clôture : nourrir, ramasser, acheter, embarquer.
     quai:{x: mx(0, -4.2), z: mz(0, -4.2)},
     produit:0, produitMax:E.cuveMax, grain:0, grainMax:2000,
+    // Le SECOND tank, pour l'espèce qui donne deux choses. Il existe toujours, vide et
+    // de capacité nulle quand l'espèce n'en a qu'un : c'est ce qui évite un test de
+    // présence à chaque ligne qui le lit.
+    produit2:0, produit2Max: E.second ? E.second.cuveMax : 0,
     betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
     box:{x0: Math.min.apply(null, coins.map((c)=> c.x)),
          x1: Math.max.apply(null, coins.map((c)=> c.x)),
@@ -10096,6 +10906,8 @@ function updateElevage(dt){
     // le produit ne coule que pour les bêtes effectivement nourries
     if(nourries > 0 && E.produit)
       P.produit = Math.min(P.produitMax, P.produit + nourries*E.parSec*dt);
+      if(E.second)
+        P.produit2 = Math.min(P.produit2Max, P.produit2 + nourries*E.second.parSec*dt);
     majTasAuge(P);
   }
   if(ABEILLES.length) animerAbeilles(dt, performance.now()/1000);
@@ -10128,16 +10940,18 @@ function chargerBetail(P, v, n){
   return pris.length;
 }
 function acheterPature(p, espece){
-  if(money < ELEVAGE.prixPature || !p.owned || p.pature) return false;
-  money -= ELEVAGE.prixPature;
-  creerPature(p, espece || 'vache');
+  const cle = espece || 'vache';
+  if(!ouvert('especes', cle)) return false;
+  if(money < prixPature(cle) || !p.owned || p.pature) return false;
+  money -= prixPature(cle);
+  creerPature(p, cle);
   flushTiles();
   showHint('PÂTURE AMÉNAGÉE — RESTE À ACHETER DES BÊTES');
   return true;
 }
 function acheterBete(P){
   const E = ESPECES[P && P.espece] || ESPECES.vache;
-  if(!P || money < E.prix || P.betes.length >= P.places) return false;
+  if(!P || !ouvert('especes', P.espece) || money < E.prix || P.betes.length >= P.places) return false;
   money -= E.prix;
   ajouterBete(P, 0.25);
   return true;
@@ -10280,6 +11094,12 @@ function actionsPature(m, pat){
      && place && peutCharger(T, E.produit))
     out.push({sens:'traire', lieu:lieu, P:pat.P, cle:E.produit,
               txt:'CHARGER ' + nomHaut(E.produit) + ' ' + enKg(pat.P.produit)});
+  // Le second tank : même geste, même anneau, deux boutons. Une brebis donne de la
+  // laine ET du lait, et l'on choisit ce qu'on emporte.
+  if(E.second && pat.P.produit2 > 0.01
+     && place && peutCharger(T, E.second.cle))
+    out.push({sens:'traire2', lieu:lieu, P:pat.P, cle:E.second.cle,
+              txt:'CHARGER ' + nomHaut(E.second.cle) + ' ' + enKg(pat.P.produit2)});
   return out;
 }
 function actionsAuSite(m, S){
@@ -10426,6 +11246,7 @@ function quantiteMax(m, A){
     case 'prendreEntrepot': return Math.min(place, entrepotStock(A.cle));
     case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
     case 'traire': return Math.min(place, A.P.produit);
+    case 'traire2': return Math.min(place, A.P.produit2);
     case 'vendre': return Math.min(porte, placeChez(A.S, A.cle));
     case 'verser': return porte;
     case 'reprendre': return Math.min(place, A.S.stock[A.cle] || 0);
@@ -10459,7 +11280,7 @@ const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
    question au joueur. Les confondre remettrait le curseur sur « ranger » et
    l'enlèverait à « prendre » — les deux tables se croisent, elles ne se complètent
    pas : `traire` et `prendre` remplissent, `vendre` vide, et les trois se dosent. */
-const SENS_DOSABLE = {prendre:1, prendreEntrepot:1, reprendre:1, traire:1,
+const SENS_DOSABLE = {prendre:1, prendreEntrepot:1, reprendre:1, traire:1, traire2:1,
                       vendre:1, tremieVente:1};
 /* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
    possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
@@ -10537,7 +11358,8 @@ function executer(m, A, dt){
     case 'tremie': {
       const q = Math.min(hopper, 420*dt, siloMax() - siloTotal());
       if(q <= 0.0001) return;
-      hopper -= q; delivered += q; siloStock[A.cle] += q; compter(A.cle, q, true);
+      hopper -= q; delivered += q; siloStock[A.cle] += q;
+      livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
       if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
       return;
@@ -10545,7 +11367,8 @@ function executer(m, A, dt){
     case 'ranger': {
       const q = Math.min(debit, T.load, siloMax() - siloTotal());
       if(q <= 0.0001) return;
-      T.load -= q; siloStock[A.cle] += q; compter(A.cle, q, true);
+      T.load -= q; siloStock[A.cle] += q;
+      livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
       if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ'); }
       return;
@@ -10559,11 +11382,13 @@ function executer(m, A, dt){
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
-    case 'traire': {
-      const P = A.P;
-      const q = Math.min(debit, T.capacite - T.load, P.produit);
+    case 'traire': case 'traire2': {
+      const P = A.P, deux = A.sens === 'traire2';
+      const q = Math.min(debit, T.capacite - T.load, deux ? P.produit2 : P.produit);
       if(q <= 0.0001) return;
-      T.load += q; P.produit -= q; poserType(T, A.cle);
+      T.load += q;
+      if(deux) P.produit2 -= q; else P.produit -= q;
+      poserType(T, A.cle);
       if(Math.random() < 0.3) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -10582,7 +11407,7 @@ function executer(m, A, dt){
     case 'rangerEntrepot': {
       const q = Math.min(debit, T.load, entrepotPlace());
       if(q <= 0.0001) return;
-      T.load -= q; entrepotRange(A.cle, q);
+      T.load -= q; entrepotRange(A.cle, q); livraison('entrepot', A.cle, q);
       if(Math.random() < 0.3)
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.28);
       if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ À L\'ENTREPÔT'); }
@@ -10603,6 +11428,7 @@ function executer(m, A, dt){
       T.load -= q; money += q*prixChez(A.S, A.cle);
       entamerEtal(A.S, A.cle, q);
       if(A.S === RESTO) avancerCommande(A.cle, q);
+      livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
       if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
       if(T.load <= 0.01){ viderType(T);
@@ -10612,7 +11438,8 @@ function executer(m, A, dt){
     case 'verser': {
       const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(A.S));
       if(q <= 0.0001) return;
-      T.load -= q; A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q; compter(A.cle, q);
+      T.load -= q; A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
+      livraison(A.S.nom, A.cle, q); compter(A.cle, q);
       if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
       if(T.load <= 0.01){ showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
                           viderType(T); }
@@ -10630,7 +11457,7 @@ function executer(m, A, dt){
       const vente = A.sens === 'tremieVente';
       const q = Math.min(hopper, 420*dt, vente ? placeChez(A.S, A.cle) : Infinity);
       if(q <= 0.0001) return;
-      hopper -= q; delivered += q; compter(A.cle, q);
+      hopper -= q; delivered += q; livraison(A.S.nom, A.cle, q); compter(A.cle, q);
       if(vente){ money += q*prixChez(A.S, A.cle);
                  entamerEtal(A.S, A.cle, q);
                  if(A.S === RESTO) avancerCommande(A.cle, q); }
@@ -10751,19 +11578,21 @@ function deverserAtelier(dt){
 
    Le déversement, lui, continue toujours : ce qui est déjà fabriqué doit pouvoir
    rejoindre l'entrepôt même après la fin de la commande. */
+/* LA FILE. Un seul lot à la fois au départ, cinq à la fin : c'est la troisième
+   amélioration universelle, et c'est elle qui change le plus la façon de jouer. Tant
+   qu'on n'a qu'un lot, il faut revenir lancer chaque transformation ; avec cinq, on
+   prépare sa soirée et l'on part faire les foins. */
 function commandeFinie(txt){
-  HALLE.commande = null;
+  HALLE.file.shift();
   showHint(txt);
   rafraichirEcran();
 }
 function updateAtelier(dt){
-  const C = HALLE.commande;
-  if(C){
-    const R = ATELIER_RECETTES.find((r)=> r.cle === C.cle);
-    if(!R || R.niveau > HALLE.niveau) HALLE.commande = null;
-  }
-  if(HALLE.commande){
-    const C2 = HALLE.commande, P = PRODUITS[C2.cle];
+  // Un module vendu avec la partie d'avant, ou une recette dont on n'a plus le module :
+  // on ne fabrique pas ce qu'on ne possède pas.
+  while(HALLE.file.length && !atelierA(HALLE.file[0].cle)) HALLE.file.shift();
+  if(HALLE.file.length){
+    const C2 = HALLE.file[0], P = PRODUITS[C2.cle];
     HALLE.recette = C2.cle;
     alimenterAtelier(dt, C2.reste);
     const q = fabriquer(HALLE, dt, C2.reste);
@@ -10784,9 +11613,9 @@ function updateAtelier(dt){
       const ent = recetteEntrees(C2.cle);
       let matiere = 0;
       for(const k in ent) matiere = Math.max(matiere, disponible(k) + (HALLE.tremie[k] || 0));
-      if(matiere <= 0.01) commandeFinie('ATELIER — PLUS DE MATIÈRE, COMMANDE ARRÊTÉE');
+      if(matiere <= 0.01) commandeFinie('ATELIER — PLUS DE MATIÈRE, LOT ARRÊTÉ');
     }
-  }
+  } else HALLE.recette = null;
   deverserAtelier(dt);
 }
 /* Ce que le magasin permet de sortir d'une recette, en kilos de PRODUIT FINI, et
@@ -10805,22 +11634,47 @@ function potentiel(cle){
   for(const k in ent) brut += (P.libre ? (k === court ? parts*ent[k] : 0) : parts*ent[k]);
   return {sortie: parts*P.rendement, parts: parts, brut: brut, court: court, ent: ent};
 }
+/* UN LOT SE MESURE EN MATIÈRE ENGAGÉE, PAS EN PRODUIT SORTI. « Cent kilos par lot »
+   doit vouloir dire la même chose au moulin, où cent kilos de blé donnent 72 kg de
+   farine, et à la cave, où cent kilos de raisin en donnent 70 de vin. Sans quoi le
+   même palier de capacité vaudrait deux fois plus pour l'un que pour l'autre. */
 function lancerProduction(cle, kgSortie){
-  const q = Math.max(1, Math.round(kgSortie));
-  HALLE.recette = cle;
-  HALLE.commande = {cle: cle, reste: q, total: q};
-  showHint('ATELIER — ' + kg(q) + ' ' + dNom(PRODUITS[cle].nom.toLowerCase()).toUpperCase());
+  if(!atelierA(cle)) return false;
+  if(HALLE.file.length >= halleFileMax()){ showHint('ATELIER — LA FILE EST PLEINE'); return false; }
+  const P = PRODUITS[cle];
+  const q = Math.max(1, Math.round(Math.min(kgSortie, halleLotMax()*P.rendement)));
+  HALLE.file.push({cle: cle, reste: q, total: q});
+  showHint('ATELIER — ' + kg(q) + ' ' + dNom(PRODUITS[cle].nom.toLowerCase()).toUpperCase()
+           + (HALLE.file.length > 1 ? '  ·  ' + HALLE.file.length + ' LOTS EN FILE' : ''));
+  return true;
 }
-// Le coût du palier suivant, ou 0 si l'atelier est au maximum.
+// Le coût du module suivant, ou 0 si l'atelier les a tous.
 function coutAtelier(){
-  const P = ATL.PALIERS[HALLE.niveau];          // le niveau n est à l'indice n-1
-  return P ? P.prix : 0;
+  const M = moduleSuivant();
+  return M ? M.prix : 0;
+}
+// Ce qu'un cran d'amélioration coûte, ou 0 si elle est au maximum.
+function coutUp(quoi){
+  const U = ATELIER_UP[quoi], n = HALLE[quoi];
+  return (n < U.paliers.length) ? U.prix[n] : 0;
+}
+function acheterUp(quoi){
+  const c = coutUp(quoi);
+  if(c <= 0 || money < c) return false;
+  money -= c; HALLE[quoi]++;
+  showHint('ATELIER — ' + ATELIER_UP[quoi].nom.toUpperCase() + ' '
+           + '★'.repeat(HALLE[quoi] - 1));
+  rafraichirEcran();
+  return true;
 }
 function ameliorerAtelier(){
-  const c = coutAtelier();
-  if(!c || money < c) return false;
-  money -= c; HALLE.niveau++; poserAtelier();
-  showHint('ATELIER — ' + ATL.PALIERS[HALLE.niveau-1].nom.toUpperCase());
+  const M = moduleSuivant();
+  if(!M || !ouvert('modules', M.cle) || money < M.prix) return false;
+  money -= M.prix;
+  HALLE.modules.push(M.cle);
+  HALLE.niveau = HALLE.modules.length;
+  poserAtelier();
+  showHint('ATELIER — ' + M.module.toUpperCase());
   return true;
 }
 
@@ -10842,7 +11696,7 @@ function updateBetail(dt){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const v = m.v;
-    if(!v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE)) continue;
+    if(!v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
     v.venteT = 0; v.betail--;
@@ -10878,7 +11732,14 @@ function capaciteBetail(m){
 let armePature = 0;
 // L'espèce que l'on posera au prochain aménagement. Elle se règle dans l'onglet
 // Élevage, et le bouton contextuel l'affiche avant de demander confirmation.
+/* Indice dans ESP_CLES, et non une clé : c'est ce que le bouton d'aménagement fait
+   défiler. Il se cale sur la première espèce OUVERTE — au premier palier aucune ne
+   l'est, et proposer « Vaches » à qui n'y a pas droit ne dit rien de juste. */
 let especeChoisie = 0;
+const caleEspece = ()=>{
+  const k = ESP_CLES.findIndex((c)=> ouvert('especes', c));
+  especeChoisie = k >= 0 ? k : 0;
+};
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
@@ -10925,16 +11786,20 @@ function actionService(){
     if(!p.owned || p.pature) continue;
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
     if(v.speed > 1.5){ armePature = 0; return null; }
-    const ok = money >= ELEVAGE.prixPature;
-    if(!ok) return {txt:'ENCLOS : IL MANQUE ' + Math.ceil(ELEVAGE.prixPature-money).toLocaleString('fr-FR') + ' €',
-                    ok:false};
     const E = ESPECES[ESP_CLES[especeChoisie]];
+    const niv = niveauDe('especes', E.cle);
+    if(CAMPAGNE.niveau < niv)
+      return {txt:E.pluriel.toUpperCase() + ' — NIVEAU ' + niv + ' REQUIS', ok:false};
+    const prixE = prixPature(E.cle);
+    const ok = money >= prixE;
+    if(!ok) return {txt:'ENCLOS : IL MANQUE ' + Math.ceil(prixE-money).toLocaleString('fr-FR') + ' €',
+                    ok:false};
     // Deux temps, comme avant, mais le premier sert aussi à choisir l'espèce : chaque
     // appui fait défiler les quatre, le deuxième appui sur la même confirme.
     if(armePature > 0)
       return {txt:'CONFIRMER ' + E.pluriel.toUpperCase() + ' — LA CULTURE SERA PERDUE', ok:true,
               f:()=>{ armePature = 0; acheterPature(p, E.cle); }};
-    return {txt:E.pluriel.toUpperCase() + ' ' + ELEVAGE.prixPature.toLocaleString('fr-FR') + ' € — TOUCHER POUR ARMER',
+    return {txt:E.pluriel.toUpperCase() + ' ' + prixE.toLocaleString('fr-FR') + ' € — TOUCHER POUR ARMER',
             ok:true, f:()=>{ armePature = 4;
               showHint('APPUIE ENCORE POUR CONFIRMER · MENU ÉLEVAGE POUR CHANGER D\'ESPÈCE'); }};
   }
@@ -11285,7 +12150,7 @@ function majJauges(dt){
   //   plus qu'un tampon de deux secondes : ce qui compte, c'est la matière en magasin.
   // L'atelier ne travaille que sur commande : la jauge dit où en est celle-ci, et
   // s'efface quand il n'y en a pas — un atelier à l'arrêt n'a rien à annoncer.
-  const CJ = HALLE.commande;
+  const CJ = HALLE.file[0] || null;
   if(CJ){
     const RJ = PRODUITS[CJ.cle];
     // La jauge suit le bâtiment : la halle ayant grandi de BAT_ECHELLE, elle serait
@@ -11335,12 +12200,23 @@ function majJauges(dt){
       (E2.statique ? 'Nourrisseur ' : 'Mangeoire ') + Math.round(P.grain) + ' kg' + reste,
       kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
     if(E2.produit){
-      const R2 = PRODUITS[E2.produit];
-      const kp = P.produit/P.produitMax;
       const nourries = (P.grain > 0.5) ? P.betes.length : 0;
+      /* DEUX TANKS SUR UNE SEULE JAUGE. Une brebis donne de la laine et du lait ; en
+         poser deux étiquettes l'une au-dessus de l'autre ferait une pile illisible
+         au-dessus de l'enclos. La jauge suit le tank le PLUS PLEIN — c'est celui qui
+         va déborder, donc celui qu'il faut aller vider — et l'étiquette nomme les
+         deux. */
+      const A2 = {cle:E2.produit, v:P.produit, max:P.produitMax};
+      const B2 = E2.second ? {cle:E2.second.cle, v:P.produit2, max:P.produit2Max} : null;
+      const gros = (B2 && B2.v/B2.max > A2.v/A2.max) ? B2 : A2;
+      const R2 = PRODUITS[gros.cle];
+      const kp = gros.v/gros.max;
+      const txt = B2
+        ? Math.round(A2.v) + ' kg ' + PRODUITS[A2.cle].nom.toLowerCase() + '  ·  ' +
+          Math.round(B2.v) + ' kg ' + PRODUITS[B2.cle].nom.toLowerCase()
+        : R2.nom + ' ' + Math.round(gros.v) + ' kg';
       montrerJauge(prendreJauge(P.j2), cx, 5.0, cz,
-        R2.nom + ' ' + Math.round(P.produit) + ' kg' +
-        (kp > 0.995 ? ' — CUVE PLEINE' : (nourries ? '' : ' — À L\'ARRÊT')),
+        txt + (kp > 0.995 ? ' — CUVE PLEINE' : (nourries ? '' : ' — À L\'ARRÊT')),
         kp, kp > 0.995 ? '#E8563F' : (nourries ? R2.couleur : '#8A9298'), dt);
     } else if(P.j2.jauge){
       cacherJauge(P.j2.jauge, dt);
@@ -11369,7 +12245,12 @@ poserJauges();
 // trois rayons plutôt que d'inventer une deuxième interface.
 // Stockage, Production et Prix n'y figurent PLUS : chacun a sa fenêtre, ouverte par
 // son bouton de régie. Deux chemins vers le même écran, c'était un de trop.
-ONGLETS.splice(3, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'},
+/* L'onglet Campagne vient EN TÊTE : c'est le premier écran qu'on veut voir quand on
+   se demande quoi faire. On l'insère par splice comme les autres — la déclaration
+   d'origine, plus haut, se fait écraser sa dernière entrée par la ligne qui suit, et
+   y ajouter un onglet le ferait disparaître en silence. */
+ONGLETS.splice(0, 0, {id:'campagne', nom:'Campagne'});
+ONGLETS.splice(4, 0, {id:'comptoir', nom:'Comptoir'}, {id:'elevage',  nom:'Élevage'},
                      {id:'filieres', nom:'Filières'});
 ONGLETS[ONGLETS.length-1] = {id:'reglages', nom:'Réglages'};
 
@@ -11435,25 +12316,32 @@ function ongletElevage(){
   ESP_CLES.forEach((cle, i)=>{
     const E = ESPECES[cle];
     const gain = E.produit
-      ? dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() + ' / s, revendus ' + dec(E.prixProduit) + ' € le kg'
+      ? dec(E.parSec) + ' kg de ' + E.nomProduit.toLowerCase() + ' / s' +
+        (E.second ? ' et ' + dec(E.second.parSec) + ' kg de ' + E.second.nom.toLowerCase() + ' / s' : '') +
+        ', revendus ' + dec(E.prixProduit) + ' € le kg'
       : 'aucun produit continu : elle se vend à la boucherie, et cher';
     // Une ruche ne se revend pas et ne part pas à l'abattoir : le libellé ne doit pas
     // promettre une valeur de revente qui vaut zéro.
     const suite = E.prixBete > 0
       ? 'Adulte en ' + Math.round(E.maturite/60) + ' min · revendue ' + eur(E.prixBete)
       : 'En pleine production après ' + Math.round(E.maturite/60) + ' min · ne se revend pas';
+    const niv = niveauDe('especes', cle), libre = CAMPAGNE.niveau >= niv;
     article(E.robes[0].fond, E.pluriel,
-      eur(E.prix) + ' la ' + (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
-      suite + ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos',
-      i === especeChoisie ? 'Choisie' : 'Choisir', i === especeChoisie ? 'ok' : '',
-      ()=>{ especeChoisie = i; });
+      eur(prixPature(cle)) + ' l\'enclos · ' + eur(E.prix) + ' la ' +
+      (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
+      suite + ' · ration ' + dec(E.ration, 3) + ' kg/s · jusqu\'à ' + E.places + ' par enclos' +
+      (libre ? '' : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
+      !libre ? 'Niveau ' + niv : (i === especeChoisie ? 'Choisie' : 'Choisir'),
+      !libre ? 'no' : (i === especeChoisie ? 'ok' : ''),
+      libre ? ()=>{ especeChoisie = i; } : null);
   });
   if(!PATURES.length){
     titre('Aucun enclos');
     const d = document.createElement('div'); d.className = 'art';
     d.innerHTML = '<div class="txt"><div class="det">Conduis un engin au milieu d\'une ' +
       'parcelle qui t\'appartient, à l\'arrêt : le bouton d\'aménagement apparaît. ' +
-      'Un enclos coûte ' + eur(ELEVAGE.prixPature) + ' et remplace définitivement la ' +
+      'Un enclos coûte de ' + eur(Math.min.apply(null, ESP_CLES.map(prixPature))) + ' à ' +
+      eur(Math.max.apply(null, ESP_CLES.map(prixPature))) + ' selon l\'espèce, et remplace définitivement la ' +
       'culture.<br><br>Ensuite : du grain du silo dans la mangeoire, des bêtes dans ' +
       'l\'enclos, le produit au poste de collecte. Une bête qui n\'a rien à manger ne ' +
       'donne rien et ne grandit pas.</div></div>';
@@ -11469,7 +12357,8 @@ function ongletElevage(){
       P.betes.length + ' / ' + P.places + (E.statique ? ' ruches · ' : ' bêtes · ') + adultes +
       (E.statique ? ' en pleine production' : ' prête' + (adultes>1?'s':'') + ' pour la boucherie') +
       '<br>' + (E.statique ? 'Nourrisseur : ' : 'Mangeoire : ') + kg(P.grain) + ' / ' + kg(P.grainMax) +
-      (E.produit ? ' · ' + E.nomProduit + ' : ' + kg(P.produit) + ' / ' + kg(P.produitMax) : ''),
+      (E.produit ? ' · ' + E.nomProduit + ' : ' + kg(P.produit) + ' / ' + kg(P.produitMax) : '') +
+      (E.second ? ' · ' + E.second.nom + ' : ' + kg(P.produit2) + ' / ' + kg(P.produit2Max) : ''),
       'État', 'no', null);
     const plein = P.betes.length >= P.places;
     const ok = !plein && money >= E.prix;
@@ -11506,14 +12395,16 @@ function ongletElevage(){
    et du négoce. Une recette ajoutée là-bas apparaît ici toute seule, avec son prix
    déjà calculé — c'est la seule façon d'être sûr que ce qui est affiché est ce qui
    sera payé. */
+/* « blé → farine », écrit une fois. Deux écrans s'en servent — les filières et la
+   production — et l'avoir en double dans l'un des deux, c'est le voir dériver. */
+function flecheur(cle){
+  const P = PRODUITS[cle];
+  if(!P.de) return '';
+  const ent = recetteEntrees(cle);
+  const noms = Object.keys(ent).map((k)=> PRODUITS[k].nom);
+  return (P.libre ? noms.join(' ou ') : noms.join(' + ')) + ' → ';
+}
 function ongletFilieres(){
-  const flecheur = (cle)=>{
-    const P = PRODUITS[cle];
-    if(!P.de) return '';
-    const ent = recetteEntrees(cle);
-    const noms = Object.keys(ent).map((k)=> PRODUITS[k].nom);
-    return (P.libre ? noms.join(' ou ') : noms.join(' + ')) + ' → ';
-  };
   const acheteurs = (cle)=> SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
     .sort((A, B)=> B.coef - A.coef)
     .map((S)=> S.nom + ' ' + dec(prixChez(S, cle)))
@@ -11532,15 +12423,15 @@ function ongletFilieres(){
   }
 
   titre('L\'atelier de la ferme');
-  for(const R of ATELIER_RECETTES){
-    const dispo = R.niveau <= HALLE.niveau;
+  for(const R of ATELIER_MODULES){
+    const niv = niveauDe('modules', R.cle), a2 = atelierA(R.cle);
     article(parseInt(PRODUITS[R.cle].couleur.slice(1), 16), R.module,
       flecheur(R.cle) + PRODUITS[R.cle].nom + ' · ' + dec(prixDe(R.cle)) + ' € le kg<br>' +
       'Rendement ' + Math.round(PRODUITS[R.cle].rendement*100) + ' % · ' +
-      dec(rendementValeur(R.cle)) + ' € par kg engagé',
-      dispo ? (HALLE.recette === R.cle ? 'En cours' : 'Niveau ' + R.niveau)
-            : 'Niveau ' + R.niveau + ' requis',
-      dispo ? 'ok' : 'no', null);
+      dec(rendementValeur(R.cle)) + ' € par kg engagé · ' + R.duree + ' s les 100 kg',
+      a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Monté')
+         : (CAMPAGNE.niveau >= niv ? eur(R.prix) : 'Niveau ' + niv),
+      a2 ? 'ok' : 'no', null);
   }
 
   titre('Les usines et les commerces');
@@ -11695,15 +12586,35 @@ document.getElementById('dosego').addEventListener('pointerdown', (e)=>{
 document.getElementById('dosefond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerDose(); });
 
 function ongletProduction(){
-  titre('Atelier de la ferme — niveau ' + HALLE.niveau + ', ' + ATL.PALIERS[HALLE.niveau-1].nom);
-  const C = HALLE.commande;
-  if(C){
-    const PC = PRODUITS[C.cle];
-    article(parseInt(PC.couleur.slice(1), 16), 'En cours : ' + PC.nom,
-      '<span class="q">' + kg(C.total - C.reste) + ' sur ' + kg(C.total) + '</span> — il reste ' +
-      kg(C.reste) + ' à sortir<br>Débit ' + dec(HALLE.debit(), 0) +
-      ' kg de matière par seconde · ce qui sort part à l\'entrepôt',
-      'Arrêter', 'vert', ()=>{ HALLE.commande = null; showHint('ATELIER — COMMANDE ARRÊTÉE'); });
+  const bati = HALLE.modules.length;
+  titre('Atelier de la ferme — ' + (bati ? bati + ' module' + (bati > 1 ? 's' : '') : 'halle nue'));
+
+  /* LA FILE D'ABORD. C'est elle qu'on vient regarder : ce qui tourne, ce qui attend,
+     et de la place qu'il reste. Un lot en tête se retire ; les suivants aussi. */
+  if(HALLE.file.length){
+    HALLE.file.forEach((C, i)=>{
+      const PC = PRODUITS[C.cle];
+      article(parseInt(PC.couleur.slice(1), 16),
+        (i === 0 ? 'En cours : ' : 'En attente : ') + PC.nom,
+        '<span class="q">' + kg(C.total - C.reste) + ' sur ' + kg(C.total) + '</span> — il reste ' +
+        kg(C.reste) + ' à sortir' +
+        (i === 0 ? '<br>Débit ' + dec(HALLE.debit(), 1) +
+                   ' kg de matière par seconde · ce qui sort part à l\'entrepôt' : ''),
+        'Retirer', 'vert', ()=>{
+          HALLE.file.splice(i, 1);
+          showHint('ATELIER — LOT RETIRÉ');
+          rafraichirEcran();
+        });
+    });
+    if(HALLE.file.length < halleFileMax())
+      article(0x8A9298, 'Place dans la file',
+        'Encore ' + (halleFileMax() - HALLE.file.length) + ' lot' +
+        (halleFileMax() - HALLE.file.length > 1 ? 's' : '') + ' à empiler.',
+        HALLE.file.length + ' / ' + halleFileMax(), 'no', null);
+  } else if(!bati){
+    article(0x8A9298, 'Aucun module',
+      'La halle est nue. Le premier métier — le moulin — se monte plus bas.',
+      'Vide', 'no', null);
   } else {
     article(0x8A9298, 'Atelier à l\'arrêt',
       'Rien ne se fabrique tant qu\'on ne l\'a pas demandé.<br>' +
@@ -11712,54 +12623,74 @@ function ongletProduction(){
   }
 
   titre('Ce que le stock permet');
-  for(const R of ATELIER_RECETTES){
+  for(const R of ATELIER_MODULES){
     const P = PRODUITS[R.cle], ent = recetteEntrees(R.cle);
-    const ouvert = R.niveau <= HALLE.niveau;
+    const monte = atelierA(R.cle), niv = niveauDe('modules', R.cle);
     // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
     const recette = Object.keys(ent).map((k)=>
       Math.round(100*ent[k]) + ' kg ' + dNom(PRODUITS[k].nom.toLowerCase())).join(P.libre ? ' ou ' : ' + ');
     const pot = potentiel(R.cle);
     const assez = pot.sortie >= 1;
+    const place = HALLE.file.length < halleFileMax();
     /* LES DEUX CHIFFRES QUI DÉCIDENT, mis en avant : ce qu'on a en matière, et ce
        qu'on peut en sortir. Leur couleur dit s'ils sont ACTIONNABLES — vert on peut
        lancer, rouge il manque de la matière, bleu le module n'est pas encore construit.
-       Un module verrouillé n'a pas à s'annoncer en vert : le chiffre serait juste et
+       Un module non monté n'a pas à s'annoncer en vert : le chiffre serait juste et
        le bouton gris, ce qui se lit comme une contradiction. */
-    const cl = !ouvert ? 'q neutre' : (assez ? 'q' : 'q court');
+    const cl = !monte ? 'q neutre' : (assez ? 'q' : 'q court');
     const enMagasin = Object.keys(ent)
       .map((k)=> kg(disponible(k) + (HALLE.tremie[k] || 0)) + ' ' + dNom(PRODUITS[k].nom.toLowerCase()))
       .join(P.libre ? ' · ' : ' + ');
     const det = recette + ' → ' + Math.round(100*P.rendement) + ' kg ' + dNom(P.nom.toLowerCase()) +
+      ' en ' + Math.round(R.duree/halleVitesse()) + ' s' +
       '<br>En magasin : <span class="' + cl + '">' + enMagasin + '</span>' +
       '<br>De quoi produire au maximum <span class="' + cl + '">' + kg(pot.sortie) + ' ' +
       dNom(P.nom.toLowerCase()) + '</span>' +
       (assez ? ' — ' + eur(pot.sortie*prixDe(R.cle))
              : ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')');
-    const encours = C && C.cle === R.cle;
+    const peut = monte && assez && place;
     article(parseInt(P.couleur.slice(1), 16), R.module + ' — ' + P.nom, det,
-      !ouvert ? 'Niveau ' + R.niveau + ' requis'
-              : (encours ? 'En cours' : (assez ? 'Produire' : 'Pas de matière')),
-      !ouvert ? 'no' : (encours ? 'ok' : (assez ? 'vert' : 'no')),
-      ouvert && assez && !encours ? ()=> ouvrirDose(R.cle, pot.sortie) : null);
+      !monte ? (CAMPAGNE.niveau >= niv ? 'À monter' : 'Niveau ' + niv + ' requis')
+             : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
+      peut ? 'vert' : 'no',
+      peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null);
   }
 
-  titre('Agrandir l\'atelier');
-  const c = coutAtelier();
-  if(c <= 0)
-    article(0x9FD8E8, 'Atelier au maximum',
-      'Les cinq modules tournent : moulin, broyeur, pressoir, mélangeur, cave.',
+  titre('Monter un métier');
+  const M = moduleSuivant();
+  if(!M)
+    article(0x9FD8E8, 'Tous les métiers sont montés',
+      'Moulin, broyeur, mélangeur, les deux fromageries, les deux pressoirs et la cave.',
       'Complet', 'ok', null);
   else {
-    const P2 = ATL.PALIERS[HALLE.niveau];
+    const niv = niveauDe('modules', M.cle);
+    const assezNiv = CAMPAGNE.niveau >= niv, ok = assezNiv && money >= M.prix;
+    const P = PRODUITS[M.cle];
+    article(0x9FD8E8, M.module,
+      flecheur(M.cle) + P.nom + ' · ' + Math.round(100*P.rendement) + ' kg les 100 engagés · ' +
+      M.duree + ' s le lot de 100<br>' +
+      (assezNiv ? eur(M.prix) : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
+      !assezNiv ? 'Niveau ' + niv : (ok ? 'Monter' : 'Il manque ' + eur(M.prix - money)),
+      ok ? 'vert' : 'no',
+      ok ? ()=>{ ameliorerAtelier(); rafraichirEcran(); } : null);
+  }
+
+  /* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne s'achètent pas au garage : elles
+     se posent sur l'atelier, et l'atelier est à la ferme. */
+  titre('Régler l\'atelier');
+  for(const q of ['capa', 'vite', 'queue']){
+    const U = ATELIER_UP[q], n = HALLE[q], c = coutUp(q);
+    const val = (v)=> q === 'vite' ? Math.round(v*100) + ' %' : (q === 'capa' ? kg(v) : v + ' lot' + (v > 1 ? 's' : ''));
+    if(!c){
+      article(0x7FD1E8, U.nom + ' ' + '★'.repeat(n - 1),
+        U.det + '<br>Au maximum : ' + val(U.paliers[n-1]), 'Max', 'ok', null);
+      continue;
+    }
     const ok = money >= c;
-    article(0x9FD8E8, 'Palier ' + (HALLE.niveau + 1) + ' — ' + P2.nom,
-      P2.det + '<br>Débit ' + dec(HALLE.debit(), 0) + ' → ' +
-      dec(12 + (HALLE.niveau+1)*7, 0) + ' kg/s' +
-      (ATELIER_RECETTES.some((r)=> r.niveau === HALLE.niveau + 1)
-        ? ' · ouvre le ' + ATELIER_RECETTES.find((r)=> r.niveau === HALLE.niveau + 1).module.toLowerCase()
-        : ''),
+    article(0x7FD1E8, U.nom + ' ' + '★'.repeat(n - 1),
+      U.det + '<br>' + val(U.paliers[n-1]) + ' → <span class="q">' + val(U.paliers[n]) + '</span>',
       ok ? eur(c) : 'Il manque ' + eur(c - money), ok ? 'vert' : 'no',
-      ok ? ()=>{ if(ameliorerAtelier()) showHint('ATELIER AGRANDI'); } : null);
+      ok ? ()=> acheterUp(q) : null);
   }
 }
 
@@ -11867,7 +12798,7 @@ function ongletReglages(){
     'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
     ' · dont ' + PATURES.length + ' en pâture<br>' +
     'Silo : ' + kg(siloTotal()) + '<br>' +
-    'Atelier niveau ' + HALLE.niveau + ' — ' + ATL.PALIERS[HALLE.niveau-1].nom +
+    'Atelier : ' + HALLE.modules.length + ' / ' + ATELIER_MODULES.length + ' métiers' +
     ' · trémie ' + kg(totalTremie(HALLE)) + '<br>' +
     'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
     'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
@@ -11892,10 +12823,92 @@ function rendrePanneau(){
   }
   pliste.innerHTML = '';
   hote = pliste;
-  ({engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
+  /* CET AIGUILLAGE N'A AUCUN REPLI : un identifiant sans fonction lève une erreur
+     APRÈS avoir vidé la liste, et le panneau reste ouvert, vide, le jeu en pause. Un
+     onglet ajouté à ONGLETS doit donc l'être ici aussi, dans le même geste. */
+  ({campagne:ongletCampagne, engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
     parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
+}
+
+/* ---------- L'ÉCRAN DE CAMPAGNE ----------
+   Le seul endroit du jeu qui répond à « et maintenant ? ». Trois blocs : où l'on en
+   est, ce qu'on doit faire, et la carte complète des quinze paliers avec ce que chacun
+   ouvre. Ce dernier bloc est délibérément lisible d'AVANCE : savoir qu'on aura des
+   vaches au huitième palier est ce qui donne envie d'y arriver, et c'est gratuit —
+   la table NIVEAUX est déjà là, il suffit de la lire. */
+function ongletCampagne(){
+  const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
+  const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
+  const reste = Math.max(0, Math.ceil(b1 - CAMPAGNE.xp));
+  titre('Niveau ' + n + ' — ' + N.nom);
+  article(0xFAD201, N.resume,
+    Math.round(CAMPAGNE.xp) + ' XP' +
+    (n < NIVEAUX.length ? '  ·  encore <span class="q">' + reste + ' XP</span> pour le niveau ' + (n+1)
+                        : '  ·  dernier palier') +
+    '<br>Droit à ' + (N.parcelles > 90 ? 'toute la vallée' : N.parcelles + ' parcelle' +
+      (N.parcelles > 1 ? 's' : '')) + ' · ' + PARCELS.filter((p)=> p.owned).length + ' possédée' +
+      (PARCELS.filter((p)=> p.owned).length > 1 ? 's' : ''),
+    'Niveau ' + n, 'ok', null);
+
+  const M = missionCourante();
+  titre('Mission de campagne');
+  if(!M)
+    article(0x8BE07A, 'La campagne est finie',
+      'Les quinze paliers sont ouverts. Les commandes continuent, sans fin, et ' +
+      'grossissent avec la ferme.', 'Terminée', 'ok', null);
+  else {
+    const part = avanceMission();
+    const det = M.texte + '<br><span class="q">' +
+      (M.faire ? Math.round(part*100) + ' %'
+               : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) +
+                   ' / ' + Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')) +
+      '</span>' + (M.prime ? '  ·  ' + eur(M.prime) : '') + '  ·  +' + M.xp + ' XP';
+    article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null);
+  }
+
+  titre('Les quatre commandes');
+  COMMANDES.forEach((C, k)=>{
+    if(!C){
+      article(0x8A9298, 'Case libre',
+        CMD_DELAI[k] > 0 ? 'Une commande neuve dans ' + Math.ceil(CMD_DELAI[k]) + ' s.'
+                         : 'Une commande neuve arrive.',
+        '—', 'no', null);
+      return;
+    }
+    const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
+    article(parseInt((PRODUITS[C.lignes[0].cle] || {couleur:'#FAD201'}).couleur.slice(1), 16),
+      T.nom + ' — ' + C.lieu,
+      C.lignes.map((l)=> '<span class="q">' + Math.round(l.fait) + ' / ' + Math.round(l.need) +
+        '</span> ' + nomDe(l.cle).toLowerCase()).join('<br>') +
+      '<br>' + eur(C.prime) + ' de prime  ·  +' + C.xp + ' XP' +
+      (C.temps ? '  ·  ' + Math.max(0, Math.ceil(C.temps)) + ' s' : '') +
+      '<br>La marchandise est payée en plus, au prix du commerce.',
+      'Refuser', '', ()=> jeterCommande(k));
+  });
+
+  titre('Les quinze paliers');
+  NIVEAUX.forEach((N2, k)=>{
+    const num = k + 1, ouvre = [];
+    const noms = {cultures:(c)=> (CROPS.find((x)=> x.cle === c) || {}).nom,
+                  outils:(c)=> (TOOLS.find((x)=> x.key === c) || {}).nom,
+                  engins:(c)=> (MACHINES.find((x)=> x.key === c) || {}).nom,
+                  modules:(c)=> (moduleDe(c) || {}).module,
+                  especes:(c)=> (ESPECES[c] || {}).pluriel,
+                  sites:(c)=> c};
+    for(const f of FAMILLES_NIV)
+      for(const c of (N2[f] || [])){ const q = noms[f](c); if(q) ouvre.push(q); }
+    if(k > 0 && N2.parcelles > NIVEAUX[k-1].parcelles)
+      ouvre.push(N2.parcelles > 90 ? 'toute la vallée' : N2.parcelles + 'e parcelle');
+    const mis = MISSIONS.filter((m)=> m.niv === num).length;
+    article(num <= n ? 0x8BE07A : 0x4A5359, num + '. ' + N2.nom,
+      N2.resume + '<br>' + (ouvre.length ? 'Ouvre : ' + ouvre.join(', ') : 'Rien de neuf') +
+      '  ·  ' + mis + ' mission' + (mis > 1 ? 's' : '') +
+      '  ·  ' + xpNiveau(num) + ' XP',
+      num < n ? 'Passé' : (num === n ? 'En cours' : 'À venir'),
+      num < n ? 'ok' : (num === n ? 'vert' : 'no'), null);
+  });
 }
 
 /* ---------- 26. SON ---------- */
@@ -12039,7 +13052,7 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
   }
   if(p !== buf.length) return false;         // sauvegarde tronquée : on n'y touche pas
   growingList.length = 0;
-  state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0);
+  state.fill(0); growth.fill(0); fert.fill(0); cropCell.fill(0); replante.fill(0);
   for(let j=0;j<AZ0;j++){
     const jd = j + dj;
     if(jd < 0 || jd >= GNZ) continue;
@@ -12053,6 +13066,10 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
       fert[dst]     = buf[n*2+src];
       cropCell[dst] = buf[n*3+src];
       if(state[dst] === ST.SEME) growingList.push(dst);
+      // Une permanente déjà semée est un pied installé : sa prochaine récolte est
+      // une repousse, pas une plantation.
+      replante[dst] = (CROPS[cropCell[dst]] && CROPS[cropCell[dst]].perenne &&
+                       (state[dst] === ST.SEME || state[dst] === ST.MUR)) ? 1 : 0;
     }
   }
   // Une sauvegarde d'avant l'agrandissement du pool d'épis porte des cellules restées
@@ -12079,8 +13096,18 @@ function etatJeu(){
     STAT: Object.assign({}, STAT), etape, cur, fini,
     jour: {heure: JOUR.heure, jours: JOUR.jours, sec: JOUR.sec},
     carbu: {cuve: CARBU.cuve, cuveMax: CARBU.cuveMax},
-    halle: {niveau: HALLE.niveau, recette: HALLE.recette,
-            commande: HALLE.commande ? Object.assign({}, HALLE.commande) : null,
+    /* `niveau` reste écrit pour les versions plus anciennes du jeu, qui ne savent lire
+       que lui ; `modules` est ce que celle-ci relit. La sauvegarde ne change pas de
+       version pour autant — la garde est en égalité stricte, l'incrémenter rejetterait
+       toutes les parties en cours. On n'ajoute donc que des champs facultatifs. */
+    /* `recette` n'est plus enregistrée : ce n'est plus un réglage mais l'état de la
+       machine à l'instant t — ce qu'elle est en train de faire. La file, elle, est
+       enregistrée, et c'est d'elle que la recette se redéduit à la reprise. */
+    halle: {niveau: Math.min(5, HALLE.modules.length),
+            modules: HALLE.modules.slice(),
+            capa: HALLE.capa, vite: HALLE.vite, queue: HALLE.queue,
+            file: HALLE.file.map((C)=> ({cle:C.cle, reste:C.reste, total:C.total})),
+            commande: HALLE.file[0] ? Object.assign({}, HALLE.file[0]) : null,
             tremie: Object.assign({}, HALLE.tremie),
             stock: Object.assign({}, HALLE.stock)},
     entrepot: Object.assign({}, ENTREPOT.stock),
@@ -12088,8 +13115,16 @@ function etatJeu(){
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     nettete: NETTETE.i,
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
-    contrat: contrat && {stat:contrat.stat, need:contrat.need, base:contrat.base,
-                         label:contrat.label, reward:contrat.reward, temps:contrat.temps},
+    /* LA CAMPAGNE. Elle s'ajoute en CHAMPS FACULTATIFS, et la version de la
+       sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
+       l'incrémenter rejetterait d'un coup toutes les parties en cours. Une partie
+       d'avant la campagne n'a pas ce bloc et se relit sans lui. */
+    campagne: {niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
+               faits: CAMPAGNE.faits.slice(),
+               commandes: COMMANDES.map((C)=> C && {type:C.type, lieu:C.lieu, prime:C.prime,
+                 xp:C.xp, temps:C.temps,
+                 lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})},
+    outilsVerrou: TOOLS.map((T)=> !!T.verrou),
     crops: CROPS.map(c=>!!c.verrou),
     parcelles: PARCELS.map(p=>({o:!!p.owned, pat:!!p.pature})),
     machines: MACHINES.map(m=>{
@@ -12105,6 +13140,7 @@ function etatJeu(){
                            porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
     patures: PATURES.map(P=>({
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
+      lait2:P.produit2,
       vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
     gnx: GNX, gnz: GNZ, x0: X0, z0: Z0,
@@ -12197,7 +13233,7 @@ function chargerPartie(S){
       // connaissaient que des vaches. Les clés `lait` et `vaches` gardent leur nom
       // pour la même raison — les renommer ferait repartir la partie de zéro.
       const P = creerPature(p, q.espece || 'vache');
-      P.produit = q.lait; P.grain = q.grain;
+      P.produit = q.lait; P.produit2 = q.lait2 || 0; P.grain = q.grain;
       for(const w of q.vaches){
         const V = ajouterBete(P, w.age, w.robe);
         if(V){ V.x = w.x; V.z = w.z; V.cap = w.cap; V.tx = w.x; V.tz = w.z; }
@@ -12254,23 +13290,46 @@ function chargerPartie(S){
     CARBU.cuve = S.carbu.cuve; CARBU.cuveMax = S.carbu.cuveMax;
     // `halle` est absent des sauvegardes d'avant l'atelier : elles repartent au niveau 1.
     if(S.halle){
-      HALLE.niveau = S.halle.niveau || 1;
+      /* LES MODULES REMPLACENT LES PALIERS. Une partie d'avant portait un niveau de 1
+         à 5 ; chaque niveau donnait un métier et de la capacité. On rend les métiers
+         correspondants — et l'on rend GRATUITEMENT ceux qu'elle avait payés, sans
+         quoi un joueur qui avait la cave se réveillerait sans elle. */
+      if(Array.isArray(S.halle.modules))
+        HALLE.modules = S.halle.modules.filter((c)=> !!moduleDe(c));
+      else {
+        const ANC = [['farine'], ['aliment'], ['huile', 'huileOlive'], ['alimentPlus'], ['vin']];
+        HALLE.modules = [];
+        for(let k = 0; k < Math.min(5, S.halle.niveau || 1); k++)
+          for(const c of ANC[k]) HALLE.modules.push(c);
+      }
+      // Les modules se rangent dans l'ordre du tableau : la silhouette du bâtiment en
+      // dépend, et une liste dans le désordre ferait pousser les cuves avant le moulin.
+      HALLE.modules.sort((a2, b2)=>
+        ATELIER_MODULES.findIndex((M)=> M.cle === a2) - ATELIER_MODULES.findIndex((M)=> M.cle === b2));
+      HALLE.niveau = HALLE.modules.length;
+      const borne = (v, max)=> Math.max(1, Math.min(max, Math.round(v || 1)));
+      HALLE.capa  = borne(S.halle.capa,  ATELIER_UP.capa.paliers.length);
+      HALLE.vite  = borne(S.halle.vite,  ATELIER_UP.vite.paliers.length);
+      HALLE.queue = borne(S.halle.queue, ATELIER_UP.queue.paliers.length);
       // Avant la chaîne, l'atelier n'avait qu'une entrée indifférenciée et trois
       // recettes. Le contenu de l'ancienne trémie retombe sur l'entrée de la recette
       // en cours, et un produit disparu retombe sur la farine.
       HALLE.tremie = Object.assign({}, S.halle.tremie || {});
       HALLE.stock  = Object.assign({}, S.halle.stock  || {});
       const anc = S.halle.produit;
-      HALLE.recette = ATELIER_RECETTES.some((r)=> r.cle === (S.halle.recette || anc))
-                      ? (S.halle.recette || anc) : 'farine';
+      const rec = S.halle.recette || anc;
+      HALLE.recette = atelierA(rec) ? rec : (HALLE.modules[0] || null);
       // Une partie d'avant tournait en continu : elle revient à l'arrêt, ce qui est
       // désormais l'état normal d'un atelier à qui l'on n'a rien demandé.
-      const CS2 = S.halle.commande;
-      HALLE.commande = (CS2 && CS2.cle && CS2.reste > 0.01 &&
-                        ATELIER_RECETTES.some((r)=> r.cle === CS2.cle && r.niveau <= HALLE.niveau))
-                       ? {cle: CS2.cle, reste: CS2.reste, total: CS2.total || CS2.reste} : null;
-      if(S.halle.entree) HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] =
-                         (HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] || 0) + S.halle.entree;
+      const anciens = Array.isArray(S.halle.file) ? S.halle.file
+                    : (S.halle.commande ? [S.halle.commande] : []);
+      HALLE.file = anciens
+        .filter((C)=> C && C.cle && C.reste > 0.01 && atelierA(C.cle))
+        .slice(0, halleFileMax())
+        .map((C)=> ({cle:C.cle, reste:C.reste, total:C.total || C.reste}));
+      if(S.halle.entree && HALLE.recette)
+        HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] =
+          (HALLE.tremie[Object.keys(recetteEntrees(HALLE.recette))[0]] || 0) + S.halle.entree;
       if(S.flourKg) HALLE.stock.farine = (HALLE.stock.farine || 0) + S.flourKg;
       if(S.halle.aliment) HALLE.stock.aliment = (HALLE.stock.aliment || 0) + S.halle.aliment;
       if(S.halle.huile)   HALLE.stock.huile   = (HALLE.stock.huile   || 0) + S.halle.huile;
@@ -12296,8 +13355,14 @@ function chargerPartie(S){
     }
     MOISSON.width = S.moisson.width; MOISSON.level = S.moisson.level; HOP_MAX = S.moisson.hopMax;
     S.crops.forEach((verrou, i)=>{ if(CROPS[i]) CROPS[i].verrou = verrou; });
-    contrat = S.contrat ? Object.assign({}, S.contrat) : null;
-    if(!contrat) nouveauContrat();
+    /* LES VERROUS D'OUTILS. Ils n'existaient pas : les quatre outils étaient donnés.
+       Une partie d'avant n'a donc pas ce tableau, et l'absence vaut « tout acquis » —
+       reverrouiller l'épandeur d'un joueur qui s'en servait depuis une heure serait
+       lui reprendre son matériel. */
+    if(Array.isArray(S.outilsVerrou))
+      TOOLS.forEach((T, i)=>{ if(S.outilsVerrou[i] === false) T.verrou = false; });
+    else for(const T of TOOLS) T.verrou = false;
+    for(const T of TOOLS) T.group.visible = !T.verrou;
 
     // 5. le matériel : d'abord tout dételer, puis reposer chaque pièce
     for(const m of MACHINES) if(m.v.tool) detachTool(m.v);
@@ -12329,6 +13394,12 @@ function chargerPartie(S){
       if(q.porteur >= 0 && MACHINES[q.porteur] && !MACHINES[q.porteur].verrou)
         attachTool(MACHINES[q.porteur].v, T);
     });
+    /* LA CAMPAGNE SE RELIT EN DERNIER, et c'est nécessaire : une partie d'avant la
+       campagne n'a pas de palier écrit, on le DÉDUIT de ce qu'elle possède — ses
+       cultures, ses engins, ses outils, ses modules, ses enclos, ses parcelles. Tout
+       cela doit donc être déjà en place. */
+    chargerCampagne(S);
+    for(const T of TOOLS) T.group.visible = !T.verrou;
     setMachine(MACHINES[S.cur] && !MACHINES[S.cur].verrou ? S.cur : 0);
     updateJourNuit(0);
     flushTiles();
@@ -12396,37 +13467,20 @@ function lancerPartie(){
 })();
 
 /* ---------- 29. PROGRESSION ---------- */
-/* Les paliers d'origine s'arrêtaient à 50 000 € et la barre restait figée ensuite.
-   On prolonge la ligne jusqu'à la vallée entière, en faisant passer le joueur par
-   chacun des circuits : céréales, transformation, élevage, puis l'expansion. */
 const nbParcelles = ()=> PARCELS.filter(p=>p.owned).length;
-ETAPES.length = 0;
-ETAPES.push(
-  {txt:'Récolter et livrer 1 000 kg',          test:()=> delivered >= 1000,  prog:()=> delivered/1000},
-  {txt:'Acheter une deuxième parcelle',        test:()=> nbParcelles() >= 2, prog:()=> money/4000},
-  {txt:'Moudre 360 kg de farine à l\'atelier', test:()=> STAT.mill >= 360,
-                                               prog:()=> STAT.mill/360},
-  {txt:'Vendre 300 kg de pain',                test:()=> STAT.pain >= 300,   prog:()=> STAT.pain/300},
-  {txt:'Étendre la ferme à 4 parcelles',       test:()=> nbParcelles() >= 4, prog:()=> (nbParcelles()-2)/2},
-  {txt:'Aménager une pâture et acheter une bête',
-                                               test:()=> PATURES.some(P=>P.betes.length > 0),
-                                               prog:()=> PATURES.length ? 0.5 + 0.5*Math.min(1, PATURES[0].betes.length) : 0},
-  {txt:'Livrer 1 500 kg de lait à la laiterie',test:()=> STAT.lait >= 1500,  prog:()=> STAT.lait/1500},
-  {txt:'Vendre 5 bêtes à la boucherie',        test:()=> STAT.betes >= 5,    prog:()=> STAT.betes/5},
-  {txt:'Installer la cuve de gazole',          test:()=> CARBU.cuveMax > 0,  prog:()=> money/CARBU.cuvePrix},
-  {txt:'Atteindre 100 000 €',                  test:()=> money >= 100000,    prog:()=> money/100000},
-  {txt:'Posséder toute la vallée',             test:()=> nbParcelles() >= PARCELS.length,
-                                               prog:()=> nbParcelles()/PARCELS.length}
-);
 let fini = false;
-// Le HUD d'origine bloquait sur l'avant-dernier palier : la dernière ligne ne
-// pouvait jamais se remplir. On la laisse aboutir, et l'aboutissement se voit.
+/* LE BANDEAU DIT LE PALIER, ET LA BARRE DIT L'EXPÉRIENCE.
+   Il portait une liste de onze paliers écrits à la main, dont la barre mesurait
+   n'importe quoi — tantôt des kilos livrés, tantôt de l'argent en caisse. Il porte
+   maintenant les deux seules valeurs du jeu : le palier de campagne, et le chemin
+   qui reste avant le suivant. La campagne finie, la barre se remplit une dernière
+   fois et le bandeau le dit. */
 function refreshHUD(){
-  while(etape < ETAPES.length-1 && ETAPES[etape].test()) etape++;
-  const E = ETAPES[etape];
-  const acheve = etape === ETAPES.length-1 && E.test();
+  const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
+  const acheve = n >= NIVEAUX.length && !missionCourante();
   if(acheve && !fini){ fini = true; ouvrirFin(); }
-  el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI' : E.txt;
+  el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI'
+                               : 'NIVEAU ' + n + ' — ' + N.nom;
   el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
   // Ce qui dort au silo, pas le cumul livré depuis le début : c'est ce chiffre-là qui
   // décide si la moissonneuse pourra encore rentrer sa trémie. Il vire à l'orange
@@ -12434,7 +13488,11 @@ function refreshHUD(){
   const st = siloTotal();
   el.silo.textContent = Math.floor(st) + ' kg';
   el.silo.style.color = st > siloMax()*0.92 ? '#FFAE2E' : '';
-  el.bar.style.width = Math.max(0, Math.min(100, E.prog()*100)) + '%';
+  // La part parcourue DANS le palier courant, pas depuis le début : une barre qui
+  // n'avance plus que d'un cheveu au dixième niveau ne dit plus rien.
+  const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
+  const part = acheve ? 1 : (b1 > b0 ? (CAMPAGNE.xp - b0)/(b1 - b0) : 1);
+  el.bar.style.width = Math.max(0, Math.min(100, part*100)) + '%';
   const Tc = toolOf(MACHINES[cur]);
   const vc = MACHINES[cur].v.cargo;
   const chargeur = vc ? {v:vc.load, max:vc.capacite}
@@ -12450,7 +13508,8 @@ function ouvrirFin(){
   const sous = document.getElementById('accsous');
   accBtns.innerHTML = '';
   document.getElementById('acctitre').textContent = 'MOISSON FAITE';
-  sous.innerHTML = 'Toute la vallée t\'appartient — ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
+  sous.innerHTML = 'La campagne est finie — niveau ' + CAMPAGNE.niveau + ', ' +
+    Math.round(CAMPAGNE.xp) + ' XP, ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
     kg(STAT.moisson) + ' récoltés · ' + kg(STAT.pain) + ' de pain · ' +
     kg(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
   boutonAccueil('Continuer à jouer', true, ()=>{ accueil.style.display = 'none'; paused = false; last = performance.now(); });
@@ -12459,7 +13518,10 @@ function ouvrirFin(){
 }
 
 /* ---------- 30. BOUCLE ---------- */
-nouveauContrat();
+mondePret = true;
+caleEspece();
+nouvelleCommande();
+remplirCommandes(0);
 construireEclairagesNuit();
 updateJourNuit(0);
 setMachine(cur);
@@ -12512,7 +13574,7 @@ function loop(now){
     grow(dt);
     flushTint();
     updateCargo(dt);
-    updateContrat(dt);
+    updateCommandes(dt);
     updateJourNuit(dt);
     updateElevage(dt);
     updatePlein(dt);
@@ -12602,7 +13664,7 @@ function loop(now){
   if(uiT <= 0){
     uiT = 0.05;
     refreshHUD();
-    refreshContrat();
+    refreshCommandes();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
     refreshChoix(); refreshService(); refreshJauges();
   }
