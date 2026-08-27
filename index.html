@@ -75,8 +75,8 @@
   #viseurs{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
   #viseurs .vis{position:absolute;left:0;top:0;display:flex;flex-direction:column;
     align-items:center;gap:1px;will-change:transform}
-  #viseurs .vis .fl{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
-  #viseurs .vis .fl svg{width:26px;height:26px;display:block}
+  #viseurs .vis .fl{width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+  #viseurs .vis .fl svg{width:30px;height:30px;display:block}
   #viseurs .vis .nm{font-size:8.5px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
     color:#8BE07A;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
@@ -12849,15 +12849,21 @@ function refreshChoix(){
    inversés : on le retourne, sans quoi la flèche pointerait à l'exact opposé. */
 const viseursEl = document.getElementById('viseurs');
 const VISEUR = {haut:100, bas:158, cote:64, pool:[]};
-/* LA FLÈCHE, EN UN SEUL TRACÉ. Pointe, épaules, hampe : c'est la hampe qui donne la
-   direction, et c'est elle qui manquait au triangle. Le contour sombre est peint SOUS le
-   remplissage (`paint-order`), ce qui la détache de l'herbe comme du bitume sans le
-   moindre filtre. Elle pointe vers le HAUT au repos ; on la tourne de l'angle du rayon. */
+/* LA FLÈCHE : UN TRIANGLE, MAIS POINTU.
+   Le premier était équilatéral — trois angles de soixante degrés — et un triangle dont
+   tous les angles se valent ne pointe nulle part : tourné d'un quart de tour on le
+   reconnaît encore comme un triangle, pas comme une direction. Celui-ci est ÉTIRÉ : sa
+   pointe fait vingt-huit degrés quand les deux angles de base en font soixante-seize.
+   C'est cet écart, et lui seul, qui dit où aller.
+
+   Trois sommets, rien de plus. Le contour sombre est peint SOUS le remplissage
+   (`paint-order`), ce qui le détache de l'herbe comme du bitume sans le moindre filtre —
+   un filtre force un repeint complet à chaque déplacement, et elle se déplace à chaque
+   image. Elle pointe vers le HAUT au repos ; on la tourne de l'angle du rayon. */
 const FLECHE_SVG =
-  '<svg viewBox="0 0 68 97" aria-hidden="true">' +
-  '<path d="M 34 6 L 62 34 A 7 7 0 0 1 57 46 L 46 46 L 46 84 A 7 7 0 0 1 39 91 ' +
-  'L 29 91 A 7 7 0 0 1 22 84 L 22 46 L 11 46 A 7 7 0 0 1 6 34 Z" ' +
-  'fill="#62D84E" stroke="#12331B" stroke-width="7" stroke-linejoin="round" ' +
+  '<svg viewBox="0 0 26 46" aria-hidden="true">' +
+  '<polygon points="13,1 24,45 2,45" ' +
+  'fill="#62D84E" stroke="#12331B" stroke-width="5" stroke-linejoin="round" ' +
   'paint-order="stroke"/></svg>';
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){

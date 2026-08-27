@@ -219,11 +219,11 @@ point derrière la caméra sort de la projection avec ses signes inversés, et i
 retourner sans quoi la flèche pointe à l'exact opposé. La vignette entière est rentrée
 dans l'écran, libellé compris — sur un bord latéral on lisait « COOPÉRATIV ».
 
-**C'était un triangle, et un triangle ne pointe nulle part.** Trois côtés, aucune hampe :
-tourné d'un quart de tour il ressemble encore à un triangle, et l'on ne lisait pas la
-direction. C'est maintenant une vraie flèche — pointe franche, épaules arrondies, hampe
-qui la prolonge — et c'est la hampe qui dit d'où elle vient. Onze segments de tracé au
-lieu de trois côtés.
+**Un triangle, mais pointu.** Le premier était équilatéral — trois angles de soixante
+degrés — et un triangle dont tous les angles se valent ne pointe nulle part : tourné d'un
+quart de tour on le reconnaît encore comme un triangle, pas comme une direction. Celui-ci
+est **étiré** : sa pointe fait **28°** quand les deux angles de base en font **76°**.
+C'est cet écart, et lui seul, qui dit où aller. Trois sommets, rien de plus.
 
 **Et elle ne sautille plus.** Elle était posée par `left`/`top` en pixels entiers,
 recalculés vingt fois par seconde : chaque écriture remettait l'élément en page, et le
