@@ -7215,7 +7215,9 @@ function poserOffre(){
     const C = tirerCommande(T.cle);
     if(!C) continue;
     const S = SITES.find((x)=> x.nom === C.lieu);
-    if(!S || S.offre || contratChez(S.nom)) continue;
+    // Ni deux offres au même endroit, ni une offre par-dessus un contrat en cours, ni
+    // rien du tout chez qui l'on vient d'éconduire : son délai n'est pas passé.
+    if(!S || S.offre || S.offreT > 0 || contratChez(S.nom)) continue;
     C.prime = Math.max(20, Math.round(C.prime*coefRenom(S)/5)*5);
     C.xp = Math.max(3, Math.round(C.xp*coefRenom(S)));
     // Une proposition n'attend pas éternellement : trois minutes, puis il passe à autre
@@ -7261,12 +7263,9 @@ function remplirCommandes(dt){
   // Les propositions tombent au compte-gouttes, une à la fois : le village n'est pas
   // un tableau d'affichage, c'est une poignée de gens qui ont besoin de quelque chose.
   offreT -= (dt || 0);
-  if(offreT <= 0){
-    offreT = OFFRE_ATTENTE;
-    // Un commerce ne propose rien tant que son propre délai n'est pas passé.
-    for(const S of SITES) if(S.offreT > 0) S.offreT -= OFFRE_ATTENTE;
-    poserOffre();
-  }
+  if(offreT <= 0){ offreT = OFFRE_ATTENTE; poserOffre(); }
+  // Le délai propre à chaque commerce court en même temps, et une seule fois : c'est
+  // lui qui dit combien de temps un refus l'a fait taire.
   for(const S of SITES) if(S.offreT > 0) S.offreT = Math.max(0, S.offreT - (dt || 0));
 }
 /* UNE LIVRAISON, ET TOUT CE QU'ELLE FAIT AVANCER. Le point de passage unique : cinq
