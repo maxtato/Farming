@@ -261,12 +261,24 @@ désigne un engin, ce qu'on lui demande, et où :
 - **Travailler des parcelles** : on touche les parcelles à la suite. L'engin les fait
   dans l'ordre, avec l'outil qu'il porte, en serpentin. La moissonneuse va vider au
   silo quand sa trémie est pleine, puis reprend sa passe.
-- **Navette entre deux lieux** : on touche un départ, puis une arrivée. L'engin charge
-  au premier, décharge au second, et recommence. Coché **EN BOUCLE**, il ne s'arrête
-  plus : le silo vers l'usine de céréales, sans fin.
+- **Navette entre deux lieux** : on touche un départ, puis une arrivée, puis **ce
+  qu'elle transporte**. L'engin charge au premier, décharge au second, et recommence.
+  Coché **EN BOUCLE**, il ne s'arrête plus : le silo vers l'usine de céréales, sans fin.
 
 La file se lit en bas de la carte et se défait au doigt. En chemin entre deux étapes,
 un engin en mission ne touche à rien : il traverse le silo sans s'y vider.
+
+**Une navette a une nature.** La file disait « Silo → Usine céréales » et rien de plus :
+l'engin chargeait le premier tas venu, et l'on découvrait au retour qu'il avait livré de
+l'avoine là où l'on attendait du blé. La question se pose donc à la création du trajet,
+et ne propose que ce qui a un sens dessus — ce que le départ peut donner ET ce que
+l'arrivée veut bien prendre : trois céréales pour l'usine de céréales, l'orge seule pour
+la brasserie, les quatre grains que mangent les bêtes pour une pâture. Les deux tables
+raisonnent en POSSIBLE et non en présent : un plan est un ordre permanent, il doit se
+composer même quand le tas est momentanément vide. Répondre **Tout**, ou reprendre un
+plan composé avant que la question existe, rend le comportement d'origine — on prend ce
+qui vient. Et quand le tas demandé est vide, l'engin repart à vide plutôt que de charger
+autre chose. Le libellé de la tâche rouvre le choix, la croix l'efface.
 
 **La carte se pince pour grossir.** Elle tenait le monde entier dans un rectangle de
 trois cents pixels : une parcelle y faisait vingt pixels de côté et un point de
@@ -276,6 +288,15 @@ qui glisse déplace le cadrage, qui ne sort jamais de la carte. La désignation 
 alors au RELÂCHEMENT et non plus à l'appui : tant qu'on appuie, on ne sait pas encore si
 le doigt va rester en place — c'est un choix — ou partir — c'est un déplacement. Huit
 pixels de tolérance, la largeur d'un doigt qui tremble.
+
+**La carte dit ce qu'il y a à faire.** Elle montrait vingt rectangles de la même couleur :
+on savait où étaient ses parcelles, pas lesquelles attendaient quelque chose. Chacune
+prend maintenant la couleur de son état — violet pour un élevage, jaune pour une culture
+à moissonner, vert pour une culture en pousse, terre pour une parcelle à semer, brun pour
+une parcelle à labourer — et, dès qu'on grossit assez pour la lire, elle porte son
+écriteau : le nom de la culture et son avancement en pour-cent, « à moissonner » quand
+elle est mûre, l'espèce et le nombre de bêtes sur ses places pour un enclos. C'est ce qui
+permet de choisir quel engin envoyer où sans quitter la carte.
 
 ## La nuit
 
@@ -832,10 +853,57 @@ d'un huitième à un quart. Et la marge tenait le TRACTEUR à l'intérieur, pas 
 charrue de trois mètres voyait sa bordure extérieure tomber pile sur la limite, et
 quelques centimètres de dérive suffisaient à ce que la dernière rangée ne soit jamais
 retournée. Le premier tour — celui qui longe les quatre bords — sort donc de la parcelle,
-sur la bande de sable de 6,40 m qui la sépare de sa voisine. Relevé sur les seize cas du
-banc, machine pilotée image par image : le pire cas passe de **77,7 % à 88,9 %** et la
-moyenne de 92,6 à 93,6. Les deux chiffres sont mesurés et non choisis — le paysage n'est
-pas lisse, 0,70 de recouvrement redescend à 81,3 % et 0,86 à 78,6.
+sur la bande de sable de 6,40 m qui la sépare de sa voisine. Les deux chiffres sont
+mesurés et non choisis — le paysage n'est pas lisse.
+
+**Le débord s'est raccourci, le recouvrement s'est resserré.** Quatre-vingt-dix
+centimètres dehors, c'était le tracteur — 2,70 m de large — posé pour un tiers sur la
+bande de sable, et l'on voyait le premier tour se faire hors du champ : **40 cm**
+suffisent à ce que la bordure de l'outil couvre la dernière rangée de cellules. Et il
+restait des morceaux de terre entre deux passes, là où l'outil traîné dérive vers
+l'intérieur du virage sur les premiers mètres : le pas descend de **0,74 à 0,66** largeur
+d'outil. Relevé sur les seize cas du banc — 0,60 et 0,70 font moins bien, 86,4 % et 86,0 %
+au pire.
+
+**Une passe finie se vérifie, et se termine dehors.** Le tracé épuisé, le pilote regarde
+ce qui n'a pas été travaillé et y renvoie l'engin — jusqu'à trois fois, et l'on s'arrête
+dès qu'un passage n'a plus rien rattrapé. Le rattrapage ne refait pas la parcelle : il
+trace des LIGNES DROITES sur l'emprise de ce qui reste, et les fait dépasser franchement
+de part et d'autre, de sorte que les demi-tours — seul endroit où l'outil ne suit pas le
+tracé — se prennent EN DEHORS de ce qu'il faut rattraper. Un escargot resserré sur les
+trous avait été essayé : il faisait moins bien, parce qu'il virait précisément là où il
+fallait travailler.
+
+Ce qui reste ne se lit d'ailleurs pas dans `from` : la charrue accepte la terre labourée
+et l'épandeur sort du semé pour rendre du semé — leur reste ne diminuerait jamais et la
+vérification tournerait en rond. On regarde donc ce que l'outil LAISSE DERRIÈRE LUI :
+l'état de sortie pour les trois outils qui en changent, la marque d'engrais pour celui
+qui n'en change pas.
+
+Puis l'engin **ressort de la parcelle** : il s'arrêtait net sur le bord, à cheval sur la
+dernière rangée qu'il venait de travailler. Un point de sortie est ajouté quatre mètres
+au-delà de la limite, dans le sens où l'on roulait — un point posé sur le bord le plus
+proche ferait finir par un quart de tour à l'arrêt. Il se choisit LIBRE : le décor pousse
+entre les parcelles, et une sortie posée sur un arbre, c'est une machine qui finit son
+champ le nez contre un tronc ; cinq sorties sont essayées, on prend la première dont le
+trajet ne rencontre rien. Et ce point-là se valide sur la position de la MACHINE et non de
+l'outil, contrairement à tous les autres : la moissonneuse porte sa coupe DEVANT, et
+s'arrêtait le nez encore dans le blé.
+
+**Un point qu'on n'atteint pas ne retient plus la machine toute la nuit.** Un plan est
+tracé à la règle, sans rien savoir de ce qui pousse entre deux parcelles : un arbre, un
+rocher, une clôture peuvent tomber sur un point de passage, et l'engin poussait alors
+contre l'obstacle indéfiniment, plan gelé — mesuré, quatre cents secondes de jeu sans
+avancer d'un point, sur trois des seize cas du banc. Si la distance au point visé ne
+descend plus pendant huit secondes, on l'abandonne ; le rattrapage de fin de passe
+retrouvera ce qui n'a pas été fait là.
+
+Relevé sur les seize cas du banc, machine pilotée image par image et marquage du sol
+actif : la couverture du pire cas passe de **88,9 % à 96,2 %**, la moyenne de 93,6 à
+**99,0 %**, les cellules jamais touchées de **370 à 49**, les passes qui se terminent
+d'elles-mêmes de **13 sur 16 à 16 sur 16** — et le tout en un tiers de temps de moins,
+parce que plus rien ne reste coincé. La distance au plus proche obstacle ne bouge pas :
+1,50 m.
 
 **On ressort d'une impasse en marche arrière.** Un point de dépose est au fond d'un
 cul-de-sac : dix mètres de parvis entre la façade et le bitume, ou la grille du silo au

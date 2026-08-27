@@ -316,6 +316,9 @@
   #plan .pc.on{opacity:1;background:#FAD201;color:#1B2429}
   #plan .pc .pt{width:8px;height:8px;border-radius:2px;flex:none}
   #plan .pc.tache{opacity:1;background:rgba(250,210,1,.16);color:#FAD201}
+  /* La croix déborde sur les marges de la puce : sa zone de touche fait la hauteur du
+     bouton, alors qu'un glyphe de neuf pixels n'en ferait pas le tiers. */
+  #plan .pc .xx{margin:-5px -11px -5px 0;padding:5px 11px 5px 7px;opacity:.75}
   #plan .pc.vide{opacity:.35;background:none;font-weight:normal;text-transform:none;
     letter-spacing:.4px;pointer-events:none}
   #plancarte{flex:1;min-height:0;position:relative;margin:0 10px;border-radius:12px;
@@ -428,6 +431,7 @@
     <div id="plancarte"><canvas id="plancv"></canvas></div>
     <div id="planaide"></div>
     <div id="plantaches" class="rang"></div>
+    <div id="planprod" class="rang"></div>
     <div id="planpied"><div id="planboucle" class="pb">EN BOUCLE</div><div id="planlancer" class="pb pri">LANCER</div></div>
   </div>
 </div>
@@ -6503,7 +6507,11 @@ function planAuto(m, cible){
      cas passe de 77,7 % à 88,9 et la moyenne de 92,6 à 93,6. Le paysage n'est pas lisse,
      l'outil traînant derrière coupant les virages : 0,70 redescend à 81,3 et 0,86 à 78,6.
      C'est 0,74 qui tient les deux bouts. */
-  const pas = T.width*0.74;
+  /* RELEVÉ À NOUVEAU, ET RESSERRÉ ENCORE. Il restait des morceaux de terre entre deux
+     passes — pas dans les coins cette fois, mais le long des lignes, là où l'outil
+     traîné dérive vers l'intérieur du virage sur les premiers mètres d'une passe. Le
+     pas descend donc de trois quarts à deux tiers de la largeur d'outil. */
+  const pas = T.width*0.66;
   // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
   // affleure la clôture sans que la machine s'en approche.
   /* LA MARGE TIENT LE TRACTEUR DANS LA PARCELLE, PAS L'OUTIL. Elle valait une
@@ -6530,7 +6538,13 @@ function planAuto(m, cible){
      mêmes, le resserrage se chargeant du reste. Le débord est borné par la largeur de
      l'outil : un outil étroit n'a pas besoin de sortir loin, et un outil large sortait
      déjà tout seul. */
-  const DEBORD = Math.min(0.9, T.width*0.30);
+  /* ET IL EST PLUS COURT QU'IL NE L'ÉTAIT. Quatre-vingt-dix centimètres, c'était le
+     tracteur — deux mètres soixante-dix de large — posé pour un tiers sur la bande de
+     sable, et l'on voyait très bien le premier tour se faire hors du champ. Quarante
+     centimètres suffisent à ce que l'outil, centré sur la machine, couvre franchement
+     la dernière rangée de cellules : ce qui doit dépasser, c'est la BORDURE de l'outil,
+     pas la cabine. */
+  const DEBORD = Math.min(0.4, T.width*0.14);
   let x0 = best.x - best.w/2 - DEBORD, x1 = best.x + best.w/2 + DEBORD;
   let z0 = best.z - best.h/2 - DEBORD, z1 = best.z + best.h/2 + DEBORD;
   void marge; void rx0; void rx1; void rz0; void rz1;
@@ -6610,7 +6624,166 @@ function planAuto(m, cible){
   // Deux points confondus font tourner l'engin sur place : on les élague.
   const net = pts.filter((q, k)=> k === 0 ||
     Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
-  return {pts:net, i:0, replans:0, p:best, reste:bestN};
+  return {pts:net, i:0, replans:0, p:best, reste:resteCellules(T, best).n};
+}
+/* CE QU'IL RESTE VRAIMENT À FAIRE, ET POURQUOI ÇA NE SE LIT PAS DANS `from`.
+   Compter les cellules dont l'état figure dans `from`, c'est ne jamais voir un travail
+   avancer pour deux outils sur quatre : la charrue accepte la terre labourée — on
+   relaboure ce qu'on vient de labourer — et l'épandeur sort du semé pour rendre du
+   semé. Leur reste ne diminuait donc jamais, et tout contrôle de fin de passe fondé
+   dessus repassait indéfiniment sur une parcelle finie.
+   On regarde donc ce que l'outil LAISSE DERRIÈRE LUI : l'état de sortie pour les trois
+   outils qui en changent, et la marque d'engrais pour celui qui n'en change pas. */
+function resteCellules(T, p){
+  const R = {n:0, x0:Infinity, x1:-Infinity, z0:Infinity, z1:-Infinity};
+  if(!T || !T.from || !p) return R;
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i, st = state[id];
+    if(st === ST.HORS || T.from.indexOf(st) < 0) continue;
+    if(T.key === 'engrais'){ if(fert[id]) continue; }
+    else if(st === T.to) continue;
+    // une récolteuse ne prend que sa famille de cultures
+    if(T.recolte && !!(CROPS[cropCell[id]] || {}).perenne !== !!T.perennes) continue;
+    R.n++;
+    const cx = X0 + (i+0.5)*CS, cz = Z0 + (j+0.5)*CS;
+    if(cx < R.x0) R.x0 = cx; if(cx > R.x1) R.x1 = cx;
+    if(cz < R.z0) R.z0 = cz; if(cz > R.z1) R.z1 = cz;
+  }
+  return R;
+}
+/* LE RATTRAPAGE. Une fois l'escargot fini, on regarde ce qui n'a pas été travaillé —
+   et il en reste toujours un peu : l'outil est traîné quatre à six mètres derrière le
+   tracteur et coupe les virages. On ne refait pas la parcelle : on trace des LIGNES
+   DROITES sur l'emprise de ce qui reste, et — c'est tout l'intérêt — on les fait
+   dépasser franchement de part et d'autre, de sorte que les demi-tours, seul endroit
+   où l'outil ne suit pas, se prennent EN DEHORS de ce qu'il faut rattraper. Un tour
+   d'escargot resserré sur les trous avait été essayé : il faisait moins bien, parce
+   qu'il virait précisément là où il fallait travailler. */
+function planRattrapage(m, p){
+  const T = toolOf(m), v = m.v;
+  const R = resteCellules(T, p);
+  if(!R.n) return null;
+  const pas = T.width*0.66;
+  const DEBORD = Math.min(0.4, T.width*0.14);
+  const DEHORS = T.width*0.5 + (T.hitch || 2) + (T.L || 2) + 1.5;   // de quoi virer au large
+  const surX = (R.x1 - R.x0) >= (R.z1 - R.z0);
+  // Les lignes courent le long du grand côté de ce qui reste ; elles se décalent
+  // le long de l'autre. Tout est borné par l'enveloppe de la parcelle, débord compris :
+  // on ne va pas rattraper trois cellules au prix d'un tour dans la clôture d'à côté.
+  const a0 = surX ? R.z0 : R.x0, a1 = surX ? R.z1 : R.x1;
+  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) - DEBORD;
+  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) + DEBORD;
+  const b0 = Math.max(lim0, (surX ? R.x0 : R.z0) - DEHORS);
+  const b1 = Math.min(lim1, (surX ? R.x1 : R.z1) + DEHORS);
+  const n = Math.max(1, Math.ceil((a1 - a0)/pas));
+  const pts = [];
+  /* ON COMMENCE PAR LE BOUT LE PLUS PROCHE. Sans ça l'engin traverse ce qu'il vient de
+     travailler en diagonale pour aller se placer au coin opposé. */
+  const versFin = Math.abs(v.pos[surX ? 'z' : 'x'] - a1) < Math.abs(v.pos[surX ? 'z' : 'x'] - a0);
+  for(let k = 0; k <= n; k++){
+    const a = a0 + (a1 - a0)*(versFin ? n - k : k)/n;
+    const u = (k % 2 === 0) ? b0 : b1, w2 = (k % 2 === 0) ? b1 : b0;
+    pts.push(surX ? {x:u, z:a} : {x:a, z:u});
+    pts.push(surX ? {x:w2, z:a} : {x:a, z:w2});
+  }
+  const net = pts.filter((q, k)=> k === 0 ||
+    Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
+  return {pts:net, i:0, replans:0, p:p, reste:R.n, rattrape:true, entre:true};
+}
+/* ET L'ON FINIT DEHORS. Le dernier point de l'escargot tombe sur un bord ; l'engin s'y
+   arrêtait net, à cheval sur la dernière rangée qu'il venait de travailler, et il
+   fallait le dégager à la main pour repartir. On ajoute un point franchement hors de
+   la parcelle, dans la direction du bord le plus proche : la machine en sort d'elle-
+   même, par le plus court, et se retrouve sur la bande de sable, prête à rouler. */
+/* Quatre mètres au-delà du bord, et l'on s'en va DANS LE SENS OÙ L'ON ROULAIT : un
+   point posé sur le bord le plus proche fait finir la parcelle par un quart de tour à
+   l'arrêt, alors que la dernière ligne pointait déjà vers la sortie. Le dernier point
+   d'un plan se valide à deux mètres près : quatre mètres dehors, c'est deux mètres
+   dehors une fois la machine arrêtée, l'attelage encore sur la terre. */
+const SORTIE_PARCELLE = 4.0;
+/* ET LA SORTIE SE CHOISIT LIBRE. Le décor pousse entre les parcelles : un arbre, un
+   rocher, un poteau. Un point de sortie posé dessus, c'est une machine qui finit son
+   champ le nez contre un tronc. On teste donc le trajet, et l'on prend la première des
+   cinq sorties possibles qui ne rencontre rien — le cap qu'on suivait, puis les quatre
+   bords. */
+function voieLibre(ax, az, bx, bz){
+  const L = Math.hypot(bx - ax, bz - az);
+  const n = Math.max(1, Math.ceil(L/1.2));
+  for(let k = 1; k <= n; k++){
+    const x = ax + (bx - ax)*k/n, z = az + (bz - az)*k/n;
+    for(const o of obstacles) if(Math.hypot(x - o.x, z - o.z) < o.r + 1.9) return false;
+    for(const o of boxObs)
+      if(Math.abs(x - o.x) < o.hw + 1.9 && Math.abs(z - o.z) < o.hd + 1.9) return false;
+  }
+  return true;
+}
+function pointSortie(p, fin, avant){
+  if(!p || !fin) return null;
+  const hx = p.w/2 + SORTIE_PARCELLE, hz = p.h/2 + SORTIE_PARCELLE;
+  const cand = [];
+  let dx = avant ? fin.x - avant.x : 0, dz = avant ? fin.z - avant.z : 0;
+  const L = Math.hypot(dx, dz);
+  if(L > 0.1){
+    dx /= L; dz /= L;
+    // où ce cap-là quitte-t-il la parcelle élargie ?
+    let t = Infinity;
+    if(dx >  1e-6) t = Math.min(t, (p.x + hx - fin.x)/dx);
+    if(dx < -1e-6) t = Math.min(t, (p.x - hx - fin.x)/dx);
+    if(dz >  1e-6) t = Math.min(t, (p.z + hz - fin.z)/dz);
+    if(dz < -1e-6) t = Math.min(t, (p.z - hz - fin.z)/dz);
+    if(t > 1.5 && t < 22) cand.push({x:fin.x + dx*t, z:fin.z + dz*t, sortie:true});
+  }
+  // puis les quatre bords, du plus proche au plus lointain
+  const d = [fin.x - (p.x - hx), (p.x + hx) - fin.x,
+             fin.z - (p.z - hz), (p.z + hz) - fin.z];
+  const bord = [{x:p.x - hx, z:fin.z, sortie:true}, {x:p.x + hx, z:fin.z, sortie:true},
+                {x:fin.x, z:p.z - hz, sortie:true}, {x:fin.x, z:p.z + hz, sortie:true}];
+  [0, 1, 2, 3].sort((a2, b2)=> d[a2] - d[b2]).forEach((k)=>{ if(d[k] >= 1.5) cand.push(bord[k]); });
+  for(const q of cand) if(voieLibre(fin.x, fin.z, q.x, q.z)) return q;
+  return cand[0] || null;
+}
+/* UN POINT QU'ON N'ATTEINT PAS NE RETIENT PAS LA MACHINE TOUTE LA NUIT.
+   Un plan est tracé à la règle, sans rien savoir de ce qui pousse entre deux parcelles :
+   un arbre, un rocher, une clôture peuvent tomber sur un point de passage — et l'engin
+   poussait alors contre l'obstacle indéfiniment, moteur au ralenti, plan gelé. Mesuré :
+   quatre cent secondes de jeu sans avancer d'un point. On surveille donc la distance au
+   point visé ; si elle ne descend plus pendant huit secondes, on abandonne ce point et
+   l'on passe au suivant. Ce qui n'a pas été travaillé là, le rattrapage de fin de passe
+   le retrouvera. */
+function pointPerdu(v, wp, dt){
+  const plan = v.plan;
+  if(!plan) return false;
+  const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+  if(plan.veilleI !== plan.i || d < (plan.veilleD === undefined ? Infinity : plan.veilleD) - 0.35){
+    plan.veilleI = plan.i; plan.veilleD = d; plan.veilleT = 0;
+    return false;
+  }
+  plan.veilleT = (plan.veilleT || 0) + dt;
+  return plan.veilleT > 8;
+}
+/* LA FIN D'UNE PASSE, EN DEUX TEMPS : on vérifie, puis on ressort.
+   Rend `true` tant que le plan a encore quelque chose à faire faire — un rattrapage
+   de plus, ou la sortie de parcelle — et `false` quand c'est vraiment fini. Trois
+   rattrapages au plus, et l'on s'arrête dès qu'un passage n'a plus rien rattrapé :
+   un outil qui ne peut pas finir le travail ne doit pas y passer la nuit. */
+function finDePlan(m){
+  const v = m.v, plan = v.plan;
+  if(!plan || plan.sorti) return false;
+  if((plan.replans || 0) < 3){
+    const r = planRattrapage(m, plan.p);
+    if(r && (!plan.rattrape || r.reste < plan.reste)){
+      r.replans = (plan.replans || 0) + 1;
+      v.plan = r;
+      return true;
+    }
+  }
+  plan.sorti = true;
+  const n2 = plan.pts.length;
+  const s = pointSortie(plan.p, plan.pts[n2 - 1], plan.pts[n2 - 2]);
+  if(s){ plan.pts.push(s); return true; }
+  return false;
 }
 
 /* ALLER D'UN POINT À UN AUTRE SANS PIÉTINER LES CHAMPS.
@@ -6785,7 +6958,7 @@ function quitterLieu(v){
    celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
 function tacheSuivante(m){
   const v = m.v, M = v.mission;
-  v.plan = null; v.sensVoulu = 'route'; M.etape = 0; M.attente = 0;
+  v.plan = null; v.sensVoulu = 'route'; v.cleVoulue = null; M.etape = 0; M.attente = 0;
   v.route = null; v.routeBut = null; v.routeArr = null;
   // On ne remet PAS `reculer` à zéro : la tâche change, mais l'engin est encore au fond
   // de son impasse et doit d'abord en sortir.
@@ -6802,6 +6975,7 @@ function missionDrive(m, dt){
   const rec = pasDeRecul(v, dt);
   if(rec) return rec;
   if(t.quoi === 'parcelle'){
+    v.cleVoulue = null;
     // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
     if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
     if(v.goSilo){
@@ -6818,7 +6992,13 @@ function missionDrive(m, dt){
       if(!v.plan){ tacheSuivante(m); return [0, 0]; }
     }
     const wp = v.plan.pts[v.plan.i];
-    if(!wp){ tacheSuivante(m); return [0, 0]; }
+    // La parcelle n'est finie que vérifiée ET quittée : sans ça, le plan enchaînait
+    // sur la parcelle suivante en laissant derrière lui les coins que l'outil traîné
+    // avait coupés, et l'engin partait du milieu du champ.
+    if(!wp){
+      if(finDePlan(m)) return [0, 0.5];
+      tacheSuivante(m); return [0, 0];
+    }
     // On rejoint le premier point du travail PAR LES CHEMINS. Sans ça, l'engin part en
     // diagonale et laboure au passage toutes les parcelles qui le séparent du chantier.
     if(!v.plan.entre){
@@ -6826,7 +7006,10 @@ function missionDrive(m, dt){
       if(r) return r;
       v.plan.entre = true;
     }
-    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 2.0){ v.plan.i++; return [0, 0.5]; }
+    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < (wp.sortie ? 1.0 : 2.0)
+       || pointPerdu(v, wp, dt)){
+      v.plan.i++; return [0, 0.5];
+    }
     return viser(v, wp.x, wp.z, 2.0);
   }
   // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
@@ -6834,6 +7017,10 @@ function missionDrive(m, dt){
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
   const P = lieuPoint(M.etape === 0 ? t.a : t.b);
   if(!P){ tacheSuivante(m); return [0, 0]; }
+  // La nature demandée vaut pour les deux étapes : on ne charge que ça au départ, et
+  // l'on ne livre que ça à l'arrivée. Sans elle — les plans d'avant, et ceux où l'on
+  // a répondu « Tout » — le pilote prend ce qui vient, comme auparavant.
+  v.cleVoulue = t.cle || null;
   v.sensVoulu = 'route';
   const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r);
   if(r){ M.attente = 0; return r; }
@@ -6844,7 +7031,8 @@ function missionDrive(m, dt){
   // 2,5 m/s — et repartirait donc à vide dès la première image, sans jamais rien
   // charger. Le temps d'attente court quand même : un engin coincé finit par céder.
   if(v.speed > 2.0 && M.attente < 40) return [0, 0];
-  const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu);
+  const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu
+                                          && (!v.cleVoulue || A.cle === v.cleVoulue));
   // Quarante secondes : de quoi vider la plus grosse benne au débit le plus lent, et
   // de quoi repartir quand même si le lieu ne peut rien nous donner.
   if(!encore || M.attente > 40){
@@ -6858,6 +7046,7 @@ function missionDrive(m, dt){
 function autoDrive(m, dt){
   const v = m.v;
   if(v.mission) return missionDrive(m, dt);
+  v.cleVoulue = null;              // hors navette, on prend ce qui vient
   const rec = pasDeRecul(v, dt);
   if(rec) return rec;
   // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
@@ -6872,21 +7061,13 @@ function autoDrive(m, dt){
   }
   const wp = v.plan.pts[v.plan.i];
   if(!wp){
-    /* ON REPASSE TANT QU'IL RESTE QUELQUE CHOSE — ET TANT QUE ÇA AVANCE. Un seul
-       second passage ne suffisait pas : il restait de une à cent douze cellules jamais
-       travaillées selon l'outil. On repasse donc jusqu'à trois fois, sur l'emprise de
-       ce qui reste, et l'on s'arrête dès qu'un passage n'a plus rien rattrapé — ce qui
-       arrive tout de suite pour les outils dont l'état de sortie est aussi un état
-       d'entrée, la charrue et l'épandeur, où « ce qui reste » ne diminue jamais. */
-    /* Le nombre de repassages a été mesuré, pas choisi : trois passages conditionnés à
-       « il reste moins qu'avant » font MOINS bien qu'un second passage inconditionnel —
-       78,6 % au pire contre 73,5 — parce que la charrue et l'épandeur, dont l'état de
-       sortie est aussi un état d'entrée, ne voient jamais leur reste diminuer et
-       perdaient alors leur second passage. */
-    const reste = planAuto(m);
-    if(reste && v.plan.replans < 1){
-      reste.replans = v.plan.replans + 1; v.plan = reste;
-      showHint('SECOND PASSAGE');
+    /* LA PASSE FINIE, ON VÉRIFIE. `finDePlan` regarde ce qui n'a pas été travaillé,
+       envoie l'engin repasser dessus s'il en reste, et le fait ressortir de la
+       parcelle quand il n'y a plus rien. Tant qu'il rend `true`, il y a encore à
+       faire — le plan courant a été remplacé, ou allongé d'un point. */
+    const suite = !v.plan.sorti;
+    if(finDePlan(m)){
+      if(suite && v.plan.rattrape && v.plan.replans === 1) showHint('ON REPASSE SUR LES MANQUES');
       return [0, 0.5];
     }
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
@@ -6912,9 +7093,17 @@ function autoDrive(m, dt){
   const pre = v.plan.pts[v.plan.i - 1];
   const dx = pre ? wp.x - pre.x : 0, dz = pre ? wp.z - pre.z : 0;
   const L = Math.hypot(dx, dz);
-  const depasse = L > 0.1 &&
-    ((v.toolX - wp.x)*dx + (v.toolZ - wp.z)*dz)/L > -0.05;
-  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < 2.0){ v.plan.i++; return [0, 0.5]; }
+  /* SAUF LE POINT DE SORTIE, QUI SE JUGE SUR LA MACHINE. Partout ailleurs c'est
+     l'OUTIL qui doit avoir dépassé le point — c'est lui qui travaille. Mais la moisson
+     porte sa coupe DEVANT : sur le dernier point, celui qui fait sortir de la parcelle,
+     la coupe franchissait la limite quatre mètres avant la cabine et la machine
+     s'arrêtait le nez encore dans le blé. Ce point-là, c'est l'engin qui le passe. */
+  const px = wp.sortie ? v.pos.x : v.toolX, pz = wp.sortie ? v.pos.z : v.toolZ;
+  const depasse = L > 0.1 && ((px - wp.x)*dx + (pz - wp.z)*dz)/L > -0.05;
+  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < (wp.sortie ? 1.0 : 2.0)
+     || pointPerdu(v, wp, dt)){
+    v.plan.i++; return [0, 0.5];
+  }
   return viser(v, wp.x, wp.z, 1.2);
 }
 // oriente la machine vers un point : braquage proportionnel, ralenti dans les virages
@@ -8051,17 +8240,57 @@ function lieuxPossibles(){
 }
 const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
 
+/* CE QU'UNE NAVETTE TRANSPORTE. Une file disait « Silo → Usine céréales » et rien de
+   plus : l'engin chargeait le premier tas venu, et l'on découvrait au retour qu'il
+   avait livré de l'avoine là où l'on attendait du blé. La tâche porte donc une NATURE,
+   et le pilote ne charge et ne livre que celle-là.
+
+   Les deux tables ci-dessous disent ce qu'un lieu peut donner et ce qu'il peut prendre.
+   Elles raisonnent en POSSIBLE et non en présent : un plan est un ordre permanent, il
+   doit se composer même quand le tas est momentanément vide, sinon la liste des choix
+   changerait à chaque passage. Les tas se lisent quand même, pour ce que l'entrepôt et
+   les commerces gardent en réserve. */
+function lieuDonne(cle){
+  if(cle === 'silo') return SILO_CLES.slice();
+  if(cle === 'entrepot') return Object.keys(PRODUITS).filter((k)=> entrepotAccepte(k));
+  if(cle.slice(0, 6) === 'pature'){
+    const P = PATURES[+cle.slice(6)];
+    const E = P && (ESPECES[P.espece] || ESPECES.vache);
+    return (E && E.produit) ? [E.produit] : [];
+  }
+  const S = SITES.find((s)=> s.nom === cle);
+  return (S && !S.caisse) ? Object.keys(S.stock) : [];
+}
+function lieuPrend(cle){
+  if(cle === 'silo') return SILO_CLES.slice();
+  if(cle === 'entrepot') return Object.keys(PRODUITS).filter((k)=> entrepotAccepte(k));
+  if(cle.slice(0, 6) === 'pature') return Object.keys(RATION);
+  const S = SITES.find((s)=> s.nom === cle);
+  if(!S) return [];
+  const out = S.achete.slice();
+  for(const k of S.accepte) if(out.indexOf(k) < 0) out.push(k);
+  return out;
+}
+// Ce qui a un sens sur CE trajet : ce que le départ donne et que l'arrivée veut bien.
+function naturesNavette(a, b){
+  const pris = lieuPrend(b);
+  return lieuDonne(a).filter((k)=> pris.indexOf(k) >= 0);
+}
+
 const planEl = document.getElementById('plan');
 const planCv = document.getElementById('plancv');
 // Ce qu'on est en train de composer. `taches` est la file, `mode` ce qu'on ajoute.
 let planEngin = 0, planMode = 'parcelle', planTaches = [], planBoucle = false, planNav = null;
+// L'indice de la navette dont on choisit la nature, ou -1 : la rangée des natures
+// n'apparaît que le temps de répondre.
+let planProd = -1;
 
 function ouvrirPlan(){
   planEngin = cur;
   const M = MACHINES[planEngin];
   planTaches = (M.v.mission ? M.v.mission.taches.slice() : []);
   planBoucle = !!(M.v.mission && M.v.mission.boucle);
-  planNav = null;
+  planNav = null; planProd = -1;
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
@@ -8083,23 +8312,23 @@ function planPuce(txt, actif, f, teinte){
 }
 function majPlan(){
   const rE = document.getElementById('planengins'), rM = document.getElementById('planmodes'),
-        rT = document.getElementById('plantaches');
-  rE.innerHTML = ''; rM.innerHTML = ''; rT.innerHTML = '';
+        rT = document.getElementById('plantaches'), rP = document.getElementById('planprod');
+  rE.innerHTML = ''; rM.innerHTML = ''; rT.innerHTML = ''; rP.innerHTML = '';
   MACHINES.forEach((m, i)=>{
     if(m.verrou) return;
     rE.appendChild(planPuce(m.nom.toUpperCase(), i === planEngin, ()=>{
       planEngin = i;
       planTaches = (m.v.mission ? m.v.mission.taches.slice() : []);
       planBoucle = !!(m.v.mission && m.v.mission.boucle);
-      planNav = null; majPlan();
+      planNav = null; planProd = -1; majPlan();
     }, couleurEngin(m)));
   });
   const M = MACHINES[planEngin], T = toolOf(M);
   const peutTravailler = !!(T && T.from) || M.key === 'moisson';
   rM.appendChild(planPuce('Travailler des parcelles', planMode === 'parcelle',
-    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; majPlan(); } : null));
+    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; planProd = -1; majPlan(); } : null));
   rM.appendChild(planPuce('Navette entre deux lieux', planMode === 'navette',
-    ()=>{ planMode = 'navette'; planNav = null; majPlan(); }));
+    ()=>{ planMode = 'navette'; planNav = null; planProd = -1; majPlan(); }));
   if(!peutTravailler && planMode === 'parcelle'){ planMode = 'navette'; return majPlan(); }
 
   if(!planTaches.length) rT.appendChild(planPuce('Aucune tâche — touche la carte', false, null));
@@ -8108,17 +8337,50 @@ function majPlan(){
     const nomLieu = (cle)=>{ const P = lieuPoint(cle); return P ? P.nom : cle; };
     const nom = (t.quoi === 'parcelle')
       ? 'Parcelle ' + (t.p + 1)
-      : (nomLieu(t.a) + ' → ' + nomLieu(t.b));
-    const b = planPuce(nom + '   ✕', false, ()=>{ planTaches.splice(k, 1); majPlan(); });
-    b.classList.add('tache'); rT.appendChild(b);
+      : (nomLieu(t.a) + ' → ' + nomLieu(t.b)
+         + ' · ' + (t.cle ? nomDe(t.cle) : 'Tout'));
+    /* DEUX ZONES DANS UNE PUCE. Le libellé rouvre le choix de la nature, la croix
+       supprime la tâche. Elles sont dans le même bouton pour que la file reste une
+       ligne de phrases, mais la croix a sa propre zone de touche — sans quoi on
+       efface la tâche en voulant changer ce qu'elle transporte. */
+    const b = planPuce(nom, false, (t.quoi === 'navette')
+      ? ()=>{ planProd = k; majPlan(); } : null);
+    b.classList.add('tache');
+    const x = document.createElement('span');
+    x.className = 'xx'; x.textContent = '✕';
+    x.addEventListener('pointerdown', (e)=>{
+      e.stopPropagation();
+      planTaches.splice(k, 1);
+      if(planProd === k) planProd = -1; else if(planProd > k) planProd--;
+      majPlan();
+    });
+    b.appendChild(x);
+    rT.appendChild(b);
   });
+  /* LA RANGÉE DES NATURES. Elle n'existe que le temps de répondre : posée en
+     permanence, elle prendrait une ligne d'écran sur un téléphone couché pour une
+     question qui ne se pose qu'à la création d'une navette. */
+  const tp = planTaches[planProd];
+  if(tp && tp.quoi === 'navette'){
+    const nats = naturesNavette(tp.a, tp.b);
+    rP.appendChild(planPuce('Tout', !tp.cle, ()=>{ tp.cle = null; planProd = -1; majPlan(); }));
+    for(const k of nats)
+      rP.appendChild(planPuce(nomDe(k), tp.cle === k,
+        ()=>{ tp.cle = k; planProd = -1; majPlan(); },
+        (PRODUITS[k] || {}).couleur));
+    if(!nats.length)
+      rP.appendChild(planPuce('rien ne circule sur ce trajet', false, null)).classList.add('vide');
+  }
+  rP.style.display = rP.children.length ? '' : 'none';
   // Le pincement ne se devine pas : on le dit, et seulement tant qu'on ne s'en est pas
   // servi — une fois la carte grossie, la ligne redevient l'aide au choix.
   const zoomDit = planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.';
-  document.getElementById('planaide').textContent = ((planMode === 'parcelle')
-    ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
-    : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.'))
-    + zoomDit;
+  document.getElementById('planaide').textContent = (tp
+    ? 'Et qu\'est-ce qu\'il transporte ?'
+    : ((planMode === 'parcelle')
+      ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
+      : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.'))
+      + zoomDit);
   document.getElementById('planboucle').classList.toggle('on', planBoucle);
   const lancer = document.getElementById('planlancer');
   lancer.classList.toggle('no', !planTaches.length);
@@ -8175,18 +8437,49 @@ function dessinerCarte(){
   brin(ROAD_E - ROAD_W/2, Z0, ROAD_E + ROAD_W/2, Z0 + WZ);
   brin(X0, ROAD_C - ROAD_W/2, X0 + WX, ROAD_C + ROAD_W/2);
   brin(X0, ROAD_N - ROAD_W/2, X0 + WX, ROAD_N + ROAD_W/2);
-  // les parcelles : possédées en terre, les autres en friche pâle
+  /* LES PARCELLES, ET CE QU'ELLES ATTENDENT. Elles étaient toutes du même vert : on
+     voyait ce qu'on possédait, pas ce qu'il y avait à y faire, et l'on envoyait la
+     moissonneuse sur une terre en jachère. Chacune prend donc la couleur de son ÉTAT —
+     à labourer, à semer, en pousse, à moissonner — et l'enclos une couleur à lui, qui
+     n'est pas celle d'un champ : on n'y envoie pas les mêmes engins. */
   PARCELS.forEach((p, i)=>{
     const choisie = planTaches.some((t)=> t.quoi === 'parcelle' && t.p === i);
-    c.fillStyle = !p.owned ? 'rgba(255,255,255,.05)' : (choisie ? '#FAD201' : '#4E6B3C');
+    const R = p.owned ? resumeParcelle(p) : null;
+    c.fillStyle = !p.owned ? 'rgba(255,255,255,.05)'
+                : (choisie ? '#FAD201'
+                : (p.pature ? '#6B4E7A' : R.teinte));
+    c.globalAlpha = (!p.owned || choisie) ? 1 : 0.55;
     c.fillRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
+    c.globalAlpha = 1;
     c.strokeStyle = choisie ? '#FFF' : 'rgba(0,0,0,.28)';
     c.lineWidth = choisie ? 2 : 1;
     c.strokeRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
-    if(p.owned && p.w*planEch > 22){
-      c.fillStyle = choisie ? '#1B2429' : 'rgba(255,255,255,.5)';
+    if(!p.owned) return;
+    const large = p.w*planEch;
+    if(large > 22){
+      c.fillStyle = choisie ? '#1B2429' : 'rgba(255,255,255,.65)';
       c.font = 'bold 9px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
-      c.fillText(String(i + 1), px(p.x), pz(p.z) + 3);
+      c.fillText(String(i + 1), px(p.x), pz(p.z) + (large > 74 ? -8 : 3));
+    }
+    /* CE QU'ELLE PORTE, ÉCRIT DESSUS — mais seulement quand on a grossi assez pour le
+       lire. À l'échelle du monde entier une parcelle fait vingt pixels de large : deux
+       lignes de texte n'y tiendraient pas, elles feraient une bouillie. */
+    if(large > 74){
+      c.font = 'bold 10px "Trebuchet MS",sans-serif';
+      c.fillStyle = choisie ? '#1B2429' : '#FFF';
+      if(p.pature){
+        const P2 = PATURES.find((q)=> q.p === p);
+        const E = P2 && ESPECES[P2.espece];
+        c.fillText(E ? E.pluriel : 'Élevage', px(p.x), pz(p.z) + 4);
+        c.font = '10px "Trebuchet MS",sans-serif';
+        c.fillStyle = choisie ? 'rgba(27,36,41,.8)' : 'rgba(255,255,255,.85)';
+        if(P2) c.fillText(P2.betes.length + ' / ' + P2.places, px(p.x), pz(p.z) + 17);
+      } else {
+        if(R.nom) c.fillText(R.nom, px(p.x), pz(p.z) + 4);
+        c.font = '10px "Trebuchet MS",sans-serif';
+        c.fillStyle = choisie ? 'rgba(27,36,41,.8)' : 'rgba(255,255,255,.85)';
+        c.fillText(R.quoi, px(p.x), pz(p.z) + (R.nom ? 17 : 4));
+      }
     }
   });
   // les dalles des commerces, pour la silhouette du village
@@ -8314,7 +8607,13 @@ function planDesigner(ev){
     }
     if(!best) return;
     if(!planNav){ planNav = best.cle; }
-    else if(planNav !== best.cle){ planTaches.push({quoi:'navette', a:planNav, b:best.cle}); planNav = null; }
+    else if(planNav !== best.cle){
+      planTaches.push({quoi:'navette', a:planNav, b:best.cle, cle:null});
+      planNav = null;
+      // La question de la nature vient tout de suite : c'est le moment où l'on sait
+      // encore ce qu'on voulait faire de ce trajet.
+      planProd = planTaches.length - 1;
+    }
     else planNav = null;
   }
   majPlan();
@@ -8328,13 +8627,14 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
   if(v.mission){ arreterMission(M); majPlan(); return; }
   if(!planTaches.length) return;
   v.mission = {taches:planTaches.slice(), i:0, etape:0, boucle:planBoucle, attente:0};
-  v.auto = true; v.plan = null; v.goSilo = false; v.sensVoulu = null;
+  v.auto = true; v.plan = null; v.goSilo = false; v.sensVoulu = null; v.cleVoulue = null;
   showHint(M.nom.toUpperCase() + ' — ' + planTaches.length + ' TÂCHE'
            + (planTaches.length > 1 ? 'S' : '') + (planBoucle ? ' EN BOUCLE' : ''));
   fermerPlan();
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
+  M.v.cleVoulue = null;
   M.v.route = null; M.v.routeBut = null; M.v.routeArr = null;
   showHint(M.nom.toUpperCase() + ' — PLAN ARRÊTÉ');
 }
@@ -10206,7 +10506,10 @@ const actionPour = (m)=>{
   let L = actionsIci(m);
   if(v.sensVoulu){
     const F = L.filter((A)=> modeDe(A) === v.sensVoulu);
-    if(F.length) L = F;
+    // Et quand la navette a une nature, on s'y tient : rien de ce qu'il y a d'autre
+    // ici ne fera l'affaire. La liste peut donc devenir vide — l'engin attend, puis
+    // repart, plutôt que de charger de l'avoine pour une tournée de blé.
+    if(F.length) L = v.cleVoulue ? F.filter((A)=> A.cle === v.cleVoulue) : F;
   }
   return L[0] || null;
 };
@@ -10889,6 +11192,43 @@ function rendreJauge(p){
 /* La pousse moyenne d'une parcelle. On ne la recalcule qu'une fois par seconde :
    balayer huit mille cellules à chaque image pour une barre qui avance d'un pixel
    toutes les deux secondes n'aurait aucun sens. */
+/* CE QUE PORTE UNE PARCELLE, EN UN COUP D'ŒIL. Le même relevé sert à la jauge qui
+   flotte au-dessus du champ et à l'étiquette de la carte du plan de travail : compter
+   deux fois, c'est se donner deux vérités. On compte TOUS les états et pas seulement
+   ceux qui poussent — une terre en jachère ou en chaume attend la charrue, une terre
+   labourée attend le semoir, et c'est précisément ce qu'on veut lire avant d'envoyer
+   un engin. */
+function resumeParcelle(p){
+  const R = {jachere:0, laboure:0, seme:0, mur:0, chaume:0, n:0,
+             pousse:0, crop:0, nom:'', quoi:'', teinte:'#7FD1E8'};
+  if(!p.owned || p.pature) return R;
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  let somme = 0, np = 0;
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i, s = state[id];
+    if(s === ST.HORS) continue;
+    R.n++;
+    if(s === ST.JACHERE) R.jachere++;
+    else if(s === ST.LABOURE) R.laboure++;
+    else if(s === ST.CHAUME) R.chaume++;
+    else if(s === ST.SEME || s === ST.MUR){
+      if(s === ST.MUR) R.mur++; else R.seme++;
+      somme += growth[id]; np++; R.crop = cropCell[id];
+    }
+  }
+  R.pousse = np ? somme/np : 0;
+  R.pousseN = np;
+  /* CE QU'IL Y A À Y FAIRE, dit en trois mots : c'est la seule chose qui décide quel
+     engin on envoie. L'état MAJORITAIRE l'emporte — une parcelle à moitié moissonnée
+     reste une parcelle à moissonner tant qu'il y reste plus de mûr que de chaume. */
+  const C2 = CROPS[R.crop] || CROPS[0];
+  if(R.mur > 0 && R.mur >= R.seme){ R.nom = C2.nom; R.quoi = 'à moissonner'; R.teinte = '#FFD21E'; }
+  else if(np > 0){ R.nom = C2.nom; R.quoi = Math.round(R.pousse*100) + ' %'; R.teinte = '#8BE07A'; }
+  else if(R.laboure >= R.jachere + R.chaume && R.laboure > 0){ R.quoi = 'à semer'; R.teinte = '#C9A66B'; }
+  else if(R.n > 0){ R.quoi = 'à labourer'; R.teinte = '#9A8468'; }
+  return R;
+}
 let pousseT = 0;
 function majPousseParcelles(dt){
   pousseT -= dt;
@@ -11971,6 +12311,7 @@ function chargerPartie(S){
       v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
       v.fuel = Math.min(q.fuel, v.resMax); v.sec = v.fuel <= 0;
       v.betail = q.betail; v.auto = false; v.mission = null; v.sensVoulu = null;
+      v.cleVoulue = null;
       if(v.cargo && q.cargo){ v.cargo.load = q.cargo.load; v.cargo.capacite = q.cargo.capacite; v.cargo.type = q.cargo.type; }
       if(m.key === 'moisson'){
         const head = v.group.userData.head;
