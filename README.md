@@ -242,6 +242,63 @@ seule cette fois, avec ce qui reste à livrer ligne par ligne.
 Relevé, quatre contrats plus la mission de campagne : **406 × 190 px avant, 257 × 158
 après** — de 8,5 % à 5,3 % de l'écran, et la largeur ne suit plus le bloc mais le texte.
 
+### Les volumes : une parcelle rend 250 kg, la trémie en tient 100
+
+Une parcelle de blé rendait **1 104 kg** quand la première mission du jeu en demande
+trente. On récoltait plus d'une tonne d'un coup, on remplissait le silo en deux passages,
+et les commerces devenaient des puits sans fond. Les rendements sont divisés par **4,44**
+et la parcelle de départ — 552 cellules — rend maintenant **248 kg**.
+
+| | par cellule | une parcelle de 552 | en trémies |
+|---|---|---|---|
+| Blé | 0,45 kg | 248 kg | 2,5 |
+| Maïs | 0,79 kg | 436 kg | 4,4 |
+| Colza | 0,56 kg | 309 kg | 3,1 |
+| Avoine | 0,38 kg | 210 kg | 2,1 |
+| Orge | 0,40 kg | 221 kg | 2,2 |
+| Raisin | 0,34 kg | 188 kg | 1,9 |
+| Olives | 0,29 kg | 160 kg | 1,6 |
+
+**La trémie de la moissonneuse fait l'unité**, à **100 kg**, et tout ce qui transporte ou
+range se règle sur elle — divisé par trois, en gardant ses proportions à la trémie :
+benne 400 → **135**, pick-up 200 → **70**, fourgon 460 → **155**, enjambeuse 300 → **100**,
+silo 8 000 → **2 700**, entrepôt 4 000 → **1 350**, trémie d'usine 1 000 → **335**, lot
+d'atelier 50 → **20** au premier palier.
+
+**Et l'argent n'a pas bougé d'un euro.** Les prix au kilo sont multipliés par le même
+4,44 : le blé passe de 0,50 à **2,22 € le kilo**, et une parcelle rapporte toujours
+**551 €** au lieu de 552. Tout ce qui se compte en euros — le prix des parcelles, des
+engins, des métiers d'atelier, les primes de mission — reste tel quel, et la progression
+avec. Semer une parcelle coûte toujours 37 € ; une cuve de lait pleine vaut toujours
+373 € et met toujours 14 minutes à se remplir ; le moulin met toujours 3 min 40 pour une
+parcelle de blé. Seuls les **nombres de kilos** ont changé.
+
+Le seul écart voulu est celui que la trémie impose : la terre a été divisée par 4,44 et
+le transport par 3, donc **un voyage vaut une fois et demie plus qu'avant**. C'est la
+conséquence directe des deux chiffres demandés — 250 kg par parcelle, 100 kg de trémie —
+et cela fait 2,5 voyages par parcelle de blé au lieu de 3,7.
+
+Les **missions de campagne** sont recalées là-dessus : elles demandaient entre 2,7 % et
+70 % de ce qu'une parcelle produit, sans ordre ; elles dessinent maintenant une rampe
+régulière de **12 % à 69 %**, du premier palier au treizième.
+
+| palier | mission | part d'une parcelle ou d'une cuve |
+|---|---|---|
+| 1 | 30 kg de blé | 12 % |
+| 1 | 60 kg de blé | 24 % |
+| 2 | 120 kg de blé | 48 % |
+| 3 | 50 kg de farine | 28 % |
+| 4 | 120 kg de maïs | 28 % |
+| 5 | 60 kg de farine + 13 d'œufs | 34 % / 41 % |
+| 6 | 100 kg d'orge | 45 % |
+| 7 | 100 kg d'avoine | 48 % |
+| 8 | 80 kg de lait | 59 % |
+| 9 | 10 kg de fromage + 60 de farine | 62 % / 34 % |
+| 10 | 28 kg de laine | 62 % |
+| 11 | 60 kg d'huile de colza | 57 % |
+| 12 | 22 kg d'huile d'olive | 69 % |
+| 13 | 80 kg de vin | 61 % |
+
 ### Les temps
 
 | | pousse | avec engrais |
@@ -288,8 +345,8 @@ central du jeu : encaisser tout de suite, ou faire un détour.
 | **Commande** ou contrat | ×3 |
 
 Le barème porte sur la matière engagée, pas sur le kilo produit, et le prix au kilo
-s'en déduit tout seul. Un kilo de blé vaut 0,50 € ; moulu il rend 0,72 kg de farine,
-qui doit valoir une fois et demie le blé de départ : la farine vaut donc 1,04 € le
+s'en déduit tout seul. Un kilo de blé vaut 2,22 € ; moulu il rend 0,72 kg de farine,
+qui doit valoir une fois et demie le blé de départ : la farine vaut donc 4,63 € le
 kilo. Aucun prix n'est écrit à la main — on ne règle qu'un rendement et un palier.
 
 L'onglet **Filières** affiche la chaîne entière, prix compris, relue dans les mêmes
@@ -392,17 +449,22 @@ valeur :
 
 | | | les 100 kg engagés |
 |---|---|---|
-| Moulin | blé → farine | 20 s |
-| Broyeur | maïs → aliment | 15 s |
-| Mélangeur premium | maïs + orge + avoine → aliment premium | 30 s |
-| Fromagerie | lait → fromage | 90 s |
-| Fromagerie de brebis | lait de brebis → fromage de brebis | 120 s |
-| Pressoir à colza | colza → huile | 60 s |
-| Pressoir à olives | olives → huile d'olive | 90 s |
-| Cave | raisin → vin | 120 s |
+| Moulin | blé → farine | 90 s |
+| Broyeur | maïs → aliment | 65 s |
+| Mélangeur premium | maïs + orge + avoine → aliment premium | 130 s |
+| Fromagerie | lait → fromage | 400 s |
+| Fromagerie de brebis | lait de brebis → fromage de brebis | 530 s |
+| Pressoir à colza | colza → huile | 265 s |
+| Pressoir à olives | olives → huile d'olive | 400 s |
+| Cave | raisin → vin | 530 s |
+
+(Ces durées ont été multipliées par 4,44 en même temps que les volumes ont été divisés
+d'autant : le temps de traiter **une parcelle** de récolte n'a pas bougé d'une seconde —
+3 min 40 pour une parcelle de blé au moulin, 16 min 30 pour une parcelle de raisin à la
+cave.)
 
 **Trois réglages universels**, qui ne donnent aucun métier neuf mais changent le
-rythme : la **capacité** d'un lot (100 → 250 → 500 → 1 000 kg de matière engagée), la
+rythme : la **capacité** d'un lot (20 → 45 → 85 → 170 kg de matière engagée), la
 **vitesse** (100 → 150 %), et la **file** (1 → 5 lots empilés). En début de partie on
 revient lancer chaque transformation ; à la fin on prépare cinq lots et l'on part faire
 les foins. Un joueur qui ne fera jamais de vin n'a plus à payer la cave pour avoir du
@@ -426,7 +488,7 @@ plus plein, c'est-à-dire celui qui va déborder, et son étiquette nomme les de
 Cent kilos de lait de vache font **12 kg** de fromage ; cent kilos de lait de brebis en
 font **20**. Le fromage de brebis n'est pas un fromage plus cher : c'est un **produit
 fini**, qui vaut donc le palier ×2 et non ×1,5 — le mieux payé que la ferme sache
-fabriquer, à 11,00 € le kilo contre 7,75.
+fabriquer, à 48,90 € le kilo contre 34,50.
 
 La fromagerie du village reste utile : elle achète le lait directement. Le choix est
 donc entier — lait à la fromagerie, argent tout de suite ; ou lait à l'atelier, fromage
@@ -616,20 +678,23 @@ de 25-57 % à **16 %**, sur la seule portion où l'on ne voit plus rien.
                                  \-> toute bête adulte -> boucherie (paie sur place)
 
    et au bout, l'échelle des acheteurs — chacun plafonné par nature :
-                caviste      +15 %, 600 kg    (vin, raisin)
-                restaurant   +10 %, 900 kg
-                coopérative    0 %, 7 000 kg  (les cinq céréales)
-                marché        −6 %, 2 000 kg
-                supermarché  −14 %, 9 000 kg
+                caviste      +15 %,  35 kg   (vin, raisin)
+                restaurant   +10 %,  50 kg
+                coopérative    0 %, 400 kg   (les cinq céréales)
+                marché        −6 %, 110 kg
+                supermarché  −14 %, 500 kg
 ```
 
 **Le mieux-disant ne peut pas tout prendre.** Chaque acheteur a un plafond par nature,
 et ce plafond est l'inverse de son prix : le caviste paie le vin le mieux de tous mais
-n'en écoule que six cents kilos, le supermarché paie le moins et en prend neuf mille.
+n'en écoule que trente-cinq kilos, le supermarché paie le moins et en prend cinq cents.
 Tous se refont en deux minutes. D'où la seule vraie question d'une tournée — vendre le
 haut de la benne au prix fort puis descendre l'échelle, ou tout donner d'un coup au
-moins-disant et repartir travailler. Deux mille kilos de vin rapportent 6 940 € en
-descendant l'échelle, 5 400 € si l'on vide tout au supermarché.
+moins-disant et repartir travailler. Relevé sur 450 kg de vin — trois parcelles et demie
+de raisin pressées : **5 839 €** en descendant l'échelle, **5 407 €** en vidant tout au
+supermarché. Huit pour cent, pour quatre arrêts au lieu d'un. (Le même relevé avant la
+remise à l'échelle des volumes, sur 2 000 kg : 5 834 contre 5 406. Le rapport n'a pas
+bougé d'un point — c'était le but.)
 
 **Un contrat accepté échappe au plafond** : le commerce qui a demandé cent vingt kilos de
 lait a promis de les prendre, et son étal ne peut pas les lui refuser même à zéro de
@@ -1440,6 +1505,13 @@ la propriété l'emporte toujours** — rien de ce qui a été acheté n'est jam
 
 Ses cinq anciens paliers d'atelier deviennent les six métiers correspondants, rendus
 gratuitement : un joueur qui avait payé la cave se réveillerait sans elle autrement.
+
+**L'échelle des volumes** s'est greffée de la même façon, avec un champ `echelle: 2`.
+Une sauvegarde qui ne le porte pas est écrite dans l'ancienne échelle : `remettreAEchelle`
+la convertit à la lecture — kilos divisés par 4,44, capacités de contenants par 3 — de
+sorte que la ferme du joueur garde exactement la **même valeur** et les mêmes proportions,
+seuls les nombres changeant. Sans quoi son silo vaudrait d'un coup quatre fois et demie
+plus, et sa benne serait trois fois trop grande.
 
 Les **contrats acceptés** et la **renommée** de chaque commerce se sont greffés de la
 même façon, en champs facultatifs du bloc `campagne` : une partie d'avant repart sans
