@@ -219,6 +219,21 @@ point derrière la caméra sort de la projection avec ses signes inversés, et i
 retourner sans quoi la flèche pointe à l'exact opposé. La vignette entière est rentrée
 dans l'écran, libellé compris — sur un bord latéral on lisait « COOPÉRATIV ».
 
+**C'était un triangle, et un triangle ne pointe nulle part.** Trois côtés, aucune hampe :
+tourné d'un quart de tour il ressemble encore à un triangle, et l'on ne lisait pas la
+direction. C'est maintenant une vraie flèche — pointe franche, épaules arrondies, hampe
+qui la prolonge — et c'est la hampe qui dit d'où elle vient. Onze segments de tracé au
+lieu de trois côtés.
+
+**Et elle ne sautille plus.** Elle était posée par `left`/`top` en pixels entiers,
+recalculés vingt fois par seconde : chaque écriture remettait l'élément en page, et le
+pas d'un pixel se voyait. Elle est posée par `transform`, au centième de pixel, à
+**soixante images par seconde** — le compositeur s'en charge sans remise en page.
+L'ombre portée en flou a sauté avec : un filtre force un repeint complet à chaque
+déplacement, et c'était cher pour un halo qu'on ne regardait pas. Le contour sombre est
+tracé dans le SVG lui-même, **sous** le remplissage : il ne coûte rien et se lit sur
+n'importe quel fond.
+
 ### Rien à l'écran qu'on n'ait accepté
 
 C'est la règle, et elle n'a pas d'exception. Une proposition qui attend sur un anneau vert
@@ -1330,6 +1345,32 @@ peut jamais dépasser 9 500 : une cellule ne porte qu'une culture. Une ferme qui
 céréales payait cinq maillages vides plein tarif. Ils démarrent maintenant à 512 et
 doublent quand il le faut : **0,26 Mio** sur une partie fraîche, 0,91 Mio sur une ferme
 entièrement semée.
+
+## Deux façons de conduire
+
+Le manche et la manette des gaz demandent de **doser une position** au doigt : c'est
+précis, mais il faut regarder son pouce. Un réglage — *Réglages › Conduite* — les
+remplace par des **boutons** : deux flèches à gauche, deux pédales à droite. Les deux
+jeux vivent au même endroit et ne s'affichent jamais ensemble ; le reste du jeu ne sait
+rien de ce choix, puisque les boutons écrivent dans les mêmes `steer` et `throttle`.
+
+Les tracés viennent de la planche du joueur : une flèche pleine aux angles arrondis — pas
+un chevron —, une grande **semelle d'accélérateur** dont le bord gauche est décroché en
+bas, et un petit **frein** carré à deux barrettes. C'est le décrochement, plus que la
+taille, qui distingue l'accélérateur au premier coup d'œil. Aucun dégradé : le contraste
+vient du fond sombre de la pédale et d'une ombre portée statique — elle ne bouge pas,
+donc le filtre ne coûte qu'un calcul, une fois.
+
+**La pédale basse freine d'abord.** Un appui bref ralentit ; il faut la maintenir **et**
+que l'engin soit presque arrêté pour qu'il parte en marche arrière. Sans ce verrou, un
+coup de frein devant le silo ferait reculer la moissonneuse dans le champ. Une fois la
+marche arrière engagée elle le reste jusqu'au relâchement : sinon, dès que l'engin
+reprend de la vitesse en reculant, la condition se retournerait et l'on repasserait au
+freinage en boucle.
+
+Le frein au pied vaut **trois fois le frein moteur** — c'est ce qui rend la pédale
+utile : relâcher les gaz ralentit, appuyer sur le frein arrête. Mesuré sur une seconde à
+6 m/s : **0,01 m/s** au frein contre 0,72 en roue libre.
 
 ## Le zoom, et ce qu'il apprend
 

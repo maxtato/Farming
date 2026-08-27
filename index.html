@@ -58,15 +58,25 @@
   #ctr .chip .cf{background:#8BE07A}
   #ctr .chip.urgent{border-left-color:#E8563F}
   #ctr .chip.urgent .cf{background:#E8563F}
-  /* LA FLÈCHE VERTE DU BORD. Elle vit dans le même vert que la pastille au sol, et elle
-     bat au même rythme : c'est le même objet, vu de trop loin. Le triangle est tracé en
-     bordures CSS — pas d'image, pas de SVG, et il tourne avec le conteneur. */
+  /* LA FLÈCHE VERTE DU BORD.
+     C'ÉTAIT UN TRIANGLE, ET UN TRIANGLE NE POINTE NULLE PART. Trois côtés égaux, aucune
+     hampe : tourné de quatre-vingt-dix degrés il ressemble encore à un triangle, et l'on
+     ne lisait pas la direction. C'est maintenant une vraie flèche — pointe franche,
+     hampe qui la prolonge — et c'est la hampe qui dit d'où elle vient.
+
+     ET ELLE NE SAUTILLE PLUS. Elle était posée par `left`/`top` en pixels entiers,
+     recalculés vingt fois par seconde : à chaque écriture le navigateur remettait
+     l'élément en page, et le pas d'un pixel se voyait. Elle est maintenant posée par
+     `transform`, en sous-pixels, à SOIXANTE images par seconde — le compositeur s'en
+     charge sans remise en page. L'ombre portée en flou a sauté aussi : un filtre force
+     un repeint complet à chaque déplacement, et c'était cher pour un halo qu'on ne
+     regardait pas. Le contour sombre est tracé dans le SVG lui-même, sous le
+     remplissage : il ne coûte rien et se lit sur n'importe quel fond. */
   #viseurs{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
-  #viseurs .vis{position:absolute;transform:translate(-50%,-50%);display:flex;
-    flex-direction:column;align-items:center;gap:2px;will-change:left,top}
-  #viseurs .vis .fl{width:0;height:0;border-left:12px solid transparent;
-    border-right:12px solid transparent;border-bottom:20px solid #62D84E;
-    filter:drop-shadow(0 0 6px rgba(98,216,78,.85))}
+  #viseurs .vis{position:absolute;left:0;top:0;display:flex;flex-direction:column;
+    align-items:center;gap:1px;will-change:transform}
+  #viseurs .vis .fl{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+  #viseurs .vis .fl svg{width:26px;height:26px;display:block}
   #viseurs .vis .nm{font-size:8.5px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
     color:#8BE07A;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
@@ -311,6 +321,34 @@
     background:#FAD201}
   #thr .lab{position:absolute;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2px;opacity:.45}
   #thr .lab.up{top:6px} #thr .lab.dn{bottom:6px}
+  /* ---------- LES COMMANDES À BOUTONS ----------
+     Le manche et la manette des gaz demandent de DOSER une position au doigt : c'est
+     précis, mais il faut regarder son pouce. Les boutons ne demandent qu'un appui, et
+     l'on peut garder les yeux sur le champ. Les deux jeux vivent au même endroit et ne
+     s'affichent jamais ensemble.
+
+     Les tracés viennent de la planche du joueur : une flèche pleine aux angles arrondis
+     — pas un chevron —, une grande semelle d'accélérateur décrochée à gauche, un petit
+     frein carré à deux barrettes. Aucun dégradé, aucune ombre portée : le contraste
+     vient du fond sombre de la pédale, pas d'un effet. */
+  #boutons{display:none}
+  #boutons.on{display:block}
+  #dirs{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
+    left:calc(18px + env(safe-area-inset-left));display:flex;gap:12px;pointer-events:auto}
+  .dir{width:72px;height:72px;border-radius:20px;background:rgba(20,28,33,.62);
+    border:2px solid rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;
+    transition:transform .07s,background .07s;color:#FFFFFF}
+  .dir svg{width:40px;height:40px;display:block}
+  .dir.on{transform:scale(.93);background:rgba(250,210,1,.28);border-color:#FAD201}
+  #pedales{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
+    right:calc(26px + env(safe-area-inset-right));display:flex;flex-direction:column;
+    align-items:flex-end;gap:10px;pointer-events:auto}
+  /* Une ombre portée STATIQUE : la pédale est sombre, et posée sur l'enseigne sombre
+     d'un commerce elle s'y noyait. Elle ne bouge pas, donc le filtre ne coûte qu'un
+     calcul, une fois — ce n'est pas le cas des flèches du bord, qui se déplacent. */
+  .ped{transition:transform .07s;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65))}
+  .ped svg{display:block}
+  .ped.on{transform:translateY(3px) scale(.97)}
   #hopper{position:absolute;bottom:calc(190px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     width:66px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .3s}
   #hopfill{height:100%;width:0%;background:#FFAE2E}
@@ -512,6 +550,13 @@
   <div id="service"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="thr"><div class="lab up">AV</div><div class="lab dn">AR</div><div id="thrknob"></div></div>
+  <!-- LES COMMANDES À BOUTONS. Deux flèches à gauche, deux pédales à droite : le manche
+       demande de doser une position, les boutons ne demandent que d'appuyer. On passe de
+       l'un à l'autre dans les Réglages, et rien d'autre ne change dans le jeu. -->
+  <div id="boutons">
+    <div id="dirs"><div class="dir" id="dirg"></div><div class="dir" id="dird"></div></div>
+    <div id="pedales"><div class="ped" id="pacc"></div><div class="ped" id="pfre"></div></div>
+  </div>
   <div id="chargetxt"></div>
   <div id="fuel"><div id="fuelfill"></div></div>
   <div id="hopper"><div id="hopfill"></div></div>
@@ -6770,7 +6815,7 @@ class Vehicle {
   }
   fwd(){ return {x:Math.sin(this.cap), z:Math.cos(this.cap)}; }
   right(){ return {x:Math.cos(this.cap), z:-Math.sin(this.cap)}; }
-  update(dt, steerX, throttle){
+  update(dt, steerX, throttle, frein){
     // Le carburant se consomme AVANT le calcul du mouvement : un réservoir vide bride
     // la commande des gaz, il ne coupe pas net. L'engin finit sa course au ralenti.
     throttle = limiteSec(this, throttle);
@@ -6788,7 +6833,9 @@ class Vehicle {
       if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
     } else {
-      vf -= vf * 1.9 * dt;
+      // Frein au pied : trois fois le frein moteur. C'est ce qui rend la pédale utile —
+      // relâcher les gaz ralentit, appuyer sur le frein arrête.
+      vf -= vf * (frein ? 5.7 : 1.9) * dt;
     }
     vf -= vf * 0.16 * dt;
 
@@ -9339,6 +9386,106 @@ thrEl.addEventListener('pointerdown', e=>{ thrId = e.pointerId; thrEl.setPointer
 thrEl.addEventListener('pointermove', e=>{ if(e.pointerId === thrId) thrMove(e, thrEl.getBoundingClientRect()); });
 const thrEnd = e=>{ if(e.pointerId === thrId){ thrId = null; throttle = 0; thrKnob.style.transform = 'translateY(0)'; } };
 thrEl.addEventListener('pointerup', thrEnd); thrEl.addEventListener('pointercancel', thrEnd);
+
+/* ---------- LES COMMANDES À BOUTONS ----------
+   Deux flèches et deux pédales, à la place du manche et de la manette des gaz. Le reste
+   du jeu ne sait rien de ce choix : les boutons écrivent dans les MÊMES `steer` et
+   `throttle` que le manche, et rien d'autre n'a bougé.
+
+   LA PÉDALE BASSE FREINE D'ABORD. Un simple appui ralentit ; il faut la MAINTENIR, et
+   que l'engin soit presque arrêté, pour qu'il parte en marche arrière. Sans ce verrou,
+   un coup de frein devant le silo ferait reculer la moissonneuse dans le champ. Une
+   fois la marche arrière engagée elle le reste jusqu'au relâchement : sinon, dès que
+   l'engin reprend de la vitesse en reculant, la condition se retournerait et l'on
+   repasserait au freinage en boucle. */
+const COMMANDES = {mode:'manche'};      // 'manche' ou 'boutons'
+const BTN = {g:false, d:false, acc:false, fre:false, freT:0, arriere:false};
+let frein = false;                       // le frein appuyé, transmis à la physique
+
+// La flèche pleine de la planche : pointe franche, épaules arrondies, hampe. Elle pointe
+// vers le HAUT ; on la tourne d'un quart de tour pour la gauche et pour la droite.
+function flechePleine(sens){
+  return '<svg viewBox="0 0 68 97" style="transform:rotate(' + (sens < 0 ? -90 : 90) + 'deg)">' +
+    '<path d="M 34 6 L 62 34 A 7 7 0 0 1 57 46 L 46 46 L 46 84 A 7 7 0 0 1 39 91 ' +
+    'L 29 91 A 7 7 0 0 1 22 84 L 22 46 L 11 46 A 7 7 0 0 1 6 34 Z" fill="currentColor"/></svg>';
+}
+/* L'ACCÉLÉRATEUR est une grande semelle dont le bord gauche est décroché en bas : c'est
+   ce décrochement, plus que la taille, qui le distingue au premier coup d'œil. Deux
+   rectangles très arrondis qui se recouvrent, plus une cale au raccord — sans elle,
+   l'arrondi du coin haut-droit du rectangle bas pince le flanc à la jonction. */
+function pedaleAccel(W, H){
+  const dec = W*0.30, yDec = H*0.42;
+  const rHaut = (W - dec)*0.42, rBas = W*0.30;
+  let d = '<rect x="' + dec + '" y="0" width="' + (W-dec) + '" height="' + (yDec+rBas) +
+          '" rx="' + rHaut + '" fill="#1C262B"/>' +
+          '<rect x="0" y="' + yDec + '" width="' + W + '" height="' + (H-yDec) +
+          '" rx="' + rBas + '" fill="#1C262B"/>' +
+          '<rect x="' + dec + '" y="' + (yDec-1) + '" width="' + (W-dec) + '" height="' +
+          (rBas+2) + '" fill="#1C262B"/>';
+  for(let k = 0; k < 5; k++){
+    const y = H*0.13 + k*(H*0.76/5);
+    // La troisième barre est à cheval sur le raccord : elle part donc du bord étroit,
+    // comme les deux du haut, sinon elle mord sur l'arrondi.
+    const x0 = (k < 3) ? dec + 7 : 11;
+    d += '<rect x="' + x0 + '" y="' + y + '" width="' + (W-x0-9) + '" height="' + (H*0.062) +
+         '" rx="' + (H*0.031) + '" fill="#FFFFFF"/>';
+  }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + d + '</svg>';
+}
+// LE FREIN : un petit carré arrondi à deux barrettes. Plus petit que l'accélérateur, et
+// posé sous lui — la main droite tombe naturellement sur les gaz.
+function pedaleFrein(W, H){
+  let d = '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="' + (H*0.32) +
+          '" fill="#1C262B"/>';
+  for(let k = 0; k < 2; k++)
+    d += '<rect x="' + (W*0.17) + '" y="' + (H*(0.31 + k*0.28)) + '" width="' + (W*0.66) +
+         '" height="' + (H*0.1) + '" rx="' + (H*0.05) + '" fill="#FFFFFF"/>';
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + d + '</svg>';
+}
+const boutonsEl = document.getElementById('boutons');
+document.getElementById('dirg').innerHTML = flechePleine(-1);
+document.getElementById('dird').innerHTML = flechePleine(1);
+document.getElementById('pacc').innerHTML = pedaleAccel(56, 84);
+document.getElementById('pfre').innerHTML = pedaleFrein(56, 44);
+function presser(id, bas, haut){
+  const el = document.getElementById(id);
+  el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); e.stopPropagation();
+    el.setPointerCapture(e.pointerId); el.classList.add('on'); bas(); });
+  for(const ev of ['pointerup', 'pointercancel', 'pointerleave'])
+    el.addEventListener(ev, ()=>{ if(el.classList.contains('on')){ el.classList.remove('on'); haut(); } });
+}
+presser('dirg', ()=> BTN.g = true,   ()=> BTN.g = false);
+presser('dird', ()=> BTN.d = true,   ()=> BTN.d = false);
+presser('pacc', ()=> BTN.acc = true, ()=> BTN.acc = false);
+presser('pfre', ()=>{ BTN.fre = true; BTN.freT = 0; BTN.arriere = false; },
+                ()=>{ BTN.fre = false; BTN.arriere = false; });
+const DELAI_ARRIERE = 0.45;              // secondes d'appui avant que la marche arrière s'engage
+function commandesBoutons(dt){
+  frein = false;
+  if(COMMANDES.mode !== 'boutons') return;
+  steer = (BTN.g ? 1 : 0) + (BTN.d ? -1 : 0);
+  if(BTN.acc){ throttle = 1; BTN.arriere = false; return; }
+  if(BTN.fre){
+    BTN.freT += dt;
+    if(!BTN.arriere && BTN.freT > DELAI_ARRIERE && MACHINES[cur].v.speed < 0.8) BTN.arriere = true;
+    if(BTN.arriere) throttle = -1;
+    else { throttle = 0; frein = true; }
+    return;
+  }
+  throttle = 0;
+}
+function appliquerCommandes(){
+  const b = COMMANDES.mode === 'boutons';
+  boutonsEl.classList.toggle('on', b);
+  stickEl.style.display = b ? 'none' : '';
+  thrEl.style.display   = b ? 'none' : '';
+  // On repart de zéro : un doigt encore posé sur un manche qu'on vient de cacher
+  // laisserait l'engin braqué pour toujours.
+  steer = 0; throttle = 0; frein = false;
+  stickId = null; thrId = null;
+  BTN.g = BTN.d = BTN.acc = BTN.fre = BTN.arriere = false;
+  knob.style.transform = 'translateX(0)'; thrKnob.style.transform = 'translateY(0)';
+}
 
 addEventListener('keydown', e=>{ keys[e.code] = true; if(['1','2','3','4'].includes(e.key)) setMachine(+e.key-1); });
 addEventListener('keyup', e=>{ keys[e.code] = false; });
@@ -12702,6 +12849,16 @@ function refreshChoix(){
    inversés : on le retourne, sans quoi la flèche pointerait à l'exact opposé. */
 const viseursEl = document.getElementById('viseurs');
 const VISEUR = {haut:100, bas:158, cote:64, pool:[]};
+/* LA FLÈCHE, EN UN SEUL TRACÉ. Pointe, épaules, hampe : c'est la hampe qui donne la
+   direction, et c'est elle qui manquait au triangle. Le contour sombre est peint SOUS le
+   remplissage (`paint-order`), ce qui la détache de l'herbe comme du bitume sans le
+   moindre filtre. Elle pointe vers le HAUT au repos ; on la tourne de l'angle du rayon. */
+const FLECHE_SVG =
+  '<svg viewBox="0 0 68 97" aria-hidden="true">' +
+  '<path d="M 34 6 L 62 34 A 7 7 0 0 1 57 46 L 46 46 L 46 84 A 7 7 0 0 1 39 91 ' +
+  'L 29 91 A 7 7 0 0 1 22 84 L 22 46 L 11 46 A 7 7 0 0 1 6 34 Z" ' +
+  'fill="#62D84E" stroke="#12331B" stroke-width="7" stroke-linejoin="round" ' +
+  'paint-order="stroke"/></svg>';
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
   const W = innerWidth, H = innerHeight;
@@ -12718,11 +12875,10 @@ function refreshViseurs(){
     _cVis.copy(_vVis).applyMatrix4(camera.matrixWorldInverse);
     _vVis.project(camera);
     const derriere = _cVis.z > 0;
-    let sx = (( derriere ? -_vVis.x : _vVis.x)*0.5 + 0.5)*W;
-    let sy = ((-(derriere ? -_vVis.y : _vVis.y))*0.5 + 0.5)*H;
+    const sx = (( derriere ? -_vVis.x : _vVis.x)*0.5 + 0.5)*W;
+    const sy = ((-(derriere ? -_vVis.y : _vVis.y))*0.5 + 0.5)*H;
     if(!derriere && sx >= mL && sx <= mR && sy >= mT && sy <= mB) continue;  // on la voit
     const dx = sx - cx, dy = sy - cy;
-    const L = Math.hypot(dx, dy) || 1;
     const tx = dx === 0 ? Infinity : (dx > 0 ? (mR - cx)/dx : (mL - cx)/dx);
     const ty = dy === 0 ? Infinity : (dy > 0 ? (mB - cy)/dy : (mT - cy)/dy);
     const t = Math.max(0, Math.min(tx, ty));
@@ -12730,29 +12886,32 @@ function refreshViseurs(){
     let e = VISEUR.pool[n];
     if(!e){
       e = document.createElement('div'); e.className = 'vis';
-      e.innerHTML = '<div class="fl"></div><div class="nm"></div>';
+      e.innerHTML = '<div class="fl">' + FLECHE_SVG + '</div><div class="nm"></div>';
       viseursEl.appendChild(e); VISEUR.pool[n] = e;
     }
     const d = Math.round(Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ));
-    e.style.display = 'flex';
-    // Le triangle pointe vers le haut au repos : on le tourne de l'angle du rayon.
-    e.firstChild.style.transform = 'rotate(' + (Math.atan2(dy, dx)*180/Math.PI + 90).toFixed(1) + 'deg)';
+    if(e.style.display !== 'flex') e.style.display = 'flex';
+    const ang = Math.atan2(dy, dx)*180/Math.PI + 90;
+    // Le SVG tourne, la vignette non : le nom doit rester lisible à l'endroit.
+    e.firstChild.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
     const nm = e.lastChild;
     const txt = S.nom.toUpperCase() + '  ·  ' + d + ' m';
     if(nm.textContent !== txt){ nm.textContent = txt; e._w = 0; }
     /* LE LIBELLÉ NE SORT PAS DE L'ÉCRAN. La flèche est centrée sur le point du bord ;
        sur un bord latéral, la moitié du nom passait dehors et l'on lisait « COOPÉRATIV ».
        On rentre donc la vignette entière dans le cadre. La largeur n'est mesurée que
-       lorsque le texte change — la relire vingt fois par seconde forcerait une mise en
-       page à chaque tic. */
+       lorsque le texte change — la relire à chaque image forcerait une mise en page. */
     if(!e._w){ e._w = e.offsetWidth; e._h = e.offsetHeight; }
     const hw = e._w/2 + 5, hh = e._h/2 + 5;
-    e.style.left = Math.max(hw, Math.min(W - hw, px)).toFixed(0) + 'px';
-    e.style.top  = Math.max(hh, Math.min(H - hh, py)).toFixed(0) + 'px';
-    void L;
+    const fx = Math.max(hw, Math.min(W - hw, px)), fy = Math.max(hh, Math.min(H - hh, py));
+    // `translate3d` d'abord, `-50%` ensuite : la vignette se centre sur le point, et le
+    // déplacement reste en sous-pixels, donc fluide.
+    e.style.transform = 'translate3d(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) +
+                        'px,0) translate(-50%,-50%)';
     n++;
   }
-  for(let k = n; k < VISEUR.pool.length; k++) VISEUR.pool[k].style.display = 'none';
+  for(let k = n; k < VISEUR.pool.length; k++)
+    if(VISEUR.pool[k].style.display !== 'none') VISEUR.pool[k].style.display = 'none';
 }
 
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
@@ -13601,6 +13760,18 @@ function ongletReglages(){
     confirmeReset ? 'Confirmer ?' : 'Recommencer', confirmeReset ? 'ok' : '',
     ()=>{ if(confirmeReset) nouvellePartie(); else confirmeReset = true; });
 
+  titre('Conduite');
+  const bt = COMMANDES.mode === 'boutons';
+  article(0xFAD201, 'Commandes — ' + (bt ? 'boutons' : 'manche'),
+    bt ? 'Deux flèches à gauche, deux pédales à droite. La pédale basse freine ; ' +
+         'maintenue jusqu\'à l\'arrêt, elle passe en marche arrière.'
+       : 'Un manche pour braquer, une manette pour les gaz. On dose la position au doigt.',
+    bt ? 'Manche' : 'Boutons', 'vert', ()=>{
+      COMMANDES.mode = bt ? 'manche' : 'boutons';
+      appliquerCommandes();
+      showHint('COMMANDES — ' + (COMMANDES.mode === 'boutons' ? 'BOUTONS' : 'MANCHE'));
+    });
+
   titre('Image');
   articleCurseur(0xFAD201, 'Zoom', {
     min: ZOOM.min, max: ZOOM.max, pas: 5, unite: ' %',
@@ -14050,6 +14221,7 @@ function etatJeu(){
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     nettete: NETTETE.i,
     zoom: ZOOM.pc,
+    commandes: COMMANDES.mode,
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
     /* LA CAMPAGNE. Elle s'ajoute en CHAMPS FACULTATIFS, et la version de la
        sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
@@ -14340,6 +14512,9 @@ function chargerPartie(S){
     // qu'avaient toutes les parties d'avant ce réglage.
     ZOOM.pc = Math.max(ZOOM.min, Math.min(ZOOM.max, S.zoom || 100));
     appliquerZoom();
+    // Absent, c'est le manche : c'est ce qu'avaient toutes les parties d'avant ce réglage.
+    COMMANDES.mode = S.commandes === 'boutons' ? 'boutons' : 'manche';
+    appliquerCommandes();
     MOISSON.width = S.moisson.width; MOISSON.level = S.moisson.level; HOP_MAX = S.moisson.hopMax;
     S.crops.forEach((verrou, i)=>{ if(CROPS[i]) CROPS[i].verrou = verrou; });
     /* LES VERROUS D'OUTILS. Ils n'existaient pas : les quatre outils étaient donnés.
@@ -14529,6 +14704,7 @@ function loop(now){
   if(paused) dt = 0;
 
   keyboardInput();
+  commandesBoutons(dt || 0.016);
   const m = MACHINES[cur], v = m.v;
   if(dt > 0){
     // Les machines en pilotage automatique continuent de rouler et de travailler
@@ -14544,9 +14720,10 @@ function loop(now){
       work(mm, dt);
     }
     let steerM = steer, thrM = throttle;
-    if(v.auto){ const r = autoDrive(m, dt); steerM = r[0]; thrM = r[1]; }
+    let freinM = frein;
+    if(v.auto){ const r = autoDrive(m, dt); steerM = r[0]; thrM = r[1]; freinM = false; }
     v.augerOut = (m.key === 'moisson' && hopper >= HOP_MAX);
-    const st = v.update(dt, steerM, thrM);
+    const st = v.update(dt, steerM, thrM, freinM);
     v.steerVis = steerM ? 0.35 : 0;
     // poussière de roues / dérive
     if(v.speed > 3 && Math.random() < 0.25 + v.slip*0.6){
@@ -14680,8 +14857,13 @@ function loop(now){
     refreshHUD();
     refreshCommandes();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
-    refreshChoix(); refreshService(); refreshJauges(); refreshViseurs();
+    refreshChoix(); refreshService(); refreshJauges();
   }
+  /* LES FLÈCHES SUIVENT LA CAMÉRA, PAS L'INTERFACE. Elles étaient rafraîchies avec le
+     reste du bandeau, vingt fois par seconde : la caméra, elle, bouge à soixante, et
+     l'écart se voyait comme un sautillement. Elles ne coûtent qu'une écriture de
+     `transform` par flèche — le compositeur s'en charge, sans remise en page. */
+  refreshViseurs();
   // Les parcelles hors du cadre ne partent pas au GPU : vingt tests de sphère, et
   // trois quarts des plantes du monde ne coûtent plus rien.
   masquerChampsHorsVue();
