@@ -1133,27 +1133,77 @@ en ligne droite passe de 18 m à 8 — la longueur d'un attelage, de quoi finir 
 ranger, pas de quoi couper. Relevé sur 45 trajets : **0 oblique, 0 abordé de travers,
 12,6 m pour le plus long des derniers trajets**.
 
-## Sept cultures, redessinées
+## Trois âges par culture
 
-Les silhouettes viennent de la planche de présentation : trois talles au lieu de deux,
-une feuille de maïs **arquée** en deux lames plutôt qu'un piquant droit, des barbes
-d'orge plus généreuses, des grappes de colza étagées.
+Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
+qu'on remontait dans le temps. Un blé qui vient de lever était donc un épi mûr de vingt
+centimètres de haut, barbes comprises. La croissance ne se lisait qu'à la taille et à la
+couleur — jamais à la **forme**.
 
-Mais la planche, transposée telle quelle, coûtait **476 triangles** par plante pour les
-cinq céréales contre 246 — presque le double, et l'essentiel venait des feuilles de maïs
-dessinées en boîtes pleines : douze triangles pour une lame de trois centimètres
-d'épaisseur qu'on ne voit jamais par la tranche. Trois règles rendent la richesse sans
-le poids :
+Chaque culture a maintenant plusieurs états **physiques**, et l'on passe de l'un à
+l'autre en changeant de géométrie :
 
-1. Ce qui est **plat est un plan** (2 triangles), jamais une boîte (12). Le matériau des
-   cultures passe en double face : une feuille se voit du dessus comme du dessous.
-2. Ce qui mesure moins de dix centimètres à deux mètres de haut ne se voit pas d'une
-   caméra à quarante mètres — les nœuds de la tige de maïs sautent.
-3. Trois côtés suffisent à toute tige.
+| | |
+|---|---|
+| **Pousse** | deux brins sortis de terre. Commun aux cinq céréales — une levée ne se reconnaît pas d'une espèce à l'autre |
+| **Montée** | une tige montée, trois feuilles, rien au bout. Commune elle aussi |
+| **Adulte** | là seulement l'espèce paraît : l'épi du blé, les barbes de l'orge, la panicule lâche de l'avoine, les grappes du colza, la feuille arquée du maïs |
 
-Relevé : **246 triangles pour les cinq, exactement comme avant.** Le colza et l'avoine
-gagnent une talle et perdent une fleur — trois tiges portant cinq grappes se lisent mieux
-que deux tiges en portant six, pour le même prix.
+Les deux permanentes en ont **quatre**, parce qu'elles vivent plus longtemps que leur
+récolte : jeune plant, charpente montée, adulte en feuilles, adulte en fruits. Une vigne
+vendangée ne redevient pas un bouton de bois — elle repart de l'état « en feuilles », qui
+est exactement ce qu'elle est une fois la vendange faite. C'est le drapeau `replante`,
+celui-là même qui lui donne sa repousse plus courte, qui le dit.
+
+**Deux briques, et rien d'autre**, reprises de la planche du joueur : le **brin**, fût à
+trois pans ouvert et évasé (6 triangles) — tiges, feuilles, barbes, grains, épillets ; et
+la **touffe**, deux cônes à six pans dos à dos (12 triangles) — tout le feuillage des
+vignes et des oliviers, qui se lit comme une masse arrondie là où un tronc de cône donnait
+un abat-jour.
+
+**Et c'est moins cher qu'avant.** Un pied de blé qui lève coûte 12 triangles au lieu de
+36, un pied monté 24 : une parcelle passe les deux tiers de son cycle sous le prix qu'elle
+payait en permanence.
+
+| | pousse | montée | adulte | en fruits | avant |
+|---|---|---|---|---|---|
+| Blé | 12 | 24 | 54 | — | 36 |
+| Maïs | 12 | 24 | 36 | — | 42 |
+| Colza | 12 | 24 | 60 | — | 48 |
+| Avoine | 12 | 24 | 72 | — | 48 |
+| Orge | 12 | 24 | 72 | — | 72 |
+| Raisin | 54 | 84 | 120 | 138 | 136 |
+| Olives | 36 | 66 | 156 | 186 | 208 |
+
+**La talle, pas la tige.** La planche sème quatre-vingt-dix pieds au mètre carré et peut
+se permettre des épis de treize centimètres ; le jeu ne pose qu'une instance par cellule
+de 1,30 m. Relevé au premier essai : la terre se voyait entre les tiges là où le champ
+formait un tapis fermé. Chaque céréale est donc une **touffe de trois talles** écartées —
+la silhouette de la planche, répétée — et l'épi est grossi de moitié : la densité du jeu,
+sans un triangle de plus.
+
+**Les cotes du jeu sont tenues au centimètre.** La planche dessine une vigne d'1,75 m sans
+fil de palissage : transposée telle quelle, elle repasserait sous l'enjambeuse sans qu'on
+voie ce qu'on récolte — la régression déjà corrigée une fois — et les rangs cesseraient de
+se rejoindre. Le vocabulaire de la planche est donc repris, mais écrit **en mètres** à la
+cote du jeu : piquet à 3,21 m, fil de 1,40 m pour une cellule de 1,30. Les sept hauteurs
+mûres sont inchangées à deux centimètres près, l'olivier reste sous la poutre de
+l'enjambeuse (4,60 m pour 4,75) et aucune céréale ne dépasse la moissonneuse.
+
+**Le raccord d'un âge au suivant ne se voit pas.** Trois géométries de hauteurs
+différentes, chacune montant de son échelle de départ à 1, feraient sauter le champ d'un
+tiers à chaque palier. L'échelle de départ de chaque âge est donc calculée pour que sa
+hauteur au départ soit celle de l'âge précédent à son arrivée. Mesuré d'un millième avant
+et d'un millième après chaque borne, sur les sept cultures : **le pire écart est de 2 %.**
+Le piquet d'une vigne, lui, ne grandit jamais — un palissage se plante d'un coup, et le
+faire monter avec le cep ferait onduler le rang entier.
+
+**Un maillage par culture, par âge et par parcelle.** Un maillage instancié ne porte
+qu'une géométrie : le tampon est donc indexé par `culture × 4 + âge`. Une parcelle n'en
+paie jamais plus d'un ou deux à la fois — ses pieds sont semés d'un même passage, donc ils
+franchissent leurs paliers presque ensemble — et le tampon d'un âge qui se vide est rendu
+au pilote graphique. Les deux premiers âges des cinq céréales sont **littéralement** la
+même géométrie, bâtie une fois et partagée.
 
 **Et les tampons d'instances grandissent au besoin.** Chacun des sept maillages réservait
 9 500 instances, soit **4,82 Mio** pour les sept, alors que la somme de leurs comptes ne
@@ -1161,6 +1211,58 @@ peut jamais dépasser 9 500 : une cellule ne porte qu'une culture. Une ferme qui
 céréales payait cinq maillages vides plein tarif. Ils démarrent maintenant à 512 et
 doublent quand il le faut : **0,26 Mio** sur une partie fraîche, 0,91 Mio sur une ferme
 entièrement semée.
+
+## Le zoom, et ce qu'il apprend
+
+La caméra tenait sur un décalage fixe : trente-huit mètres de côté, soixante-deux de haut,
+soit **82 m** de recul pour un champ de trente degrés. Un seul cadrage pour tout le monde,
+alors que la bonne distance n'est pas la même selon qu'on conduit dans un champ ou qu'on
+organise une tournée dans le village.
+
+Une **barre de pourcentage** dans Réglages › Image le règle de 55 à 160 %. Cent, c'est le
+cadrage d'origine au mètre près. Le décalage est simplement divisé par le rapport, ce qui
+garde l'**angle** de vue identique : c'est un recul, pas un changement d'objectif, et la
+ferme garde sa perspective isométrique. Le brouillard et le plan lointain reculent avec
+lui, sans quoi zoomer arrière donnerait un monde qui se dissout. Le réglage se sauvegarde
+en champ facultatif — une partie d'avant repart à 100 %.
+
+| zoom | recul | largeur vue au sol | parcelles envoyées au rendu |
+|---|---|---|---|
+| 160 % | 51 m | 43 m | 7 / 20 |
+| **100 %** | **82 m** | **69 m** | **9 / 20** |
+| **75 %** | **109 m** | **93 m** | **12 / 20** |
+| 55 % | 149 m | 126 m | 13 / 20 |
+
+(La dernière colonne est le test d'écartement par parcelle, celui qui décide vraiment ce
+qui part au processeur graphique : il retient une parcelle dès qu'elle mord le cadre.)
+
+### Le test à 75 % : ce ne sont pas les véhicules qui coûtent
+
+La question était de savoir si l'on peut alléger le détail des engins quand on s'éloigne.
+Mesuré, ferme entière plantée, caméra au milieu des champs :
+
+| | 100 % | 75 % |
+|---|---|---|
+| Triangles à l'image | 235 100 | 309 100 |
+| — dont **cultures** | 234 162 (**99,6 %**) | 305 136 (**98,7 %**) |
+| — dont décor | 924 | 3 930 |
+| Appels de dessin | 92 | 116 |
+| Maillages de champ visibles | 9 | 12 |
+| Temps par image (rendu logiciel) | 141 ms | 182 ms (**+29 %**) |
+| L'engin à l'écran | 354 × 324 px | 265 × 245 px |
+
+**Le parc entier — sept engins et quatre outils — pèse 10 458 triangles**, et l'on n'en
+voit jamais qu'un à la fois avec son outil, soit environ **1 600 triangles : 0,7 % d'une
+image**. Simplifier les véhicules à distance ne rendrait donc rien de mesurable ; et à
+75 % l'engin occupe encore 265 px de large, c'est-à-dire qu'on verrait très bien la perte.
+
+Le vrai levier est ailleurs, et le zoom le montre : **ce qui coûte, c'est le nombre de
+parcelles à l'écran.** Reculer d'un tiers en ajoute cinq, et 70 000 triangles de cultures.
+La bonne réponse serait un niveau de détail sur les **plantes**, pas sur les engins — et
+les trois âges viennent justement de doter chaque culture d'une silhouette à 24 triangles
+à côté de sa silhouette à 72. Une parcelle éloignée pourrait dessiner la première. Ce
+n'est pas fait : cela touche au rendu de ce qu'on regarde, et se propose avant de se
+décider.
 
 ## Le décor est tiré au sort, mais toujours le même
 
