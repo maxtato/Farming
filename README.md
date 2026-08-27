@@ -149,10 +149,15 @@ ait demandées ni qu'on puisse les regarder de près : on subissait une liste au
 traiter avec quelqu'un. C'est le **commerce** qui propose, maintenant, et il le dit sur
 place.
 
-Un **anneau vert** s'allume au sol, au centre de son anneau de livraison. On s'y arrête,
-un bouton vert **VOIR LE CONTRAT** apparaît, et la fenêtre s'ouvre : ce qu'il réclame,
-la marchandise au prix du jour, la prime à la clôture, le délai s'il y en a un, et la
-renommée qu'on a chez lui. Trois réponses :
+Une **pastille verte pleine** s'allume au sol, au centre de son anneau de livraison, et
+elle respire — elle part à 62 % d'opacité, monte au plein et grandit d'un cinquième. Elle
+est peinte **par-dessus** le sol et non ajoutée à lui : un disque additif sur le béton
+clair d'un quai rend vert pâle, et l'on retombait sur le liseré qu'on voulait quitter.
+C'est la seule tache pleine de la carte.
+
+On s'y arrête, un bouton vert **VOIR LE CONTRAT** apparaît, et la fenêtre s'ouvre : ce
+qu'il réclame, la marchandise au prix du jour, la prime à la clôture, le délai s'il y en a
+un, et la renommée qu'on a chez lui. Trois réponses :
 
 | | |
 |---|---|
@@ -181,6 +186,38 @@ rien proposer de plus.
 **La récompense ne casse pas l'économie** : on est payé le prix normal de la marchandise
 au moment où on la livre — le circuit habituel, celui des étals et des caisses d'usine —
 puis la prime s'ajoute à la clôture. Les prix du village restent donc exacts.
+
+### La mission de campagne se prend sur place, elle aussi
+
+La première mission s'affichait dès la seconde zéro, en haut à gauche : on démarrait avec
+un ordre qu'on n'avait demandé à personne, et c'était le dernier endroit du jeu où quelque
+chose tombait du ciel. Une mission qui nomme un **lieu** est maintenant proposée par ce
+lieu, exactement comme un contrat — pastille verte, `VOIR LA MISSION`, fenêtre, on prend.
+Tant qu'on ne l'a pas prise, elle n'est nulle part à l'écran, et **livrer d'avance ne
+compte pas** : on ne peut pas honorer un engagement qu'on n'a pas pris.
+
+Elle ne se **refuse** pas — c'est le fil du jeu. La fenêtre n'offre que *Prendre la
+mission* et *Retour* ; retour la laisse sur place, elle attendra. Une mission **sans lieu**
+— s'équiper, acheter une parcelle, monter un enclos — n'a personne pour la proposer :
+celle-là s'affiche directement, il n'y a nulle part où aller la chercher.
+
+Aucune offre commerciale ne vient se poser par-dessus : deux choses derrière la même
+pastille, on n'en verrait qu'une.
+
+### La flèche verte du bord
+
+Une pastille qui tombe à l'autre bout de la vallée n'existe pour le joueur que s'il passe
+devant par hasard. Une **flèche verte** au bord de l'écran pointe donc vers chacune de
+celles qui sont hors cadre, avec le nom du commerce et la distance : on sait qu'il y a
+quelque chose, dans quelle direction, et si ça vaut le détour. Dès que la pastille entre
+dans le cadre, la flèche s'efface.
+
+Le calcul tient en trois temps : on projette le point ; on regarde s'il est dans le cadre
+**utile** — celui qui exclut le bandeau du haut et les commandes du bas, sinon la flèche
+se pose sous le manche ; sinon on coupe le rayon partant du centre sur ce rectangle. Un
+point derrière la caméra sort de la projection avec ses signes inversés, et il faut le
+retourner sans quoi la flèche pointe à l'exact opposé. La vignette entière est rentrée
+dans l'écran, libellé compris — sur un bord latéral on lisait « COOPÉRATIV ».
 
 ### Rien à l'écran qu'on n'ait accepté
 

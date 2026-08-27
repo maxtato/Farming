@@ -58,6 +58,17 @@
   #ctr .chip .cf{background:#8BE07A}
   #ctr .chip.urgent{border-left-color:#E8563F}
   #ctr .chip.urgent .cf{background:#E8563F}
+  /* LA FLÈCHE VERTE DU BORD. Elle vit dans le même vert que la pastille au sol, et elle
+     bat au même rythme : c'est le même objet, vu de trop loin. Le triangle est tracé en
+     bordures CSS — pas d'image, pas de SVG, et il tourne avec le conteneur. */
+  #viseurs{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+  #viseurs .vis{position:absolute;transform:translate(-50%,-50%);display:flex;
+    flex-direction:column;align-items:center;gap:2px;will-change:left,top}
+  #viseurs .vis .fl{width:0;height:0;border-left:12px solid transparent;
+    border-right:12px solid transparent;border-bottom:20px solid #62D84E;
+    filter:drop-shadow(0 0 6px rgba(98,216,78,.85))}
+  #viseurs .vis .nm{font-size:8.5px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
+    color:#8BE07A;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
     display:flex;align-items:center;justify-content:center;gap:4px}
@@ -416,6 +427,11 @@
   <div id="goalwrap"><div id="bar"><div id="barfill"></div></div><div id="star">★</div></div>
   <div id="goaltxt"></div>
   <div id="ctr"></div>
+  <!-- LES VISEURS. Une flèche verte au bord de l'écran par pastille verte qu'on ne voit
+       pas : elle dit dans quelle direction se trouve ce qu'on cherche, et à quelle
+       distance. Sans elles, une proposition qui tombe à l'autre bout de la vallée
+       n'existe pour le joueur que s'il passe devant par hasard. -->
+  <div id="viseurs"></div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
   <div id="engins" class="pic" aria-label="ENGINS"></div>
@@ -1816,7 +1832,28 @@ function annoncerNiveau(n){
    été livré ligne par ligne. Les deux sont sauvegardés ; l'indice suffirait, mais on
    perdrait une livraison à moitié faite à chaque rechargement. */
 CAMPAGNE.faits = [];
+/* LA MISSION SE PREND SUR PLACE, ELLE AUSSI.
+   La première mission s'affichait dès la seconde zéro, en haut à gauche : on démarrait
+   avec un ordre qu'on n'avait demandé à personne, et c'était le dernier endroit du jeu
+   où quelque chose tombait du ciel. Une mission qui nomme un LIEU est maintenant
+   proposée par ce lieu, exactement comme un contrat — pastille verte au sol, on s'y
+   arrête, on lit, on prend. `CAMPAGNE.prise` retient qu'on l'a prise.
+
+   Une mission SANS lieu — s'équiper, acheter une parcelle, monter un enclos — n'a
+   personne pour la proposer : celle-là s'affiche directement, il n'y a nulle part où
+   aller la chercher. */
+CAMPAGNE.prise = false;
 const missionCourante = ()=> MISSIONS[CAMPAGNE.mission] || null;
+// La mission du moment, si elle attend encore d'être prise chez quelqu'un.
+function missionAPrendre(){
+  const M = missionCourante();
+  return (M && !M.faire && M.lieu && !CAMPAGNE.prise) ? M : null;
+}
+// Ce que le joueur doit voir : une mission prise, ou une mission qu'on ne prend nulle part.
+function missionVisible(){
+  const M = missionCourante();
+  return (M && (M.faire || CAMPAGNE.prise)) ? M : null;
+}
 function titreMission(M){
   if(!M) return '';
   if(M.titre) return M.titre;
@@ -1854,6 +1891,8 @@ function finirMission(){
   if(M.prime > 0) money += M.prime;
   CAMPAGNE.mission++;
   CAMPAGNE.faits = [];
+  // La suivante est à prendre à son tour, chez qui la demande.
+  CAMPAGNE.prise = false;
   const suite = missionCourante();
   showHint('MISSION FAITE' + (M.prime > 0 ? '  +' + eur(M.prime) : '')
            + (M.xp ? '  ·  +' + M.xp + ' XP' : ''));
@@ -1883,6 +1922,10 @@ function chargerCampagne(S){
     CAMPAGNE.xp = Math.max(0, C.xp);
     CAMPAGNE.mission = Math.max(0, Math.min(MISSIONS.length, C.mission | 0));
     CAMPAGNE.faits = Array.isArray(C.faits) ? C.faits.slice() : [];
+    /* UNE PARTIE D'AVANT AVAIT DÉJÀ SA MISSION. Le drapeau n'existait pas, et l'absence
+       vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
+       faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
+    CAMPAGNE.prise = C.prise === undefined ? true : !!C.prise;
     CAMPAGNE.niveau = Math.max(niveauPourXp(CAMPAGNE.xp),
                                Math.max(1, Math.min(NIVEAUX.length, C.niveau | 0)));
     /* LES CONTRATS ET LA RENOMMÉE. Champs facultatifs, comme le reste de la campagne :
@@ -1908,6 +1951,7 @@ function chargerCampagne(S){
     while(CAMPAGNE.mission < MISSIONS.length &&
           MISSIONS[CAMPAGNE.mission].niv < CAMPAGNE.niveau) CAMPAGNE.mission++;
     CAMPAGNE.faits = [];
+    CAMPAGNE.prise = true;
   }
   remplirCommandes(0);
 }
@@ -1942,7 +1986,7 @@ function niveauRetrouve(){
 // Appelée par le tic d'interface : les missions « faire » n'ont personne pour les
 // prévenir, il faut bien les regarder.
 function veillerMission(){
-  const M = missionCourante();
+  const M = missionVisible();
   if(!M) return;
   if(M.faire){ if(testerFaire(M.faire)) finirMission(); return; }
   if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - 0.01)) finirMission();
@@ -3932,18 +3976,33 @@ const ANNEAU_R = 3.05, ANNEAU_EP = 0.55;
    s'efface tout à fait quand il n'y a rien à proposer — un anneau blanc de plus au
    milieu du village voudrait dire « on peut venir ici », ce qui est déjà écrit. */
 const VERT_CONTRAT = 0x62D84E;
+/* Le contrat n'est pas un ANNEAU, c'est une PASTILLE PLEINE. Un anneau fin de vingt
+   centimètres d'épaisseur, posé au milieu d'un anneau jaune qui bat déjà, ne se
+   distinguait pas de lui : on croyait voir un liseré. Le vert est donc un disque plein
+   qui respire — il s'ouvre à la moitié de son diamètre et grandit d'un cinquième — et
+   il n'a rien d'autre autour de lui. C'est la seule tache pleine de la carte, et c'est
+   ce qui la rend repérable depuis l'autre bout d'une parcelle. */
 function anneauAction(x, z, phase, actif, opt){
   const O = opt || {};
   const R = O.r || ANNEAU_R, EP = O.ep || ANNEAU_EP, C = O.coul || JAUNE_ACTION;
-  const anneau = new THREE.Mesh(new THREE.RingGeometry(R - EP, R, 48),
+  /* LE PLEIN NE SE MÉLANGE PAS PAR ADDITION. Un disque additif sur le béton clair d'un
+     quai rend vert PÂLE — la couleur du sol traverse — et l'on retombe sur le liseré
+     qu'on voulait quitter. Il est donc peint par-dessus, en mélange normal : c'est une
+     tache de vert franc, la seule de la carte. L'anneau jaune, lui, garde l'addition :
+     c'est une lueur, pas une peinture. */
+  const anneau = new THREE.Mesh(
+    O.plein ? new THREE.CircleGeometry(R, 40) : new THREE.RingGeometry(R - EP, R, 48),
     new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:0.95,
-                                 blending:THREE.AdditiveBlending,
+                                 blending:O.plein ? THREE.NormalBlending : THREE.AdditiveBlending,
                                  side:THREE.DoubleSide, depthWrite:false}));
   anneau.rotation.x = -Math.PI/2;
   anneau.position.set(x, O.discret ? 0.12 : 0.10, z);
   anneau.renderOrder = 3;
   scene.add(anneau);
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(R - EP*0.5, 32),
+  // Le halo d'une pastille pleine déborde d'elle : c'est lui qui la fait rayonner sur
+  // l'herbe au lieu de s'y découper au couteau.
+  const halo = new THREE.Mesh(
+    new THREE.CircleGeometry(O.plein ? R*1.85 : R - EP*0.5, 32),
     new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:0.10,
                                  blending:THREE.AdditiveBlending,
                                  side:THREE.DoubleSide, depthWrite:false}));
@@ -3951,11 +4010,15 @@ function anneauAction(x, z, phase, actif, opt){
   halo.position.set(x, O.discret ? 0.11 : 0.08, z);
   halo.renderOrder = 3;
   scene.add(halo);
+  // Ils RESPIRENT : opacité et échelle changent à chaque image. Le drapeau le dit, pour
+  // que ce qui recense le décor FIXE — l'empreinte qui prouve qu'une vallée est toujours
+  // la même — ne compte pas une pastille prise à deux instants de son battement.
+  anneau.userData.anime = halo.userData.anime = true;
   // `k` à null : la toute première image fixe l'état sans transition, sinon tous les
   // anneaux de la carte s'allument en jaune au démarrage avant de retomber au blanc.
   ANNEAUX.push({anneau, halo, ph:phase || 0, actif: actif || null, k: null,
                 cA: new THREE.Color(C), cV: new THREE.Color(O.veille || BLANC_ATTENTE),
-                discret: !!O.discret});
+                discret: !!O.discret, plein: !!O.plein, x, z});
 }
 /* --- de quoi écrire ces conditions sans les réinventer à chaque anneau --- */
 // Ces quatre outils sont volontairement calqués sur les tests que font vraiment
@@ -7373,8 +7436,12 @@ function poserOffre(){
     if(!C) continue;
     const S = SITES.find((x)=> x.nom === C.lieu);
     // Ni deux offres au même endroit, ni une offre par-dessus un contrat en cours, ni
-    // rien du tout chez qui l'on vient d'éconduire : son délai n'est pas passé.
+    // rien du tout chez qui l'on vient d'éconduire : son délai n'est pas passé. Ni,
+    // surtout, par-dessus une mission de campagne qui attend ici : deux choses derrière
+    // la même pastille verte, on n'en verrait qu'une.
     if(!S || S.offre || S.offreT > 0 || contratChez(S.nom)) continue;
+    const M0 = missionAPrendre();
+    if(M0 && M0.lieu === S.nom) continue;
     C.prime = Math.max(20, Math.round(C.prime*coefRenom(S)/5)*5);
     C.xp = Math.max(3, Math.round(C.xp*coefRenom(S)));
     // Une proposition n'attend pas éternellement : trois minutes, puis il passe à autre
@@ -7439,7 +7506,9 @@ function livraison(lieu, cle, q){
     l.fait = Math.min(l.need, l.fait + q);
     if(C.lignes.every((x)=> x.fait >= x.need - 0.01)) solderContrat(k);
   }
-  const M = missionCourante();
+  // Une mission qu'on n'a pas prise ne se remplit pas : on ne peut pas honorer d'avance
+  // un engagement qu'on n'a pas pris, sinon la pastille verte n'aurait servi à rien.
+  const M = missionVisible();
   if(M && !M.faire && M.lieu === lieu){
     M.lignes.forEach((l, i)=>{
       if(l.cle !== cle) return;
@@ -7521,7 +7590,8 @@ function pilule(cls, titre, sous, part){
 function refreshCommandes(){
   el.ctr.innerHTML = '';
   el.ctr.style.display = 'flex';
-  const M = missionCourante();
+  // Tant qu'on n'est pas allé la prendre, elle n'est nulle part à l'écran.
+  const M = missionVisible();
   if(M){
     const part = avanceMission();
     /* ELLE DIT QU'ELLE EST UNE MISSION, ET PAS UN CONTRAT. C'est la seule chose du
@@ -10587,15 +10657,24 @@ function quelqueChoseAFaire(S){
   }
   return actionsAuSite(m, S).length > 0;
 }
+// Ce commerce a-t-il quelque chose à proposer : une offre, ou la mission du moment.
+function aQuelqueChoseADire(S){
+  if(S.offre) return true;
+  const M = missionAPrendre();
+  return !!(M && M.lieu === S.nom);
+}
 (function poserAnneauxCommerces(){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     S.service = !!(S.fournisseur || S.achete.length || S.fabrique.length || S.abattoir);
     anneauAction(S.dropX, S.dropZ, S.bat*0.05, ()=> quelqueChoseAFaire(S));
-    // L'anneau du contrat, au centre du premier : on ne déplace pas le joueur pour lui
-    // parler, on lui parle là où il s'arrête déjà.
-    anneauAction(S.dropX, S.dropZ, S.bat*0.05 + 1.6, ()=> !!S.offre,
-                 {coul:VERT_CONTRAT, r:1.62, ep:0.34, discret:true});
+    /* LA PASTILLE DU CONTRAT, au centre de l'anneau de livraison : on ne déplace pas le
+       joueur pour lui parler, on lui parle là où il s'arrête déjà. Elle s'allume pour
+       une proposition du commerce COMME pour une mission de campagne à prendre ici —
+       du point de vue du joueur c'est le même geste, et il n'y a qu'un seul signal à
+       apprendre. */
+    anneauAction(S.dropX, S.dropZ, S.bat*0.05 + 1.6, ()=> aQuelqueChoseADire(S),
+                 {coul:VERT_CONTRAT, r:2.05, plein:true, discret:true});
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
@@ -12386,20 +12465,28 @@ function actionService(){
    déjà accepté. Le contenu est le même parce que la question est la même — qu'est-ce
    qu'il veut, et où j'en suis. */
 const contratEl = document.getElementById('contrat');
-let contratVu = null;                 // {C, S, offre:bool}
-function ouvrirContrat(C, S, offre){
+let contratVu = null;                 // {C, S, offre:bool, mission:bool}
+function ouvrirContrat(C, S, offre, mission){
   if(!C) return;
-  contratVu = {C, S: S || SITES.find((x)=> x.nom === C.lieu) || null, offre: !!offre};
+  contratVu = {C, S: S || SITES.find((x)=> x.nom === C.lieu) || null,
+               offre: !!offre, mission: !!mission};
   rendreContrat();
   contratEl.style.display = 'block';
+}
+// La mission du moment, mise en forme de contrat : c'est la même fenêtre, parce que
+// c'est la même question — qu'est-ce qu'il veut, et qu'est-ce qu'il donne.
+function missionEnContrat(M){
+  return {type:'mission', lieu:M.lieu, prime:M.prime || 0, xp:M.xp || 0, temps:0,
+          lignes:M.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:0}))};
 }
 function fermerContrat(){ contratEl.style.display = 'none'; contratVu = null; }
 function rendreContrat(){
   if(!contratVu) return;
-  const {C, S, offre} = contratVu;
+  const {C, S, offre, mission} = contratVu;
   const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
-  document.getElementById('cttitre').textContent =
-    (offre ? 'Proposition · ' : 'Contrat en cours · ') + T.nom;
+  document.getElementById('cttitre').textContent = mission
+    ? 'Mission de campagne'
+    : ((offre ? 'Proposition · ' : 'Contrat en cours · ') + T.nom);
   document.getElementById('ctlieu').textContent = C.lieu;
   const L = document.getElementById('ctlignes');
   L.innerHTML = '';
@@ -12421,11 +12508,16 @@ function rendreContrat(){
           '<br>Prime à la clôture&nbsp;: <b>' + eur(C.prime) + '</b>  ·  +' + C.xp + ' XP';
   if(C.temps) p += '<br>Délai&nbsp;: ' + Math.max(0, Math.ceil(C.temps)) + ' s';
   document.getElementById('ctpaie').innerHTML = p;
-  document.getElementById('ctrenom').textContent =
-    S ? 'Renommée ' + libelleRenom(S) + (offre ? ' — un refus la fait descendre de deux crans.' : '')
-      : '';
-  document.getElementById('ctnon').style.display = offre ? 'block' : 'none';
+  /* UNE MISSION NE SE REFUSE PAS. C'est le fil du jeu : on peut la remettre à plus tard
+     — RETOUR la laisse sur place — mais il n'y a pas de bouton pour s'en débarrasser,
+     et la renommée n'a rien à voir là-dedans. */
+  document.getElementById('ctrenom').textContent = mission
+    ? 'Elle ouvre le palier suivant. On peut la reprendre plus tard : elle attendra ici.'
+    : (S ? 'Renommée ' + libelleRenom(S) +
+           (offre ? ' — un refus la fait descendre de deux crans.' : '') : '');
+  document.getElementById('ctnon').style.display = (offre && !mission) ? 'block' : 'none';
   document.getElementById('ctoui').style.display = offre ? 'block' : 'none';
+  document.getElementById('ctoui').textContent = mission ? 'Prendre la mission' : 'Accepter';
 }
 document.getElementById('ctfond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
 document.getElementById('ctretour').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
@@ -12436,7 +12528,12 @@ document.getElementById('ctnon').addEventListener('pointerdown', (e)=>{
 });
 document.getElementById('ctoui').addEventListener('pointerdown', (e)=>{
   e.stopPropagation();
-  if(contratVu && contratVu.offre && !accepterOffre(contratVu.S)) return;
+  if(contratVu && contratVu.mission){
+    CAMPAGNE.prise = true;
+    showHint('MISSION PRISE — ' + contratVu.C.lieu.toUpperCase());
+    rafraichirEcran();
+  }
+  else if(contratVu && contratVu.offre && !accepterOffre(contratVu.S)) return;
   fermerContrat(); refreshChoix(); refreshService();
 });
 
@@ -12492,7 +12589,9 @@ function refreshChoix(){
   const Sic = siteIci(m.v);
   const offreIci = (Sic && Sic.offre) ? Sic : null;
   const encoursIci = Sic ? contratChez(Sic.nom) : null;
-  if(!L.length && !serv.length && !emp.length && !offreIci && !encoursIci){
+  const misIci = (()=>{ const M0 = missionAPrendre();
+                        return (Sic && M0 && M0.lieu === Sic.nom) ? M0 : null; })();
+  if(!L.length && !serv.length && !emp.length && !offreIci && !encoursIci && !misIci){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
     return false;
   }
@@ -12548,8 +12647,11 @@ function refreshChoix(){
     for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:null});
   }
   // La proposition passe AVANT tout le reste, y compris pendant un transfert : c'est la
-  // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant.
-  if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch vert',
+  // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
+  // mission de campagne passe avant elle, parce qu'elle mène le jeu.
+  if(misIci) lignes.unshift({txt:'VOIR LA MISSION', cls:'ch vert',
+                             f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, true)});
+  else if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch vert',
                                f:()=> ouvrirContrat(offreIci.offre, offreIci, true)});
   else if(encoursIci) lignes.push({txt:'CONTRAT EN COURS', cls:'ch vert',
                                    f:()=> ouvrirContrat(encoursIci, Sic, false)});
@@ -12573,6 +12675,73 @@ function refreshChoix(){
   }
   choixEl.style.display = 'flex';
   return true;
+}
+
+/* ---------- LES VISEURS : OÙ EST LE VERT QU'ON NE VOIT PAS ----------
+   Une pastille verte qui tombe à l'autre bout de la vallée n'existe pour le joueur que
+   s'il passe devant par hasard. Une flèche au bord de l'écran pointe donc vers chacune
+   de celles qui sont hors cadre, avec le nom du commerce et la distance : on sait qu'il
+   y a quelque chose, dans quelle direction, et si ça vaut le détour. Dès que la
+   pastille entre dans le cadre, la flèche s'efface — elle ne sert plus à rien.
+
+   Le calcul tient en trois temps : on projette le point, on regarde s'il est dans le
+   cadre utile — celui qui exclut le bandeau du haut et les commandes du bas, sinon la
+   flèche se pose sous le manche —, et sinon on coupe le rayon partant du centre sur ce
+   rectangle. Un point DERRIÈRE la caméra sort de la projection avec ses signes
+   inversés : on le retourne, sans quoi la flèche pointerait à l'exact opposé. */
+const viseursEl = document.getElementById('viseurs');
+const VISEUR = {haut:100, bas:158, cote:64, pool:[]};
+const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
+function refreshViseurs(){
+  const W = innerWidth, H = innerHeight;
+  const mL = VISEUR.cote, mR = W - VISEUR.cote;
+  const mT = VISEUR.haut, mB = H - VISEUR.bas;
+  const cx = W/2, cy = (mT + mB)/2;
+  const v = MACHINES[cur].v;
+  let n = 0;
+  for(const S of SITES){
+    if(!aQuelqueChoseADire(S)) continue;
+    // Deux mètres vingt de haut : le centre de la pastille, pas le sol, sinon la flèche
+    // dérive quand la caméra rase.
+    _vVis.set(S.dropX, 2.2, S.dropZ);
+    _cVis.copy(_vVis).applyMatrix4(camera.matrixWorldInverse);
+    _vVis.project(camera);
+    const derriere = _cVis.z > 0;
+    let sx = (( derriere ? -_vVis.x : _vVis.x)*0.5 + 0.5)*W;
+    let sy = ((-(derriere ? -_vVis.y : _vVis.y))*0.5 + 0.5)*H;
+    if(!derriere && sx >= mL && sx <= mR && sy >= mT && sy <= mB) continue;  // on la voit
+    const dx = sx - cx, dy = sy - cy;
+    const L = Math.hypot(dx, dy) || 1;
+    const tx = dx === 0 ? Infinity : (dx > 0 ? (mR - cx)/dx : (mL - cx)/dx);
+    const ty = dy === 0 ? Infinity : (dy > 0 ? (mB - cy)/dy : (mT - cy)/dy);
+    const t = Math.max(0, Math.min(tx, ty));
+    const px = cx + dx*t, py = cy + dy*t;
+    let e = VISEUR.pool[n];
+    if(!e){
+      e = document.createElement('div'); e.className = 'vis';
+      e.innerHTML = '<div class="fl"></div><div class="nm"></div>';
+      viseursEl.appendChild(e); VISEUR.pool[n] = e;
+    }
+    const d = Math.round(Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ));
+    e.style.display = 'flex';
+    // Le triangle pointe vers le haut au repos : on le tourne de l'angle du rayon.
+    e.firstChild.style.transform = 'rotate(' + (Math.atan2(dy, dx)*180/Math.PI + 90).toFixed(1) + 'deg)';
+    const nm = e.lastChild;
+    const txt = S.nom.toUpperCase() + '  ·  ' + d + ' m';
+    if(nm.textContent !== txt){ nm.textContent = txt; e._w = 0; }
+    /* LE LIBELLÉ NE SORT PAS DE L'ÉCRAN. La flèche est centrée sur le point du bord ;
+       sur un bord latéral, la moitié du nom passait dehors et l'on lisait « COOPÉRATIV ».
+       On rentre donc la vignette entière dans le cadre. La largeur n'est mesurée que
+       lorsque le texte change — la relire vingt fois par seconde forcerait une mise en
+       page à chaque tic. */
+    if(!e._w){ e._w = e.offsetWidth; e._h = e.offsetHeight; }
+    const hw = e._w/2 + 5, hh = e._h/2 + 5;
+    e.style.left = Math.max(hw, Math.min(W - hw, px)).toFixed(0) + 'px';
+    e.style.top  = Math.max(hh, Math.min(H - hh, py)).toFixed(0) + 'px';
+    void L;
+    n++;
+  }
+  for(let k = n; k < VISEUR.pool.length; k++) VISEUR.pool[k].style.display = 'none';
 }
 
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
@@ -13530,7 +13699,16 @@ function ongletCampagne(){
 
   const M = missionCourante();
   titre('Mission de campagne');
-  if(!M)
+  const aPrendre = missionAPrendre();
+  if(aPrendre){
+    /* ON NE LA LIT PAS D'ICI NON PLUS. Le menu dit qu'il y a quelque chose à prendre et
+       chez qui — pas ce que c'est. C'est la même règle que pour les contrats : la
+       pastille verte au sol serait décorative si l'on pouvait tout lire d'un tableau. */
+    article(0x62D84E, 'À prendre chez ' + aPrendre.lieu,
+      'Une mission de campagne vous y attend. Une pastille verte est allumée devant ' +
+      'son quai : passez devant pour l\'entendre.', 'Aller voir', 'vert', null);
+  }
+  else if(!M)
     article(0x8BE07A, 'La campagne est finie',
       'Les quinze paliers sont ouverts. Les commandes continuent, sans fin, et ' +
       'grossissent avec la ferme.', 'Terminée', 'ok', null);
@@ -13547,8 +13725,9 @@ function ongletCampagne(){
   titre('Les contrats en cours');
   if(!CONTRATS.length)
     article(0x8A9298, 'Aucun contrat',
-      'Les commerces proposent sur place. Un anneau vert au sol, devant leur quai, ' +
-      'annonce qu\'il y a quelque chose à écouter.', '0 / ' + CONTRAT_MAX, 'no', null);
+      'Les commerces proposent sur place. Une pastille verte allumée au sol, devant ' +
+      'leur quai, annonce qu\'il y a quelque chose à écouter — et une flèche au bord de ' +
+      'l\'écran dit où elle est quand on ne la voit pas.', '0 / ' + CONTRAT_MAX, 'no', null);
   CONTRATS.forEach((C)=>{
     const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
     article(parseInt((PRODUITS[C.lignes[0].cle] || {couleur:'#FAD201'}).couleur.slice(1), 16),
@@ -13855,7 +14034,7 @@ function etatJeu(){
        l'incrémenter rejetterait d'un coup toutes les parties en cours. Une partie
        d'avant la campagne n'a pas ce bloc et se relit sans lui. */
     campagne: {niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
-               faits: CAMPAGNE.faits.slice(),
+               faits: CAMPAGNE.faits.slice(), prise: CAMPAGNE.prise,
                contrats: CONTRATS.map((C)=> ({type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps,
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
@@ -14370,6 +14549,16 @@ function loop(now){
       }
       // en veille : un blanc franchement transparent, immobile.
       // en éveil : le jaune monte jusqu'à saturation et l'anneau enfle de 14 %.
+      if(A.plein){
+        /* LA PASTILLE RESPIRE FRANCHEMENT. Elle part à la moitié de son intensité et
+           monte au plein, en grandissant d'un cinquième : de loin on ne voit que ce
+           battement, et c'est précisément ce qu'on veut voir. */
+        A.anneau.material.opacity = (0.62 + 0.36*bat)*A.k;
+        A.anneau.scale.setScalar(1 + 0.20*bat);
+        A.halo.material.opacity = (0.055 + 0.075*bat)*A.k;
+        A.halo.scale.setScalar(1 + 0.10*bat);
+        continue;
+      }
       // L'anneau discret est plus petit, et posé sur le béton clair du quai : en mélange
       // additif il s'y noyait. Un tiers d'intensité en plus le rend lisible sans le
       // rendre criard sur l'herbe.
@@ -14422,7 +14611,7 @@ function loop(now){
     refreshHUD();
     refreshCommandes();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
-    refreshChoix(); refreshService(); refreshJauges();
+    refreshChoix(); refreshService(); refreshJauges(); refreshViseurs();
   }
   // Les parcelles hors du cadre ne partent pas au GPU : vingt tests de sphère, et
   // trois quarts des plantes du monde ne coûtent plus rien.
