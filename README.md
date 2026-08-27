@@ -27,7 +27,7 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
 | **Changer d'engin** | le **garage**, tout en bas, ou les touches 1 à 4 : la liste du parc s'ouvre |
 | **Automatiser** | le **A cerclé**, à droite du crochet : la carte en grand, on compose une file de tâches |
-| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les quatre commandes, et les quinze paliers à venir |
+| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les contrats en cours, la renommée du village, et les quinze paliers à venir |
 | **Régler le semoir** | l'**épi**, à gauche du crochet — le seul bouton qui garde un mot, parce qu'aucun dessin ne dit « tournesol » |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
@@ -95,7 +95,7 @@ Une campagne le remplace, avec **deux valeurs globales** et pas une de plus :
 - l'**expérience** dit ce à quoi on a droit.
 
 On ne peut donc pas sauter un maillon en payant. Et l'on ne peut pas non plus rester
-bloqué : les commandes libres donnent de l'expérience elles aussi, et tout ce qui sort
+bloqué : les contrats du village donnent de l'expérience eux aussi, et tout ce qui sort
 de la ferme en donne un filet — un centième d'euro de marchandise vendue.
 
 La règle de découverte est toujours la même : **un acheteur réclame quelque chose
@@ -139,33 +139,59 @@ Les seuils d'expérience **ne se règlent pas** : le seuil du palier *n+1* est l
 des expériences des missions du palier *n* et de tous ceux d'avant. Deux tables réglées
 à la main finissent toujours par se contredire — un palier qu'on n'atteint pas en
 faisant exactement ce que le jeu demande, ou un palier franchi avant sa mission. Faire
-la campagne suffit donc toujours, très exactement, et les commandes libres permettent
+la campagne suffit donc toujours, très exactement, et les contrats du village permettent
 d'aller plus vite sans jamais permettre de sauter un maillon.
 
-### Les quatre commandes
+### Les contrats se proposent, ils ne tombent plus du ciel
 
-Quatre commandes visibles en permanence, et chacune a son caractère :
+Quatre commandes apparaissaient toutes seules dans un coin de l'écran, sans qu'on les
+ait demandées ni qu'on puisse les regarder de près : on subissait une liste au lieu de
+traiter avec quelqu'un. C'est le **commerce** qui propose, maintenant, et il le dit sur
+place.
+
+Un **anneau vert** s'allume au sol, au centre de son anneau de livraison. On s'y arrête,
+un bouton vert **VOIR LE CONTRAT** apparaît, et la fenêtre s'ouvre : ce qu'il réclame,
+la marchandise au prix du jour, la prime à la clôture, le délai s'il y en a un, et la
+renommée qu'on a chez lui. Trois réponses :
 
 | | |
 |---|---|
-| **Brute** | ce qui sort de la terre ou de la bête, tel quel |
-| **Transformée** | un produit de l'atelier. Demande une chaîne |
-| **Composée** | deux ou trois produits chez le même client. Demande une tournée |
-| **Urgente** | une seule marchandise, en quantité, avec un délai. Paie double, et se perd |
+| **Accepter** | le contrat rejoint la liste, l'anneau vert s'éteint |
+| **Refuser** | on perd **deux crans de renommée**, et il proposera moins bien, moins souvent |
+| **Retour** | on n'a rien dit. L'offre reste sur place, on repassera |
 
-On les refuse d'un doigt et une autre prend la place. **La récompense ne casse pas
-l'économie** : on est payé le prix normal de la marchandise au moment où on la livre —
-le circuit habituel, celui des étals et des caisses d'usine — puis la prime s'ajoute à
-la clôture. Les prix du village restent donc exacts.
+Le tirage garde ses quatre natures — **brute**, **transformée**, **composée** (deux ou
+trois produits chez le même client), **urgente** (en quantité, avec un délai, et elle se
+perd). Le **client se choisit avant les lignes**, et pas l'inverse : en composant d'abord
+un panier puis en cherchant qui le prend, une commande finissait par réclamer de l'huile
+d'olive à l'usine de céréales. Relevé : **400 propositions, 0 indélivrable**.
 
-Le **client se choisit avant les lignes**, et pas l'inverse : en composant d'abord un
-panier puis en cherchant qui le prend, une commande finissait par réclamer de l'huile
-d'olive à l'usine de céréales. Relevé : **4 000 tirages, 0 commande indélivrable**.
+**La renommée** est le seul état durable de cette relation : elle monte d'un cran à
+chaque contrat honoré, descend de deux à chaque refus, d'un à chaque contrat urgent
+laissé filer. Elle module la prime (**0,70 ×** chez qui l'on éconduit, **1,50 ×** chez
+qui l'on sert depuis toujours) et l'attente entre deux propositions. Un commerce
+plusieurs fois éconduit finit par ne presque plus rien offrir — sans jamais se fermer
+tout à fait, parce qu'un débouché perdu pour de bon serait une partie perdue. Une
+proposition laissée sur place s'efface au bout de trois minutes, sans rien coûter.
 
-Une case honorée se remplit **vingt-cinq secondes plus tard**. Sans ce délai, une seule
-benne de deux cents kilos soldait la commande, en faisait apparaître une neuve du même
-produit chez le même client, et la soldait aussi — cinq fois de suite, sans bouger :
-587 € pour une livraison qui devait en rapporter deux cents.
+Le village ne propose jamais plus de **trois** contrats à la fois, on n'en tient jamais
+plus de **quatre**, et un commerce qui a déjà une offre ou un contrat en cours ne se voit
+rien proposer de plus.
+
+**La récompense ne casse pas l'économie** : on est payé le prix normal de la marchandise
+au moment où on la livre — le circuit habituel, celui des étals et des caisses d'usine —
+puis la prime s'ajoute à la clôture. Les prix du village restent donc exacts.
+
+### Le bandeau ne mange plus l'écran
+
+Quatre pilules de commande, deux lignes chacune, occupaient la moitié gauche de
+l'écran : on jouait derrière sa liste de courses. Un contrat accepté tient maintenant
+dans une **puce d'une ligne** — le lieu, l'avancement, le délai s'il court — de 23 px de
+haut, large de son seul texte. On la touche et la même fenêtre se rouvre, en lecture
+seule cette fois, avec ce qui reste à livrer ligne par ligne.
+
+Relevé, quatre contrats plus la mission de campagne : **406 × 190 px avant, 257 × 158
+après** — de 8,5 % à 5,3 % de l'écran, et la largeur ne suit plus le bloc mais le texte.
 
 ### Les temps
 
@@ -1258,6 +1284,13 @@ la propriété l'emporte toujours** — rien de ce qui a été acheté n'est jam
 
 Ses cinq anciens paliers d'atelier deviennent les six métiers correspondants, rendus
 gratuitement : un joueur qui avait payé la cave se réveillerait sans elle autrement.
+
+Les **contrats acceptés** et la **renommée** de chaque commerce se sont greffés de la
+même façon, en champs facultatifs du bloc `campagne` : une partie d'avant repart sans
+contrat en cours et devant un village qui n'a rien contre elle. Les **propositions en
+attente**, elles, ne se sauvegardent pas — un commerce qui nous attendrait depuis trois
+semaines n'aurait aucun sens, et la première proposition retombe de toute façon huit
+secondes après le chargement.
 
 « Nouvelle partie », dans l'onglet Réglages, efface tout et repart d'une terre vierge.
 
