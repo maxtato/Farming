@@ -2279,21 +2279,46 @@ const GEO_CULTURE = [geoBle, geoMais, geoColza, geoAvoine, geoOrge, geoVigne, ge
    reste ce qu'elle a toujours été. Une cellule qui change de culture déménage — on la
    retire de son ancien maillage en y ramenant la dernière instance à sa place, ce qui
    garde le tableau compact et sans trou. */
-const CHAMPS = [];                                        // culture -> InstancedMesh
-const champRec = [];                                      // culture -> [place -> fiche]
+/* UN MAILLAGE PAR PARCELLE ET PAR CULTURE, ET NON PLUS UN PAR CULTURE.
+   Un maillage instancié se dessine d'un bloc : trente-six triangles de blé fois huit
+   mille cinq cents pieds partaient au nuanceur de sommets à CHAQUE IMAGE, où que la
+   caméra regarde. Il n'y avait rien à écarter — un seul maillage couvrant la ferme
+   entière est toujours à l'écran, d'où le `frustumCulled = false` que portaient les
+   sept. Relevé à la caméra de jeu, tout planté : QUATRE parcelles sur vingt sont dans
+   le champ de vision, et 8 % des plantes. Les 92 % restants coûtaient plein tarif.
+   Découpé par parcelle, on n'envoie plus que ce qu'on regarde : 23,7 % des instances,
+   l'orge tombant de 612 000 triangles par image à 145 000. Le prix est de trois appels
+   de dessin de plus sur les 283 que fait déjà la scène. Un découpage plus fin — des
+   tuiles de vingt mètres — ne gagne que deux points pour quatorze appels : la parcelle
+   est le bon grain, et c'est aussi la seule maille dont le rectangle est FIXE, donc
+   dont la sphère englobante ne peut jamais être périmée.
+   Et la mémoire suit : une parcelle n'alloue que pour la culture qu'elle porte, là où
+   les sept réserves gardaient 9 500 places chacune. 4,07 Mio de tampons d'instances
+   deviennent 0,6. */
+const CHAMPS = [];                                        // culture -> [parcelle -> InstancedMesh]
+const champRec = [];                                      // culture -> [parcelle -> [place -> fiche]]
+const CHAMP_GEO = [], CHAMP_MAT = [];                     // partagés par toutes les parcelles
 /* three renvoie TOUT le tampon d'un maillage dès qu'on lève `needsUpdate` : 608 ko par
    culture, quel que soit le nombre d'instances réellement modifiées. Une seule plante
    qui grandit coûtait donc un demi-mégaoctet, et sept cultures qui mûrissent ensemble
    quatre. On retient la plage des places touchées depuis le dernier envoi, et on ne
    renvoie qu'elle. */
 /* Capacité de départ d'un maillage de culture. Il double dès qu'elle est atteinte, et
-   ne dépasse jamais FIELD_POOL puisque la somme des sept comptes est bornée par lui. */
-const CHAMP_DEPART = 512;
+   ne dépasse jamais FIELD_POOL puisque la somme de tous les comptes est bornée par lui.
+   Soixante-quatre et non plus cinq cent douze : il y a maintenant un maillage par
+   parcelle ET par culture, et la plus petite parcelle ne porte que deux cent vingt-cinq
+   cellules. Partir haut, c'était payer d'avance vingt fois. */
+const CHAMP_DEPART = 64;
 function agrandirChamp(M, besoin){
   const cap = M.instanceMatrix.count;
   if(besoin <= cap) return;
   let n = cap;
   while(n < besoin) n *= 2;
+  /* ET L'ON NE DÉPASSE JAMAIS CE QUE LA PARCELLE PEUT PORTER. Doubler à l'aveugle
+     donnait 512 places à une parcelle de 225 cellules : plus du double payé d'avance,
+     et vingt fois. Le plafond est le nombre de cellules cultivables de la parcelle,
+     compté une fois pour toutes à l'achat — au-delà, il n'y a rien à ranger. */
+  if(M.plafond && n > M.plafond) n = Math.max(besoin, M.plafond);
   if(n > FIELD_POOL) n = FIELD_POOL;
   const mat = new Float32Array(n*16); mat.set(M.instanceMatrix.array);
   M.instanceMatrix = new THREE.InstancedBufferAttribute(mat, 16);
@@ -2304,10 +2329,12 @@ function agrandirChamp(M, besoin){
     M.instanceColor.setUsage(THREE.DynamicDrawUsage);
   }
 }
-const champLo = [], champHi = [];                         // culture -> plage à renvoyer
-function salir(c, place){
-  if(champLo[c] === undefined || place < champLo[c]) champLo[c] = place;
-  if(champHi[c] === undefined || place > champHi[c]) champHi[c] = place;
+// culture -> parcelle -> plage à renvoyer
+const champLo = [], champHi = [];
+function salir(c, par, place){
+  if(!champLo[c]){ champLo[c] = []; champHi[c] = []; }
+  if(champLo[c][par] === undefined || place < champLo[c][par]) champLo[c][par] = place;
+  if(champHi[c][par] === undefined || place > champHi[c][par]) champHi[c][par] = place;
 }
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(),
       _v3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), _col = new THREE.Color();
@@ -2409,30 +2436,71 @@ function buildField(){
        prix fort. Ils démarrent maintenant petits et doublent quand il le faut : le
        tableau côté processeur est recopié, three renvoie l'attribut neuf au rendu
        suivant. Une ferme qui n'a jamais semé d'olives ne paie pas d'olives. */
-    const M = new THREE.InstancedMesh(wg,
-      // Double face : une feuille de maïs est un PLAN de deux triangles, qu'il faut
-      // voir du dessus comme du dessous. C'est ce qui remplace une boîte de douze.
-      new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide}), CHAMP_DEPART);
-    M.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    M.frustumCulled = false;
-    M.receiveShadow = true;
-    // three alloue le tampon de couleurs d'instance à la taille de `count` lors du premier
-    // setColorAt. Comme on démarre à 0 instance, ce tampon naissait vide et toutes les
-    // couleurs écrites tombaient dans le vide : les épis rendaient noir. On l'alloue donc
-    // nous-mêmes à la taille de la réserve.
-    M.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CHAMP_DEPART*3), 3);
-    M.instanceColor.setUsage(THREE.DynamicDrawUsage);
-    M.count = 0;
-    scene.add(M);
-    CHAMPS[c] = M; champRec[c] = [];
+    // La géométrie et le matériau sont bâtis UNE fois et partagés par les vingt
+    // parcelles : c'est le maillage qui se découpe, pas la plante.
+    CHAMP_GEO[c] = wg;
+    // Double face : une feuille de maïs est un PLAN de deux triangles, qu'il faut
+    // voir du dessus comme du dessous. C'est ce qui remplace une boîte de douze.
+    CHAMP_MAT[c] = new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide});
+    CHAMPS[c] = []; champRec[c] = [];
   }
   for(const p of PARCELS) if(p.owned) activateParcel(p);
+}
+/* Le maillage d'une culture SUR UNE PARCELLE, bâti au premier pied qu'on y plante. Une
+   ferme qui n'a jamais semé d'olives sur la parcelle onze ne paie rien pour elle. */
+function champDe(c, par){
+  let M = CHAMPS[c][par];
+  if(M) return M;
+  M = new THREE.InstancedMesh(CHAMP_GEO[c], CHAMP_MAT[c], CHAMP_DEPART);
+  M.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  /* On écarte NOUS-MÊMES, parcelle par parcelle — voir masquerChampsHorsVue(). three
+     teste la sphère englobante de la GÉOMÉTRIE transformée par la matrice du maillage :
+     pour un maillage instancié, cette sphère est celle d'un seul pied posé à l'origine,
+     et le champ entier disparaîtrait dès que ce pied-là sort du cadre. C'est pour cela
+     que le drapeau est baissé, et c'est pour cela qu'on ne peut pas simplement le
+     relever. */
+  M.frustumCulled = false;
+  M.receiveShadow = true;
+  // three alloue le tampon de couleurs d'instance à la taille de `count` lors du premier
+  // setColorAt. Comme on démarre à 0 instance, ce tampon naissait vide et toutes les
+  // couleurs écrites tombaient dans le vide : les épis rendaient noir. On l'alloue donc
+  // nous-mêmes à la taille de la réserve.
+  M.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CHAMP_DEPART*3), 3);
+  M.instanceColor.setUsage(THREE.DynamicDrawUsage);
+  M.count = 0;
+  scene.add(M);
+  // Ce que cette parcelle peut porter au plus : c'est le plafond de sa réserve.
+  M.plafond = (PARCELS[par] && PARCELS[par].cellules) || FIELD_POOL;
+  CHAMPS[c][par] = M; champRec[c][par] = [];
+  return M;
+}
+/* CE QU'ON NE REGARDE PAS NE PART PAS AU GPU. Vingt tests de sphère par image — un par
+   parcelle, sur un rectangle qui ne bouge jamais — décident quels maillages se
+   dessinent. Le rayon prend la diagonale de la parcelle plus trois mètres : de quoi
+   couvrir la plante la plus haute du jeu, l'olivier à 4,59 m, dont le houppier dépasse
+   du rectangle au sol quand la caméra rase. */
+const _sphParc = new THREE.Sphere(), _frParc = new THREE.Frustum(), _mFrParc = new THREE.Matrix4();
+function masquerChampsHorsVue(){
+  camera.updateMatrixWorld();
+  _mFrParc.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  _frParc.setFromProjectionMatrix(_mFrParc);
+  for(let n = 0; n < PARCELS.length; n++){
+    const p = PARCELS[n];
+    _sphParc.center.set(p.x, 1.6, p.z);
+    _sphParc.radius = Math.hypot(p.w, p.h)/2 + 3.2;
+    const vu = _frParc.intersectsSphere(_sphParc);
+    for(let c = 0; c < CHAMPS.length; c++){
+      const M = CHAMPS[c][n];
+      if(M) M.visible = vu;
+    }
+  }
 }
 // Met une parcelle en culture : cellules cultivables, épis alloués, sol peint en terre.
 function activateParcel(p){
   // Le semis des pieds — décalage, rotation, taille — tient à la parcelle, pas à
   // l'ordre dans lequel on l'achète.
   const alea = aleaLieu(p.x, p.z);
+  const np = PARCELS.indexOf(p);
   p.owned = true;
   const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
   const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
@@ -2447,10 +2515,13 @@ function activateParcel(p){
     let wx = x + (alea()-0.5)*0.55, wz = z + (alea()-0.5)*0.55;
     wx = Math.max(p.x-p.w/2+0.35, Math.min(p.x+p.w/2-0.35, wx));
     wz = Math.max(p.z-p.h/2+0.35, Math.min(p.z+p.h/2-0.35, wz));
-    wheatBase[n] = {x:wx, z:wz, i:i, j:j,
+    // La fiche retient SA parcelle : c'est elle qui décide dans quel maillage le pied
+    // va se poser, et donc ce qu'on écarte quand la caméra regarde ailleurs.
+    wheatBase[n] = {x:wx, z:wz, i:i, j:j, par:np,
                     rot:alea()*Math.PI, sc:1.45 + alea()*0.5, crop:0};
     setInstance(n, 0, 0);
     state[id] = ST.JACHERE; arableCount++;
+    p.cellules = (p.cellules || 0) + 1;   // ce que la parcelle peut porter de pieds
   }
   champsAJour();
   paintParcelSoil(p);
@@ -2461,7 +2532,10 @@ function activateParcel(p){
 function retirerDuChamp(n){
   const c = champCrop[n];
   if(c < 0) return;
-  const M = CHAMPS[c], liste = champRec[c], place = champSlot[n], dernier = M.count - 1;
+  const par = wheatBase[n].par;
+  const M = CHAMPS[c][par], liste = champRec[c][par];
+  if(!M){ champCrop[n] = -1; champSlot[n] = -1; return; }
+  const place = champSlot[n], dernier = M.count - 1;
   if(place !== dernier){
     const autre = liste[dernier];
     M.getMatrixAt(dernier, _m4); M.setMatrixAt(place, _m4);
@@ -2470,12 +2544,23 @@ function retirerDuChamp(n){
       M.setColorAt(place, _col);
     }
     liste[place] = autre; champSlot[autre] = place;
-    salir(c, place);
+    salir(c, par, place);
   }
   // Retirer la dernière instance ne réécrit rien : seul `count` bouge, et `count`
   // n'est pas un tampon.
   M.count = dernier;
   champCrop[n] = -1; champSlot[n] = -1;
+  /* ET LE MAILLAGE VIDE REND SA PLACE. Une parcelle qui a porté les sept cultures
+     gardait sept réserves à sa taille, alors qu'elle n'en porte jamais qu'une à la
+     fois : trois mégaoctets et demi de tampons dont six septièmes ne servaient plus.
+     Le dernier pied parti, on rend les tampons au pilote graphique — dispose() ne
+     touche ni la géométrie ni le matériau, qui sont partagés — et le maillage se
+     rebâtira tout seul le jour où l'on resème ici. */
+  if(dernier === 0){
+    scene.remove(M); M.dispose();
+    CHAMPS[c][par] = null; champRec[c][par] = null;
+    if(champLo[c]){ champLo[c][par] = undefined; champHi[c][par] = undefined; }
+  }
 }
 function setInstance(n, g, alive){
   const b = wheatBase[n];
@@ -2484,10 +2569,10 @@ function setInstance(n, g, alive){
   // n'a pas d'instance du tout. C'est ce qui rend le masque des permanentes gratuit.
   if(!alive || (C2.masque && !C2.masque(b.i, b.j))){ retirerDuChamp(n); return; }
   if(champCrop[n] !== c){ retirerDuChamp(n);
-    const M0 = CHAMPS[c];
+    const M0 = champDe(c, b.par);
     agrandirChamp(M0, M0.count + 1);
     const place = M0.count++;
-    champRec[c][place] = n; champSlot[n] = place; champCrop[n] = c;
+    champRec[c][b.par][place] = n; champSlot[n] = place; champCrop[n] = c;
   }
   // Une vigne est plantée en rang : ni décalage aléatoire, ni rotation. C'est
   // l'alignement des cellules voisines qui reconstitue le fil de palissage.
@@ -2510,10 +2595,10 @@ function setInstance(n, g, alive){
   _s3.set(s, sy*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
   _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
-  const M = CHAMPS[c], place = champSlot[n];
+  const M = CHAMPS[c][b.par], place = champSlot[n];
   M.setMatrixAt(place, _m4);
   M.setColorAt(place, _col);
-  salir(c, place);
+  salir(c, b.par, place);
 }
 /* Renvoie au GPU la plage d'instances qui a bougé, et seulement pour les cultures qui
    ont bougé. Les décalages sont en ÉLÉMENTS du tableau, pas en octets ni en instances :
@@ -2544,27 +2629,45 @@ const CHAMP_BUDGET = 1000;            // instances renvoyées par image, toutes 
 function champsAJour(tout){
   let reste = tout ? Infinity : CHAMP_BUDGET;
   for(let c = 0; c < CHAMPS.length; c++){
-    const lo = champLo[c];
-    if(lo === undefined) continue;
-    if(reste <= 0) break;
-    const M = CHAMPS[c], n = Math.min(champHi[c] - lo + 1, reste);
-    reste -= n;
-    M.instanceMatrix.updateRange.offset = lo*16;
-    M.instanceMatrix.updateRange.count  = n*16;
-    M.instanceMatrix.needsUpdate = true;
-    if(M.instanceColor){
-      M.instanceColor.updateRange.offset = lo*3;
-      M.instanceColor.updateRange.count  = n*3;
-      M.instanceColor.needsUpdate = true;
+    const LO = champLo[c];
+    if(!LO) continue;
+    for(let par = 0; par < LO.length; par++){
+      const lo = LO[par];
+      if(lo === undefined) continue;
+      if(reste <= 0) return;
+      const M = CHAMPS[c][par];
+      if(!M) continue;
+      /* UN MAILLAGE QU'ON NE DESSINE PAS N'A RIEN À RENVOYER — et surtout, il ne doit
+         pas OUBLIER ce qu'il a à renvoyer. `updateRange` ne retient qu'une plage : la
+         lever plusieurs fois sans que rien ne soit dessiné entre deux, c'est écraser la
+         précédente, et le jour où la parcelle revient à l'écran il lui manque des pieds.
+         On laisse donc sa plage s'accumuler tant qu'il est hors champ ; elle part en un
+         bloc quand la caméra revient. */
+      if(!M.visible && !tout) continue;
+      const n = Math.min(champHi[c][par] - lo + 1, reste);
+      reste -= n;
+      M.instanceMatrix.updateRange.offset = lo*16;
+      M.instanceMatrix.updateRange.count  = n*16;
+      M.instanceMatrix.needsUpdate = true;
+      if(M.instanceColor){
+        M.instanceColor.updateRange.offset = lo*3;
+        M.instanceColor.updateRange.count  = n*3;
+        M.instanceColor.needsUpdate = true;
+      }
+      if(lo + n > champHi[c][par]) LO[par] = champHi[c][par] = undefined;
+      else LO[par] = lo + n;          // le reliquat part à l'image suivante
     }
-    if(lo + n > champHi[c]) champLo[c] = champHi[c] = undefined;
-    else champLo[c] = lo + n;         // le reliquat part à l'image suivante
   }
 }
 // Reste-t-il quelque chose à renvoyer ? La boucle s'en sert pour ne rien appeler quand
 // rien n'a bougé.
 function champsEnAttente(){
-  for(let c = 0; c < CHAMPS.length; c++) if(champLo[c] !== undefined) return true;
+  for(let c = 0; c < CHAMPS.length; c++){
+    const LO = champLo[c];
+    if(!LO) continue;
+    for(let par = 0; par < LO.length; par++)
+      if(LO[par] !== undefined && CHAMPS[c][par] && CHAMPS[c][par].visible) return true;
+  }
   return false;
 }
 
@@ -12162,6 +12265,9 @@ function loop(now){
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
     refreshChoix(); refreshService(); refreshJauges();
   }
+  // Les parcelles hors du cadre ne partent pas au GPU : vingt tests de sphère, et
+  // trois quarts des plantes du monde ne coûtent plus rien.
+  masquerChampsHorsVue();
   renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);

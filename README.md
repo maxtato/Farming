@@ -932,10 +932,35 @@ chargement. Ce qui change, c'est qu'il se construit **à l'identique**.
 
 ## Ce qui tient la fluidité
 
-Trois plafonds, chacun posé après mesure, chacun tenu par un contrôle qui échoue si on
+Quatre plafonds, chacun posé après mesure, chacun tenu par un contrôle qui échoue si on
 les retire.
 
-**Les instances de cultures.** Chaque culture est un maillage instancié, et l'on ne
+**Les cultures ne partent au GPU que si on les regarde.** C'est le plus gros des trois,
+et il tenait à une ligne : les sept maillages de culture portaient `frustumCulled = false`.
+Ils n'avaient pas le choix — un maillage instancié couvrant la ferme entière est toujours
+à l'écran, et three teste la sphère de la GÉOMÉTRIE, celle d'un seul pied posé à l'origine.
+Résultat : tout planté en orge, **612 000 triangles partaient au nuanceur de sommets à
+chaque image**, où que la caméra regarde, alors que quatre parcelles sur vingt sont dans
+le champ de vision.
+
+Chaque culture se découpe donc **par parcelle** : un maillage par couple (parcelle,
+culture), bâti au premier pied qu'on y plante, et vingt tests de sphère par image
+décident lesquels se dessinent. Le rectangle d'une parcelle ne bouge jamais, donc sa
+sphère ne peut pas être périmée — c'est ce qui rend l'écartement sûr, là où la sphère
+d'un maillage instancié ment toujours. Relevé sur cent poses de caméra balayant tout le
+terrain : **23,1 % des plantes envoyées en moyenne** (61,7 % au pire cadrage, à la
+jonction de quatre parcelles), **0 parcelle perdue** — celle dont un coin est à l'écran
+est toujours dessinée. Sur la vue de jeu, l'orge tombe de 618 824 à 151 904 triangles
+pour quatre appels de dessin de plus sur les 283 que fait déjà la scène.
+
+Et un maillage vide **rend ses tampons** : une parcelle qui change de culture libère
+l'ancienne au lieu de la garder à sa taille. Après avoir semé les sept cultures partout,
+les réserves d'instances passent de **4,07 Mio à 0,09** ; sur une ferme entièrement semée
+d'une seule culture, de 0,91 à 0,62. Un maillage qu'on ne dessine pas ne renvoie rien non
+plus, et sa plage s'accumule au lieu de s'écraser : elle part d'un bloc quand la caméra
+revient.
+
+**La plage renvoyée est un min-max.** Chaque culture est un maillage instancié, et l'on ne
 renvoie au GPU que la plage qui a bougé. Mais cette plage est un simple min-max : il
 suffit que deux plantes éloignées franchissent un palier de croissance dans la même
 image pour qu'elle s'étale d'un bout à l'autre du maillage, et l'on renvoie alors le
