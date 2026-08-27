@@ -6226,6 +6226,15 @@ function marquageParking(){
 /* ---------- 10. MACHINES ---------- */
 function wheelMesh(r, w, hex){
   const g = new THREE.Group();
+  /* L'ORDRE DES DEUX ROTATIONS DÉCIDE SI LA ROUE EST VOILÉE. Une roue directrice
+     reçoit deux angles : le braquage autour de Y, la rotation autour de son axe X.
+     Dans l'ordre par défaut (XYZ), c'est le braquage qui s'applique EN PREMIER dans
+     le repère local, et la rotation s'ajoute ensuite autour du X de l'engin — la roue
+     braquée tourne donc autour d'un axe qui n'est plus le sien, et le pneu décrit un
+     cône : c'est exactement l'aspect d'une jante voilée. En YXZ, la roue tourne
+     d'abord autour de son propre axe, et l'ensemble est braqué après : elle reste
+     plane, quel que soit l'angle. */
+  g.rotation.order = 'YXZ';
   const t = cyl(r,r,w,10,hex||C.dark,0,0,0,0,0,Math.PI/2); g.add(t);
   const rim = cyl(r*0.55,r*0.55,w+0.06,8,C.cream,0,0,0,0,0,Math.PI/2); g.add(rim);
   return g;
@@ -6492,10 +6501,19 @@ function buildPickup(){
   for(const sx of [-BW, BW]) g.add(box(0.13, 0.08, 3.46, CAISSE2, sx, 1.74, -1.9));
   g.add(box(BW*2 + 0.03, 0.08, 0.15, CAISSE2, 0, 1.78, -0.24));            // liserés
   g.add(box(BW*2 + 0.03, 0.08, 0.13, CAISSE2, 0, 1.74, -3.56));
-  // passages de roue : centrés SUR la roue et assez hauts pour la coiffer
-  for(const sx of [-1.02, 1.02]){
-    g.add(box(0.56, 0.52, 1.72, CAISSE, sx, 1.12, -1.9));
-    g.add(box(0.62, 0.07, 1.78, CAISSE2, sx, 1.41, -1.9));
+  /* LES PASSAGES DE ROUE. Ils se lisaient comme deux baguettes posées le long des
+     ridelles : trop bas de six centimètres pour qu'on les prenne pour un caisson, et
+     trop étroits pour coiffer le pneu à l'aise. Ils gagnent douze centimètres de
+     largeur et huit de hauteur. Le dehors ne bouge pas — il est plaqué contre la
+     ridelle, et le déborder ferait saillie sur le flanc du pick-up : c'est vers
+     l'INTÉRIEUR de la benne qu'ils s'élargissent, ce qui est aussi la seule chose
+     qu'on en voie depuis la caméra. Le sommet reste sous le liseré des ridelles
+     (1,70) : le plateau se lit toujours comme un plateau ouvert. Et c'est ce qui
+     borne l'élargissement — les deux colonnes de sacs se rangent entre les caissons,
+     et huit centimètres de plus les feraient traverser la tôle. */
+  for(const sx of [-0.98, 0.98]){
+    g.add(box(0.64, 0.60, 1.72, CAISSE, sx, 1.16, -1.9));
+    g.add(box(0.70, 0.07, 1.78, CAISSE2, sx, 1.495, -1.9));
   }
   /* LA BÂCHE ROULÉE SE RANGE CONTRE LA CLOISON, PAS AU-DESSUS DU CHARGEMENT. Elle
      était à 1,42 m, c'est-à-dire posée sur le premier rang de caisses : celles-ci
@@ -6517,7 +6535,7 @@ function buildPickup(){
   // colis où poser les sacs — quatre rangs de deux, sur le plancher, entre les
   // passages de roue. Un engin qui n'a pas de `benne` n'en reçoit simplement pas.
   g.userData = {wr, wf, gyro, feux:F,
-    benne:{x:[-0.56, 0.56], z:[-0.95, -3.05], y:0.88, n:8, ech:0.88},
+    benne:{x:[-0.33, 0.33], z:[-0.95, -3.05], y:0.88, n:8, ech:0.88},
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
             arriere:{x:[-0.85,0.85], y:1.20, z:-3.47, w:0.30, h:0.18},
             nez:3.0}};
@@ -6947,7 +6965,9 @@ class Vehicle {
     if(ud.wr) ud.wr.forEach(w=>w.rotation.x = this.spin/1.25);
     if(ud.wf) ud.wf.forEach(w=>{
       w.rotation.x = this.spin/0.78;
-      w.rotation.y = (steerX || 0)*0.45;
+      // Vingt-deux degrés au braquage maximum, au lieu de vingt-six : de dessus, une
+      // roue trop ouverte se lisait comme un pneu déjanté plutôt que comme un virage.
+      w.rotation.y = (steerX || 0)*0.38;
     });
     if(ud.gyro){
       // Éteint à l'arrêt, il bat dès que la machine roule. L'exposant écrase le bas de
@@ -9447,18 +9467,65 @@ document.getElementById('dirg').innerHTML = flechePleine(-1);
 document.getElementById('dird').innerHTML = flechePleine(1);
 document.getElementById('pacc').innerHTML = pedaleAccel(56, 84);
 document.getElementById('pfre').innerHTML = pedaleFrein(56, 44);
-function presser(id, bas, haut){
-  const el = document.getElementById(id);
-  el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); e.stopPropagation();
-    el.setPointerCapture(e.pointerId); el.classList.add('on'); bas(); });
-  for(const ev of ['pointerup', 'pointercancel', 'pointerleave'])
-    el.addEventListener(ev, ()=>{ if(el.classList.contains('on')){ el.classList.remove('on'); haut(); } });
+/* LE BOUTON SUIT LE DOIGT. Chaque bouton capturait le pointeur pour lui seul : on
+   appuyait sur la flèche gauche, on glissait sur la droite, et c'était toujours la
+   gauche qui restait enfoncée — il fallait relever le doigt entre les deux. La
+   capture se pose maintenant sur le GROUPE, et c'est le point sous le doigt qui
+   désigne le bouton actif à chaque déplacement : on passe de l'une à l'autre sans
+   décoller, comme d'une pédale à l'autre.
+
+   L'ÉCART ENTRE DEUX BOUTONS NE RELÂCHE RIEN. Tant que le doigt reste dans le cadre
+   du groupe, on garde le dernier bouton enfoncé : sans cela, traverser les six
+   pixels du milieu couperait les gaz le temps d'une image. On ne relâche qu'en
+   sortant du groupe, ou en levant le doigt. */
+const BOUTONS = {};
+const declarerBouton = (id, bas, haut)=>{ BOUTONS[id] = {el:document.getElementById(id), bas, haut}; };
+declarerBouton('dirg', ()=> BTN.g = true,   ()=> BTN.g = false);
+declarerBouton('dird', ()=> BTN.d = true,   ()=> BTN.d = false);
+declarerBouton('pacc', ()=> BTN.acc = true, ()=> BTN.acc = false);
+declarerBouton('pfre', ()=>{ BTN.fre = true; BTN.freT = 0; BTN.arriere = false; },
+                       ()=>{ BTN.fre = false; BTN.arriere = false; });
+function groupeBoutons(idGroupe, selecteur){
+  const grp = document.getElementById(idGroupe);
+  const actifs = new Map();                        // pointerId → id du bouton enfoncé
+  const idDe = (el)=>{
+    const b = (el && el.closest) ? el.closest(selecteur) : null;
+    return (b && grp.contains(b) && BOUTONS[b.id]) ? b.id : null;
+  };
+  const sous = (x, y)=> idDe(document.elementFromPoint(x, y));
+  const dedans = (x, y)=>{
+    const r = grp.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  };
+  const aller = (pid, id)=>{
+    const av = actifs.get(pid) || null;
+    if(av === id) return;
+    if(av){ BOUTONS[av].el.classList.remove('on'); BOUTONS[av].haut(); actifs.delete(pid); }
+    if(id){ BOUTONS[id].el.classList.add('on'); BOUTONS[id].bas(); actifs.set(pid, id); }
+  };
+  grp.addEventListener('pointerdown', (e)=>{
+    // Le point sous le doigt désigne le bouton ; à défaut — un coin transparent du
+    // dessin, un événement sans coordonnées — c'est celui qui a reçu l'appui.
+    const id = sous(e.clientX, e.clientY) || idDe(e.target);
+    if(!id) return;
+    e.preventDefault(); e.stopPropagation();
+    aller(e.pointerId, id);
+    // La capture est posée APRÈS l'appui : elle peut échouer — un pointeur déjà
+    // relâché, un événement synthétique — et l'appui, lui, doit passer quand même.
+    try{ grp.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  grp.addEventListener('pointermove', (e)=>{
+    if(!actifs.has(e.pointerId)) return;
+    e.preventDefault();
+    const id = sous(e.clientX, e.clientY);
+    if(!id && dedans(e.clientX, e.clientY)) return;
+    aller(e.pointerId, id);
+  });
+  for(const ev of ['pointerup', 'pointercancel'])
+    grp.addEventListener(ev, (e)=>{ if(actifs.has(e.pointerId)) aller(e.pointerId, null); });
 }
-presser('dirg', ()=> BTN.g = true,   ()=> BTN.g = false);
-presser('dird', ()=> BTN.d = true,   ()=> BTN.d = false);
-presser('pacc', ()=> BTN.acc = true, ()=> BTN.acc = false);
-presser('pfre', ()=>{ BTN.fre = true; BTN.freT = 0; BTN.arriere = false; },
-                ()=>{ BTN.fre = false; BTN.arriere = false; });
+groupeBoutons('dirs', '.dir');
+groupeBoutons('pedales', '.ped');
 const DELAI_ARRIERE = 0.45;              // secondes d'appui avant que la marche arrière s'engage
 function commandesBoutons(dt){
   frein = false;
@@ -9484,6 +9551,7 @@ function appliquerCommandes(){
   steer = 0; throttle = 0; frein = false;
   stickId = null; thrId = null;
   BTN.g = BTN.d = BTN.acc = BTN.fre = BTN.arriere = false;
+  for(const id in BOUTONS) BOUTONS[id].el.classList.remove('on');
   knob.style.transform = 'translateX(0)'; thrKnob.style.transform = 'translateY(0)';
 }
 
@@ -12550,9 +12618,17 @@ const caleEspece = ()=>{
   const k = ESP_CLES.findIndex((c)=> ouvert('especes', c));
   especeChoisie = k >= 0 ? k : especeChoisie;
 };
+/* CE QU'ON PEUT FAIRE ICI NE SE LIT QU'À L'ARRÊT. Le bandeau s'allumait dès qu'on
+   entrait dans le rayon d'un lieu, donc en roulant : on traversait sa propre parcelle
+   et la proposition d'enclos clignotait tout du long, on longeait la coopérative et
+   son bouton passait le temps d'une seconde. Un bouton qu'on ne peut pas viser
+   n'annonce rien, il occupe l'écran. Il faut maintenant s'arrêter dessus — la machine
+   décide lentement, le seuil laisse donc passer le dernier mètre du roulement. */
+const ARRET = 0.35;                       // m/s : au-dessous, l'engin est à l'arrêt
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
+  if(v.speed > ARRET){ armePature = 0; return null; }
   if(aQuai(v, COMPTOIR))
     return {txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')};
   // Devant un enclos, deux gestes qui ne passent pas par la benne : acheter une bête,
@@ -12595,7 +12671,6 @@ function actionService(){
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
-    if(v.speed > 1.5){ armePature = 0; return null; }
     const E = ESPECES[ESP_CLES[especeChoisie]];
     const niv = niveauDe('especes', E.cle);
     if(CAMPAGNE.niveau < niv)

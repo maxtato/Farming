@@ -862,6 +862,15 @@ appuis, et la moitié des possibilités cachée derrière le premier. Elles sont
 toutes montrées, à plat, dans l'ordre où l'on y pense — ce qu'on dépose, ce qu'on prend,
 puis les gestes qui ne passent pas par la benne.
 
+**Rien ne s'affiche tant qu'on roule.** Le bandeau s'allumait dès qu'on entrait dans le
+rayon d'un lieu, donc en roulant : on traversait sa propre parcelle et la proposition
+d'enclos clignotait tout du long, on longeait la coopérative et son bouton passait le
+temps d'une seconde. Un bouton qu'on ne peut pas viser n'annonce rien, il occupe l'écran.
+Il faut maintenant **s'arrêter dessus** — le seuil est à 0,35 m/s, de quoi laisser passer
+le dernier mètre de roulement d'un engin qui décide lentement. L'ancien seuil, qui ne
+valait que pour la parcelle, laissait passer 1,5 m/s, c'est-à-dire une bonne marche.
+Repartir désarme au passage l'enclos qu'on venait d'armer.
+
 **Et ce qui est empêché s'affiche aussi**, en gris, avec sa raison. C'est ce qui manquait
 le plus : arrivé à l'enclos avec un tracteur nu, on ne voyait pas « charger le lait »,
 rien ne disait qu'il fallait une benne, et l'on en concluait que le jeu ne le permettait
@@ -1372,6 +1381,40 @@ freinage en boucle.
 Le frein au pied vaut **trois fois le frein moteur** — c'est ce qui rend la pédale
 utile : relâcher les gaz ralentit, appuyer sur le frein arrête. Mesuré sur une seconde à
 6 m/s : **0,01 m/s** au frein contre 0,72 en roue libre.
+
+**Le bouton suit le doigt.** Chaque bouton capturait le pointeur pour lui seul : on
+appuyait sur la flèche gauche, on glissait le pouce sur la droite, et c'était toujours la
+gauche qui restait enfoncée — il fallait relever le doigt entre les deux, ce qui coûte le
+temps d'un virage. La capture se pose maintenant sur le **groupe**, et c'est le point sous
+le doigt qui désigne le bouton actif à chaque déplacement : gauche → droite, accélérateur
+→ frein, sans décoller. L'écart entre deux boutons ne relâche rien — tant que le doigt
+reste dans le cadre du groupe on garde le dernier appuyé, sinon traverser les six pixels
+du milieu couperait les gaz le temps d'une image.
+
+## Deux détails d'engin
+
+**La roue braquée ne se voile plus.** Une roue directrice reçoit deux angles : le braquage
+autour de Y, la rotation autour de son axe X. Dans l'ordre de composition par défaut de
+three.js — `XYZ` —, c'est le braquage qui s'applique en premier dans le repère local et la
+rotation qui s'ajoute ensuite autour du X de l'engin : la roue braquée tourne donc autour
+d'un axe qui n'est plus le sien, et le pneu décrit un cône. C'est exactement l'aspect
+d'une jante voilée, et cela ne se voyait qu'en virage — d'où la difficulté à le nommer.
+Les roues composent maintenant en **`YXZ`** : la roue tourne d'abord autour de son propre
+axe, l'ensemble est braqué après. La mesure est nette — on braque à 0,38 rad, puis on fait
+tourner la roue d'un quart puis d'un demi-tour et l'on relève la direction de son axe :
+**0,7062 d'écart avant, 0 après**. Le braquage visible passe au passage de 25,8° à 21,8°,
+ce qui suffisait déjà à adoucir l'effet sans le corriger.
+
+**Le passage de roue du pick-up.** Il se lisait comme une baguette posée le long de la
+ridelle : six centimètres trop bas pour qu'on le prenne pour un caisson, et trop étroit
+pour coiffer le pneu à l'aise — les sacs chargés le traversaient. Il gagne **huit
+centimètres de hauteur** (sommet à 1,53 m, sous le liseré des ridelles à 1,70) et **huit de
+largeur** (0,70 m contre 0,62). Le dehors ne bouge pas : il est plaqué contre la ridelle,
+et le déborder ferait saillie sur le flanc. C'est donc vers l'**intérieur** de la benne
+qu'il s'élargit — ce qui est aussi la seule chose qu'on en voie depuis la caméra, et ce
+qui borne l'élargissement : les deux colonnes de sacs se rangent entre les caissons, et
+elles ont dû se resserrer de 0,56 à 0,33 m de l'axe pour ne plus mordre la tôle. Elles la
+mordaient déjà avant — un demi-sac fait 0,32 m de large, le caisson commençait à 0,74.
 
 ## Le zoom, et ce qu'il apprend
 
