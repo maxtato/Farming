@@ -1335,6 +1335,51 @@ position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tract
 sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
 bandeau et sur la carte, où la couleur du modèle est sous les yeux.
 
+## Ce que les clients disent
+
+Chaque mission portait déjà une phrase — trente répliques écrites une par une — et elle
+ne s'affichait **que dans l'onglet Campagne du menu**, c'est-à-dire nulle part au moment
+où on prend la mission. Elle en porte maintenant **deux**, et chacune se lit à l'endroit
+où elle a un sens :
+
+- **Ce qu'il demande** (`texte`) → dans la fenêtre où l'on prend la mission. On entre chez
+  quelqu'un, il demande quelque chose, il le dit avec ses mots. Retrait à gauche et barre
+  verte : c'est quelqu'un qui parle, pas l'interface.
+- **Ce qu'il répond en payant** (`fin`) → sur l'écran *Bravo*. Sans elle, une mission se
+  termine sur un chiffre ; avec elle, quelqu'un a été content du travail.
+
+`missionEnContrat()` ne garde d'une mission que ses lignes et son prix — elle jetait la
+réplique avec le reste. La fenêtre reçoit donc maintenant **la mission elle-même** au lieu
+d'un booléen : tout le code qui suit teste la vérité de `mission`, ce qu'un objet satisfait
+aussi bien qu'un `true`.
+
+### La fête se lit en plusieurs temps
+
+Un seul écran suffisait tant qu'il n'y avait qu'une chose à dire. Mais la **première
+mission en dit quatre** : le marchand remercie, il explique qu'on peut lui revendre
+n'importe quoi n'importe quand, il dit à quoi cet argent sert, et il annonce que le village
+va s'intéresser à nous. Tout empiler sur une page ferait un mur qu'on ne lit pas.
+
+L'écran *Bravo* enchaîne donc des **pages** — une page, cinq secondes, ou un doigt pour
+passer à la suivante :
+
+| | pages |
+|---|---|
+| mission 1 | le gain · **vente libre débloquée** · ce que ça permet · le village vous a vu |
+| missions 2 à 29 | le gain, et rien d'autre |
+| mission 30 | le gain · **exploitation établie** · à vous de jouer · **exploitation libre** |
+
+La dernière page ne vient pas de la mission : elle vient du fait qu'il n'y en a plus.
+
+### Et la campagne finie rouvre les contrats
+
+Le dernier client le promet en payant sa grande réception : *« les commerces continueront
+désormais à proposer des contrats, tandis que vous pouvez développer librement votre
+exploitation »*. Sans une bascule, la promesse était fausse — la trentième mission soldée,
+la vallée devenait muette, puisque `contratsOuverts()` ne rendait vrai qu'en mode libre.
+Elle rend maintenant vrai aussi quand la campagne est finie. La condition est là et nulle
+part ailleurs, comme le mode libre.
+
 ## Le comptoir agricole, chez lui
 
 Il ouvrait **le menu de la ferme** sur un onglet. On venait acheter un sac de graines et

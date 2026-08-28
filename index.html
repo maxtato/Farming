@@ -231,6 +231,13 @@
     border-radius:16px;padding:16px 16px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
   #cttitre{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;opacity:.5}
   #ctlieu{font-size:19px;font-weight:bold;letter-spacing:.5px;color:#8BE07A;margin-top:5px}
+  /* CE QUE LE CLIENT DIT. Chaque mission portait déjà sa réplique — trente phrases
+     écrites une par une — et elle ne s'affichait QUE dans l'onglet Campagne du menu,
+     c'est-à-dire nulle part au moment où on la prend. C'est pourtant là qu'elle a un
+     sens : on entre chez quelqu'un, il demande quelque chose, et il le dit avec ses
+     mots. Retrait à gauche et barre verte : c'est quelqu'un qui parle, pas l'interface. */
+  #cttexte{font-size:12px;line-height:1.55;opacity:.9;margin-top:10px;padding:2px 0 2px 11px;
+    border-left:3px solid rgba(98,216,78,.45);font-style:italic}
   #ctlignes{margin-top:11px;display:flex;flex-direction:column;gap:5px}
   #ctlignes .cl{display:flex;justify-content:space-between;gap:10px;font-size:12px;
     padding:6px 9px;border-radius:9px;background:rgba(255,255,255,.05)}
@@ -462,7 +469,10 @@
   #brboite{display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:auto;
     padding:22px 34px}
   #brtitre{font-size:26px;font-weight:bold;letter-spacing:11px;margin-right:-11px;color:#FAD201}
-  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;max-width:420px}
+  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;max-width:420px;line-height:1.6}
+  /* Ce que le client répond en payant : plus clair que le titre de la mission, pour
+     qu'on voie d'un coup d'œil que c'est quelqu'un qui parle. */
+  #brsous i{font-style:italic;color:#CFE6C6;opacity:.95}
   #brgains{display:flex;flex-direction:column;gap:5px;margin-top:4px}
   #brgains div{font-size:15px;font-weight:bold;letter-spacing:1.4px;color:#FFE7A6}
   #brsuite{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;opacity:.55;margin-top:6px}
@@ -646,6 +656,7 @@
     <div id="ctboite">
       <div id="cttitre"></div>
       <div id="ctlieu"></div>
+      <div id="cttexte"></div>
       <div id="ctlignes"></div>
       <div id="ctpaie"></div>
       <div id="ctrenom"></div>
@@ -1900,7 +1911,13 @@ const CONTRATS = [];              // ce qu'on a accepté, et rien d'autre
    LIBRE, hors campagne, les rouvrira : la machinerie reste entière derrière ce seul
    interrupteur, et il n'y a pas une ligne morte ailleurs. */
 let MODE_LIBRE = false;
-const contratsOuverts = ()=> MODE_LIBRE;
+/* ET LA CAMPAGNE FINIE LES ROUVRE. Le dernier client le dit lui-même en payant sa grande
+   réception : « les commerces continueront désormais à proposer des contrats, tandis que
+   vous pouvez développer librement votre exploitation ». Sans cette ligne, la promesse
+   était fausse — la trentième mission soldée, la vallée devenait muette. La condition est
+   ici et nulle part ailleurs, comme le mode libre. */
+const campagneFinie = ()=> !MODE_LIBRE && CAMPAGNE.mission >= MISSIONS.length;
+const contratsOuverts = ()=> MODE_LIBRE || campagneFinie();
 function resteContrat(nom, cle){
   let t = 0;
   for(const C of CONTRATS){
@@ -2092,67 +2109,97 @@ const parcellesPermises = ()=> MODE_LIBRE ? NIVEAUX[NIVEAUX.length - 1].parcelle
    exactement là que le joueur choisit de dépenser, et personne ne le lui impose. */
 const MISSIONS = [
   {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:200, xp:60,
-   texte:'Bonjour. Commençons simplement : apportez-moi 30 kg de votre première récolte de blé.'},
+   texte:'Bonjour, vous êtes le nouveau propriétaire de la ferme ? Bienvenue dans le village. Pour commencer, je vais vous prendre 30 kg de votre blé.',
+   fin:'Parfait. Voilà votre première vente. Vous pouvez revenir ici quand vous voulez, même sans contrat : je peux acheter toute votre production immédiatement.',
+   apres:[{titre:'VENTE LIBRE DÉBLOQUÉE', txt:'La Coopérative agricole achète votre production à tout moment. Les prix sont faibles, mais vous pouvez y vendre librement vos surplus.'}, {titre:'CE QUE ÇA PERMET', txt:'« Je ne suis pas celui qui paie le mieux, mais je prends ce que vous avez. Ça peut vous permettre de payer vos graines, votre carburant ou quelques améliorations sans attendre le prochain contrat. »'}, {titre:'LE VILLAGE VOUS A VU', txt:'« Maintenant que votre exploitation tourne, d’autres entreprises du village vont commencer à s’intéresser à ce que vous produisez. »'}]},
   {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:300, xp:80,
-   texte:'La Coopérative m\'a parlé de votre récolte. J\'aimerais tester 80 kg de blé.'},
+   texte:'La Coopérative m\'a parlé de votre première récolte. J\'aimerais tester votre blé dans notre production. Préparez-moi 80 kg.',
+   fin:'Très bien. La qualité est bonne. On pourra augmenter les volumes la prochaine fois.'},
   {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:600, xp:100,
-   texte:'J\'ai besoin d\'un volume un peu plus important cette fois. Préparez 150 kg.'},
+   texte:'J\'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l\'épandeur — l\'engrais peut vous faire gagner du temps, mais libre à vous de l\'utiliser ensuite.',
+   fin:'Très bien. Votre ferme commence à trouver son rythme.'},
   {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
-   texte:'Votre exploitation prend son rythme. Je peux utiliser 250 kg de blé.'},
+   texte:'Le premier lot s\'est bien comporté. Cette fois, je peux utiliser 250 kg de votre blé.',
+   fin:'Parfait. Je sais maintenant que vous pouvez répondre à de vraies commandes.'},
   {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1400, xp:150,
-   texte:'J\'aimerais travailler directement avec votre farine. Un premier lot de 72 kg suffira.'},
+   texte:'J\'ai vu passer votre blé. Plutôt que de l\'acheter brut, j\'aimerais travailler directement avec votre farine. Installez un moulin et préparez-moi 72 kg.',
+   fin:'Voilà une farine qui me convient. Votre blé vient de prendre un peu plus de valeur.'},
   {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1800, xp:170,
-   texte:'Nous voulons maintenant essayer votre maïs. Préparez-moi 180 kg.'},
+   texte:'Votre exploitation s\'agrandit. J\'aimerais maintenant tester une autre culture. Préparez-moi 180 kg de maïs.',
+   fin:'Très bien. Plus vous diversifiez vos cultures, plus nous pourrons travailler ensemble.'},
   {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:2500, xp:180,
-   texte:'Pour compléter la farine, j\'aimerais désormais acheter vos œufs. Commencez avec 24.'},
+   texte:'Pour la farine, nous sommes au point. Il me manque maintenant de bons œufs. Si vous installez quelques poules, je vous prends les 24 premiers.',
+   fin:'Parfait. Farine et œufs provenant de la même ferme, ça commence à devenir intéressant.'},
   {niv:5, lieu:'Boulangerie',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2800, xp:200,
-   texte:'Cette fois j\'ai besoin des deux : votre farine et vos œufs.'},
+   texte:'Cette fois, j\'ai besoin des deux. Préparez-moi 72 kg de farine et 36 œufs.',
+   fin:'Tout est là. C\'est exactement le type d\'approvisionnement que je recherchais.'},
   {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:200}], prime:3200, xp:220,
-   texte:'Je cherche de l\'orge locale pour une première production. Il me faut 200 kg.'},
+   texte:'Je cherche une orge cultivée ici pour lancer un brassin local. Si vous vous lancez, je vous prends les premiers 200 kg.',
+   fin:'Très belle matière première. La cuve peut démarrer.'},
   {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3600, xp:240,
-   texte:'La Brasserie prépare une série locale. J\'aimerais en réserver 140 litres.'},
+   texte:'La Brasserie m\'a parlé de son nouveau brassin à partir de votre orge. J\'aimerais en réserver 140 litres.',
+   fin:'Très bien. On pourra enfin proposer une bière vraiment produite dans le village.'},
   {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:4000, xp:260,
-   texte:'Nous cherchons un fournisseur d\'avoine. Préparez 200 kg pour notre premier essai.'},
-  {niv:8, faire:'alimentPlus', prime:4500, xp:280, titre:'Produire de l\'aliment premium',
-   texte:'Vos élevages vont bientôt demander davantage. Montez le mélangeur et préparez votre premier aliment premium.'},
+   texte:'Nous cherchons un producteur local d\'avoine. Une première livraison de 200 kg nous permettra de voir si votre récolte convient à notre procédé.',
+   fin:'Ça nous convient. Gardez de l\'avoine en production, nous en aurons probablement encore besoin.'},
+  {niv:8, faire:'alimentPlus', prime:4500, xp:280, titre:'Produire 184 kg d\'aliment premium',
+   texte:'Vous produisez maintenant suffisamment de céréales différentes pour préparer un aliment plus complet pour vos élevages. Montez le mélangeur : 40 kg de maïs, 30 d\'orge et 30 d\'avoine donnent 92 kg d\'aliment premium. Il en faut deux cycles.',
+   fin:'Votre ferme peut désormais produire son propre aliment premium.'},
   {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:5500, xp:300,
-   texte:'Votre ferme est prête pour l\'élevage laitier. J\'aimerais une première collecte de 200 litres.'},
+   texte:'Votre exploitation semble prête pour accueillir des vaches. Installez votre élevage et gardez-moi les 200 premiers litres de lait.',
+   fin:'Très bon début. Si votre troupeau grandit, je pourrai prendre davantage.'},
   {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:6000, xp:320,
-   texte:'La qualité nous convient. Passez maintenant à 350 litres.'},
+   texte:'La première collecte était bonne. Cette fois, j\'aurais besoin de 350 litres. À vous de choisir : davantage de vaches, ou simplement un peu plus de temps.',
+   fin:'Parfait. Votre production laitière commence à devenir sérieuse.'},
   {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:7000, xp:340,
-   texte:'Votre lait est maintenant connu. Je voudrais proposer votre propre fromage fermier.'},
+   texte:'Votre lait est bon, mais j\'aimerais servir quelque chose qui vienne vraiment de votre ferme. Préparez-moi 28 kg de fromage.',
+   fin:'Très réussi. Celui-là aura sa place sur la carte.'},
   {niv:10, lieu:'Supermarché',
    lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:8000, xp:360,
-   texte:'Nous ouvrons un rayon consacré à votre exploitation. Préparez fromage et œufs.'},
+   texte:'Nous ouvrons un petit rayon consacré aux producteurs du village. Pour le lancement, il nous faudrait 56 kg de fromage et 48 œufs.',
+   fin:'Parfait. Le rayon local peut ouvrir.'},
   {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:8500, xp:380,
-   texte:'Je souhaite tester votre laine sur une première série. Il m\'en faudrait 40 kg.'},
+   texte:'Je cherche de la laine produite dans le secteur pour une petite série. Si vous installez une bergerie, je vous prends les premiers 40 kg.',
+   fin:'Cette laine me convient très bien. On pourra travailler sur des volumes plus importants.'},
   {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:9000, xp:400,
-   texte:'J\'aimerais maintenant travailler le lait de vos brebis. Préparez 160 litres.'},
+   texte:'Vos brebis peuvent nous intéresser pour autre chose que leur laine. J\'aimerais essayer 160 litres de leur lait.',
+   fin:'Très intéressant. Ce lait a vraiment son propre caractère.'},
   {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:9500, xp:420,
-   texte:'Le lait de brebis est très intéressant. J\'aimerais votre propre fromage pour la carte.'},
+   texte:'J\'ai goûté ce qui a été fait avec votre lait de brebis. Maintenant, j\'aimerais servir votre propre fromage. Préparez-moi 40 kg.',
+   fin:'Excellent. Il se distingue clairement de votre fromage de vache.'},
   {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:10000, xp:450,
-   texte:'La première laine s\'est bien comportée. Cette fois j\'en voudrais 100 kg.'},
+   texte:'La première série s\'est bien vendue. Cette fois, j\'aurais besoin de 100 kg de laine.',
+   fin:'Très bien. Votre bergerie est devenue une vraie source d\'approvisionnement.'},
   {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:11000, xp:480,
-   texte:'Plusieurs clients me demandent du miel local. Installez quelques ruches et apportez-moi un premier lot.'},
+   texte:'Plusieurs clients me demandent du miel produit dans le coin. Installez quelques ruches et gardez-moi les premiers 12 kg.',
+   fin:'Parfait. Le miel local ne restera pas longtemps sur les étals.'},
   {niv:14, lieu:'Boulangerie',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}, {cle:'miel', need:12}],
    prime:12000, xp:500,
-   texte:'J\'aimerais préparer une gamme fermière avec vos œufs, votre farine et votre miel.'},
+   texte:'J\'ai une nouvelle recette en tête. Cette fois, j\'aurais besoin de votre farine, de vos œufs et de votre miel.',
+   fin:'Tout vient de votre exploitation. C\'est exactement ce que je voulais pour cette gamme.'},
   {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:13000, xp:520,
-   texte:'Nous avons maintenant une vraie demande sur le colza. Je peux prendre 300 kg.'},
+   texte:'Le colza se vend bien en ce moment. Si vous voulez vous lancer, je peux prendre immédiatement 300 kg.',
+   fin:'Très bien. Et si vous voulez augmenter sa valeur, le pressoir à colza de votre atelier devrait vous intéresser.'},
   {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:14500, xp:560,
-   texte:'Je voudrais remplacer une partie de nos huiles par votre production locale.'},
+   texte:'Je préférerais utiliser une huile produite autour du village. Faites transformer votre colza et apportez-moi 68 litres.',
+   fin:'Parfait. C\'est exactement ce qu\'il nous fallait pour la cuisine.'},
   {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:17000, xp:600,
-   texte:'Nous voulons proposer vos olives directement en rayon. Préparez-en 200 kg.'},
+   texte:'Nous aimerions proposer des olives locales directement en rayon. Plantez une oliveraie et préparez-nous une première livraison de 200 kg.',
+   fin:'Très bien. Les premières caisses peuvent partir en rayon.'},
   {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:18000, xp:650,
-   texte:'Les olives ont trouvé leur public. J\'aimerais maintenant recevoir 40 litres d\'huile d\'olive.'},
+   texte:'Les olives sont bonnes, mais ce qui m\'intéresse vraiment, c\'est votre huile. J\'en voudrais 40 litres.',
+   fin:'Celle-ci vaut clairement plus que les olives vendues brutes.'},
   {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:20000, xp:700,
-   texte:'Nous voudrions maintenant ajouter votre raisin à notre gamme locale.'},
+   texte:'Nous voudrions maintenant ajouter du raisin local au rayon frais. Commencez avec 200 kg.',
+   fin:'Très bien. Il se vendra facilement comme ça… mais j\'imagine que le Caviste aura une autre idée.'},
   {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:22000, xp:750,
-   texte:'Votre raisin possède un profil intéressant. Voyons maintenant ce qu\'il donne une fois vinifié.'},
+   texte:'J\'ai vu passer votre raisin. Il a du potentiel. Installez une cave et faites-moi une première cuvée de 140 litres.',
+   fin:'Voilà qui est intéressant. Votre ferme produit désormais quelque chose qui mérite qu\'on s\'y attarde.'},
   {niv:19, faire:'porcs4', prime:26000, xp:850, titre:'Livrer quatre porcs à la boucherie',
-   texte:'Votre élevage est suffisamment développé pour que nous travaillions ensemble. J\'aurais besoin de quatre porcs.'},
+   texte:'Vous avez maintenant suffisamment de céréales et d\'aliment pour développer un élevage porcin. J\'aurais besoin de quatre porcs prêts à partir.',
+   fin:'Très bien. Si votre élevage grandit, je pourrai prendre des lots plus importants.'},
   /* LA DERNIÈRE. Huit marchandises de sept filières différentes : c'est toute
      l'exploitation qui passe en revue, et c'est pour cela qu'elle vaut quarante mille
      euros. Rien de neuf à acheter — tout ce qu'elle demande, on l'a déjà monté. */
@@ -2162,7 +2209,9 @@ const MISSIONS = [
            {cle:'miel', need:12}, {cle:'huile', need:34},
            {cle:'huileOlive', need:20}, {cle:'vin', need:140}],
    prime:40000, xp:1000,
-   texte:'Nous préparons une grande réception autour des producteurs du village. J\'aimerais que votre exploitation fournisse l\'essentiel de la carte.'}
+   texte:'Nous préparons une grande réception consacrée aux producteurs du village. Cette fois, je voudrais construire presque tout le menu autour de votre ferme : de la farine, des œufs, vos deux fromages, du miel, les deux huiles et votre vin. Prenez le temps de vous organiser.',
+   fin:'Tout est là. En regardant cette livraison, on mesure le chemin parcouru depuis vos premiers 30 kg de blé. Votre ferme est devenue une véritable exploitation.',
+   apres:[{titre:'EXPLOITATION ÉTABLIE', txt:'Vous avez développé les principales filières de votre ferme.'}, {titre:'À VOUS DE JOUER', txt:'Les commerces continueront désormais à proposer des contrats, tandis que vous pouvez développer librement vos parcelles, vos élevages, vos ruches, vos bâtiments et votre matériel.'}]}
 ];
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
@@ -2348,6 +2397,14 @@ function finirMission(){
    conduire pendant qu'il est là. */
 let bravoT = 0;
 const bravoEl = document.getElementById('bravo');
+/* LA FÊTE SE LIT EN PLUSIEURS TEMPS. Un seul écran suffisait tant qu'il n'y avait qu'une
+   chose à dire — bravo, voilà ce que tu as gagné. Mais la première mission en dit quatre :
+   le marchand remercie, il explique qu'on peut lui revendre n'importe quoi n'importe
+   quand, il dit à quoi cet argent sert, et il annonce que le village va s'intéresser à
+   nous. Tout empiler sur une page ferait un mur qu'on ne lit pas. On les enchaîne : une
+   page, cinq secondes, ou un doigt pour passer à la suivante. Les vingt-huit missions du
+   milieu n'ont qu'une page, et rien ne change pour elles. */
+let bravoPages = [], bravoI = 0;
 function ouvrirBravo(M, suite, niv0){
   const g = [];
   if(M.prime > 0) g.push('+ ' + eur(M.prime));
@@ -2358,14 +2415,44 @@ function ouvrirBravo(M, suite, niv0){
   }
   if(CAMPAGNE.niveau > niv0)
     g.push('NIVEAU ' + CAMPAGNE.niveau + ' — ' + NIVEAUX[CAMPAGNE.niveau-1].nom.toUpperCase());
-  document.getElementById('brtitre').textContent = 'BRAVO';
-  document.getElementById('brsous').textContent = titreMission(M);
+  /* CE QUE LE CLIENT RÉPOND EN PAYANT. C'est la moitié de la réplique — l'autre est ce
+     qu'il a demandé, et elle a été lue à la fenêtre de contrat. Sans elle, la mission se
+     termine sur un chiffre ; avec elle, quelqu'un a été content du travail. */
+  bravoPages = [{
+    titre: 'BRAVO',
+    sous: titreMission(M) + (M.fin ? '<br><i>\u00ab\u00a0' + M.fin + '\u00a0\u00bb</i>' : ''),
+    gains: g,
+    suite: suite ? (suite.lieu ? 'Prochaine mission — ' + suite.lieu : 'Prochaine mission')
+                 : 'La campagne est finie'
+  }];
+  for(const a of (M.apres || []))
+    bravoPages.push({titre:a.titre, sous:a.txt, gains:[], suite:'Toucher pour continuer'});
+  /* LA DERNIÈRE PAGE DE LA CAMPAGNE. Elle ne vient pas de la mission : elle vient du fait
+     qu'il n'y en a plus. C'est aussi le moment où les commerces se remettent à proposer
+     des contrats — voir `contratsOuverts()`. */
+  if(!suite)
+    bravoPages.push({titre:'EXPLOITATION LIBRE', gains:[],
+      sous:'Contrats illimités  ·  Vente libre  ·  Développement de l\'exploitation  ·  ' +
+           'Améliorations maximales',
+      suite:'La vallée est à vous'});
+  bravoI = 0;
+  peindreBravo();
+}
+function peindreBravo(){
+  const P = bravoPages[bravoI];
+  if(!P){ fermerBravo(); return; }
+  document.getElementById('brtitre').textContent = P.titre;
+  document.getElementById('brsous').innerHTML = P.sous || '';
   document.getElementById('brgains').innerHTML =
-    g.map((t)=> '<div>' + t + '</div>').join('');
-  document.getElementById('brsuite').textContent = suite
-    ? (suite.lieu ? 'Prochaine mission — ' + suite.lieu : 'Prochaine mission')
-    : 'La campagne est finie';
-  montrerBravo(5.0);
+    (P.gains || []).map((t)=> '<div>' + t + '</div>').join('');
+  document.getElementById('brsuite').textContent = P.suite || '';
+  montrerBravo(bravoI === 0 ? 5.0 : 6.0);
+}
+// Le doigt et le temps font la même chose : passer à la suite, et fermer après la dernière.
+function suivantBravo(){
+  bravoI++;
+  if(bravoI >= bravoPages.length) fermerBravo();
+  else peindreBravo();
 }
 function montrerBravo(duree){
   bravoEl.style.display = 'flex';
@@ -2375,8 +2462,9 @@ function montrerBravo(duree){
   bravoEl.classList.add('on');
   bravoT = duree;
 }
-function fermerBravo(){ bravoT = 0; bravoEl.style.display = 'none'; bravoEl.classList.remove('on'); }
-bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerBravo(); });
+function fermerBravo(){ bravoT = 0; bravoPages = []; bravoI = 0;
+                       bravoEl.style.display = 'none'; bravoEl.classList.remove('on'); }
+bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); suivantBravo(); });
 /* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
    Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
    serait la perdre ; la remettre au premier palier reverrouillerait tout ce que son
@@ -14728,7 +14816,7 @@ let contratVu = null;                 // {C, S, offre:bool, mission:bool}
 function ouvrirContrat(C, S, offre, mission){
   if(!C) return;
   contratVu = {C, S: S || SITES.find((x)=> x.nom === C.lieu) || null,
-               offre: !!offre, mission: !!mission};
+               offre: !!offre, mission: mission || null};
   rendreContrat();
   contratEl.style.display = 'block';
 }
@@ -14747,6 +14835,14 @@ function rendreContrat(){
     ? 'Mission de campagne'
     : ((offre ? 'Proposition · ' : 'Contrat en cours · ') + T.nom);
   document.getElementById('ctlieu').textContent = C.lieu;
+  /* `mission` porte MAINTENANT la mission elle-même, plus un booléen : missionEnContrat()
+     n'en garde que les lignes et le prix, et jetait la réplique avec le reste. On la lit
+     donc à la source. Tout le code qui suit teste la vérité de `mission`, ce qu'un objet
+     satisfait aussi bien qu'un `true`. */
+  const rep = (mission && mission.texte) || '';
+  const eTxt = document.getElementById('cttexte');
+  eTxt.textContent = rep ? '\u00ab\u00a0' + rep + '\u00a0\u00bb' : '';
+  eTxt.style.display = rep ? 'block' : 'none';
   const L = document.getElementById('ctlignes');
   L.innerHTML = '';
   for(const l of C.lignes){
@@ -14915,7 +15011,7 @@ function refreshChoix(){
   // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
   // mission de campagne passe avant elle, parce qu'elle mène le jeu.
   if(misIci) lignes.unshift({txt:'VOIR LA MISSION', cls:'ch vert',
-                             f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, true)});
+                             f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, misIci)});
   else if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch vert',
                                f:()=> ouvrirContrat(offreIci.offre, offreIci, true)});
   else if(encoursIci) lignes.push({txt:'CONTRAT EN COURS', cls:'ch vert',
@@ -17531,7 +17627,7 @@ function loop(now){
   /* LE DÉCOMPTE DU BRAVO SURVIT À dt = 0. Ouvrir le plan ou les réglages met le jeu en
      pause, et `dt` tombe à zéro en tête de boucle : un décompte pur laisserait l'écran
      collé pour toujours. Le même repli que le tic d'interface. */
-  if(bravoT > 0){ bravoT -= (dt || 0.016); if(bravoT <= 0) fermerBravo(); }
+  if(bravoT > 0){ bravoT -= (dt || 0.016); if(bravoT <= 0) suivantBravo(); }
   /* L'INTERFACE À VINGT IMAGES PAR SECONDE. Onze fonctions qui lisent l'état et
      écrivent dans le DOM, soixante fois par seconde : aucune n'affiche quoi que ce
      soit d'animé — de l'argent, une heure, des libellés de boutons. Vingt fois par
