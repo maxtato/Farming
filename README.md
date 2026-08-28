@@ -1335,6 +1335,64 @@ position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tract
 sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
 bandeau et sur la carte, où la couleur du modèle est sous les yeux.
 
+## Le premier quart d'heure
+
+Le jeu commençait par **un anneau vert à la Coopérative**. Il fallait deviner qu'on y
+prenait une mission, la lire, et *alors seulement* le guidage s'allumait. Or la première
+chose qu'un fermier doit apprendre n'est pas où prendre une commande : c'est le tour
+complet.
+
+Sept étapes, sept phrases, dans l'ordre où on les fait :
+
+| | ce qu'il dit | franchi quand |
+|---|---|---|
+| **PRÉPARER LA PARCELLE** | attelle la charrue et travaille le sol | la parcelle porte un sillon |
+| **SEMER DU BLÉ** | attelle le semoir et sème ta première parcelle | quelque chose pousse |
+| **LAISSER POUSSER** | le blé mûrit, la moisson vient | le blé est mûr |
+| **PREMIÈRE RÉCOLTE** | moissonne au moins 30 kg de blé | 30 kg rentrés, où qu'ils soient |
+| **STOCKER LA RÉCOLTE** | décharge ton blé dans le silo | 30 kg au silo |
+| **PRÉPARER LA LIVRAISON** | charge 30 kg de blé dans le pick-up | 30 kg à bord |
+| **PREMIÈRE VENTE** | rends-toi à la Coopérative agricole | on y prend la mission |
+
+Trois choses à comprendre sur ce mécanisme.
+
+**Il ne déplace rien.** Chaque étape désigne un lieu que le guidage sait déjà éclairer — le
+champ, le silo, la Coopérative — et passe par `objectifMission()`, donc par le cercle mobile
+au sol, la flèche du bord et la ligne du bandeau. Pas une deuxième machinerie d'affichage :
+la même, avec d'autres mots. La greffe tient en cinq lignes.
+
+**Il se cliquette, il ne se devine pas.** `CAMPAGNE.tuto` est un index qui n'avance jamais à
+reculons, et c'est indispensable : les étapes sont des **événements**, pas des états. On
+laboure, puis on sème — et la terre labourée disparaît. On verse au silo, puis on recharge —
+et le silo se vide. Un test relu sans mémoire renverrait le joueur à l'étape d'avant à
+chaque fois. Le cliquet saute aussi plusieurs cases d'un coup : arriver avec sa benne déjà
+pleine ne repose pas quatre questions.
+
+**La mission se prend toujours à la Coopérative, et à la fin.** Le tutoriel ne la prend pas
+à la place du joueur : il l'y conduit avec ses trente kilos, et c'est là que le marchand
+parle. `CAMPAGNE.prise` reste donc faux tout du long — la Coopérative garde sa pastille
+verte de mission à prendre, il n'y a **aucun commerce en jaune**, et le bandeau ne porte ni
+pilule ni puce puisqu'on n'a rien accepté. Le jaune est au champ, où il doit être.
+
+Le premier mot du jeu — *« Cette ferme est maintenant entre vos mains »* — emprunte l'écran
+de fête, qui a exactement ce qu'il faut : du texte centré, une animation, un doigt pour
+passer, et surtout **aucune pause**. L'écran d'accueil, lui, met le jeu en pause et porte les
+boutons `.accbtn.pri` par lesquels dix bancs entrent dans la partie.
+
+### Un préambule, et un seul
+
+Le même mécanisme sert quand un client demande d'aller chercher quelque chose avant de
+pouvoir le servir. La **troisième mission** présente l'épandeur : au garage pour l'acheter,
+au comptoir pour le remplir, puis la chaîne normale reprend. Deux étapes qui **indiquent et
+ne bloquent rien** — livrer les cent cinquante kilos sans avoir acheté l'épandeur solde
+quand même la mission, et l'engrais redevient facultatif dès la suivante, comme le cahier
+des charges le demande.
+
+Une sauvegarde d'avant le tutoriel le considère comme déjà vu : sans ce défaut, toute partie
+en cours se réveillerait à la première étape et s'entendrait expliquer comment labourer. Le
+cliquet repart à zéro à chaque mission finie, si bien qu'une vieille partie ne saute que les
+étapes de la mission où elle dormait.
+
 ## Ce que les clients disent
 
 Chaque mission portait déjà une phrase — trente répliques écrites une par une — et elle

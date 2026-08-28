@@ -77,6 +77,15 @@
     background:rgba(10,16,22,.62);border-radius:7px;padding:5px 9px;align-self:flex-start;
     display:flex;gap:6px;align-items:baseline}
   #ctr .serv .sf{opacity:.62;font-weight:normal;text-transform:none;letter-spacing:.4px}
+  /* L'étape du tutoriel : la forme de la ligne de service, le jaune du guidage — la même
+     couleur qu'au sol et au bord de l'écran, parce que c'est le même ordre. Deux lignes :
+     le geste en capitales, puis la phrase qui l'explique. */
+  #ctr .tuto{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#FFD21E;
+    background:rgba(28,26,10,.66);border-radius:9px;padding:6px 10px;align-self:flex-start;
+    display:flex;flex-direction:column;gap:3px;max-width:100%;
+    box-shadow:inset 0 0 0 1px rgba(255,210,30,.28)}
+  #ctr .tuto .tf{opacity:.8;font-weight:normal;text-transform:none;letter-spacing:.3px;
+    font-size:9px;white-space:normal;line-height:1.4}
   #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
   #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
   #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
@@ -1989,7 +1998,8 @@ function stockASortir(S, cle){
    et des nombres : rien n'y est évalué au chargement, et tous les verrous du fichier —
    graines, outils, engins, parcelles, espèces, modules, commerces — peuvent donc
    l'interroger sans se soucier de l'ordre des déclarations. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0};
+// `tuto` est l'index de l'étape du tutoriel — voir TUTO. Il ne recule jamais.
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0};
 
 /* Ce que chaque palier ouvre. Une famille par colonne, la clé de l'objet dans la
    famille. `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder — un
@@ -2115,7 +2125,18 @@ const MISSIONS = [
   {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:300, xp:80,
    texte:'La Coopérative m\'a parlé de votre première récolte. J\'aimerais tester votre blé dans notre production. Préparez-moi 80 kg.',
    fin:'Très bien. La qualité est bonne. On pourra augmenter les volumes la prochaine fois.'},
+  /* LE SEUL PRÉAMBULE DE LA CAMPAGNE. Le cahier des charges veut que l'épandeur soit
+     PRÉSENTÉ une fois — on va le chercher, on le remplit, on voit la pousse accélérer —
+     et qu'il redevienne facultatif dès la mission suivante. Deux étapes qui indiquent,
+     et qui ne bloquent rien : la mission se solde en livrant, épandeur ou pas. */
   {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:600, xp:100,
+   prep:[
+     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L\'ÉPANDEUR',
+      txt:'L\'ÉPANDEUR — il t\'attend au garage du village, pour 250 €',
+      fait:()=> !outilVerrou('engrais')},
+     {cle:'engrais', ou:'Comptoir agricole', titre:'REMPLIR L\'ÉPANDEUR',
+      txt:'DE L\'ENGRAIS — au comptoir agricole, la quantité que tu veux',
+      fait:()=> ((TOOLS.find((T)=> T.key === 'engrais') || {}).cuveQ || 0) > 0.5}],
    texte:'J\'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l\'épandeur — l\'engrais peut vous faire gagner du temps, mais libre à vous de l\'utiliser ensuite.',
    fin:'Très bien. Votre ferme commence à trouver son rythme.'},
   {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
@@ -2371,6 +2392,8 @@ function finirMission(){
   if(M.prime > 0) money += M.prime;
   CAMPAGNE.mission++;
   CAMPAGNE.faits = [];
+  // Le cliquet des étapes repart : la mission suivante a les siennes, ou n'en a pas.
+  CAMPAGNE.tuto = 0;
   // La suivante est à prendre à son tour, chez qui la demande.
   CAMPAGNE.prise = false;
   const suite = missionCourante();
@@ -2492,6 +2515,14 @@ function chargerCampagne(S){
        vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
        faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
     CAMPAGNE.prise = C.prise === undefined ? true : !!C.prise;
+    /* MÊME RÈGLE POUR LE TUTORIEL, ET POUR LA MÊME RAISON. Le champ n'existait pas ; son
+       absence vaut « déjà vu ». Sans ce défaut, toute partie en cours se réveillerait à
+       la première étape et s'entendrait expliquer comment labourer. */
+    /* 99 veut dire « toutes franchies », quelle que soit la liste : le cliquet sert
+       maintenant aussi aux préambules, dont les listes n'ont pas la même longueur. Il
+       repart à zéro à chaque mission finie, si bien qu'une vieille partie ne saute que
+       les étapes de la mission où elle dormait. */
+    CAMPAGNE.tuto = C.tuto === undefined ? 99 : Math.max(0, Math.min(99, C.tuto | 0));
     MODE_LIBRE = !!C.libre;
     CAMPAGNE.niveau = Math.max(niveauPourXp(CAMPAGNE.xp),
                                Math.max(1, Math.min(NIVEAUX.length, C.niveau | 0)));
@@ -8457,6 +8488,23 @@ function refreshCommandes(){
     }
     el.ctr.appendChild(pil);
   }
+  /* LE TUTORIEL A SA LIGNE, ET CE N'EST PAS UNE PILULE. Tant que la première mission
+     n'est pas prise, il n'y a ni marchandise à compter ni avancement à barrer : il y a
+     une phrase et un endroit. Une pilule promettrait un pourcentage qui n'existe pas —
+     et deux bancs comptent les `.pil` et les `.chip` du premier tour de jeu pour vérifier
+     que le bandeau est bien vide tant qu'on n'a rien accepté. */
+  const ET = M ? null : etapeTuto();
+  if(ET){
+    const L = lieuTuto(ET);
+    const tu = document.createElement('div'); tu.className = 'tuto';
+    const n0 = document.createElement('span'); n0.textContent = ET.titre;
+    const f0 = document.createElement('span'); f0.className = 'tf';
+    const vt = MACHINES[cur].v;
+    f0.textContent = ET.txt.replace(/^[^—]*—\s*/, '')
+      + (L ? '  ·  ' + Math.round(Math.hypot(vt.pos.x - L.x, vt.pos.z - L.z)) + ' m' : '');
+    tu.appendChild(n0); tu.appendChild(f0);
+    el.ctr.appendChild(tu);
+  }
   /* LE SERVICE SOUS LES ROUES SE NOMME. Les trois services permanents sont bleus au sol
      et bleus sur la carte, mais leur anneau ne dit pas ce qu'on y fait : on s'arrête au
      Comptoir agricole sans savoir qu'il vend AUSSI le gazole, et l'on repart le
@@ -12502,7 +12550,138 @@ const SERVICES = {
    d'image. La mémoire ne faisait donc rien gagner, et elle coûtait cher : après avoir
    versé au silo, l'objectif restait faux le temps qu'elle expire. Le guidage doit dire
    la vérité à l'instant où l'on agit — c'est toute sa raison d'être. */
+/* ---------- LE TUTORIEL DE LA PREMIÈRE MISSION ----------
+   Le jeu commençait par un anneau vert à la Coopérative : il fallait deviner qu'on y
+   prenait une mission, la lire, et ALORS seulement le guidage s'allumait. Or la première
+   chose qu'un fermier doit apprendre n'est pas où prendre une commande, c'est le tour
+   complet — préparer, semer, attendre, récolter, stocker, charger, vendre. Sept gestes,
+   sept phrases, dans l'ordre où on les fait.
+
+   TROIS CHOSES À COMPRENDRE SUR CE MÉCANISME :
+
+   1. IL NE DÉPLACE RIEN. Chaque étape désigne un lieu que le guidage sait déjà éclairer —
+      le champ, le silo, la Coopérative — et passe par `objectifMission()`, donc par le
+      cercle mobile au sol, la flèche du bord et la ligne du bandeau. Pas une deuxième
+      machinerie d'affichage : la même, avec d'autres mots.
+
+   2. IL SE CLIQUETTE, IL NE SE DEVINE PAS. `CAMPAGNE.tuto` est un INDEX qui n'avance
+      jamais à reculons. C'est indispensable : les étapes sont des ÉVÉNEMENTS, pas des
+      états. On laboure, puis on sème — et la terre labourée disparaît ; on verse au silo,
+      puis on recharge — et le silo se vide. Un test relu sans mémoire renverrait le
+      joueur à l'étape d'avant à chaque fois.
+
+   3. LA MISSION SE PREND TOUJOURS À LA COOPÉRATIVE, et à la fin. Le tutoriel ne la prend
+      pas à la place du joueur : il l'y conduit avec ses trente kilos, et c'est là que le
+      marchand parle. `CAMPAGNE.prise` reste donc faux tout du long, la Coopérative garde
+      sa pastille verte de mission à prendre, et rien du reste du guidage ne bouge. */
+const TUTO = [
+  {cle:'labour', ou:'champ', titre:'PRÉPARER LA PARCELLE',
+   txt:'PRÉPARER LA PARCELLE — attelle la charrue et travaille le sol',
+   fait:()=> parcelleTravaillee()},
+  {cle:'semis', ou:'champ', titre:'SEMER DU BLÉ',
+   txt:'SEMER DU BLÉ — attelle le semoir et sème ta première parcelle',
+   fait:()=> PARCELS.some((p)=> p.owned && (p.pousseN || 0) > 0)},
+  {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
+   txt:'LAISSER POUSSER — le blé mûrit, la moisson vient',
+   fait:()=> PARCELS.some((p)=> p.owned && (p.murN || 0) > 0)},
+  {cle:'recolte', ou:'champ', titre:'PREMIÈRE RÉCOLTE',
+   txt:'PREMIÈRE RÉCOLTE — moissonne au moins 30 kg de blé',
+   fait:()=> bleRentre() >= 30},
+  {cle:'silo', ou:'silo', titre:'STOCKER LA RÉCOLTE',
+   txt:'STOCKER LA RÉCOLTE — décharge ton blé dans le silo',
+   fait:()=> siloStock.ble >= 29.9},
+  {cle:'charger', ou:'silo', titre:'PRÉPARER LA LIVRAISON',
+   txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
+   fait:()=> bleABord() >= 29.9},
+  {cle:'vendre', ou:'Coopérative', titre:'PREMIÈRE VENTE',
+   txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
+   fait:()=> false}          // elle se solde en prenant la mission, pas par un test
+];
+/* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
+   quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
+   cahier des charges veut qu'on aille l'acheter puis le remplir. C'est la même chose
+   qu'une étape de tutoriel : une phrase, un lieu, un test. Elle se déclare dans la
+   mission, sous `prep`, et le même cliquet la franchit.
+   DIFFÉRENCE D'INSTANT : le tutoriel de la première mission tourne AVANT qu'on la prenne
+   — c'est le tour complet du fermier, on ne sait pas encore qu'il existe des missions —
+   là où un préambule tourne APRÈS, puisque c'est le client qui l'a demandé.
+   Les préambules NE BLOQUENT RIEN : ils indiquent. Livrer les cent cinquante kilos sans
+   avoir acheté l'épandeur solde quand même la mission — l'engrais reste facultatif, et
+   le cahier des charges le dit expressément dès la mission suivante. */
+function listeEtapes(){
+  if(MODE_LIBRE) return null;
+  const M = MISSIONS[CAMPAGNE.mission];
+  if(!M) return null;
+  if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise) return TUTO;
+  return (CAMPAGNE.prise && M.prep) ? M.prep : null;
+}
+function etapeTuto(){
+  const L = listeEtapes();
+  return (L && CAMPAGNE.tuto < L.length) ? L[CAMPAGNE.tuto] : null;
+}
+const tutoActif = ()=> !!etapeTuto();
+/* CE QUI SE MESURE, ET CE QUE ÇA COÛTE. `resumeParcelle` rebalaie la grille d'une
+   parcelle — neuf cents cellules — et c'est le SEUL moyen du fichier de distinguer une
+   terre labourée d'une jachère : `parcelleDe()` ne rend jamais 'labourer'. On ne le paie
+   qu'à la toute première étape, et seulement tant qu'elle n'est pas franchie : le cliquet
+   la referme pour de bon dès le premier sillon. */
+function parcelleTravaillee(){
+  for(const p of PARCELS){
+    if(!p.owned || p.pature) continue;
+    const R = resumeParcelle(p);
+    if(R && (R.laboure > 0 || R.seme > 0 || R.mur > 0)) return true;
+  }
+  return false;
+}
+// Le blé rentré, où qu'il soit : trémie, benne, silo. C'est ce que « récolter » veut dire.
+function bleRentre(){
+  let t = siloStock.ble + (hopCrop !== undefined && CROPS[hopCrop]
+                           && CROPS[hopCrop].cle === 'ble' ? hopper : 0);
+  return t + bleABord();
+}
+// Et le blé EMBARQUÉ, qui est ce qu'on va livrer : toutes les caisses de la ferme.
+function bleABord(){
+  let t = 0;
+  for(const m of MACHINES){
+    if(m.verrou) continue;
+    const T = caisseDe(m);
+    if(T && T.type === 'ble') t += T.load || 0;
+  }
+  return t;
+}
+function lieuTuto(E){
+  if(E.ou === 'champ'){
+    const p = PARCELS.find((q)=> q.owned && !q.pature);
+    return p ? {lieu:'champ', x:p.x, z:p.z} : null;
+  }
+  if(E.ou === 'silo') return {lieu:'silo', x:SILO.x, z:SILO.z};
+  const S = SITES.find((x)=> x.nom === E.ou);
+  return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ} : null;
+}
+/* LE CLIQUET. Relu au tic de l'interface, vingt fois par seconde. La boucle `while`
+   traverse plusieurs étapes d'un coup quand il le faut — un joueur qui arrive avec sa
+   benne déjà pleine saute quatre cases sans qu'on lui repose quatre questions — et le
+   compteur de sécurité empêche qu'un test toujours vrai la fasse tourner sans fin. */
+function veillerTuto(){
+  const L = listeEtapes();
+  if(!L) return;
+  let n = 0;
+  while(CAMPAGNE.tuto < L.length && L[CAMPAGNE.tuto].fait() && n++ <= L.length){
+    CAMPAGNE.tuto++;
+    const E = L[CAMPAGNE.tuto];
+    if(E) showHint(E.titre);
+  }
+}
 function objectifMission(){
+  /* UNE ÉTAPE EN COURS PASSE AVANT TOUT. Elle emprunte la forme exacte d'un objectif —
+     {lieu, x, z, txt} — et tout ce qui lit ce juge s'allume donc sans rien savoir d'elle :
+     le cercle mobile au sol, la flèche du bord, la ligne du bandeau. C'est la seule
+     greffe du tutoriel dans le guidage, et elle tient en cinq lignes. */
+  const E = etapeTuto();
+  if(E){
+    const L0 = lieuTuto(E);
+    if(L0) return {lieu:L0.lieu, x:L0.x, z:L0.z, quoi:'tuto', txt:E.txt};
+  }
   const M = missionVisible();
   if(!M) return null;
   const S = SITES.find((x)=> x.nom === M.lieu) || null;
@@ -16837,6 +17016,10 @@ function etatJeu(){
                // Facultatif, comme le reste du bloc : absent d'une vieille sauvegarde,
                // il vaut false et la partie repart en campagne. `v` ne bouge pas.
                libre: MODE_LIBRE,
+               // Le cliquet du tutoriel. Absent d'une vieille sauvegarde, il vaut la
+               // longueur de la table : une partie déjà commencée ne se voit pas
+               // expliquer comment labourer.
+               tuto: CAMPAGNE.tuto,
                contrats: CONTRATS.map((C)=> ({type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps,
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
@@ -17326,6 +17509,19 @@ function lancerPartie(){
   last = performance.now();
   AUDIO.init();
   if(AUDIO.ctx) try { AUDIO.ctx.resume(); } catch(e){}
+  /* LE PREMIER MOT DU JEU. Il ne se dit qu'une fois — à la toute première étape du
+     tutoriel — et il emprunte l'écran de fête, qui a exactement ce qu'il faut : du texte
+     centré, une animation, un doigt pour passer, et surtout AUCUNE PAUSE. L'accueil, lui,
+     met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
+     dans la partie : s'en servir ici les arrêterait tous. */
+  if(tutoActif() && CAMPAGNE.tuto === 0){
+    bravoPages = [{titre:'NOUVELLE EXPLOITATION', gains:[],
+      sous:'Cette ferme est maintenant entre vos mains.<br>' +
+           'Commençons par votre première récolte.',
+      suite:TUTO[0].titre}];
+    bravoI = 0;
+    peindreBravo();
+  }
 }
 (function ouvrirAccueil(){
   paused = true;
@@ -17637,6 +17833,9 @@ function loop(now){
   uiT -= (dt || 0.016);
   if(uiT <= 0){
     uiT = 0.05;
+    // Le cliquet du tutoriel AVANT le bandeau, sans quoi la ligne d'objectif porterait
+    // l'étape d'avant pendant un vingtième de seconde à chaque franchissement.
+    veillerTuto();
     refreshHUD();
     refreshCommandes();
     veillerBulles();
