@@ -7064,6 +7064,10 @@ class Vehicle {
     // outil porté : attelé au timon, il suit sa propre trajectoire (jamais le roulis)
     this.tool = null;              // outil attelé, posé après coup par attachTool()
     this.level = 1;
+    // Les valeurs D'ORIGINE, gardées à part : un palier de vitesse est un pourcentage de
+    // celles-ci, et non un facteur appliqué à ce que le précédent avait laissé. Multiplier
+    // à chaque cran fait dériver le total dès qu'on recharge une partie en cours de route.
+    this.vmax0 = this.vmax; this.accel0 = this.accel; this.turn0 = this.turn;
     this.toolOffset = cfg.toolOffset || 0;
     this.toolX = this.pos.x; this.toolZ = this.pos.z; this.toolCap = this.cap;
   }
@@ -8858,12 +8862,18 @@ const MACHINES = [
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  {key:'t2', nom:'Tracteur', teinte:0xD44435, verrou:true, prix:4500, v:new Vehicle({
+  /* LES DEUX GROS TRACTEURS NE SONT PLUS À VENDRE. « Pas de gros tracteur », dit le
+     cahier des charges : on garde son matériel et on l'améliore, au lieu d'en racheter
+     un plus gros tous les cinq paliers. Les deux entrées restent — la sauvegarde
+     sérialise MACHINES par POSITION, et les retirer ferait repartir chaque partie en
+     cours sur la mauvaise machine — mais elles sont marquées `retire` : le garage ne
+     les propose plus, et une partie qui en possède déjà un le garde et le conduit. */
+  {key:'t2', nom:'Tracteur', teinte:0xD44435, verrou:true, retire:true, prix:4500, v:new Vehicle({
       x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Tracteur', teinte:0x2F6FB5, verrou:true, prix:18000, v:new Vehicle({
+  {key:'t3', nom:'Tracteur', teinte:0x2F6FB5, verrou:true, retire:true, prix:18000, v:new Vehicle({
       x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
       build:()=>buildTracteur(0x3574C6)
@@ -8903,7 +8913,7 @@ const MACHINES = [
 /* Les outils sont des objets INDÉPENDANTS des tracteurs : un outil dételé reste au sol
    et n'importe quel tracteur peut venir le reprendre. Ses caractéristiques de travail
    (largeur, états acceptés, état produit) voyagent avec lui, pas avec le véhicule. */
-const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, level:1,
+const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, width0:8.0, level:1,
                  from:[ST.MUR], to:ST.CHAUME, recolte:true, perennes:false};
 /* Le tunnel de l'enjambeuse. Même nature d'outil intégré que la coupe : il ne se
    dételle pas, il n'a pas de modèle propre, il décrit seulement le travail. Deux
@@ -8986,6 +8996,86 @@ TOOLS.forEach((T, i)=>{
   T.group.rotation.y = Math.PI;
   T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
 });
+
+/* ---------- LE BARÈME DU MATÉRIEL ---------- */
+/* ON NE REMPLACE PAS SON MATÉRIEL, ON L'AMÉLIORE. C'est le principe du cahier des
+   charges, et il change deux choses.
+
+   La première : les paliers sont ÉCRITS, un par un, avec ce qu'ils donnent et ce qu'ils
+   coûtent. Avant, une seule amélioration multipliait tout ce qui traînait — vitesse
+   ×1,18, largeur ×1,22, capacité ×1,4, le véhicule ET son outil, pour un prix unique —
+   et l'on ne pouvait ni savoir ce qu'on achetait ni choisir. Chaque engin, chaque outil
+   a maintenant son échelle, son prix par cran, et s'améliore SEUL.
+
+   La seconde : un pourcentage porte sur la valeur D'ORIGINE, jamais sur la précédente.
+   140 % veut dire 140 % du neuf, quel que soit le chemin par lequel on y est arrivé.
+
+   Le tracteur ne gagne QUE de la vitesse, et il en a cinq crans là où les autres en ont
+   quatre : c'est le cahier des charges, et c'est ce qui remplace le « gros tracteur »
+   qu'on achetait en double. Les capacités sont en kilos de stock, les largeurs et les
+   vitesses en pourcentage du neuf.
+
+   LA BENNE N'EST PAS AU BARÈME. Il ne cite que les huit engins et outils qu'il nomme ;
+   or laisser la remorque à 135 kg pendant que la benne du pick-up monte à 150 en aurait
+   fait un outil STRICTEMENT DOMINÉ — plus lente, moins grosse, et il faut un tracteur
+   pour la tirer. Elle reçoit donc l'échelle du pick-up d'un cran au-dessus, ce qui est
+   la seule extrapolation qui garde son rôle : c'est le gros porteur de la ferme. */
+const PALIERS = {
+  /* --- les engins --- */
+  t1:        {nom:'Tracteur',     donne:'vitesse de travail',
+              crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
+                     {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
+  moisson:   {nom:'Moissonneuse', donne:'vitesse, trémie et largeur de coupe',
+              crans:[{vite:1.00, tremie:150, coupe:1.00},
+                     {vite:1.12, tremie:250, coupe:1.20, prix:1500},
+                     {vite:1.25, tremie:450, coupe:1.50, prix:4500},
+                     {vite:1.40, tremie:800, coupe:1.80, prix:10000}]},
+  enjambeuse:{nom:'Enjambeuse',   donne:'vitesse et capacité',
+              crans:[{vite:1.00, caisse:120},
+                     {vite:1.15, caisse:220, prix:1800},
+                     {vite:1.30, caisse:400, prix:5000},
+                     {vite:1.45, caisse:700, prix:11000}]},
+  pickup:    {nom:'Pick-up',      donne:'capacité et vitesse',
+              crans:[{vite:1.00, caisse:150},
+                     {vite:1.10, caisse:250, prix:700},
+                     {vite:1.20, caisse:400, prix:2200},
+                     {vite:1.30, caisse:600, prix:5000}]},
+  fourgon:   {nom:'Fourgon',      donne:'capacité et vitesse',
+              crans:[{vite:1.00, caisse:600},
+                     {vite:1.10, caisse:900, prix:1600},
+                     {vite:1.20, caisse:1400, prix:4500},
+                     {vite:1.30, caisse:2200, prix:9000}]},
+  /* --- les outils --- */
+  labour:    {nom:'Charrue',      donne:'largeur de travail',
+              crans:[{large:1.00}, {large:1.25, prix:700}, {large:1.55, prix:2000},
+                     {large:1.90, prix:5000}]},
+  /* LES CUVES DU SEMOIR ET DE L'ÉPANDEUR SONT ÉCRITES, MAIS PAS ENCORE PORTÉES. Le
+     barème leur donne une contenance qui grandit avec les crans ; les deux outils
+     puisent pour l'instant directement dans le hangar de la ferme, sans rien porter
+     eux-mêmes. Le chiffre est donc posé ici, où il servira, et l'échelle n'annonce que
+     la largeur — on ne fait pas payer pour une cuve qui n'existe pas encore. */
+  semis:     {nom:'Semoir',       donne:'largeur de travail',
+              crans:[{large:1.00, cuve:50}, {large:1.25, cuve:100, prix:800},
+                     {large:1.55, cuve:200, prix:2500}, {large:1.90, cuve:350, prix:6000}]},
+  engrais:   {nom:'Épandeur',     donne:'largeur de travail',
+              crans:[{large:1.00, cuve:30}, {large:1.30, cuve:75, prix:750},
+                     {large:1.65, cuve:150, prix:2200}, {large:2.00, cuve:250, prix:5000}]},
+  benne:     {nom:'Benne',        donne:'capacité',
+              crans:[{caisse:200}, {caisse:350, prix:600},
+                     {caisse:550, prix:1800}, {caisse:850, prix:4200}]}
+};
+const cranDe = (cle, niv)=>{
+  const P = PALIERS[cle];
+  if(!P) return null;
+  return P.crans[Math.max(0, Math.min(P.crans.length - 1, (niv || 1) - 1))];
+};
+const cransMax = (cle)=> PALIERS[cle] ? PALIERS[cle].crans.length : 1;
+// Ce que coûte le cran SUIVANT, ou 0 s'il n'y en a plus.
+function prixCranSuivant(cle, niv){
+  const P = PALIERS[cle];
+  if(!P || (niv || 1) >= P.crans.length) return 0;
+  return P.crans[niv].prix || 0;
+}
 
 /* ON DÉMARRE DANS LE PICK-UP, ET NON DANS LA MOISSONNEUSE. La moissonneuse arrive en
    jeu avec sa coupe déployée — huit mètres de barre devant le capot — et c'est la
@@ -9459,10 +9549,10 @@ function ongletEngins(){
     const T = toolOf(m);
     const det = m.v.cargo
       ? (m.key === 'enjambeuse'
-          ? 'Vendange · tunnel ' + VENDANGE.width.toFixed(1) + ' m · benne '
+          ? 'Vendange · tunnel ' + dec(VENDANGE.width, 1) + ' m · benne '
             + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
           : 'Transport · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg')
-      : (m.key === 'moisson' ? 'Coupe ' + MOISSON.width.toFixed(1) + ' m · trémie ' + HOP_MAX + ' kg'
+      : (m.key === 'moisson' ? 'Coupe ' + dec(MOISSON.width, 1) + ' m · trémie ' + kg(HOP_MAX)
                              : (T ? 'Attelé : ' + T.nom : 'Sans outil'))
         + ' · niveau ' + m.v.level;
     article(0xFAD201, m.nom, det, i === cur ? 'À bord' : 'Piloter',
@@ -9479,7 +9569,7 @@ function ongletEngins(){
     for(const a2 of dispo){
       const m = a2.m;
       const det = (a2.quoi === 'outil'
-        ? (a2.T.aide || 'Outil') + ' · largeur ' + a2.T.width.toFixed(1) + ' m · '
+        ? (a2.T.aide || 'Outil') + ' · largeur ' + dec(a2.T.width, 1) + ' m · '
         : (a2.cle === 'enjambeuse' ? 'Récolte la vigne et les oliviers · benne '
                                      + (m.v.cargo ? m.v.cargo.capacite : 0) + ' kg · '
            : m.v.cargo ? 'Transport ' + m.v.cargo.capacite + ' kg · ' : '')) + eur(a2.prix)
@@ -9492,7 +9582,7 @@ function ongletEngins(){
   }
   // Ce qui reste fermé, et à quel palier il s'ouvre : sans cette ligne, un engin
   // simplement absent de la liste passe pour un engin qui n'existe pas.
-  const plusTard = MACHINES.filter((m)=> m.verrou && !ouvert('engins', m.key))
+  const plusTard = MACHINES.filter((m)=> m.verrou && !m.retire && !ouvert('engins', m.key))
     .concat(TOOLS.filter((T)=> T.verrou && !ouvert('outils', T.key)));
   if(plusTard.length){
     titre('Plus tard dans la campagne');
@@ -9503,22 +9593,53 @@ function ongletEngins(){
         ' · ' + eur(q.prix || 0), 'Niveau ' + niv, 'no', null);
     }
   }
-  titre('Améliorations possibles');
-  MACHINES.forEach((m)=>{
-    if(m.verrou) return;
-    const c = coutAmelioration(m);
-    const det = c === 0 ? 'Matériel au maximum'
-      : 'Vitesse, largeur de travail et capacité · ' + eur(c)
-        + (money >= c ? ' · de quoi payer' : ' · il manque ' + eur(c - money));
-    article(0x7FD1E8, m.nom + ' ' + '★'.repeat(m.v.level - 1),
-      det, c === 0 ? 'Max' : 'Au garage', 'no', null);
-  });
+  titre('Améliorations');
+  MACHINES.forEach((m)=>{ if(!m.verrou && PALIERS[m.key]) ligneAmelioration(m.key, 0x7FD1E8); });
   const bloc = document.createElement('div');
   bloc.className = 'art';
-  bloc.innerHTML = '<div class="txt"><div class="nom">Le garage, sur la rocade ouest</div>'
-    + '<div class="det">Achat d\'un véhicule, réparation, amélioration : tout se fait '
-    + 'sur son anneau. Arrête-toi dessus, les boutons apparaissent.</div></div>';
+  bloc.innerHTML = '<div class="txt"><div class="nom">On garde son matériel, on l\'améliore</div>'
+    + '<div class="det">Il n\'y a pas de plus gros tracteur à acheter : chaque engin monte '
+    + 'ses propres crans, et chacun se paie à part. Aucune amélioration n\'est obligatoire — '
+    + 'une commande de 600 kg se fait très bien avec la moissonneuse d\'origine, elle demande '
+    + 'seulement plus de voyages.</div></div>';
   hote.appendChild(bloc);
+}
+
+/* UNE LIGNE D'AMÉLIORATION, LA MÊME POUR UN ENGIN ET POUR UN OUTIL. Elle dit trois
+   choses : où l'on en est sur l'échelle, ce que le cran suivant apporte en clair, et ce
+   qu'il coûte. Le bouton agit sur place — c'est le même geste que d'acheter un sac de
+   graines au comptoir, et l'anneau du garage reste la façon d'y arriver en roulant. */
+function ligneAmelioration(cle, couleur){
+  const P = PALIERS[cle];
+  if(!P) return;
+  const niv = niveauMateriel(cle), max = P.crans.length;
+  const ici = P.crans[niv-1], suiv = niv < max ? P.crans[niv] : null;
+  // Ce que ce cran donne, chiffres à l'appui : « 8,0 → 9,6 m », « 150 → 250 kg ».
+  const gains = [];
+  if(suiv){
+    if(suiv.vite !== undefined && suiv.vite !== ici.vite)
+      gains.push('vitesse ' + Math.round(ici.vite*100) + ' → ' + Math.round(suiv.vite*100) + ' %');
+    if(suiv.large !== undefined && suiv.large !== ici.large)
+      gains.push('largeur ' + Math.round(ici.large*100) + ' → ' + Math.round(suiv.large*100) + ' %');
+    if(suiv.coupe !== undefined && suiv.coupe !== ici.coupe)
+      gains.push('coupe ' + dec(MOISSON.width0*ici.coupe, 1) + ' → ' +
+                 dec(MOISSON.width0*suiv.coupe, 1) + ' m');
+    if(suiv.tremie !== undefined && suiv.tremie !== ici.tremie)
+      gains.push('trémie ' + ici.tremie + ' → ' + kg(suiv.tremie));
+    if(suiv.caisse !== undefined && suiv.caisse !== ici.caisse)
+      gains.push('caisse ' + ici.caisse + ' → ' + kg(suiv.caisse));
+    // la cuve ne figure pas dans les gains annoncés : voir la note sur PALIERS
+  }
+  const prix = suiv ? (suiv.prix || 0) : 0;
+  const ok = !!suiv && money >= prix;
+  article(couleur, P.nom + ' ' + '★'.repeat(niv - 1),
+    'Niveau ' + niv + ' sur ' + max + ' · ' + P.donne +
+    (suiv ? '<br>Cran suivant : ' + gains.join(' · ') + ' — ' + eur(prix) +
+            (ok ? '' : ' · il manque ' + eur(prix - money))
+          : '<br>Au maximum de son échelle.'),
+    suiv ? (ok ? eur(prix) : 'Trop cher') : 'Max', ok ? 'vert' : 'no',
+    ok ? ()=>{ if(ameliorerItem(cle)){ showHint(P.nom.toUpperCase() + ' — NIVEAU ' +
+                 niveauMateriel(cle)); rafraichirEcran(); } } : null);
 }
 
 function ongletOutils(){
@@ -9526,7 +9647,7 @@ function ongletOutils(){
   for(const T of TOOLS){
     if(T.verrou) continue;
     const porteur = T.attached ? MACHINES.find(m=>m.v === T.attached) : null;
-    const det = (T.cargo ? 'Benne ' + T.capacite + ' kg' : 'Largeur ' + T.width.toFixed(1) + ' m')
+    const det = (T.cargo ? 'Benne ' + kg(T.capacite) : 'Largeur ' + dec(T.width, 1) + ' m')
       + ' · niveau ' + T.level + (porteur ? ' · attelé au ' + porteur.nom : ' · au sol');
     article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null);
   }
@@ -9536,16 +9657,18 @@ function ongletOutils(){
     for(const T of aPrendre){
       const niv = niveauDe('outils', T.key), libre = CAMPAGNE.niveau >= niv;
       article(0x8BE07A, T.nom,
-        (T.aide ? T.aide + ' · ' : '') + 'largeur ' + T.width.toFixed(1) + ' m · ' + eur(T.prix || 0) +
+        (T.aide ? T.aide + ' · ' : '') + 'largeur ' + dec(T.width, 1) + ' m · ' + eur(T.prix || 0) +
         (libre ? (money >= (T.prix || 0) ? ' · de quoi payer' : ' · il manque ' + eur((T.prix||0) - money))
                : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
         libre ? 'Au garage' : 'Niveau ' + niv, 'no', null);
     }
   }
-  titre('Comment améliorer un outil');
+  titre('Améliorations');
+  for(const T of TOOLS) if(!T.verrou && PALIERS[T.key]) ligneAmelioration(T.key, 0xF0C24A);
   const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="det">Un outil se bonifie avec l\'engin qui le tire : ' +
-    'attelle-le, puis améliore l\'ensemble depuis l\'onglet Engins ou à l\'atelier.</div></div>';
+  d.innerHTML = '<div class="txt"><div class="det">Un outil s\'améliore SEUL, et pour son ' +
+    'propre prix : il n\'est plus vendu par paquet avec le tracteur qui le tire. On peut ' +
+    'donc élargir son semoir sans rien payer pour la charrue.</div></div>';
   hote.appendChild(d);
 }
 
@@ -10006,54 +10129,82 @@ function refreshHitchButton(){
   }
   hitchEl.classList.toggle('on', !T && !!nearestFreeTool(m.v));
 }
-/* --- atelier : amélioration de l'engin et de son outil --- */
-const UP_MAX = 3;
-function prixUp(niv){ return niv === 1 ? 2500 : (niv === 2 ? 6000 : 0); }
-function coutAmelioration(m){
-  const v = m.v, T = toolOf(m);
-  let c = 0;
-  if(v.level < UP_MAX) c += prixUp(v.level);
-  if(T && T.group && T.level < UP_MAX) c += Math.round(prixUp(T.level)*0.6);
-  return c;
+/* --- le garage : chaque engin, chaque outil s'améliore SEUL --- */
+/* On pose l'état d'un matériel à partir du barème, et non par accumulation de facteurs :
+   `appliquerPalier` sait tout dire d'un niveau donné, ce qui la rend bonne à trois usages
+   — au démarrage pour poser les valeurs de niveau 1, à l'achat d'un cran, et au
+   rechargement d'une sauvegarde qui ne stocke plus qu'un numéro de niveau. */
+function itemDe(cle){
+  const m = MACHINES.find((x)=> x.key === cle);
+  if(m) return {machine:m, v:m.v};
+  const T = TOOLS.find((x)=> x.key === cle);
+  return T ? {outil:T} : null;
 }
-function ameliorer(m){
-  const v = m.v, T = toolOf(m);
-  if(v.level < UP_MAX){
-    v.level++;
-    v.vmax *= 1.18; v.accel *= 1.20; v.turn *= 1.06;
-    if(m.key === 'moisson'){
-      MOISSON.level = v.level;
-      MOISSON.width *= 1.18;                       // coupe plus large
+const niveauMateriel = (cle)=>{
+  const it = itemDe(cle);
+  return it ? (it.v ? it.v.level : it.outil.level) || 1 : 1;
+};
+function appliquerPalier(cle, niv){
+  const P = PALIERS[cle], it = itemDe(cle);
+  if(!P || !it) return;
+  niv = Math.max(1, Math.min(P.crans.length, niv || 1));
+  const c = P.crans[niv-1];
+  if(it.v){
+    const v = it.v;
+    v.level = niv;
+    /* LA DIRECTION NE S'ACHÈTE PAS. L'ancienne amélioration ajoutait 6 % de braquage à
+       chaque cran, ce que le barème ne promet nulle part : un engin amélioré tournait
+       plus court, et la conduite changeait sous les doigts sans qu'on l'ait demandé.
+       On la remet à sa valeur d'origine, la même pour tout le monde. */
+    v.turn = v.turn0;
+    if(c.vite !== undefined){ v.vmax = v.vmax0*c.vite; v.accel = v.accel0*c.vite; }
+    if(c.caisse !== undefined && v.cargo) v.cargo.capacite = c.caisse;
+    if(cle === 'moisson'){
+      MOISSON.level = niv;
+      MOISSON.width = MOISSON.width0*c.coupe;
+      // La barre de coupe s'allonge VRAIMENT : à 180 % elle passe de huit à quatorze
+      // mètres, et c'est la première chose qu'on voit d'une moissonneuse améliorée.
       const head = v.group.userData.head;
-      if(head) head.scale.x = MOISSON.width/8.0;
-      HOP_MAX = Math.round(100 * Math.pow(1.35, v.level-1));   // trémie agrandie
+      if(head) head.scale.x = c.coupe;
+      HOP_MAX = c.tremie;
     }
-    if(m.key === 'enjambeuse'){
-      VENDANGE.level = v.level;
-      VENDANGE.width *= 1.10;                      // un tunnel un peu plus large
-      /* LA MÊME FORMULE QUE LA MOISSONNEUSE, ET SUR LA MÊME BASE. Elle disait 900 quand
-         la caisse neuve en valait 300 : une seule amélioration la TRIPLAIT avant même le
-         facteur 1,35. La remise à l'échelle a divisé la caisse par trois sans toucher à
-         la formule, et l'écart est passé de ×4 à ×12 — 1 215 kg au premier cran, plus
-         que l'entrepôt entier, de quoi emporter cinq parcelles de raisin d'un coup et
-         court-circuiter tout le circuit vigne. La constante est la caisse de départ,
-         exactement comme HOP_MAX est la trémie de départ : 100, 135, 182. */
-      v.cargo.capacite = Math.round(100 * Math.pow(1.35, v.level-1));
+    /* LE TUNNEL DE L'ENJAMBEUSE NE S'ÉLARGIT PAS. Il enjambe UN RANG, et un rang de
+       vigne ne change pas de largeur parce qu'on a payé. Le barème ne lui promet que de
+       la vitesse et de la capacité ; l'ancienne amélioration lui ajoutait dix pour cent
+       de tunnel à chaque cran, ce qui n'avait de sens ni pour la vigne ni pour lui. */
+    if(cle === 'enjambeuse') VENDANGE.level = niv;
+  } else {
+    const T = it.outil;
+    T.level = niv;
+    if(c.large !== undefined){
+      T.width = T.width0*c.large;
+      if(T.group) T.group.scale.x = c.large;
     }
+    if(c.caisse !== undefined) T.capacite = c.caisse;
+    if(c.cuve !== undefined) T.cuveMax = c.cuve;
   }
-  /* UN OUTIL INTÉGRÉ N'A PAS DE MODÈLE À ÉLARGIR. La coupe de la moissonneuse et le
-     tunnel de l'enjambeuse décrivent un travail, ils ne sont pas dans la cour : ni
-     `group` ni `width0`. La garde ne nommait que la coupe, si bien qu'améliorer une
-     ENJAMBEUSE au garage jetait `T.group.scale` — l'argent était déjà retiré et la
-     machine ne gagnait rien, l'exception tuant la fin du gestionnaire. On teste
-     maintenant la présence du modèle, ce qui couvre les deux et tout futur outil du
-     même genre. */
-  if(T && T.group && T.level < UP_MAX){
-    T.level++;
-    T.width *= 1.22;
-    T.group.scale.x = T.width / T.width0;
-    if(T.cargo) T.capacite = Math.round(T.capacite*1.4);
-  }
+}
+// Tout ce qu'on peut améliorer ici et maintenant : l'engin qu'on conduit, et l'outil
+// qu'il tire. Un outil resté au parking s'améliore depuis son onglet.
+function ameliorationsDe(m){
+  const out = [];
+  const ajoute = (cle)=>{
+    if(!PALIERS[cle]) return;
+    const niv = niveauMateriel(cle);
+    if(niv >= cransMax(cle)) return;
+    out.push({cle, niv, prix:prixCranSuivant(cle, niv), P:PALIERS[cle]});
+  };
+  if(m) ajoute(m.key);
+  const T = m ? toolOf(m) : null;
+  if(T) ajoute(T.key);
+  return out;
+}
+function ameliorerItem(cle){
+  const niv = niveauMateriel(cle), prix = prixCranSuivant(cle, niv);
+  if(niv >= cransMax(cle) || money < prix) return false;
+  money -= prix;
+  appliquerPalier(cle, niv + 1);
+  return true;
 }
 const cropEl = document.getElementById('crop');
 cropEl.addEventListener('pointerdown', ()=>{
@@ -10554,7 +10705,7 @@ let garageChoix = null;
 function articlesAVendre(){
   const out = [];
   for(const m of MACHINES)
-    if(m.verrou && ouvert('engins', m.key))
+    if(m.verrou && !m.retire && ouvert('engins', m.key))
       out.push({quoi:'engin', cle:m.key, m:m, nom:m.nom, prix:m.prix});
   for(const T of TOOLS)
     if(T.verrou && ouvert('outils', T.key))
@@ -10614,21 +10765,26 @@ function refreshAtelier(){
   // Sur l'anneau du parking, et non plus « quelque part autour du bâtiment » : voir le
   // commentaire à la pose de cet anneau. Même rayon que la station et le comptoir.
   if(!aQuai(v, GARAGE)){ atelEl.style.display='none'; return; }
-  const c = coutAmelioration(m);
+  /* UN BOUTON, UN MATÉRIEL, UN PRIX. Il achetait l'engin ET son outil d'un seul coup,
+     pour une somme unique : impossible de savoir ce qu'on payait, et impossible de
+     n'améliorer que le semoir. Chaque cran est maintenant un achat distinct, et le
+     bouton propose le MOINS CHER de ceux qui restent — dételer suffit à passer à
+     l'autre, et l'onglet Engins les liste tous avec leur échelle. */
+  const L = ameliorationsDe(m).sort((a2, b2)=> a2.prix - b2.prix);
   atelEl.style.display = 'block';
-  if(c === 0){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM'; return; }
-  const ok = money >= c;
+  if(!L.length){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM';
+                 atelEl._up = null; return; }
+  const u = L[0], ok = money >= u.prix;
+  atelEl._up = u;
   atelEl.classList.toggle('no', !ok);
-  atelEl.textContent = (ok ? 'AMÉLIORER ' : 'IL MANQUE ' + Math.ceil(c-money).toLocaleString('fr-FR'))
-                     + (ok ? c.toLocaleString('fr-FR') + ' €' : ' €');
+  atelEl.textContent = ok
+    ? u.P.nom.toUpperCase() + ' ' + (u.niv + 1) + ' · ' + u.prix.toLocaleString('fr-FR') + ' €'
+    : 'IL MANQUE ' + Math.ceil(u.prix - money).toLocaleString('fr-FR') + ' €';
 }
 atelEl.addEventListener('pointerdown', ()=>{
-  const m = MACHINES[cur];
-  const c = coutAmelioration(m);
-  if(c === 0 || money < c) return;
-  money -= c;
-  ameliorer(m);
-  showHint('MATÉRIEL AMÉLIORÉ');
+  const u = atelEl._up;
+  if(!u || !ameliorerItem(u.cle)) return;
+  showHint(u.P.nom.toUpperCase() + ' — NIVEAU ' + niveauMateriel(u.cle));
   showHint(machineLabel(cur));
   refreshAtelier();
 });
@@ -11236,8 +11392,7 @@ function quelqueChoseAFaire(S){
   if(S.fournisseur) return comptoirServable();
   if(S.abattoir) return siteOuvert(S) && (v.betail || 0) > 0;
   if(S.atelier){                                   // le garage : améliorer OU acheter
-    const c = coutAmelioration(m);
-    if(c > 0 && money >= c) return true;
+    if(ameliorationsDe(m).some((u)=> money >= u.prix)) return true;
     // La vitrine peut porter un OUTIL et plus seulement un engin : l'anneau restait
     // éteint devant un épandeur qu'on avait de quoi payer.
     const av = articleAVendre();
@@ -15062,6 +15217,9 @@ function chargerPartie(S){
     // Absent, c'est le manche : c'est ce qu'avaient toutes les parties d'avant ce réglage.
     COMMANDES.mode = S.commandes === 'boutons' ? 'boutons' : 'manche';
     appliquerCommandes();
+    // La coupe et la trémie se déduisent du niveau de la moissonneuse, quelques lignes
+    // plus bas : on lit encore ces trois champs pour les parties d'avant le barème, et
+    // `appliquerPalier` les recalcule aussitôt.
     MOISSON.width = S.moisson.width; MOISSON.level = S.moisson.level; HOP_MAX = S.moisson.hopMax;
     S.crops.forEach((verrou, i)=>{ if(CROPS[i]) CROPS[i].verrou = verrou; });
     /* LES VERROUS D'OUTILS. Ils n'existaient pas : les quatre outils étaient donnés.
@@ -15086,7 +15244,16 @@ function chargerPartie(S){
          jamais repris. */
       m.verrou = q.verrou && !(m.prix === 0 && ouvert('engins', m.key));
       v.group.visible = !m.verrou;
-      v.level = q.level; v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn;
+      /* ON RELIT UN NIVEAU, PLUS UNE VITESSE. La sauvegarde portait des valeurs
+         DÉRIVÉES — vmax, accel, largeur, capacité — parce que l'ancienne amélioration
+         les accumulait et qu'il n'existait nulle part de table pour les retrouver.
+         Depuis le barème, le niveau suffit et dit tout : c'est une source de vérité au
+         lieu de deux, et une partie en cours se retrouve d'office sur les nouvelles
+         valeurs au lieu de garder les anciennes pour toujours. Les deux tracteurs
+         retirés n'ont pas d'échelle : eux gardent ce que la sauvegarde dit. */
+      v.level = q.level || 1;
+      if(PALIERS[m.key]) appliquerPalier(m.key, v.level);
+      else { v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn; }
       v.pos.set(q.x, 0, q.z); v.cap = q.cap;
       v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
       v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
@@ -15102,18 +15269,18 @@ function chargerPartie(S){
          garde ce que la sauvegarde dit : sa capacité vient d'une formule, pas de la table. */
       if(v.cargo && q.cargo){
         v.cargo.load = q.cargo.load; v.cargo.type = q.cargo.type;
-        if((q.level || 1) > 1) v.cargo.capacite = q.cargo.capacite;
-      }
-      if(m.key === 'moisson'){
-        const head = v.group.userData.head;
-        if(head) head.scale.x = MOISSON.width/8.0;
+        // La capacité vient du barème pour tout ce qui y figure ; pour le reste, de la
+        // sauvegarde, et seulement au-delà du niveau 1 — au niveau 1, c'est la table.
+        if(!PALIERS[m.key] && (q.level || 1) > 1) v.cargo.capacite = q.cargo.capacite;
+        v.cargo.load = Math.min(v.cargo.load, v.cargo.capacite);
       }
     });
     S.outils.forEach((q, i)=>{
       const T = TOOLS[i]; if(!T) return;
-      T.level = q.level; T.width = q.width; T.crop = q.crop;
-      if(q.capacite && (q.level || 1) > 1) T.capacite = q.capacite;   // idem : la table au niveau 1
-      T.load = q.load; T.type = q.type;
+      T.level = q.level || 1; T.crop = q.crop;
+      if(PALIERS[T.key]) appliquerPalier(T.key, T.level);
+      else { T.width = q.width; if(q.capacite && T.level > 1) T.capacite = q.capacite; }
+      T.load = Math.min(q.load, T.capacite || Infinity); T.type = q.type;
       T.group.scale.x = T.width / T.width0;
       T.group.position.set(q.x, 0, q.z); T.group.rotation.y = q.cap;
       T.x = q.x; T.z = q.z; T.cap = q.cap; T.axle.x = q.x; T.axle.z = q.z;
@@ -15252,6 +15419,12 @@ function ouvrirFin(){
 
 /* ---------- 30. BOUCLE ---------- */
 mondePret = true;
+/* LE NIVEAU 1 VIENT DU BARÈME, LUI AUSSI. Les capacités d'origine étaient écrites dans
+   les tables des engins et des outils, et le barème en donne d'autres — trémie 150 au
+   lieu de 100, benne de pick-up 150 au lieu de 70, remorque 200 au lieu de 135. Les
+   poser ici, à partir de la même table que les crans suivants, évite d'avoir deux
+   endroits qui disent la capacité d'un matériel neuf, et donc de les voir diverger. */
+for(const cle in PALIERS) appliquerPalier(cle, niveauMateriel(cle));
 poserCuve();                 // elle fait partie de la ferme, elle ne s'achète plus
 /* Les commandes à boutons sont le réglage de départ, et rien ne les posait : le mode
    n'était appliqué qu'au basculement du réglage ou au chargement d'une partie. Une

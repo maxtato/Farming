@@ -582,6 +582,60 @@ les euros, vide une bourse pour voir la plantation s'arrêter, et relit l'enseig
 pour vérifier qu'elle annonce bien la graine la moins chère. Sur la version précédente, il
 tombe trente et une fois.
 
+### On garde son matériel, on l'améliore
+
+Il y avait **un seul bouton** au garage, et il achetait tout à la fois : l'engin *et* l'outil
+qu'il tire, vitesse ×1,18, largeur ×1,22, capacité ×1,4, pour une somme unique. On ne pouvait
+ni savoir ce qu'on payait, ni n'améliorer que le semoir. Trois crans, et c'était fini.
+
+Chaque matériel a maintenant **son échelle écrite**, avec ce que chaque cran donne et ce qu'il
+coûte, et **chacun s'achète seul** :
+
+| | ce qui monte | crans | prix |
+|---|---|---|---|
+| tracteur | vitesse | 100 · 112 · 125 · 140 · 155 % | 600 · 1 800 · 4 500 · 9 000 € |
+| charrue | largeur | 100 · 125 · 155 · 190 % | 700 · 2 000 · 5 000 € |
+| semoir | largeur | 100 · 125 · 155 · 190 % | 800 · 2 500 · 6 000 € |
+| épandeur | largeur | 100 · 130 · 165 · 200 % | 750 · 2 200 · 5 000 € |
+| moissonneuse | vitesse, trémie, coupe | 150 · 250 · 450 · 800 kg | 1 500 · 4 500 · 10 000 € |
+| enjambeuse | vitesse, capacité | 120 · 220 · 400 · 700 kg | 1 800 · 5 000 · 11 000 € |
+| pick-up | capacité, vitesse | 150 · 250 · 400 · 600 kg | 700 · 2 200 · 5 000 € |
+| fourgon | capacité, vitesse | 600 · 900 · 1 400 · 2 200 kg | 1 600 · 4 500 · 9 000 € |
+| benne | capacité | 200 · 350 · 550 · 850 kg | 600 · 1 800 · 4 200 € |
+
+**Un pourcentage porte sur le NEUF, jamais sur le cran précédent.** 140 % veut dire 140 % du
+neuf, quel que soit le chemin par lequel on y est arrivé — le contrôle monte au maximum et
+redescend trois fois de suite pour vérifier que rien ne dérive.
+
+**Il n'y a plus de gros tracteur à acheter.** C'est le principe même du cahier des charges :
+on garde son matériel. Les deux tracteurs qui s'achetaient aux paliers 4 et 9 sortent du
+catalogue ; leurs deux entrées restent en place dans la table, parce que la sauvegarde
+sérialise les engins **par position** et que les retirer ferait repartir chaque partie en
+cours sur la mauvaise machine. Une partie qui en possède déjà un le garde et le conduit.
+
+**La barre de coupe s'allonge vraiment.** À 180 % elle passe de huit à quatorze mètres, et
+c'est la première chose qu'on voit d'une moissonneuse améliorée. Le tunnel de l'enjambeuse, à
+l'inverse, ne bouge plus : il enjambe **un rang**, et un rang de vigne ne s'élargit pas parce
+qu'on a payé. La direction non plus ne s'achète plus — l'ancienne amélioration ajoutait 6 % de
+braquage à chaque cran, et la conduite changeait sous les doigts sans qu'on l'ait demandé.
+
+**La sauvegarde ne stocke plus qu'un numéro de niveau.** Elle portait des valeurs *dérivées* —
+vitesse, accélération, largeur, capacité — parce que l'ancienne amélioration les accumulait et
+qu'il n'existait nulle part de table pour les retrouver. Une source de vérité au lieu de deux :
+le contrôle abîme exprès la capacité écrite dans la sauvegarde (7 kg pour un pick-up de
+niveau 3) et vérifie qu'elle revient à 400. C'est aussi ce qui met d'office les parties en
+cours sur les nouvelles valeurs, au lieu de leur laisser les anciennes pour toujours.
+
+Les capacités de niveau 1 viennent de cette même table : trémie 150 au lieu de 100, benne de
+pick-up 150 au lieu de 70, remorque 200 au lieu de 135. Deux endroits qui disent la capacité
+d'un matériel neuf finissent toujours par diverger.
+
+Les cuves du semoir et de l'épandeur sont écrites dans le barème — 50 à 350 kg, 30 à 250 —
+mais **pas encore portées** : les deux outils puisent directement dans le hangar de la ferme.
+L'échelle n'annonce donc que la largeur ; on ne fait pas payer pour une cuve qui n'existe pas
+encore. Elle vient avec la tranche suivante, celle qui fait vraiment perdre au semoir les
+graines qu'il sème.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente
