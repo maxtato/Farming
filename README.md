@@ -529,6 +529,59 @@ Une chose devient visible du même coup : la commande de la boulangerie au palie
 l'affichage qui la disait mal. C'est le genre de chiffre que la refonte de la campagne aura à
 reprendre, avec le barème des missions sous les yeux.
 
+### Chaque graine a son prix et sa dose
+
+Il n'y avait qu'un sac. On achetait « des semences » à 1,55 € le kilo, et le semoir y puisait
+43 g par cellule quoi qu'il sème. Le barème en veut cinq, chacune avec son tarif et sa
+quantité à la parcelle :
+
+| | prix | dose / parcelle | coût | récolte | part |
+|---|---:|---:|---:|---:|---:|
+| blé | 0,18 € / kg | 25 kg | 4,50 € | 70,56 € | 23,4 % |
+| maïs | 0,27 | 18 kg | 4,86 € | 107,09 € | 15,7 % |
+| orge | 0,20 | 23 kg | 4,60 € | 84,11 € | 19,7 % |
+| avoine | 0,22 | 22 kg | 4,84 € | 88,23 € | 19,1 % |
+| colza | 0,36 | 12 kg | 4,32 € | 116,50 € | 14,0 % |
+
+La dernière colonne compte aussi l'engrais. **Elle valait 62,5 % pour le blé** : semer et
+fertiliser coûtaient les deux tiers de ce que la parcelle rendait, ce qui n'est pas une ferme
+mais un péage. Le barème remet les intrants où ils doivent être — bien en dessous de ce que la
+terre rend — et le colza, qui se sème le plus clair, reste le mieux payé au sac comme au kilo.
+
+**Un hangar, plusieurs sacs.** Le stock n'est plus un nombre mais un tas par culture, dans un
+hangar unique de 450 kg toutes graines confondues : on choisit encore ce qu'on stocke, ce
+qu'un bac séparé par culture aurait supprimé. Le semoir puise dans le sac de la culture qu'il
+sème et dans aucun autre — le contrôle le vérifie sac par sac, avec un témoin à côté.
+
+**La vigne et l'oliveraie ne se sèment pas.** Elles se plantent, une fois, et repartent seules
+après chaque récolte : 1 600 € la parcelle de vigne, 1 200 € l'oliveraie, payés à la cellule
+au fur et à mesure que le semoir avance. Il n'y a pas de sac à remplir, et il n'y en aura
+jamais — c'est le sens même d'une culture permanente. Si la bourse se vide en cours de rang, la
+plantation s'arrête où elle en est, exactement comme un sac vide arrête un semis.
+
+**L'engrais passe de 2,22 € à 0,80 € le kilo**, et de 20 kg à 15 par parcelle : douze euros
+pour un quart de pousse en moins sur une récolte qui en vaut soixante-dix. Il reste facultatif
+— aucune mission ne l'exige — mais à ce tarif-là on comprend pourquoi on le prend.
+
+**Le gazole vaut 2,00 € le litre**, le prix de référence du barème, et 1,60 € livré en gros
+dans la cuve de la ferme. Les réservoirs ont fondu de moitié et la soif avec, dans le même
+rapport : tracteur 40 L à 0,8 L/min, moissonneuse 60 à 1,2, enjambeuse 50 à 1,0, pick-up 45 à
+0,6, fourgon 70 à 0,8. Chaque engin tient donc **cinquante minutes** de travail à pleine
+charge, contre trente avant, et le pick-up une heure et quart puisqu'il ne tire rien. Ce n'est
+pas une simulation : c'est une petite dépense de fonctionnement, et elle ne doit pas devenir
+punitive.
+
+Rien de tout cela n'oblige à recommencer une partie. Une sauvegarde d'avant le barème n'a
+qu'un seul tas de graines : il devient du blé, la seule culture que tout le monde possède et
+celle dont la dose est la plus proche de l'ancienne — vingt-cinq kilos la parcelle contre
+vingt-quatre.
+
+Le contrôle qui garde ce barème mesure les trente-quatre chiffres sur pièces : il sème une
+parcelle entière de chaque culture et pèse le sac avant et après, plante une vigne et compte
+les euros, vide une bourse pour voir la plantation s'arrêter, et relit l'enseigne du comptoir
+pour vérifier qu'elle annonce bien la graine la moins chère. Sur la version précédente, il
+tombe trente et une fois.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

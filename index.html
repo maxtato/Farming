@@ -1595,7 +1595,12 @@ function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) -
    route et l'on se voyait facturer 1,55 €, pendant que l'onglet Comptoir du même
    commerce affichait le vrai prix. C'était le seul prix au kilo du jeu écrit à la main ;
    il est maintenant dérivé, comme tous les autres, et la façade ne peut plus mentir. */
-const PRIX_INTRANT = {semence: 1.55, engrais: 2.22};
+/* Depuis que chaque graine porte son prix, il ne reste ici que l'engrais : 0,80 € le
+   kilo, quinze kilos la parcelle, soit douze euros pour un quart de pousse en moins sur
+   une récolte qui en vaut soixante-dix. Il est facultatif, et il doit le rester — mais à
+   ce tarif-là on comprend pourquoi on le prend. Les semences, elles, s'affichent à partir
+   du moins cher des sacs : le blé, à dix-huit centimes. */
+const PRIX_INTRANT = {engrais: 0.80};
 const tarifKg = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
 const SITES = [
   // Trois bandes le long de la rocade. `bat` et `park` situent le bâtiment et sa dalle
@@ -1642,7 +1647,7 @@ const SITES = [
   {nom:'Comptoir agricole', enseigne:'totem', picto:'graine', dir:'N', bat:18, park:31,
    style:'boutique', crop:-1, prix:0, cloture:'muret', fournisseur:true,
    w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2,
-   vend:[{nom:'Semences', prix:tarifKg(PRIX_INTRANT.semence)},
+   vend:[{nom:'Semences', prix:'dès ' + tarifKg(0.18)},
          {nom:'Engrais',  prix:tarifKg(PRIX_INTRANT.engrais)}]},
   {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'N', bat:56, park:69,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
@@ -3326,19 +3331,37 @@ const wheatBase = [];   // fiche de plante par cellule cultivable : {x,z,i,j,rot
    colza 110, raisin 140, olives 120 — et leur temps de pousse va de 75 s pour le blé à
    180 pour une repousse d'olivier. Une culture longue rend plus, mais pas assez pour
    qu'on l'attende sans raison : c'est le PRIX qui décide, pas le rendement. */
+/* LE BARÈME DES SEMENCES. Une graine a SON prix au kilo et SA dose à la parcelle, et le
+   barème les donne ensemble : blé 25 kg à 0,18 €, maïs 18 à 0,27, orge 23 à 0,20, avoine
+   22 à 0,22, colza 12 à 0,36. Le colza se sème clair et se paie cher, le blé l'inverse —
+   et le calcul retombe sur la même somme, entre 4,32 € et 4,86 € la parcelle, pour une
+   récolte qui en vaut de soixante-dix à cent-seize. C'est la règle du cahier des charges :
+   les intrants restent très en dessous de ce que la terre rend.
+
+   `graineKg` est la dose pour la PARCELLE STANDARD de 552 cellules, comme `kg` est le
+   rendement d'une cellule : on écrit le chiffre du barème, le jeu divise.
+
+   Les deux permanentes n'ont pas de semence. Elles se PLANTENT, une fois, et repartent
+   toutes seules après chaque récolte : `plantation` est ce que coûte la parcelle plantée
+   — 1 600 € pour une vigne, 1 200 € pour une oliveraie — et il ne se repaie jamais. */
+const PARC_REF = 552;                    // la parcelle de départ, en cellules
 const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
-   temps:75, kg:0.2174, haut:1.00, large:0.90},
+   temps:75, kg:0.2174, haut:1.00, large:0.90, grainePrix:0.18, graineKg:25},
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:110, kg:0.2536, haut:1.00, large:0.93, cout:600, verrou:true},
+   temps:110, kg:0.2536, haut:1.00, large:0.93, cout:600, verrou:true,
+   grainePrix:0.27, graineKg:18},
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:1.00, large:1.15, cout:2400, verrou:true},
+   temps:140, kg:0.1993, haut:1.00, large:1.15, cout:2400, verrou:true,
+   grainePrix:0.36, graineKg:12},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:90, kg:0.2264, haut:1.00, large:1.34, cout:900, verrou:true},
+   temps:90, kg:0.2264, haut:1.00, large:1.34, cout:900, verrou:true,
+   grainePrix:0.22, graineKg:22},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
-   temps:95, kg:0.2355, haut:1.00, large:1.00, cout:700, verrou:true},
+   temps:95, kg:0.2355, haut:1.00, large:1.00, cout:700, verrou:true,
+   grainePrix:0.20, graineKg:23},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
   // ne poussent pas non plus à chaque cellule — un olivier tous les 6,50 m, un pied de
@@ -3358,7 +3381,7 @@ const CROPS = [
    // peignes batteurs, eux, restent accrochés aux jambes dès 0,75 m et brassent toujours
    // le feuillage sur toute sa hauteur.
    temps:210, repousse:150, kg:0.2536, haut:1.00, large:1.00, cout:6000, verrou:true, perenne:true,
-   rang:true, masque:(i)=> i % 2 === 0},
+   plantation:1600, rang:true, masque:(i)=> i % 2 === 0},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
    // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
    // coefficient est calé pour que le plus grand des arbres — tirage 1,95 — reste sous
@@ -3375,7 +3398,7 @@ const CROPS = [
    // vingt-cinq, soit 6,50 m d'entraxe, rend 1,38 m de jour entre les branches. Le
    // rendement ne bouge pas : il se compte à la CELLULE récoltée, pas à l'arbre.
    temps:240, repousse:180, kg:0.2174, haut:1.00, large:0.69, cout:7500, verrou:true, perenne:true,
-   masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
+   plantation:1200, masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
 CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
@@ -9305,6 +9328,10 @@ const ONGLETS = [
   {id:'budget',   nom:'Budget'}
 ];
 const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
+/* Les intrants se comptent en pièces, pas en billets : arrondi à l'euro, un sac de blé
+   à 4,50 € s'affichait « 5 € » et l'on ne voyait plus lequel des cinq sacs était le moins
+   cher — ils tombaient tous sur cinq. En dessous de dix euros on garde les centimes. */
+const euroFin = (v)=> v < 10 ? dec(v) + ' €' : eur(v);
 // « 30 kg de orge » se lit mal : l'élision est une politesse qui coûte une ligne.
 const dNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'd\u2019' : 'de ') + n;
 
@@ -9530,9 +9557,17 @@ function ongletOutils(){
 function ongletGraines(){
   titre('Cultures disponibles');
   CROPS.forEach((c, i)=>{
-    const det = 'Pousse en ' + c.temps + ' s · ' + c.kg + ' kg par cellule · '
-              + dec(prixUnite(c.cle)) + ' ' + parUniteTxt(c.cle)
-              + (c.perenne ? ' · repart toute seule' : '');
+    /* CE QUE RAPPORTE UNE PARCELLE, ET CE QU'ELLE COÛTE À METTRE EN TERRE. Le
+       rendement s'annonçait à la CELLULE — « 0.2174 kg par cellule » — c'est-à-dire
+       dans la seule unité dont le joueur ne peut rien faire : il sème des parcelles,
+       pas des cellules. Le barème parle en parcelles, l'écran aussi. */
+    const det = 'Pousse en ' + c.temps + ' s · ' + kg(PARC_REF*c.kg) + ' la parcelle · '
+              + dec(prixUnite(c.cle)) + ' ' + parUniteTxt(c.cle) + '<br>'
+              + (c.plantation
+                 ? 'Plantation ' + eur(c.plantation) + ' la parcelle, une seule fois : '
+                   + 'elle repart toute seule après chaque récolte'
+                 : 'Semence ' + dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg)
+                   + ' la parcelle, soit ' + euroFin(c.graineKg*c.grainePrix));
     if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
     const niv = niveauDe('cultures', c.cle);
     if(CAMPAGNE.niveau < niv){
@@ -11014,8 +11049,8 @@ function majEclairagesNuit(){
 // Rouler coûte. C'est ce qui rend une tournée mal préparée réellement pénalisante,
 // et ce qui donne enfin un rôle à la station-service du bord de route.
 const CARBU = {
-  prixPompe: 1.85,      // au détail, à la pompe
-  prixVrac: 1.48,       // en gros, livré dans la cuve de la ferme
+  prixPompe: 2.00,      // au détail, à la pompe — le prix de référence du barème
+  prixVrac: 1.60,       // en gros, livré dans la cuve de la ferme : vingt pour cent de moins
   lotVrac: 500,         // taille d'une commande en gros
   /* LA CUVE EST LÀ DÈS LE PREMIER JOUR, ET PLEINE. Elle coûtait 7 500 € qu'on n'a pas
      au palier 1 : le seul moyen de faire le plein était donc la pompe du village, à
@@ -11027,13 +11062,23 @@ const CARBU = {
   cuvePrix: 0,          // elle n'est plus à vendre : elle est fournie
   debit: 26             // litres par seconde au remplissage
 };
-// Réservoir et consommation par type d'engin. La moissonneuse boit deux fois plus
-// qu'un tracteur : c'est voulu, elle doit imposer des retours réguliers.
-const RESERVOIRS = {t1:{max:90, c:0.052}, t2:{max:95, c:0.055}, t3:{max:100, c:0.058},
-                    pickup:{max:65, c:0.030}, fourgon:{max:85, c:0.042},
-                    moisson:{max:230, c:0.115}, enjambeuse:{max:170, c:0.088}};
+/* RÉSERVOIRS ET CONSOMMATION, AU BARÈME. Le cahier des charges donne les deux ensemble,
+   en litres et en litres par minute : tracteur 40 L à 0,8, moissonneuse 60 à 1,2,
+   enjambeuse 50 à 1,0, pick-up 45 à 0,6, fourgon 70 à 0,8. Les réservoirs ont fondu de
+   moitié et la soif avec : le rapport ne bouge pas, et chaque engin tient à peu près
+   CINQUANTE MINUTES de travail — le pick-up plus d'une heure, parce qu'il ne tire rien.
+
+   `c` est le débit à PLEINE CHARGE, en litres par seconde ; un ralenti n'en boit que 22 %
+   et un tracteur qui laboure à fond monte à 155 %. Le barème donne une moyenne de partie,
+   pas une consigne d'injection : on l'écrit à pleine charge et la conduite fait le reste.
+   Ce n'est pas une simulation, c'est une petite dépense de fonctionnement — elle ne doit
+   jamais devenir punitive. */
+const LMIN = (l)=> l/60;
+const RESERVOIRS = {t1:{max:40, c:LMIN(0.8)}, t2:{max:40, c:LMIN(0.8)}, t3:{max:40, c:LMIN(0.8)},
+                    pickup:{max:45, c:LMIN(0.6)}, fourgon:{max:70, c:LMIN(0.8)},
+                    moisson:{max:60, c:LMIN(1.2)}, enjambeuse:{max:50, c:LMIN(1.0)}};
 for(const m of MACHINES){
-  const R = RESERVOIRS[m.key] || {max:90, c:0.05};
+  const R = RESERVOIRS[m.key] || {max:40, c:LMIN(0.8)};
   m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;
   m.v.sec = false;                 // panne sèche
 }
@@ -11082,44 +11127,78 @@ function remplir(v, dt, source){
 }
 
 /* ---------- 18. CONSOMMABLES : SEMENCES ET ENGRAIS ---------- */
-// Le semoir et l'épandeur puisaient dans le vide. Ils consomment maintenant un stock
-// qui s'achète au comptoir agricole, exactement au tarif affiché sur son enseigne.
+/* Le semoir et l'épandeur puisaient dans le vide. Ils consomment maintenant un stock qui
+   s'achète au comptoir agricole, exactement au tarif affiché sur son enseigne.
+
+   UN HANGAR, PLUSIEURS GRAINES. Le barème donne à chaque culture son prix au kilo et sa
+   dose à la parcelle : une semence de blé et une semence de colza ne sont plus le même
+   sac, et le semoir puise dans celui de la culture qu'il sème. Le hangar, lui, reste
+   unique — 450 kg toutes graines confondues, plus l'engrais à part — de sorte qu'on
+   choisit encore ce qu'on stocke, ce qu'un bac par culture aurait supprimé. */
 const STOCK = {
-  semence: 68, engrais: 27, max: 450,
-  // Le même tarif que l'enseigne, parce que c'est littéralement le même objet.
-  prixSemence: PRIX_INTRANT.semence, prixEngrais: PRIX_INTRANT.engrais,
-  parCellSemence: 0.043, parCellEngrais: 0.036
+  graines: {ble: 68}, engrais: 27, max: 450,
+  prixEngrais: PRIX_INTRANT.engrais,
+  // 15 kg pour une parcelle standard, dit le barème : l'épandeur en puise donc 27 g
+  // par cellule. C'est le seul intrant que le jeu compte encore d'une seule façon,
+  // parce que la même poudre nourrit les sept cultures.
+  parCellEngrais: 15/PARC_REF
 };
-// Ce qu'un outil consomme par cellule traitée, et dans quel bac il puise.
+const grainesTotal = ()=>{ let t = 0; for(const k in STOCK.graines) t += STOCK.graines[k]; return t; };
+const grainesPlace = ()=> Math.max(0, STOCK.max - grainesTotal());
+// Ce qu'une culture consomme par cellule semée. Le barème donne la dose à la parcelle.
+const parCellSemence = (c)=> (c && c.graineKg ? c.graineKg : 25)/PARC_REF;
+/* Ce qu'un outil consomme par cellule traitée, et où il le prend. Le semoir déclare la
+   culture qu'il sème (`T.crop`), et c'est elle qui décide du sac, de la dose — et, pour
+   une vigne ou une oliveraie, du fait qu'il n'y a pas de sac du tout : on ne sème pas un
+   olivier, on le plante, et cela se paie en euros une fois pour toutes. */
 function bacDe(T){
-  if(T.key === 'semis')   return {clef:'semence', par:STOCK.parCellSemence, nom:'SEMENCES'};
-  if(T.key === 'engrais') return {clef:'engrais', par:STOCK.parCellEngrais, nom:'ENGRAIS'};
+  if(T.key === 'semis'){
+    const c = CROPS[T.crop || 0];
+    if(c && c.perenne) return {plantation: c.plantation/PARC_REF, nom:'PLANTATION', crop:c};
+    return {clef: c ? c.cle : 'ble', par: parCellSemence(c), nom:'SEMENCES', crop:c};
+  }
+  if(T.key === 'engrais') return {engrais:true, par:STOCK.parCellEngrais, nom:'ENGRAIS'};
   return null;
 }
+const dansLeBac = (b)=> b.engrais ? STOCK.engrais : (STOCK.graines[b.clef] || 0);
 // Combien de cellules le stock permet encore de traiter. `work()` s'en sert pour
 // n'en traiter qu'autant, puis prévient une seule fois.
 let alerteStock = 0;
 function cellulesPossibles(T, voulu){
   const b = bacDe(T);
   if(!b) return voulu;
-  const possible = Math.floor(STOCK[b.clef] / b.par);
+  // Une plantation ne se limite pas au stock mais à la bourse : planter s'arrête où
+  // l'argent s'arrête, exactement comme semer s'arrête où le sac se vide.
+  const possible = b.plantation ? Math.floor(money/b.plantation)
+                                : Math.floor(dansLeBac(b)/b.par);
   if(possible >= voulu) return voulu;
   if(alerteStock <= 0){
-    showHint(b.nom + ' ÉPUISÉES — AU COMPTOIR AGRICOLE');
+    showHint(b.plantation ? 'PLUS DE QUOI PLANTER'
+             : b.nom + (b.crop ? ' — PLUS DE ' + b.crop.nom.toUpperCase() : '')
+                     + ' — AU COMPTOIR AGRICOLE');
     alerteStock = 6;
   }
   return Math.max(0, possible);
 }
 function consommerStock(T, n){
   const b = bacDe(T);
-  if(b) STOCK[b.clef] = Math.max(0, STOCK[b.clef] - b.par*n);
+  if(!b) return;
+  if(b.plantation) money = Math.max(0, money - b.plantation*n);
+  else if(b.engrais) STOCK.engrais = Math.max(0, STOCK.engrais - b.par*n);
+  else STOCK.graines[b.clef] = Math.max(0, (STOCK.graines[b.clef] || 0) - b.par*n);
 }
+// L'achat au comptoir : `clef` est 'engrais', ou la clé d'une culture.
 function acheterIntrant(clef, kg){
-  const prix = clef === 'semence' ? STOCK.prixSemence : STOCK.prixEngrais;
-  const place = STOCK.max - STOCK[clef];
+  const eng = clef === 'engrais';
+  const c = eng ? null : CROPS[CROP_DE[clef]];
+  const prix = eng ? STOCK.prixEngrais : (c ? c.grainePrix : 0);
+  if(!prix) return 0;
+  const place = eng ? Math.max(0, STOCK.max - STOCK.engrais) : grainesPlace();
   const q = Math.min(kg, place, Math.floor(money/prix));
   if(q <= 0) return 0;
-  money -= q*prix; STOCK[clef] += q;
+  money -= q*prix;
+  if(eng) STOCK.engrais += q;
+  else STOCK.graines[clef] = (STOCK.graines[clef] || 0) + q;
   return q;
 }
 
@@ -11137,9 +11216,10 @@ const TEXTILE  = SITES.find(S=>S.nom === 'Atelier textile');
 // qui rendent une ligne cliquable dans ongletComptoir(), sur le plus petit lot de
 // chaque rayon — si même celui-là est hors de portée, il n'y a rien à faire ici.
 function comptoirServable(){
-  const place = (c)=> STOCK.max - STOCK[c] >= 1;
-  if(place('semence') && money >= 50*STOCK.prixSemence) return true;
-  if(place('engrais') && money >= 50*STOCK.prixEngrais) return true;
+  if(grainesPlace() >= 1)
+    for(const c of CROPS)
+      if(!c.verrou && c.grainePrix && money >= LOT_GRAINE[0]*c.grainePrix) return true;
+  if(STOCK.max - STOCK.engrais >= 1 && money >= LOT_GRAINE[0]*STOCK.prixEngrais) return true;
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
 /* Un seul anneau par commerce, et une seule condition pour tous. Elle énumère
@@ -13632,25 +13712,66 @@ const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
 const dec = (v, n)=> v.toFixed(n === undefined ? 2 : n).replace('.', ',');
 const litres = (v)=> Math.round(v).toLocaleString('fr-FR') + ' L';
 
+/* Les lots du comptoir. Dix kilos, vingt-cinq, ou de quoi remplir le hangar : le
+   deuxième est la dose d'une parcelle de blé, le premier de quoi finir un rang. */
+const LOT_GRAINE = [10, 25];
 function ongletComptoir(){
-  titre('Semences et engrais');
-  const bacs = [
-    /* EN GRAMMES, ET NON EN CENTIÈMES DE KILO. Le semoir puise 43 g par cellule et
-       l'épandeur 36 : arrondis au centième de kilo, les deux bacs affichaient « 0,04 kg »
-       et l'on ne voyait plus qu'ils consomment différemment. */
-    {clef:'semence', nom:'Semences', couleur:0xE0C07A, prix:STOCK.prixSemence,
-     det:'Le semoir y puise ' + Math.round(STOCK.parCellSemence*1000) +
-         ' g par cellule semée, soit ' + kg(552*STOCK.parCellSemence) + ' pour une parcelle'},
-    {clef:'engrais', nom:'Engrais', couleur:0x9FD8E8, prix:STOCK.prixEngrais,
-     det:'L\'épandeur y puise ' + Math.round(STOCK.parCellEngrais*1000) +
-         ' g par cellule traitée, soit ' + kg(552*STOCK.parCellEngrais) + ' pour une parcelle'}
-  ];
-  for(const b of bacs){
-    article(b.couleur, b.nom, b.det + '<br>En stock : ' + kg(STOCK[b.clef]) + ' / ' + kg(STOCK.max),
+  /* UNE LIGNE PAR GRAINE. Les cultures n'ont ni le même prix au kilo ni la même dose :
+     un seul rayon « Semences » ne pouvait plus dire ni l'un ni l'autre. On n'affiche que
+     ce qu'on a le droit de semer — une graine qu'on ne peut pas mettre en terre n'a rien
+     à faire dans un rayon. */
+  titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(STOCK.max) + ' au hangar');
+  const achat = (couleur, clef, nom, prix, q)=>{
+    const cout = q*prix, place = grainesPlace() >= 1, ok = money >= cout && place;
+    article(couleur, '+ ' + kg(q) + ' ' + dNom(nom.toLowerCase()),
+      euroFin(cout) + '  ·  ' + dec(prix) + ' € / kg',
+      !place ? 'Hangar plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      ()=>{ const pris = acheterIntrant(clef, q); if(pris) showHint('+ ' + kg(pris) + ' EN STOCK'); });
+  };
+  for(const c of CROPS){
+    if(!c.grainePrix) continue;                 // une permanente ne se sème pas
+    const ici = STOCK.graines[c.cle] || 0;
+    if(c.verrou){
+      article(c.hi.getHex(), c.nom, dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) +
+              ' la parcelle<br>La culture n\'est pas encore acquise.', 'Fermé', 'no', null);
+      continue;
+    }
+    article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
+      dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) + ' pour une parcelle, soit ' +
+      euroFin(c.graineKg*c.grainePrix) + '<br>En stock : ' + kg(ici) +
+      (ici < 1 ? ' — le sac est vide'
+               : ' — de quoi semer ' + (ici/c.graineKg).toFixed(1).replace('.', ',') +
+                 ' parcelle' + (ici >= 2*c.graineKg ? 's' : '')),
       'Stock', 'no', null);
-    for(const q of [50, 200]){
-      const cout = q*b.prix;
-      const place = STOCK.max - STOCK[b.clef] >= 1;
+    for(const q of LOT_GRAINE) achat(c.hi.getHex(), c.cle, c.nom, c.grainePrix, q);
+    const reste = grainesPlace();
+    if(reste >= 1)
+      achat(c.hi.getHex(), c.cle, c.nom + ' — remplir le hangar', c.grainePrix,
+            Math.min(reste, Math.floor(money/c.grainePrix)));
+  }
+  /* LES DEUX PERMANENTES NE S'ACHÈTENT PAS AU SAC. Une vigne et une oliveraie se
+     plantent une fois, se paient en euros à la cellule plantée, et repartent toutes
+     seules après chaque récolte : le rayon n'a rien à leur vendre, il a seulement à
+     dire ce que coûte la plantation. */
+  for(const c of CROPS){
+    if(!c.plantation || c.verrou) continue;
+    article(c.hi.getHex(), 'Plantation ' + dNom(c.nom.toLowerCase()),
+      eur(c.plantation) + ' la parcelle, payés au fur et à mesure du semoir.<br>' +
+      'Une fois en terre, elle repart seule après chaque récolte : plus rien à acheter.',
+      'Au champ', 'no', null);
+  }
+
+  titre('Engrais');
+  {
+    const b = {clef:'engrais', nom:'Engrais', couleur:0x9FD8E8, prix:STOCK.prixEngrais};
+    article(b.couleur, b.nom,
+      'L\'épandeur y puise ' + Math.round(STOCK.parCellEngrais*1000) +
+      ' g par cellule traitée, soit ' + kg(PARC_REF*STOCK.parCellEngrais) +
+      ' pour une parcelle — ' + euroFin(PARC_REF*STOCK.parCellEngrais*b.prix) +
+      ' pour un quart de pousse en moins.<br>En stock : ' + kg(STOCK.engrais) +
+      ' / ' + kg(STOCK.max), 'Stock', 'no', null);
+    for(const q of [25, 100]){
+      const cout = q*b.prix, place = STOCK.max - STOCK.engrais >= 1;
       const ok = money >= cout && place;
       article(b.couleur, '+ ' + kg(q) + ' ' + dNom(b.nom.toLowerCase()),
         eur(cout) + '  ·  ' + dec(b.prix) + ' € / kg',
@@ -14606,7 +14727,10 @@ function etatJeu(){
             tremie: Object.assign({}, HALLE.tremie),
             stock: Object.assign({}, HALLE.stock)},
     entrepot: Object.assign({}, ENTREPOT.stock),
-    stock: {semence: STOCK.semence, engrais: STOCK.engrais},
+    // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
+    // `graines` est ce qui compte, et il détaille le hangar sac par sac.
+    stock: {semence: grainesTotal(), graines: Object.assign({}, STOCK.graines),
+            engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     nettete: NETTETE.i,
     zoom: ZOOM.pc,
@@ -14746,7 +14870,9 @@ function remettreAEchelle(S){
   const STAT_KG = ['silo', 'mill', 'pain', 'moisson', 'lait', 'miel', 'oeufs',
                    'laine', 'huile', 'fromage'];
   if(S.STAT) for(const k of STAT_KG) if(k in S.STAT) S.STAT[k] = q(S.STAT[k]);
-  if(S.stock){ S.stock.semence = q(S.stock.semence); S.stock.engrais = q(S.stock.engrais); }
+  if(S.stock){ S.stock.semence = q(S.stock.semence); S.stock.engrais = q(S.stock.engrais);
+               if(S.stock.graines) for(const k in S.stock.graines)
+                 S.stock.graines[k] = q(S.stock.graines[k]); }
   if(Array.isArray(S.negoce)) for(const N of S.negoce){
     if(!N) continue; tas(N.tremie); tas(N.stock); tas(N.reste);
   }
@@ -14917,7 +15043,12 @@ function chargerPartie(S){
       delete HALLE.stock[k];
     }
     if(CARBU.cuveMax > 0) poserCuve();
-    STOCK.semence = S.stock.semence; STOCK.engrais = S.stock.engrais;
+    /* UNE PARTIE D'AVANT LE BARÈME N'A QU'UN SEUL TAS DE GRAINES. Il devient du blé :
+       c'est la seule culture que tout le monde possède, et c'est celle dont la dose est
+       la plus proche de l'ancienne — vingt-cinq kilos la parcelle contre vingt-quatre. */
+    STOCK.graines = S.stock.graines ? Object.assign({}, S.stock.graines)
+                                    : {ble: S.stock.semence || 0};
+    STOCK.engrais = S.stock.engrais;
     AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
     // Une partie d'avant le réglage n'en a pas : elle repart en netteté maximale,
     // c'est-à-dire exactement ce qu'elle connaissait.
