@@ -777,6 +777,58 @@ Deux commandes de blé au même quai ? Une seule livraison les crédite toutes l
 prépare **la plus grosse**. Et la mission de campagne du moment compte comme une commande : elle
 prend ses trente kilos et laisse les autres.
 
+### Quatre couleurs, un seul juge
+
+Le joueur doit comprendre en quelques secondes où prendre une mission, quoi faire *maintenant*
+pour celle qu'il a acceptée, et quels lieux restent ouverts en permanence. Trois questions,
+trois couleurs, et une quatrième pour tout le reste :
+
+| | |
+|---|---|
+| **JAUNE** | l'objectif du moment — « je dois aller ICI, maintenant » |
+| **VERT** | une mission à prendre |
+| **BLEU** | un service permanent : comptoir, garage, coopérative |
+| **GRIS** | un lieu connu dont on n'a rien à faire à cet instant |
+
+La priorité est stricte : **jaune > vert > bleu > gris**. La coopérative est bleue, mais si la
+mission demande d'y livrer du blé elle passe au jaune, et redevient bleue une fois la commande
+soldée. Un seul endroit tranche — `couleurGuide` — et tout ce qui affiche une couleur la lui
+demande : les pastilles au sol, les flèches du bord. Deux écrans qui décideraient chacun de leur
+côté finiraient par se contredire.
+
+La pastille au sol ne disait qu'une chose et elle était verte : « il y a une mission ici ». Elle
+porte maintenant les trois sens, et le joueur n'a plus qu'un signal à apprendre. Un service bleu
+reste **plus petit et ne respire presque pas** : c'est une possibilité, pas une obligation.
+
+**Et le jaune est dynamique.** Il ne suit aucun script : il regarde l'état réel de l'exploitation
+et désigne l'endroit *le plus avancé* qui rapproche du résultat.
+
+| l'état | l'objectif |
+|---|---|
+| la benne porte de quoi | livrer chez le client |
+| le silo ou l'entrepôt en a | aller charger |
+| l'atelier en fabrique | c'est là que ça sort |
+| l'atelier a la matière | lancer la production |
+| un champ est mûr, un tank est plein | récolter, collecter |
+| il manque la graine | comptoir agricole |
+| il manque le matériel | garage |
+
+C'est l'exemple du cahier des charges, à la lettre : la moissonneuse verse trente-cinq kilos au
+silo, le compte y est, **le champ perd son cercle et le silo l'allume** — sans qu'on ait à finir
+le champ. Rien n'est mémorisé d'un appel à l'autre ; c'est relu, donc ça ne peut pas mentir.
+
+Pour une farine dont on n'a pas un grain de blé, l'objectif n'est ni l'atelier ni la boulangerie :
+c'est le **champ**. Le résolveur remonte la recette d'un cran — l'ingrédient dont on manque le
+plus — et redemande d'où il sort.
+
+**Le matériel indispensable, jamais le confort.** Sans enjambeuse on ne récolte pas d'olives : le
+garage passe au jaune. Avec une enjambeuse de niveau 1, on récolte plus lentement — le garage
+reste bleu, et la mission ne demandera jamais de l'améliorer.
+
+Le bord de l'écran suit la même règle et **ne se sature pas** : la flèche jaune de l'objectif,
+puis au plus trois missions vertes, les plus proches. Aucune flèche bleue en permanence — les
+trois services ne sont pas là pour encombrer.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

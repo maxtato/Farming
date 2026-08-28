@@ -104,7 +104,7 @@
   #viseurs .vis .fl{width:30px;height:30px;display:flex;align-items:center;justify-content:center}
   #viseurs .vis .fl svg{width:30px;height:30px;display:block}
   #viseurs .vis .nm{font-size:8.5px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
-    color:#8BE07A;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+    color:currentColor;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
     display:flex;align-items:center;justify-content:center;gap:4px}
@@ -4310,6 +4310,11 @@ function anneauAction(x, z, phase, actif, opt){
   // anneaux de la carte s'allument en jaune au démarrage avant de retomber au blanc.
   ANNEAUX.push({anneau, halo, ph:phase || 0, actif: actif || null, k: null,
                 cA: new THREE.Color(C), cV: new THREE.Color(O.veille || BLANC_ATTENTE),
+                // `coulDyn` : une pastille dont la couleur DIT quelque chose et change
+                // avec l'état du jeu — jaune quand c'est l'objectif, verte quand une
+                // mission attend, bleue quand c'est un service. Relue avec la condition,
+                // huit fois par seconde, jamais à chaque image.
+                coulDyn: O.coulDyn || null,
                 discret: !!O.discret, plein: !!O.plein, x, z});
 }
 /* --- de quoi écrire ces conditions sans les réinventer à chaque anneau --- */
@@ -11535,6 +11540,210 @@ function aQuelqueChoseADire(S){
   const M = missionAPrendre();
   return !!(M && M.lieu === S.nom);
 }
+/* ---------- LE GUIDAGE : QUATRE COULEURS, UN SEUL JUGE ---------- */
+/* Le joueur doit comprendre en quelques secondes où prendre une mission, quoi faire
+   maintenant pour celle qu'il a acceptée, et quels lieux restent ouverts en permanence.
+   Trois questions, trois couleurs, et une quatrième pour tout le reste :
+
+     JAUNE  l'objectif du moment — « je dois aller ICI, maintenant »
+     VERT   une mission à prendre
+     BLEU   un service permanent, ouvert même hors mission
+     GRIS   un lieu connu dont on n'a rien à faire à cet instant
+
+   La PRIORITÉ est stricte : jaune > vert > bleu > gris. La coopérative est bleue, mais
+   si la mission demande d'y livrer du blé elle devient jaune, et redevient bleue une fois
+   la commande soldée. Un seul endroit tranche — `couleurGuide` — et tout ce qui affiche
+   une couleur la lui demande : les pastilles au sol, les flèches du bord, la carte.
+   Deux écrans qui décideraient chacun de leur côté finiraient par se contredire. */
+const GUIDE = {JAUNE:0xFFD21E, VERT:0x62D84E, BLEU:0x4AA8E0, GRIS:0x8A9298,
+               ROUGE:0xE8563F, BLANC:0xE6F0F8};
+/* LES TROIS SERVICES PERMANENTS. Ils ne se méritent pas : on y va quand on veut, entre
+   deux missions ou au milieu d'une, sans rien annuler. Leur sous-titre est celui du
+   cahier des charges — c'est ce qu'on lit sous la flèche du bord. */
+const SERVICES = {
+  'Comptoir agricole': 'Graines & consommables',
+  'Garage':            'Matériel & améliorations',
+  'Coopérative':       'Vente libre'
+};
+
+/* ---------- CE QU'IL FAUT FAIRE MAINTENANT ---------- */
+/* UNE MISSION DIT UN RÉSULTAT, JAMAIS UNE SUITE D'ÉTAPES. C'est la règle permanente du
+   cahier des charges, et c'est toute la raison d'être de cette fonction : elle ne suit
+   aucun script, elle REGARDE l'état réel de l'exploitation et désigne l'endroit le plus
+   avancé qui rapproche du résultat.
+
+   L'ordre est celui du plus proche de l'arrivée vers le plus loin — c'est ce qui évite
+   d'envoyer labourer quelqu'un dont la benne est déjà pleine :
+
+     1. la benne porte de quoi ................ livrer chez le client
+     2. le silo ou l'entrepôt en a ............ aller charger
+     3. l'atelier en fabrique ................. c'est là que ça sort
+     4. l'atelier a la matière ................ lancer la production
+     5. un champ est mûr, un tank est plein ... récolter, collecter
+     6. il manque la graine ................... comptoir agricole
+     7. il manque le matériel ................. garage
+
+   Et le jaune est DYNAMIQUE : la moissonneuse verse trente-cinq kilos au silo, le compte
+   y est, le champ perd son cercle et le silo l'allume — sans qu'on ait à finir le champ.
+   Rien n'est mémorisé d'un appel à l'autre : c'est relu, donc ça ne peut pas mentir. */
+function objectifMission(){
+  const M = missionVisible();
+  if(!M) return null;
+  const S = SITES.find((x)=> x.nom === M.lieu) || null;
+  // Une mission « faire » n'a pas de marchandise : son objectif est là où l'on s'équipe.
+  if(M.faire) return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ, quoi:'aller', txt:'ALLER VOIR'}
+                       : null;
+  // La ligne qui manque le plus : c'est elle qui décide, et elle change toute seule.
+  let ligne = null, reste = 0;
+  M.lignes.forEach((l, i)=>{
+    const r = l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0);
+    if(r > reste + 0.01){ reste = r; ligne = l; }
+  });
+  if(!ligne) return null;
+  const cle = ligne.cle;
+  const ici = (nom, quoi, txt, pt)=> ({lieu:nom, x:pt.x, z:pt.z, cle, reste, quoi, txt});
+
+  // 1. ce qu'on porte déjà : une benne pleine de la bonne matière n'a plus qu'à rouler
+  const T = caisseDe(MACHINES[cur]);
+  if(S && T && T.type === cle && T.load > 0.01
+     && (T.load >= reste - 0.01 || T.load >= T.capacite - 0.01))
+    return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, T.load)),
+               {x:S.dropX, z:S.dropZ});
+
+  // 2. les deux magasins de la ferme
+  const auSilo = siloStock[cle] || 0, aLEntrepot = entrepotStock(cle);
+  if(auSilo > 0.5)
+    return ici('silo', 'charger', 'CHARGER ' + qteNomHaut(cle, Math.min(reste, auSilo)),
+               {x:SILO.x, z:SILO.z});
+  if(aLEntrepot > 0.5 && ENTREPOT.quai)
+    return ici('entrepot', 'charger', 'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
+               {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
+
+  // 3 et 4. l'atelier : ce qu'il sort, ou ce qu'il pourrait sortir
+  if(PRODUITS[cle] && PRODUITS[cle].de){
+    const enFile = HALLE.file.some((C)=> C.cle === cle);
+    if(enFile || (HALLE.stock[cle] || 0) > 0.5)
+      return ici('atelier', 'atelier', 'ATELIER — ' + nomHaut(cle), {x:HALLE.x, z:HALLE.z});
+    if(atelierA(cle) && potentiel(cle).sortie >= 1)
+      return ici('atelier', 'produire', 'PRODUIRE ' + nomHaut(cle), {x:HALLE.x, z:HALLE.z});
+  }
+
+  /* 5. LA FERME, ET S'IL LE FAUT CELLE DE LA MATIÈRE PREMIÈRE. Pour une farine dont on
+        n'a pas un grain de blé, l'objectif n'est ni l'atelier ni la boulangerie : c'est
+        le CHAMP. On remonte donc la recette d'un cran — l'ingrédient dont on manque le
+        plus — et l'on redemande d'où il sort. Trois crans suffisent à traverser la plus
+        longue chaîne du jeu, et la garde empêche une recette circulaire de tourner. */
+  const dOu = origineFerme(cle, ici);
+  if(dOu) return dOu;
+  const P2 = PRODUITS[cle];
+  if(P2 && P2.de){
+    const ent = recetteEntrees(cle);
+    let pire = null, moins = Infinity;
+    for(const k in ent){
+      const q = disponible(k);
+      if(q < moins){ moins = q; pire = k; }
+    }
+    if(pire){
+      const O = origineFerme(pire, (nom, quoi, txt, pt)=>
+        ({lieu:nom, x:pt.x, z:pt.z, cle:pire, reste, quoi, txt}), 1);
+      if(O) return O;
+    }
+  }
+  return S ? ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, reste), {x:S.dropX, z:S.dropZ})
+           : null;
+}
+/* D'OÙ CELA SORT, SUR LA FERME. Un tank d'élevage qui l'attend, un champ à récolter, une
+   semence à acheter, ou le matériel qui manque pour le faire pousser — dans cet ordre,
+   du plus avancé au plus lointain. Rend null quand la ferme n'y peut rien : c'est alors
+   à l'appelant de remonter la recette d'un cran. */
+function origineFerme(cle, ici, prof){
+  const P = PATURES.find((q)=>{
+    const E = ESPECES[q.espece] || ESPECES.vache;
+    return (E.produit === cle && q.produit > 0.5)
+        || (E.second && E.second.cle === cle && q.produit2 > 0.5);
+  });
+  if(P) return ici('pature' + PATURES.indexOf(P), 'collecter',
+                   'COLLECTER ' + nomHaut(cle), {x:P.quai.x, z:P.quai.z});
+  const c0 = CROPS[CROP_DE[cle]];
+  if(!c0) return null;
+  // La graine manque : c'est au comptoir qu'on la trouve, et AVANT le champ — on ne va
+  // pas semer les mains vides. Mais ce que le semoir porte déjà, on n'a pas à l'acheter.
+  const sem = TOOLS.find((t)=> t.key === 'semis');
+  const enCuve = (sem && sem.cuveCle === cle) ? (sem.cuveQ || 0) : 0;
+  const champ = parcelleDe(cle);
+  if(c0.grainePrix && champ && champ.quoi === 'semer'
+     && (STOCK.graines[cle] || 0) + enCuve < c0.graineKg*0.2){
+    const CO = SITES.find((x)=> x.fournisseur);
+    if(CO) return ici(CO.nom, 'acheter', 'ACHETER LA SEMENCE — ' + nomHaut(cle),
+                      {x:CO.dropX, z:CO.dropZ});
+  }
+  /* Le matériel, et SEULEMENT s'il manque vraiment. Une enjambeuse de niveau 1 suffit
+     pour des olives ; une enjambeuse plus rapide est un confort, et une mission ne
+     demande jamais un confort. */
+  const outil = outilManquant(cle);
+  if(outil && GARAGE)
+    return ici(GARAGE.nom, 'materiel', 'IL FAUT ' + outil.toUpperCase(),
+               {x:GARAGE.dropX, z:GARAGE.dropZ});
+  if(champ){
+    const VERBE = {recolter:'RÉCOLTER ', pousse:'ÇA POUSSE — ', semer:'AU CHAMP — '};
+    return ici('champ', champ.quoi, VERBE[champ.quoi] + nomHaut(cle),
+               {x:champ.p.x, z:champ.p.z});
+  }
+  return null;
+}
+/* LA PARCELLE LA PLUS AVANCÉE VERS CETTE CULTURE-LÀ. On rend la plus proche de la
+   récolte : un champ mûr passe avant un champ qui pousse, celui-ci avant une terre
+   labourée prête à semer, et celle-ci avant une jachère à retourner. C'est l'ordre dans
+   lequel on s'en occupe, et c'est ce qui évite d'envoyer labourer quelqu'un dont le blé
+   est mûr trois parcelles plus loin.
+
+   Le seuil de quarante cellules écarte le résidu : une poignée d'épis oubliés au coin
+   d'un champ ne fait pas un objectif. */
+function parcelleDe(cle){
+  const n = CROP_DE[cle];
+  if(n === undefined) return null;
+  const rang = {recolter:0, pousse:1, semer:2, labourer:3};
+  let best = null;
+  /* ON RELIT LES COMPTEURS DE LA PARCELLE, on ne rebalaie pas la grille. `pousseN`,
+     `murN` et `pousseCrop` sont déjà tenus à jour une fois par seconde pour les jauges
+     de pousse : les recalculer ici ferait un second parcours de cinquante mille cellules
+     à chaque appel, et le guidage se relit huit fois par seconde. */
+  for(const p of PARCELS){
+    if(!p.owned || p.pature) continue;
+    const bon = (p.pousseCrop === n);
+    const quoi = (bon && p.murN > 40) ? 'recolter'
+               : (bon && p.pousseN - p.murN > 40) ? 'pousse'
+               // Une parcelle sans culture debout attend qu'on la travaille : c'est le
+               // dernier maillon de la chaîne, et le plus lointain de la livraison.
+               : (p.pousseN < 40) ? 'semer' : null;
+    if(quoi && (!best || rang[quoi] < rang[best.quoi])) best = {p, quoi};
+  }
+  return best;
+}
+/* CE QUI MANQUE VRAIMENT POUR PRODUIRE CECI, et rien d'autre. Le cahier des charges est
+   formel : on distingue l'équipement INDISPENSABLE de l'amélioration de confort. Sans
+   enjambeuse on ne récolte pas d'olives — le garage devient jaune. Avec une enjambeuse
+   de niveau 1, on récolte plus lentement : le garage reste bleu, et la mission ne
+   demandera jamais de l'améliorer. */
+function outilManquant(cle){
+  const c = CROPS[CROP_DE[cle]];
+  if(!c) return null;
+  const enj = MACHINES.find((m)=> m.key === 'enjambeuse');
+  if(c.perenne && enj && enj.verrou) return 'l\'enjambeuse';
+  const moi = MACHINES.find((m)=> m.key === 'moisson');
+  if(!c.perenne && moi && moi.verrou) return 'la moissonneuse';
+  return null;
+}
+/* La couleur d'un lieu, tranchée une fois pour tout l'écran. */
+function couleurGuide(nom){
+  const O = objectifMission();
+  if(O && O.lieu === nom) return GUIDE.JAUNE;
+  const S = SITES.find((x)=> x.nom === nom);
+  if(S && aQuelqueChoseADire(S)) return GUIDE.VERT;
+  if(SERVICES[nom]) return GUIDE.BLEU;
+  return GUIDE.GRIS;
+}
+
 (function poserAnneauxCommerces(){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
@@ -11545,8 +11754,16 @@ function aQuelqueChoseADire(S){
        une proposition du commerce COMME pour une mission de campagne à prendre ici —
        du point de vue du joueur c'est le même geste, et il n'y a qu'un seul signal à
        apprendre. */
-    anneauAction(S.dropX, S.dropZ, S.bat*0.05 + 1.6, ()=> aQuelqueChoseADire(S),
-                 {coul:VERT_CONTRAT, r:2.05, plein:true, discret:true});
+    /* UNE SEULE PASTILLE, TROIS SENS. Elle était verte et ne disait qu'une chose :
+       « il y a une mission ici ». Elle porte maintenant la couleur du guidage — jaune
+       si c'est l'objectif du moment, verte s'il y a une mission à prendre, bleue si
+       c'est un service permanent — et le joueur n'a qu'un signal à apprendre au lieu
+       de trois. Un service bleu reste plus petit et ne respire presque pas : c'est une
+       possibilité, pas une obligation. */
+    anneauAction(S.dropX, S.dropZ, S.bat*0.05 + 1.6,
+                 ()=> couleurGuide(S.nom) !== GUIDE.GRIS,
+                 {coul:VERT_CONTRAT, r:2.05, plein:true, discret:true,
+                  coulDyn: ()=> couleurGuide(S.nom)});
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
@@ -13803,7 +14020,28 @@ const VISEUR = {haut:120, bas:158, cote:64, pool:[]};
    tourne de l'angle du rayon. */
 const FLECHE_SVG =
   '<svg viewBox="0 0 26 46" aria-hidden="true">' +
-  '<polygon points="13,1 24,45 2,45" fill="#62D84E"/></svg>';
+  '<polygon points="13,1 24,45 2,45" fill="currentColor"/></svg>';
+/* CE VERS QUOI LE BORD DE L'ÉCRAN POINTE, et dans quel ordre. Le cahier des charges est
+   explicite : l'objectif jaune d'abord, deux ou trois missions vertes ensuite, et surtout
+   pas les trois services bleus en permanence — « ne pas encombrer le HUD ».
+
+   L'objectif jaune n'est pas forcément un commerce : ce peut être un champ, le silo,
+   l'atelier ou un enclos. C'est pour cela que la liste se compose ici plutôt que de
+   parcourir SITES : le guidage désigne un ENDROIT, pas un bâtiment. */
+const MAX_VERTES = 3;
+function ciblesGuidage(){
+  const out = [];
+  const O = objectifMission();
+  if(O) out.push({nom:O.txt, x:O.x, z:O.z, coul:'#FFD21E'});
+  const v = MACHINES[cur].v;
+  const verts = SITES.filter((S)=> aQuelqueChoseADire(S) && (!O || O.lieu !== S.nom))
+    .map((S)=> ({nom:'MISSION  ·  ' + S.nom.toUpperCase(), x:S.dropX, z:S.dropZ,
+                 coul:'#62D84E',
+                 d:Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ)}))
+    .sort((a2, b2)=> a2.d - b2.d)
+    .slice(0, MAX_VERTES);
+  return out.concat(verts);
+}
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
   /* LA TAILLE DU CADRE SE LIT SUR LE CONTENEUR, PAS SUR LA FENÊTRE. Le HUD est zoomé
@@ -13817,11 +14055,10 @@ function refreshViseurs(){
   const cx = W/2, cy = (mT + mB)/2;
   const v = MACHINES[cur].v;
   let n = 0;
-  for(const S of SITES){
-    if(!aQuelqueChoseADire(S)) continue;
+  for(const S of ciblesGuidage()){
     // Deux mètres vingt de haut : le centre de la pastille, pas le sol, sinon la flèche
     // dérive quand la caméra rase.
-    _vVis.set(S.dropX, 2.2, S.dropZ);
+    _vVis.set(S.x, 2.2, S.z);
     _cVis.copy(_vVis).applyMatrix4(camera.matrixWorldInverse);
     _vVis.project(camera);
     const derriere = _cVis.z > 0;
@@ -13839,13 +14076,16 @@ function refreshViseurs(){
       e.innerHTML = '<div class="fl">' + FLECHE_SVG + '</div><div class="nm"></div>';
       viseursEl.appendChild(e); VISEUR.pool[n] = e;
     }
-    const d = Math.round(Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ));
+    const d = Math.round(Math.hypot(v.pos.x - S.x, v.pos.z - S.z));
     if(e.style.display !== 'flex') e.style.display = 'flex';
+    // La couleur porte le SENS : elle est donnée par le guidage, une seule fois, et la
+    // flèche comme son libellé s'y accordent — `currentColor` fait le reste.
+    if(e.style.color !== S.coul) e.style.color = S.coul;
     const ang = Math.atan2(dy, dx)*180/Math.PI + 90;
     // Le SVG tourne, la vignette non : le nom doit rester lisible à l'endroit.
     e.firstChild.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
     const nm = e.lastChild;
-    const txt = S.nom.toUpperCase() + '  ·  ' + d + ' m';
+    const txt = S.nom + '  ·  ' + d + ' m';
     if(nm.textContent !== txt){ nm.textContent = txt; e._w = 0; }
     /* LE LIBELLÉ NE SORT PAS DE L'ÉCRAN. La flèche est centrée sur le point du bord ;
        sur un bord latéral, la moitié du nom passait dehors et l'on lisait « COOPÉRATIV ».
@@ -15948,7 +16188,10 @@ function loop(now){
     const relire = anneauT <= 0;
     if(relire) anneauT = 0.125;
     for(const A of ANNEAUX){
-      if(relire || A.on === undefined) A.on = A.actif ? !!A.actif() : true;
+      if(relire || A.on === undefined){
+        A.on = A.actif ? !!A.actif() : true;
+        if(A.coulDyn){ const c = A.coulDyn(); if(c !== null) A.cA.setHex(c); }
+      }
       const on = A.on;
       A.k = (A.k === null) ? (on ? 1 : 0)
                            : A.k + ((on ? 1 : 0) - A.k) * Math.min(1, dt*6);
@@ -15967,11 +16210,18 @@ function loop(now){
       if(A.plein){
         /* LA PASTILLE RESPIRE FRANCHEMENT. Elle part à la moitié de son intensité et
            monte au plein, en grandissant d'un cinquième : de loin on ne voit que ce
-           battement, et c'est précisément ce qu'on veut voir. */
-        A.anneau.material.opacity = (0.62 + 0.36*bat)*A.k;
-        A.anneau.scale.setScalar(1 + 0.20*bat);
-        A.halo.material.opacity = (0.055 + 0.075*bat)*A.k;
-        A.halo.scale.setScalar(1 + 0.10*bat);
+           battement, et c'est précisément ce qu'on veut voir.
+
+           UN SERVICE BLEU NE RESPIRE PRESQUE PAS, et il est plus petit. « Le bleu
+           représente une possibilité, pas une obligation » : lui donner le même
+           battement qu'à l'objectif du moment mettrait trois lieux permanents au même
+           rang que la seule chose qu'on ait à faire. */
+        const bleu = A.coulDyn && A.cA.getHex() === GUIDE.BLEU;
+        const b2 = bleu ? bat*0.25 : bat;
+        A.anneau.material.opacity = (bleu ? 0.34 : 0.62 + 0.36*b2)*A.k;
+        A.anneau.scale.setScalar((bleu ? 0.62 : 1) + 0.20*b2);
+        A.halo.material.opacity = (0.055 + 0.075*b2)*A.k*(bleu ? 0.5 : 1);
+        A.halo.scale.setScalar((bleu ? 0.62 : 1) + 0.10*b2);
         continue;
       }
       // L'anneau discret est plus petit, et posé sur le béton clair du quai : en mélange
