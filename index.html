@@ -4359,17 +4359,37 @@ function clotureSite(S){
    à la couleur du toit, et rien d'autre. Un commerce encore fermé ajoute la seule chose
    qui manquerait sans elle — le palier qui l'ouvrira — parce que ce n'est pas ce qu'il
    achète, c'est la raison pour laquelle il n'achète rien. */
+/* UNE SEULE TAILLE DE POLICE POUR TOUS LES COMMERCES, ET DEUX LIGNES QUAND IL LE FAUT.
+   Le nom rétrécissait jusqu'à tenir sur une ligne : « Comptoir agricole » finissait en
+   trente-quatre pixels quand « Marché » en gardait soixante-six, et les quinze étiquettes
+   du village n'avaient plus deux fois la même taille de lettre. Un nom en plusieurs mots
+   passe donc à la ligne, et la fonte ne bouge JAMAIS. */
+const NOM_PX = 52, SOUS_PX = 36;
+function couperNom(nom){
+  const mots = nom.toUpperCase().split(' ');
+  if(mots.length < 2) return [mots[0]];
+  // Deux lignes au plus, coupées là où les deux moitiés s'équilibrent le mieux.
+  let best = 1, ecart = Infinity;
+  for(let k = 1; k < mots.length; k++){
+    const a2 = mots.slice(0, k).join(' ').length, b2 = mots.slice(k).join(' ').length;
+    if(Math.abs(a2 - b2) < ecart){ ecart = Math.abs(a2 - b2); best = k; }
+  }
+  return [mots.slice(0, best).join(' '), mots.slice(best).join(' ')];
+}
 function bulleTex(nom, toit, sous){
   /* SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
      restent écrits dans l'espace LW x LH, quelle que soit sa valeur. */
   const SUR = 1;
-  const LW = 560, LH = sous ? 188 : 138;
+  const lig = couperNom(nom);
+  const LW = 560;
+  const hNom = lig.length*(NOM_PX + 12);
+  const LH = 34 + hNom + (sous ? SOUS_PX + 26 : 0) + 26;
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
   c.scale(SUR, SUR);
-  const r = 34, w = 540, h = LH - 22, x = 10, y = 8;
-  c.fillStyle = sous ? 'rgba(28,35,40,.62)' : 'rgba(28,35,40,.80)';
+  const r = 34, w = LW - 20, h = LH - 22, x = 10, y = 8;
+  c.fillStyle = sous ? 'rgba(28,35,40,.74)' : 'rgba(28,35,40,.80)';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
   c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
@@ -4377,20 +4397,19 @@ function bulleTex(nom, toit, sous){
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
 
   const accent = '#' + toit.toString(16).padStart(6,'0');
+  const ferme = /^NIVEAU /.test(sous || '');
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = sous ? '#9AA4AB' : '#FFFFFF';
-  let t = 66;
-  const NOM = nom.toUpperCase();
-  c.font = 'bold ' + t + 'px "Trebuchet MS", Verdana, sans-serif';
-  while(c.measureText(NOM).width > 476 && t > 28){
-    t -= 3; c.font = 'bold ' + t + 'px "Trebuchet MS", Verdana, sans-serif';
-  }
-  c.fillText(NOM, 280, 70);
-  c.fillStyle = accent; c.fillRect(120, 110, 320, 5);
+  c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
+  c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
+  lig.forEach((t, i)=> c.fillText(t, LW/2, 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
+  const yb = 34 + hNom + 2;
+  c.fillStyle = accent; c.fillRect(LW/2 - 155, yb, 310, 5);
   if(sous){
-    c.fillStyle = 'rgba(255,255,255,.55)';
-    c.font = 'bold 38px "Trebuchet MS", Verdana, sans-serif';
-    c.fillText(sous, 280, 152);
+    // Le palier d'un commerce fermé se lit en gris ; ce qu'une mission y attend, dans le
+    // jaune du guidage — c'est la même information que le cercle au sol, écrite.
+    c.fillStyle = ferme ? 'rgba(255,255,255,.55)' : '#FFD21E';
+    c.font = 'bold ' + SOUS_PX + 'px "Trebuchet MS", Verdana, sans-serif';
+    c.fillText(sous, LW/2, yb + 26 + SOUS_PX/2);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 8;
@@ -4398,16 +4417,21 @@ function bulleTex(nom, toit, sous){
   tex.generateMipmaps = false;
   return {tex, ratio: LH/LW};
 }
+/* ET L'ÉTIQUETTE FAIT FACE À L'ÉCRAN. Elle était un plan orienté comme la façade : les
+   commerces des bandes est et ouest la présentaient de trois quarts, et l'on lisait leur
+   nom en oblique, écrasé. Un sprite, comme la jauge de la cuve — il fait face à la
+   caméra quoi qu'on fasse, sans une ligne de trigonométrie. */
 function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
-  // Dix-neuf mètres de large, c'était la moitié d'une façade. Huit et demi, c'est une
-  // enseigne : on la lit de la route sans qu'elle mange le bâtiment qu'elle nomme.
-  const LARGE = 8.6;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(LARGE, LARGE*B.ratio),
-    new THREE.MeshBasicMaterial({map:B.tex, transparent:true, depthWrite:false}));
-  m.rotation.y = rot;                        // parallèle à la route, comme la façade
+  // Douze mètres : assez pour se lire de la route sans qu'on plisse les yeux, pas assez
+  // pour manger le bâtiment qu'elle nomme — la façade d'une brasserie en fait treize.
+  const LARGE = 12.0;
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({map:B.tex, transparent:true,
+    depthWrite:false, depthTest:true, sizeAttenuation:true}));
+  m.scale.set(LARGE, LARGE*B.ratio, 1);
   m.position.set(x, y + LARGE*B.ratio*0.5, z);
   m.renderOrder = 3;
+  void rot;                        // un sprite n'a pas d'orientation à recevoir
   scene.add(m);
   BULLES.push({m, y0: m.position.y, ph: x*0.1});
   return m;
@@ -4506,27 +4530,44 @@ const tremiePleine = (m)=> m.key === 'moisson' && hopper > 0.01;
 const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacite && peutCharger(T, type);
 // Décharger : il faut porter cette nature-là, et en quantité non nulle.
 const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
-function ajouteBulle(S, H){
-  /* UN COMMERCE FERMÉ DIT CE QU'IL ATTEND, et c'est tout ce qu'il dit de plus. Sans
-     cette ligne, on s'arrête sur un cercle éteint sans comprendre pourquoi la brasserie
-     ne prend pas l'orge qu'on lui apporte. Ce n'est pas ce qu'il achète — cela se lit
-     dans les Filières — c'est la raison pour laquelle il n'achète rien. */
-  const niv = ouvert('sites', S.nom) ? 0 : niveauDe('sites', S.nom);
-  ajouteBulleRendu(S, H, niv ? 'NIVEAU ' + niv : '');
+/* CE QUE L'ÉTIQUETTE DIT SOUS LE NOM, ET RIEN D'AUTRE. Deux cas, jamais les deux à la
+   fois : un commerce FERMÉ dit le palier qui l'ouvrira — sans quoi on s'arrête sur un
+   cercle éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
+   apporte — et un commerce qui ATTEND quelque chose pour la mission en cours dit quoi.
+   C'est la même information que le cercle jaune au sol, écrite. */
+function bulleSous(S){
+  if(!ouvert('sites', S.nom)) return 'NIVEAU ' + niveauDe('sites', S.nom);
+  const M = missionVisible();
+  if(!M || M.faire || M.lieu !== S.nom) return '';
+  const reste = [];
+  M.lignes.forEach((l, i)=>{
+    const r = l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0);
+    if(r > 0.01) reste.push(qteNomHaut(l.cle, r));
+  });
+  return reste.slice(0, 2).join('  ·  ');
+}
+function ajouteBulle(S, H){ ajouteBulleRendu(S, H, bulleSous(S)); }
+/* ET ELLE SE REFAIT QUAND CE QU'ELLE DIT CHANGE. Une étiquette est une image cuite une
+   fois ; la ligne de mission, elle, fond à chaque livraison. On compare donc le texte
+   voulu au texte posé, vingt fois par seconde — une comparaison de chaînes pour quinze
+   commerces — et l'on ne repeint le canevas que lorsqu'ils diffèrent vraiment. */
+function veillerBulles(){
+  for(const S of SITES){
+    if(S.bulleH === undefined) continue;
+    const t = bulleSous(S);
+    if(t !== S.bulleTxt) ajouteBulleRendu(S, S.bulleH, t);
+  }
 }
 // La pose elle-même, séparée : la bulle d'un commerce fermé se pose exactement comme
 // les autres, elle porte seulement une ligne de plus.
 function ajouteBulleRendu(S, H, sous){
-  // La caméra regarde toujours depuis les X et Z positifs. Une bulle orientée comme la
-  // façade d'un commerce du bord est lui tournait donc le dos et restait invisible.
-  // On garde le parallélisme à la route, mais du côté d'où l'on regarde.
-  const rotB = (S.dir === 'W' || S.dir === 'E') ? Math.PI/2 : 0;
   // Une enseigne est une image cuite une fois : on garde de quoi la refaire, pour le
-  // commerce qui vient d'ouvrir.
+  // commerce qui vient d'ouvrir et pour la mission qui avance.
   if(S.bulle){ scene.remove(S.bulle); const i = BULLES.findIndex((b)=> b.m === S.bulle);
                if(i >= 0) BULLES.splice(i, 1); }
-  S.bulle = poseBulle(S.nom, S.toit, sous, S.x, H + 3.2, S.z, rotB);
+  S.bulle = poseBulle(S.nom, S.toit, sous, S.x, H + 3.2, S.z, 0);
   S.bulleH = H;
+  S.bulleTxt = sous;
   S.bulleOuvert = siteOuvert(S);
 }
 /* ---------- LES COMMERCES DU VILLAGE ----------
@@ -17013,13 +17054,14 @@ function loop(now){
       const bat = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8 + A.ph), 1.6) * A.k;
       A.anneau.material.color.copy(A.cV || COUL_VEILLE).lerp(A.cA || COUL_ACTIVE, A.k);
       A.centre.material.color.copy(A.cV || COUL_VEILLE).lerp(A.cA || COUL_ACTIVE, A.k);
-      /* UN SERVICE BLEU RESPIRE MOINS. La forme est la même que partout — c'est ce qui
-         se voit et c'est ce qu'on voulait — mais « le bleu représente une possibilité,
-         pas une obligation » : donner aux quatre lieux permanents le battement de la
-         seule chose qu'on ait à faire les mettrait au même rang qu'elle, et ils
-         clignoteraient d'un bout à l'autre de la partie. */
-      const cA = A.cA.getHex();
-      const b2 = (cA === GUIDE.BLEU || cA === GUIDE.JAUNE_DOUX) ? bat*0.30 : bat;
+      /* TOUS LES CERCLES RESPIRENT DU MÊME SOUFFLE, SAUF LE JAUNE DOUX. Le bleu battait
+         au tiers : « une possibilité, pas une obligation ». À l'usage il devenait terne,
+         et l'on ne repérait plus le garage ni la pompe d'un coup d'œil. Il reprend donc
+         le battement franc du vert et du jaune — la couleur suffit à dire la différence.
+         Seul le jaune doux reste au tiers, et pour une autre raison : il désigne une
+         étape À VENIR de la mission en cours, juste à côté d'un jaune vif qui, lui,
+         appelle. Deux battements identiques côte à côte ne diraient plus lequel suivre. */
+      const b2 = (A.cA.getHex() === GUIDE.JAUNE_DOUX) ? bat*0.30 : bat;
       A.anneau.material.opacity = Math.min(1, 0.30 + 0.26*A.k + 0.50*b2);
       A.centre.material.opacity = 0.045 + 0.085*A.k + 0.20*b2;
       const sc = 1 + 0.12*b2;
@@ -17075,6 +17117,7 @@ function loop(now){
     uiT = 0.05;
     refreshHUD();
     refreshCommandes();
+    veillerBulles();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
     refreshChoix(); refreshService(); refreshJauges();
   }
