@@ -8245,14 +8245,15 @@ function planAuto(m, cible){
      cas passe de 77,7 % à 88,9 et la moyenne de 92,6 à 93,6. Le paysage n'est pas lisse,
      l'outil traînant derrière coupant les virages : 0,70 redescend à 81,3 et 0,86 à 78,6.
      C'est 0,74 qui tient les deux bouts. */
-  /* RELEVÉ TROIS FOIS, ET RESSERRÉ TROIS FOIS. Il restait des morceaux de terre entre
-     deux passes — pas dans les coins, mais le long des lignes, là où l'outil traîné
-     dérive vers l'intérieur du virage sur les premiers mètres. Le pas est descendu de
-     trois quarts à deux tiers, puis de deux tiers à trois cinquièmes de la largeur
-     d'outil : chaque tour repasse maintenant sur les deux cinquièmes du précédent.
-     Ce qu'on paie, c'est un tour de plus par parcelle ; ce qu'on gagne, c'est de ne
-     plus rien laisser derrière soi. */
-  const pas = T.width*0.60;
+  /* ET LE CAHIER DES CHARGES A TRANCHÉ : UN TIERS DE RECOUVREMENT, DONC DEUX TIERS
+     D'AVANCE. Le pas avait été relevé puis resserré trois fois — trois quarts, deux
+     tiers, puis trois cinquièmes — en cherchant l'optimum au banc. Le réglage demandé
+     est deux tiers d'avance, et il se trouve qu'il fait MIEUX que celui qu'on avait
+     trouvé : mesuré sur les seize cas du banc de couverture, quatre outils par quatre
+     tailles de parcelle pilotés image par image, le pire cas passe de 88,4 % à 94,2.
+     Ce qu'on paie, c'est un tour de moins par parcelle ; ce qu'on gagne, c'est six
+     points sur le pire cas. */
+  const pas = T.width*(2/3);
   // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
   // affleure la clôture sans que la machine s'en approche.
   /* LA MARGE TIENT LE TRACTEUR DANS LA PARCELLE, PAS L'OUTIL. Elle valait une
@@ -8268,28 +8269,31 @@ function planAuto(m, cible){
      78,6 % au pire à 73,5 — parce qu'un rectangle plus petit fait des tours plus
      courts, où un outil traîné quatre à six mètres derrière suit encore moins bien.
      Ce qui rattrape les trous, c'est de REPASSER, en entrant par un autre coin. */
-  /* ET LE PREMIER TOUR PASSE UN PEU DEHORS. La marge tenait le tracteur À L'INTÉRIEUR :
-     l'outil, centré sur lui, n'affleurait le bord de la parcelle que pour les outils
-     larges. Un outil étroit — la charrue fait trois mètres — voyait sa bordure extérieure
-     tomber pile sur la limite, et il suffisait de quelques centimètres de dérive pour
-     que la dernière rangée de cellules ne soit jamais retournée. Le premier tour, celui
-     qui longe les quatre bords, sort donc de la parcelle : le tracteur roule sur la
-     bande de sable qui la sépare de sa voisine — six mètres quarante de large, il y a la
-     place — et l'outil couvre franchement la limite. Les tours suivants rentrent d'eux-
-     mêmes, le resserrage se chargeant du reste. Le débord est borné par la largeur de
-     l'outil : un outil étroit n'a pas besoin de sortir loin, et un outil large sortait
-     déjà tout seul. */
-  /* ET IL S'EST RACCOURCI DEUX FOIS. Quatre-vingt-dix centimètres, c'était le tracteur
-     — deux mètres soixante-dix de large — posé pour un tiers sur la bande de sable ;
-     quarante, c'était encore assez pour qu'on voie le premier tour rouler sur le
-     chemin. Quinze centimètres suffisent : ce qui doit dépasser du champ, c'est la
-     BORDURE de l'outil, qui déborde de sa demi-largeur, pas la cabine. La dernière
-     rangée de cellules reste couverte franchement — c'est ce que mesure le banc de
-     couverture — et le premier tour se fait sur la terre. */
-  const DEBORD = Math.min(0.15, T.width*0.05);
+  /* ET LE PREMIER TOUR MORD SUR L'HERBE, DES DEUX TIERS EXACTEMENT.
+     Il passait 15 cm DEHORS, l'axe du tracteur posé juste au-delà du bord : l'outil,
+     centré sur lui, était alors à moitié sur la terre et à moitié sur le chemin — la
+     moitié du premier passage était perdue, et la dernière rangée de cellules ne tenait
+     qu'à la demi-largeur d'outil.
+     L'axe rentre maintenant d'un SIXIÈME de largeur À L'INTÉRIEUR : la bordure
+     extérieure de l'outil sort alors d'un tiers, et les deux tiers restants travaillent
+     de la terre. C'est ce que demande le cahier des charges, et c'est aussi plus sûr
+     pour la machine — relevé sur les trois bords qui longent la clôture de la ferme :
+     l'axe passait à 1,95 m d'un mur de collision situé à 1,85, soit dix centimètres de
+     mou ; il en a maintenant de quatre-vingts centimètres à quatre mètres selon l'outil.
+
+     ET CE QUI SORT NE HEURTE RIEN NI NE PEINT RIEN. L'outil n'a pas d'emprise de
+     collision — seule la caisse en a une — et il ne marque que les cellules dont l'état
+     figure dans `from` : entre deux parcelles, tout est HORS. Le couloir mesure 9,60 m
+     (1,60 d'herbe, 6,40 de sable, 1,60 d'herbe) et le plus grand débord possible est
+     celui de l'épandeur au dernier cran, 8,00 m : il reste 1,60 m avant la terre du
+     voisin. On ne laboure donc jamais chez lui.
+
+     La borne sur la demi-parcelle protège les crans futurs : un outil plus large que le
+     tiers d'une petite parcelle retournerait un rectangle vide. */
+  const RENTRE = Math.max(0, Math.min(T.width/6, Math.min(best.w, best.h)/2 - 1.0));
   void 0;
-  let x0 = best.x - best.w/2 - DEBORD, x1 = best.x + best.w/2 + DEBORD;
-  let z0 = best.z - best.h/2 - DEBORD, z1 = best.z + best.h/2 + DEBORD;
+  let x0 = best.x - best.w/2 + RENTRE, x1 = best.x + best.w/2 - RENTRE;
+  let z0 = best.z - best.h/2 + RENTRE, z1 = best.z + best.h/2 - RENTRE;
   void marge; void rx0; void rx1; void rz0; void rz1;
   // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
   // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
@@ -8353,6 +8357,21 @@ function planAuto(m, cible){
         pts.push(surX ? {x:u, z:a} : {x:a, z:u});
         pts.push(surX ? {x:w2, z:a} : {x:a, z:w2});
       }
+      /* ET LE MILIEU SE FAIT EN LIGNES DROITES, PAS EN UN VIRAGE SERRÉ.
+         Le cahier des charges demande « arrivé au milieu, un virage très serré presque
+         sur lui-même ». Le tracteur sait le faire — à gaz réduits il tourne sur 1,39 m
+         de rayon. L'OUTIL TRAÎNÉ, lui, ne suit pas : le timon impose
+         rayon_essieu² = rayon² + attelage² − longueur², et cette équation n'a PAS de
+         solution pour le semoir (2,50 m) ni pour l'épandeur (3,90). Ils se mettent en
+         portefeuille et balaient une rosette au lieu d'une ligne — c'est ce qui laissait
+         45 % d'une petite parcelle jamais touchée à l'épandeur, du temps où le dernier
+         tour se faisait en virages.
+         Un chapeau serré a été tracé, puis mesuré : la couverture ne bouge pas d'un
+         dixième de point (94,2 % au pire dans les deux cas) et il introduit douze
+         segments EN BIAIS dans un plan qui n'en avait aucun — or une diagonale se voit
+         depuis la cabine, et c'est précisément ce qu'on avait retiré.
+         Les lignes droites ci-dessus font donc le milieu, et leurs demi-tours tombent
+         sur le tour de bordure déjà travaillé. */
       break;
     }
     for(let k = 0; k < 4; k++){
@@ -8408,16 +8427,23 @@ function planRattrapage(m, p){
   const T = toolOf(m), v = m.v;
   const R = resteCellules(T, p);
   if(!R.n) return null;
-  const pas = T.width*0.60;
-  const DEBORD = Math.min(0.15, T.width*0.05);
+  const pas = T.width*(2/3);            // la même que l'escargot, sans quoi les deux divergent
+  /* ET LE MÊME RENTRÉ, POUR LA MÊME RAISON. Les lignes de rattrapage débordaient de
+     quinze centimètres au-delà du bord : le tracteur finissait donc l'axe posé sur la
+     limite, et sur les trois colonnes de parcelles que longe la clôture de la ferme il
+     s'y retrouvait à un mètre quatre-vingt-dix d'un mur de collision situé à deux vingt-
+     cinq — cerné, sans une seule voie libre pour ressortir. Relevé : la charrue
+     s'arrêtait à six centimètres du champ, outil entièrement dedans. Un sixième de
+     largeur rentré, comme l'escargot, et la sortie redevient possible. */
+  const RENTRE = Math.max(0, Math.min(T.width/6, Math.min(p.w, p.h)/2 - 1.0));
   const DEHORS = T.width*0.5 + (T.hitch || 2) + (T.L || 2) + 1.5;   // de quoi virer au large
   const surX = (R.x1 - R.x0) >= (R.z1 - R.z0);
   // Les lignes courent le long du grand côté de ce qui reste ; elles se décalent
   // le long de l'autre. Tout est borné par l'enveloppe de la parcelle, débord compris :
   // on ne va pas rattraper trois cellules au prix d'un tour dans la clôture d'à côté.
   const a0 = surX ? R.z0 : R.x0, a1 = surX ? R.z1 : R.x1;
-  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) - DEBORD;
-  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) + DEBORD;
+  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) + RENTRE;
+  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) - RENTRE;
   const b0 = Math.max(lim0, (surX ? R.x0 : R.z0) - DEHORS);
   const b1 = Math.min(lim1, (surX ? R.x1 : R.z1) + DEHORS);
   const n = Math.max(1, Math.ceil((a1 - a0)/pas));
@@ -8462,30 +8488,61 @@ function voieLibre(ax, az, bx, bz){
   }
   return true;
 }
-function pointSortie(p, fin, avant){
+/* ET L'ON SORT AVEC SON OUTIL, PAS SEULEMENT AVEC SA CABINE. La distance était comptée
+   depuis l'axe du tracteur : la charrue, qui traîne quatre mètres derrière, restait
+   entièrement sur la terre quand la cabine l'avait quittée de dix centimètres — et le
+   passage suivant recommençait sur un outil encore engagé. On ajoute donc la longueur
+   de l'attelage. */
+function pointSortie(p, fin, avant, sup){
   if(!p || !fin) return null;
-  const hx = p.w/2 + SORTIE_PARCELLE, hz = p.h/2 + SORTIE_PARCELLE;
-  const cand = [];
-  let dx = avant ? fin.x - avant.x : 0, dz = avant ? fin.z - avant.z : 0;
-  const L = Math.hypot(dx, dz);
-  if(L > 0.1){
-    dx /= L; dz /= L;
-    // où ce cap-là quitte-t-il la parcelle élargie ?
-    let t = Infinity;
-    if(dx >  1e-6) t = Math.min(t, (p.x + hx - fin.x)/dx);
-    if(dx < -1e-6) t = Math.min(t, (p.x - hx - fin.x)/dx);
-    if(dz >  1e-6) t = Math.min(t, (p.z + hz - fin.z)/dz);
-    if(dz < -1e-6) t = Math.min(t, (p.z - hz - fin.z)/dz);
-    if(t > 1.5 && t < 22) cand.push({x:fin.x + dx*t, z:fin.z + dz*t, sortie:true});
+  /* ON SORT AUSSI LOIN QU'ON PEUT, ET PAS PLUS. La sortie visait un point à distance
+     fixe du bord ; si rien n'y menait — la clôture de la ferme longe trois colonnes de
+     parcelles à deux mètres — AUCUN des cinq candidats ne passait le test de voie libre,
+     et l'on rendait quand même le premier. La machine poussait alors contre la clôture
+     jusqu'à ce que le garde-fou des huit secondes l'abandonne, en s'arrêtant à SIX
+     CENTIMÈTRES du champ, outil compris. On essaie donc trois distances, de la pleine
+     à un tiers : la première qui trouve une voie libre gagne. */
+  const plein = SORTIE_PARCELLE + (sup || 0);
+  let repli = null;
+  for(const part of [1, 0.6, 0.32]){
+    const marge = Math.max(1.8, plein*part);
+    const hx = p.w/2 + marge, hz = p.h/2 + marge;
+    const cand = [];
+    let dx = avant ? fin.x - avant.x : 0, dz = avant ? fin.z - avant.z : 0;
+    const L = Math.hypot(dx, dz);
+    if(L > 0.1){
+      dx /= L; dz /= L;
+      // où ce cap-là quitte-t-il la parcelle élargie ?
+      let t = Infinity;
+      if(dx >  1e-6) t = Math.min(t, (p.x + hx - fin.x)/dx);
+      if(dx < -1e-6) t = Math.min(t, (p.x - hx - fin.x)/dx);
+      if(dz >  1e-6) t = Math.min(t, (p.z + hz - fin.z)/dz);
+      if(dz < -1e-6) t = Math.min(t, (p.z - hz - fin.z)/dz);
+      if(t > 1.2 && t < 22) cand.push({x:fin.x + dx*t, z:fin.z + dz*t, sortie:true});
+    }
+    // puis les quatre bords, du plus proche au plus lointain
+    const d = [fin.x - (p.x - hx), (p.x + hx) - fin.x,
+               fin.z - (p.z - hz), (p.z + hz) - fin.z];
+    const bord = [{x:p.x - hx, z:fin.z, sortie:true}, {x:p.x + hx, z:fin.z, sortie:true},
+                  {x:fin.x, z:p.z - hz, sortie:true}, {x:fin.x, z:p.z + hz, sortie:true}];
+    [0, 1, 2, 3].sort((a2, b2)=> d[a2] - d[b2]).forEach((k)=>{ if(d[k] >= 1.2) cand.push(bord[k]); });
+    for(const q of cand) if(voieLibre(fin.x, fin.z, q.x, q.z)) return q;
+    /* AUCUNE VOIE LIBRE : ON S'ARRÊTE OÙ L'ON PEUT, PAS OÙ L'ON VOULAIT. On rendait quand
+       même le premier candidat, et la machine poussait contre la clôture jusqu'à ce que
+       le garde-fou des huit secondes l'abandonne — à six centimètres du champ, outil
+       compris. On raccourcit donc le trajet jusqu'à ce qu'il passe : mieux vaut sortir
+       de deux mètres que de viser huit et n'en faire aucun. */
+    for(const q of cand){
+      const dxq = q.x - fin.x, dzq = q.z - fin.z, Lq = Math.hypot(dxq, dzq);
+      for(let f = 0.8; f >= 0.25; f -= 0.15){
+        if(Lq*f < 1.2) break;
+        const bx = fin.x + dxq*f, bz = fin.z + dzq*f;
+        if(voieLibre(fin.x, fin.z, bx, bz)) return {x:bx, z:bz, sortie:true};
+      }
+    }
+    if(!repli) repli = cand[0] || null;
   }
-  // puis les quatre bords, du plus proche au plus lointain
-  const d = [fin.x - (p.x - hx), (p.x + hx) - fin.x,
-             fin.z - (p.z - hz), (p.z + hz) - fin.z];
-  const bord = [{x:p.x - hx, z:fin.z, sortie:true}, {x:p.x + hx, z:fin.z, sortie:true},
-                {x:fin.x, z:p.z - hz, sortie:true}, {x:fin.x, z:p.z + hz, sortie:true}];
-  [0, 1, 2, 3].sort((a2, b2)=> d[a2] - d[b2]).forEach((k)=>{ if(d[k] >= 1.5) cand.push(bord[k]); });
-  for(const q of cand) if(voieLibre(fin.x, fin.z, q.x, q.z)) return q;
-  return cand[0] || null;
+  return repli;
 }
 /* UN POINT QU'ON N'ATTEINT PAS NE RETIENT PAS LA MACHINE TOUTE LA NUIT.
    Un plan est tracé à la règle, sans rien savoir de ce qui pousse entre deux parcelles :
@@ -8524,7 +8581,9 @@ function finDePlan(m){
   }
   plan.sorti = true;
   const n2 = plan.pts.length;
-  const s = pointSortie(plan.p, plan.pts[n2 - 1], plan.pts[n2 - 2]);
+  const T2 = toolOf(m);
+  const s = pointSortie(plan.p, plan.pts[n2 - 1], plan.pts[n2 - 2],
+                        T2 ? (T2.hitch || 0) + (T2.L || 0) : 0);
   if(s){ plan.pts.push(s); return true; }
   return false;
 }
