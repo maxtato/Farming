@@ -231,6 +231,18 @@ de fromage de brebis au pas de cinq, c'était en perdre deux — trente pour cen
 commande — et la ligne la mieux payée du jeu valait un tiers de moins que celle de blé du
 même palier.
 
+**La cible est un vœu, la capacité est une limite.** On arrondit au plus près — c'est ce
+qui donne 25 kg de blé pour une cible de 23 — mais jamais au-dessus de ce que la ferme
+peut sortir. Le plancher d'une ligne valait un pas d'arrondi pris sur la *cible* et non
+sur le possible : un pas de vingt litres imposait **vingt litres de lait à qui n'a qu'une
+vache** et n'en tire que quinze, et la commande naissait déjà perdue.
+
+Et le repli garde le filtre de capacité. Quand aucun produit d'une nature donnée n'était
+réalisable — un contrat « transformé » sans le moindre module d'atelier — le tirage
+rouvrait **tout** ce que le palier avait débloqué, et proposait du lait de brebis à qui
+n'a pas une seule brebis. C'était très exactement ce que la capacité était là pour
+empêcher. S'il n'y a rien à proposer, on ne propose rien.
+
 **La renommée** est le seul état durable de cette relation : elle monte d'un cran à
 chaque contrat honoré, descend de deux à chaque refus, d'un à chaque contrat urgent
 laissé filer. Elle module la prime (**0,70 ×** chez qui l'on éconduit, **1,50 ×** chez

@@ -7761,12 +7761,18 @@ const pasCommande = (n)=> n >= 400 ? 50 : (n >= 120 ? 20
    Le blé, lui, ne bouge pas d'un kilo : l'échelle en euros est l'ancienne échelle en
    kilos multipliée par son prix, et c'est sur lui qu'elle avait été réglée. */
 function tirerLigne(cle, valeur){
-  const capa = capaciteFerme(cle);
-  const cible = valeur/Math.max(0.01, prixDe(cle));
-  const plancher = u2kg(cle, pasCommande(enUnites(cle, cible)));
-  const n = Math.min(cible, Math.max(plancher, capa*0.55));
-  const u = enUnites(cle, n), pas = pasCommande(u);
-  return {cle:cle, need: u2kg(cle, Math.max(pas, Math.round(u/pas)*pas)), fait:0};
+  // Tout se compte ici DANS L'UNITÉ AFFICHÉE : la cible comme le plafond.
+  const capaU = enUnites(cle, Math.max(0, capaciteFerme(cle)*0.55));
+  const u = Math.min(valeur/Math.max(0.01, prixUnite(cle)), capaU);
+  const pas = pasCommande(u);
+  /* LA CIBLE EST UN VŒU, LE PLAFOND EST UNE LIMITE. On arrondit au plus près — c'est
+     ce qui donne 25 kg de blé et non 20 pour une cible de 23 — mais jamais au-dessus de
+     ce que la ferme peut sortir. Le plancher valait un pas d'arrondi pris sur la CIBLE :
+     un pas de vingt litres imposait vingt litres de lait à qui n'a qu'une vache et n'en
+     tire que quinze, et la commande naissait déjà perdue. */
+  let arr = Math.round(u/pas)*pas;
+  if(arr > capaU) arr = Math.floor(capaU/pas)*pas;
+  return {cle:cle, need: u2kg(cle, Math.max(pas, arr)), fait:0};
 }
 /* Tirer une commande d'un type donné, ou rien si le palier ne permet rien de tel.
    La quantité suit le palier de campagne : une commande de blé au premier niveau vaut
@@ -7774,10 +7780,17 @@ function tirerLigne(cle, valeur){
    celle des parcelles — le jeu grandit d'un bloc. */
 function tirerCommande(type){
   const T = CMD_TYPES.find((t)=> t.cle === type) || CMD_TYPES[0];
-  let dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length && capaciteFerme(cle) > 5);
+  // Le seuil de capacité se lit DANS L'UNITÉ AFFICHÉE : cinq kilos d'œufs, c'était
+  // quatre-vingt-trois œufs, et un poulailler de six poules n'y arrivait jamais.
+  const faisable = produitsOuverts().filter((cle)=>
+    clientsPour(cle).length && enUnites(cle, capaciteFerme(cle)) > 5);
+  let dispo = faisable;
   if(type === 'brute')       dispo = dispo.filter((cle)=> !estTransforme(cle));
   if(type === 'transformee' || type === 'premium') dispo = dispo.filter(estTransforme);
-  if(!dispo.length) dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length);
+  /* LE REPLI GARDE LE FILTRE DE CAPACITÉ. Il rouvrait TOUT ce que le palier a débloqué,
+     et l'on proposait du lait de brebis à qui n'a pas une seule brebis — une case perdue
+     d'avance, très exactement ce que la capacité était là pour empêcher. */
+  if(!dispo.length) dispo = faisable;
   if(!dispo.length) return null;
 
   // EN EUROS DE MARCHANDISE : 14 € au palier 1, 273 € au vingtième. C'est très
