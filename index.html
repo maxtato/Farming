@@ -8554,6 +8554,77 @@ function refreshCommandes(){
    rectangle. Un escargot a en prime deux vertus qu'un serpentin n'a pas — on commence
    toujours parallèle à un bord, et on ne fait jamais deux fois le même demi-tour au
    même endroit. */
+/* CE QUE L'AXE A LE DROIT DE DÉPASSER, CÔTÉ PAR CÔTÉ.
+   C'est la mesure qui manquait, et son absence coûtait cher : mesuré sur les trois
+   parcelles qui longent vraiment la clôture de la ferme, quatre outils chacune, le plan
+   COUCHAIT LA CLÔTURE À CHAQUE PASSE. Personne ne l'avait vu parce qu'aucun banc ne
+   montait de clôture — celui de couverture met même les autres parcelles hors jeu.
+   Pour chacun des quatre bords — ouest, nord, est, sud — on cherche le premier MUR DE
+   COLLISION au-delà : un obstacle « soft » repousse la machine à o.r + 1,50 m, un dur à
+   o.r + 1,35. La clôture de la ferme est à 2,10 m des parcelles de bordure, son mur à
+   1,85 : il reste VINGT-CINQ CENTIMÈTRES.
+
+   DEUX PIÈGES, ET LES DEUX FAUSSAIENT TOUT.
+   Le premier : un obstacle qui est DANS la parcelle — le panneau « à vendre », un arbre
+   de la friche — donnait un écart négatif ramené à zéro, et les QUATRE bords passaient
+   pour collés à une clôture, à cause du seul panneau. Un obstacle doit être VRAIMENT
+   au-delà du bord.
+   Le second : le poteau de coin de la clôture nord comptait aussi pour le bord ouest. On
+   exige donc que l'obstacle soit EN FACE du bord — dans son emprise transversale, à un
+   mètre près — et le coin est compté par son propre côté. */
+function jeuDeBord(p, cote){
+  let d = 99;
+  for(const o of obstacles){
+    const R = o.r + (o.soft ? 1.5 : 1.35);
+    let e, t;
+    if(cote === 0){ e = (p.x - p.w/2) - (o.x + R); t = Math.abs(o.z - p.z) - p.h/2; }
+    else if(cote === 2){ e = (o.x - R) - (p.x + p.w/2); t = Math.abs(o.z - p.z) - p.h/2; }
+    else if(cote === 1){ e = (p.z - p.h/2) - (o.z + R); t = Math.abs(o.x - p.x) - p.w/2; }
+    else { e = (o.z - R) - (p.z + p.h/2); t = Math.abs(o.x - p.x) - p.w/2; }
+    if(e < 0 || t > 1.0) continue;
+    if(e < d) d = e;
+  }
+  return d;
+}
+/* ET LE RETRAIT SE DÉCIDE BORD PAR BORD.
+   Il valait `T.width/6` partout — un tiers de l'outil dehors, deux tiers sur la terre,
+   ce que demande le cahier des charges. C'est juste au MILIEU d'une passe. Ce l'est
+   beaucoup moins dans un VIRAGE : mesuré à l'image près, le tracteur dépasse le coin de
+   plus d'un mètre avant que sa trajectoire ne se referme. Sur la charrue le retrait
+   valait 0,80 m : l'axe passait donc HORS de la parcelle, et le mur de collision de la
+   clôture de la ferme est à vingt-cinq centimètres dehors. Elle tombait à chaque tour.
+   Sur un bord adossé à quelque chose, le retrait vaut donc au moins ce dépassement,
+   moins le jeu que le bord laisse déjà.
+   L'OUTIL, LUI, MORD TOUJOURS DEHORS : même à 1,95 m de retrait, une charrue de 4,80
+   couvre encore 45 cm au-delà du bord, et un semoir de 6,40 en couvre 1,25. On ne perd
+   donc pas la bande de bordure — on éloigne seulement le tracteur de la clôture. */
+const VIRAGE_BORD = 2.2;
+/* ET L'ON MARQUE LES POINTS OÙ IL FAUDRA LEVER LE PIED.
+   `viser` roule PLEIN GAZ tant que le cap est bon et ne ralentit qu'une fois le cap
+   faussé — c'est-à-dire APRÈS avoir dépassé le coin. Sur un bord adossé à la clôture de
+   la ferme, ce dépassement mesure 2,30 m sur une petite parcelle et 3,50 sur une grande,
+   l'élan étant plus long, pour VINGT-CINQ CENTIMÈTRES de jeu disponible : la clôture
+   tombait à chaque tour. Reculer la ligne d'autant coûterait un mètre et demi de terre
+   par bord — douze points de couverture sur une parcelle de bordure. On paierait la
+   clôture avec le champ.
+   Un conducteur ne fonce pas dans sa tournière : il ralentit avant de tourner. Un point
+   marqué `lent` fait lever le pied quinze mètres avant, et la machine pivote court.
+   La règle est une DISTANCE AU BORD, pas une égalité de coordonnée : le plan principal et
+   le rattrapage ne rentrent pas des mêmes valeurs, et un test d'égalité ne prenait qu'un
+   des deux — c'est ce qui laissait la moitié des clôtures tomber pendant le rattrapage. */
+function marquer(q, p, serre){
+  const PRES = VIRAGE_BORD + 1.0;
+  if((serre[0] && q.x - (p.x - p.w/2) < PRES) || (serre[2] && (p.x + p.w/2) - q.x < PRES)
+   || (serre[1] && q.z - (p.z - p.h/2) < PRES) || (serre[3] && (p.z + p.h/2) - q.z < PRES))
+    q.lent = true;
+  return q;
+}
+function retraitsDe(p, T){
+  const base = Math.max(0, Math.min(T.width/6, Math.min(p.w, p.h)/2 - 1.0));
+  return [0, 1, 2, 3].map((c)=>
+    Math.max(0, Math.min(Math.max(base, VIRAGE_BORD - jeuDeBord(p, c)),
+                         (c === 0 || c === 2 ? p.w : p.h)/2 - 1.0)));
+}
 function planAuto(m, cible){
   const T = toolOf(m);
   if(!T || !T.from) return null;
@@ -8649,10 +8720,33 @@ function planAuto(m, cible){
      La borne sur la demi-parcelle protège les crans futurs : un outil plus large que le
      tiers d'une petite parcelle retournerait un rectangle vide. */
   const RENTRE = Math.max(0, Math.min(T.width/6, Math.min(best.w, best.h)/2 - 1.0));
-  void 0;
-  let x0 = best.x - best.w/2 + RENTRE, x1 = best.x + best.w/2 - RENTRE;
-  let z0 = best.z - best.h/2 + RENTRE, z1 = best.z + best.h/2 - RENTRE;
   void marge; void rx0; void rx1; void rz0; void rz1;
+  /* CE QUE L'AXE A LE DROIT DE DÉPASSER, CÔTÉ PAR CÔTÉ.
+     C'est la mesure qui manquait, et son absence coûtait cher : mesuré sur les trois
+     parcelles qui longent vraiment la clôture de la ferme, quatre outils chacune, la
+     spirale COUCHAIT CINQUANTE-HUIT TRONÇONS et l'axe sortait jusqu'à 5,36 m de sa terre.
+     Personne ne l'avait vu parce qu'aucun banc ne montait de clôture.
+     Pour chacun des quatre bords, on cherche donc le premier MUR DE COLLISION au-delà —
+     un obstacle « soft » repousse à o.r + 1,50 m, un dur à o.r + 1,35 — et l'on garde la
+     distance du bord à ce mur. La clôture de la ferme est à 2,10 m des parcelles de
+     bordure, son mur à 1,85 : il reste VINGT-CINQ CENTIMÈTRES. */
+  void RENTRE;
+  const retrait = retraitsDe(best, T);
+  const x0 = best.x - best.w/2 + retrait[0], x1 = best.x + best.w/2 - retrait[2];
+  const z0 = best.z - best.h/2 + retrait[1], z1 = best.z + best.h/2 - retrait[3];
+  const serre = [0, 1, 2, 3].map((c)=> jeuDeBord(best, c) < VIRAGE_BORD);
+  /* ET L'ON MARQUE LES COINS OÙ IL FAUDRA LEVER LE PIED.
+     `viser` roule PLEIN GAZ tant que le cap est bon et ne lève le pied qu'une fois le cap
+     faussé — c'est-à-dire APRÈS avoir dépassé le coin. Sur un bord adossé à la clôture de
+     la ferme, ce dépassement mesure 2,30 m sur une petite parcelle et 3,50 sur une grande
+     (l'élan est plus long), pour vingt-cinq centimètres de jeu disponible : la clôture
+     tombait à chaque tour. Reculer la ligne d'autant coûterait un mètre et demi de terre
+     par bord, soit douze points de couverture sur une parcelle de bordure — on paierait
+     la clôture avec le champ.
+     Un conducteur, lui, ne fonce pas dans sa tournière : il ralentit avant de tourner.
+     C'est ce que fait `lent`, et cela ne coûte que quelques secondes. */
+  const pose = (arr, x, z)=>{ arr.push(marquer({x:x, z:z}, best, serre)); };
+
   // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
   // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
   const coins0 = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
@@ -8661,84 +8755,93 @@ function planAuto(m, cible){
     const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
     if(d < dMin){ dMin = d; depart = k; }
   });
-  /* ET IL EST STRICTEMENT ORTHOGONAL. Il ne l'était pas : le tour se refermait sur son
-     coin de départ, puis le tour suivant commençait au coin RENTRÉ d'une passe — un
-     saut en DIAGONALE de pas·√2 à chaque tour, dix à dix-sept mètres de biais par
-     parcelle, qu'on voyait très bien depuis la cabine. On ne resserre donc plus les
-     quatre bords d'un coup à la fin d'un tour, mais UN SEUL, juste après l'avoir
-     longé. Chaque déplacement n'a alors qu'une seule coordonnée qui change : le
-     quart de tour se prend à l'équerre, comme le ferait un conducteur.
-
-     Les quatre trajets, dans l'ordre — chacun part du coin `d` et arrive au coin
-     `d+1`, puis rentre le bord qu'il vient de longer :
-        0  vers l'est, le long du bord nord   -> z0 rentre
-        1  vers le sud, le long du bord est   -> x1 rentre
-        2  vers l'ouest, le long du bord sud  -> z1 rentre
-        3  vers le nord, le long du bord ouest-> x0 rentre  */
-  const pts = [{x:coins0[depart][0], z:coins0[depart][1]}];
-  let d = depart, garde = 0;
-  while(garde++ < 200){
-    const lx = x1 - x0, lz = z1 - z0;
-    if(lx < -1e-9 || lz < -1e-9) break;
-    /* QUAND S'ARRÊTER, POUR NE RIEN LAISSER. Les deux passes opposées d'un tour
-       couvrent chacune une largeur d'outil autour de leur ligne : elles se rejoignent
-       dès que les deux lignes sont à moins d'une largeur l'une de l'autre. Ce tour-ci
-       est donc le dernier si le rectangle restant tient dans une largeur d'outil, dans
-       les deux sens — et alors on ne resserre plus, on le referme.
-       Une version antérieure coupait dès qu'UN des deux côtés passait sous la largeur
-       d'outil et traçait une médiane : sur une petite parcelle prise avec un épandeur
-       de douze mètres, cela donnait UNE SEULE ligne pour dix-neuf mètres de large, et
-       trois mètres quatre-vingts jamais touchés en haut comme en bas. */
-    const dernier = (lx <= T.width && lz <= T.width);
-    /* ET LE RESSERRAGE NE DÉPASSE JAMAIS LE MILIEU. Sans cette butée, un tour de plus
-       d'une largeur d'outil retournait le rectangle — bord droit passé à gauche du bord
-       gauche — la boucle s'arrêtait là, et il restait au milieu une bande que les deux
-       passes opposées, trop écartées, n'avaient pas jointe : trente cellules sur une
-       parcelle de 19,6 sur 30,4 prise à la moissonneuse. Bridé au milieu, le tour
-       suivant repasse simplement sur l'axe, et la bande est balayée. */
-    /* LE CŒUR SE FAIT EN LIGNES DROITES, PAS EN UN DERNIER TOUR. Un tour de plus sur un
-       rectangle déjà plus étroit qu'un outil n'est qu'un chapelet de virages, et un
-       outil traîné quatre à six mètres derrière le tracteur n'y suit jamais le tracé :
-       mesuré, il restait 45 % d'une petite parcelle jamais touchée à l'épandeur, pour
-       un plan qui la couvrait pourtant à 100 % sur le papier. Des lignes droites, elles,
-       se suivent exactement — et les demi-tours se font sur le tour déjà fait. */
-    if(dernier){
-      const surX = (x1 - x0) >= (z1 - z0);
-      const a0 = surX ? z0 : x0, a1 = surX ? z1 : x1;   // d'une ligne à l'autre
-      const b0 = surX ? x0 : z0, b1 = surX ? x1 : z1;   // le long d'une ligne
-      const n = Math.max(1, Math.ceil((a1 - a0)/pas));
-      const ici = pts[pts.length - 1];
-      pts.push(surX ? {x:ici.x, z:a0} : {x:a0, z:ici.z});   // on rejoint à l'équerre
-      for(let k = 0; k <= n; k++){
-        const a = a0 + (a1 - a0)*k/n;
-        const u = (k % 2 === 0) ? b0 : b1, w2 = (k % 2 === 0) ? b1 : b0;
-        pts.push(surX ? {x:u, z:a} : {x:a, z:u});
-        pts.push(surX ? {x:w2, z:a} : {x:a, z:w2});
-      }
-      /* ET LE MILIEU SE FAIT EN LIGNES DROITES, PAS EN UN VIRAGE SERRÉ.
-         Le cahier des charges demande « arrivé au milieu, un virage très serré presque
-         sur lui-même ». Le tracteur sait le faire — à gaz réduits il tourne sur 1,39 m
-         de rayon. L'OUTIL TRAÎNÉ, lui, ne suit pas : le timon impose
-         rayon_essieu² = rayon² + attelage² − longueur², et cette équation n'a PAS de
-         solution pour le semoir (2,50 m) ni pour l'épandeur (3,90). Ils se mettent en
-         portefeuille et balaient une rosette au lieu d'une ligne — c'est ce qui laissait
-         45 % d'une petite parcelle jamais touchée à l'épandeur, du temps où le dernier
-         tour se faisait en virages.
-         Un chapeau serré a été tracé, puis mesuré : la couverture ne bouge pas d'un
-         dixième de point (94,2 % au pire dans les deux cas) et il introduit douze
-         segments EN BIAIS dans un plan qui n'en avait aucun — or une diagonale se voit
-         depuis la cabine, et c'est précisément ce qu'on avait retiré.
-         Les lignes droites ci-dessus font donc le milieu, et leurs demi-tours tombent
-         sur le tour de bordure déjà travaillé. */
-      break;
-    }
-    for(let k = 0; k < 4; k++){
-      const mx = (x0 + x1)/2, mz = (z0 + z1)/2;
-      if(d === 0){ pts.push({x:x1, z:z0}); z0 = Math.min(z0 + pas, mz); }
-      else if(d === 1){ pts.push({x:x1, z:z1}); x1 = Math.max(x1 - pas, mx); }
-      else if(d === 2){ pts.push({x:x0, z:z1}); z1 = Math.max(z1 - pas, mz); }
-      else             { pts.push({x:x0, z:z0}); x0 = Math.min(x0 + pas, mx); }
-      d = (d + 1) % 4;
+  /* ---------- UN TOUR DE PÉRIPHÉRIE, PUIS DES LIGNES ----------
+     L'escargot faisait des tours de plus en plus serrés jusqu'au centre. Il couvrait bien
+     — 94 à 100 % — mais il tournait sans arrêt : sur une parcelle de trente mètres à la
+     charrue, quatre tours complets, seize virages, et un outil traîné quatre mètres
+     derrière qui coupe chacun d'eux. C'est dans les virages que la terre se perd, et
+     c'est aussi là que la machine déborde vers la clôture.
+     Le plan demandé est celui d'un vrai fermier, et il est plus simple : UN TOUR pour
+     faire la tournière, puis DES LIGNES DROITES entre les deux tournières. Les demi-tours
+     tombent tous sur la bande de périphérie, déjà travaillée ; les lignes, elles, ne
+     tournent pas du tout.
+     Tout reste strictement orthogonal : chaque déplacement n'a qu'une coordonnée qui
+     change. Une diagonale se voit depuis la cabine, et un banc la refuse. */
+  const pts = [];
+  pose(pts, coins0[depart][0], coins0[depart][1]);
+  let d = depart;
+  for(let k = 0; k < 4; k++){
+    if(d === 0)      pose(pts, x1, z0);       // vers l'est, le long du bord nord
+    else if(d === 1) pose(pts, x1, z1);       // vers le sud, le long du bord est
+    else if(d === 2) pose(pts, x0, z1);       // vers l'ouest, le long du bord sud
+    else             pose(pts, x0, z0);       // vers le nord, le long du bord ouest
+    d = (d + 1) % 4;
+  }
+  /* LE BALAYAGE. Les lignes courent le long du GRAND côté : c'est le sens qui en demande
+     le moins, et chaque demi-tour est une occasion de laisser de la terre.
+     ELLES S'ARRÊTENT AU NIVEAU DE LA PÉRIPHÉRIE, pas au bord de la parcelle : la tournière
+     est déjà faite, et c'est sur elle que les demi-tours se prennent — c'est ce qui les
+     éloigne de la clôture. Elles commencent à un PAS de la ligne de périphérie, si bien
+     que l'outil, large de T.width, retombe d'un tiers sur ce qu'elle a travaillé. */
+  const surX = (x1 - x0) >= (z1 - z0);
+  const la = surX ? (z1 - z0) : (x1 - x0);
+  /* SAUF SI LES DEUX PASSES OPPOSÉES SE REJOIGNENT DÉJÀ. Le tour de périphérie couvre une
+     demi-largeur d'outil de chaque côté : si le rectangle est plus étroit qu'une largeur
+     d'outil dans un sens, il n'y a plus rien au milieu. C'est le cas de l'épandeur de
+     douze mètres sur une petite parcelle. */
+  if(la > T.width){
+    /* UN OUTIL PRESQUE AUSSI LARGE QUE LA PARCELLE. L'épandeur fait douze mètres, la
+       petite parcelle dix-neuf et demi : une fois les deux tournières faites, la bande du
+       milieu est plus étroite que le pas. `A0` passait alors DEVANT `A1`, la bande était
+       parcourue à l'envers, et deux lignes se croisaient au lieu de couvrir le milieu —
+       mesuré, 88,4 % au lieu de 94,2. Quand la bande ne tient plus un pas, une seule ligne
+       en son milieu la couvre entièrement : c'est ce que ferait n'importe qui. */
+    let A0 = (surX ? z0 : x0) + pas, A1 = (surX ? z1 : x1) - pas;
+    if(A1 < A0){ const c = ((surX ? z0 + z1 : x0 + x1))/2; A0 = c; A1 = c; }
+    /* ET LES LIGNES S'ARRÊTENT SUR LA TOURNIÈRE, PAS AU BORD DU CHAMP.
+       C'est le cœur du plan demandé, et c'est aussi ce qui sauve les clôtures. Le tour de
+       périphérie a déjà travaillé une demi-largeur d'outil vers l'intérieur : une ligne
+       qui s'arrête là rejoint EXACTEMENT ce qui est fait, sans laisser de bande ni
+       repasser pour rien. Et surtout, le demi-tour se prend alors DANS le champ.
+       Mesuré : les lignes qui allaient jusqu'à la ligne de périphérie faisaient sortir
+       l'axe jusqu'à 5,55 m de la parcelle — le demi-tour balaie large — et couchaient
+       vingt-huit tronçons de clôture sur une seule passe de charrue.
+       VIRAGE est ce que le demi-tour prend au-delà du point où il commence, relevé au
+       banc sur les quatre outils. Sur un bord adossé à une clôture, on recule d'autant,
+       moins ce que le bord laisse déjà de jeu. */
+    const VIRAGE = 6.0;
+    const cb0 = surX ? 0 : 1, cb1 = surX ? 2 : 3;
+    const r0 = Math.max(T.width/2, serre[cb0] ? VIRAGE_BORD - jeuDeBord(best, cb0) : 0);
+    const r1 = Math.max(T.width/2, serre[cb1] ? VIRAGE_BORD - jeuDeBord(best, cb1) : 0);
+    let b0 = (surX ? x0 : z0) + r0, b1 = (surX ? x1 : z1) - r1;
+    // Une parcelle trop courte pour deux tournières : les lignes se réduisent à son axe.
+    if(b1 <= b0){ const c = ((surX ? x0 + x1 : z0 + z1))/2; b0 = c; b1 = c; }
+    const ici = pts[pts.length - 1];
+    const aIci = surX ? ici.z : ici.x, bIci = surX ? ici.x : ici.z;
+    // On balaie en partant du bord où l'on vient de finir le tour : traverser la parcelle
+    // à vide pour aller commencer à l'autre bout serait un trajet pour rien.
+    const dep = Math.abs(aIci - A0) <= Math.abs(aIci - A1) ? A0 : A1;
+    const fin = (dep === A0) ? A1 : A0;
+    const n = Math.max(1, Math.ceil(Math.abs(fin - dep)/pas));
+    const versB0 = Math.abs(bIci - b0) < Math.abs(bIci - b1);
+    /* LE RACCORD SE PREND À L'ÉQUERRE, EN DEUX TEMPS.
+       Le tour de périphérie finit sur son coin de départ ; la première ligne, elle,
+       commence RENTRÉE des deux côtés — d'un pas sur son axe, d'une tournière sur sa
+       longueur. Relier les deux directement, c'est une DIAGONALE : deux coordonnées qui
+       changent en même temps. Elle se voit depuis la cabine, un banc la refuse, et la
+       machine la prend en biais en balayant large — mesuré, jusqu'à cinq mètres et demi
+       hors de la parcelle, de quoi coucher la clôture.
+       On longe donc d'abord le bord jusqu'au bout de la première ligne, puis on rentre :
+       chaque déplacement n'a qu'une coordonnée qui change. */
+    const u0 = versB0 ? b0 : b1;
+    if(surX) pose(pts, u0, aIci); else pose(pts, aIci, u0);
+    let vb = versB0;
+    for(let k = 0; k <= n; k++){
+      const a = dep + (fin - dep)*k/n;
+      const u = vb ? b0 : b1, w2 = vb ? b1 : b0;
+      if(surX){ pose(pts, u, a); pose(pts, w2, a); }
+      else    { pose(pts, a, u); pose(pts, a, w2); }
+      vb = !vb;
     }
   }
   // Deux points confondus font tourner l'engin sur place : on les élague.
@@ -8746,6 +8849,7 @@ function planAuto(m, cible){
     Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
   return {pts:net, i:0, replans:0, p:best, reste:resteCellules(T, best).n};
 }
+
 /* CE QU'IL RESTE VRAIMENT À FAIRE, ET POURQUOI ÇA NE SE LIT PAS DANS `from`.
    Compter les cellules dont l'état figure dans `from`, c'est ne jamais voir un travail
    avancer pour deux outils sur quatre : la charrue accepte la terre labourée — on
@@ -8793,28 +8897,52 @@ function planRattrapage(m, p){
      cinq — cerné, sans une seule voie libre pour ressortir. Relevé : la charrue
      s'arrêtait à six centimètres du champ, outil entièrement dedans. Un sixième de
      largeur rentré, comme l'escargot, et la sortie redevient possible. */
-  const RENTRE = Math.max(0, Math.min(T.width/6, Math.min(p.w, p.h)/2 - 1.0));
+  /* LE MÊME RETRAIT QUE LE PLAN PRINCIPAL, ET BORD PAR BORD. Le rattrapage rentrait d'un
+     sixième de largeur partout, comme l'escargot avant lui : ses lignes finissaient donc
+     l'axe posé sur la limite, et sur les trois colonnes que longe la clôture de la ferme
+     il la couchait. Il partage maintenant `retraitsDe` avec le plan principal — deux
+     tracés qui rentrent différemment finiraient toujours par diverger. */
+  const ret = retraitsDe(p, T);
   const DEHORS = T.width*0.5 + (T.hitch || 2) + (T.L || 2) + 1.5;   // de quoi virer au large
   const surX = (R.x1 - R.x0) >= (R.z1 - R.z0);
   // Les lignes courent le long du grand côté de ce qui reste ; elles se décalent
   // le long de l'autre. Tout est borné par l'enveloppe de la parcelle, débord compris :
   // on ne va pas rattraper trois cellules au prix d'un tour dans la clôture d'à côté.
-  const a0 = surX ? R.z0 : R.x0, a1 = surX ? R.z1 : R.x1;
-  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) + RENTRE;
-  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) - RENTRE;
+  /* ET LES LIGNES ELLES-MÊMES RENTRENT, PAS SEULEMENT LEURS BOUTS.
+     `lim0`/`lim1` bornaient la LONGUEUR des lignes ; leur POSITION, elle, venait tout
+     droit de la boîte des cellules restantes, qui touche le bord de la parcelle. Une
+     ligne de rattrapage pouvait donc être tracée à cinquante centimètres du bord, et le
+     tracteur la suivait le nez dans la clôture. Mesuré : la moitié des clôtures couchées
+     venaient de là, pas du plan principal. */
+  const aL0 = (surX ? p.z - p.h/2 : p.x - p.w/2) + ret[surX ? 1 : 0];
+  const aL1 = (surX ? p.z + p.h/2 : p.x + p.w/2) - ret[surX ? 3 : 2];
+  const aMil = (aL0 + aL1)/2;
+  const dans = (u)=> (aL1 <= aL0) ? aMil : Math.max(aL0, Math.min(aL1, u));
+  const a0 = dans(surX ? R.z0 : R.x0), a1 = dans(surX ? R.z1 : R.x1);
+  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) + ret[surX ? 0 : 1];
+  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) - ret[surX ? 2 : 3];
   const b0 = Math.max(lim0, (surX ? R.x0 : R.z0) - DEHORS);
   const b1 = Math.min(lim1, (surX ? R.x1 : R.z1) + DEHORS);
   const n = Math.max(1, Math.ceil((a1 - a0)/pas));
   const pts = [];
+  // Les mêmes coins à ralentir que dans le plan principal : le rattrapage longe les mêmes
+  // bords, et il couchait la clôture pour exactement la même raison.
+  const serreR = [0, 1, 2, 3].map((c)=> jeuDeBord(p, c) < VIRAGE_BORD);
+  const poseR = (x, z)=>{ pts.push(marquer({x:x, z:z}, p, serreR)); };
   /* ON COMMENCE PAR LE BOUT LE PLUS PROCHE. Sans ça l'engin traverse ce qu'il vient de
      travailler en diagonale pour aller se placer au coin opposé. */
   const versFin = Math.abs(v.pos[surX ? 'z' : 'x'] - a1) < Math.abs(v.pos[surX ? 'z' : 'x'] - a0);
   for(let k = 0; k <= n; k++){
     const a = a0 + (a1 - a0)*(versFin ? n - k : k)/n;
     const u = (k % 2 === 0) ? b0 : b1, w2 = (k % 2 === 0) ? b1 : b0;
-    pts.push(surX ? {x:u, z:a} : {x:a, z:u});
-    pts.push(surX ? {x:w2, z:a} : {x:a, z:w2});
+    if(surX){ poseR(u, a); poseR(w2, a); } else { poseR(a, u); poseR(a, w2); }
   }
+  /* ET L'ON ARRIVE AU PAS SUR LE PREMIER POINT. Un plan de rattrapage se pose `entre`
+     d'office : la machine ne repasse pas par la route, elle file droit de là où elle
+     vient jusqu'au début des lignes — et elle coupe au plus court, c'est-à-dire le long
+     du bord. Les deux dernières clôtures qui tombaient tombaient là, jamais pendant le
+     travail lui-même. On lève le pied sur ce trajet-là aussi. */
+  if(pts.length && serreR.some(Boolean)) pts[0].lent = true;
   const net = pts.filter((q, k)=> k === 0 ||
     Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
   return {pts:net, i:0, replans:0, p:p, reste:R.n, rattrape:true, entre:true};
@@ -9290,7 +9418,7 @@ function missionDrive(m, dt){
       if(r) return r;
       v.plan.entre = true;
     }
-    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < (wp.sortie ? 1.0 : 2.0)
+    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < ((wp.sortie || wp.bord) ? 1.0 : 2.0)
        || pointPerdu(v, wp, dt)){
       v.plan.i++; return [0, 0.5];
     }
@@ -9382,9 +9510,15 @@ function autoDrive(m, dt){
      porte sa coupe DEVANT : sur le dernier point, celui qui fait sortir de la parcelle,
      la coupe franchissait la limite quatre mètres avant la cabine et la machine
      s'arrêtait le nez encore dans le blé. Ce point-là, c'est l'engin qui le passe. */
-  const px = wp.sortie ? v.pos.x : v.toolX, pz = wp.sortie ? v.pos.z : v.toolZ;
+  /* ET LE POINT MARQUÉ `bord` AUSSI. C'est un coin de passe adossé à une clôture. Laisser
+     l'outil valider ce point-là, c'est faire déborder le tracteur de la longueur de son
+     attelage DANS la clôture : mesuré, cinquante-huit tronçons couchés sur douze passes.
+     L'outil, lui, la traverse sans la toucher et ne peint que de la terre arable. On rend
+     donc la décision au conducteur : il tourne quand LUI arrive au coin. */
+  const surMachine = wp.sortie || wp.bord;
+  const px = surMachine ? v.pos.x : v.toolX, pz = surMachine ? v.pos.z : v.toolZ;
   const depasse = L > 0.1 && ((px - wp.x)*dx + (pz - wp.z)*dz)/L > -0.05;
-  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < (wp.sortie ? 1.0 : 2.0)
+  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < (surMachine ? 1.0 : 2.0)
      || pointPerdu(v, wp, dt)){
     v.plan.i++; return [0, 0.5];
   }
@@ -9400,7 +9534,18 @@ function autoDrive(m, dt){
     const r = marcheArriere(v, wp.x, wp.z, 1.0);
     if(r) return r;
   }
-  return viser(v, wp.x, wp.z, 1.2);
+  const cmd = viser(v, wp.x, wp.z, 1.2);
+  /* ON LÈVE LE PIED AVANT UN COIN ADOSSÉ À QUELQUE CHOSE. `viser` roule plein gaz tant que
+     le cap est bon et ne ralentit qu'une fois le cap faussé — donc APRÈS le coin. Devant
+     une clôture, ce dépassement la couche. Quinze mètres avant le point marqué, le gaz
+     décroît linéairement jusqu'au quart : la machine arrive au pas et pivote court, comme
+     un conducteur qui connaît sa tournière. Coût mesuré : quelques secondes par parcelle. */
+  if(wp.lent){
+    const FREIN = 15;
+    const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+    if(d < FREIN) cmd[1] = Math.min(cmd[1], Math.max(0.25, d/FREIN));
+  }
+  return cmd;
 }
 // oriente la machine vers un point : braquage proportionnel, ralenti dans les virages
 function viser(v, tx, tz, rayon){

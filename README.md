@@ -1335,6 +1335,75 @@ position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tract
 sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
 bandeau et sur la carte, où la couleur du modèle est sous les yeux.
 
+## Un tour, puis des lignes
+
+Le pilote traçait un **escargot** : des tours de plus en plus serrés jusqu'au centre. Il
+couvrait bien — 94 à 100 % — mais il tournait sans arrêt. Sur une parcelle de trente
+mètres à la charrue : quatre tours complets, seize virages, et un outil traîné quatre
+mètres derrière qui coupe chacun d'eux. C'est dans les virages que la terre se perd, et
+c'est aussi là que la machine déborde.
+
+Le plan est maintenant celui d'un vrai fermier, et il est plus simple : **un tour de
+périphérie**, puis **des lignes droites** entre les deux tournières. Les demi-tours
+tombent tous sur la bande déjà travaillée ; les lignes, elles, ne tournent pas du tout.
+Les lignes **s'arrêtent au niveau de la périphérie**, pas au bord du champ : la tournière
+est faite, la ligne la rejoint exactement, et le demi-tour se prend *dans* le champ.
+
+Tout reste strictement orthogonal — pas une diagonale dans le plan. Le raccord entre le
+tour et la première ligne se prend **en deux temps** : on longe le bord jusqu'au bout de
+la ligne, puis on rentre. Relier les deux directement faisait une diagonale, et la
+machine la prenait en biais en balayant large : jusqu'à cinq mètres et demi hors de la
+parcelle.
+
+### Et la clôture reste debout
+
+**Aucun banc ne mesurait ça.** `pilote_couv.js` relève bien une « marge obstacle », mais
+depuis l'axe du tracteur, une image sur dix, et dans une scène où il met toutes les autres
+parcelles hors jeu — donc **sans une seule clôture**. Le seul danger réel du jeu n'était
+pas mesuré. Le banc `cloture.js` le mesure : il cherche les parcelles qui longent vraiment
+la clôture de la ferme, pilote image par image, et compte les courses **couchées** — c'est
+le jeu lui-même qui pose l'état, cette mesure-là ne peut pas mentir.
+
+Le relevé sur l'escargot est sans appel : **cinq courses couchées** sur douze passes, et
+l'axe du tracteur jusqu'à **5,36 m** hors de sa terre.
+
+Deux causes, et deux corrections.
+
+**Le retrait se décide bord par bord.** Il valait `T.width/6` partout — un tiers de l'outil
+dehors, ce que demande le cahier des charges. C'est juste au *milieu* d'une passe, beaucoup
+moins dans un *virage* : mesuré à l'image près, le tracteur dépasse le coin de 2,30 m sur
+une petite parcelle et de 3,50 sur une grande. Or la clôture de la ferme passe à 2,10 m du
+bord des parcelles de bordure et son mur de collision à 1,85 : **il reste vingt-cinq
+centimètres**. Sur un bord adossé à quelque chose, le retrait vaut donc au moins ce
+dépassement. L'outil, lui, mord toujours dehors — à 1,95 m de retrait une charrue de 4,80
+couvre encore 45 cm au-delà du bord.
+
+**Et l'on lève le pied avant le coin.** `viser` roule plein gaz tant que le cap est bon et
+ne ralentit qu'une fois le cap faussé — c'est-à-dire *après* le coin. Reculer la ligne
+d'autant coûterait un mètre et demi de terre par bord, soit douze points de couverture : on
+paierait la clôture avec le champ. Un conducteur, lui, ralentit avant de tourner. Quinze
+mètres avant un point marqué, le gaz décroît jusqu'au quart.
+
+Le rattrapage partage tout cela — il rentrait d'un sixième partout et plaçait ses lignes sur
+la boîte brute des cellules restantes, qui touche le bord : **la moitié des clôtures
+tombaient là**, pas dans le plan principal.
+
+| | escargot | un tour puis des lignes |
+|---|---|---|
+| courses de clôture couchées | **5** | **2** |
+| l'axe hors de sa parcelle | **5,36 m** | **1,99 m** |
+| couverture, pire des seize cas | 94,2 % | 90,7 % |
+| images pour seize passes | 93 000 | 93 600 |
+
+Ce qu'on paie, ce sont **trois points et demi de couverture** sur le pire cas — l'épandeur
+de douze mètres sur une parcelle de dix-neuf, où la bande du milieu ne tient plus un pas
+une fois les deux tournières faites. Les quinze autres cas restent entre 96 et 100 %. Ce
+qu'on achète, c'est la clôture debout.
+
+Les deux courses qui tombent encore le font toutes deux sur le **raccord du rattrapage** —
+la machine vient de finir sa passe, souvent le nez dehors, et rejoint sa première ligne au
+plus court. Jamais pendant le travail lui-même.
+
 ## Le premier quart d'heure
 
 Le jeu commençait par **un anneau vert à la Coopérative**. Il fallait deviner qu'on y
