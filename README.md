@@ -275,6 +275,72 @@ celle-là s'affiche directement, il n'y a nulle part où aller la chercher.
 En mode libre, aucune offre commerciale ne viendra se poser par-dessus : deux choses
 derrière la même pastille, on n'en verrait qu'une.
 
+### Le pictogramme de l'action, posé sur l'objectif
+
+La couleur dit qu'il faut aller là ; elle ne dit pas ce qu'on y fera. Le bandeau l'écrit —
+`CHARGER BLÉ 250 KG` — mais il faut lever les yeux du monde pour le lire, et l'on conduit
+en regardant devant soi. Un **pictogramme au sol**, dans l'anneau jaune, répond à la même
+question sans quitter la route des yeux.
+
+| l'objectif | le dessin |
+|---|---|
+| livrer | une caisse ouverte, et la flèche qui descend dedans |
+| charger | la même caisse, et la flèche qui en sort |
+| collecter | la goutte du tank d'élevage |
+| récolter | l'épi |
+| semer, labourer | le sac de semence |
+| ça pousse | la feuille |
+| atelier, produire | l'usine |
+| acheter | l'étiquette du prix |
+| il faut du matériel | la clé du garage |
+| aller voir | le fanion |
+
+**Il suit l'objectif, pas les anneaux.** Ce qu'il faut faire maintenant est parfois un
+champ, un silo, un tank d'élevage — des endroits qui n'ont pas tous d'anneau de commerce.
+Une seule pièce, déplacée là où le juge dit d'aller, couvre les **douze** natures
+d'objectif au lieu d'en couvrir sept. Elle se pose au centimètre sur le point que le
+bandeau et la flèche du bord désignent : trois surfaces, un seul calcul.
+
+**Il reste debout quand on tourne.** À plat sur le sol, un dessin est à l'endroit d'un côté
+du champ et sur la tête de l'autre. Il pivote donc autour de la verticale pour présenter
+son haut à la caméra — il reste une marque au sol, c'est le vocabulaire du guidage, et il
+se lit de partout. Le plan est couché par une rotation de −90° autour de X : son haut local
+pointe alors vers le −Z du monde, et il faut l'angle de **l'opposé** du vecteur qui mène à
+la caméra. Sans ce signe, on lit la flèche à l'envers.
+
+**Il garde sa taille à l'écran, pas au sol.** Trois mètres de côté se lisent très bien dans
+un anneau de commerce, sur lequel on est arrêté ; au milieu d'une parcelle vue de cent
+mètres, c'est un point. Il grandit donc avec la distance, entre une et quatre fois — la
+même idée que la flèche du bord, qui ne rapetisse pas non plus.
+
+**Un liseré sombre, et le mélange normal.** Peint en additif, le dessin sature : les traits
+se rejoignent et la caisse devient un pâté jaune. En mélange normal sans contour, il
+disparaît sur le béton clair d'un quai ou sur du chaume mûr. La forme est donc dilatée en
+sombre — huit copies décalées de deux pixels, dessinées **une seule fois dans la vie du
+jeu** — puis le jaune est posé dessus. Dix dessins, huit textures, douze actions.
+
+### Le service permanent sous les roues se nomme
+
+Les trois services permanents sont bleus au sol et bleus sur la carte, mais leur anneau ne
+dit pas ce qu'on y fait : on s'arrête au **Comptoir agricole** sans savoir qu'il vend aussi
+le gazole, et l'on repart le chercher ailleurs.
+
+Dès qu'on entre dans la zone de l'un d'eux, le bandeau écrit son **nom et sa fonction** —
+celle du cahier des charges, la même que sous la flèche du bord — et l'efface dès qu'on en
+sort :
+
+> **COMPTOIR AGRICOLE**  Graines & consommables
+> **GARAGE**  Matériel & améliorations
+> **COOPÉRATIVE**  Vente libre
+
+C'est du **contexte, pas une tâche** : ni barre d'avancement, ni puce, et il ne survit pas
+au fait de repartir. La mesure de la zone est celle de l'anneau de livraison, la même que
+partout — on ne peut pas être « dedans » selon le bandeau et « dehors » selon le bouton
+d'action. Un commerce qui n'est pas un service permanent ne se nomme pas.
+
+Le bandeau y gagne **sept pixels** dans son pire cas — quatre contrats, la mission, et l'on
+est arrêté au Comptoir : de 5,3 % à 7,0 % de l'écran, le temps de l'arrêt.
+
 ### La flèche verte du bord
 
 Une pastille qui tombe à l'autre bout de la vallée n'existe pour le joueur que s'il passe

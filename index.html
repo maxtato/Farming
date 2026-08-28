@@ -71,6 +71,12 @@
   #ctr .obj{font-size:9px;font-weight:bold;letter-spacing:.8px;margin-top:4px;
     color:#FFD21E;display:flex;gap:5px;align-items:baseline}
   #ctr .obj .ou{opacity:.6;font-weight:normal}
+  /* Le service permanent sous les roues : une ligne bleue, sans barre ni puce. Elle
+     n'annonce pas une tâche, elle nomme un endroit. */
+  #ctr .serv{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#4AA8E0;
+    background:rgba(10,16,22,.62);border-radius:7px;padding:5px 9px;align-self:flex-start;
+    display:flex;gap:6px;align-items:baseline}
+  #ctr .serv .sf{opacity:.62;font-weight:normal;text-transform:none;letter-spacing:.4px}
   #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
   #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
   #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
@@ -4128,6 +4134,35 @@ function dessinePicto(c, id, x, y, r, col){
     c.quadraticCurveTo( r*0.2, r*0.9,-r*0.8, r*0.7); c.fill();
     c.strokeStyle = '#00000055'; c.lineWidth = r*0.1;
     c.beginPath(); c.moveTo(-r*0.7, r*0.6); c.lineTo(r*0.6,-r*0.4); c.stroke();
+  } else if(id === 'depot'){
+    // LIVRER : une caisse ouverte, et ce qui descend dedans.
+    c.beginPath(); c.moveTo(-r*0.82, r*0.02); c.lineTo(-r*0.82, r*0.78);
+    c.lineTo(r*0.82, r*0.78); c.lineTo(r*0.82, r*0.02); c.stroke();
+    c.beginPath(); c.moveTo(0, -r*0.92); c.lineTo(0, r*0.16); c.stroke();
+    c.beginPath(); c.moveTo(-r*0.36, -r*0.24); c.lineTo(0, r*0.18); c.lineTo(r*0.36, -r*0.24); c.stroke();
+  } else if(id === 'prise'){
+    // CHARGER : la même caisse, et ce qui en sort.
+    c.beginPath(); c.moveTo(-r*0.82, r*0.02); c.lineTo(-r*0.82, r*0.78);
+    c.lineTo(r*0.82, r*0.78); c.lineTo(r*0.82, r*0.02); c.stroke();
+    c.beginPath(); c.moveTo(0, r*0.18); c.lineTo(0, -r*0.92); c.stroke();
+    c.beginPath(); c.moveTo(-r*0.36, -r*0.5); c.lineTo(0, -r*0.94); c.lineTo(r*0.36, -r*0.5); c.stroke();
+  } else if(id === 'usine'){
+    // L'ATELIER : trois toits en escalier, une seule forme fermée.
+    c.beginPath();
+    c.moveTo(-r*0.85, r*0.75); c.lineTo(-r*0.85, -r*0.38); c.lineTo(-r*0.28, 0);
+    c.lineTo(-r*0.28, -r*0.38); c.lineTo(r*0.29, 0); c.lineTo(r*0.29, -r*0.38);
+    c.lineTo(r*0.85, 0); c.lineTo(r*0.85, r*0.75); c.closePath(); c.stroke();
+  } else if(id === 'etiquette'){
+    // ACHETER : l'étiquette percée du prix.
+    c.beginPath();
+    c.moveTo(-r*0.1, -r*0.85); c.lineTo(r*0.85, -r*0.85); c.lineTo(r*0.85, r*0.1);
+    c.lineTo(-r*0.06, r*0.9); c.lineTo(-r*0.9, r*0.06); c.closePath(); c.stroke();
+    c.beginPath(); c.arc(r*0.5, -r*0.48, r*0.15, 0, 7); c.fill();
+  } else if(id === 'fanion'){
+    // ALLER VOIR : un fanion sur sa hampe.
+    c.beginPath(); c.moveTo(-r*0.5, -r*0.9); c.lineTo(-r*0.5, r*0.9); c.stroke();
+    c.beginPath(); c.moveTo(-r*0.5, -r*0.82); c.lineTo(r*0.8, -r*0.45);
+    c.lineTo(-r*0.5, -r*0.08); c.closePath(); c.fill();
   } else if(id === 'graine'){
     c.beginPath(); c.moveTo(-r*0.7,-r*0.5); c.lineTo(r*0.7,-r*0.5);
     c.lineTo(r*0.5, r*0.85); c.lineTo(-r*0.5, r*0.85); c.closePath(); c.fill();   // sac
@@ -8131,6 +8166,21 @@ function refreshCommandes(){
     }
     el.ctr.appendChild(pil);
   }
+  /* LE SERVICE SOUS LES ROUES SE NOMME. Les trois services permanents sont bleus au sol
+     et bleus sur la carte, mais leur anneau ne dit pas ce qu'on y fait : on s'arrête au
+     Comptoir agricole sans savoir qu'il vend AUSSI le gazole, et l'on repart le
+     chercher ailleurs. Dès qu'on entre dans la zone de l'un d'eux, le bandeau écrit son
+     nom et sa fonction — celle du cahier des charges, la même que sous la flèche du
+     bord — et l'efface dès qu'on en sort. C'est du contexte, pas une tâche : ni barre
+     d'avancement, ni puce, et il ne survit pas au fait de repartir. */
+  const SV = serviceIci(MACHINES[cur].v);
+  if(SV){
+    const sv = document.createElement('div'); sv.className = 'serv';
+    const n1 = document.createElement('span'); n1.textContent = SV.nom.toUpperCase();
+    const f1 = document.createElement('span'); f1.className = 'sf'; f1.textContent = SERVICES[SV.nom];
+    sv.appendChild(n1); sv.appendChild(f1);
+    el.ctr.appendChild(sv);
+  }
   /* LES CONTRATS TIENNENT SUR UNE LIGNE. Ils occupaient quatre blocs de deux lignes,
      soit la moitié gauche de l'écran : on jouait derrière la liste de ses courses. Une
      puce ne dit plus que le lieu et l'avancement d'un coup d'œil ; le détail est à un
@@ -11951,6 +12001,14 @@ function outilManquant(cle){
   return null;
 }
 /* La couleur d'un lieu, tranchée une fois pour tout l'écran. */
+/* LE SERVICE PERMANENT DANS LA ZONE DUQUEL ON SE TROUVE. La même mesure que partout —
+   l'anneau de livraison — pour qu'on ne puisse pas être « dedans » selon le bandeau et
+   « dehors » selon le bouton d'action. */
+function serviceIci(v){
+  for(const S of SITES)
+    if(SERVICES[S.nom] && siteOuvert(S) && aQuai(v, S)) return S;
+  return null;
+}
 function couleurGuide(nom){
   const O = objectifMission();
   if(O && O.lieu === nom) return GUIDE.JAUNE;
@@ -14265,6 +14323,72 @@ function ciblesGuidage(){
     .slice(0, MAX_VERTES);
   return out.concat(verts);
 }
+/* ---------- LE PICTOGRAMME DE L'ACTION, POSÉ SUR L'OBJECTIF ----------
+   La couleur dit qu'il faut aller là ; elle ne dit pas ce qu'on y fera. Le bandeau
+   l'écrit — « CHARGER BLÉ 250 KG » — mais il faut lever les yeux du monde pour le lire,
+   et l'on conduit en regardant devant soi. Un pictogramme posé au sol, dans l'anneau
+   jaune, répond à la même question sans quitter la route des yeux.
+
+   IL SUIT L'OBJECTIF, PAS LES ANNEAUX. L'objectif du moment est parfois un champ, un
+   silo, un tank d'élevage — des endroits qui n'ont pas tous d'anneau de commerce. Une
+   seule pièce, déplacée là où le juge dit d'aller, couvre les onze cas au lieu d'en
+   couvrir sept.
+
+   IL RESTE DEBOUT QUAND ON TOURNE. À plat sur le sol, un dessin est à l'endroit d'un
+   côté du champ et sur la tête de l'autre. Il pivote donc autour de la verticale pour
+   présenter son haut à la caméra : il reste une marque au sol — c'est le vocabulaire du
+   guidage — et il se lit de partout. */
+const PICTO_ACTION = {
+  livrer:'depot', charger:'prise', collecter:'goutte',
+  recolter:'epi', semer:'graine', labourer:'graine', pousse:'feuille',
+  atelier:'usine', produire:'usine', acheter:'etiquette', materiel:'cle',
+  aller:'fanion'
+};
+// Une texture par forme, dessinée une fois. Douze actions se partagent huit dessins.
+const _texAction = {};
+function texAction(glyphe){
+  if(_texAction[glyphe]) return _texAction[glyphe];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const c = cv.getContext('2d');
+  /* UN LISERÉ SOMBRE, comme sur les pictogrammes du bandeau. Peint en mélange ADDITIF,
+     le dessin sature : les traits se rejoignent et la caisse devient un pâté jaune. En
+     mélange normal sans contour, il disparaît sur le béton clair d'un quai ou sur du
+     chaume mûr. On dilate donc la forme en sombre — huit copies décalées de deux pixels,
+     dessinées une seule fois dans la vie du jeu — puis on pose le jaune dessus. */
+  for(let a = 0; a < 8; a++){
+    c.save();
+    c.translate(Math.cos(a*Math.PI/4)*2.4, Math.sin(a*Math.PI/4)*2.4);
+    dessinePicto(c, glyphe, 64, 64, 40, 'rgba(10,16,22,0.92)');
+    c.restore();
+  }
+  dessinePicto(c, glyphe, 64, 64, 40, '#FFD21E');
+  const t = new THREE.CanvasTexture(cv);
+  t.minFilter = THREE.LinearFilter;
+  _texAction[glyphe] = t;
+  return t;
+}
+let pictoObjectif = null, pictoGlyphe = '';
+function majPictoObjectif(){
+  const O = objectifMission();
+  const g = (O && PICTO_ACTION[O.quoi]) || '';
+  if(!pictoObjectif){
+    pictoObjectif = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2),
+      new THREE.MeshBasicMaterial({transparent:true, opacity:0.9, depthWrite:false,
+        blending:THREE.NormalBlending, side:THREE.DoubleSide}));
+    pictoObjectif.rotation.x = -Math.PI/2;
+    pictoObjectif.position.y = 0.16;
+    pictoObjectif.renderOrder = 4;
+    // Il bat avec l'anneau : ce qui recense le décor FIXE ne doit pas le compter.
+    pictoObjectif.userData.anime = true;
+    scene.add(pictoObjectif);
+  }
+  pictoObjectif.visible = !!g;
+  if(!g) return;
+  if(g !== pictoGlyphe){ pictoObjectif.material.map = texAction(g); pictoGlyphe = g;
+                         pictoObjectif.material.needsUpdate = true; }
+  pictoObjectif.position.x = O.x; pictoObjectif.position.z = O.z;
+}
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
   /* LA TAILLE DU CADRE SE LIT SUR LE CONTENEUR, PAS SUR LA FENÊTRE. Le HUD est zoomé
@@ -16414,7 +16538,29 @@ function loop(now){
        RESPIRATION, elle, reste à soixante images : c'est elle qu'on voit. */
     anneauT -= dt;
     const relire = anneauT <= 0;
-    if(relire) anneauT = 0.125;
+    if(relire){ anneauT = 0.125; majPictoObjectif(); }
+    /* LE PICTOGRAMME SUIT LA CAMÉRA, LUI, À CHAQUE IMAGE : c'est le seul moyen qu'il
+       reste debout quand on tourne, et c'est trois lignes de trigonométrie. Il respire
+       avec l'anneau qu'il occupe, un demi-ton plus bas — il complète la pastille, il ne
+       lui dispute pas le regard. */
+    if(pictoObjectif && pictoObjectif.visible){
+      const bp = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8), 1.6);
+      /* Le plan est couché par une rotation de −90° autour de X : son haut local pointe
+         alors vers le −Z du monde. Pour le tourner vers la caméra il faut donc l'angle
+         de l'opposé du vecteur qui y mène — sans le signe, le dessin regarde à l'exact
+         opposé et l'on lit la flèche à l'envers. */
+      pictoObjectif.rotation.z = Math.atan2(pictoObjectif.position.x - camera.position.x,
+                                            pictoObjectif.position.z - camera.position.z);
+      pictoObjectif.material.opacity = 0.72 + 0.28*bp;
+      /* IL GARDE SA TAILLE À L'ÉCRAN, PAS AU SOL. Trois mètres de côté se lisent très
+         bien dans un anneau de commerce, sur lequel on est arrêté ; au milieu d'une
+         parcelle vue de cent mètres, c'est un point. Il grandit donc avec la distance,
+         entre une et quatre fois, ce qui lui donne une taille apparente à peu près
+         constante — la même idée que la flèche du bord, qui ne rapetisse pas non plus. */
+      const dCam = Math.hypot(camera.position.x - pictoObjectif.position.x,
+                              camera.position.z - pictoObjectif.position.z);
+      pictoObjectif.scale.setScalar((1 + 0.10*bp)*Math.max(1, Math.min(4, dCam/26)));
+    }
     for(const A of ANNEAUX){
       if(relire || A.on === undefined){
         A.on = A.actif ? !!A.actif() : true;
