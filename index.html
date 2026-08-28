@@ -64,6 +64,13 @@
   #ctr .pil{padding:6px 11px;border-radius:13px;background:rgba(20,28,33,.55);
     backdrop-filter:blur(6px)}
   #ctr .pil.mis{background:rgba(28,40,26,.62);box-shadow:inset 0 0 0 1px rgba(139,224,122,.35)}
+  /* L'OBJECTIF DU MOMENT, sous le résultat à atteindre. Le bandeau disait ce que le
+     client veut ; il dit maintenant aussi ce qu'il faut faire MAINTENANT pour l'avoir,
+     et c'est le jaune du guidage qui le porte — la même couleur qu'au sol et au bord de
+     l'écran. Une ligne, pas un panneau. */
+  #ctr .obj{font-size:9px;font-weight:bold;letter-spacing:.8px;margin-top:4px;
+    color:#FFD21E;display:flex;gap:5px;align-items:baseline}
+  #ctr .obj .ou{opacity:.6;font-weight:normal}
   #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
   #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
   #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
@@ -493,6 +500,10 @@
   #plantitre{font-size:11px;font-weight:bold;letter-spacing:1.8px;text-transform:uppercase;flex:1}
   #planfermer{width:26px;height:26px;border-radius:9px;background:rgba(255,255,255,.08);
     display:flex;align-items:center;justify-content:center;font-size:12px;pointer-events:auto}
+  #planleg{display:flex;gap:12px;padding:4px 12px 2px;flex:none;font-size:8px;
+    letter-spacing:.7px;text-transform:uppercase;opacity:.72}
+  #planleg span{display:flex;align-items:center;gap:4px;white-space:nowrap}
+  #planleg i{width:6px;height:6px;border-radius:3px;display:block;flex:none}
   #plan .rang{display:flex;gap:5px;padding:6px 10px;overflow-x:auto;flex:none;
     scrollbar-width:none}
   #plan .rang::-webkit-scrollbar{display:none}
@@ -648,6 +659,14 @@
     <div id="planengins" class="rang"></div>
     <div id="planmodes" class="rang"></div>
     <div id="plancarte"><canvas id="plancv"></canvas></div>
+    <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
+         légende tient sur une ligne sous la carte, et elle suffit puisque les couleurs
+         veulent dire la même chose partout ailleurs. -->
+    <div id="planleg">
+      <span><i style="background:#FFD21E"></i>Objectif actuel</span>
+      <span><i style="background:#62D84E"></i>Mission disponible</span>
+      <span><i style="background:#4AA8E0"></i>Service permanent</span>
+    </div>
     <div id="planaide"></div>
     <div id="plantaches" class="rang"></div>
     <div id="planprod" class="rang"></div>
@@ -7957,12 +7976,37 @@ function refreshCommandes(){
     /* ELLE DIT QU'ELLE EST UNE MISSION, ET PAS UN CONTRAT. C'est la seule chose du
        bandeau qu'on n'a pas acceptée quelque part : sans le mot, elle se lit comme un
        contrat tombé du ciel — précisément ce qu'on vient de supprimer partout. */
+    /* CE QUI EST DIT DEUX FOIS N'EST PLUS DIT QU'UNE. La pilule porte maintenant une
+       ligne d'objectif en plus, et le bandeau y gagnait treize pixels de haut. Or sur
+       une commande à UNE seule marchandise, « 0 / 30 blé » répète le titre — « Livrer
+       30 kg de blé » — et la barre d'avancement juste dessous. On ne le garde donc que
+       là où il apprend quelque chose : une commande à plusieurs lignes, dont le titre ne
+       peut pas dire où en est chacune. */
+    const detail = !M.faire && M.lignes.length > 1;
     const sous = 'Mission  ·  ' + (M.faire
       ? '+' + M.xp + ' XP' + (M.prime ? '  ·  ' + eur(M.prime) : '')
-      : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) + ' / ' +
-                              Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')
-        + '  ·  ' + eur(M.prime) + '  ·  +' + M.xp + ' XP');
-    el.ctr.appendChild(pilule('mis', titreMission(M), sous, part));
+      : (detail
+          ? M.lignes.map((l, i)=> Math.round(enUnites(l.cle, Math.min(l.need, CAMPAGNE.faits[i] || 0)))
+                                  + ' / ' + qte(l.cle, l.need)).join('  ·  ') + '  ·  '
+          : '')
+        + eur(M.prime) + '  ·  +' + M.xp + ' XP');
+    const pil = pilule('mis', titreMission(M), sous, part);
+    /* CE QU'IL FAUT FAIRE MAINTENANT. « Le HUD doit afficher le résultat général ET
+       l'action actuelle » : le titre dit le résultat, cette ligne dit l'étape, et elle
+       vient du même juge que la pastille au sol. La distance en fin de ligne est celle
+       qu'on lit au bord de l'écran — trois surfaces, un seul calcul. */
+    const O = objectifMission();
+    if(O){
+      const o = document.createElement('div'); o.className = 'obj';
+      const t2 = document.createElement('span'); t2.textContent = O.txt;
+      const d2 = document.createElement('span'); d2.className = 'ou';
+      const v2 = MACHINES[cur].v;
+      d2.textContent = '·  ' + Math.round(Math.hypot(v2.pos.x - O.x, v2.pos.z - O.z)) + ' m';
+      o.appendChild(t2); o.appendChild(d2);
+      // Avant la barre d'avancement : l'ordre de lecture est résultat, étape, progrès.
+      pil.insertBefore(o, pil.querySelector('.cb'));
+    }
+    el.ctr.appendChild(pil);
   }
   /* LES CONTRATS TIENNENT SUR UNE LIGNE. Ils occupaient quatre blocs de deux lignes,
      soit la moitié gauche de l'écran : on jouait derrière la liste de ses courses. Une
@@ -10604,11 +10648,49 @@ function dessinerCarte(){
     c.beginPath(); c.arc(px(P.x), pz(P.z), dep ? 7 : 5, 0, Math.PI*2);
     c.fillStyle = dep ? '#FFF' : (pris ? '#FAD201' : '#7FD1E8');
     c.fill();
-    if(planMode === 'navette'){
+    /* UN LIEU, UN NOM. Ceux qui portent une couleur de guidage sont nommés plus bas, en
+       couleur : les écrire ici aussi les doublait, et « COOPÉRATIVE » venait se coucher
+       sur « Atelier textile » à deux pixels près. */
+    if(planMode === 'navette'
+       && !(SITES.some((S2)=> S2.nom === P.cle) && couleurGuide(P.cle) !== GUIDE.GRIS)){
       c.fillStyle = 'rgba(255,255,255,.75)';
       c.font = 'bold 8px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
       c.fillText(P.nom.slice(0, 14), px(P.x), pz(P.z) - 8);
     }
+  }
+  /* LA CARTE PARLE LA MÊME LANGUE QUE LE SOL, et elle le dit PAR-DESSUS. Les points de
+     navette sont tous du même bleu clair — c'est leur rôle, on les touche pour composer
+     un trajet — et une pastille de guidage posée dessous disparaissait sous eux. Le
+     guidage est donc une COURONNE autour du point : elle ne cache rien, elle qualifie.
+
+     Jaune l'objectif, vert une mission à prendre, bleu un service permanent, gris le
+     reste — exactement ce qu'on voit par le pare-brise. Le gris reste discret : il sert
+     à se repérer, pas à attirer l'œil. */
+  const HEX = (n)=> '#' + ('000000' + n.toString(16)).slice(-6);
+  c.textAlign = 'center';
+  for(const S of SITES){
+    const g = couleurGuide(S.nom);
+    if(g === GUIDE.GRIS) continue;              // un lieu sans rien à dire n'a pas de couronne
+    c.beginPath(); c.arc(px(S.dropX), pz(S.dropZ), g === GUIDE.BLEU ? 7.5 : 9, 0, Math.PI*2);
+    c.strokeStyle = HEX(g); c.lineWidth = g === GUIDE.BLEU ? 1.6 : 2.6; c.stroke();
+    /* UN LIEU QUI COMPTE PORTE SON NOM. Les noms de la carte viennent des points de
+       navette, et le garage comme le comptoir n'en sont pas : deux couronnes bleues
+       restaient anonymes au milieu du village, alors que ce sont précisément les deux
+       endroits qu'on cherche quand on ouvre la carte sans mission. */
+    c.fillStyle = HEX(g);
+    c.font = 'bold 8px "Trebuchet MS",sans-serif';
+    // Au-dessus du point, comme les autres noms de la carte : deux conventions de
+    // placement sur le même plan, c'est une de trop.
+    // Tronqué à quatorze signes comme les autres noms de la carte : deux villages
+    // voisins écrits en entier se marchent dessus au zoom de départ.
+    c.fillText(S.nom.toUpperCase().slice(0, 14), px(S.dropX), pz(S.dropZ) - 12);
+  }
+  // Et l'objectif du moment, où qu'il soit — un champ, le silo, l'atelier, un enclos —
+  // même quand ce n'est pas un commerce : c'est LE point qu'on cherche sur la carte.
+  const OBJ = objectifMission();
+  if(OBJ && !SITES.some((S)=> S.nom === OBJ.lieu)){
+    c.beginPath(); c.arc(px(OBJ.x), pz(OBJ.z), 9, 0, Math.PI*2);
+    c.strokeStyle = HEX(GUIDE.JAUNE); c.lineWidth = 2.6; c.stroke();
   }
   // les flèches des navettes déjà en file
   c.lineWidth = 2;
@@ -11586,6 +11668,14 @@ const SERVICES = {
    Et le jaune est DYNAMIQUE : la moissonneuse verse trente-cinq kilos au silo, le compte
    y est, le champ perd son cercle et le silo l'allume — sans qu'on ait à finir le champ.
    Rien n'est mémorisé d'un appel à l'autre : c'est relu, donc ça ne peut pas mentir. */
+/* IL SE RECALCULE À CHAQUE APPEL, ET C'EST MESURÉ. Trois surfaces le demandent — les
+   pastilles au sol, les flèches du bord, la ligne du bandeau — dont les flèches, qui
+   suivent la caméra à soixante images par seconde. On l'a d'abord mis en mémoire un
+   dixième de seconde, puis chronométré : UNE MICROSECONDE ET DEMIE par appel, y compris
+   sur la plus longue chaîne du jeu. Soixante fois par seconde, cela fait un dix-millième
+   d'image. La mémoire ne faisait donc rien gagner, et elle coûtait cher : après avoir
+   versé au silo, l'objectif restait faux le temps qu'elle expire. Le guidage doit dire
+   la vérité à l'instant où l'on agit — c'est toute sa raison d'être. */
 function objectifMission(){
   const M = missionVisible();
   if(!M) return null;

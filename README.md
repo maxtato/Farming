@@ -829,6 +829,24 @@ Le bord de l'écran suit la même règle et **ne se sature pas** : la flèche ja
 puis au plus trois missions vertes, les plus proches. Aucune flèche bleue en permanence — les
 trois services ne sont pas là pour encombrer.
 
+**La carte parle la même langue**, et elle le dit par-dessus : les points de navette sont tous
+du même bleu clair — c'est leur rôle, on les touche pour composer un trajet — et une pastille
+posée dessous disparaissait sous eux. Le guidage est donc une **couronne** autour du point : elle
+ne cache rien, elle qualifie. L'objectif du moment y figure même quand ce n'est pas un commerce —
+un champ, le silo, l'atelier. Une légende de trois points sous la carte, pas un panneau.
+
+**Le bandeau dit le résultat ET l'étape.** Le titre porte ce que le client veut, une ligne jaune
+en dessous porte ce qu'il faut faire maintenant et à quelle distance. C'est le même jaune qu'au
+sol et au bord de l'écran, et c'est le même calcul : trois surfaces, un seul juge.
+
+Deux mesures ont tranché deux hésitations. La première : mettre l'objectif en mémoire un dixième
+de seconde pour éviter de le recalculer soixante fois par seconde. Chronométré, il coûte **une
+microseconde et demie** par appel — un dix-millième d'image. La mémoire ne faisait rien gagner et
+coûtait cher : après avoir versé au silo, l'objectif restait faux le temps qu'elle expire. Elle a
+sauté. La seconde : la ligne d'objectif ajoute **dix-neuf pixels** au bandeau, qui passe de 5,4 %
+à 6,1 % de l'écran dans le pire cas — quatre contrats et une mission ensemble. C'est ce que vaut
+le fait de savoir où aller, et l'on reste loin des 10,6 % dont ce banc est né.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente
