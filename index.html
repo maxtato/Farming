@@ -7741,17 +7741,36 @@ function capaciteFerme(cle, prof){
   }
   return t;
 }
-// Le pas d'arrondi : on ne commande pas 137 kg de miel.
-const pasCommande = (n)=> n >= 400 ? 50 : (n >= 120 ? 20 : (n >= 40 ? 10 : 5));
-function tirerLigne(cle, cible){
+/* Le pas d'arrondi, DANS L'UNITÉ AFFICHÉE : on ne commande pas 137 litres d'huile, et
+   pas davantage 1 367 œufs. Le pas descend à l'unité sous la quinzaine : arrondir cinq
+   kilos de fromage de brebis au pas de cinq, c'était en perdre deux — trente pour cent
+   de la commande — et la ligne la mieux payée du jeu valait un tiers de moins que
+   celle de blé du même palier. */
+const pasCommande = (n)=> n >= 400 ? 50 : (n >= 120 ? 20
+                        : (n >= 40 ? 10 : (n >= 15 ? 5 : 1)));
+/* UNE COMMANDE SE MESURE EN ARGENT, PAS EN KILOS. `valeur` est une VALEUR de
+   marchandise, et c'est le prix du produit qui la traduit en quantité.
+
+   Un poids commun à tous les produits réclamait trois cents kilos de miel comme trois
+   cents kilos de blé : cinq fois la valeur pour le même geste, et une ruche qui sort
+   deux kilos par minute et demie contre une moissonneuse qui rentre une parcelle.
+   Depuis que l'œuf se compte à la pièce, c'était pire encore — le jeu stocke en kilos,
+   un œuf pèse soixante grammes, et la boulangerie demandait SEPT MILLE CINQ CENTS ŒUFS
+   au dernier palier. Relevé au palier 4, quand on a six poules : 667 œufs.
+
+   Le blé, lui, ne bouge pas d'un kilo : l'échelle en euros est l'ancienne échelle en
+   kilos multipliée par son prix, et c'est sur lui qu'elle avait été réglée. */
+function tirerLigne(cle, valeur){
   const capa = capaciteFerme(cle);
-  const n = Math.min(cible, Math.max(pasCommande(cible), capa*0.55));
-  const pas = pasCommande(n);
-  return {cle:cle, need: Math.max(pas, Math.round(n/pas)*pas), fait:0};
+  const cible = valeur/Math.max(0.01, prixDe(cle));
+  const plancher = u2kg(cle, pasCommande(enUnites(cle, cible)));
+  const n = Math.min(cible, Math.max(plancher, capa*0.55));
+  const u = enUnites(cle, n), pas = pasCommande(u);
+  return {cle:cle, need: u2kg(cle, Math.max(pas, Math.round(u/pas)*pas)), fait:0};
 }
 /* Tirer une commande d'un type donné, ou rien si le palier ne permet rien de tel.
    La quantité suit le palier de campagne : une commande de blé au premier niveau vaut
-   une vingtaine de kilos, au quinzième deux cent soixante-dix. C'est la même courbe que
+   une vingtaine de kilos, au vingtième quatre cent cinquante. C'est la même courbe que
    celle des parcelles — le jeu grandit d'un bloc. */
 function tirerCommande(type){
   const T = CMD_TYPES.find((t)=> t.cle === type) || CMD_TYPES[0];
@@ -7761,7 +7780,11 @@ function tirerCommande(type){
   if(!dispo.length) dispo = produitsOuverts().filter((cle)=> clientsPour(cle).length);
   if(!dispo.length) return null;
 
-  const ech = 22 + CAMPAGNE.niveau*CAMPAGNE.niveau*1.1;      // 23 kg au palier 1, 270 au 15
+  // EN EUROS DE MARCHANDISE : 14 € au palier 1, 273 € au vingtième. C'est très
+  // exactement l'ancienne courbe en kilos multipliée par le prix du blé — 25 kg de blé
+  // à la première commande hier, 25 kg aujourd'hui — mais elle vaut maintenant pour
+  // tous les produits, chacun dans son unité.
+  const ech = 13 + CAMPAGNE.niveau*CAMPAGNE.niveau*0.65;
   /* LE CLIENT SE CHOISIT AVANT LES LIGNES, et pas l'inverse. En composant d'abord un
      panier puis en cherchant qui le prend, une commande finissait par réclamer de
      l'huile d'olive à l'usine de céréales : il suffisait qu'une ligne n'ait aucun

@@ -211,6 +211,26 @@ perd). Le **client se choisit avant les lignes**, et pas l'inverse : en composan
 un panier puis en cherchant qui le prend, une commande finissait par réclamer de l'huile
 d'olive à l'usine de céréales. Relevé : **400 propositions, 0 indélivrable**.
 
+**La quantité se mesure en argent, pas en kilos.** Une échelle en poids, commune à tous
+les produits, réclamait trois cents kilos de miel comme trois cents kilos de blé : cinq
+fois la valeur pour le même geste, et une ruche qui sort deux kilos par minute et demie
+contre une moissonneuse qui rentre une parcelle. Depuis que l'œuf se compte à la pièce,
+c'était pire — le jeu stocke en kilos, un œuf pèse soixante grammes, et la boulangerie
+demandait **7 500 œufs** au dernier palier, **667 au quatrième**, quand on a six poules.
+
+L'échelle est donc une **valeur de marchandise** — 14 € au premier palier, 273 € au
+vingtième — que le prix du produit traduit en quantité, chacun dans son unité. C'est très
+exactement l'ancienne courbe en kilos multipliée par le prix du blé : le blé, sur lequel
+elle avait été réglée, **ne bouge pas d'un kilo** (25 kg à la première commande hier,
+25 kg aujourd'hui), et tout le reste vient se ranger à côté de lui. Relevé de l'écart
+entre la ligne la mieux et la moins bien payée d'un même palier : **14,58 × avant,
+1,18 × après** — ce qui reste est l'arrondi.
+
+Le pas d'arrondi descend d'ailleurs **à l'unité sous la quinzaine**. Arrondir cinq kilos
+de fromage de brebis au pas de cinq, c'était en perdre deux — trente pour cent de la
+commande — et la ligne la mieux payée du jeu valait un tiers de moins que celle de blé du
+même palier.
+
 **La renommée** est le seul état durable de cette relation : elle monte d'un cran à
 chaque contrat honoré, descend de deux à chaque refus, d'un à chaque contrat urgent
 laissé filer. Elle module la prime (**0,70 ×** chez qui l'on éconduit, **1,50 ×** chez
