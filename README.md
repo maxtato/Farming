@@ -395,6 +395,44 @@ caviste écoule six cents kilos de vin quand son étal en tient trente-cinq, un 
 faisait le calcul de la farine avec l'ancien prix du blé. L'écran des prix lit maintenant
 les deux plafonds dans la table plutôt que de les recopier.
 
+### Ce qu'on trouve en ouvrant le jeu
+
+Une partie neuve démarre **dans le pick-up**, pas dans la moissonneuse : celle-ci arrive
+avec ses huit mètres de coupe déployés devant le capot, et c'est la première chose qu'on
+voyait d'un jeu qu'on ne connaît pas. Le pick-up est court, rapide, sans outil.
+
+Les **commandes à boutons** sont le réglage de départ, le **zoom à 75 %** — on voit venir
+de plus loin — et la **netteté sur Élevée** plutôt que Maximale : la définition de l'écran
+telle quelle coûte cher sur un portable pour une différence qu'on ne voit pas à cette
+distance. Rien de tout cela n'est figé, les trois se règlent dans les Réglages.
+
+**La cuve de gazole fait partie de la ferme.** Elle coûtait 7 500 € qu'on n'a pas au palier
+1 : le seul moyen de faire le plein était donc la pompe du village, à 1,85 € le litre au
+lieu de 1,48 en gros — on payait 25 % de plus précisément pendant les heures où l'on n'a
+pas un sou. Elle est livrée pleine, et porte au-dessus d'elle la même étiquette flottante
+que le silo et l'entrepôt : « Cuve 840 L / 3 000 L », qui vire à l'orange puis au rouge.
+Ce qui s'achète, c'est ce qu'on met dedans.
+
+**La tour du silo suit la terre.** Elle tenait 2 700 kg quel que soit l'état de la ferme :
+au palier 1, avec une seule parcelle qui rend 248 kg de blé, c'était onze récoltes d'avance
+— elle ne se remplissait jamais et ne décidait rien. Elle vaut maintenant **deux récoltes
+et demie de ce qu'on cultive**, plus un fond de cale : 662 kg avec une parcelle, 6 200 avec
+vingt. Rentrer une moisson redevient une décision.
+
+**Sous quinze pour cent de gazole, la jauge clignote.** Le rouge seul se confond avec
+l'orange du palier au-dessus quand on a les yeux sur la route ; c'est le battement qu'on
+voit du coin de l'œil.
+
+**Le halo du gyrophare ne se fait plus trancher.** Sa bille de cinquante centimètres est
+posée à cheval sur le toit de la cabine — elle descend à 4,18 m quand le toit plafonne à
+4,47 — et le test de profondeur en découpait le tiers inférieur au couteau : on voyait un
+demi-disque. Une lueur ne se découpe pas, elle déborde. Les optiques, elles, gardent le
+test : un phare ne doit pas traverser le bâtiment devant lequel il est garé.
+
+**Et le bouton d'achat de parcelle attend l'arrêt**, comme le bandeau de service. Le
+panneau « à vendre » se voit à quatorze mètres, deux secondes de route : « PALIER ATTEINT —
+3 PARCELLES » n'avait pas le temps d'être lu qu'il était déjà parti.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

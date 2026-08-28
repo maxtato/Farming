@@ -15,6 +15,32 @@
     font-family:"Trebuchet MS",Verdana,system-ui,sans-serif;color:#fff;
     -webkit-user-select:none;user-select:none;touch-action:none}
   canvas{display:block;position:absolute;inset:0;image-rendering:pixelated;image-rendering:crisp-edges}
+  /* L'INTERFACE SUIT LA TAILLE DE L'ÉCRAN. Tout était calibré au pixel pour un téléphone
+     en paysage — 568 à 900 px de large — et se retrouvait minuscule sur un écran de PC :
+     la pilule d'argent faisait 104 px de large sur 1 920, le bouton menu 38, les flèches
+     de conduite 72. Un seul facteur les multiplie tous.
+
+     C'est `zoom` et non `transform: scale()`, parce que `transform` ne redispose rien :
+     un élément ancré à droite resterait à sa place et déborderait de l'écran, et les
+     ombres et les traits fins seraient interpolés. `zoom` multiplie les longueurs
+     calculées et laisse le navigateur remettre chaque boîte à sa place — un bouton à
+     26 px du bord y reste, à l'échelle. La boîte du HUD garde `inset:0`, donc elle
+     couvre toujours l'écran exactement.
+
+     Deux paliers plutôt qu'une fonction continue : une interface qui grandit d'un
+     centième à chaque pixel de fenêtre redessine tout à chaque glissement de bord, et
+     personne ne voit la différence entre 1,32 et 1,35.
+
+     CE QU'IL FAUT SAVOIR EN JS : à l'intérieur d'un élément zoomé, les longueurs lues
+     par `clientWidth`/`clientHeight` sont dans le repère LOCAL — l'écran divisé par le
+     facteur — tandis que `getBoundingClientRect()` et `clientX` d'un événement sont en
+     pixels d'écran. Deux endroits en dépendent, et ils sont commentés là où ils sont :
+     le placement des flèches du bord, et la densité du canevas de la carte. */
+  :root{--ui:1}
+  @media (min-width:1100px){:root{--ui:1.3}}
+  @media (min-width:1500px){:root{--ui:1.55}}
+  @media (min-width:2200px){:root{--ui:1.9}}
+  #hud,#panneau,#fen,#parc,#plan,#contrat,#dose,#accueil{zoom:var(--ui)}
   #hud{position:absolute;inset:0;pointer-events:none;z-index:10}
   .pill{position:absolute;display:flex;align-items:center;gap:10px;
     padding:7px 12px;border-radius:14px;background:rgba(20,28,33,.55);
@@ -111,11 +137,11 @@
   #parctitre{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;opacity:.45;
     padding:2px 4px 8px}
   #parcliste{display:flex;flex-direction:column;gap:5px}
-  .pe{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;
-    background:rgba(255,255,255,.05);font-size:10px;font-weight:bold;letter-spacing:.8px}
-  .pe .pt{width:10px;height:26px;border-radius:3px;flex:none}
+  .pe{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:10px;
+    background:rgba(255,255,255,.05);font-size:8.5px;font-weight:bold;letter-spacing:.6px}
+  .pe .pt{width:4px;height:24px;border-radius:2px;flex:none}
   .pe .pn{flex:1}
-  .pe .pd{font-size:8px;opacity:.5;letter-spacing:.6px;font-weight:normal}
+  .pe .pd{font-size:7.5px;opacity:.55;letter-spacing:.6px;font-weight:normal;margin-top:1px}
   .pe.on{background:#FAD201;color:#1B2429}
   .pe.on .pd{opacity:.65}
   #menuBtn{position:absolute;top:calc(10px + env(safe-area-inset-top));
@@ -141,7 +167,7 @@
   #fenliste{flex:1;overflow-y:auto;padding:2px 9px 10px}
   /* Le chiffre qui décide : ce qu'on a en magasin et ce qu'on peut en sortir. Il doit
      se lire sans lire la phrase autour — d'où la graisse, la taille et la couleur. */
-  .art .det .q{font-weight:bold;font-size:10.5px;letter-spacing:.3px;color:#8BE07A}
+  .art .det .q{font-weight:bold;font-size:8.5px;letter-spacing:.3px;color:#8BE07A}
   .art .det .q.court{color:#E8563F}
   .art .det .q.neutre{color:#9FD8E8}
   /* LE CURSEUR DE QUANTITÉ. « Produire » ne lance plus tout le stock : il demande
@@ -217,24 +243,30 @@
      devienne illisible, le détail gagnant même en contraste pour compenser sa taille.
      La pastille devient un FILET de quatre pixels plutôt qu'un pavé de dix : elle dit
      la même chose et rend six pixels de largeur au texte. */
-  .art{display:flex;align-items:center;gap:9px;padding:6px 9px;margin-bottom:4px;
-    background:rgba(255,255,255,.055);border-radius:11px;
+  /* LE CONTENU D'UN ONGLET NE PÈSE PLUS PLUS LOURD QUE L'ONGLET. C'était la règle qui
+     manquait : l'onglet dit où l'on est, l'article dit ce qu'il y a, et le premier était
+     écrit plus petit que le second — 9 px contre 11. Le nom passe donc SOUS l'onglet, à
+     8,5 px, et le détail à 7,5. Une rangée descend de 44 à 36 px : trois lignes de plus
+     par écran de téléphone, et sur un PC l'échelle de l'interface les rend de toute
+     façon à leur taille d'avant. */
+  .art{display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:3px;
+    background:rgba(255,255,255,.055);border-radius:10px;
     border:1px solid rgba(255,255,255,.045)}
   .art .txt{flex:1;min-width:0}
-  .art .nom{font-size:11px;font-weight:bold;letter-spacing:.5px}
-  .art .det{font-size:9px;opacity:.62;margin-top:2px;line-height:1.42}
-  .art .act{padding:6px 10px;border-radius:10px;font-size:9px;font-weight:bold;
-    letter-spacing:1.1px;text-transform:uppercase;white-space:nowrap;border:2px solid #FAD201;color:#FAD201}
+  .art .nom{font-size:8.5px;font-weight:bold;letter-spacing:.5px}
+  .art .det{font-size:7.5px;opacity:.66;margin-top:1px;line-height:1.4}
+  .art .act{padding:5px 9px;border-radius:9px;font-size:8px;font-weight:bold;
+    letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border:2px solid #FAD201;color:#FAD201}
   .art .act.no{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.35)}
   .art .act.ok{background:#FAD201;color:#1B2429}
   .art .act.vert{border-color:#8BE07A;color:#8BE07A}
-  .pastille{width:4px;height:30px;border-radius:2px;flex-shrink:0}
+  .pastille{width:4px;height:26px;border-radius:2px;flex-shrink:0}
   /* UN ARTICLE À CURSEUR. Certains réglages ne sont pas un bouton qui bascule mais une
      quantité qu'on cherche à l'œil — le zoom, d'abord. Le bloc garde le gabarit de
      l'article : filet de couleur, nom, détail, puis la barre sur toute la largeur. */
   .art.cur{flex-direction:column;align-items:stretch;gap:2px;padding:8px 11px 5px}
   .art.cur .tete{display:flex;align-items:center;gap:9px}
-  .art.cur .tete .pastille{height:24px}
+  .art.cur .tete .pastille{height:21px}
   .art.cur input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;
     background:none;margin:2px 0 0;touch-action:pan-x;pointer-events:auto}
   .art.cur input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;
@@ -244,12 +276,12 @@
     box-shadow:0 2px 6px rgba(0,0,0,.5)}
   .art.cur input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:rgba(255,255,255,.18)}
   .art.cur input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:#FAD201}
-  .art.cur .reperes{display:flex;justify-content:space-between;font-size:8px;opacity:.35;
+  .art.cur .reperes{display:flex;justify-content:space-between;font-size:7px;opacity:.35;
     letter-spacing:1.1px;margin-top:-2px}
   /* Un titre de rayon suivi d'un filet : le groupe se voit avant d'être lu, et l'on
      retrouve où l'on en est d'un coup d'œil au lieu de relire les intitulés. */
-  .sect{font-size:8px;letter-spacing:2.2px;text-transform:uppercase;opacity:.5;
-    margin:11px 3px 6px;display:flex;align-items:center;gap:9px}
+  .sect{font-size:7.5px;letter-spacing:2.2px;text-transform:uppercase;opacity:.5;
+    margin:9px 3px 5px;display:flex;align-items:center;gap:9px}
   .sect::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.12)}
   #stick::before{content:'◀     ▶';position:absolute;left:0;right:0;top:50%;margin-top:-7px;
     text-align:center;font-size:10px;letter-spacing:2px;opacity:.3}
@@ -386,8 +418,12 @@
   #fuelfill,#hopfill{display:block;height:100%}
   #fuel{bottom:calc(182px + env(safe-area-inset-bottom));color:#8BE07A}
   #fuelfill{width:100%;background:#8BE07A;transition:width .2s,background .3s}
-  #fuel.bas{animation:clig 1s infinite}
-  @keyframes clig{50%{opacity:.35}}
+  /* SOUS QUINZE POUR CENT, ELLE CLIGNOTE. Le rouge seul se confond avec l'orange du
+     palier au-dessus quand on a les yeux sur la route ; c'est le battement qu'on voit
+     du coin de l'œil. Il est franc — l'ensemble tombe à un quart — et rapide, parce
+     qu'une panne sèche au bout du champ coûte le trajet du retour à pied. */
+  #fuel.bas{animation:clig .75s infinite}
+  @keyframes clig{0%,100%{opacity:1}50%{opacity:.22}}
   #hopper{bottom:calc(208px + env(safe-area-inset-bottom));color:#FFAE2E;
     opacity:0;transition:opacity .3s}
   #hopfill{width:0%;background:#FFAE2E}
@@ -677,7 +713,7 @@ const PX = 1.1;
    Le plafond se règle donc, et ne s'impose pas. `Infini` garde exactement ce qui
    existait ; 2 et 1,5 rendent la main au processeur graphique. Sur un écran ordinaire
    (un ou deux pixels physiques par pixel CSS), aucun de ces choix ne change rien. */
-const NETTETE = {i: 0, choix: [
+const NETTETE = {i: 1, choix: [
   {nom:'Maximale', det:'La définition de l\'écran, telle quelle', max: Infinity},
   {nom:'Élevée',   det:'Plafonnée à deux fois la définition CSS', max: 2},
   {nom:'Douce',    det:'Plafonnée à une fois et demie — le plus fluide', max: 1.5}
@@ -720,7 +756,7 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 1, 400);
    sur la caméra. */
 const CAM_BASE = new THREE.Vector3(38, 62, 38);
 const FOG_BASE = {pres:150, loin:260, far:400};
-const ZOOM = {pc:100, min:55, max:160};
+const ZOOM = {pc:75, min:55, max:160};   // 75 % au départ : on voit venir de plus loin
 const CAM_OFF = CAM_BASE.clone();
 const zoomK = ()=> 100/Math.max(1, ZOOM.pc);
 /* Ce que la caméra embrasse au sol, en mètres. C'est la seule mesure qui parle vraiment
@@ -6366,9 +6402,17 @@ const TEX_HALO = (function(){
    trois appelants écrivent `bille.scale.setScalar(facteur)` et `bille.material.opacity`,
    et ces deux lignes-là continuent de marcher telles quelles. Le rendu ne collecte que
    les maillages, les lignes, les points et les lutins : un groupe nu ne coûte rien. */
-function billeLumiere(rayon, couleur){
+function billeLumiere(rayon, couleur, traverse){
+  /* `traverse` : le lutin ne se fait pas découper par la tôle qui le précède. Un halo
+     est un test de profondeur comme un autre, et celui du gyrophare est posé À CHEVAL
+     sur le toit — sa bille de cinquante centimètres descend à 4,18 m quand le toit de
+     la cabine plafonne à 4,47 : le tiers du bas se faisait donc trancher au couteau, et
+     l'on voyait un demi-disque. Une lueur ne se découpe pas, elle déborde. Réservé aux
+     lampes montées sur la carrosserie ; les optiques, elles, gardent le test, sans quoi
+     un phare traverserait le bâtiment devant lequel il est garé. */
   const mat = new THREE.SpriteMaterial({color:couleur, map:TEX_HALO, transparent:true,
-    opacity:0, blending:THREE.AdditiveBlending, depthWrite:false});
+    opacity:0, blending:THREE.AdditiveBlending, depthWrite:false,
+    depthTest: !traverse});
   const lutin = new THREE.Sprite(mat);
   lutin.scale.setScalar(rayon*2);   // le lutin mesure 1 × 1 : son échelle EST son diamètre
   lutin.renderOrder = 2;            // c'est le lutin qu'on dessine, pas le groupe
@@ -6464,7 +6508,7 @@ function gyrophare(g, x, y, z){
     flatShading:true, shininess:0, specular:0x000000});
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.32,6), dome);
   m.position.set(x, y, z); m.castShadow = true; g.add(m);
-  const halo = billeLumiere(0.5, 0xFFC63A);
+  const halo = billeLumiere(0.5, 0xFFC63A, true);
   halo.position.set(x, y, z); g.add(halo);
   // Seule lampe du jeu sans halo au sol, et c'est voulu : sa flaque orange restait
   // immobile SOUS la machine, sans rien éclairer devant, et se lisait comme une
@@ -8811,7 +8855,12 @@ TOOLS.forEach((T, i)=>{
   T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
 });
 
-let cur = MACHINES.findIndex(m => m.key === 'moisson');   // on démarre sur la moissonneuse
+/* ON DÉMARRE DANS LE PICK-UP, ET NON DANS LA MOISSONNEUSE. La moissonneuse arrive en
+   jeu avec sa coupe déployée — huit mètres de barre devant le capot — et c'est la
+   première chose qu'on voit d'un jeu qu'on ne connaît pas : un engin encombrant qu'on
+   ne sait pas manœuvrer. Le pick-up est court, rapide, sans outil, et c'est avec lui
+   qu'on va voir le village. */
+let cur = MACHINES.findIndex(m => m.key === 'pickup');
 const GOAL = 3000;
 let money = 0, hopper = 0, delivered = 0, breadKg = 0;
 /* Le silo n'est plus un tas de « grain » : il tient un tas par céréale. C'est ce qui
@@ -8823,7 +8872,13 @@ const SILO_CLES = Object.keys(siloStock);
 const siloTotal = ()=> SILO_CLES.reduce((t, k)=> t + siloStock[k], 0);
 // Le silo déborde : cinq tas se partagent la tour, et une récolte de plus n'y entre
 // pas. C'est ce qui pousse à écouler avant de remoissonner.
-const siloMax = ()=> 2700;
+/* LA TOUR SUIT LA TERRE. Elle tenait 2 700 kg quel que soit l'état de la ferme : au
+   palier 1, avec une seule parcelle qui rend 248 kg de blé, c'était onze récoltes
+   d'avance — la tour ne se remplissait jamais et ne décidait rien. Elle vaut maintenant
+   DEUX RÉCOLTES ET DEMIE de ce qu'on cultive, plus un fond de cale : elle se remplit
+   donc au même rythme quel que soit le nombre de parcelles, et rentrer une moisson
+   redevient une décision. 662 kg avec une parcelle, 6 200 avec vingt. */
+const siloMax = ()=> Math.round(320 + terreCultivable()*0.62);
 // Sur quel tas la benne se sert quand elle arrive vide : le plus gros. C'est celui
 // dont la ferme est le plus encombrée, donc celui qu'il faut sortir en premier.
 function siloPlusGros(){
@@ -9484,7 +9539,7 @@ thrEl.addEventListener('pointerup', thrEnd); thrEl.addEventListener('pointercanc
    fois la marche arrière engagée elle le reste jusqu'au relâchement : sinon, dès que
    l'engin reprend de la vitesse en reculant, la condition se retournerait et l'on
    repasserait au freinage en boucle. */
-const COMMANDES = {mode:'manche'};      // 'manche' ou 'boutons'
+const COMMANDES = {mode:'boutons'};      // 'manche' ou 'boutons'
 const BTN = {g:false, d:false, acc:false, fre:false, freT:0, arriere:false};
 let frein = false;                       // le frein appuyé, transmis à la physique
 
@@ -10093,7 +10148,11 @@ function dessinerCarte(){
   const box = planCv.parentElement;
   const L = box.clientWidth, H = box.clientHeight;
   if(!L || !H) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  /* Le canevas est dessiné dans le repère local du panneau, puis agrandi par le zoom de
+     l'interface : sans en tenir compte, la carte serait floue d'autant sur un écran de
+     PC. Le facteur se lit sur la variable CSS plutôt que d'être deviné. */
+  const ui = +(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1;
+  const dpr = Math.min(3, (window.devicePixelRatio || 1) * ui);
   // Redimensionner un canevas l'efface et le réalloue : on ne le fait que si la taille
   // a vraiment changé, sinon chaque image de pincement repart d'une allocation.
   const cw = Math.round(L*dpr), ch = Math.round(H*dpr);
@@ -10442,8 +10501,13 @@ function parcelForSale(v){
   return best;
 }
 function refreshBuyButton(){
-  const p = parcelForSale(MACHINES[cur].v);
-  if(!p){ buyEl.style.display = 'none'; return; }
+  const v = MACHINES[cur].v;
+  const p = parcelForSale(v);
+  /* COMME LE BANDEAU DE SERVICE : on s'arrête dessus, ou l'on ne lit rien. Le panneau
+     « à vendre » se voit à quatorze mètres, c'est-à-dire deux secondes de route : le
+     bouton s'allumait et s'éteignait au passage, et « PALIER ATTEINT — 3 PARCELLES »
+     n'avait pas le temps d'être lu qu'il était déjà parti. */
+  if(!p || v.speed > ARRET){ buyEl.style.display = 'none'; return; }
   buyEl.style.display = 'block';
   const permis = peutAcheterParcelle();
   const ok = money >= p.price && permis;
@@ -10843,9 +10907,14 @@ const CARBU = {
   prixPompe: 1.85,      // au détail, à la pompe
   prixVrac: 1.48,       // en gros, livré dans la cuve de la ferme
   lotVrac: 500,         // taille d'une commande en gros
-  cuve: 0,              // stock de la ferme, en litres
-  cuveMax: 0,           // 0 tant que la cuve n'est pas achetée
-  cuvePrix: 7500,
+  /* LA CUVE EST LÀ DÈS LE PREMIER JOUR, ET PLEINE. Elle coûtait 7 500 € qu'on n'a pas
+     au palier 1 : le seul moyen de faire le plein était donc la pompe du village, à
+     1,85 € le litre au lieu de 1,48 en gros — on payait 25 % de plus précisément
+     pendant les heures où l'on n'a pas un sou. Elle fait partie de la ferme, comme le
+     silo et l'entrepôt ; ce qui s'achète, c'est ce qu'on met dedans. */
+  cuve: 3000,           // stock de la ferme, en litres
+  cuveMax: 3000,
+  cuvePrix: 0,          // elle n'est plus à vendre : elle est fournie
   debit: 26             // litres par seconde au remplissage
 };
 // Réservoir et consommation par type d'engin. La moissonneuse boit deux fois plus
@@ -10961,7 +11030,6 @@ function comptoirServable(){
   const place = (c)=> STOCK.max - STOCK[c] >= 1;
   if(place('semence') && money >= 50*STOCK.prixSemence) return true;
   if(place('engrais') && money >= 50*STOCK.prixEngrais) return true;
-  if(CARBU.cuveMax <= 0) return money >= CARBU.cuvePrix;
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
 /* Un seul anneau par commerce, et une seule condition pour tous. Elle énumère
@@ -11957,14 +12025,6 @@ function poserCuve(){
     const v = MACHINES[cur].v;
     return CARBU.cuve > 0.01 && v.fuel < v.resMax - 0.05;
   });
-}
-function acheterCuve(){
-  if(CARBU.cuveMax > 0 || money < CARBU.cuvePrix) return false;
-  money -= CARBU.cuvePrix;
-  CARBU.cuveMax = 3000;
-  poserCuve();
-  showHint('CUVE INSTALLÉE LE LONG DE L\'ENTREPÔT');
-  return true;
 }
 function commanderVrac(lots){
   if(CARBU.cuveMax <= 0) return 0;
@@ -13048,7 +13108,12 @@ const FLECHE_SVG =
   '<polygon points="13,1 24,45 2,45" fill="#62D84E"/></svg>';
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
-  const W = innerWidth, H = innerHeight;
+  /* LA TAILLE DU CADRE SE LIT SUR LE CONTENEUR, PAS SUR LA FENÊTRE. Le HUD est zoomé
+     sur un grand écran : son repère local vaut l'écran divisé par le facteur, et une
+     flèche placée d'après `innerWidth` serait poussée hors du cadre d'autant. Le
+     conteneur, lui, donne la bonne mesure quel que soit le zoom — et vaut exactement
+     `innerWidth` quand il n'y en a pas. */
+  const W = viseursEl.clientWidth, H = viseursEl.clientHeight;
   const mL = VISEUR.cote, mR = W - VISEUR.cote;
   const mT = VISEUR.haut, mB = H - VISEUR.bas;
   const cx = W/2, cy = (mT + mB)/2;
@@ -13113,10 +13178,10 @@ function refreshJauges(){
   // La pompe est en `currentColor` : elle prend la teinte de la boîte, qui prend celle
   // du niveau. Sans cette ligne la piste virait au rouge et clignotait pendant que le
   // pictogramme d'à côté restait vert vif.
-  const teinte = k < 0.12 ? '#E8563F' : (k < 0.28 ? '#F0A030' : '#8BE07A');
+  const teinte = k < 0.15 ? '#E8563F' : (k < 0.30 ? '#F0A030' : '#8BE07A');
   jaugeEl.fuel.style.background = teinte;
   jaugeEl.fuelBox.style.color = teinte;
-  jaugeEl.fuelBox.classList.toggle('bas', k < 0.12);
+  jaugeEl.fuelBox.classList.toggle('bas', k < 0.15);
   const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
   jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
   // ce que porte l'engin courant, en clair : la nature compte autant que la quantité
@@ -13221,10 +13286,12 @@ function cacherJauge(J, dt){
    jamais. Une parcelle en emprunte une quand elle pousse à portée, et la rend dès
    qu'elle sort du champ de vision. */
 let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
+let jaugeCuve = null;
 const jaugesLibres = [];
 function poserJauges(){
   jaugeEngin = creerJauge(); jaugeSilo = creerJauge();
   jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
+  jaugeCuve = creerJauge();
 }
 function prendreJauge(p){
   if(p.jauge) return p.jauge;
@@ -13359,6 +13426,18 @@ function majJauges(dt){
       et/ENTREPOT.stockMax(), et > ENTREPOT.stockMax()*0.92 ? '#E8563F' : '#9FD8E8', dt);
   } else cacherJauge(jaugeEntrepot, dt);
 
+  /* — LA CUVE DE LA FERME. Elle est pleine au premier jour et ne se remplit plus toute
+       seule : sans rien pour la lire, on découvrait qu'elle était vide le jour où le
+       plein ne se faisait plus. Elle porte donc la même étiquette que le silo et
+       l'entrepôt, au-dessus du réservoir, et vire à l'orange puis au rouge — c'est le
+       moment de commander du gros au comptoir, à 1,48 € au lieu de 1,85 à la pompe. */
+  if(CARBU.cuveMax > 0){
+    const kc = CARBU.cuve/CARBU.cuveMax;
+    montrerJauge(jaugeCuve, CUVE_POS.x, 6.0, CUVE_POS.z,
+      'Cuve ' + litres(CARBU.cuve) + ' / ' + litres(CARBU.cuveMax),
+      kc, kc < 0.15 ? '#E8563F' : (kc < 0.35 ? '#F0A030' : '#8BE07A'), dt);
+  } else cacherJauge(jaugeCuve, dt);
+
   // — les enclos : ce qu'il reste à manger, et où en est le produit. Un troupeau qui
   //   s'arrête de produire ne le dit nulle part ; il fallait ouvrir le menu pour
   //   découvrir que la mangeoire était vide depuis dix minutes. Deux jauges empilées
@@ -13471,18 +13550,12 @@ function ongletComptoir(){
   }
 
   titre('Gazole');
-  if(CARBU.cuveMax <= 0){
-    const ok = money >= CARBU.cuvePrix;
-    article(0xE8563F, 'Cuve de ferme',
-      'Une cuve de ' + litres(3000) + ' posée dans la cour. Le gazole en gros y est livré à ' +
-      dec(CARBU.prixVrac) + ' € / L au lieu de ' +
-      dec(CARBU.prixPompe) + ' € à la pompe, et les pleins se font sur place.<br>' +
-      eur(CARBU.cuvePrix),
-      ok ? 'Installer' : 'Trop cher', ok ? 'vert' : 'no', ()=> acheterCuve());
-  } else {
+  {
     article(0xE8563F, 'Cuve de ferme',
       'Contient ' + litres(CARBU.cuve) + ' / ' + litres(CARBU.cuveMax) +
-      '<br>Les pleins y sont gratuits : le gazole est déjà payé.', 'Installée', 'ok', null);
+      '<br>Les pleins y sont gratuits : le gazole est déjà payé. Le gros est livré à ' +
+      dec(CARBU.prixVrac) + ' € / L au lieu de ' + dec(CARBU.prixPompe) + ' € à la pompe.',
+      'Fournie', 'ok', null);
     for(const lots of [1, 4]){
       const q = lots*CARBU.lotVrac, cout = q*CARBU.prixVrac;
       const place = CARBU.cuve < CARBU.cuveMax - 1;
@@ -14638,7 +14711,10 @@ function chargerPartie(S){
     // Le silo était un tas unique de « grain » avant la chaîne de production : une
     // vieille partie retrouve son tas versé en blé, la céréale de départ.
     for(const k of SILO_CLES) siloStock[k] = (S.silo && S.silo[k]) || 0;
-    if(!S.silo && S.siloKg) siloStock.ble = S.siloKg;
+    /* La tour suit maintenant la terre qu'on possède : une partie d'avant peut arriver
+       avec plus de grain que la tour n'en tient. On borne, sans quoi le silo resterait
+       au-dessus de sa capacité pour toujours — rien ne le redescend. */
+    if(!S.silo && S.siloKg) siloStock.ble = Math.min(S.siloKg, siloMax());
     hopCrop = (S.hopCrop !== undefined && CROPS[S.hopCrop]) ? S.hopCrop : 0;
     // Les trémies et les quais des usines. Une sauvegarde d'avant la chaîne n'en a
     // pas : les commerces repartent à vide, ce qui est leur état de départ.
@@ -14927,6 +15003,11 @@ function ouvrirFin(){
 
 /* ---------- 30. BOUCLE ---------- */
 mondePret = true;
+poserCuve();                 // elle fait partie de la ferme, elle ne s'achète plus
+/* Les commandes à boutons sont le réglage de départ, et rien ne les posait : le mode
+   n'était appliqué qu'au basculement du réglage ou au chargement d'une partie. Une
+   partie neuve s'ouvrait donc sur un manche que COMMANDES.mode disait absent. */
+appliquerCommandes();
 caleEspece();
 remplirCommandes(0);
 construireEclairagesNuit();
