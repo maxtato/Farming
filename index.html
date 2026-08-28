@@ -8661,6 +8661,33 @@ function jeuDeBord(p, cote){
    couvre encore 45 cm au-delà du bord, et un semoir de 6,40 en couvre 1,25. On ne perd
    donc pas la bande de bordure — on éloigne seulement le tracteur de la clôture. */
 const VIRAGE_BORD = 2.2;
+/* ---------- LA VITESSE QUI TOURNE LE PLUS COURT ----------
+   Le joueur l'avait vu à l'œil : « si tu vas tout doucement avec les roues braquées à
+   fond, il va tourner plus serré ». Le modèle du jeu lui donne raison, et on peut le
+   lire dans une seule ligne de `Vehicle.update` :
+
+       this.cap += steerX * this.turn * min(1, |vf|/2.2) * dt
+
+   Le lacet vaut donc `braquage × turn × grip`, et le rayon `R = |v| / (braquage × turn)`.
+   AU-DESSUS de 2,2 m/s le grip vaut 1 : le rayon est PROPORTIONNEL À LA VITESSE. Un
+   tracteur neuf lancé à douze mètres par seconde tourne sur 6,3 m de rayon ; à deux, sur
+   1,2 m. AU-DESSOUS de 2,2 m/s le grip diminue exactement au rythme de la vitesse, les
+   deux se compensent, et le rayon ne descend plus : il plafonne à 2,2/turn.
+   2,2 m/s est donc EXACTEMENT le point le plus serré — plus lent ne sert à rien, plus
+   vite élargit. C'est la vitesse à laquelle on prend une tournière.
+
+   Ce que ça change, mesuré sur le pas entre deux lignes (deux tiers de largeur d'outil) :
+   la charrue neuve avance de 3,20 m par ligne, et un demi-tour d'un pas demande un rayon
+   d'au plus 1,60 m. À 1,16 m de rayon on passe ; à 6,30 m — plein gaz — on rate la ligne
+   suivante d'un tracteur et demi, et il faut manœuvrer. */
+const VIT_PIVOT = 2.2;
+/* Et l'on freine POUR y arriver, pas une fois dessus. Deux mètres et demi par seconde
+   carrée : c'est un ralentissement long, qu'on voit venir de vingt mètres, comme un
+   conducteur qui prépare sa tournière — et non un coup de frein au dernier moment.
+   v² = v_pivot² + 2·a·d, la seule loi qui ne mente pas sur une distance d'arrêt. */
+const FREIN_TOURNIERE = 2.5;
+const vitesseAvant = (d)=> Math.sqrt(VIT_PIVOT*VIT_PIVOT
+                                     + 2*FREIN_TOURNIERE*Math.max(0, d));
 /* ET L'ON MARQUE LES POINTS OÙ IL FAUDRA LEVER LE PIED.
    `viser` roule PLEIN GAZ tant que le cap est bon et ne ralentit qu'une fois le cap
    faussé — c'est-à-dire APRÈS avoir dépassé le coin. Sur un bord adossé à la clôture de
@@ -8807,7 +8834,11 @@ function planAuto(m, cible){
      la clôture avec le champ.
      Un conducteur, lui, ne fonce pas dans sa tournière : il ralentit avant de tourner.
      C'est ce que fait `lent`, et cela ne coûte que quelques secondes. */
-  const pose = (arr, x, z)=>{ arr.push(marquer({x:x, z:z}, best, serre)); };
+  // `o` porte les drapeaux du point : `virage` dit qu'on y tourne, et donc qu'il faut y
+  // arriver au pas — c'est ce qui resserre le demi-tour.
+  const pose = (arr, x, z, o)=>{
+    arr.push(marquer(Object.assign({x:x, z:z}, o || null), best, serre));
+  };
 
   // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
   // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
@@ -8832,11 +8863,12 @@ function planAuto(m, cible){
   const pts = [];
   pose(pts, coins0[depart][0], coins0[depart][1]);
   let d = depart;
+  const COIN = {virage:true};                 // on y tourne à l'équerre : on y arrive au pas
   for(let k = 0; k < 4; k++){
-    if(d === 0)      pose(pts, x1, z0);       // vers l'est, le long du bord nord
-    else if(d === 1) pose(pts, x1, z1);       // vers le sud, le long du bord est
-    else if(d === 2) pose(pts, x0, z1);       // vers l'ouest, le long du bord sud
-    else             pose(pts, x0, z0);       // vers le nord, le long du bord ouest
+    if(d === 0)      pose(pts, x1, z0, COIN); // vers l'est, le long du bord nord
+    else if(d === 1) pose(pts, x1, z1, COIN); // vers le sud, le long du bord est
+    else if(d === 2) pose(pts, x0, z1, COIN); // vers l'ouest, le long du bord sud
+    else             pose(pts, x0, z0, COIN); // vers le nord, le long du bord ouest
     d = (d + 1) % 4;
   }
   /* LE BALAYAGE. Les lignes courent le long du GRAND côté : c'est le sens qui en demande
@@ -8896,13 +8928,18 @@ function planAuto(m, cible){
        On longe donc d'abord le bord jusqu'au bout de la première ligne, puis on rentre :
        chaque déplacement n'a qu'une coordonnée qui change. */
     const u0 = versB0 ? b0 : b1;
-    if(surX) pose(pts, u0, aIci); else pose(pts, aIci, u0);
+    if(surX) pose(pts, u0, aIci, COIN); else pose(pts, aIci, u0, COIN);
     let vb = versB0;
+    /* LES DEUX BOUTS DE CHAQUE LIGNE SONT DES VIRAGES. C'est là que se prend le
+       demi-tour, et c'est la seule chose qui manquait au plan : la machine arrivait au
+       bout de sa ligne PLEIN GAZ — `viser` ne lève le pied qu'une fois le cap faussé,
+       donc après avoir dépassé le point — et virait sur six mètres de rayon là où il
+       en fallait un et demi. Elle ratait la ligne suivante et devait manœuvrer. */
     for(let k = 0; k <= n; k++){
       const a = dep + (fin - dep)*k/n;
       const u = vb ? b0 : b1, w2 = vb ? b1 : b0;
-      if(surX){ pose(pts, u, a); pose(pts, w2, a); }
-      else    { pose(pts, a, u); pose(pts, a, w2); }
+      if(surX){ pose(pts, u, a, COIN); pose(pts, w2, a, COIN); }
+      else    { pose(pts, a, u, COIN); pose(pts, a, w2, COIN); }
       vb = !vb;
     }
   }
@@ -8921,12 +8958,16 @@ function planAuto(m, cible){
    On regarde donc ce que l'outil LAISSE DERRIÈRE LUI : l'état de sortie pour les trois
    outils qui en changent, et la marque d'engrais pour celui qui n'en change pas. */
 function resteCellules(T, p){
-  const R = {n:0, x0:Infinity, x1:-Infinity, z0:Infinity, z1:-Infinity};
+  // `total` : le nombre de cellules TRAVAILLABLES de la parcelle, quel que soit leur
+  // état. C'est le dénominateur qui manquait pour dire si ce qui reste est un reliquat
+  // de virages ou un travail qui ne s'est pas fait.
+  const R = {n:0, total:0, x0:Infinity, x1:-Infinity, z0:Infinity, z1:-Infinity};
   if(!T || !T.from || !p) return R;
   const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
   const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
     const id = j*GNX+i, st = state[id];
+    if(st !== ST.HORS && instOf[id] >= 0) R.total++;
     if(st === ST.HORS || T.from.indexOf(st) < 0) continue;
     if(T.key === 'engrais'){ if(fert[id]) continue; }
     else if(st === T.to) continue;
@@ -9149,18 +9190,35 @@ function pointPerdu(v, wp, dt){
 }
 /* LA FIN D'UNE PASSE, EN DEUX TEMPS : on vérifie, puis on ressort.
    Rend `true` tant que le plan a encore quelque chose à faire faire — un rattrapage
-   de plus, ou la sortie de parcelle — et `false` quand c'est vraiment fini. Trois
-   rattrapages au plus, et l'on s'arrête dès qu'un passage n'a plus rien rattrapé :
-   un outil qui ne peut pas finir le travail ne doit pas y passer la nuit. */
+   de plus, ou la sortie de parcelle — et `false` quand c'est vraiment fini.
+
+   ON NE REVIENT PLUS SUR SES PAS. « Une fois qu'il a fini les passages jusqu'au bout de
+   la parcelle, il faut s'arrêter et sortir de la parcelle, pas revenir encore une fois. »
+   C'était le défaut le plus visible du pilote, et il ne venait pas du tracé : le
+   rattrapage se déclenchait dès qu'il restait UNE cellule, et il traçait alors plus de
+   lignes que le balayage lui-même — sept traversées complètes de la parcelle pour
+   rattraper trois coins, et jusqu'à trois fois de suite. Une cellule perdue au milieu
+   d'une parcelle valait deux traversées d'un bout à l'autre.
+   Il ne reste qu'un cas où repasser vaut la peine : quand la passe a VRAIMENT échoué —
+   panne sèche au milieu du champ, machine bloquée, plan interrompu. Mesuré sur seize cas,
+   quatre outils par quatre tailles de parcelle pilotés image par image, un plan qui va au
+   bout laisse entre 0 et 10,7 % de la terre, 4,7 % en moyenne. Au-delà de QUINZE POUR
+   CENT ce n'est plus un reliquat de virages, c'est du travail qui ne s'est pas fait : on
+   repasse une fois, et une seule. */
+const SEUIL_REPASSE = 0.15;
 function finDePlan(m){
   const v = m.v, plan = v.plan;
   if(!plan || plan.sorti) return false;
-  if((plan.replans || 0) < 3){
-    const r = planRattrapage(m, plan.p);
-    if(r && (!plan.rattrape || r.reste < plan.reste)){
-      r.replans = (plan.replans || 0) + 1;
-      v.plan = r;
-      return true;
+  if((plan.replans || 0) < 1){
+    const T0 = toolOf(m), R0 = resteCellules(T0, plan.p);
+    if(R0.total > 0 && R0.n/R0.total > SEUIL_REPASSE){
+      const r = planRattrapage(m, plan.p);
+      if(r){
+        r.replans = (plan.replans || 0) + 1;
+        v.plan = r;
+        showHint('IL RESTE DU TRAVAIL — ON REPASSE');
+        return true;
+      }
     }
   }
   /* DEUX ESSAIS DE SORTIE, PAS UN. Le point de sortie est choisi sur ce que `voieLibre`
@@ -9539,11 +9597,8 @@ function autoDrive(m, dt){
        envoie l'engin repasser dessus s'il en reste, et le fait ressortir de la
        parcelle quand il n'y a plus rien. Tant qu'il rend `true`, il y a encore à
        faire — le plan courant a été remplacé, ou allongé d'un point. */
-    const suite = !v.plan.sorti;
-    if(finDePlan(m)){
-      if(suite && v.plan.rattrape && v.plan.replans === 1) showHint('ON REPASSE SUR LES MANQUES');
-      return [0, 0.5];
-    }
+    // `finDePlan` dit lui-même ce qu'il fait quand il relance : ici on ne fait que suivre.
+    if(finDePlan(m)) return [0, 0.5];
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
   }
   if(!v.plan.entre){
@@ -9580,8 +9635,29 @@ function autoDrive(m, dt){
   const surMachine = wp.sortie || wp.bord;
   const px = surMachine ? v.pos.x : v.toolX, pz = surMachine ? v.pos.z : v.toolZ;
   const depasse = L > 0.1 && ((px - wp.x)*dx + (pz - wp.z)*dz)/L > -0.05;
-  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < (surMachine ? 1.0 : 2.0)
-     || pointPerdu(v, wp, dt)){
+  /* ET L'ON NE VISE PAS PLUS SERRÉ QUE SON PROPRE RAYON DE BRAQUAGE.
+     Deux points de tournière sont distants d'un pas — trois mètres vingt pour une
+     charrue neuve — et la machine, en plein virage, décrit un cercle d'un à trois mètres
+     de rayon : elle ne peut PAS passer dessus. Elle tournait autour sans jamais
+     l'atteindre, jusqu'à ce que le garde-fou des huit secondes l'abandonne — et abandonne
+     du même coup le point suivant, qui est le bout de la ligne. Mesuré sur une charrue en
+     19,6 x 30,4 : trois lignes perdues sur cinq, vingt-six pour cent de la parcelle
+     jamais labourée, et la ligne suivante abordée de travers.
+     Le rayon de capture d'un point de VIRAGE suit donc le rayon de braquage du moment,
+     `v/turn`, plus une marge. C'est sans conséquence sur le travail : ces points-là
+     tombent tous sur la tournière, que le tour de périphérie a déjà faite. */
+  /* ET SEULEMENT QUAND ELLE TOURNE VRAIMENT. Ouvrir le rayon sur toute une ligne
+     reviendrait à couper trois mètres à chaque bout : mesuré, deux points de couverture
+     perdus sur une petite parcelle. On regarde donc l'écart de cap : abordé de face, un
+     point se prend à deux mètres comme avant ; abordé en travers, c'est qu'on tourne
+     autour, et le rayon suit le braquage. */
+  let dcap = Math.atan2(wp.x - v.pos.x, wp.z - v.pos.z) - v.cap;
+  while(dcap >  Math.PI) dcap -= Math.PI*2;
+  while(dcap < -Math.PI) dcap += Math.PI*2;
+  const rCapt = surMachine ? 1.0
+              : ((wp.virage && Math.abs(dcap) > 0.7)
+                 ? Math.max(2.0, v.speed/Math.max(0.3, v.turn) + 0.9) : 2.0);
+  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < rCapt || pointPerdu(v, wp, dt)){
     v.plan.i++; return [0, 0.5];
   }
   /* ET L'ON RESSORT EN MARCHE ARRIÈRE QUAND LA SORTIE EST DERRIÈRE. Elle l'est chaque
@@ -9596,60 +9672,248 @@ function autoDrive(m, dt){
     const r = marcheArriere(v, wp.x, wp.z, 1.0);
     if(r) return r;
   }
-  const cmd = viser(v, wp.x, wp.z, 1.2);
-  /* ON LÈVE LE PIED AVANT UN COIN ADOSSÉ À QUELQUE CHOSE. `viser` roule plein gaz tant que
-     le cap est bon et ne ralentit qu'une fois le cap faussé — donc APRÈS le coin. Devant
-     une clôture, ce dépassement la couche. Quinze mètres avant le point marqué, le gaz
-     décroît linéairement jusqu'au quart : la machine arrive au pas et pivote court, comme
-     un conducteur qui connaît sa tournière. Coût mesuré : quelques secondes par parcelle. */
-  if(wp.lent){
-    const FREIN = 15;
+  const cmd = viser(v, wp.x, wp.z, 1.2, VIT_PIVOT);
+  /* ON ARRIVE AU PAS DANS LA TOURNIÈRE, ET C'EST CE QUI RESSERRE LE DEMI-TOUR.
+     `viser` roule plein gaz tant que le cap est bon et ne lève le pied qu'une fois le cap
+     faussé — c'est-à-dire APRÈS avoir dépassé le bout de la ligne. Le demi-tour se prenait
+     donc lancé : six mètres de rayon pour un tracteur neuf, dix pour un tracteur amélioré,
+     là où l'écart entre deux lignes en demande un et demi. La machine ratait la ligne
+     suivante, repartait de travers, et devait manœuvrer pour se replacer.
+     Elle décélère maintenant SUR TOUTE L'APPROCHE, selon v² = v_pivot² + 2·a·d : à vingt
+     mètres du bout elle roule encore à dix mètres par seconde, à cinq mètres à cinq, et
+     elle aborde le point exactement à la vitesse qui tourne le plus court.
+     LE MÊME FREIN SERT AUX COINS ADOSSÉS À UNE CLÔTURE (`lent`), qui avaient leur propre
+     rampe linéaire : celle-ci s'arrêtait au quart de la vitesse maximale, ce qui laissait
+     encore 4,6 m/s à un tracteur amélioré. */
+  if(wp.virage || wp.lent){
     const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
-    if(d < FREIN) cmd[1] = Math.min(cmd[1], Math.max(0.25, d/FREIN));
+    cmd[1] = Math.min(cmd[1], Math.max(0.05, vitesseAvant(d)/v.vmax));
   }
   return cmd;
 }
 // oriente la machine vers un point : braquage proportionnel, ralenti dans les virages
-function viser(v, tx, tz, rayon){
+function viser(v, tx, tz, rayon, vTour){
   const dx = tx - v.pos.x, dz = tz - v.pos.z;
   if(Math.hypot(dx,dz) < rayon) return [0, 0];
   let dd = Math.atan2(dx, dz) - v.cap;
   while(dd >  Math.PI) dd -= Math.PI*2;
   while(dd < -Math.PI) dd += Math.PI*2;
+  /* UN BUT EXACTEMENT DANS LE DOS, ET LA MACHINE PART TOUT DROIT.
+     `dd` vaut alors +π à une image et −π à la suivante — c'est le même angle, écrit des
+     deux côtés du tour. Le braquage change donc de signe à chaque image, les deux se
+     compensent, et l'engin s'éloigne en ligne droite de ce qu'il devait rejoindre.
+     Mesuré au bout d'une ligne de labour : huit secondes de fuite, puis le garde-fou
+     abandonne le point — et avec lui la ligne entière, vingt-cinq mètres jamais
+     travaillés. Au-delà de cent soixante-dix degrés on TRANCHE donc une bonne fois : on
+     garde le côté par lequel on a commencé à tourner, et l'on tourne jusqu'au bout. */
+  if(Math.abs(dd) > 2.97){
+    if(!v.cotePivot) v.cotePivot = dd >= 0 ? 1 : -1;
+    dd = v.cotePivot*Math.abs(dd);
+  } else v.cotePivot = 0;
   const st = Math.max(-1, Math.min(1, dd*2.8));   // braquage plus vif : virages resserrés
   // On lève franchement le pied dès que le cap est faux : à pleine vitesse, la machine
   // décrivait de grandes boucles au lieu de pivoter sur place en bout de passe.
   const a = Math.abs(dd);
-  return [st, a > 1.2 ? 0.22 : (a > 0.5 ? 0.45 : 1)];
+  if(a <= 0.5) return [st, 1];
+  /* ET AU CHAMP, LE GAZ SE DONNE EN MÈTRES PAR SECONDE, PAS EN FRACTION.
+     Les deux paliers valaient 0,22 et 0,45 de la vitesse MAXIMALE : 2,6 et 5,4 m/s pour
+     un tracteur neuf, mais 4,1 et 8,4 pour le même au dernier cran de vitesse. Le rayon
+     de virage étant proportionnel à la vitesse, le tracteur amélioré tournait une fois et
+     demie plus large que le neuf — améliorer sa machine dégradait son travail. Quand
+     l'appelant donne une vitesse de virage, on la vise en vitesse réelle et le rayon
+     cesse de dépendre du matériel. La route, elle, garde ses paliers : on y tourne à
+     l'équerre sur dix mètres de large, et l'y faire ramper coûterait des livraisons. */
+  if(vTour) return [st, Math.max(0.05, Math.min(1, (a > 1.2 ? vTour : vTour*1.7)/v.vmax))];
+  return [st, a > 1.2 ? 0.22 : 0.45];
 }
 
 /* --- circulation : voitures et camions sur la rocade --- */
+/* ---------- LES SIX VÉHICULES DU TRAFIC ----------
+   Ils viennent de la planche du joueur, portés tels quels : mêmes cotes, mêmes couleurs,
+   même façon de bâtir un habitacle. Cinq boîtes empilées ne font pas une voiture ; ce qui
+   la fait, c'est le SANDWICH — ceinture de caisse, bandeau vitré, pavillon, tous
+   exactement à la même largeur, si bien que le vitrage est affleurant par construction.
+   Chacun est fusionné en UNE géométrie, donc un seul appel de rendu, comme les maisons. */
 const TRAFIC_GEOS = (function(){
-  const mk = (parts)=> mergeParts(parts);
-  const B = (w,h,d,x,y,z,c)=>({g:new THREE.BoxGeometry(w,h,d),
-    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
-  const roue = (x,z)=>({g:new THREE.CylinderGeometry(0.45,0.45,0.4,8),
-    m:new THREE.Matrix4().makeRotationZ(Math.PI/2).setPosition(x,0.45,z), c:0x24282B});
-  return [
-    // berline
-    mk([B(2.0,0.85,4.6, 0,0.85,0, 0xD8483C), B(1.75,0.75,2.3, 0,1.6,-0.2, 0x2C3B43),
-        B(1.9,0.16,0.5, 0,0.9,2.35, 0xF6F2E6), roue(-1.0,1.5), roue(1.0,1.5), roue(-1.0,-1.5), roue(1.0,-1.5)]),
-    // break familial
-    mk([B(2.1,0.95,5.2, 0,0.9,0, 0x3E7CB8), B(1.85,0.95,3.0, 0,1.75,-0.6, 0x2C3B43),
-        B(2.0,0.16,0.5, 0,0.95,2.6, 0xF6F2E6), roue(-1.05,1.7), roue(1.05,1.7), roue(-1.05,-1.7), roue(1.05,-1.7)]),
-    // camionnette
-    mk([B(2.2,1.15,5.0, 0,0.95,0, 0xEFE2C8), B(2.1,1.5,2.6, 0,2.0,-1.0, 0xEFE2C8),
-        B(1.8,0.9,0.18, 0,1.9,0.35, 0x2C3B43), roue(-1.1,1.6), roue(1.1,1.6), roue(-1.1,-1.6), roue(1.1,-1.6)]),
-    // camion à caisse
-    mk([B(2.5,1.5,3.0, 0,1.1,2.6, 0x2E6B48), B(2.4,1.4,1.6, 0,2.4,2.9, 0x2C3B43),
-        B(2.7,2.7,6.4, 0,2.0,-1.6, 0xE8EDF0), B(2.75,0.3,6.5, 0,3.45,-1.6, 0x9AA2A7),
-        roue(-1.25,3.0), roue(1.25,3.0), roue(-1.35,-1.0), roue(1.35,-1.0), roue(-1.35,-3.2), roue(1.35,-3.2)]),
-    // citerne
-    mk([B(2.4,1.4,2.8, 0,1.05,3.0, 0xD8B24A), B(2.3,1.3,1.5, 0,2.3,3.2, 0x2C3B43),
-        {g:new THREE.CylinderGeometry(1.4,1.4,7.0,10),
-         m:new THREE.Matrix4().makeRotationX(Math.PI/2).setPosition(0,2.0,-1.4), c:0xC9CFD3},
-        roue(-1.2,3.3), roue(1.2,3.3), roue(-1.3,-1.2), roue(1.3,-1.2), roue(-1.3,-3.4), roue(1.3,-3.4)])
-  ];
+  const NOIR = 0x2A2622, VITRE = 0x22303A, CREME = 0xF2E7D2, INOX = 0xC9CFD3,
+        GRIS = 0x8A9298, CHASSIS = 0x3A3630, ROUGE = 0xC0392B;
+  const T = (x, y, z)=> new THREE.Matrix4().makeTranslation(x||0, y||0, z||0);
+  const B = (w,h,d, c, x,y,z)=>({g:new THREE.BoxGeometry(w,h,d), m:T(x,y,z), c});
+  const CY = (r,h,seg, c, x,y,z, rx,rz)=>({g:new THREE.CylinderGeometry(r,r,h,seg),
+    m:new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx||0,0,rz||0))
+                         .setPosition(x||0,y||0,z||0), c});
+  /* PRISME À DESSUS RÉTRÉCI : capots et cabines. Il n'existe pas en géométrie toute
+     faite, on le pose sommet par sommet.
+     ET L'ENROULEMENT EST INVERSÉ PAR RAPPORT À LA PLANCHE. Elle peignait en DoubleSide,
+     ce qui masquait l'erreur ; la matière du trafic n'a qu'une face — les voitures se
+     seraient vues de l'intérieur, capot ouvert sur le vide. */
+  function slab(o){
+    const w = o.w, h = o.h, d = o.d;
+    const tw = o.tw === undefined ? w : o.tw, td = o.td === undefined ? d : o.td;
+    const dx = o.dx || 0, dz = o.dz || 0;
+    const x0 = -w/2, x1 = w/2, z0 = -d/2, z1 = d/2;
+    const X0 = dx - tw/2, X1 = dx + tw/2, Z0 = dz - td/2, Z1 = dz + td/2;
+    const v = [x0,0,z0, x1,0,z0, x1,0,z1, x0,0,z1, X0,h,Z0, X1,h,Z0, X1,h,Z1, X0,h,Z1];
+    const f = [[0,1,2],[0,2,3],[4,6,5],[4,7,6],[0,5,1],[0,4,5],
+               [1,6,2],[1,5,6],[2,7,3],[2,6,7],[3,4,0],[3,7,4]];
+    const pos = [];
+    for(const t of f) for(const i of t) pos.push(v[i*3], v[i*3+1], v[i*3+2]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    return {g, m:T(o.x, o.y, o.z), c:o.c};
+  }
+  /* LES ROUES. `jumele` pose une seconde roue CÔTE À CÔTE sur l'essieu arrière, VERS
+     L'INTÉRIEUR : posée dehors, elle débordait de toute une largeur de pneu hors de la
+     carrosserie. */
+  function roues(P, ecart, avant, arriere, r, l, jumele){
+    const liste = [];
+    for(const s of [-1, 1]){
+      liste.push([s*ecart, avant]);
+      liste.push([s*ecart, arriere]);
+      if(jumele) liste.push([s*(ecart - l*1.15), arriere]);
+    }
+    for(const [x, z] of liste){
+      P.push(CY(r, l, 10, NOIR, x, r, z, 0, Math.PI/2));
+      P.push(CY(r*0.5, l + 0.05, 8, 0xE8E2D0, x, r, z, 0, Math.PI/2));
+    }
+    if(jumele) for(const s of [-1, 1])
+      P.push(CY(0.08, l*1.2, 6, GRIS, s*(ecart - l*0.58), r, arriere, 0, Math.PI/2));
+  }
+  function feux(P, w, y, zAv, zAr){
+    for(const sx of [-w, w]){
+      P.push(B(0.32, 0.2, 0.1, 0xFFF6CC, sx, y, zAv));
+      P.push(B(0.3, 0.18, 0.1, ROUGE, sx, y, zAr));
+    }
+  }
+  /* LA SERRE : l'habitacle est un SANDWICH de trois tranches — ceinture de caisse,
+     bandeau vitré, pavillon — toutes exactement à la même largeur. Le vitrage est donc
+     affleurant par construction : il ne peut ni déborder de la tôle, ni s'y noyer. Les
+     montants se posent par-dessus, à la même largeur eux aussi. */
+  function serre(P, w, h, d, c, yBas, zc, nCotes){
+    const hC = h*0.14, hV = h*0.66, hT = h - hC - hV;
+    P.push(B(w, hC, d, c, 0, yBas + hC/2, zc));
+    P.push(B(w, hV, d, VITRE, 0, yBas + hC + hV/2, zc));
+    P.push(B(w, hT, d, c, 0, yBas + hC + hV + hT/2, zc));
+    const yV = yBas + hC + hV/2;
+    for(const sx of [-1, 1]) for(const sz of [-1, 1])
+      P.push(B(0.16, hV, 0.16, c, sx*(w/2 - 0.08), yV, zc + sz*(d/2 - 0.08)));
+    const n = nCotes || 2;
+    for(let k = 1; k < n; k++) for(const sx of [-1, 1])
+      P.push(B(0.15, hV, 0.13, c, sx*(w/2 - 0.075), yV, zc - d/2 + k*(d/n)));
+    P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + 0.02, zc));
+    P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + hV - 0.02, zc));
+  }
+  // Cabine de poids lourd : même sandwich, ceinture plus haute et pavillon mince.
+  function cabine(P, w, h, d, c, yBas, zc){
+    const hC = h*0.42, hV = h*0.44, hT = h - hC - hV;
+    P.push(B(w, hC, d, c, 0, yBas + hC/2, zc));
+    P.push(B(w, hV, d, VITRE, 0, yBas + hC + hV/2, zc));
+    P.push(B(w, hT, d, c, 0, yBas + hC + hV + hT/2, zc));
+    const yV = yBas + hC + hV/2;
+    for(const sx of [-1, 1]) for(const sz of [-1, 1])
+      P.push(B(0.17, hV, 0.17, c, sx*(w/2 - 0.085), yV, zc + sz*(d/2 - 0.085)));
+    P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + 0.02, zc));
+    P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + hV - 0.02, zc));
+  }
+
+  // 1 — Berline : trois volumes, habitacle droit, vitres à hauteur unique.
+  function berline(){
+    const C = 0x2E6BA8, P = [];
+    P.push(slab({w:1.9, h:0.62, d:4.4, tw:1.85, td:4.3, c:C, y:0.42}));
+    serre(P, 1.72, 0.74, 2.4, C, 1.02, -0.15, 2);
+    P.push(B(1.94, 0.16, 0.4, 0x2A2E32, 0, 0.42, 2.2));
+    P.push(B(1.94, 0.16, 0.4, 0x2A2E32, 0, 0.42, -2.2));
+    feux(P, 0.68, 0.72, 2.22, -2.22);
+    roues(P, 0.86, 1.42, -1.42, 0.36, 0.26);
+    return P;
+  }
+  // 2 — Break familial : plus long, trois baies latérales, galerie et bagage sanglé.
+  function breakFamilial(){
+    const C = 0x8E4436, P = [];
+    P.push(slab({w:1.92, h:0.66, d:4.7, tw:1.88, td:4.6, c:C, y:0.4}));
+    serre(P, 1.76, 0.82, 3.1, C, 1.06, -0.5, 3);
+    P.push(B(1.7, 0.1, 2.2, GRIS, 0, 1.88, -0.6));
+    for(const sx of [-0.75, 0.75]) P.push(B(0.08, 0.14, 2.2, INOX, sx, 1.95, -0.6));
+    P.push(B(1.3, 0.36, 0.9, CREME, 0, 2.1, -0.6));
+    P.push(B(1.96, 0.16, 0.4, 0x2A2E32, 0, 0.4, 2.35));
+    feux(P, 0.7, 0.72, 2.36, -2.36);
+    roues(P, 0.88, 1.5, -1.5, 0.37, 0.27);
+    return P;
+  }
+  // 3 — Citadine : courte et haute, la plus petite du trafic.
+  function citadine(){
+    const C = 0xE8C24A, P = [];
+    P.push(slab({w:1.76, h:0.6, d:3.5, tw:1.7, td:3.4, c:C, y:0.38}));
+    serre(P, 1.6, 0.7, 2.0, C, 0.98, -0.2, 2);
+    P.push(B(1.8, 0.14, 0.34, 0x2A2E32, 0, 0.38, 1.74));
+    feux(P, 0.62, 0.66, 1.76, -1.76);
+    roues(P, 0.8, 1.12, -1.12, 0.33, 0.24);
+    return P;
+  }
+  // 4 — Bétaillère : caisse à claire-voie, cabine vitrée, roues jumelées.
+  function betaillere(){
+    const CAB = 0x3E6B4E, CAISSE = 0xC9CFD3, P = [];
+    P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
+    P.push(B(2.4, 0.16, 4.6, CAISSE, 0, 0.88, -1.5));
+    P.push(B(2.5, 0.2, 4.7, CAISSE, 0, 3.0, -1.5));
+    for(const sx of [-1.18, 1.18]) for(let k = 0; k < 5; k++)
+      P.push(B(0.08, 0.2, 4.5, CAISSE, sx, 1.15 + k*0.42, -1.5));
+    for(let k = 0; k < 4; k++) P.push(B(2.3, 0.2, 0.08, CAISSE, 0, 1.2 + k*0.5, -3.78));
+    for(const sx of [-1.2, 1.2]) P.push(B(0.14, 2.1, 0.14, GRIS, sx, 1.95, -3.7));
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.2));
+    feux(P, 0.82, 0.86, 3.42, -3.86);
+    roues(P, 1.02, 2.3, -1.9, 0.46, 0.34, true);
+    return P;
+  }
+  // 5 — Plateau à bottes : six bottes rondes sanglées.
+  function plateauBottes(){
+    const CAB = 0x8E8172, PAILLE = 0xD9C48A, P = [];
+    P.push(B(2.2, 0.34, 7.4, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.5);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.6));
+    P.push(B(2.5, 0.2, 5.0, 0x6B5A44, 0, 0.9, -1.3));
+    for(const sx of [-1.22, 1.22]) P.push(B(0.1, 0.5, 5.0, 0x6B5A44, sx, 1.25, -1.3));
+    for(let r = 0; r < 2; r++) for(let k = 0; k < 3; k++){
+      const x = -0.62 + r*1.24, z = -3.2 + k*1.5;
+      P.push(CY(0.58, 1.1, 12, PAILLE, x, 1.58, z));
+      for(let i = 0; i < 3; i++) P.push(CY(0.6, 0.05, 12, 0xC2A96E, x, 1.28 + i*0.3, z));
+    }
+    P.push(B(0.06, 0.06, 4.6, 0x4A4F53, 0, 2.2, -1.3));
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.4));
+    feux(P, 0.82, 0.86, 3.62, -4.06);
+    roues(P, 1.02, 2.5, -1.9, 0.46, 0.34, true);
+    return P;
+  }
+  // 6 — Monospace : un seul volume, museau court, grandes vitres.
+  function monospace(){
+    const C = 0x7A5F8E, P = [];
+    P.push(B(2.0, 0.3, 4.8, CHASSIS, 0, 0.44, 0));
+    // Ceinture de caisse HAUTE : les vitres ne descendent pas jusqu'aux passages de roues.
+    P.push(B(1.96, 0.76, 4.7, C, 0, 0.8, 0));
+    serre(P, 1.96, 1.0, 4.05, C, 1.18, -0.28, 3);
+    for(const sx of [-1, 1]) P.push(B(0.05, 0.85, 0.06, 0x6A5180, sx*0.98, 1.6, 0.5));
+    const zAv = 2.35, zAr = -2.35;
+    P.push(B(1.62, 0.3, 0.1, 0x2A2E32, 0, 0.92, zAv + 0.02));
+    for(let k = 0; k < 3; k++)
+      P.push(B(1.5, 0.05, 0.12, 0x4A4F53, 0, 0.83 + k*0.09, zAv + 0.04));
+    for(const sx of [-0.72, 0.72]){          // phares POSÉS sur la calandre, non enfoncés
+      P.push(B(0.42, 0.24, 0.12, 0x2A2E32, sx, 0.92, zAv + 0.03));
+      P.push(B(0.34, 0.17, 0.1, 0xFFF6CC, sx, 0.92, zAv + 0.09));
+    }
+    for(const sx of [-0.66, 0.66]){
+      P.push(B(0.3, 0.4, 0.1, 0x8E2F26, sx, 1.05, zAr - 0.03));
+      P.push(B(0.24, 0.32, 0.08, 0xC0392B, sx, 1.05, zAr - 0.07));
+    }
+    P.push(B(2.0, 0.2, 0.44, 0x2A2E32, 0, 0.5, zAv + 0.06));
+    P.push(B(2.0, 0.2, 0.44, 0x2A2E32, 0, 0.5, zAr - 0.06));
+    roues(P, 0.88, 1.6, -1.6, 0.37, 0.26);
+    return P;
+  }
+  return [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace]
+           .map((f)=> mergeParts(f()));
 })();
 // Camion de livraison : un tracteur routier et trois remorques interchangeables.
 // Tout est fusionné en une géométrie par attelage — un seul appel de rendu chacun.
@@ -9759,14 +10023,37 @@ function surRocade(e, CR, s){
   const d = droites[0];
   return {x:d.x0, z:d.z0, tx:d.dx, tz:d.dz};
 }
-const TRAFIC = [];
+/* LE PÉRIMÈTRE D'UNE FILE, PARCE QU'IL FAUT L'ÉTALER DESSUS. `surRocade` le calcule pour
+   elle-même et ne le rend pas ; poser douze véhicules « tous les 38 mètres » laissait un
+   trou de trois cents mètres où l'on ne croisait personne pendant une demi-minute. */
+const perimetreRocade = (e, CR)=>
+  2*((ROC.x1 - ROC.x0 + 2*e - 2*CR) + (ROC.z1 - ROC.z0 + 2*e - 2*CR)) + 2*Math.PI*CR;
+/* ET LE RAYON DE VIRAGE N'EST PAS LE MÊME DANS LES DEUX FILES.
+   La file intérieure coupe au plus court : à neuf mètres de rayon, son axe passait
+   trente-trois centimètres DANS L'HERBE au sommet de chaque virage. Le coin intérieur du
+   bitume est à √2·(CR − 5 − e) du centre de l'arc, et il faut CR ≤ 3,41·(5 + e) pour
+   rester dessus — soit 8,19 m pour la file intérieure (e = −2,6). Huit mètres tiennent,
+   avec huit centimètres de marge ; la file extérieure, elle, a de la place pour neuf. */
+const RAYON_FILE = (sens)=> sens > 0 ? 8 : 9;
+const TRAFIC = [], FILES = [[], []];
 (function(){
-  // Circulation retirée : les modèles et le tracé restent en place, il suffit de
-  // remonter ce nombre pour remettre des véhicules sur la rocade.
-  const NB_VEHICULES = 0;
+  /* LA CIRCULATION DE LA ROCADE. « Une voiture qui passe sur chaque route toutes les
+     quatre à dix secondes, et pas d'embouteillages. »
+     L'anneau est FERMÉ, et c'est ce qui rend le calcul simple : un véhicule parcourt les
+     quatre brins, donc le débit vu depuis n'importe quel point de n'importe quelle route
+     vaut N divisé par le tour de piste. Le parc roule à 9,8 m/s en moyenne sur 716 à
+     758 mètres de file, soit soixante-quinze secondes de tour : DOUZE véhicules donnent
+     une voiture toutes les 6,2 secondes sur chaque route, au milieu de la fourchette
+     demandée. Encombrement : 3,1 véhicules à la fois sur un brin de 188 m, un tous les
+     cent vingt-trois mètres — une route de campagne fréquentée, pas une file d'attente.
+     Le compte se règle ici et nulle part ailleurs : dix donnent 7,5 s, quatorze 5,4 s. */
+  const NB_VEHICULES = 12;
   const NB_LEGERS = TRAFIC_GEOS.length;
   const NB = NB_LEGERS + CAMIONS_GEOS.remorques.length;
-  for(let k=0;k<NB_VEHICULES;k++){
+  const rangs = [0, 0];                       // combien de véhicules déjà posés par file
+  const parFile = [0, 0];
+  for(let k = 0; k < NB_VEHICULES; k++) parFile[(k % 2) ? 1 : 0]++;
+  for(let k = 0; k < NB_VEHICULES; k++){
     const type = k % NB;
     const lourd0 = type >= NB_LEGERS;
     const m = new THREE.Mesh(lourd0 ? CAMIONS_GEOS.tracteur : TRAFIC_GEOS[type], traficMat);
@@ -9779,15 +10066,59 @@ const TRAFIC = [];
     // On roule à droite : dans le sens du tracé, l'intérieur du circuit est à droite,
     // donc ce sens prend la file intérieure et le sens inverse la file extérieure.
     const sens = k % 2 ? 1 : -1;
-    TRAFIC.push({m, rem, sens, R: -sens*2.6, s: k*38 + Math.random()*16,
-                 v: lourd0 ? 6 + Math.random()*3 : 8 + Math.random()*6,
-                 axe:null, tcap:0, troll:0});
+    const R = -sens*2.6, cr = RAYON_FILE(sens);
+    const P = perimetreRocade(R, cr);
+    const f = sens > 0 ? 1 : 0;
+    // ÉTALÉS SUR LEUR PROPRE FILE, et non « tous les 38 mètres » : les deux files n'ont
+    // pas le même périmètre — quarante et un mètres d'écart, six pour cent.
+    const s = (rangs[f]++)*(P/parFile[f]) + Math.random()*8 - 4;
+    const t = {m, rem, sens, R, cr, P, s, lourd:lourd0,
+               // ce que la carrosserie traîne DERRIÈRE son origine : c'est là que le
+               // suivant doit s'arrêter
+               arriere: lourd0 ? 13 : 3,
+               v: lourd0 ? 6 + Math.random()*3 : 8 + Math.random()*6,
+               vEff:0, axe:null, tcap:0, troll:0};
+    TRAFIC.push(t); FILES[f].push(t);
   }
 })();
+/* ON NE SE TRAVERSE PLUS. Chaque véhicule avançait à sa vitesse propre sans jamais
+   regarder devant : une citadine à quatorze mètres par seconde rattrapait un camion à
+   six, et lui passait au travers. On cherche donc, une fois par image, qui est devant
+   dans sa PROPRE file — modulo le périmètre de cette file-là, les deux diffèrent — et
+   l'on se cale sur lui en dessous de vingt-six mètres. Six véhicules par file : trente
+   comparaisons par image, rien du tout. */
+/* LA DISTANCE DE SÉCURITÉ SE COMPTE SUR CELUI DE DEVANT. Un attelage complet traîne
+   treize mètres de remorque derrière son origine, une voiture trois : suivre un camion
+   d'aussi près qu'une citadine, c'est lui rentrer dans le hayon. Et l'écart en mètres de
+   route se resserre encore dans les virages, où la corde est plus courte que l'axe. */
+const suiviPres = (dev)=> dev.arriere + 7;
 function updateTrafic(dt){
+  for(const F of FILES) for(const t of F){
+    let d = Infinity, dev = null;
+    for(const u of F){
+      if(u === t) continue;
+      let e = (u.s - t.s)*t.sens;
+      e = ((e % t.P) + t.P) % t.P;
+      if(e < d){ d = e; dev = u; }
+    }
+    /* SOUS LA DISTANCE DE SÉCURITÉ, ON ROULE MOINS VITE QUE CELUI DE DEVANT — et non
+       exactement à sa vitesse. La première version se calait dessus : l'écart cessait de
+       se réduire, mais ne se rouvrait jamais, et une file de six où chacun freine pour
+       le précédent finissait par se tasser jusqu'à ce que deux carrosseries se
+       superposent. Mesuré : écart minimal nul au bout de deux tours de piste. Une part
+       de la vitesse du précédent, proportionnelle à l'écart, rouvre la distance
+       d'elle-même — c'est la loi de poursuite habituelle, et elle ne peut pas s'effondrer. */
+    const pres = dev ? suiviPres(dev) : 0, loin = pres + 16;
+    if(!dev || d >= loin) t.vEff = t.v;
+    else if(d <= pres) t.vEff = Math.min(t.v, dev.v*Math.max(0, d/pres));
+    else {
+      const k = (d - pres)/(loin - pres);
+      t.vEff = Math.min(t.v, dev.v + (t.v - dev.v)*k);
+    }
+  }
   for(const t of TRAFIC){
-    t.s += t.v*dt*t.sens;
-    const p = surRocade(t.R, 9, t.s);
+    t.s += t.vEff*dt*t.sens;
+    const p = surRocade(t.R, t.cr, t.s);
     t.m.position.set(p.x, 0, p.z);
     // la carrosserie est modelée nez vers +Z : le cap suit la tangente,
     // retournée quand le véhicule remonte le tracé
@@ -9797,7 +10128,7 @@ function updateTrafic(dt){
     let d = cap - (t.cap !== undefined ? t.cap : cap);
     while(d >  Math.PI) d -= Math.PI*2;
     while(d < -Math.PI) d += Math.PI*2;
-    const vise = Math.max(-0.26, Math.min(0.26, -d/Math.max(0.001,dt) * t.v * 0.022));
+    const vise = Math.max(-0.26, Math.min(0.26, -d/Math.max(0.001,dt) * t.vEff * 0.022));
     t.roll = (t.roll || 0) + (vise - (t.roll || 0)) * Math.min(1, dt*5);
     t.cap = cap;
     t.m.rotation.set(0, cap, 0);
@@ -9816,7 +10147,7 @@ function updateTrafic(dt){
       let e = tcap - t.tcap;
       while(e >  Math.PI) e -= Math.PI*2;
       while(e < -Math.PI) e += Math.PI*2;
-      const viseR = Math.max(-0.2, Math.min(0.2, -e/Math.max(0.001,dt) * t.v * 0.018));
+      const viseR = Math.max(-0.2, Math.min(0.2, -e/Math.max(0.001,dt) * t.vEff * 0.018));
       t.troll += (viseR - t.troll) * Math.min(1, dt*5);
       t.tcap = tcap;
       t.rem.position.set(hx, 0, hz);

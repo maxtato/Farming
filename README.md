@@ -1422,6 +1422,67 @@ Les deux courses qui tombent encore le font toutes deux sur le **raccord du ratt
 la machine vient de finir sa passe, souvent le nez dehors, et rejoint sa première ligne au
 plus court. Jamais pendant le travail lui-même.
 
+### Le demi-tour se prend au pas
+
+Le joueur l'avait vu à l'œil : *« le tracteur va trop vite quand il fait son demi-tour. Si
+tu vas tout doucement avec les roues braquées à fond, il va tourner plus serré, il va
+pouvoir revenir sur ses traces sans avoir à manœuvrer. »* Le modèle du jeu lui donne
+raison, et cela tient dans une ligne de `Vehicle.update` :
+
+```
+this.cap += steerX * this.turn * min(1, |vf|/2.2) * dt
+```
+
+Le rayon vaut donc `R = |v| / (braquage × turn)`. **Au-dessus de 2,2 m/s il est
+proportionnel à la vitesse** : un tracteur neuf lancé à douze mètres par seconde tourne sur
+6,3 m de rayon, à deux sur 1,2 m — et un tracteur *amélioré*, qui monte à 18,6 m/s, sur 9,8.
+Au-dessous de 2,2 m/s l'adhérence diminue exactement au rythme de la vitesse, les deux se
+compensent, et le rayon ne descend plus. **2,2 m/s est le point le plus serré**, ni plus
+lent ni plus vite, et c'est la vitesse à laquelle on prend une tournière.
+
+Trois choses ont changé, et aucune ne touche au tracé :
+
+- **On freine sur toute l'approche**, selon `v² = v_pivot² + 2·a·d` : à vingt mètres du bout
+  de la ligne on roule encore à dix mètres par seconde, à cinq mètres à cinq, et l'on aborde
+  le point exactement à la vitesse qui tourne le plus court. `viser` ne levait le pied
+  qu'une fois le cap *déjà* faussé — c'est-à-dire après avoir dépassé le coin.
+- **Le gaz de virage se donne en mètres par seconde**, plus en fraction de la vitesse
+  maximale. Les deux paliers valaient 0,22 et 0,45 : 2,6 et 5,4 m/s pour un tracteur neuf,
+  mais 4,1 et 8,4 pour le même au dernier cran — améliorer sa machine dégradait son travail.
+- **On ne vise pas plus serré que son propre rayon de braquage.** Deux points de tournière
+  sont distants d'un pas, et la machine en plein virage décrit un cercle d'un à trois
+  mètres : elle tournait *autour* du point sans jamais l'atteindre, jusqu'à ce que le
+  garde-fou des huit secondes l'abandonne — et abandonne avec lui la ligne entière. Mesuré :
+  trois lignes perdues sur cinq, vingt-six pour cent de la parcelle jamais labourée. Le
+  rayon de capture suit donc le braquage, mais **seulement quand la machine tourne
+  vraiment** : abordé de face, un point se prend à deux mètres comme avant.
+
+### Et l'on ne revient pas
+
+*« Une fois qu'il a fini les passages jusqu'au bout de la parcelle, il faut s'arrêter et
+sortir de la parcelle, pas revenir encore une fois. »* C'était le défaut le plus visible, et
+il ne venait pas du tracé : le rattrapage se déclenchait dès qu'il restait **une** cellule,
+et il traçait alors **plus de lignes que le balayage lui-même** — sept traversées complètes
+de la parcelle pour rattraper trois coins, et jusqu'à trois fois de suite. Une cellule
+perdue au milieu d'un champ valait deux traversées d'un bout à l'autre.
+
+Il ne part plus que quand la passe a *vraiment* échoué : panne sèche au milieu, machine
+bloquée, plan interrompu. Mesuré sur seize cas — quatre outils par quatre tailles de
+parcelle, pilotés image par image —, un plan qui va au bout laisse entre 0 et 10,7 % de la
+terre, 4,7 % en moyenne. Au-delà de **quinze pour cent** ce n'est plus un reliquat de
+virages, c'est du travail qui ne s'est pas fait : on repasse une fois, et une seule.
+
+Ce que les douze chantiers du banc de clôture disent des deux changements réunis :
+
+| | avant | après |
+|---|---|---|
+| passes par parcelle | jusqu'à 4 | **1** |
+| images pour les douze chantiers | 59 824 | **30 204** |
+| clôtures couchées en travaillant | 2 | **0** |
+| l'axe sort de sa terre de | 1,99 m | **1,29 m** |
+| terre du voisin travaillée | 1 cellule | **0** |
+| terre faite, au pire des douze | 90,7 % | 93,3 % |
+
 ## Le premier quart d'heure
 
 Le jeu commençait par **un anneau vert à la Coopérative**. Il fallait deviner qu'on y
