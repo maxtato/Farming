@@ -2001,9 +2001,19 @@ NIVEAUX.forEach((N, i)=>{
 // Un objet qu'aucun palier ne nomme est ouvert d'emblée : c'est ce qui permet
 // d'ajouter demain un outil ou un commerce sans avoir à le déclarer ici.
 const niveauDe = (famille, cle)=> _ouverture[famille + ':' + cle] || 1;
-const ouvert = (famille, cle)=> CAMPAGNE.niveau >= niveauDe(famille, cle);
+/* LE MODE LIBRE COURT-CIRCUITE ICI, ET NULLE PART AILLEURS. Les six familles —
+   cultures, outils, engins, modules, espèces, commerces — passent toutes par cette
+   ligne : la lever ici les lève toutes d'un coup, sans une seule exception disséminée
+   dans les treize appelants. `niveauDe` n'est PAS touché : c'est lui qui écrit
+   « Ouvre au niveau 8 » dans les menus, et l'information reste bonne à lire. */
+const ouvert = (famille, cle)=> MODE_LIBRE || CAMPAGNE.niveau >= niveauDe(famille, cle);
+// Le même court-circuit pour les huit endroits qui comparent un palier à la main : sans
+// lui, le verrou serait levé mais le bouton resterait gris, avec « Niveau 12 » écrit
+// dessus, sur quelque chose qu'on a le droit d'acheter.
+const auNiveau = (niv)=> MODE_LIBRE || CAMPAGNE.niveau >= niv;
 // Combien de parcelles on a le droit de posséder au palier courant.
-const parcellesPermises = ()=> NIVEAUX[Math.min(NIVEAUX.length, CAMPAGNE.niveau) - 1].parcelles;
+const parcellesPermises = ()=> MODE_LIBRE ? NIVEAUX[NIVEAUX.length - 1].parcelles
+                             : NIVEAUX[Math.min(NIVEAUX.length, CAMPAGNE.niveau) - 1].parcelles;
 
 /* LES MISSIONS DE CAMPAGNE. Une seule à la fois, dans l'ordre, et c'est elle qui
    ouvre le palier suivant. Deux formes :
@@ -2204,7 +2214,11 @@ CAMPAGNE.faits = [];
    personne pour la proposer : celle-là s'affiche directement, il n'y a nulle part où
    aller la chercher. */
 CAMPAGNE.prise = false;
-const missionCourante = ()=> MISSIONS[CAMPAGNE.mission] || null;
+/* EN MODE LIBRE IL N'Y A PAS DE MISSION. C'est la définition même du mode : on joue
+   hors de la campagne. Tout ce qui lit une mission est déjà à l'épreuve du null — le
+   bandeau, le guidage, la carte, les flèches, le pictogramme — et rend simplement une
+   vallée sans jaune, guidée par le vert des contrats et le bleu des services. */
+const missionCourante = ()=> MODE_LIBRE ? null : (MISSIONS[CAMPAGNE.mission] || null);
 // La mission du moment, si elle attend encore d'être prise chez quelqu'un.
 function missionAPrendre(){
   const M = missionCourante();
@@ -2292,6 +2306,7 @@ function chargerCampagne(S){
        vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
        faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
     CAMPAGNE.prise = C.prise === undefined ? true : !!C.prise;
+    MODE_LIBRE = !!C.libre;
     CAMPAGNE.niveau = Math.max(niveauPourXp(CAMPAGNE.xp),
                                Math.max(1, Math.min(NIVEAUX.length, C.niveau | 0)));
     /* LES CONTRATS ET LA RENOMMÉE. Champs facultatifs, comme le reste de la campagne :
@@ -2318,6 +2333,7 @@ function chargerCampagne(S){
           MISSIONS[CAMPAGNE.mission].niv < CAMPAGNE.niveau) CAMPAGNE.mission++;
     CAMPAGNE.faits = [];
     CAMPAGNE.prise = true;
+    MODE_LIBRE = false;          // une partie d'avant le mode libre est une campagne
   }
   remplirCommandes(0);
 }
@@ -9963,7 +9979,7 @@ function ongletOutils(){
   if(aPrendre.length){
     titre('À prendre au garage');
     for(const T of aPrendre){
-      const niv = niveauDe('outils', T.key), libre = CAMPAGNE.niveau >= niv;
+      const niv = niveauDe('outils', T.key), libre = auNiveau(niv);
       article(0x8BE07A, T.nom,
         (T.aide ? T.aide + ' · ' : '') + 'largeur ' + dec(T.width, 1) + ' m · ' + eur(T.prix || 0) +
         (libre ? (money >= (T.prix || 0) ? ' · de quoi payer' : ' · il manque ' + eur((T.prix||0) - money))
@@ -10001,7 +10017,7 @@ function ongletGraines(){
                    + ' la parcelle, soit ' + euroFin(c.graineKg*c.grainePrix));
     if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
     const niv = niveauDe('cultures', c.cle);
-    if(CAMPAGNE.niveau < niv){
+    if(!auNiveau(niv)){
       article(c.hi.getHex(), c.nom,
         det + '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom,
         'Niveau ' + niv, 'no', null);
@@ -10014,7 +10030,7 @@ function ongletGraines(){
         showHint(c.nom.toUpperCase() + ' DISPONIBLE AU SEMOIR');
       });
   });
-  const reste = CROPS.filter((c)=> c.verrou && CAMPAGNE.niveau < niveauDe('cultures', c.cle));
+  const reste = CROPS.filter((c)=> c.verrou && !auNiveau(niveauDe('cultures', c.cle)));
   if(reste.length){
     const d = document.createElement('div'); d.className = 'art';
     d.innerHTML = '<div class="txt"><div class="det">Les ' + reste.length +
@@ -14085,7 +14101,7 @@ function actionService(){
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
     const E = ESPECES[ESP_CLES[especeChoisie]];
     const niv = niveauDe('especes', E.cle);
-    if(CAMPAGNE.niveau < niv)
+    if(!auNiveau(niv))
       return {txt:E.pluriel.toUpperCase() + ' — NIVEAU ' + niv + ' REQUIS', ok:false};
     const prixE = prixPature(E.cle);
     const ok = money >= prixE;
@@ -15000,7 +15016,7 @@ function ongletElevage(){
         ? 'Adulte en ' + Math.round(E.maturite/60) + ' min · vendue '
           + eur(E.prixBete*PALIER.FINI) + ' à la boucherie'
         : 'En pleine production après ' + Math.round(E.maturite/60) + ' min · ne se revend pas';
-    const niv = niveauDe('especes', cle), libre = CAMPAGNE.niveau >= niv;
+    const niv = niveauDe('especes', cle), libre = auNiveau(niv);
     article(E.robes[0].fond, E.pluriel,
       eur(prixPature(cle)) + ' l\'enclos · ' + eur(E.prix) + ' la ' +
       (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
@@ -15142,7 +15158,7 @@ function ongletFilieres(){
       dec(rendementValeur(R.cle)/parKgDe(entreeSeule(R.cle))) + ' € par ' +
       uniteUn(entreeSeule(R.cle)) + ' engagé · ' + R.duree + ' s les 100 kg',
       a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Monté')
-         : (CAMPAGNE.niveau >= niv ? eur(R.prix) : 'Niveau ' + niv),
+         : (auNiveau(niv) ? eur(R.prix) : 'Niveau ' + niv),
       a2 ? 'ok' : 'no', null);
   }
 
@@ -15369,7 +15385,7 @@ function ongletProduction(){
              : ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')');
     const peut = monte && assez && place;
     article(parseInt(P.couleur.slice(1), 16), R.module + ' — ' + P.nom, det,
-      !monte ? (CAMPAGNE.niveau >= niv ? 'À monter' : 'Niveau ' + niv + ' requis')
+      !monte ? (auNiveau(niv) ? 'À monter' : 'Niveau ' + niv + ' requis')
              : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
       peut ? 'vert' : 'no',
       peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null);
@@ -15383,7 +15399,7 @@ function ongletProduction(){
       'Complet', 'ok', null);
   else {
     const niv = niveauDe('modules', M.cle);
-    const assezNiv = CAMPAGNE.niveau >= niv, ok = assezNiv && money >= M.prix;
+    const assezNiv = auNiveau(niv), ok = assezNiv && money >= M.prix;
     const P = PRODUITS[M.cle];
     article(0x9FD8E8, M.module,
       flecheur(M.cle) + P.nom + ' · ' + Math.round(100*P.rendement) + ' kg les 100 engagés · ' +
@@ -15601,7 +15617,17 @@ function ongletCampagne(){
       (PARCELS.filter((p)=> p.owned).length > 1 ? 's' : ''),
     'Niveau ' + n, 'ok', null);
 
+  if(MODE_LIBRE){
+    titre('Mode libre');
+    article(0xFAD201, 'Hors campagne',
+      'Aucun palier ne verrouille quoi que ce soit : tout s\'achète dès qu\'on en a les ' +
+      'moyens. Il n\'y a pas de mission, et ce sont les commerces du village qui ' +
+      'proposent leurs contrats. Le niveau continue de monter avec l\'expérience, mais ' +
+      'il ne sert plus qu\'à dire où l\'on en serait.',
+      'Libre', 'ok', null);
+  }
   const M = missionCourante();
+  if(!MODE_LIBRE){
   titre('Mission de campagne');
   const aPrendre = missionAPrendre();
   if(aPrendre){
@@ -15614,7 +15640,7 @@ function ongletCampagne(){
   }
   else if(!M)
     article(0x8BE07A, 'La campagne est finie',
-      'Les quinze paliers sont ouverts. Les commandes continuent, sans fin, et ' +
+      'Les vingt paliers sont ouverts. Les commandes continuent, sans fin, et ' +
       'grossissent avec la ferme.', 'Terminée', 'ok', null);
   else {
     const part = avanceMission();
@@ -15624,6 +15650,7 @@ function ongletCampagne(){
                    ' / ' + Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')) +
       '</span>' + (M.prime ? '  ·  ' + eur(M.prime) : '') + '  ·  +' + M.xp + ' XP';
     article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null);
+  }
   }
 
   /* LES CONTRATS DU VILLAGE NE S'AFFICHENT PAS PENDANT LA CAMPAGNE. Une section vide
@@ -15954,6 +15981,9 @@ function etatJeu(){
        d'avant la campagne n'a pas ce bloc et se relit sans lui. */
     campagne: {niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
                faits: CAMPAGNE.faits.slice(), prise: CAMPAGNE.prise,
+               // Facultatif, comme le reste du bloc : absent d'une vieille sauvegarde,
+               // il vaut false et la partie repart en campagne. `v` ne bouge pas.
+               libre: MODE_LIBRE,
                contrats: CONTRATS.map((C)=> ({type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps,
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
@@ -16125,6 +16155,12 @@ function remettreAEchelle(S){
 function chargerPartie(S){
   remettreAEchelle(S);
   if(!S || S.v !== 1) return false;
+  /* LE MODE SE RESTAURE AVANT TOUT LE RESTE. Deux cents lignes plus bas, la relecture
+     des engins interroge `ouvert('engins', …)` pour rendre gratuit ce qui l'est — bien
+     avant que `chargerCampagne` n'ait restauré le mode. Sans cette avance, reprendre une
+     partie libre laissait verrouillé tout engin que la sauvegarde disait verrouillé.
+     `chargerCampagne` le repose ensuite : c'est lui qui fait autorité. */
+  MODE_LIBRE = !!(S.campagne && S.campagne.libre);
   try {
     // 1. le terrain d'abord : parcelles possédées, puis état de chaque cellule
     S.parcelles.forEach((q, i)=>{
@@ -16407,6 +16443,27 @@ function boutonAccueil(txt, principal, f){
   accBtns.appendChild(b);
   return b;
 }
+/* LE MODE LIBRE, HORS CAMPAGNE : TOUT S'ACHÈTE DÈS QU'ON A L'ARGENT.
+   Aucun palier ne verrouille rien, il n'y a pas de mission, et les contrats du village
+   se rallument — c'est le même interrupteur qui les tenait fermés. Le palier continue
+   de monter avec l'expérience, mais il n'ouvre plus rien : il ne sert qu'à dire où l'on
+   en serait.
+
+   LE BOUTON N'EST JAMAIS LE PRINCIPAL. Dix bancs cliquent le premier `.accbtn.pri` pour
+   entrer dans le jeu ; en faire le bouton primaire, ou seulement le poser avant
+   « Reprendre », les casserait tous d'un coup.
+
+   ET LES ENSEIGNES SE REFONT. Les quinze étiquettes sont peintes une fois à la
+   construction du village : sans `majBulles()`, treize d'entre elles resteraient à
+   « NIVEAU 8 » sur des commerces désormais ouverts. `caleEspece()` recale l'espèce par
+   défaut, qui n'est plus la poule mais la première de la liste. */
+function lancerLibre(){
+  effacerSauvegarde();
+  MODE_LIBRE = true;
+  majBulles();
+  if(typeof caleEspece === 'function') caleEspece();
+  lancerPartie();
+}
 function lancerPartie(){
   if(demarre) return;
   demarre = true;
@@ -16430,12 +16487,15 @@ function lancerPartie(){
       if(!chargerPartie(S)) showHint('SAUVEGARDE ILLISIBLE — NOUVELLE PARTIE');
       lancerPartie();
     });
-    boutonAccueil('Nouvelle partie', false, ()=>{ effacerSauvegarde(); lancerPartie(); });
+    boutonAccueil('Nouvelle partie', false, ()=>{ effacerSauvegarde(); MODE_LIBRE = false;
+                                                 majBulles(); lancerPartie(); });
+    boutonAccueil('Mode libre', false, lancerLibre);
   } else {
     sous.textContent = SAVE.actif
       ? 'La partie s\'enregistre toute seule : tu peux fermer et revenir.'
       : 'Le stockage local est refusé ici : la partie ne sera pas conservée.';
     boutonAccueil('Commencer', true, lancerPartie);
+    boutonAccueil('Mode libre', false, lancerLibre);
   }
 })();
 
@@ -16451,10 +16511,16 @@ let fini = false;
 let siloPrevenu = false;
 function refreshHUD(){
   const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
-  const acheve = n >= NIVEAUX.length && !missionCourante();
+  // En mode libre, `missionCourante()` rend toujours null : sans ce garde-fou, le
+  // premier joueur qui atteint le dernier palier par l'expérience verrait l'écran de fin
+  // reprendre la main — accueil rouvert, boutons effacés, jeu en pause.
+  const acheve = !MODE_LIBRE && n >= NIVEAUX.length && !missionCourante();
   if(acheve && !fini){ fini = true; ouvrirFin(); }
+  // Le bandeau dit LEQUEL des deux modes on a repris : rien d'autre à l'écran ne les
+  // distingue, et l'on ne saurait pas pourquoi tout est achetable.
   el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI'
-                               : 'NIVEAU ' + n + ' — ' + N.nom;
+                       : MODE_LIBRE ? 'MODE LIBRE — NIVEAU ' + n
+                                    : 'NIVEAU ' + n + ' — ' + N.nom;
   el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
      au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
