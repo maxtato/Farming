@@ -1483,9 +1483,15 @@ on continue de conduire.
 **Le tutoriel désigne aussi le véhicule.** Il disait « moissonne au moins 30 kg » à qui
 pilotait encore son tracteur, sans dire laquelle des six machines de la cour prendre. Chaque
 étape porte donc l'engin qu'elle demande ; quand ce n'est pas celui qu'on pilote, le bouton
-du parc **bat en jaune** et une **flèche jaune** descend sur la machine à prendre, à quatre
-mètres du sol, en tournant lentement. Rien n'est verrouillé — on peut labourer avec le
-tracteur bleu si on l'a — c'est une indication, et elle s'éteint dès qu'on est monté dedans.
+du parc **bat en jaune** et une **flèche jaune** flotte au-dessus de la machine à prendre, à
+six mètres du sol. Rien n'est verrouillé — on peut labourer avec le tracteur bleu si on l'a —
+c'est une indication, et elle s'éteint dès qu'on est monté dedans.
+
+Deux détails de dessin, tous deux appris à l'essai. C'est un **lutin**, et non un volume :
+un cône posé pointe en bas se voit *d'au-dessus* dans cette vue plongeante, on n'en lit
+qu'un losange et la hampe se met de chant. Pour un signe — contrairement à une enseigne —
+faire face entièrement est exactement ce qu'on veut. Et il porte un **liseré sombre**, sans
+quoi il disparaît : la moissonneuse est jaune, et le jaune du guidage aussi.
 
 ### Un préambule, et un seul
 

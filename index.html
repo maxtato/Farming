@@ -15654,18 +15654,30 @@ function ciblesGuidage(){
    ses enfants, comparé AVANT le renderOrder, et la flèche passerait devant tout. */
 let flecheEngin = null;
 function creerFlecheEngin(){
+  /* UN LUTIN, ET NON UN VOLUME. Un cône posé pointe en bas se voit d'AU-DESSUS dans cette
+     vue plongeante : on n'en lit qu'un losange jaune sur une machine jaune, et la hampe
+     se met de chant. Un lutin fait toujours face, quel que soit l'angle — et pour un
+     SIGNE, contrairement à une enseigne, faire face entièrement est exactement ce qu'on
+     veut. Le liseré sombre le détache de la robe de la moissonneuse, qui est du même
+     jaune que le guidage. */
+  const c = document.createElement('canvas');
+  c.width = 96; c.height = 128;
+  const x = c.getContext('2d');
+  x.beginPath();
+  x.moveTo(34, 8); x.lineTo(62, 8); x.lineTo(62, 58); x.lineTo(86, 58);
+  x.lineTo(48, 120); x.lineTo(10, 58); x.lineTo(34, 58); x.closePath();
+  x.lineJoin = 'round'; x.lineWidth = 11; x.strokeStyle = '#16212A'; x.stroke();
+  x.fillStyle = '#FAD201'; x.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+                                                        depthWrite:false, fog:false}));
+  sp.scale.set(2.1, 2.8, 1);
+  sp.renderOrder = 5;
+  sp.userData.anime = true;              // elle bat : le recensement du décor FIXE l'ignore
   const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({color:0xFAD201, transparent:true, opacity:0.92,
-                                           depthWrite:false, fog:false});
-  const pointe = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.5, 4), mat);
-  pointe.rotation.x = Math.PI;                 // la pointe vers le bas, vers la machine
-  pointe.position.y = 0.75;
-  const tige = new THREE.Mesh(new THREE.BoxGeometry(0.40, 1.4, 0.40), mat);
-  tige.position.y = 2.2;
-  pointe.renderOrder = 5; tige.renderOrder = 5;
-  g.add(pointe); g.add(tige);
-  // Elle bat : ce qui recense le décor FIXE ne doit pas la compter.
-  g.userData.anime = pointe.userData.anime = tige.userData.anime = true;
+  g.add(sp);
+  g.userData.anime = true;
   g.visible = false;
   scene.add(g);
   return g;
@@ -15676,10 +15688,11 @@ function veillerFlecheEngin(now){
   if(!flecheEngin) flecheEngin = creerFlecheEngin();
   flecheEngin.visible = true;
   const P = m.v.pos;
-  // Elle monte et descend d'un demi-mètre, et tourne lentement : c'est le mouvement
-  // qu'on voit du coin de l'œil, pas la couleur.
-  flecheEngin.position.set(P.x, 3.9 + Math.sin(now/1000*2.2)*0.38, P.z);
-  flecheEngin.rotation.y = now/1000*0.9;
+  /* Elle monte et descend d'un demi-mètre : c'est le mouvement qu'on voit du coin de
+     l'œil, pas la couleur. Cinq mètres et demi, parce que la moissonneuse en fait quatre :
+     plus bas, la pointe entrait dans la cabine et l'on ne voyait plus qu'une tache jaune
+     posée sur le toit. */
+  flecheEngin.position.set(P.x, 6.1 + Math.sin(now/1000*2.2)*0.42, P.z);
 }
 const CERCLES_MOBILES = 3;
 const mobiles = [];
