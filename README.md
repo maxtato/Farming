@@ -27,7 +27,7 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
 | **Changer d'engin** | le **garage**, tout en bas, ou les touches 1 à 4 : la liste du parc s'ouvre |
 | **Automatiser** | le **A cerclé**, à droite du crochet : la carte en grand, on compose une file de tâches |
-| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les contrats en cours, la renommée du village, et les vingt paliers à venir |
+| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission du moment, et les vingt paliers à venir |
 | **Régler le semoir** | l'**épi**, à gauche du crochet — le seul bouton qui garde un mot, parce qu'aucun dessin ne dit « tournesol » |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
@@ -95,8 +95,8 @@ Une campagne le remplace, avec **deux valeurs globales** et pas une de plus :
 - l'**expérience** dit ce à quoi on a droit.
 
 On ne peut donc pas sauter un maillon en payant. Et l'on ne peut pas non plus rester
-bloqué : les contrats du village donnent de l'expérience eux aussi, et tout ce qui sort
-de la ferme en donne un filet — un centième d'euro de marchandise vendue.
+bloqué : tout ce qui sort de la ferme donne un filet d'expérience — un centième d'euro de
+marchandise vendue — en plus de ce que paient les missions.
 
 La règle de découverte est toujours la même : **un acheteur réclame quelque chose
 qu'on ne sait pas encore produire**. C'est la demande qui enseigne la mécanique.
@@ -173,98 +173,97 @@ paliers : N1 N2 N2 N3 N4 N4 N5 N6 N6 N7 N8 N8 N9 N9 N10
 ```
 
 La campagne entière vaut **11 640 XP** pour un dernier seuil à 10 450 : faire la campagne
-suffit toujours, avec de la marge, et les contrats du village permettent d'aller plus vite
-sans jamais permettre de sauter un maillon. Une preuve vaut mieux qu'une dérivation —
-elle survit au jour où l'on voudra déplacer un seuil.
+suffit toujours, avec de la marge, et c'est la seule chose qu'il y ait à faire — la mission
+du moment est le seul ordre du jeu. Une preuve vaut mieux qu'une dérivation : elle survit
+au jour où l'on voudra déplacer un seuil.
 
 **Les primes suivent l'échelle de ce qu'on livre**, de 200 € pour les trente premiers
 kilos de blé à 40 000 € pour la réception finale, et les prix du matériel qu'une mission
 exige sont ceux du barème d'équipement : épandeur 250 €, poulailler 800 €, mélangeur
 premium 1 200 €, fromagerie 1 800 €, cave 4 500 €, enjambeuse 5 000 €.
 
-### Les contrats se proposent, ils ne tombent plus du ciel
+### Pendant la campagne, la mission est le seul ordre
 
-Quatre commandes apparaissaient toutes seules dans un coin de l'écran, sans qu'on les
-ait demandées ni qu'on puisse les regarder de près : on subissait une liste au lieu de
-traiter avec quelqu'un. C'est le **commerce** qui propose, maintenant, et il le dit sur
-place.
+Le village proposait, **en plus** de la campagne, ses propres contrats : quatre à la fois,
+avec leurs délais, leurs primes et une renommée qui montait ou descendait. On se retrouvait
+devant deux listes au lieu d'une histoire — et les deux ne jouaient pas dans la même cour.
+Relevé au huitième palier : la mission paie **4 500 € et 280 XP**, un contrat **107 € et
+4 XP**. Il aurait fallu **112 contrats pour gagner un niveau**, quand le village n'en
+propose que trois à la fois.
 
-Une **pastille verte pleine** s'allume au sol, au centre de son anneau de livraison, et
-elle respire — elle part à 62 % d'opacité, monte au plein et grandit d'un cinquième. Elle
-est peinte **par-dessus** le sol et non ajoutée à lui : un disque additif sur le béton
-clair d'un quai rend vert pâle, et l'on retombait sur le liseré qu'on voulait quitter.
-C'est la seule tache pleine de la carte.
+La campagne ne propose donc plus qu'une chose : **la mission du moment**. Un mode **libre**,
+hors campagne, rouvrira les contrats — la machinerie reste entière derrière un seul
+interrupteur, `MODE_LIBRE`, et il n'y a pas une ligne morte ailleurs.
 
-On s'y arrête, un bouton vert **VOIR LE CONTRAT** apparaît, et la fenêtre s'ouvre : ce
-qu'il réclame, la marchandise au prix du jour, la prime à la clôture, le délai s'il y en a
-un, et la renommée qu'on a chez lui. Trois réponses :
+Relevé : **une heure de jeu simulée, zéro proposition**. Une sauvegarde qui portait un
+contrat revient sans lui. Et l'écran de campagne ne parle plus ni de contrats ni de
+renommée — une section vide intitulée « Les contrats en cours » ferait chercher toute la
+partie une mécanique qui n'existe pas ici.
 
-| | |
-|---|---|
-| **Accepter** | le contrat rejoint la liste, l'anneau vert s'éteint |
-| **Refuser** | on perd **deux crans de renommée**, et il proposera moins bien, moins souvent |
-| **Retour** | on n'a rien dit. L'offre reste sur place, on repassera |
+Ce que la campagne garde de ce système, c'est sa **façon de proposer**, et c'est la mission
+qui l'a reprise : une pastille au sol, un bouton, une fenêtre. La section suivante la
+décrit.
 
-Le tirage garde ses quatre natures — **brute**, **transformée**, **composée** (deux ou
-trois produits chez le même client), **urgente** (en quantité, avec un délai, et elle se
-perd). Le **client se choisit avant les lignes**, et pas l'inverse : en composant d'abord
-un panier puis en cherchant qui le prend, une commande finissait par réclamer de l'huile
-d'olive à l'usine de céréales. Relevé : **400 propositions, 0 indélivrable**.
+#### Ce que le mode libre rouvrira
 
-**La quantité se mesure en argent, pas en kilos.** Une échelle en poids, commune à tous
-les produits, réclamait trois cents kilos de miel comme trois cents kilos de blé : cinq
-fois la valeur pour le même geste, et une ruche qui sort deux kilos par minute et demie
-contre une moissonneuse qui rentre une parcelle. Depuis que l'œuf se compte à la pièce,
-c'était pire — le jeu stocke en kilos, un œuf pèse soixante grammes, et la boulangerie
-demandait **7 500 œufs** au dernier palier, **667 au quatrième**, quand on a six poules.
+Le moteur dort, il ne disparaît pas, et un banc continue de le tenir pour qu'il n'ait pas
+dérivé le jour où l'on rouvrira l'interrupteur.
+
+C'est le **commerce** qui propose, et il le dit sur place : une pastille verte pleine
+s'allume au sol, au centre de son anneau de livraison. On s'y arrête, un bouton vert
+**VOIR LE CONTRAT** apparaît, et la fenêtre s'ouvre — ce qu'il réclame, la marchandise au
+prix du jour, la prime à la clôture, le délai s'il y en a un, et la renommée qu'on a chez
+lui. **Accepter** le prend, **Refuser** coûte deux crans de renommée, **Retour** ne dit
+rien et l'offre reste sur place.
+
+Le tirage garde ses quatre natures — brute, transformée, composée, urgente — et le
+**client se choisit avant les lignes** : en composant d'abord un panier puis en cherchant
+qui le prend, une commande finissait par réclamer de l'huile d'olive à l'usine de céréales.
+Relevé : **400 propositions, 0 indélivrable**.
+
+**La quantité se mesure en argent, pas en kilos.** Une échelle en poids, commune à tous les
+produits, réclamait trois cents kilos de miel comme trois cents kilos de blé : cinq fois la
+valeur pour le même geste, et une ruche qui sort deux kilos par minute et demie contre une
+moissonneuse qui rentre une parcelle. Depuis que l'œuf se compte à la pièce, c'était pire —
+le jeu stocke en kilos, un œuf pèse soixante grammes, et la boulangerie demandait
+**7 500 œufs** au dernier palier, **667 au quatrième**, quand on a six poules.
 
 L'échelle est donc une **valeur de marchandise** — 14 € au premier palier, 273 € au
 vingtième — que le prix du produit traduit en quantité, chacun dans son unité. C'est très
 exactement l'ancienne courbe en kilos multipliée par le prix du blé : le blé, sur lequel
-elle avait été réglée, **ne bouge pas d'un kilo** (25 kg à la première commande hier,
-25 kg aujourd'hui), et tout le reste vient se ranger à côté de lui. Relevé de l'écart
-entre la ligne la mieux et la moins bien payée d'un même palier : **14,58 × avant,
-1,18 × après** — ce qui reste est l'arrondi.
+elle avait été réglée, **ne bouge pas d'un kilo** (25 kg à la première commande hier, 25 kg
+aujourd'hui), et tout le reste vient se ranger à côté de lui. Écart entre la ligne la mieux
+et la moins bien payée d'un même palier : **14,58 × avant, 1,18 × après** — ce qui reste
+est l'arrondi.
 
-Le pas d'arrondi descend d'ailleurs **à l'unité sous la quinzaine**. Arrondir cinq kilos
-de fromage de brebis au pas de cinq, c'était en perdre deux — trente pour cent de la
-commande — et la ligne la mieux payée du jeu valait un tiers de moins que celle de blé du
-même palier.
+Le pas d'arrondi descend d'ailleurs **à l'unité sous la quinzaine**. Arrondir cinq kilos de
+fromage de brebis au pas de cinq, c'était en perdre deux — trente pour cent de la commande.
 
-**La cible est un vœu, la capacité est une limite.** On arrondit au plus près — c'est ce
-qui donne 25 kg de blé pour une cible de 23 — mais jamais au-dessus de ce que la ferme
-peut sortir. Le plancher d'une ligne valait un pas d'arrondi pris sur la *cible* et non
-sur le possible : un pas de vingt litres imposait **vingt litres de lait à qui n'a qu'une
-vache** et n'en tire que quinze, et la commande naissait déjà perdue.
+**La cible est un vœu, la capacité est une limite.** On arrondit au plus près — c'est ce qui
+donne 25 kg de blé pour une cible de 23 — mais jamais au-dessus de ce que la ferme peut
+sortir. Le plancher d'une ligne valait un pas d'arrondi pris sur la *cible* et non sur le
+possible : un pas de vingt litres imposait **vingt litres de lait à qui n'a qu'une vache**
+et n'en tire que quinze, et la commande naissait déjà perdue. Et le repli garde le filtre de
+capacité : quand aucun produit d'une nature n'était réalisable, le tirage rouvrait **tout**
+ce que le palier avait débloqué et proposait du lait de brebis à qui n'a pas une seule
+brebis. S'il n'y a rien à proposer, on ne propose rien.
 
-Et le repli garde le filtre de capacité. Quand aucun produit d'une nature donnée n'était
-réalisable — un contrat « transformé » sans le moindre module d'atelier — le tirage
-rouvrait **tout** ce que le palier avait débloqué, et proposait du lait de brebis à qui
-n'a pas une seule brebis. C'était très exactement ce que la capacité était là pour
-empêcher. S'il n'y a rien à proposer, on ne propose rien.
-
-**La renommée** est le seul état durable de cette relation : elle monte d'un cran à
-chaque contrat honoré, descend de deux à chaque refus, d'un à chaque contrat urgent
-laissé filer. Elle module la prime (**0,70 ×** chez qui l'on éconduit, **1,50 ×** chez
-qui l'on sert depuis toujours) et l'attente entre deux propositions. Un commerce
-plusieurs fois éconduit finit par ne presque plus rien offrir — sans jamais se fermer
-tout à fait, parce qu'un débouché perdu pour de bon serait une partie perdue. Une
-proposition laissée sur place s'efface au bout de trois minutes, sans rien coûter.
-
-Le village ne propose jamais plus de **trois** contrats à la fois, on n'en tient jamais
-plus de **quatre**, et un commerce qui a déjà une offre ou un contrat en cours ne se voit
-rien proposer de plus.
-
-**La récompense ne casse pas l'économie** : on est payé le prix normal de la marchandise
+**La récompense ne casserait pas l'économie** : on est payé le prix normal de la marchandise
 au moment où on la livre — le circuit habituel, celui des étals et des caisses d'usine —
 puis la prime s'ajoute à la clôture. Les prix du village restent donc exacts.
 
-### La mission de campagne se prend sur place, elle aussi
+### La mission de campagne se prend sur place
 
 La première mission s'affichait dès la seconde zéro, en haut à gauche : on démarrait avec
 un ordre qu'on n'avait demandé à personne, et c'était le dernier endroit du jeu où quelque
 chose tombait du ciel. Une mission qui nomme un **lieu** est maintenant proposée par ce
-lieu, exactement comme un contrat — pastille verte, `VOIR LA MISSION`, fenêtre, on prend.
+lieu — pastille verte, `VOIR LA MISSION`, fenêtre, on prend.
+
+Une **pastille verte pleine** s'allume au sol, au centre de l'anneau de livraison, et elle
+respire : elle part à 62 % d'opacité, monte au plein et grandit d'un cinquième. Elle est
+peinte **par-dessus** le sol et non ajoutée à lui — un disque additif sur le béton clair
+d'un quai rend vert pâle, et l'on retombait sur le liseré qu'on voulait quitter. C'est la
+seule tache pleine de la carte, et pendant la campagne il n'y en a **jamais qu'une**.
 Tant qu'on ne l'a pas prise, elle n'est nulle part à l'écran, et **livrer d'avance ne
 compte pas** : on ne peut pas honorer un engagement qu'on n'a pas pris.
 
@@ -273,8 +272,8 @@ mission* et *Retour* ; retour la laisse sur place, elle attendra. Une mission **
 — s'équiper, acheter une parcelle, monter un enclos — n'a personne pour la proposer :
 celle-là s'affiche directement, il n'y a nulle part où aller la chercher.
 
-Aucune offre commerciale ne vient se poser par-dessus : deux choses derrière la même
-pastille, on n'en verrait qu'une.
+En mode libre, aucune offre commerciale ne viendra se poser par-dessus : deux choses
+derrière la même pastille, on n'en verrait qu'une.
 
 ### La flèche verte du bord
 
@@ -308,15 +307,14 @@ regardait pas ; le vert vif se détache seul.
 
 ### Rien à l'écran qu'on n'ait accepté
 
-C'est la règle, et elle n'a pas d'exception. Une proposition qui attend sur un anneau vert
-ne pose **aucune** puce au bandeau, et ne déroule ses lignes ni dans l'onglet Campagne, ni
-dans l'onglet Filières : la Campagne dit seulement qu'un commerce « a quelque chose à
-proposer — passer devant son quai pour l'entendre ». Un menu qui donnerait le détail
-rendrait l'anneau décoratif : on choisirait ses contrats depuis un tableau, sans jamais
-aller voir personne.
+C'est la règle, et elle n'a pas d'exception. Une mission qu'on n'a pas encore prise ne pose
+**aucune** puce au bandeau, et ne déroule ses lignes nulle part : livrer d'avance ne compte
+pas, et l'on ne peut pas honorer un engagement qu'on n'a pas pris.
 
-La seule chose du bandeau qu'on n'a pas acceptée quelque part est la **mission de
-campagne**, et elle porte le mot pour qu'on ne la confonde pas avec un contrat.
+En mode libre, la même règle vaudra pour les propositions du village : la Campagne dira
+seulement qu'un commerce « a quelque chose à proposer — passer devant son quai pour
+l'entendre ». Un menu qui donnerait le détail rendrait l'anneau décoratif : on choisirait
+ses contrats depuis un tableau, sans jamais aller voir personne.
 
 ### Le bandeau ne mange plus l'écran
 
@@ -328,6 +326,9 @@ seule cette fois, avec ce qui reste à livrer ligne par ligne.
 
 Relevé, quatre contrats plus la mission de campagne : **406 × 190 px avant, 257 × 158
 après** — de 8,5 % à 5,3 % de l'écran, et la largeur ne suit plus le bloc mais le texte.
+
+Pendant la campagne, le bandeau ne porte plus que la **mission** : ces puces sont celles
+que le mode libre rouvrira, et la mesure ci-dessus est leur pire cas.
 
 ### Les volumes : une parcelle rend 250 kg, la trémie en tient 100
 

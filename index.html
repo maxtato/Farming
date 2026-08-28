@@ -1840,6 +1840,13 @@ const prixChez = (S, cle)=> prixDe(cle)*(S.coef || 1);
    est déclarée ici, tout en haut, parce que `placeChez` la lit et que `placeChez` sert
    dès la construction du village — le reste du contrat, lui, vit avec la campagne. */
 const CONTRATS = [];              // ce qu'on a accepté, et rien d'autre
+/* PENDANT LA CAMPAGNE, LA MISSION EST LE SEUL ORDRE. Le village proposait EN PLUS ses
+   propres contrats — quatre à la fois, avec leurs délais et leur renommée — et l'on
+   passait son temps à choisir entre deux listes au lieu de suivre une histoire. Un mode
+   LIBRE, hors campagne, les rouvrira : la machinerie reste entière derrière ce seul
+   interrupteur, et il n'y a pas une ligne morte ailleurs. */
+let MODE_LIBRE = false;
+const contratsOuverts = ()=> MODE_LIBRE;
 function resteContrat(nom, cle){
   let t = 0;
   for(const C of CONTRATS){
@@ -7944,6 +7951,14 @@ function libelleRenom(S){
 }
 
 function remplirCommandes(dt){
+  /* Pendant la campagne, personne ne propose rien. On efface au passage ce qu'une partie
+     plus ancienne aurait laissé : une offre rechargée survivrait à sa pastille et
+     resterait ouvrable depuis le quai, sans que rien au sol l'annonce. */
+  if(!contratsOuverts()){
+    if(CONTRATS.length) CONTRATS.length = 0;
+    for(const S of SITES) if(S.offre){ S.offre = null; S.offreT = 0; }
+    return;
+  }
   // Les propositions tombent au compte-gouttes, une à la fois : le village n'est pas
   // un tableau d'affichage, c'est une poignée de gens qui ont besoin de quelque chose.
   offreT -= (dt || 0);
@@ -15420,6 +15435,10 @@ function ongletCampagne(){
     article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null);
   }
 
+  /* LES CONTRATS DU VILLAGE NE S'AFFICHENT PAS PENDANT LA CAMPAGNE. Une section vide
+     intitulée « Les contrats en cours » ferait chercher toute la partie une mécanique
+     qui n'existe pas ici. */
+  if(contratsOuverts()){
   titre('Les contrats en cours');
   if(!CONTRATS.length)
     article(0x8A9298, 'Aucun contrat',
@@ -15456,8 +15475,9 @@ function ongletCampagne(){
         S2.offre ? 'Contrat' : (S2.renom > 0 ? '+' + S2.renom : '' + S2.renom),
         S2.offre ? 'vert' : (S2.renom > 0 ? 'ok' : 'no'), null);
   }
+  }
 
-  titre('Les quinze paliers');
+  titre('Les vingt paliers');
   NIVEAUX.forEach((N2, k)=>{
     const num = k + 1, ouvre = [];
     const noms = {cultures:(c)=> (CROPS.find((x)=> x.cle === c) || {}).nom,
