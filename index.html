@@ -404,12 +404,12 @@
   #veh.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   #stick{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:calc(24px + env(safe-area-inset-left));
     width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.08);
-    border:2px solid rgba(255,255,255,.18);pointer-events:auto}
+    border:2px solid rgba(255,255,255,.18);pointer-events:auto;touch-action:none}
   #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;
     background:rgba(255,255,255,.85)}
   #thr{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
     width:66px;height:150px;border-radius:33px;background:rgba(255,255,255,.08);
-    border:2px solid rgba(255,255,255,.18);pointer-events:auto}
+    border:2px solid rgba(255,255,255,.18);pointer-events:auto;touch-action:none}
   #thrknob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
     background:#FAD201}
   #thr .lab{position:absolute;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2px;opacity:.45}
@@ -426,8 +426,13 @@
      vient du fond sombre de la pédale, pas d'un effet. */
   #boutons{display:none}
   #boutons.on{display:block}
+  /* `touch-action:none` SUR CE QUI SE CONDUIT. Il n'était déclaré que sur `html,body` et
+     sur le canevas de la carte : un balayage système parti d'une pédale — le geste de
+     retour, le volet de notifications — provoquait un `pointercancel` que rien
+     n'écoutait, et la pédale restait enfoncée. Le poser ici l'empêche à la source. */
   #dirs{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
-    left:calc(18px + env(safe-area-inset-left));display:flex;gap:6px;pointer-events:auto}
+    left:calc(18px + env(safe-area-inset-left));display:flex;gap:6px;pointer-events:auto;
+    touch-action:none}
   .dir{width:72px;height:72px;border-radius:20px;background:rgba(20,28,33,.62);
     border:2px solid rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;
     transition:transform .07s,background .07s;color:#FFFFFF}
@@ -435,7 +440,7 @@
   .dir.on{transform:scale(.93);background:rgba(250,210,1,.28);border-color:#FAD201}
   #pedales{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
     right:calc(26px + env(safe-area-inset-right));display:flex;flex-direction:column;
-    align-items:flex-end;gap:5px;pointer-events:auto}
+    align-items:flex-end;gap:5px;pointer-events:auto;touch-action:none}
   /* Une ombre portée STATIQUE : la pédale est sombre, et posée sur l'enseigne sombre
      d'un commerce elle s'y noyait. Elle ne bouge pas, donc le filtre ne coûte qu'un
      calcul, une fois — ce n'est pas le cas des flèches du bord, qui se déplacent. */
@@ -10400,6 +10405,7 @@ const FENETRES = {
 let fenActive = null, fenVue = {};
 function ouvrirFenetre(id, vue){
   if(!FENETRES[id]) return;
+  relacherCommandes();
   fermerPanneau();
   fenActive = id;
   if(vue) fenVue[id] = vue;
@@ -10463,7 +10469,14 @@ function rafraichirEcran(){
   if(fenActive) rendreFenetre();
   else if(panneau.style.display === 'block') rendrePanneau();
 }
+/* TOUTE FENÊTRE QUI RECOUVRE LES COMMANDES LES RELÂCHE D'ABORD.
+   Les huit calques du jeu — menu, fenêtre, parc, curseur, contrat, plan, accueil, écran
+   de rotation — sont tous en `inset:0` avec `pointer-events:auto` : ils passent au-dessus
+   des pédales. Le doigt qui tenait l'accélérateur ne recevait plus son `pointerup`, il
+   partait sur le fond de la fenêtre — et l'engin continuait de rouler pédale au plancher,
+   puisque trois de ces calques ne mettent même pas le jeu en pause. */
 function ouvrirPanneau(onglet){
+  relacherCommandes();
   ongletActif = onglet || ongletActif;
   panneau.style.display = 'block';
   paused = true;
@@ -10925,14 +10938,31 @@ function thrMove(e, rect){
   throttle = -k;
   if(Math.abs(throttle) < 0.12) throttle = 0;
 }
-stickEl.addEventListener('pointerdown', e=>{ stickId = e.pointerId; stickEl.setPointerCapture(e.pointerId); stickMove(e, stickEl.getBoundingClientRect()); });
+/* LA CAPTURE PEUT ÉCHOUER, ET L'APPUI DOIT PASSER QUAND MÊME. Elle était appelée SANS
+   filet sur le manche et sur la manette : si elle levait — pointeur déjà relâché,
+   événement synthétique — le `stickMove` de la même ligne n'était jamais exécuté et
+   l'engin ne braquait pas au premier contact. Et l'on écoute `lostpointercapture` :
+   cacher le manche pendant la capture l'émet à la place de `pointerup`. */
+stickEl.addEventListener('pointerdown', e=>{
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  stickId = e.pointerId;
+  try{ stickEl.setPointerCapture(e.pointerId); }catch(err){}
+  stickMove(e, stickEl.getBoundingClientRect());
+});
 stickEl.addEventListener('pointermove', e=>{ if(e.pointerId === stickId) stickMove(e, stickEl.getBoundingClientRect()); });
 const stickEnd = e=>{ if(e.pointerId === stickId){ stickId = null; steer = 0; knob.style.transform = 'translateX(0)'; } };
-stickEl.addEventListener('pointerup', stickEnd); stickEl.addEventListener('pointercancel', stickEnd);
-thrEl.addEventListener('pointerdown', e=>{ thrId = e.pointerId; thrEl.setPointerCapture(e.pointerId); thrMove(e, thrEl.getBoundingClientRect()); });
+for(const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  stickEl.addEventListener(ev, stickEnd);
+thrEl.addEventListener('pointerdown', e=>{
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  thrId = e.pointerId;
+  try{ thrEl.setPointerCapture(e.pointerId); }catch(err){}
+  thrMove(e, thrEl.getBoundingClientRect());
+});
 thrEl.addEventListener('pointermove', e=>{ if(e.pointerId === thrId) thrMove(e, thrEl.getBoundingClientRect()); });
 const thrEnd = e=>{ if(e.pointerId === thrId){ thrId = null; throttle = 0; thrKnob.style.transform = 'translateY(0)'; } };
-thrEl.addEventListener('pointerup', thrEnd); thrEl.addEventListener('pointercancel', thrEnd);
+for(const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  thrEl.addEventListener(ev, thrEnd);
 
 /* ---------- LES COMMANDES À BOUTONS ----------
    Deux flèches et deux pédales, à la place du manche et de la manette des gaz. Le reste
@@ -11012,25 +11042,93 @@ declarerBouton('dird', ()=> BTN.d = true,   ()=> BTN.d = false);
 declarerBouton('pacc', ()=> BTN.acc = true, ()=> BTN.acc = false);
 declarerBouton('pfre', ()=>{ BTN.fre = true; BTN.freT = 0; BTN.arriere = false; },
                        ()=>{ BTN.fre = false; BTN.arriere = false; });
+/* ---------- UN SEUL ÉTAT, DÉRIVÉ, ET RIEN QUI PUISSE SE DÉSYNCHRONISER ----------
+   L'état d'un bouton vivait en TROIS copies qui devaient rester d'accord : la table
+   `actifs` (pointeur → bouton), la classe `.on` de l'élément, et le drapeau de `BTN`.
+   Chaque transition les mettait à jour une par une. Trois copies finissent toujours par
+   diverger, et c'est ce qui produisait les deux symptômes signalés :
+
+     « PARFOIS UN APPUI NE FAIT RIEN. » `appliquerCommandes()` remettait `BTN` et `.on` à
+     zéro mais LAISSAIT `actifs` peuplée — elle était enfermée dans une fermeture, hors de
+     portée. Il restait une entrée fantôme `pointeur → pédale` ; le navigateur réutilisant
+     ce numéro de pointeur au doigt suivant, le garde-fou `if(av === id) return;` faisait
+     sortir sans rien enfoncer. Le bouton était muet jusqu'à ce qu'on relève le doigt.
+
+     « PARFOIS UN BOUTON RESTE ENCLENCHÉ. » Rien ne relâchait les commandes quand une
+     fenêtre venait se poser par-dessus, quand l'écran se verrouillait, quand l'onglet
+     passait en arrière-plan, ou quand le téléphone basculait en portrait. Le `pointerup`
+     partait alors sur le calque du dessus — ou n'arrivait jamais — et la pédale restait
+     enfoncée, engin roulant.
+
+   Il n'y a donc plus qu'UNE source de vérité : les tables `actifs`. `.on` et `BTN` en
+   SONT DÉDUITS, à chaque changement, par `majBoutons()`. Il devient impossible qu'ils
+   divergent, et `relacherCommandes()` peut tout rendre d'un geste. */
+const GROUPES = [];
+function majBoutons(){
+  const tenus = {};
+  for(const G of GROUPES) G.actifs.forEach((id)=>{ tenus[id] = true; });
+  for(const id in BOUTONS){
+    const B = BOUTONS[id], on = !!tenus[id];
+    // Le dessin se REPOSE à chaque calcul, même s'il n'a pas changé : ainsi une classe
+    // laissée par mégarde ne peut pas survivre à un relâchement.
+    B.el.classList.toggle('on', on);
+    if(on === !!B.tenu) continue;
+    B.tenu = on;
+    (on ? B.bas : B.haut)();
+  }
+}
+/* ET L'ON REND TOUT, D'UN SEUL APPEL. Appelé partout où le joueur peut perdre le contact
+   avec ses commandes sans que le navigateur le dise : une fenêtre qui s'ouvre, l'écran
+   qui se verrouille, l'onglet qui passe derrière, le téléphone qu'on tourne. */
+function relacherCommandes(){
+  for(const G of GROUPES) G.actifs.clear();
+  majBoutons();
+  BTN.freT = 0; BTN.arriere = false;
+  stickId = null; thrId = null;
+  steer = 0; throttle = 0; frein = false;
+  knob.style.transform = 'translateX(0)'; thrKnob.style.transform = 'translateY(0)';
+}
 function groupeBoutons(idGroupe, selecteur){
   const grp = document.getElementById(idGroupe);
   const actifs = new Map();                        // pointerId → id du bouton enfoncé
+  GROUPES.push({grp, actifs});
+  const cibles = Array.prototype.slice.call(grp.querySelectorAll(selecteur))
+                      .filter((b)=> !!BOUTONS[b.id]);
+  /* LE BOUTON SOUS LE DOIGT SE TROUVE PAR SA BOÎTE, PLUS PAR `elementFromPoint`.
+     `.dir.on` réduit la flèche de sept pour cent et `.ped.on` descend la pédale de trois
+     pixels : le dessin SE DÉROBE SOUS LE DOIGT dès qu'on appuie. Interrogé après la
+     transformation, `elementFromPoint` renvoyait le voisin — l'accélérateur se relâchait
+     et le frein s'enclenchait sans qu'on ait bougé — ou plus rien du tout.
+     On mesure donc la distance à chaque boîte et l'on tolère six pixels : de quoi couvrir
+     les deux transformations et un doigt posé de travers. */
+  const MARGE = 6;
+  const sous = (x, y)=>{
+    let best = null, bd = Infinity;
+    for(const b of cibles){
+      const r = b.getBoundingClientRect();
+      const dx = Math.max(r.left - x, 0, x - r.right);
+      const dy = Math.max(r.top - y, 0, y - r.bottom);
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if(d <= MARGE && d < bd){ bd = d; best = b.id; }
+    }
+    return best;
+  };
   const idDe = (el)=>{
     const b = (el && el.closest) ? el.closest(selecteur) : null;
     return (b && grp.contains(b) && BOUTONS[b.id]) ? b.id : null;
   };
-  const sous = (x, y)=> idDe(document.elementFromPoint(x, y));
   const dedans = (x, y)=>{
     const r = grp.getBoundingClientRect();
     return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
   };
   const aller = (pid, id)=>{
-    const av = actifs.get(pid) || null;
-    if(av === id) return;
-    if(av){ BOUTONS[av].el.classList.remove('on'); BOUTONS[av].haut(); actifs.delete(pid); }
-    if(id){ BOUTONS[id].el.classList.add('on'); BOUTONS[id].bas(); actifs.set(pid, id); }
+    if((actifs.get(pid) || null) === id) return;
+    if(id) actifs.set(pid, id); else actifs.delete(pid);
+    majBoutons();
   };
   grp.addEventListener('pointerdown', (e)=>{
+    // Un clic droit ou un bouton latéral de souris n'enfonce pas une pédale.
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
     // Le point sous le doigt désigne le bouton ; à défaut — un coin transparent du
     // dessin, un événement sans coordonnées — c'est celui qui a reçu l'appui.
     const id = sous(e.clientX, e.clientY) || idDe(e.target);
@@ -11048,7 +11146,10 @@ function groupeBoutons(idGroupe, selecteur){
     if(!id && dedans(e.clientX, e.clientY)) return;
     aller(e.pointerId, id);
   });
-  for(const ev of ['pointerup', 'pointercancel'])
+  /* TROIS FAÇONS DE LÂCHER, ET L'ON ÉCOUTE LES TROIS. `lostpointercapture` manquait :
+     cacher un élément pendant la capture — ce que fait le changement de mode — l'émet à
+     la place de `pointerup`, et le bouton restait enfoncé. */
+  for(const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
     grp.addEventListener(ev, (e)=>{ if(actifs.has(e.pointerId)) aller(e.pointerId, null); });
 }
 groupeBoutons('dirs', '.dir');
@@ -11077,13 +11178,11 @@ function appliquerCommandes(){
   hudEl.classList.toggle('btn', b);
   stickEl.style.display = b ? 'none' : '';
   thrEl.style.display   = b ? 'none' : '';
-  // On repart de zéro : un doigt encore posé sur un manche qu'on vient de cacher
-  // laisserait l'engin braqué pour toujours.
-  steer = 0; throttle = 0; frein = false;
-  stickId = null; thrId = null;
-  BTN.g = BTN.d = BTN.acc = BTN.fre = BTN.arriere = false;
-  for(const id in BOUTONS) BOUTONS[id].el.classList.remove('on');
-  knob.style.transform = 'translateX(0)'; thrKnob.style.transform = 'translateY(0)';
+  /* On repart de zéro : un doigt encore posé sur un manche qu'on vient de cacher
+     laisserait l'engin braqué pour toujours. Ce nettoyage vidait `BTN` et les classes
+     `.on` mais PAS les tables de pointeurs, qui gardaient une entrée fantôme et rendaient
+     le bouton muet à l'appui suivant. `relacherCommandes` les vide toutes. */
+  relacherCommandes();
 }
 
 addEventListener('keydown', e=>{ keys[e.code] = true; if(['1','2','3','4'].includes(e.key)) setMachine(+e.key-1); });
@@ -11201,6 +11300,7 @@ const parcListe = document.getElementById('parcliste');
 // La teinte déclarée du modèle : on reconnaît le tracteur vert du rouge sans lire.
 const couleurEngin = (m)=> '#' + (m.teinte || 0x8BE07A).toString(16).padStart(6, '0');
 function ouvrirParc(){
+  relacherCommandes();
   parcListe.innerHTML = '';
   MACHINES.forEach((m, i)=>{
     if(m.verrou) return;
@@ -11479,6 +11579,7 @@ let planEngin = 0, planMode = 'parcelle', planTaches = [], planBoucle = false, p
 let planProd = -1;
 
 function ouvrirPlan(){
+  relacherCommandes();
   planEngin = cur;
   const M = MACHINES[planEngin];
   planTaches = (M.v.mission ? M.v.mission.taches.slice() : []);
@@ -15139,6 +15240,7 @@ const contratEl = document.getElementById('contrat');
 let contratVu = null;                 // {C, S, offre:bool, mission:bool}
 function ouvrirContrat(C, S, offre, mission){
   if(!C) return;
+  relacherCommandes();
   contratVu = {C, S: S || SITES.find((x)=> x.nom === C.lieu) || null,
                offre: !!offre, mission: mission || null};
   rendreContrat();
@@ -16436,6 +16538,7 @@ const doseEl = document.getElementById('dose');
 const doseCurseur = document.getElementById('dosecurseur');
 let dose = null;   // {max, titre, sortie(q), detail(q), valider(q)}
 function ouvrirQuantite(o){
+  relacherCommandes();
   dose = o;
   const max = Math.max(1, Math.floor(o.max));
   /* IL S'OUVRE SUR LA DOSE UTILE, PAS SUR TOUT. « Tout » est le bon défaut pour une
@@ -17606,8 +17709,22 @@ function updateSauvegarde(dt){
   SAVE.t = 0; sauvegarder(false);
 }
 // Une page qu'on quitte ne prévient pas toujours : on enregistre aussi au masquage.
-addEventListener('visibilitychange', ()=>{ if(document.hidden) sauvegarder(false); });
-addEventListener('pagehide', ()=> sauvegarder(false));
+/* ET QUAND LE JOUEUR N'EST PLUS LÀ. Verrouiller l'écran, ouvrir le volet de
+   notifications ou changer d'application peut ne produire NI `pointerup` NI
+   `pointercancel` : au retour, la pédale était toujours enfoncée. Ces trois événements-là
+   ne faisaient que sauvegarder ; ils rendent maintenant aussi les commandes. */
+// `visibilitychange` est tiré SUR LE DOCUMENT : on l'écoute là où il naît, et non sur la
+// fenêtre où il ne monte que par remontée.
+document.addEventListener('visibilitychange', ()=>{
+  relacherCommandes();
+  if(document.hidden) sauvegarder(false);
+});
+addEventListener('blur', relacherCommandes);
+// Le téléphone qu'on tourne fait surgir #rot par-dessus les pédales, sans un seul
+// événement de pointeur.
+addEventListener('orientationchange', relacherCommandes);
+addEventListener('resize', relacherCommandes);
+addEventListener('pagehide', ()=>{ relacherCommandes(); sauvegarder(false); });
 
 /* ---------- 28. ÉCRAN D'ACCUEIL ---------- */
 // Il sert trois choses à la fois : proposer de reprendre, rappeler les commandes,
