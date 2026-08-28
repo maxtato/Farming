@@ -182,6 +182,35 @@ kilos de blé à 40 000 € pour la réception finale, et les prix du matériel 
 exige sont ceux du barème d'équipement : épandeur 250 €, poulailler 800 €, mélangeur
 premium 1 200 €, fromagerie 1 800 €, cave 4 500 €, enjambeuse 5 000 €.
 
+### Le mode libre, hors campagne
+
+Un troisième bouton à l'accueil, après *Reprendre* et *Nouvelle partie* : **MODE LIBRE**.
+Aucun palier n'y verrouille quoi que ce soit — tout s'achète dès qu'on en a les moyens — il
+n'y a pas de mission, et ce sont les contrats du village qui prennent le relais. C'est le
+même interrupteur qui les tenait fermés.
+
+Il court-circuite **`ouvert()`**, le seul point de passage des six familles : cultures,
+outils, engins, modules, espèces et commerces tombent d'un coup, sans une exception
+disséminée dans les treize appelants. Relevé : **34 verrous au premier palier de campagne,
+0 en libre**.
+
+Trois choses ne passent pas par là et sont traitées à part. Les **parcelles** ont leur propre
+juge : la vallée entière devient achetable. Les **huit comparaisons écrites à la main** dans
+les menus passent par un jumeau — sans elles le verrou serait levé mais le bouton resterait
+gris, « Niveau 12 requis » écrit sur ce qu'on a le droit d'acheter. Et l'**écran de fin** se
+déclenchait sur *dernier palier ET plus de mission* : en libre il n'y a jamais de mission, et
+le premier joueur à atteindre le palier 20 par l'expérience aurait vu l'accueil reprendre la
+main, boutons effacés, jeu en pause.
+
+Le bouton n'est **jamais le principal** : dix bancs entrent dans le jeu en cliquant le premier
+`.accbtn.pri`. Il refait les enseignes au passage, sans quoi treize d'entre elles resteraient
+à « NIVEAU 8 » sur des commerces désormais ouverts.
+
+Le mode se sauvegarde en **champ facultatif**, la version ne bouge pas, et une sauvegarde
+d'avant vaut campagne. Il se restaure **deux fois** à la relecture : une avance dès la garde,
+parce que la relecture des engins interroge `ouvert()` deux cents lignes avant que la campagne
+ne soit restaurée, puis pour de bon ensuite.
+
 ### Pendant la campagne, la mission est le seul ordre
 
 Le village proposait, **en plus** de la campagne, ses propres contrats : quatre à la fois,
@@ -259,11 +288,8 @@ un ordre qu'on n'avait demandé à personne, et c'était le dernier endroit du j
 chose tombait du ciel. Une mission qui nomme un **lieu** est maintenant proposée par ce
 lieu — pastille verte, `VOIR LA MISSION`, fenêtre, on prend.
 
-Une **pastille verte pleine** s'allume au sol, au centre de l'anneau de livraison, et elle
-respire : elle part à 62 % d'opacité, monte au plein et grandit d'un cinquième. Elle est
-peinte **par-dessus** le sol et non ajoutée à lui — un disque additif sur le béton clair
-d'un quai rend vert pâle, et l'on retombait sur le liseré qu'on voulait quitter. C'est la
-seule tache pleine de la carte, et pendant la campagne il n'y en a **jamais qu'une**.
+Le cercle de son quai passe au **vert**, et pendant la campagne il n'y en a jamais qu'un.
+C'est la même forme que partout ailleurs — voir la section suivante.
 Tant qu'on ne l'a pas prise, elle n'est nulle part à l'écran, et **livrer d'avance ne
 compte pas** : on ne peut pas honorer un engagement qu'on n'a pas pris.
 
@@ -274,6 +300,86 @@ celle-là s'affiche directement, il n'y a nulle part où aller la chercher.
 
 En mode libre, aucune offre commerciale ne viendra se poser par-dessus : deux choses
 derrière la même pastille, on n'en verrait qu'une.
+
+### Une seule forme au sol, et la couleur seule parle
+
+Il y avait deux formes de marque au sol, et il fallait apprendre les deux : un **anneau**
+jaune, creux et additif, pour ce qu'on peut faire ici, et une **pastille** pleine, verte ou
+bleue, plus petite, pour ce que le guidage a à dire. Aux quinze commerces les deux se
+superposaient — un disque au milieu d'un cercle — et il fallait deviner lequel des deux
+venait de changer.
+
+C'est maintenant un **cercle**, un seul : un liseré franc et un centre de la même couleur,
+nettement plus transparent. Trois déclinaisons, rien d'autre qui change :
+
+| | |
+|---|---|
+| **jaune** | une action possible ici, ou l'objectif du moment |
+| **vert** | une mission à prendre |
+| **bleu** | un service permanent — Garage, Comptoir agricole, Coopérative, la cuve à gazole |
+
+En veille, le même cercle en blanc froid, très transparent : le quai reste visible, il ne
+dit simplement rien. Relevé : **dix-huit marques, une seule forme, un seul rayon**.
+
+Et **un seul cercle par commerce**. Depuis qu'ils ont la même forme, deux marques au même
+point seraient deux cercles concentriques identiques. Le sol ajoute une chose à la règle du
+guidage — *ce qu'on peut faire ici, maintenant* — parce qu'il est la seule surface qui parle
+de l'endroit où l'on est : la carte et les flèches, elles, disent où aller et gardent un
+seul jaune. Un comptoir où l'on a de quoi acheter passe donc au jaune, et redevient bleu une
+fois la remorque pleine.
+
+Un service bleu **respire moins**. La forme est la même, mais « le bleu représente une
+possibilité, pas une obligation » : donner aux quatre lieux permanents le battement de la
+seule chose qu'on ait à faire les mettrait à son rang, et ils clignoteraient d'un bout à
+l'autre de la partie.
+
+**La cuve à gazole est un service comme les autres**, donc bleue et allumée en permanence.
+Elle passait au jaune quand on pouvait faire le plein — mais on ne va pas au gazole parce
+qu'une lumière s'allume, on y va parce qu'on en manque, et la jauge le dit déjà. Son cercle
+a aussi changé de place : il était au **bout** de la cuve, quatre mètres au-delà du pistolet,
+et l'on se rangeait nez à nez avec ses six mètres quarante. Il est maintenant sur son
+**flanc est** — le seul libre, le hangar occupant tout l'ouest à deux mètres vingt — et l'on
+se range le long d'elle, comme à une pompe.
+
+### L'étiquette d'un commerce ne dit que son nom
+
+Elle déroulait ce qu'il achète, à quel prix, ce qu'il vend, ce qu'il transforme et ce qu'il
+propose : jusqu'à onze lignes sur un panneau de **dix-neuf mètres** de large, quinze fois
+dans le village. On ne voyait plus les bâtiments derrière, et l'on ne lisait de toute façon
+aucun de ces prix en roulant — le détail est dans le menu Filières, où on le consulte assis.
+
+Reste ce dont on a besoin depuis la route : **savoir où l'on est**. Le nom, une barre à la
+couleur du toit, **8,60 m** de large. Un commerce encore fermé garde la seule ligne qui
+manquerait sans elle — le palier qui l'ouvrira — parce que ce n'est pas ce qu'il achète,
+c'est la raison pour laquelle il n'achète rien ; et sa plaque est plus transparente, son nom
+gris au lieu de blanc, de sorte qu'on le distingue sans lire.
+
+La densité y **gagne** : 560 px sur 8,60 m font 65 pixels par mètre, contre 34 pour les
+640 px de l'ancien panneau de dix-neuf mètres. L'étiquette est deux fois plus fine par mètre
+en pesant six fois moins.
+
+### Tous les pictogrammes ont le trait de la pompe à gazole
+
+Ils portent tous `stroke-width="2"` dans une boîte de 24, mais ne sont pas rendus à la même
+taille : les jauges de droite demandent 18 pixels, les boutons 22. Relevé à l'écran, la
+pompe traçait **1,95 px** et le bouton d'à côté **2,38** — un quart plus épais, et c'est ce
+quart qui se voyait. L'épaisseur est maintenant **déduite de la taille demandée** pour que le
+trait rendu soit toujours celui de la pompe : 2,00 à dix-huit pixels, 1,64 à vingt-deux. Le
+dessin reste écrit une seule fois.
+
+### Les roues suivent le roulis au-delà de trois degrés
+
+La caisse prenait du roulis, les roues restaient plates : en virage serré, la carrosserie
+basculait de dix degrés au-dessus d'un essieu immobile et le haut du pneu ressortait à
+travers l'aile. Les roues sont réunies sous un **train** qui peut basculer lui aussi, sans
+rien changer à leur roulement ni à leur braquage, qui restent locaux.
+
+La suspension d'un vrai véhicule a une **course** : sous un petit roulis la caisse bouge
+seule, les roues restent au sol — c'est ce qu'on voulait et on le garde — mais la course a
+une **butée**, et au-delà l'essieu part avec. Le roulis de caisse est inchangé, c'est lui
+qu'on voit, et l'écart entre les deux ne dépasse plus jamais **0,052 rad**, soit trois
+degrés. Le roulis étant borné à ±0,17, la butée en reprend les deux tiers dans un virage à
+fond, et rien du tout en ligne droite.
 
 ### Le pictogramme de l'action, posé sur l'objectif
 
@@ -301,17 +407,18 @@ Une seule pièce, déplacée là où le juge dit d'aller, couvre les **douze** n
 d'objectif au lieu d'en couvrir sept. Elle se pose au centimètre sur le point que le
 bandeau et la flèche du bord désignent : trois surfaces, un seul calcul.
 
-**Il reste debout quand on tourne.** À plat sur le sol, un dessin est à l'endroit d'un côté
-du champ et sur la tête de l'autre. Il pivote donc autour de la verticale pour présenter
-son haut à la caméra — il reste une marque au sol, c'est le vocabulaire du guidage, et il
-se lit de partout. Le plan est couché par une rotation de −90° autour de X : son haut local
-pointe alors vers le −Z du monde, et il faut l'angle de **l'opposé** du vecteur qui mène à
-la caméra. Sans ce signe, on lit la flèche à l'envers.
+**Il est debout, en l'air.** Il était couché sur le sol, dans le cercle, et pivotait autour
+de la verticale pour présenter son haut à la caméra. Couché, il est toujours vu de biais —
+jusqu'à quinze degrés d'inclinaison quand la caméra rase — et il se cachait sous l'engin
+garé dessus, c'est-à-dire au moment précis où l'on regardait. Il flotte maintenant **à la
+verticale** à 5,60 m au-dessus du cercle, au-dessus du toit de la plus haute machine, en
+sprite face caméra : c'est un objet du monde, il passe derrière un bâtiment comme le reste,
+et la flèche du bord prend le relais quand on ne le voit plus.
 
-**Il garde sa taille à l'écran, pas au sol.** Trois mètres de côté se lisent très bien dans
-un anneau de commerce, sur lequel on est arrêté ; au milieu d'une parcelle vue de cent
-mètres, c'est un point. Il grandit donc avec la distance, entre une et quatre fois — la
-même idée que la flèche du bord, qui ne rapetisse pas non plus.
+**Il ne disparaît pas au loin.** Un sprite rapetisse avec la distance comme tout objet, et
+trois mètres de côté vus de cent vingt mètres ne sont plus qu'un point. On rattrape la
+moitié du chemin — jusqu'à deux fois et demie — assez pour qu'il reste lisible du bout d'une
+parcelle, pas assez pour qu'il cesse d'appartenir au monde.
 
 **Un liseré sombre, et le mélange normal.** Peint en additif, le dessin sature : les traits
 se rejoignent et la caisse devient un pâté jaune. En mélange normal sans contour, il
@@ -355,6 +462,11 @@ se pose sous le manche ; sinon on coupe le rayon partant du centre sur ce rectan
 point derrière la caméra sort de la projection avec ses signes inversés, et il faut le
 retourner sans quoi la flèche pointe à l'exact opposé. La vignette entière est rentrée
 dans l'écran, libellé compris — sur un bord latéral on lisait « COOPÉRATIV ».
+
+**Et plus petites.** Trente pixels de flèche et huit et demi de libellé : sur une route
+bordée de commerces, trois vignettes de cette taille occupaient un bon quart du bord de
+l'écran. Vingt-deux et sept — la pointe reste franche, le nom reste lisible, et c'est une
+indication de direction, pas un panneau.
 
 **Un triangle, mais pointu.** Le premier était équilatéral — trois angles de soixante
 degrés — et un triangle dont tous les angles se valent ne pointe nulle part : tourné d'un
@@ -1434,16 +1546,37 @@ Quelques partis pris qui expliquent le reste :
   ; la respiration des anneaux, elle, reste à chaque image — c'est elle qu'on voit. La
   liste des actions, en revanche, n'est PAS mémorisée : elle est relue juste après
   chaque transfert, et une liste vieille d'un transfert ment.
-- **On travaille en escargot, jamais en serpentin.** Le pilote débordait de 2,5 m hors
-  de la parcelle pour en travailler les bords : sur une parcelle de bordure, ces
-  2,5 m tombaient dans la clôture. Il tourne maintenant autour de la parcelle en se
-  resserrant d'une largeur d'outil à chaque tour, en entrant par le coin le plus
-  proche. Rien ne sort du rectangle, et le premier segment est toujours parallèle à
-  un bord.
+- **On travaille en escargot, jamais en serpentin.** Le pilote tourne autour de la
+  parcelle en se resserrant, en entrant par le coin le plus proche, et le premier
+  segment est toujours parallèle à un bord.
+- **Deux tiers de l'outil sur la terre, un tiers sur l'herbe.** Le premier tour posait
+  l'axe du tracteur quinze centimètres DEHORS : l'outil, centré sur lui, était à moitié
+  sur le chemin, et la moitié du premier passage était perdue — relevé, 47 à 49 % de la
+  largeur travaillait de la terre. L'axe rentre maintenant d'un **sixième de largeur à
+  l'intérieur**, la bordure sort d'un tiers, et 67 % travaille. C'est aussi plus sûr :
+  sur les trois bords que longe la clôture de la ferme, l'axe passait à dix centimètres
+  d'un mur de collision, il en a maintenant de quatre-vingts à quatre cents.
+- **Et un tiers de recouvrement entre deux tours.** Le pas était réglé au banc à trois
+  cinquièmes de largeur ; deux tiers font mieux — sur les seize cas du banc de
+  couverture, le pire passe de **88,4 % à 94,2**.
+- **Le milieu se fait en lignes droites, et c'est mesuré.** Un virage serré au centre a
+  été tracé puis mesuré : la couverture ne bouge pas d'un dixième de point, et il
+  introduit douze segments en biais dans un plan qui n'en avait aucun. Le tracteur sait
+  tourner sur 1,39 m de rayon ; l'outil traîné, non — le timon impose
+  rayon² + attelage² − longueur², sans solution pour le semoir ni l'épandeur, qui se
+  mettent en portefeuille.
 - **Un champ ne se traverse que lorsqu'on y travaille.** Pour aller d'un lieu à un
   autre, l'automatisation rejoint la grille des chemins de sable et des rocades, la
   suit, et ne la quitte qu'au dernier moment — au lieu de viser sa destination en
   ligne droite à travers les semis.
+- **Et l'on roule sur la voie de droite.** Les points étaient posés sur l'AXE de la
+  chaussée : deux engins se croisant se rentraient dedans. Chaque tronçon est décalé
+  d'un quart de chaussée à droite de son sens de marche — trente tronçons mesurés, zéro
+  à contresens.
+- **On repart en avançant quand il y a la place.** On ressortait toujours en marche
+  arrière. C'est juste au fond d'un parvis de commerce, où la façade est à 5,40 m ; pas
+  au silo, devant lequel s'ouvrent dix-neuf mètres de cour, et où l'on reculait pourtant
+  de dix-huit mètres.
 - **Une espèce n'est qu'une ligne de table.** Prix, ration, produit, silhouette,
   places : tout l'élevage se lit dans `ESPECES`, et le reste du code ne connaît aucun
   nom d'animal. C'est ce qui a permis d'ajouter un rucher — une espèce qui ne marche
