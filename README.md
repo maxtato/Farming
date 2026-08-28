@@ -1541,28 +1541,37 @@ pixels et quatre d'interlettrage : « PRÉPARER LA PARCELLE » à vingt-six et o
 écran de téléphone en paysage. La boîte n'attrape pas le doigt ailleurs que sur elle-même —
 on continue de conduire.
 
-**Le tutoriel désigne aussi le véhicule.** Il disait « moissonne au moins 30 kg » à qui
-pilotait encore son tracteur, sans dire laquelle des six machines de la cour prendre. Chaque
-étape porte donc l'engin qu'elle demande ; quand ce n'est pas celui qu'on pilote, le bouton
-du parc **bat en jaune** et une **flèche jaune** flotte au-dessus de la machine à prendre, à
-six mètres du sol. Rien n'est verrouillé — on peut labourer avec le tracteur bleu si on l'a —
-c'est une indication, et elle s'éteint dès qu'on est monté dedans.
+**Le guidage jaune se poursuit dans les menus.** Le tutoriel disait « moissonne au moins
+30 kg » à qui pilotait encore son tracteur, sans dire laquelle des six machines de la cour
+prendre. Une flèche jaune est descendue un temps sur la machine ; elle a été retirée. Le
+chemin est maintenant celui qu'on prendrait de toute façon, et il se suit d'un battement à
+l'autre :
 
-Trois détails, tous appris à l'essai. C'est une **image plate qui fait face**, et non un
-volume : un cône posé pointe en bas se voit *d'au-dessus* dans cette vue plongeante, on n'en
-lit qu'un losange et la hampe se met de chant. Pour un signe — contrairement à une enseigne
-— faire face entièrement, tangage compris, est exactement ce qu'on veut. Elle porte un
-**liseré sombre**, sans quoi elle disparaît : la moissonneuse est jaune, et le jaune du
-guidage aussi. Et c'est un **plan**, pas un `THREE.Sprite` : les lutins ont leur propre
-programme dans three.js, et un seul coûtait un dixième des images sur le rendu logiciel du
-banc, par changement de programme à chaque image. Le plan réutilise celui des enseignes ;
-neuf flèches à l'écran coûtent alors la même chose qu'une seule — mesuré.
+| on veut que le joueur… | ce qui bat |
+|---|---|
+| change d'engin | le bouton du parc, puis **la ligne de la machine à prendre** |
+| achète l'épandeur | l'onglet **Outils & remorques** du garage, puis **la ligne de l'épandeur** |
+| achète l'engrais | l'onglet **Engrais & gazole** du comptoir, puis **la ligne de l'engrais** |
 
-Le halo du bouton, lui, est un **cadre qu'on met à l'échelle**, et non une `box-shadow` qui
-s'étale. Animer une ombre portée est une propriété de *peinture* : le bouton se repeignait à
-chaque image, et **cela seul** coûtait un dixième des images du jeu — 8,7 contre 9,6 au
-banc, arrêté sur la même scène. Un pseudo-élément mis à l'échelle et effacé ne touche que le
-compositeur, et le compte est revenu à l'identique.
+Chaque étape porte donc quatre champs de désignation : `engin`, puis `fen`, `onglet` et
+`art`. Un onglet **déjà ouvert** cesse de battre — quand on y est, c'est l'article qui prend
+le relais — et la garde sur la fenêtre est indispensable : les deux étapes de l'épandeur
+visent toutes deux un article nommé `engrais`, mais l'une au garage et l'autre au comptoir.
+Rien n'est verrouillé : on peut labourer avec le tracteur bleu si on l'a. C'est une
+indication, et elle s'éteint dès qu'on a fait le geste.
+
+**Ce qu'on a le droit d'animer, et rien d'autre.** Le halo du bouton du parc est un **cadre
+qu'on met à l'échelle**, et non une `box-shadow` qui s'étale. Animer une ombre portée est
+une propriété de *peinture* : le bouton se repeignait à chaque image, et **cela seul**
+coûtait un dixième des images du jeu — 8,7 contre 9,6 au banc, arrêté sur la même scène. Un
+pseudo-élément mis à l'échelle et effacé ne touche que le compositeur.
+
+Dans les menus, une différence de forme, et elle est obligatoire : sur une rangée large et
+basse, un cadre mis à l'échelle déborderait de sa boîte — et les trois conteneurs
+(`#parcliste`, la barre d'onglets, la liste de la fenêtre) coupent ce qui dépasse ; la barre
+d'onglets se mettrait même à défiler toute seule. Ces trois-là ne font donc battre que
+l'**opacité** d'un cadre posé au ras du bord. L'opacité est, comme la transformation, une
+propriété du compositeur.
 
 ### Un préambule, et un seul
 
@@ -1877,6 +1886,89 @@ une parcelle à labourer — et, dès qu'on grossit assez pour la lire, elle por
 écriteau : le nom de la culture et son avancement en pour-cent, « à moissonner » quand
 elle est mûre, l'espèce et le nombre de bêtes sur ses places pour un enclos. C'est ce qui
 permet de choisir quel engin envoyer où sans quitter la carte.
+
+## La circulation de la rocade
+
+Elle existait depuis le premier jour, **éteinte** : les modèles, le tracé, l'attelage
+articulé, tout était là derrière un `NB_VEHICULES = 0`. Ce qui manquait n'était pas le
+code mais trois réglages qu'on ne voit pas sans les mesurer.
+
+**Combien.** L'anneau est *fermé* : un véhicule parcourt les quatre brins, donc le débit vu
+depuis n'importe quel point vaut N divisé par le tour de piste. Le parc roule à 9,8 m/s en
+moyenne sur 716 à 758 mètres de file — les deux files n'ont pas le même périmètre, six pour
+cent d'écart — soit soixante-quinze secondes de tour. **Douze véhicules** donnent une
+voiture toutes les cinq à sept secondes sur chaque route, mesuré sur cent soixante
+secondes. Encombrement : 3,1 véhicules à la fois sur un brin de 188 m, un tous les cent
+vingt-trois mètres. Une route de campagne fréquentée, pas une file d'attente.
+
+**Le rayon des virages n'est pas le même dans les deux files.** À neuf mètres, l'axe de la
+file intérieure passait trente-trois centimètres *dans l'herbe* au sommet de chaque virage.
+Le coin intérieur du bitume est à √2·(CR − 5 − e) du centre de l'arc, et il faut
+`CR ≤ 3,41·(5 + e)` pour rester dessus : huit mètres pour la file intérieure, neuf pour
+l'extérieure. Mesuré après correction : **zéro image hors chaussée** sur cent soixante
+secondes.
+
+**Et l'on ne se traverse plus.** Chaque véhicule avançait à sa vitesse propre sans jamais
+regarder devant : une citadine à quatorze mètres par seconde rattrapait un camion à six et
+lui passait au travers. La loi de poursuite se cale sur celui de devant à partir de **sa**
+longueur — un attelage traîne treize mètres de remorque, une voiture trois — et, sous la
+distance de sécurité, roule *moins vite* que lui, ce qui rouvre l'écart. La première
+version se calait exactement sur sa vitesse : l'écart cessait de se réduire mais ne se
+rouvrait jamais, et une file de six où chacun freine pour le précédent finissait par se
+tasser jusqu'à ce que deux carrosseries se superposent. Dégagement minimal mesuré
+aujourd'hui : **0,8 m**, jamais un contact.
+
+Les six modèles viennent de la planche du joueur — berline, break à galerie, citadine,
+bétaillère à claire-voie, plateau à bottes, monospace — et le camion orange garde ses trois
+remorques. Chacun est fusionné en **une** géométrie, donc un appel de rendu, comme les
+maisons. Un détail de portage : la planche peignait en `DoubleSide`, ce qui masquait un
+enroulement de faces inversé sur les capots ; ici la matière n'a qu'une face, et il a fallu
+retourner les triangles — sans quoi on voyait les voitures de l'intérieur.
+
+Le trafic n'a **aucune emprise de collision**, et c'est voulu : `obstacles` est un tableau
+balayé à chaque image par le pilote, et y injecter douze cercles mobiles transformerait un
+croisement en accrochage. On les traverse, comme tout le décor mobile.
+
+## Le son du moteur
+
+Il y en avait déjà, en **synthèse pure** : deux dents de scie désaccordées passées au
+filtre. Ça ne coûtait pas un octet, et c'était sa seule qualité — ça sonnait comme une
+sirène de jouet. Deux vraies boucles les remplacent, et **tout le reste se fait avec
+ces deux-là** :
+
+| | échantillon | vitesse de lecture |
+|---|---|---|
+| Tracteur vert | diesel | 1,00 |
+| Tracteur rouge / bleu | diesel | 0,94 / 0,88 |
+| Moissonneuse | diesel | 0,76 |
+| Enjambeuse | diesel | 1,14 |
+| Pick-up / Fourgon | voiture | 1,06 / 0,86 |
+| Trafic léger | voiture | 0,95 × la vitesse |
+| Camion de la rocade | voiture | 0,58 × la vitesse |
+
+Un moteur plus gros tourne plus bas : c'est la seule chose qu'il faut savoir, et un
+troisième échantillon serait du poids pour rien. Le **filtre passe-bas** fait le reste — il
+s'ouvre de 230 à 1 125 Hz avec l'effort, et c'est lui, bien plus que le volume, qui donne
+l'impression d'un moteur qui force.
+
+**Réséchantillonnées à 6 000 Hz, et c'est sans perte ici.** Les originaux sont à 44 100 Hz
+et pèsent 280 000 caractères de base64 — vingt-sept pour cent de plus sur un fichier qui
+doit tenir en un seul HTML et se télécharger sur mobile. Mesuré à la transformée de
+Fourier : ces deux sons n'ont **rien** au-dessus de 2 000 Hz (0,000 000 % de l'énergie),
+leur pic est à 105 et 114 Hz, et le jeu leur passe de toute façon un passe-bas à 240 Hz.
+Six mille hertz laissent trois mille de bande passante, le double de ce qui s'y trouve, et
+l'aller-retour 44 100 → 6 000 → 44 100 rend un écart de **0,006 %**. Ce qu'on gagne :
+38 000 caractères au lieu de 280 000, soit 3,5 % du fichier au lieu de 21.
+
+**Le trafic n'a que deux voix pour douze véhicules.** Chacune suit le plus proche de sa
+sorte — une voiture, un camion — et son volume décroît au carré de la distance jusqu'à
+s'éteindre à cinquante-cinq mètres. Douze boucles tournant en permanence coûteraient douze
+fois plus pour un décor qu'on n'entend qu'un à la fois.
+
+L'interrupteur et le volume étaient déjà dans les Réglages, et déjà sauvegardés : rien à
+ajouter, et la version du fichier de partie ne bouge pas. Couper le son coupe **toutes** les
+chaînes, moteur et trafic. Coût mesuré de la circulation et du son réunis : deux pour cent
+des images.
 
 ## La nuit
 
