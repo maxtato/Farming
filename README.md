@@ -661,6 +661,75 @@ où l'on regarde en semant, c'est ce bouton, et c'est donc là que le chiffre do
 message qui suit ne dit pas la même chose selon ce qui manque : *remplir à la cour* si le
 hangar a de quoi, *au comptoir agricole* s'il est vide lui aussi.
 
+### L'élevage se compte à la bête
+
+Acheter une étable ne donne pas « du lait ». Chaque animal produit et mange **pour lui**, et
+deux vaches donnent deux fois plus qu'une. Le barème écrit ce que fait UNE bête sur UN cycle :
+
+| | par cycle | aliment | ce qu'un kilo de grain rend |
+|---|---|---:|---:|
+| poule | 2 œufs | 0,25 kg | ×2,7 |
+| vache | 25 L de lait | 2 kg | ×11 |
+| brebis | 2 kg de laine + 10 L de lait | 1 kg | ×19 |
+| mouton | 2 kg de laine | 0,8 kg | ×7,7 |
+| ruche | 2 kg de miel / 90 s | — | passive |
+
+La dernière colonne compare ce que le grain vaut **donné à une bête** contre **vendu tel
+quel**. C'est très exactement l'ordre dans lequel la campagne ouvre les trois élevages, et
+c'est ce qui fait qu'on ne vend pas son blé quand on a des bêtes à nourrir. Les prix suivent
+le barème : poule 30 €, brebis 180, cochon 220, vache 600, ruche 250.
+
+**Le cycle vaut cinq minutes** pour tout ce qui mange, et c'est ce qui rend l'autonomie
+comparable d'une espèce à l'autre : une mangeoire de quatre cycles tient vingt minutes, qu'elle
+nourrisse six poules ou dix vaches. La ruche garde les quatre-vingt-dix secondes du barème, ce
+qui ne gêne personne puisqu'elle ne se remplit pas — **les abeilles se nourrissent seules**,
+c'est une activité passive, et on leur comptait jusqu'ici du sirop dans une mangeoire.
+
+**La mangeoire se dimensionne sur le troupeau, et non l'inverse.** Elle valait 235 kg pour tout
+le monde : de quoi tenir trois jours avec deux poules et une demi-heure avec quatorze vaches.
+Sa capacité est maintenant
+
+> consommation par bête et par cycle × nombre de bêtes × autonomie
+
+et l'amélioration n'augmente pas une capacité arbitraire — elle augmente **l'autonomie** :
+4, 6, 10 puis 16 cycles, à 500, 1 500 et 4 000 €. Dix vaches à quatre cycles font 80 kg ; les
+mêmes à dix cycles en font 200. Ce sont les deux chiffres que le cahier des charges donne en
+exemple, et le contrôle les vérifie sur la formule elle-même.
+
+**Le tank suit la même règle.** Une cuve de 50 L n'a pas de sens quand dix vaches produisent
+250 L par cycle : la capacité est ce que le troupeau sort en quatre cycles, et elle grandit
+avec lui — 100 L pour une vache, 1 000 pour dix. Le miel en garde six, comme dit le barème.
+
+**Le bâtiment a sa propre échelle**, indépendante de l'autonomie : on agrandit son étable bien
+avant de vouloir passer trois fois moins souvent, et le barème leur donne des prix séparés
+pour cette raison.
+
+| | places | prix |
+|---|---|---|
+| poulailler | 6 · 12 · 20 · 32 | 600 · 1 500 · 3 500 € |
+| étable | 2 · 5 · 10 · 20 | 1 500 · 4 000 · 9 000 € |
+| bergerie | 4 · 8 · 16 · 30 | 900 · 2 500 · 6 000 € |
+| porcherie | 4 · 8 · 16 · 30 | 1 200 · 3 200 · 7 500 € |
+| zone apicole | 2 · 5 · 10 · 20 | 700 · 2 000 · 5 000 € |
+
+La **parcelle** reste le dernier mot : un enclos de vingt ares ne tient pas vingt vaches quoi
+qu'on paie, et c'est ce qui empêche d'entasser un troupeau sur un mouchoir.
+
+Une partie en cours peut avoir plus de bêtes que le premier cran n'en autorise — quatorze
+vaches là où l'étable neuve en tient deux. On ne reprend pas un troupeau au joueur : le
+bâtiment monte au cran qui le contient, celui qu'il aurait payé s'il l'avait acheté.
+
+Un défaut trouvé en chemin, invisible à l'œil : le **second tank d'une brebis** était écrit
+sous un `if` sans accolades, donc hors de la garde qui vérifie que les bêtes ont mangé. Il ne
+s'en voyait rien — la ligne multiplie par le nombre de bêtes nourries, donc elle ajoutait
+zéro — mais toute condition ajoutée devant aurait cessé de le couvrir.
+
+Et une commande de la campagne a dû suivre : la boulangerie demandait « 13 kg d'œufs », ce qui
+fait **217 œufs** une fois qu'on les compte, et une heure et demie de ponte avec un poulailler
+plein. Le cahier des charges donne lui-même l'exemple d'une commande de **cent** œufs ; c'est
+l'échelle juste, et c'est celle-là. La refonte de la campagne reprendra les trente commandes
+ensemble — celle-ci ne pouvait pas attendre, elle bloquait le palier 5.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

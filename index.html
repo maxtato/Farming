@@ -1966,7 +1966,14 @@ const MISSIONS = [
    texte:'Le maïs rend plus au mètre que le blé, mais il pousse plus lentement. 120 kg à la coopérative.'},
   {niv:5, faire:'poules', prime:0, xp:40, titre:'Monter un poulailler',
    texte:'Aménage une parcelle en enclos et prends-y trois poules. Elles mangent ton grain et pondent toute la journée.'},
-  {niv:5, lieu:'Boulangerie', lignes:[{cle:'farine', need:60}, {cle:'oeufs', need:13}],
+  /* CENT ŒUFS, ET NON DEUX CENT DIX-SEPT. La commande disait « 13 kg d'œufs » : depuis
+     qu'on les compte à la pièce on voit ce que cela demandait vraiment, et depuis que
+     chaque poule pond pour elle on sait combien de temps — une heure et demie avec un
+     poulailler plein. Le cahier des charges donne lui-même l'exemple d'une commande de
+     CENT œufs, « possible mais lent avec quatre poules » : c'est l'échelle juste, et
+     c'est celle-là. La refonte de la campagne reprendra les trente commandes ensemble ;
+     celle-ci ne pouvait pas attendre, elle bloquait le palier 5. */
+  {niv:5, lieu:'Boulangerie', lignes:[{cle:'farine', need:60}, {cle:'oeufs', need:6}],
    prime:1200, xp:100,
    texte:'Première commande à deux chaînes : de la farine ET des œufs, dans la même tournée.'},
   {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:100}], prime:900, xp:120,
@@ -9426,6 +9433,8 @@ const dNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'd\u2019' : 'de ')
 // La même politesse pour l'article défini, sur un libellé de bouton en capitales :
 // « REMPLIR LE SEMOIR », mais « REMPLIR L'ÉPANDEUR ».
 const lHaut = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'L\u2019' : 'LE ') + n.toUpperCase();
+// Et en minuscules, au fil d'une phrase : « agrandir l'étable », « agrandir le poulailler ».
+const lNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'l\u2019' : 'le ') + n;
 
 /* Les lignes d'article vont dans la surface OUVERTE : le menu, ou l'une des trois
    fenêtres dédiées. Un seul jeu de fonctions dessine les deux. */
@@ -11754,8 +11763,10 @@ const ESPECES = {
   vache: {
     cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
     // 1,15 -> 1,32 : une vache faisait 1,90 m au garrot pour un tracteur de 4,84 de haut
-    pature:3500, prix:1200, prixBete:1750, maturite:420, ration:0.0045, m2:88, places:14, echelle:1.32,
-    produit:'lait', nomProduit:'Lait', parSec:0.0158, cuveMax:135,
+    pature:3500, prix:600, prixBete:1750, maturite:420, m2:88, echelle:1.32,
+    cycle:300, rationCycle:2, batiment:'Étable',
+    capacites:[2, 5, 10, 20], prixTaille:[1500, 4000, 9000],
+    produit:'lait', nomProduit:'Lait', parCycle:25,
     acheteur:()=> LAITERIE, acheteurNom:'LA LAITERIE',
     corps:corpsVache, tete:teteVache, cou:{y:1.16, z:1.28}, plonge:0.55,
     patte:{h:0.78, r:0.115, hb:[1.75, 0.62], x:0.34, z:[-0.70, 0.72]},
@@ -11766,8 +11777,10 @@ const ESPECES = {
   },
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
-    pature:900, prix:90, prixBete:135, maturite:160, ration:0.00052, m2:13, places:26, echelle:1.55,
-    produit:'oeufs', nomProduit:'Œufs', parSec:0.00128, cuveMax:32,
+    pature:900, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
+    cycle:300, rationCycle:0.25, batiment:'Poulailler',
+    capacites:[6, 12, 20, 32], prixTaille:[600, 1500, 3500],
+    produit:'oeufs', nomProduit:'Œufs', parCycle:2,
     acheteur:()=> BAKERY, acheteurNom:'LA BOULANGERIE',
     corps:corpsPoule, tete:tetePoule, cou:{y:0.72, z:0.16}, plonge:0.62,
     patte:null, queue:null,
@@ -11778,8 +11791,10 @@ const ESPECES = {
   cochon: {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     // 1,25 -> 1,45 : un cochon reste plus bas qu'une vache, mais on le voit
-    pature:2800, prix:480, prixBete:820, maturite:320, ration:0.0038, m2:30, places:16, echelle:1.45,
-    produit:null, nomProduit:null, parSec:0, cuveMax:0,
+    pature:2800, prix:220, prixBete:820, maturite:320, m2:30, echelle:1.45,
+    cycle:300, rationCycle:1.5, batiment:'Porcherie',
+    capacites:[4, 8, 16, 30], prixTaille:[1200, 3200, 7500],
+    produit:null, nomProduit:null, parCycle:0,
     acheteur:()=> BOUCHERIE, acheteurNom:'LA BOUCHERIE',
     corps:corpsCochon, tete:teteCochon, cou:{y:0.74, z:0.82}, plonge:0.42,
     patte:{h:0.46, r:0.105, hb:[1.3, 0.7], x:0.26, z:[-0.44, 0.46]}, queue:null,
@@ -11795,8 +11810,10 @@ const ESPECES = {
      n'y a pas de portail à ouvrir : on n'embarque pas une ruche pour l'abattoir. */
   ruche: {
     cle:'ruche', nom:'Ruche', pluriel:'Ruches', un:'une ruche', des:'ruches',
-    pature:1200, prix:260, prixBete:0, maturite:260, ration:0.00034, m2:14, places:12, echelle:1.5,
-    produit:'miel', nomProduit:'Miel', parSec:0.00063, cuveMax:32,
+    pature:1200, prix:250, prixBete:0, maturite:260, m2:14, echelle:1.5,
+    cycle:90, rationCycle:0, stockCycles:6, batiment:'Zone apicole',
+    capacites:[2, 5, 10, 20], prixTaille:[700, 2000, 5000],
+    produit:'miel', nomProduit:'Miel', parCycle:2,
     statique:true, rang:{n:6, pas:1.9, ecart:2.4}, decor:(P)=> decorRucher(P),
     corps:corpsRuche, tete:teteRuche, cou:{y:1.11, z:0}, plonge:0,
     patte:null, queue:null,
@@ -11806,8 +11823,10 @@ const ESPECES = {
   },
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
-    pature:2200, prix:380, prixBete:560, maturite:380, ration:0.00158, m2:40, places:18, echelle:1.2,
-    produit:'laine', nomProduit:'Laine', parSec:0.00135, cuveMax:45,
+    pature:2200, prix:150, prixBete:560, maturite:380, m2:40, echelle:1.2,
+    cycle:300, rationCycle:0.8, batiment:'Bergerie',
+    capacites:[4, 8, 16, 30], prixTaille:[900, 2500, 6000],
+    produit:'laine', nomProduit:'Laine', parCycle:2,
     acheteur:()=> TEXTILE, acheteurNom:'L\'ATELIER TEXTILE',
     corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
     patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
@@ -11824,10 +11843,12 @@ const ESPECES = {
      silencieusement l'espèce choisie de toutes les parties en cours. */
   brebis: {
     cle:'brebis', nom:'Brebis', pluriel:'Brebis', un:'une brebis', des:'brebis',
-    pature:3000, prix:620, prixBete:780, maturite:400, ration:0.0018, m2:42, places:16,
+    pature:3000, prix:180, prixBete:780, maturite:400, m2:42,
     echelle:1.24,
-    produit:'laine', nomProduit:'Laine', parSec:0.00106, cuveMax:39,
-    second:{cle:'laitBrebis', nom:'Lait de brebis', parSec:0.0079, cuveMax:68},
+    cycle:300, rationCycle:1, batiment:'Bergerie',
+    capacites:[4, 8, 16, 30], prixTaille:[900, 2500, 6000],
+    produit:'laine', nomProduit:'Laine', parCycle:2,
+    second:{cle:'laitBrebis', nom:'Lait de brebis', parCycle:10},
     acheteur:()=> TEXTILE, acheteurNom:'L\'ATELIER TEXTILE',
     corps:corpsMouton, tete:teteMouton, cou:{y:0.92, z:0.78}, plonge:0.40,
     patte:{h:0.62, r:0.085, hb:[1.2, 0.75], x:0.28, z:[-0.40, 0.42]}, queue:null,
@@ -11837,6 +11858,116 @@ const ESPECES = {
   }
 };
 const ESP_CLES = ['vache', 'poule', 'cochon', 'mouton', 'ruche', 'brebis'];
+
+/* ---------- LE BARÈME DE L'ÉLEVAGE ---------- */
+/* TOUT SE COMPTE PAR BÊTE ET PAR CYCLE. Une étable ne donne pas « du lait » : chaque
+   vache en donne, et deux vaches en donnent deux fois plus. Le cahier des charges écrit
+   donc la production et la consommation d'UN animal sur UN cycle, et le jeu multiplie
+   par le cheptel réel.
+
+     poule ...... 2 œufs pour 0,25 kg d'aliment
+     vache ...... 25 L de lait pour 2 kg
+     brebis ..... 10 L de lait et 2 kg de laine pour 1 kg
+     mouton ..... 2 kg de laine pour 0,8 kg — la brebis sans le lait, et le barème ne
+                  la cite pas : c'est la seule ligne extrapolée
+     cochon ..... rien en continu, il GRANDIT, et se vend à la bête
+     ruche ...... 2 kg de miel toutes les 90 s, et rien à manger : les abeilles se
+                  nourrissent seules, c'est une activité passive
+
+   LE CYCLE VAUT CINQ MINUTES pour tout ce qui mange, et c'est ce qui rend l'autonomie
+   comparable d'une espèce à l'autre : une mangeoire de quatre cycles tient vingt minutes,
+   qu'elle nourrisse six poules ou dix vaches. La ruche garde les quatre-vingt-dix
+   secondes du barème, ce qui ne gêne personne puisqu'elle ne se remplit pas.
+
+   Rapporté au kilo de grain donné, cela fait 2,7 fois sa valeur en œufs, 11 fois en
+   lait, 19 fois chez la brebis : c'est très exactement l'ordre dans lequel la campagne
+   ouvre les trois élevages, et c'est ce qui fait qu'on ne vend pas son blé quand on a
+   des bêtes à nourrir.
+
+   `parSec` et `ration` restent lus partout ailleurs : on les DÉRIVE ici, une fois, pour
+   que le reste du jeu n'ait pas à savoir ce qu'est un cycle. Et `parCycle` est écrit
+   dans l'UNITÉ OFFICIELLE du produit — deux œufs, vingt-cinq litres — alors que le stock
+   se compte en kilos : la conversion passe par `parKgDe`, comme partout. */
+const CYCLE_ELEVAGE = 300;                 // secondes, pour tout ce qui mange
+for(const cle of ESP_CLES){
+  const E = ESPECES[cle];
+  if(!E.cycle) E.cycle = CYCLE_ELEVAGE;
+  E.ration = (E.rationCycle || 0)/E.cycle;
+  E.parSec = E.produit ? (E.parCycle || 0)/parKgDe(E.produit)/E.cycle : 0;
+  if(E.second) E.second.parSec = (E.second.parCycle || 0)/parKgDe(E.second.cle)/E.cycle;
+}
+/* LA MANGEOIRE SE DIMENSIONNE SUR LE TROUPEAU, ET NON L'INVERSE. Elle valait 235 kg pour
+   tout le monde : de quoi tenir trois jours avec deux poules et une demi-heure avec
+   quatorze vaches. Sa capacité est maintenant ce que le cheptel mange en un nombre donné
+   de cycles — c'est la formule du cahier des charges, à la lettre :
+
+       capacité = consommation par bête et par cycle × nombre de bêtes × autonomie
+
+   et l'amélioration n'augmente pas une capacité arbitraire, elle augmente l'AUTONOMIE.
+   Un enclos vide se dimensionne comme s'il portait une bête : sans cela on ne pourrait
+   pas remplir l'auge avant d'acheter, ce qui est pourtant l'ordre naturel des choses. */
+const AUTONOMIE = [
+  {cycles:4},  {cycles:6, prix:500}, {cycles:10, prix:1500}, {cycles:16, prix:4000}
+];
+const cyclesEnclos = (P)=> (AUTONOMIE[Math.max(0, Math.min(AUTONOMIE.length-1,
+                             (P.niveau || 1) - 1))]).cycles;
+function capaciteMangeoire(P){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  if(!E.rationCycle) return 0;             // une ruche ne se nourrit pas
+  return Math.max(1, Math.round(E.rationCycle*Math.max(1, P.betes.length)*cyclesEnclos(P)));
+}
+/* LE TANK SUIT LE MÊME PRINCIPE. « Ne pas créer une cuve de 50 L alors que dix vaches
+   produisent 250 L par cycle » : la capacité est ce que le troupeau SORT en un nombre de
+   cycles, et elle grandit avec lui. Le miel en garde six, comme le dit le barème — une
+   ruche ne demande rien, autant qu'elle travaille longtemps sans qu'on passe. */
+function capaciteTank(P, cle, parCycle){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  const n = Math.max(1, P.betes.length);
+  const cy = E.stockCycles || cyclesEnclos(P);
+  return Math.max(1, Math.round(parCycle/parKgDe(cle)*n*cy));
+}
+/* LE BÂTIMENT A SA PROPRE ÉCHELLE, et elle est indépendante de l'autonomie : agrandir
+   son étable et rallonger sa mangeoire sont deux décisions, deux prix. Le barème donne
+   les deux à part, et il a raison — on double son cheptel bien avant de vouloir passer
+   trois fois moins souvent.
+
+     poulailler ....  6 · 12 · 20 · 32     600 · 1 500 · 3 500 €
+     étable .........  2 ·  5 · 10 · 20  1 500 · 4 000 · 9 000 €
+     bergerie .......  4 ·  8 · 16 · 30    900 · 2 500 · 6 000 €
+     porcherie ......  4 ·  8 · 16 · 30  1 200 · 3 200 · 7 500 €
+     zone apicole ...  2 ·  5 · 10 · 20    700 · 2 000 · 5 000 €
+
+   La PARCELLE reste le dernier mot : un enclos de vingt ares ne tient pas vingt vaches
+   quoi qu'on paie, et c'est ce qui empêche d'entasser un troupeau sur un mouchoir. */
+function placesEnclos(P){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  const t = Math.max(0, Math.min(E.capacites.length - 1, (P.taille || 1) - 1));
+  return Math.max(1, Math.min(E.capacites[t], Math.floor(P.p.w*P.p.h/E.m2)));
+}
+function prixTaille(P){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  const t = P.taille || 1;
+  return t >= E.capacites.length ? 0 : (E.prixTaille[t-1] || 0);
+}
+function agrandirEnclos(P){
+  const c = prixTaille(P);
+  if(!c || money < c) return false;
+  money -= c;
+  P.taille = (P.taille || 1) + 1;
+  majCapacites(P);
+  return true;
+}
+// Les trois capacités d'un enclos, recalculées dès que le cheptel ou le niveau bouge.
+function majCapacites(P){
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  P.places = placesEnclos(P);
+  P.grainMax = capaciteMangeoire(P);
+  P.grain = Math.min(P.grain, P.grainMax);
+  P.produitMax = E.produit ? capaciteTank(P, E.produit, E.parCycle) : 0;
+  P.produit = Math.min(P.produit, P.produitMax);
+  P.produit2Max = E.second ? capaciteTank(P, E.second.cle, E.second.parCycle) : 0;
+  P.produit2 = Math.min(P.produit2, P.produit2Max);
+}
 // Le prix du produit d'une bête n'est plus écrit ici : il vient du barème commun,
 // comme celui d'une récolte. Une seule table de valeurs pour toute la ferme.
 for(const k of ESP_CLES){ const E = ESPECES[k];
@@ -12006,18 +12137,21 @@ function creerPature(p, espece){
     // et deux d'entre eux étaient invisibles depuis l'entrée. Tout se fait maintenant
     // sans franchir la clôture : nourrir, ramasser, acheter, embarquer.
     quai:{x: mx(0, -4.2), z: mz(0, -4.2)},
-    produit:0, produitMax:E.cuveMax, grain:0, grainMax:235,
+    // Les trois capacités sont posées par majCapacites(), juste après : elles dépendent
+    // du cheptel, et le cheptel n'existe pas encore ici.
+    produit:0, produitMax:0, grain:0, grainMax:0, niveau:1,
     // Le SECOND tank, pour l'espèce qui donne deux choses. Il existe toujours, vide et
     // de capacité nulle quand l'espèce n'en a qu'un : c'est ce qui évite un test de
     // présence à chaque ligne qui le lit.
-    produit2:0, produit2Max: E.second ? E.second.cuveMax : 0,
-    betes:[], places: Math.max(2, Math.min(E.places, Math.floor(p.w*p.h/E.m2))),
+    produit2:0, produit2Max:0,
+    betes:[], places:1, taille:1,
     box:{x0: Math.min.apply(null, coins.map((c)=> c.x)),
          x1: Math.max.apply(null, coins.map((c)=> c.x)),
          z0: Math.min.apply(null, coins.map((c)=> c.z)),
          z1: Math.max.apply(null, coins.map((c)=> c.z))}
   };
   P.dBox0 = dBox0; P.dBox1 = dBox1; P.uBox = uBox;
+  majCapacites(P);
   majTasAuge(P);
   // L'anneau s'allume dès qu'UNE des choses possibles ici l'est : verser du grain,
   // prendre le produit, acheter une bête, en embarquer une. Acheter suffit — c'est le
@@ -12324,10 +12458,15 @@ function updateElevage(dt){
   for(const P of PATURES){
     const E = ESPECES[P.espece] || ESPECES.vache;
     let nourries = 0;
+    /* LES ABEILLES NE MANGENT PAS. « Elles constituent une activité passive », dit le
+       cahier des charges : une ruche n'a ni auge à remplir ni jour de disette, et son
+       miel coule tant qu'elle est là. On lui comptait du sirop dans la mangeoire, ce qui
+       faisait d'un rucher un troupeau de plus à ravitailler pour rien. */
+    const jeune = !E.rationCycle;
     for(const V of P.betes){
       // ration : tant qu'il reste du grain dans la mangeoire, la bête mange et produit
-      const mange = Math.min(P.grain, E.ration*dt);
-      P.grain -= mange;
+      const mange = jeune ? 1 : Math.min(P.grain, E.ration*dt);
+      if(!jeune) P.grain -= mange;
       if(mange > 0){
         nourries++;
         V.age = Math.min(1, V.age + dt/E.maturite);
@@ -12379,10 +12518,15 @@ function updateElevage(dt){
       V.g.rotation.z = V.mode === 'marche' ? Math.sin(V.pas)*0.03 : 0;
     }
     // le produit ne coule que pour les bêtes effectivement nourries
-    if(nourries > 0 && E.produit)
+    /* LES ACCOLADES MANQUAIENT. Le second tank était écrit sous un `if` sans bloc : il
+       se remplissait à chaque image, hors de la garde qui le protège. Il ne s'en voyait
+       rien — la ligne multiplie par `nourries`, donc elle ajoutait zéro — mais toute
+       condition ajoutée devant aurait cessé de le couvrir. */
+    if(nourries > 0 && E.produit){
       P.produit = Math.min(P.produitMax, P.produit + nourries*E.parSec*dt);
       if(E.second)
         P.produit2 = Math.min(P.produit2Max, P.produit2 + nourries*E.second.parSec*dt);
+    }
     majTasAuge(P);
   }
   if(ABEILLES.length) animerAbeilles(dt, performance.now()/1000);
@@ -12429,6 +12573,22 @@ function acheterBete(P){
   if(!P || !ouvert('especes', P.espece) || money < E.prix || P.betes.length >= P.places) return false;
   money -= E.prix;
   ajouterBete(P, 0.25);
+  // Une bête de plus, c'est une mangeoire et un tank plus grands : c'est tout le sens
+  // d'une capacité dimensionnée sur le cheptel.
+  majCapacites(P);
+  return true;
+}
+// L'autonomie de l'enclos : ce que coûte le cran suivant, et le geste qui l'achète.
+function prixAutonomie(P){
+  const n = P.niveau || 1;
+  return n >= AUTONOMIE.length ? 0 : (AUTONOMIE[n].prix || 0);
+}
+function ameliorerEnclos(P){
+  const c = prixAutonomie(P);
+  if(!c || money < c) return false;
+  money -= c;
+  P.niveau = (P.niveau || 1) + 1;
+  majCapacites(P);
   return true;
 }
 
@@ -13923,18 +14083,23 @@ function majJauges(dt){
       if(P.j2.jauge){ cacherJauge(P.j2.jauge, dt); if(P.j2.jauge.sp.material.opacity < 0.03) rendreJauge(P.j2); }
       continue;
     }
-    const kg2 = P.grain/P.grainMax;
-    const rations = P.betes.length*E2.ration;
-    // Le temps qu'il reste à manger vaut mieux qu'un poids : c'est la question qu'on
-    // se pose vraiment en passant devant.
-    const reste = (rations > 0.0001 && P.grain > 0.5)
-      ? ' · ' + Math.max(1, Math.round(P.grain/rations/60)) + ' min'
-      : (P.grain <= 0.5 ? ' — À REMPLIR' : '');
-    montrerJauge(prendreJauge(P), cx, 10.4, cz,
-      (E2.statique ? 'Nourrisseur ' : 'Mangeoire ') + Math.round(P.grain) + ' kg' + reste,
-      kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
+    /* UN RUCHER N'A PAS D'AUGE. Sa capacité vaut zéro depuis que les abeilles se
+       nourrissent seules ; la jauge y divisait par zéro et affichait « À REMPLIR » pour
+       l'éternité au-dessus d'un nourrisseur qui n'attend rien. */
+    if(E2.rationCycle){
+      const kg2 = P.grain/P.grainMax;
+      const rations = P.betes.length*E2.ration;
+      // Le temps qu'il reste à manger vaut mieux qu'un poids : c'est la question qu'on
+      // se pose vraiment en passant devant.
+      const reste = (rations > 0.0001 && P.grain > 0.5)
+        ? ' · ' + Math.max(1, Math.round(P.grain/rations/60)) + ' min'
+        : (P.grain <= 0.5 ? ' — À REMPLIR' : '');
+      montrerJauge(prendreJauge(P), cx, 10.4, cz,
+        'Mangeoire ' + Math.round(P.grain) + ' kg' + reste,
+        kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
+    } else if(P.jauge) cacherJauge(P.jauge, dt);
     if(E2.produit){
-      const nourries = (P.grain > 0.5) ? P.betes.length : 0;
+      const nourries = (!E2.rationCycle || P.grain > 0.5) ? P.betes.length : 0;
       /* DEUX TANKS SUR UNE SEULE JAUGE. Une brebis donne de la laine et du lait ; en
          poser deux étiquettes l'une au-dessus de l'autre ferait une pile illisible
          au-dessus de l'enclos. La jauge suit le tank le PLUS PLEIN — c'est celui qui
@@ -14110,7 +14275,9 @@ function ongletElevage(){
     article(E.robes[0].fond, E.pluriel,
       eur(prixPature(cle)) + ' l\'enclos · ' + eur(E.prix) + ' la ' +
       (E.statique ? 'colonie' : 'bête') + ' · ' + gain + '<br>' +
-      suite + ' · ration ' + dec(E.ration*60, 2) + ' kg/min · jusqu\'à ' + E.places + ' par enclos' +
+      suite + (E.rationCycle ? ' · ' + dec(E.rationCycle) + ' kg d\'aliment par cycle' : '')
+           + ' · ' + E.batiment.toLowerCase() + ' de ' + E.capacites[0] + ' à '
+           + E.capacites[E.capacites.length-1] + ' places' +
       (libre ? '' : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
       !libre ? 'Niveau ' + niv : (i === especeChoisie ? 'Choisie' : 'Choisir'),
       !libre ? 'no' : (i === especeChoisie ? 'ok' : ''),
@@ -14137,7 +14304,8 @@ function ongletElevage(){
     article(E.robes[0].fond, E.statique ? 'Rucher' : 'Troupeau',
       P.betes.length + ' / ' + P.places + (E.statique ? ' ruches · ' : ' bêtes · ') + adultes +
       (E.statique ? ' en pleine production' : ' prête' + (adultes>1?'s':'') + ' pour la boucherie') +
-      '<br>' + (E.statique ? 'Nourrisseur : ' : 'Mangeoire : ') + kg(P.grain) + ' / ' + kg(P.grainMax) +
+      (E.rationCycle ? '<br>Mangeoire : ' + kg(P.grain) + ' / ' + kg(P.grainMax) +
+                       ' · ' + cyclesEnclos(P) + ' cycles' : '<br>Les abeilles se nourrissent seules') +
       (E.produit ? ' · ' + E.nomProduit + ' : ' + Math.round(enUnites(E.produit, P.produit)) +
                    ' / ' + qte(E.produit, P.produitMax) : '') +
       (E.second ? ' · ' + E.second.nom + ' : ' + Math.round(enUnites(E.second.cle, P.produit2)) +
@@ -14147,12 +14315,42 @@ function ongletElevage(){
     const ok = !plein && money >= E.prix;
     article(E.robes[1].fond, 'Acheter ' + E.un,
       eur(E.prix) + (E.produit
-        ? ' · elle donne ' + dec(E.parSec*60) + ' kg de ' + E.nomProduit.toLowerCase() +
-          ' par minute tant qu\'elle est nourrie'
+        ? ' · elle donne ' + cadence(E.produit, E.parSec*60) + ' par minute'
+          + (E.rationCycle ? ' tant qu\'elle est nourrie' : '')
+          + '<br>Le troupeau produit ' + cadence(E.produit, P.betes.length*E.parSec*60)
+          + ' par minute ; une bête de plus l\'accélérerait d\'autant.'
         : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
-      plein ? 'Enclos plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      plein ? 'Plus de place' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ()=>{ if(acheterBete(P))
               showHint(E.statique ? 'UNE COLONIE DE PLUS AU RUCHER' : 'UNE BÊTE DE PLUS AU PRÉ'); });
+    /* LES DEUX ÉCHELLES D'UN ENCLOS, ET ELLES SONT BIEN DEUX. Le bâtiment décide de
+       combien de bêtes on peut tenir ; l'autonomie, de combien de temps elles tiennent
+       sans qu'on repasse. On agrandit son étable bien avant de vouloir passer trois fois
+       moins souvent, et le barème leur donne des prix séparés pour cette raison. */
+    const ct = prixTaille(P);
+    article(E.robes[2] ? E.robes[2].fond : E.robes[0].fond, 'Agrandir ' + lNom(E.batiment.toLowerCase()),
+      E.batiment + ' de niveau ' + (P.taille || 1) + ' sur ' + E.capacites.length + ' · ' +
+      P.places + ' places' +
+      (ct ? '<br>Cran suivant : ' + E.capacites[P.taille] + ' places — ' + eur(ct) +
+            (money >= ct ? '' : ' · il manque ' + eur(ct - money))
+          : '<br>Au maximum, ou borné par la taille de la parcelle.'),
+      ct ? (money >= ct ? eur(ct) : 'Trop cher') : 'Max', (ct && money >= ct) ? 'vert' : 'no',
+      (ct && money >= ct) ? ()=>{ if(agrandirEnclos(P)){
+        showHint(E.batiment.toUpperCase() + ' AGRANDI — ' + P.places + ' PLACES');
+        rafraichirEcran(); } } : null);
+    if(E.rationCycle){
+      const ca = prixAutonomie(P);
+      article(0xE0C07A, 'Rallonger la mangeoire',
+        'Autonomie ' + cyclesEnclos(P) + ' cycles · ' + kg(P.grainMax) +
+        ' pour ' + Math.max(1, P.betes.length) + ' bête' + (P.betes.length > 1 ? 's' : '') +
+        (ca ? '<br>Cran suivant : ' + AUTONOMIE[P.niveau].cycles + ' cycles — ' + eur(ca) +
+              (money >= ca ? '' : ' · il manque ' + eur(ca - money))
+            : '<br>Au maximum de son échelle.'),
+        ca ? (money >= ca ? eur(ca) : 'Trop cher') : 'Max', (ca && money >= ca) ? 'vert' : 'no',
+        (ca && money >= ca) ? ()=>{ if(ameliorerEnclos(P)){
+          showHint('MANGEOIRE — ' + cyclesEnclos(P) + ' CYCLES D\'AUTONOMIE');
+          rafraichirEcran(); } } : null);
+    }
   });
   titre('Où mène chaque produit');
   const d = document.createElement('div'); d.className = 'art';
@@ -15043,7 +15241,7 @@ function etatJeu(){
                            porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
     patures: PATURES.map(P=>({
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
-      lait2:P.produit2,
+      lait2:P.produit2, niveau:P.niveau || 1, taille:P.taille || 1,
       vaches: P.betes.map(V=>({age:V.age, robe:V.robe, x:V.x, z:V.z, cap:V.cap}))
     })),
     gnx: GNX, gnz: GNZ, x0: X0, z0: Z0,
@@ -15213,11 +15411,28 @@ function chargerPartie(S){
       // connaissaient que des vaches. Les clés `lait` et `vaches` gardent leur nom
       // pour la même raison — les renommer ferait repartir la partie de zéro.
       const P = creerPature(p, q.espece || 'vache');
-      P.produit = q.lait; P.produit2 = q.lait2 || 0; P.grain = q.grain;
+      // Le niveau d'abord, les bêtes ensuite : les capacités se déduisent des deux, et
+      // l'on borne le contenu SUR ces capacités-là. Une partie d'avant les mangeoires
+      // dynamiques repart au premier cran, avec ce qu'elle avait dans l'auge — au plus
+      // ce que sa nouvelle capacité permet.
+      P.niveau = q.niveau || 1; P.taille = q.taille || 1;
+      /* UNE PARTIE D'AVANT LES BÂTIMENTS PEUT AVOIR PLUS DE BÊTES QUE LE PREMIER CRAN
+         n'en autorise : quatorze vaches là où l'étable neuve en tient deux. On ne
+         reprend pas un troupeau au joueur — on monte le bâtiment au cran qui le
+         contient, ce qu'il aurait payé s'il l'avait acheté. */
+      if(q.vaches && q.vaches.length){
+        const E2 = ESPECES[P.espece] || ESPECES.vache;
+        while(P.taille < E2.capacites.length && E2.capacites[P.taille-1] < q.vaches.length)
+          P.taille++;
+      }
       for(const w of q.vaches){
         const V = ajouterBete(P, w.age, w.robe);
         if(V){ V.x = w.x; V.z = w.z; V.cap = w.cap; V.tx = w.x; V.tz = w.z; }
       }
+      majCapacites(P);
+      P.produit = Math.min(q.lait, P.produitMax);
+      P.produit2 = Math.min(q.lait2 || 0, P.produit2Max);
+      P.grain = Math.min(q.grain, P.grainMax);
       majTasAuge(P);
     }
     // 3. les épis reprennent la taille et la couleur que dit la grille
