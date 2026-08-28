@@ -730,6 +730,21 @@ plein. Le cahier des charges donne lui-même l'exemple d'une commande de **cent*
 l'échelle juste, et c'est celle-là. La refonte de la campagne reprendra les trente commandes
 ensemble — celle-ci ne pouvait pas attendre, elle bloquait le palier 5.
 
+### Un cochon ne vieillit pas, il engraisse
+
+Les autres bêtes grandissent à l'horloge — une vache donne du lait pendant ce temps-là, ce qui
+n'est pas la même économie. Le cochon, lui, ne produit rien : il **mange**, et c'est ce qu'il a
+mangé qui le rend prêt. Vingt-cinq kilos d'aliment, dit le barème. Deux cochons dans un enclos
+vide n'engraissent plus d'une seconde, et quatre bien nourris sont prêts en même temps.
+
+**Et la boucherie paie à la bête.** Elle payait déjà le bon prix, mais par un détour : on
+convertissait l'animal en kilos de carcasse, on multipliait par le prix du kilo de viande, et
+l'on retombait — à l'arrondi près — sur le prix de la bête fois deux. Le cahier des charges
+veut qu'on ne pèse jamais une viande : « livrer 4 porcs », jamais « livrer 150 kg de porc ».
+On paie donc la tête, directement. La ligne qui suivait, censée compter la viande livrée, ne
+comptait rien du tout : sa clé n'est pas dans la table des compteurs, et elle retombait dans le
+vide depuis toujours.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

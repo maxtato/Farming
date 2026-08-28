@@ -11792,7 +11792,7 @@ const ESPECES = {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     // 1,25 -> 1,45 : un cochon reste plus bas qu'une vache, mais on le voit
     pature:2800, prix:220, prixBete:820, maturite:320, m2:30, echelle:1.45,
-    cycle:300, rationCycle:1.5, batiment:'Porcherie',
+    cycle:300, rationCycle:5, engraissement:25, batiment:'Porcherie',
     capacites:[4, 8, 16, 30], prixTaille:[1200, 3200, 7500],
     produit:null, nomProduit:null, parCycle:0,
     acheteur:()=> BOUCHERIE, acheteurNom:'LA BOUCHERIE',
@@ -12469,7 +12469,16 @@ function updateElevage(dt){
       if(!jeune) P.grain -= mange;
       if(mange > 0){
         nourries++;
-        V.age = Math.min(1, V.age + dt/E.maturite);
+        /* UN COCHON NE VIEILLIT PAS, IL ENGRAISSE. « Ils grandissent », dit le cahier
+           des charges, « après avoir consommé suffisamment d'aliment » — vingt-cinq
+           kilos pour être prêt. Sa maturité se compte donc en aliment mangé et non en
+           secondes écoulées : deux cochons dans un enclos vide n'engraissent pas, et
+           quatre bien nourris sont prêts en même temps. Les autres espèces gardent
+           l'horloge : une vache donne du lait pendant qu'elle grandit, ce qui n'est pas
+           la même économie. */
+        V.age = E.engraissement
+          ? Math.min(1, V.age + mange/E.engraissement)
+          : Math.min(1, V.age + dt/E.maturite);
       }
       // Une ruche ne marche pas et ne broute pas : elle est posée, et elle y reste.
       // Tout ce qui suit — trajets, cou qui plonge, pattes, queue — ne la concerne pas.
@@ -13337,16 +13346,17 @@ function updateBetail(dt){
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
     v.venteT = 0; v.betail--;
-    // La boucherie paie sur place, comme les usines du village. Elle mettait la
-    // carcasse en chambre froide et il fallait revenir la charger pour aller la
-    // revendre : une bête valait alors deux fois son prix de marché au prix de deux
-    // tournées. Elle vaut maintenant la même chose, payée au débarquement.
-    const kgv = (v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI/prixDe('viande');
-    encaisser(kgv*prixDe('viande'));
-    compter('viande', kgv);
+    /* LA BOUCHERIE PAIE À LA BÊTE, ET LE CODE LE DIT MAINTENANT. Elle payait déjà le
+       bon prix, mais par un détour : on convertissait la bête en kilos de carcasse, on
+       multipliait par le prix du kilo de viande, et l'on retombait — à l'arrondi près —
+       sur le prix de la bête fois deux. Le cahier des charges veut qu'on ne pèse jamais
+       une viande : « livrer 4 porcs », jamais « livrer 150 kg de porc ». On paie donc la
+       tête, directement. Le `compter('viande', …)` qui suivait ne comptait rien : la clé
+       n'est pas dans COMPTEUR, et la ligne retombait dans le vide depuis toujours. */
+    encaisser((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI);
     STAT.betes++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
-    showHint('BÊTE ABATTUE — ' + eur(kgv*prixDe('viande')));
+    showHint('BÊTE ABATTUE — ' + eur((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI));
   }
 }
 
@@ -14268,9 +14278,16 @@ function ongletElevage(){
       : 'aucun produit continu : elle se vend à la boucherie, et cher';
     // Une ruche ne se revend pas et ne part pas à l'abattoir : le libellé ne doit pas
     // promettre une valeur de revente qui vaut zéro.
-    const suite = E.prixBete > 0
-      ? 'Adulte en ' + Math.round(E.maturite/60) + ' min · revendue ' + eur(E.prixBete)
-      : 'En pleine production après ' + Math.round(E.maturite/60) + ' min · ne se revend pas';
+    /* UN COCHON SE COMPTE EN ALIMENT, pas en minutes : dire « adulte en 5 min » d'une
+       bête qui n'engraisse qu'en mangeant serait promettre un délai qu'aucune horloge ne
+       tient. On annonce ce qu'il faut lui donner, et ce qu'il vaut ensuite. */
+    const suite = E.engraissement
+      ? 'Prête après ' + kg(E.engraissement) + ' d\'aliment mangés · vendue '
+        + eur(E.prixBete*PALIER.FINI) + ' à la boucherie'
+      : E.prixBete > 0
+        ? 'Adulte en ' + Math.round(E.maturite/60) + ' min · vendue '
+          + eur(E.prixBete*PALIER.FINI) + ' à la boucherie'
+        : 'En pleine production après ' + Math.round(E.maturite/60) + ' min · ne se revend pas';
     const niv = niveauDe('especes', cle), libre = CAMPAGNE.niveau >= niv;
     article(E.robes[0].fond, E.pluriel,
       eur(prixPature(cle)) + ' l\'enclos · ' + eur(E.prix) + ' la ' +
