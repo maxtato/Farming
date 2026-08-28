@@ -475,11 +475,59 @@ palier pour deux produits : ils portent un `tarif`, et un contrôle vérifie que
 dix-neuf transformations paient toujours plus que vendre la matière** — la plus maigre à
 +9 %, la plupart à +50 %.
 
-**Une note sur les œufs.** Le barème les tarife à 0,20 € *pièce* ; le jeu les pèse encore au
-kilo. On écrit donc l'équivalent — un œuf fait soixante grammes, soit 3,33 € le kilo. À
-0,20 le kilo, une viennoiserie coûtait moins cher qu'un pain : l'échelle de la boulangerie
-à l'envers. C'est le premier symptôme du chantier suivant, celui des unités — les œufs à la
-pièce, le lait et les huiles au litre, les bêtes à la tête.
+### Chaque produit porte son unité
+
+Le barème donne à chaque produit son **unité officielle** : le kilo pour un grain, le litre
+pour un lait, une huile, un vin ou une bière, la pièce pour un œuf. Et il l'écrit noir sur
+blanc : *ne jamais afficher le vin, le lait ou les huiles en kg.*
+
+**Le jeu continue de tout stocker en kilos, et c'est ce qui rend le chantier sûr.** C'est le
+kilo qu'une benne porte, qu'un silo compte et sur quoi s'appuie chaque recette. L'unité ne
+sert qu'à deux choses : **afficher une quantité** et **afficher un prix**. Elle tient dans un
+seul nombre par produit — `parKg`, combien d'unités officielles dans un kilo — et rien du
+moteur ne la voit. Pas un nombre stocké ne bouge, donc **aucune sauvegarde n'a été reprise**
+et pas un prix n'a changé de valeur : le contrôle relève blé 0,588, lait 0,53, huile 3,41,
+exactement comme avant.
+
+Pour les sept liquides, `parKg` vaut 1 — un litre de lait pèse un kilo, seule l'étiquette
+change. C'est aussi ce qui fait tomber juste les rendements du barème sans toucher à un
+chiffre : « 100 kg de colza → 34 L d'huile », « 100 kg de raisin → 70 L de vin ». Pour l'œuf,
+`parKg` vaut 16,67 : un œuf pèse soixante grammes.
+
+**Et la note sur les œufs disparaît.** Le prix n'est plus un équivalent bricolé à la main : on
+écrit `parUnite: 0,20` — le chiffre du barème, à la pièce — et le prix au kilo s'en déduit,
+3,33 €. Écrire 0,20 le *kilo* rendait une viennoiserie moins chère qu'un pain, l'échelle de
+la boulangerie à l'envers ; la conversion était ce qui manquait, pas le chiffre.
+
+**Trente endroits écrivaient une quantité ; aucun n'a à se demander laquelle.** Quatre
+tournures suffisent, selon la phrase qui accueille le nombre :
+
+| | |
+|---|---|
+| `qteNom` | « 34 L d'huile de colza » — au fil d'une phrase |
+| `nomQte` | « Huile de colza 34 L » — sur une étiquette du monde |
+| `nomQteBas` | « huile de colza 34 L » — dans une énumération |
+| `qteNomHaut` | « HUILE DE COLZA 34 L » — sur un bouton d'action |
+
+Toutes les quatre se taisent sur le nom **quand l'unité le porte déjà** : le bouton dit
+« CHARGER 240 ŒUFS » et non « CHARGER ŒUFS 240 ŒUFS ». C'est le seul rôle d'un drapeau
+`nomme` posé sur les œufs, et c'est ce qui évite d'y penser trente fois.
+
+Le contrôle qui garde tout cela ne se contente pas de vérifier les helpers : il **ouvre les
+douze écrans**, en relit le texte et cherche toutes les formes interdites — « 14 kg de lait »
+comme « Lait 340 kg » — pour les huit produits concernés. Sur la version précédente il tombe
+seize fois ; il relève au passage un « 13 kg de œufs » où l'élision manquait aussi.
+
+**Ce qui reste à faire porte un nom.** La viande est le dernier produit qui se pèse à tort :
+le barème la veut à la bête — « livrer 4 porcs », jamais « livrer 150 kg de porc » — et c'est
+une unité qu'on ne peut pas poser aujourd'hui, puisqu'une carcasse de cochon et une de vache
+ne font pas le même poids et que le jeu n'a qu'une viande générique. Cela se réglera avec
+l'élevage, quand chaque espèce portera sa viande et son poids de carcasse.
+
+Une chose devient visible du même coup : la commande de la boulangerie au palier 5 demandait
+« 13 kg d'œufs ». Elle en demande **217**. La quantité n'a pas changé d'un gramme — c'est
+l'affichage qui la disait mal. C'est le genre de chiffre que la refonte de la campagne aura à
+reprendre, avec le barème des missions sous les yeux.
 
 ## La chaîne
 

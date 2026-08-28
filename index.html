@@ -1259,14 +1259,14 @@ const PRODUITS = {
   olives: {nom:'Olives',    couleur:'#6E7A46', brut:1.03},
 
   /* --- ce qui sort de la bête --- */
-  lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:0.53},
-  /* LES ŒUFS SONT ENCORE COMPTÉS AU KILO. Le barème les tarife à 0,20 € PIÈCE ; tant
-     que le jeu les pèse au lieu de les compter, on écrit l'équivalent au kilo — un œuf
-     fait soixante grammes, donc 3,33 € le kilo. À reprendre le jour où chaque produit
-     portera son unité : les œufs à la pièce, le lait et les huiles au litre, les bêtes
-     à la tête. Le mettre à 0,20 le kilo ici rendait une viennoiserie MOINS chère qu'un
-     pain, c'est-à-dire l'échelle de la boulangerie à l'envers. */
-  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', brut:3.33},
+  lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:0.53, unite:'L'},
+  /* LES ŒUFS SE COMPTENT, ILS NE SE PÈSENT PAS. Le barème les tarife à 0,20 € pièce :
+     c'est ce chiffre-là qui est écrit, et le prix au kilo s'en déduit tout seul — un œuf
+     fait soixante grammes, donc 16,67 œufs au kilo et 3,33 € le kilo. C'est aussi ce qui
+     remet la boulangerie à l'endroit : écrire 0,20 le KILO rendait une viennoiserie
+     moins chère qu'un pain, faute d'avoir converti. */
+  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:0.20, unite:'œufs', parKg:1/0.060,
+           nomme:true},
   laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:1.807},
   // Le miel se récolte en petites quantités et se vend cher : c'est le produit brut
   // le mieux payé de la ferme, et un rucher tient sur une parcelle qu'on n'aurait pas
@@ -1276,15 +1276,15 @@ const PRODUITS = {
      cent kilos font vingt kilos de fromage là où le lait de vache n'en fait que douze.
      C'est ce qui en fait le produit haut de gamme de la ferme, et c'est ce qui donne
      une raison de monter un troupeau de brebis en plus des vaches. */
-  laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:0.76},
+  laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:0.76, unite:'L'},
 
   /* --- une transformation --- */
   farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME', tarif:0.90},
   aliment:    {nom:'Aliment',       couleur:'#D8B24A', de:'mais',   rendement:0.86, palier:'TRANSFORME'},
-  huile:      {nom:'Huile de colza',couleur:'#E8C24A', de:'colza',  rendement:0.34, palier:'TRANSFORME', tarif:3.41},
-  huileOlive: {nom:'Huile d\'olive',couleur:'#B9C24A', de:'olives', rendement:0.20, palier:'TRANSFORME'},
-  biere:      {nom:'Bière',         couleur:'#C98A2E', de:'orge',   rendement:0.70, palier:'TRANSFORME'},
-  laitAvoine: {nom:'Lait d\'avoine',couleur:'#EFE6CE', de:'avoine', rendement:0.80, palier:'TRANSFORME'},
+  huile:      {nom:'Huile de colza',couleur:'#E8C24A', de:'colza',  rendement:0.34, palier:'TRANSFORME', tarif:3.41, unite:'L'},
+  huileOlive: {nom:'Huile d’olive',couleur:'#B9C24A', de:'olives', rendement:0.20, palier:'TRANSFORME', unite:'L'},
+  biere:      {nom:'Bière',         couleur:'#C98A2E', de:'orge',   rendement:0.70, palier:'TRANSFORME', unite:'L'},
+  laitAvoine: {nom:'Lait d’avoine',couleur:'#EFE6CE', de:'avoine', rendement:0.80, palier:'TRANSFORME', unite:'L'},
   beurre:     {nom:'Beurre',        couleur:'#F2DC8A', de:'lait',   rendement:0.20, palier:'TRANSFORME'},
   yaourt:     {nom:'Yaourt',        couleur:'#F4F0E4', de:'lait',   rendement:0.95, palier:'TRANSFORME'},
   // Le rendement fromager est volontairement bas : c'est ce qui fait monter le prix au
@@ -1303,11 +1303,18 @@ const PRODUITS = {
                de:{ble:0.34, mais:0.33, avoine:0.33}, rendement:0.80, palier:'TRANSFORME'},
 
   /* --- produits finis --- */
-  // Une bête donne de quoi valoir deux fois son prix de marché. On la compte en kilos
-  // de carcasse pour que le camion s'en soucie : la benne se remplit, il faut deux
-  // tournées pour un troupeau.
+  /* Une bête donne de quoi valoir deux fois son prix de marché. On la compte en kilos
+     de carcasse pour que le camion s'en soucie : la benne se remplit, il faut deux
+     tournées pour un troupeau.
+
+     LA VIANDE EST LE DERNIER PRODUIT QUI SE PÈSE À TORT. Le barème la veut à la bête —
+     « livrer 4 porcs », jamais « livrer 150 kg de porc » — et c'est une unité qu'on ne
+     peut pas poser ici : une carcasse de cochon et une carcasse de vache ne font pas le
+     même poids, et le jeu n'a qu'une viande générique. Cela se réglera avec l'élevage,
+     quand chaque espèce portera sa viande et son poids de carcasse. En attendant, un
+     kilo. */
   viande:     {nom:'Viande',        couleur:'#B85A50', fini:6.50},
-  vin:        {nom:'Vin',           couleur:'#7A2438', de:'raisin', rendement:0.70, palier:'FINI'},
+  vin:        {nom:'Vin',           couleur:'#7A2438', de:'raisin', rendement:0.70, palier:'FINI', unite:'L'},
   pain:       {nom:'Pain',          couleur:'#C98A4A', de:'farine', rendement:0.80, palier:'FINI'},
 
   /* --- recettes à plusieurs ingrédients --- */
@@ -1338,6 +1345,12 @@ function prixDe(cle){
      contre 4,67. On ne tord pas le palier pour deux produits : on écrit leur prix, et
      un contrôle vérifie que les transformer paie toujours plus que vendre la matière. */
   if(P.tarif !== undefined) v = P.tarif;
+  /* `parUnite` : le prix écrit DANS L'UNITÉ OFFICIELLE du produit, et non au kilo. Le
+     barème tarife l'œuf à la pièce ; le jeu, lui, stocke des kilos partout — dans une
+     benne, dans un tank, dans une recette. On écrit donc le chiffre du barème et l'on
+     multiplie par le nombre d'unités au kilo : plus personne n'a à faire la conversion
+     de tête, et le jour où l'œuf changera de prix on ne touchera qu'à ce nombre-là. */
+  else if(P.parUnite !== undefined) v = P.parUnite*(P.parKg || 1);
   else if(P.brut !== undefined) v = P.brut;
   else if(P.fini !== undefined) v = P.fini;
   else {
@@ -1352,6 +1365,71 @@ function prixDe(cle){
 // Ce qu'un kilo de matière première rapporte une fois passé par la recette : c'est
 // le chiffre qui dit au joueur si le détour vaut le déplacement.
 const rendementValeur = (cle)=> prixDe(cle)*(PRODUITS[cle].rendement || 1);
+
+/* ---------- CHAQUE PRODUIT PORTE SON UNITÉ ---------- */
+/* Le jeu STOCKE tout en kilos, et c'est très bien ainsi : c'est ce qu'une benne porte,
+   ce qu'un silo compte, et ce sur quoi s'appuie chaque recette. Mais il n'ÉCRIT plus
+   « kg » sur n'importe quoi. Un lait se compte en litres, un œuf se compte à la pièce.
+
+   La conversion tient dans un seul nombre — `parKg`, combien d'unités officielles dans
+   un kilo — et elle ne sert qu'à deux choses : afficher une quantité, et afficher un
+   prix. Rien du moteur ne la voit.
+
+     liquides ... un litre pour un kilo, la conversion est l'identité : seule l'étiquette
+                  change, et les rendements du barème (« 100 kg de colza font 34 L
+                  d'huile ») tombent juste sans qu'on touche à un chiffre
+     œufs ....... un œuf pèse soixante grammes, donc 16,67 œufs au kilo
+
+   Une benne de 500 kg porte toujours 500 kg de lait, qu'on les appelle des litres, et
+   8 333 œufs, qu'on les compte à la pièce. C'est pour cela qu'aucune sauvegarde n'a à
+   être reprise : pas un nombre stocké ne bouge. */
+const uniteDe  = (cle)=> (PRODUITS[cle] && PRODUITS[cle].unite) || 'kg';
+const parKgDe  = (cle)=> (PRODUITS[cle] && PRODUITS[cle].parKg) || 1;
+// Des kilos de stock, écrits dans l'unité du produit.
+const enUnites = (cle, v)=> v*parKgDe(cle);
+const qte      = (cle, v)=> Math.round(enUnites(cle, v)).toLocaleString('fr-FR')
+                            + ' ' + uniteDe(cle);
+const qteHaut  = (cle, v)=> Math.round(enUnites(cle, v)) + ' ' + uniteDe(cle).toUpperCase();
+// Le prix dans l'unité officielle : 0,20 € l'œuf là où le stock en compte 3,33 le kilo.
+const prixUnite = (cle)=> prixDe(cle)/parKgDe(cle);
+// Comment on dit ce prix : « € / kg », « € / L », « € pièce ».
+const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce' : '€ / ' + uniteDe(cle);
+// Le singulier, pour les tournures « par litre apporté », « par œuf engagé ».
+const UNITE_UN = {kg:'kg', L:'litre', 'œufs':'œuf'};
+const uniteUn = (cle)=> UNITE_UN[uniteDe(cle)] || uniteDe(cle);
+/* QUATRE FAÇONS D'ÉCRIRE LA MÊME QUANTITÉ, selon la phrase qui l'accueille :
+
+     qteNom ..... « 34 L d'huile de colza »  — au fil d'une phrase
+     nomQte ..... « Huile de colza 34 L »    — sur une étiquette, le nom d'abord
+     nomQteBas .. « huile de colza 34 L »    — dans une énumération
+     qteNomHaut . « HUILE DE COLZA 34 L »    — sur un bouton d'action
+
+   Toutes les quatre se taisent sur le nom quand l'unité le porte déjà : « 240 œufs »
+   et non « 240 œufs d'œufs ». C'est le seul rôle du drapeau `nomme`, et c'est ce qui
+   évite d'avoir à y penser à chacun des trente endroits qui écrivent une quantité. */
+const nomme = (cle)=> !!(PRODUITS[cle] && PRODUITS[cle].nomme);
+const qteNom     = (cle, v)=> nomme(cle) ? qte(cle, v)
+                            : qte(cle, v) + ' ' + dNom(PRODUITS[cle].nom.toLowerCase());
+const nomQte     = (cle, v)=> nomme(cle) ? qte(cle, v) : nomDe(cle) + ' ' + qte(cle, v);
+const nomQteBas  = (cle, v)=> nomme(cle) ? qte(cle, v)
+                            : PRODUITS[cle].nom.toLowerCase() + ' ' + qte(cle, v);
+const qteNomHaut = (cle, v)=> nomme(cle) ? qteHaut(cle, v)
+                            : nomHaut(cle) + ' ' + qteHaut(cle, v);
+/* La même chose au dixième près, pour une cadence : « 0,95 L de lait / min », « 1,3 œuf
+   / min ». Une bête donne trop peu par minute pour qu'un arrondi à l'unité dise quoi que
+   ce soit — c'est le chiffre qui décide de l'achat d'un troupeau. */
+const cadence = (cle, parMin)=>{
+  const t = dec(enUnites(cle, parMin)) + ' ' + uniteDe(cle);
+  return PRODUITS[cle] && PRODUITS[cle].nomme
+    ? t : t + ' ' + dNom(PRODUITS[cle].nom.toLowerCase());
+};
+/* L'unité de CE QU'ON APPORTE à une recette. « 2,45 € par litre apporté » se lit tout
+   seul chez le fromager ; sur une recette à trois entrées il n'y a pas d'unité commune,
+   et l'on retombe sur le kilo, qui est bien ce que pèse le mélange. */
+const entreeSeule = (cle)=>{
+  const e = Object.keys(recetteEntrees(cle));
+  return e.length === 1 ? e[0] : '';
+};
 
 // Point de déversement : la grille au sol sur le chemin, sous la goulotte du silo.
 // La cour de transformation. Les deux cases de la rangée sud à l'est du garage ne
@@ -1890,18 +1968,18 @@ const MISSIONS = [
   {niv:8, faire:'vaches', prime:0, xp:60, titre:'Monter une pâture et deux vaches',
    texte:'Une pâture, deux vaches. Le lait coule tout seul tant que l\'auge est pleine.'},
   {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:80}], prime:2200, xp:170,
-   texte:'80 kg de lait à la laiterie — les deux tiers d\'une cuve. Ou garde-le pour le fromage — mais ça, ce sera au palier suivant.'},
+   texte:'80 L de lait à la laiterie — les deux tiers d\'une cuve. Ou garde-le pour le fromage — mais ça, ce sera au palier suivant.'},
   {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:10}, {cle:'farine', need:60}],
    prime:4000, xp:220,
-   texte:'Le restaurant paie le fromage de ferme au prix fort. 10 kg de fromage — quatre-vingts kilos de lait — et 60 kg de farine.'},
+   texte:'Le restaurant paie le fromage de ferme au prix fort. 10 kg de fromage — quatre-vingts litres de lait — et 60 kg de farine.'},
   {niv:10, lieu:'Atelier textile', lignes:[{cle:'laine', need:28}], prime:6000, xp:280,
    texte:'28 kg de laine à l\'atelier textile. Tes brebis donnent aussi du lait : il fait le fromage le plus cher de la ferme.'},
   {niv:11, lieu:'Marché', lignes:[{cle:'huile', need:60}], prime:8000, xp:330,
-   texte:'60 kg d\'huile de colza au marché. Le colza pousse lentement, le pressoir presse lentement : lance-le et va faire autre chose.'},
+   texte:'60 L d\'huile de colza au marché. Le colza pousse lentement, le pressoir presse lentement : lance-le et va faire autre chose.'},
   {niv:12, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:22}], prime:12000, xp:400,
-   texte:'22 kg d\'huile d\'olive — cent dix kilos d\'olives. L\'oliveraie reste en place après la récolte.'},
+   texte:'22 L d\'huile d\'olive — cent dix kilos d\'olives. L\'oliveraie reste en place après la récolte.'},
   {niv:13, lieu:'Caviste', lignes:[{cle:'vin', need:80}], prime:16000, xp:480,
-   texte:'80 kg de vin au caviste — cent quinze kilos de raisin. La cave met neuf minutes pour cent kilos de raisin : c\'est la plus longue attente du jeu, et la mieux payée.'},
+   texte:'80 L de vin au caviste — cent quinze kilos de raisin. La cave met neuf minutes pour cent kilos de raisin : c\'est la plus longue attente du jeu, et la mieux payée.'},
   {niv:14, faire:'betes6', prime:20000, xp:560, titre:'Vendre six bêtes à la boucherie',
    texte:'Six bêtes adultes à la boucherie. Une bête vendue, c\'est un lait ou une laine en moins : à toi de voir.'},
   {niv:15, faire:'parcelles12', prime:30000, xp:700, titre:'Douze parcelles',
@@ -2022,8 +2100,7 @@ function missionVisible(){
 function titreMission(M){
   if(!M) return '';
   if(M.titre) return M.titre;
-  return 'Livrer ' + M.lignes.map((l)=> Math.round(l.need) + ' kg ' + dNom(nomDe(l.cle).toLowerCase()))
-                             .join(' et ') + ' — ' + M.lieu;
+  return 'Livrer ' + M.lignes.map((l)=> qteNom(l.cle, l.need)).join(' et ') + ' — ' + M.lieu;
 }
 // De 0 à 1. Une mission « faire » n'a pas de quantité : elle vaut 0 ou 1.
 function avanceMission(){
@@ -4214,7 +4291,9 @@ const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacit
 // Décharger : il faut porter cette nature-là, et en quantité non nulle.
 const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
 function ajouteBulle(S, H){
-  const eur = (v)=> v.toFixed(2).replace('.', ',') + ' € / kg';
+  // Le prix peint sur l'enseigne, dans l'unité du produit : « 3,41 € / L » chez le
+  // pressoir, « 0,20 € pièce » là où l'on vend des œufs.
+  const tarif = (cle, v)=> (v/parKgDe(cle)).toFixed(2).replace('.', ',') + ' ' + parUniteTxt(cle);
   const blocs = [];
   /* UN COMMERCE FERMÉ DIT CE QU'IL ATTEND. Sans cette ligne, on s'arrête sur un
      anneau éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
@@ -4230,12 +4309,12 @@ function ajouteBulle(S, H){
   // la lit plus depuis la route. Le détail complet est dans l'onglet Filières.
   if(S.achete && S.achete.length)
     blocs.push({titre:'ACHÈTE', lignes:S.achete.slice(0, 3)
-      .map((n)=> ({nom:PRODUITS[n].nom, prix:eur(prixChez(S, n))}))
+      .map((n)=> ({nom:PRODUITS[n].nom, prix:tarif(n, prixChez(S, n))}))
       .concat(S.achete.length > 3 ? [{nom:'et ' + (S.achete.length - 3) + ' autres', prix:''}] : [])});
   if(S.fabrique && S.fabrique.length)
     blocs.push({titre:S.caisse ? 'CUISINE' : 'TRANSFORME',
       lignes:S.fabrique.slice(0, 3).map((n)=> ({nom:PRODUITS[n].nom,
-        prix:S.caisse ? eur(prixChez(S, n)) : ''}))});
+        prix:S.caisse ? tarif(n, prixChez(S, n)) : ''}))});
   if(S.vend) blocs.push({titre:'VEND', lignes:S.vend});
   if(S.propose) blocs.push({titre:'PROPOSE', lignes:S.propose});
   if(S.demande){
@@ -9452,7 +9531,8 @@ function ongletGraines(){
   titre('Cultures disponibles');
   CROPS.forEach((c, i)=>{
     const det = 'Pousse en ' + c.temps + ' s · ' + c.kg + ' kg par cellule · '
-              + dec(prixDe(c.cle)) + ' € le kg' + (c.perenne ? ' · repart toute seule' : '');
+              + dec(prixUnite(c.cle)) + ' ' + parUniteTxt(c.cle)
+              + (c.perenne ? ' · repart toute seule' : '');
     if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
     const niv = niveauDe('cultures', c.cle);
     if(CAMPAGNE.niveau < niv){
@@ -12102,7 +12182,6 @@ function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
    construction, ni anneau jaune sans effet, ni effet sans anneau jaune : c'est le même
    calcul qui allume et qui agit. */
 const nomHaut = (k)=> nomDe(k).toUpperCase();
-const enKg = (q)=> Math.round(q) + ' KG';
 // Chaque lieu dit ce qu'il propose, SANS regarder où est l'engin : c'est ce qui permet
 // à un anneau de s'allumer à l'autre bout de la vallée, et donc de choisir sa
 // destination au lieu d'avoir à s'y rendre pour découvrir qu'on s'est trompé.
@@ -12117,7 +12196,7 @@ function actionsAuSilo(m){
     out.push({sens:'ranger', lieu:'silo', cle:T.type, txt:'RENTRER ' + nomHaut(T.type)});
   if(place) for(const k of SILO_CLES)
     if(siloStock[k] > 0.01 && peutCharger(T, k))
-      out.push({sens:'prendre', lieu:'silo', cle:k, txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(siloStock[k])});
+      out.push({sens:'prendre', lieu:'silo', cle:k, txt:'CHARGER ' + qteNomHaut(k, siloStock[k])});
   return out;
 }
 // L'ENTREPÔT. Il prend tout ce qui n'est pas céréale, et rend tout ce qu'il a — y
@@ -12137,7 +12216,7 @@ function actionsEntrepot(m){
       .sort((a, b)=> ENTREPOT.stock[b] - ENTREPOT.stock[a]);
     for(const k of cles)
       out.push({sens:'prendreEntrepot', lieu:'entrepot', cle:k,
-                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(ENTREPOT.stock[k])});
+                txt:'CHARGER ' + qteNomHaut(k, ENTREPOT.stock[k])});
   }
   return out;
 }
@@ -12152,13 +12231,13 @@ function actionsPature(m, pat){
   if(E.produit && pat.P.produit > 0.01
      && place && peutCharger(T, E.produit))
     out.push({sens:'traire', lieu:lieu, P:pat.P, cle:E.produit,
-              txt:'CHARGER ' + nomHaut(E.produit) + ' ' + enKg(pat.P.produit)});
+              txt:'CHARGER ' + qteNomHaut(E.produit, pat.P.produit)});
   // Le second tank : même geste, même anneau, deux boutons. Une brebis donne de la
   // laine ET du lait, et l'on choisit ce qu'on emporte.
   if(E.second && pat.P.produit2 > 0.01
      && place && peutCharger(T, E.second.cle))
     out.push({sens:'traire2', lieu:lieu, P:pat.P, cle:E.second.cle,
-              txt:'CHARGER ' + nomHaut(E.second.cle) + ' ' + enKg(pat.P.produit2)});
+              txt:'CHARGER ' + qteNomHaut(E.second.cle, pat.P.produit2)});
   return out;
 }
 function actionsAuSite(m, S){
@@ -12169,15 +12248,16 @@ function actionsAuSite(m, S){
     // croyant tout vendre et l'on repart avec les trois quarts.
     const pl = placeChez(S, T.type);
     out.push({sens:'vendre', lieu:S.nom, S:S, cle:T.type,
-              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)) + ' €/KG' +
-                  (pl < Infinity ? ' · ' + enKg(Math.min(pl, T.load)) : '')});
+              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)/parKgDe(T.type)) +
+                  ' ' + parUniteTxt(T.type).toUpperCase() +
+                  (pl < Infinity ? ' · ' + qteHaut(T.type, Math.min(pl, T.load)) : '')});
   }
   if(porte && accepteMaintenant(S, T.type))
     out.push({sens:'verser', lieu:S.nom, S:S, cle:T.type, txt:'LIVRER ' + nomHaut(T.type)});
   if(place && !S.caisse) for(const k in S.stock)
     if(S.stock[k] > 0.01 && peutCharger(T, k))
       out.push({sens:'reprendre', lieu:S.nom, S:S, cle:k,
-                txt:'CHARGER ' + nomHaut(k) + ' ' + enKg(S.stock[k])});
+                txt:'CHARGER ' + qteNomHaut(k, S.stock[k])});
   if(tremiePleine(m)){
     const c2 = CROPS[hopCrop].cle;
     if(acheteMaintenant(S, c2))
@@ -12713,7 +12793,7 @@ function lancerProduction(cle, kgSortie){
   const P = PRODUITS[cle];
   const q = Math.max(1, Math.round(Math.min(kgSortie, halleLotMax()*P.rendement)));
   HALLE.file.push({cle: cle, reste: q, total: q});
-  showHint('ATELIER — ' + kg(q) + ' ' + dNom(PRODUITS[cle].nom.toLowerCase()).toUpperCase()
+  showHint('ATELIER — ' + qteNom(cle, q).toUpperCase()
            + (HALLE.file.length > 1 ? '  ·  ' + HALLE.file.length + ' LOTS EN FILE' : ''));
   return true;
 }
@@ -12924,8 +13004,8 @@ function rendreContrat(){
     d.className = 'cl' + (!offre && fait >= l.need - 0.01 ? ' fini' : '');
     const g = document.createElement('span'); g.textContent = nomDe(l.cle);
     const b = document.createElement('b');
-    b.textContent = offre ? Math.round(l.need) + ' kg'
-                          : Math.round(fait) + ' / ' + Math.round(l.need) + ' kg';
+    b.textContent = offre ? qte(l.cle, l.need)
+                          : Math.round(enUnites(l.cle, fait)) + ' / ' + qte(l.cle, l.need);
     d.appendChild(g); d.appendChild(b);
     L.appendChild(d);
   }
@@ -13042,7 +13122,7 @@ function refreshChoix(){
        d'elle-même. On garde la ligne, qui dit ce qui se passe et combien il reste à
        faire, et l'on retire le bouton. */
     titreTxt = 'En cours';
-    lignes.push({txt:retenue.txt + (choixLimite !== null ? '  ·  ' + enKg(choixLimite) : ''),
+    lignes.push({txt:retenue.txt + (choixLimite !== null ? '  ·  ' + qteHaut(retenue.cle, choixLimite) : ''),
                  cls:'ch on', f:null});
   } else {
     titreTxt = 'Que faire ici ?';
@@ -13062,8 +13142,8 @@ function refreshChoix(){
         if(SENS_DOSABLE[A.sens] && max >= 2)
           ouvrirQuantite({
             max: max, titre: A.txt,
-            sortie: (q)=> enKg(q),
-            detail: (q)=> 'Sur ' + enKg(max) + ' possibles' +
+            sortie: (q)=> qteHaut(A.cle, q),
+            detail: (q)=> 'Sur ' + qteHaut(A.cle, max) + ' possibles' +
                           (A.S && A.sens === 'vendre' ? '<br>Soit ' + eur(q*prixChez(A.S, A.cle)) : ''),
             valider: (q)=>{ choixEnCours = A; choixLimite = (q >= max - 0.5) ? null : q; }
           });
@@ -13220,7 +13300,8 @@ function refreshJauges(){
   let txt = '';
   if(v.betail) txt = v.betail + ' bête' + (v.betail>1?'s':'');
   else if(caisse && caisse.load > 1)
-    txt = (NATURES[caisse.type] ? NATURES[caisse.type].nom : 'Charge') + ' ' + Math.round(caisse.load) + ' kg';
+    txt = PRODUITS[caisse.type] ? nomQte(caisse.type, caisse.load)
+                                : 'Charge ' + kg(caisse.load);
   else if(m.key === 'moisson' && hopper > 1) txt = 'Trémie ' + Math.round(hopper) + ' kg';
   jaugeEl.charge.textContent = txt;
   jaugeEl.charge.style.opacity = txt ? 0.75 : 0;
@@ -13414,7 +13495,7 @@ function majJauges(dt){
   if(charge && v.jaugeT > 0){
     const P = PRODUITS[charge.cle];
     montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z,
-      (P ? P.nom : 'Charge') + ' ' + Math.round(charge.q) + ' kg',
+      P ? nomQte(charge.cle, charge.q) : 'Charge ' + kg(charge.q),
       charge.q/charge.max, P ? P.couleur : '#E6F0F8', dt);
   } else cacherJauge(jaugeEngin, dt);
 
@@ -13439,7 +13520,7 @@ function majJauges(dt){
     // comme elle se dessine par-dessus tout, on aurait vu une étiquette collée au toit.
     // Sa voisine de l'entrepôt avait bien reçu le facteur ; celle-ci avait été oubliée.
     montrerJauge(jaugeAtelier, HALLE.x, 11.0*BAT_ECHELLE, HALLE.z,
-      RJ.nom + ' — ' + Math.round(CJ.total - CJ.reste) + ' / ' + Math.round(CJ.total) + ' kg',
+      RJ.nom + ' — ' + Math.round(enUnites(CJ.cle, CJ.total - CJ.reste)) + ' / ' + qte(CJ.cle, CJ.total),
       CJ.total > 0 ? (CJ.total - CJ.reste)/CJ.total : 0, RJ.couleur, dt);
   } else cacherJauge(jaugeAtelier, dt);
 
@@ -13505,9 +13586,8 @@ function majJauges(dt){
       const R2 = PRODUITS[gros.cle];
       const kp = gros.v/gros.max;
       const txt = B2
-        ? Math.round(A2.v) + ' kg ' + PRODUITS[A2.cle].nom.toLowerCase() + '  ·  ' +
-          Math.round(B2.v) + ' kg ' + PRODUITS[B2.cle].nom.toLowerCase()
-        : R2.nom + ' ' + Math.round(gros.v) + ' kg';
+        ? qteNom(A2.cle, A2.v) + '  ·  ' + qteNom(B2.cle, B2.v)
+        : nomQte(gros.cle, gros.v);
       montrerJauge(prendreJauge(P.j2), cx, 5.0, cz,
         txt + (kp > 0.995 ? ' — CUVE PLEINE' : (nourries ? '' : ' — À L\'ARRÊT')),
         kp, kp > 0.995 ? '#E8563F' : (nourries ? R2.couleur : '#8A9298'), dt);
@@ -13615,10 +13695,10 @@ function ongletElevage(){
        que sa bête ne produit rien, et c'était l'argument de vente. La minute rend des
        chiffres qu'on lit : vache 0,95, mouton 0,08, ruche 0,04. */
     const gain = E.produit
-      ? dec(E.parSec*60) + ' kg de ' + E.nomProduit.toLowerCase() + ' / min à ' +
-        dec(prixDe(E.produit)) + ' € le kg' +
-        (E.second ? ', et ' + dec(E.second.parSec*60) + ' kg de ' + E.second.nom.toLowerCase() +
-                    ' / min à ' + dec(prixDe(E.second.cle)) + ' €' : '')
+      ? cadence(E.produit, E.parSec*60) + ' / min à ' + dec(prixUnite(E.produit)) + ' ' +
+        parUniteTxt(E.produit) +
+        (E.second ? ', et ' + cadence(E.second.cle, E.second.parSec*60) +
+                    ' / min à ' + dec(prixUnite(E.second.cle)) + ' €' : '')
       : 'aucun produit continu : elle se vend à la boucherie, et cher';
     // Une ruche ne se revend pas et ne part pas à l'abattoir : le libellé ne doit pas
     // promettre une valeur de revente qui vaut zéro.
@@ -13657,8 +13737,10 @@ function ongletElevage(){
       P.betes.length + ' / ' + P.places + (E.statique ? ' ruches · ' : ' bêtes · ') + adultes +
       (E.statique ? ' en pleine production' : ' prête' + (adultes>1?'s':'') + ' pour la boucherie') +
       '<br>' + (E.statique ? 'Nourrisseur : ' : 'Mangeoire : ') + kg(P.grain) + ' / ' + kg(P.grainMax) +
-      (E.produit ? ' · ' + E.nomProduit + ' : ' + kg(P.produit) + ' / ' + kg(P.produitMax) : '') +
-      (E.second ? ' · ' + E.second.nom + ' : ' + kg(P.produit2) + ' / ' + kg(P.produit2Max) : ''),
+      (E.produit ? ' · ' + E.nomProduit + ' : ' + Math.round(enUnites(E.produit, P.produit)) +
+                   ' / ' + qte(E.produit, P.produitMax) : '') +
+      (E.second ? ' · ' + E.second.nom + ' : ' + Math.round(enUnites(E.second.cle, P.produit2)) +
+                  ' / ' + qte(E.second.cle, P.produit2Max) : ''),
       'État', 'no', null);
     const plein = P.betes.length >= P.places;
     const ok = !plein && money >= E.prix;
@@ -13707,7 +13789,7 @@ function flecheur(cle){
 function ongletFilieres(){
   const acheteurs = (cle)=> SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
     .sort((A, B)=> B.coef - A.coef)
-    .map((S)=> S.nom + ' ' + dec(prixChez(S, cle)))
+    .map((S)=> S.nom + ' ' + dec(prixChez(S, cle)/parKgDe(cle)))
     .join(' · ');
 
   titre('Ce qui sort de la terre et de la bête');
@@ -13716,7 +13798,7 @@ function ongletFilieres(){
     const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
       && recetteEntrees(k)[cle] !== undefined).map((k)=> PRODUITS[k].nom);
     article(parseInt(P.couleur.slice(1), 16), P.nom,
-      dec(prixDe(cle)) + ' € le kg brut<br>' +
+      dec(prixUnite(cle)) + ' ' + parUniteTxt(cle) + ' brut<br>' +
       (acheteurs(cle) ? 'Vente directe : ' + acheteurs(cle) + '<br>' : 'Aucune vente directe<br>') +
       (suites.length ? 'Se transforme en : ' + suites.join(', ') : 'Ne se transforme pas'),
       'Brut', 'no', null);
@@ -13726,9 +13808,11 @@ function ongletFilieres(){
   for(const R of ATELIER_MODULES){
     const niv = niveauDe('modules', R.cle), a2 = atelierA(R.cle);
     article(parseInt(PRODUITS[R.cle].couleur.slice(1), 16), R.module,
-      flecheur(R.cle) + PRODUITS[R.cle].nom + ' · ' + dec(prixDe(R.cle)) + ' € le kg<br>' +
+      flecheur(R.cle) + PRODUITS[R.cle].nom + ' · ' + dec(prixUnite(R.cle)) + ' ' +
+      parUniteTxt(R.cle) + '<br>' +
       'Rendement ' + Math.round(PRODUITS[R.cle].rendement*100) + ' % · ' +
-      dec(rendementValeur(R.cle)) + ' € par kg engagé · ' + R.duree + ' s les 100 kg',
+      dec(rendementValeur(R.cle)/parKgDe(entreeSeule(R.cle))) + ' € par ' +
+      uniteUn(entreeSeule(R.cle)) + ' engagé · ' + R.duree + ' s les 100 kg',
       a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Monté')
          : (CAMPAGNE.niveau >= niv ? eur(R.prix) : 'Niveau ' + niv),
       a2 ? 'ok' : 'no', null);
@@ -13740,7 +13824,8 @@ function ongletFilieres(){
     const l = [];
     for(const cle of S.fabrique)
       l.push((S.caisse ? 'Cuisine : ' : 'Transforme : ') + flecheur(cle) + PRODUITS[cle].nom +
-             ' (' + dec(rendementValeur(cle)*(S.coef || 1)) + ' € par kg apporté)');
+             ' (' + dec(rendementValeur(cle)*(S.coef || 1)/parKgDe(entreeSeule(cle))) +
+             ' € par ' + uniteUn(entreeSeule(cle)) + ' apporté)');
     if(S.abattoir) l.push('Abat les bêtes et paie la carcasse sur place');
     if(S.achete.length)
       l.push('Achète : ' + S.achete.map((k)=> PRODUITS[k].nom).join(', ') +
@@ -13748,13 +13833,12 @@ function ongletFilieres(){
     if(S.etal !== undefined)
       l.push('Prend au plus ' + kg(S.etal) + ' de chaque nature, refait en ' +
              ETAL_MINUTES + ' min — reste ' +
-             S.achete.map((k)=> PRODUITS[k].nom.toLowerCase() + ' ' + Math.round(placeChez(S, k)))
-                     .join(', ') + ' kg');
+             S.achete.map((k)=> nomQteBas(k, placeChez(S, k))).join(', '));
     // Ce qu'on a SIGNÉ ici, et rien d'autre : une proposition qui attend sur place ne
     // se lit pas depuis un menu, elle se lit sur place.
     const C0 = contratChez(S.nom);
     if(C0) l.push('Contrat accepté : ' + C0.lignes.map((c)=>
-      PRODUITS[c.cle].nom + ' ' + Math.round(Math.max(0, c.need - c.fait)) + ' kg restants')
+      nomQte(c.cle, Math.max(0, c.need - c.fait)) + ' restants')
       .join(', ') + ' — prime ' + eur(C0.prime));
     article(S.toit, S.nom, l.join('<br>'), 'Fiche', 'no', null);
   }
@@ -13766,7 +13850,8 @@ function ongletFilieres(){
    rien ne peut y mentir. */
 function ongletStockage(){
   const ligne = (cle, q, ou)=> article(parseInt(PRODUITS[cle].couleur.slice(1), 16),
-    PRODUITS[cle].nom, kg(q) + ' · ' + dec(prixDe(cle)) + ' € le kg — soit ' + eur(q*prixDe(cle)),
+    PRODUITS[cle].nom, qte(cle, q) + ' · ' + dec(prixUnite(cle)) + ' ' + parUniteTxt(cle) +
+      ' — soit ' + eur(q*prixDe(cle)),
     ou, 'no', null);
 
   const st = siloTotal();
@@ -13854,12 +13939,12 @@ function ouvrirDose(cle, max){
   const P = PRODUITS[cle], ent = recetteEntrees(cle), pot = potentiel(cle);
   ouvrirQuantite({
     max: max, titre: 'Produire : ' + P.nom,
-    sortie: (q)=> kg(q) + ' ' + dNom(P.nom.toLowerCase()),
+    sortie: (q)=> qteNom(cle, q),
     detail: (q)=>{
       const parts = q/P.rendement;
       const cout = P.libre
-        ? kg(parts) + ' ' + dNom(PRODUITS[pot.court].nom.toLowerCase())
-        : Object.keys(ent).map((k)=> kg(parts*ent[k]) + ' ' + dNom(PRODUITS[k].nom.toLowerCase())).join(' + ');
+        ? qteNom(pot.court, parts)
+        : Object.keys(ent).map((k)=> qteNom(k, parts*ent[k])).join(' + ');
       return 'Consomme ' + cout + '<br>Vaudra ' + eur(q*prixDe(cle)) +
              ' — la même matière vendue brute en vaudrait ' +
              eur(P.libre ? parts*prixDe(pot.court)
@@ -13899,8 +13984,8 @@ function ongletProduction(){
       const PC = PRODUITS[C.cle];
       article(parseInt(PC.couleur.slice(1), 16),
         (i === 0 ? 'En cours : ' : 'En attente : ') + PC.nom,
-        '<span class="q">' + kg(C.total - C.reste) + ' sur ' + kg(C.total) + '</span> — il reste ' +
-        kg(C.reste) + ' à sortir' +
+        '<span class="q">' + Math.round(enUnites(C.cle, C.total - C.reste)) + ' sur ' +
+        qte(C.cle, C.total) + '</span> — il reste ' + qte(C.cle, C.reste) + ' à sortir' +
         (i === 0 ? (C.bloque > 1
                     ? '<br><span class="q court">En attente de matière depuis ' +
                       Math.round(C.bloque) + ' s</span>'
@@ -13934,7 +14019,7 @@ function ongletProduction(){
     const monte = atelierA(R.cle), niv = niveauDe('modules', R.cle);
     // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
     const recette = Object.keys(ent).map((k)=>
-      Math.round(100*ent[k]) + ' kg ' + dNom(PRODUITS[k].nom.toLowerCase())).join(P.libre ? ' ou ' : ' + ');
+      qteNom(k, 100*ent[k])).join(P.libre ? ' ou ' : ' + ');
     const pot = potentiel(R.cle);
     const assez = pot.sortie >= 1;
     const place = HALLE.file.length < halleFileMax();
@@ -13945,13 +14030,13 @@ function ongletProduction(){
        le bouton gris, ce qui se lit comme une contradiction. */
     const cl = !monte ? 'q neutre' : (assez ? 'q' : 'q court');
     const enMagasin = Object.keys(ent)
-      .map((k)=> kg(disponible(k) + (HALLE.tremie[k] || 0)) + ' ' + dNom(PRODUITS[k].nom.toLowerCase()))
+      .map((k)=> qteNom(k, disponible(k) + (HALLE.tremie[k] || 0)))
       .join(P.libre ? ' · ' : ' + ');
-    const det = recette + ' → ' + Math.round(100*P.rendement) + ' kg ' + dNom(P.nom.toLowerCase()) +
+    const det = recette + ' → ' + qteNom(R.cle, 100*P.rendement) +
       ' en ' + Math.round(R.duree/halleVitesse()) + ' s' +
       '<br>En magasin : <span class="' + cl + '">' + enMagasin + '</span>' +
-      '<br>De quoi produire au maximum <span class="' + cl + '">' + kg(pot.sortie) + ' ' +
-      dNom(P.nom.toLowerCase()) + '</span>' +
+      '<br>De quoi produire au maximum <span class="' + cl + '">' +
+      qteNom(R.cle, pot.sortie) + '</span>' +
       (assez ? ' — ' + eur(pot.sortie*prixDe(R.cle))
              : ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')');
     const peut = monte && assez && place;
@@ -14018,27 +14103,30 @@ function ongletPrix(){
     // Ce qu'on gagnerait à VIDER chaque acheteur : c'est là que le moins-disant
     // reprend l'avantage, et c'est le seul chiffre qui permette de le voir.
     const l = chez.map((q, i)=>
-      (i === 0 ? '<b>' : '') + q.S.nom + ' ' + dec(q.prix) + ' €' + (i === 0 ? '</b>' : '') +
+      (i === 0 ? '<b>' : '') + q.S.nom + ' ' + dec(q.prix/parKgDe(cle)) + ' €' + (i === 0 ? '</b>' : '') +
       (q.place === Infinity ? ' · sans limite'
-        : ' · ' + (q.place > q.max - 1 ? 'prend ' + kg(q.max)
-                                       : kg(q.place) + ' libres sur ' + kg(q.max)) +
+        : ' · ' + (q.place > q.max - 1 ? 'prend ' + qte(cle, q.max)
+                                       : qte(cle, q.place) + ' libres sur ' + qte(cle, q.max)) +
           ' — ' + eur(q.place*q.prix)));
     // Ce qui se transforme vaut plus une fois transformé : on le dit ici aussi.
     const suites = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].de
       && recetteEntrees(k)[cle] !== undefined);
     if(suites.length)
       l.push('Transformé : ' + suites.map((k)=>
-        PRODUITS[k].nom + ' ' + dec(rendementValeur(k)) + ' € par kg engagé').join(' · '));
+        PRODUITS[k].nom + ' ' + dec(rendementValeur(k)/parKgDe(cle)) +
+        ' € par ' + uniteUn(cle) + ' engagé').join(' · '));
     article(parseInt(P.couleur.slice(1), 16), P.nom, l.join('<br>'),
-      dec(prixDe(cle)) + ' €', 'no', null);
+      dec(prixUnite(cle)) + ' ' + parUniteTxt(cle), 'no', null);
   }
 
   titre('Comment lire ces prix');
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">' +
-    'Le prix affiché est celui du kilo à la vente directe. CHAQUE acheteur a un ' +
+    'Le prix affiché est celui de l\'unité officielle du produit à la vente directe : ' +
+    'le kilo pour un grain, le litre pour un lait ou une huile, la pièce pour un œuf. ' +
+    'CHAQUE acheteur a un ' +
     'plafond par nature, et ce plafond est l\'inverse de son prix : le caviste paie le ' +
-    'mieux le vin mais n\'en écoule que ' + kg(NEGOCE['Caviste'].etal) + ', le ' +
+    'mieux le vin mais n\'en écoule que ' + qte('vin', NEGOCE['Caviste'].etal) + ', le ' +
     'supermarché paie le moins et en prend ' + kg(NEGOCE['Supermarché'].etal) + '. ' +
     'Tous se refont en ' + ETAL_MINUTES + ' minutes.<br><br>' +
     'D\'où la seule vraie question d\'une tournée : vendre le haut de la benne au prix ' +
@@ -14134,7 +14222,7 @@ function ongletReglages(){
     'Atelier : ' + HALLE.modules.length + ' / ' + ATELIER_MODULES.length + ' métiers' +
     ' · trémie ' + kg(totalTremie(HALLE)) + '<br>' +
     'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
-    'Lait livré : ' + kg(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
+    'Lait livré : ' + litres(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
     '</div></div>';
   hote.appendChild(d2);
 }
@@ -15025,7 +15113,7 @@ function ouvrirFin(){
   sous.innerHTML = 'La campagne est finie — niveau ' + CAMPAGNE.niveau + ', ' +
     Math.round(CAMPAGNE.xp) + ' XP, ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
     kg(STAT.moisson) + ' récoltés · ' + kg(STAT.pain) + ' de pain · ' +
-    kg(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
+    litres(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
   boutonAccueil('Continuer à jouer', true, ()=>{ accueil.style.display = 'none'; paused = false; last = performance.now(); });
   accueil.style.display = 'flex';
   paused = true;
