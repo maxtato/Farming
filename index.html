@@ -114,9 +114,14 @@
   #viseurs{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
   #viseurs .vis{position:absolute;left:0;top:0;display:flex;flex-direction:column;
     align-items:center;gap:1px;will-change:transform}
-  #viseurs .vis .fl{width:30px;height:30px;display:flex;align-items:center;justify-content:center}
-  #viseurs .vis .fl svg{width:30px;height:30px;display:block}
-  #viseurs .vis .nm{font-size:8.5px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
+  /* PLUS PETITES. Trente pixels de flèche et huit et demi de libellé : sur une route
+     bordée de commerces, trois vignettes de cette taille occupaient un bon quart du
+     bord de l'écran et l'on ne voyait plus la route derrière. Vingt-deux et sept, la
+     pointe reste franche et le nom reste lisible — c'est une indication de direction,
+     pas un panneau. */
+  #viseurs .vis .fl{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+  #viseurs .vis .fl svg{width:22px;height:22px;display:block}
+  #viseurs .vis .nm{font-size:7px;font-weight:bold;letter-spacing:.7px;text-transform:uppercase;
     color:currentColor;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
@@ -4273,31 +4278,28 @@ function clotureSite(S){
 // MAI_MODELES et MAI_ECHELLE plus bas. L'ancien buildMaison(), qui dessinait trois
 // silhouettes paramétrées, n'était plus appelé de nulle part : il réservait la place
 // des cinq maisons du bord sud sans jamais les construire.
-// Bulle flottante au-dessus du commerce : elle annonce ce qu'il achète et à quel prix,
-// pour qu'on ajuste ses cultures sans avoir à mémoriser les tarifs.
-// Une bulle peut annoncer plusieurs blocs : ce que le commerce achète, ce qu'il vend.
-// La hauteur de la texture suit le nombre de lignes, pour ne jamais tasser le texte.
-function bulleTex(nom, toit, blocs){
-  let lignes = 0;
-  for(const B of blocs) lignes += 1 + B.lignes.length;      // titre + entrées
-  /* LA DÉFINITION DES BULLES. Elles étaient dessinées en DOUBLE définition « pour la
-     netteté » : 1280 px de large chacune, seize commerces, cinquante-neuf mégaoctets de
-     canevas — plus que le sol peint, et le plus gros poste de textures du jeu. Or une
-     bulle mesure environ deux cents pixels à l'écran : la texture était six fois trop
-     fine dans chaque axe, soit trente-six fois trop de pixels pour ce que la dalle peut
-     montrer. À définition simple elle reste trois fois plus fine que l'écran, et les
-     seize bulles passent de 59 à 15 Mio.
+/* L'ÉTIQUETTE D'UN COMMERCE NE DIT QUE SON NOM.
+   Elle déroulait ce qu'il achète, à quel prix, ce qu'il vend, ce qu'il transforme et ce
+   qu'il propose : jusqu'à onze lignes, un panneau de dix-neuf mètres de large planté
+   au-dessus du toit, et quinze de ces panneaux dans le village. On ne voyait plus les
+   bâtiments derrière, et l'on ne lisait de toute façon aucun de ces prix en roulant.
+   Le détail est dans le menu Filières, où on le consulte assis.
 
-     SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
+   Reste ce dont on a besoin depuis la route : SAVOIR OÙ L'ON EST. Le nom, une barre
+   à la couleur du toit, et rien d'autre. Un commerce encore fermé ajoute la seule chose
+   qui manquerait sans elle — le palier qui l'ouvrira — parce que ce n'est pas ce qu'il
+   achète, c'est la raison pour laquelle il n'achète rien. */
+function bulleTex(nom, toit, sous){
+  /* SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
      restent écrits dans l'espace LW x LH, quelle que soit sa valeur. */
   const SUR = 1;
-  const LW = 640, LH = 150 + lignes*64;
+  const LW = 560, LH = sous ? 188 : 138;
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
   c.scale(SUR, SUR);
-  const r = 40, w = 620, h = LH - 26, x = 10, y = 8;
-  c.fillStyle = 'rgba(28,35,40,.80)';
+  const r = 34, w = 540, h = LH - 22, x = 10, y = 8;
+  c.fillStyle = sous ? 'rgba(28,35,40,.62)' : 'rgba(28,35,40,.80)';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
   c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
@@ -4306,54 +4308,19 @@ function bulleTex(nom, toit, blocs){
 
   const accent = '#' + toit.toString(16).padStart(6,'0');
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = '#FFFFFF';
-  let t = 68;
+  c.fillStyle = sous ? '#9AA4AB' : '#FFFFFF';
+  let t = 66;
   const NOM = nom.toUpperCase();
   c.font = 'bold ' + t + 'px "Trebuchet MS", Verdana, sans-serif';
-  while(c.measureText(NOM).width > 552 && t > 30){
+  while(c.measureText(NOM).width > 476 && t > 28){
     t -= 3; c.font = 'bold ' + t + 'px "Trebuchet MS", Verdana, sans-serif';
   }
-  c.fillText(NOM, 320, 74);
-  c.fillStyle = accent; c.fillRect(90, 116, 460, 5);
-
-  let yy = 168;
-  c.textAlign = 'left';
-  for(const B of blocs){
+  c.fillText(NOM, 280, 70);
+  c.fillStyle = accent; c.fillRect(120, 110, 320, 5);
+  if(sous){
     c.fillStyle = 'rgba(255,255,255,.55)';
-    c.font = 'bold 34px "Trebuchet MS", Verdana, sans-serif';
-    c.fillText(B.titre, 48, yy);
-    yy += 64;
-    for(const L of B.lignes){
-      /* LE NOM NE DOIT JAMAIS ATTEINDRE LE PRIX. Le nom était calé à gauche et le prix
-         à droite, chacun sans se soucier de l'autre : « Aliment premium » et son tarif
-         se chevauchaient, et l'on ne lisait plus ni l'un ni l'autre. On mesure d'abord
-         le prix, on en déduit la place qui reste, et l'on rétrécit le nom jusqu'à ce
-         qu'il tienne — comme sur les enseignes et les jauges, où réduire la fonte s'est
-         montré plus lisible que comprimer la lettre. */
-      let large = 0;
-      if(L.prix){
-        c.font = 'bold 46px "Trebuchet MS", Verdana, sans-serif';
-        large = c.measureText(L.prix).width;
-      }
-      const dispo = 592 - 48 - (large ? large + 24 : 0);
-      let tn = 52;
-      const fonte = ()=> 'bold ' + tn + 'px "Trebuchet MS", Verdana, sans-serif';
-      c.font = fonte();
-      while(tn > 28 && c.measureText(L.nom).width > dispo){ tn -= 2; c.font = fonte(); }
-      c.fillStyle = '#EDF3F8';
-      c.fillText(L.nom, 48, yy);
-      if(L.prix){
-        /* Le prix prenait la couleur du toit du commerce : un toit sombre le rendait
-           illisible sur un fond déjà sombre. Il passe à un blanc chaud, très clair,
-           qui ressort sur la bulle et se distingue du nom sans crier. */
-        c.textAlign = 'right';
-        c.fillStyle = '#FFE7A6';
-        c.font = 'bold 46px "Trebuchet MS", Verdana, sans-serif';
-        c.fillText(L.prix, 592, yy);
-        c.textAlign = 'left';
-      }
-      yy += 64;
-    }
+    c.font = 'bold 38px "Trebuchet MS", Verdana, sans-serif';
+    c.fillText(sous, 280, 152);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 8;
@@ -4361,9 +4328,11 @@ function bulleTex(nom, toit, blocs){
   tex.generateMipmaps = false;
   return {tex, ratio: LH/LW};
 }
-function poseBulle(nom, toit, blocs, x, y, z, rot){
-  const B = bulleTex(nom, toit, blocs);
-  const LARGE = 19.0;
+function poseBulle(nom, toit, sous, x, y, z, rot){
+  const B = bulleTex(nom, toit, sous);
+  // Dix-neuf mètres de large, c'était la moitié d'une façade. Huit et demi, c'est une
+  // enseigne : on la lit de la route sans qu'elle mange le bâtiment qu'elle nomme.
+  const LARGE = 8.6;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(LARGE, LARGE*B.ratio),
     new THREE.MeshBasicMaterial({map:B.tex, transparent:true, depthWrite:false}));
   m.rotation.y = rot;                        // parallèle à la route, comme la façade
@@ -4407,48 +4376,54 @@ const VERT_CONTRAT = 0x62D84E;
    qui respire — il s'ouvre à la moitié de son diamètre et grandit d'un cinquième — et
    il n'a rien d'autre autour de lui. C'est la seule tache pleine de la carte, et c'est
    ce qui la rend repérable depuis l'autre bout d'une parcelle. */
+/* UNE SEULE FORME POUR TOUTES LES MARQUES AU SOL, ET LA COULEUR SEULE PARLE.
+   Il y en avait deux, et l'on devait apprendre les deux : un ANNEAU jaune, creux et
+   additif, pour ce qu'on peut faire ici, et une PASTILLE pleine, verte ou bleue, plus
+   petite, pour ce que le guidage a à dire. Aux quinze commerces les deux se
+   superposaient — un disque au milieu d'un cercle — et il fallait deviner lequel des
+   deux venait de changer.
+
+   C'est maintenant un CERCLE, un seul : un liseré franc et un centre de la même couleur,
+   nettement plus transparent. Trois déclinaisons, rien d'autre qui change :
+     JAUNE  une action possible ici, ou l'objectif du moment
+     VERT   une mission à prendre
+     BLEU   un service permanent — Garage, Comptoir agricole, Coopérative, la cuve
+   En veille, le même cercle en blanc froid, très transparent : le quai reste visible,
+   il ne dit simplement rien.
+
+   PEINT EN MÉLANGE NORMAL, pas en addition. Un cercle additif sur le béton clair d'un
+   quai vire au pâle — la couleur du sol traverse — et l'on retombe sur le liseré qu'on
+   voulait quitter. */
 function anneauAction(x, z, phase, actif, opt){
   const O = opt || {};
   const R = O.r || ANNEAU_R, EP = O.ep || ANNEAU_EP, C = O.coul || JAUNE_ACTION;
-  /* LE PLEIN NE SE MÉLANGE PAS PAR ADDITION. Un disque additif sur le béton clair d'un
-     quai rend vert PÂLE — la couleur du sol traverse — et l'on retombe sur le liseré
-     qu'on voulait quitter. Il est donc peint par-dessus, en mélange normal : c'est une
-     tache de vert franc, la seule de la carte. L'anneau jaune, lui, garde l'addition :
-     c'est une lueur, pas une peinture. */
-  const anneau = new THREE.Mesh(
-    O.plein ? new THREE.CircleGeometry(R, 40) : new THREE.RingGeometry(R - EP, R, 48),
-    new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:0.95,
-                                 blending:O.plein ? THREE.NormalBlending : THREE.AdditiveBlending,
-                                 side:THREE.DoubleSide, depthWrite:false}));
+  const mat = (op)=> new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:op,
+                       blending:THREE.NormalBlending, side:THREE.DoubleSide,
+                       depthWrite:false});
+  const anneau = new THREE.Mesh(new THREE.RingGeometry(R - EP, R, 48), mat(0.95));
   anneau.rotation.x = -Math.PI/2;
-  anneau.position.set(x, O.discret ? 0.12 : 0.10, z);
+  anneau.position.set(x, 0.11, z);
   anneau.renderOrder = 3;
   scene.add(anneau);
-  // Le halo d'une pastille pleine déborde d'elle : c'est lui qui la fait rayonner sur
-  // l'herbe au lieu de s'y découper au couteau.
-  const halo = new THREE.Mesh(
-    new THREE.CircleGeometry(O.plein ? R*1.85 : R - EP*0.5, 32),
-    new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:0.10,
-                                 blending:THREE.AdditiveBlending,
-                                 side:THREE.DoubleSide, depthWrite:false}));
-  halo.rotation.x = -Math.PI/2;
-  halo.position.set(x, O.discret ? 0.11 : 0.08, z);
-  halo.renderOrder = 3;
-  scene.add(halo);
+  // Le centre : la même couleur, le quart de l'intensité. C'est lui qui fait du cercle
+  // une CIBLE où se poser, et non un simple trait sur le sol.
+  const centre = new THREE.Mesh(new THREE.CircleGeometry(R - EP, 40), mat(0.30));
+  centre.rotation.x = -Math.PI/2;
+  centre.position.set(x, 0.10, z);
+  centre.renderOrder = 3;
+  scene.add(centre);
   // Ils RESPIRENT : opacité et échelle changent à chaque image. Le drapeau le dit, pour
   // que ce qui recense le décor FIXE — l'empreinte qui prouve qu'une vallée est toujours
-  // la même — ne compte pas une pastille prise à deux instants de son battement.
-  anneau.userData.anime = halo.userData.anime = true;
+  // la même — ne compte pas une marque prise à deux instants de son battement.
+  anneau.userData.anime = centre.userData.anime = true;
   // `k` à null : la toute première image fixe l'état sans transition, sinon tous les
-  // anneaux de la carte s'allument en jaune au démarrage avant de retomber au blanc.
-  ANNEAUX.push({anneau, halo, ph:phase || 0, actif: actif || null, k: null,
+  // cercles de la carte s'allument au démarrage avant de retomber au blanc.
+  ANNEAUX.push({anneau, centre, ph:phase || 0, actif: actif || null, k: null,
                 cA: new THREE.Color(C), cV: new THREE.Color(O.veille || BLANC_ATTENTE),
-                // `coulDyn` : une pastille dont la couleur DIT quelque chose et change
-                // avec l'état du jeu — jaune quand c'est l'objectif, verte quand une
-                // mission attend, bleue quand c'est un service. Relue avec la condition,
-                // huit fois par seconde, jamais à chaque image.
-                coulDyn: O.coulDyn || null,
-                discret: !!O.discret, plein: !!O.plein, x, z});
+                // `coulDyn` : un cercle dont la couleur DIT quelque chose et change avec
+                // l'état du jeu. Relue avec la condition, huit fois par seconde, jamais
+                // à chaque image.
+                coulDyn: O.coulDyn || null, x, z});
 }
 /* --- de quoi écrire ces conditions sans les réinventer à chaque anneau --- */
 // Ces quatre outils sont volontairement calqués sur les tests que font vraiment
@@ -4462,52 +4437,25 @@ const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacit
 // Décharger : il faut porter cette nature-là, et en quantité non nulle.
 const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
 function ajouteBulle(S, H){
-  // Le prix peint sur l'enseigne, dans l'unité du produit : « 3,41 € / L » chez le
-  // pressoir, « 0,20 € pièce » là où l'on vend des œufs.
-  const tarif = (cle, v)=> (v/parKgDe(cle)).toFixed(2).replace('.', ',') + ' ' + parUniteTxt(cle);
-  const blocs = [];
-  /* UN COMMERCE FERMÉ DIT CE QU'IL ATTEND. Sans cette ligne, on s'arrête sur un
-     anneau éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
-     apporte. La bulle est la seule chose qu'on lit depuis la route : c'est là que la
-     réponse doit être. */
-  if(!ouvert('sites', S.nom)){
-    const niv = niveauDe('sites', S.nom);
-    ajouteBulleRendu(S, H, [{titre:'FERMÉ', lignes:[{nom:'Ouvre au niveau ' + niv, prix:''},
-                                                    {nom:NIVEAUX[niv-1].nom, prix:''}]}]);
-    return;
-  }
-  // Trois lignes au plus : au-delà, la bulle devient un panneau d'affichage et on ne
-  // la lit plus depuis la route. Le détail complet est dans l'onglet Filières.
-  if(S.achete && S.achete.length)
-    blocs.push({titre:'ACHÈTE', lignes:S.achete.slice(0, 3)
-      .map((n)=> ({nom:PRODUITS[n].nom, prix:tarif(n, prixChez(S, n))}))
-      .concat(S.achete.length > 3 ? [{nom:'et ' + (S.achete.length - 3) + ' autres', prix:''}] : [])});
-  if(S.fabrique && S.fabrique.length)
-    blocs.push({titre:S.caisse ? 'CUISINE' : 'TRANSFORME',
-      lignes:S.fabrique.slice(0, 3).map((n)=> ({nom:PRODUITS[n].nom,
-        prix:S.caisse ? tarif(n, prixChez(S, n)) : ''}))});
-  if(S.vend) blocs.push({titre:'VEND', lignes:S.vend});
-  if(S.propose) blocs.push({titre:'PROPOSE', lignes:S.propose});
-  if(S.demande){
-    const d = S.demande.split(' — ');
-    blocs.push({titre:'ACHÈTERA', lignes:[{nom:d[0], prix:''}]});
-  }
-  ajouteBulleRendu(S, H, blocs);
+  /* UN COMMERCE FERMÉ DIT CE QU'IL ATTEND, et c'est tout ce qu'il dit de plus. Sans
+     cette ligne, on s'arrête sur un cercle éteint sans comprendre pourquoi la brasserie
+     ne prend pas l'orge qu'on lui apporte. Ce n'est pas ce qu'il achète — cela se lit
+     dans les Filières — c'est la raison pour laquelle il n'achète rien. */
+  const niv = ouvert('sites', S.nom) ? 0 : niveauDe('sites', S.nom);
+  ajouteBulleRendu(S, H, niv ? 'NIVEAU ' + niv : '');
 }
-// La pose elle-même, séparée : la bulle d'un commerce fermé n'a pas de contenu à
-// composer, mais elle se pose exactement comme les autres.
-function ajouteBulleRendu(S, H, blocs){
-  if(!blocs.length) blocs.push({titre:'', lignes:[{nom:S.nom, prix:''}]});
+// La pose elle-même, séparée : la bulle d'un commerce fermé se pose exactement comme
+// les autres, elle porte seulement une ligne de plus.
+function ajouteBulleRendu(S, H, sous){
   // La caméra regarde toujours depuis les X et Z positifs. Une bulle orientée comme la
   // façade d'un commerce du bord est lui tournait donc le dos et restait invisible.
   // On garde le parallélisme à la route, mais du côté d'où l'on regarde.
   const rotB = (S.dir === 'W' || S.dir === 'E') ? Math.PI/2 : 0;
   // Une enseigne est une image cuite une fois : on garde de quoi la refaire, pour le
-  // commerce dont le contenu change — le restaurant et sa commande, un commerce qui
-  // vient d'ouvrir.
+  // commerce qui vient d'ouvrir.
   if(S.bulle){ scene.remove(S.bulle); const i = BULLES.findIndex((b)=> b.m === S.bulle);
                if(i >= 0) BULLES.splice(i, 1); }
-  S.bulle = poseBulle(S.nom, S.toit, blocs, S.x, H + 3.2, S.z, rotB);
+  S.bulle = poseBulle(S.nom, S.toit, sous, S.x, H + 3.2, S.z, rotB);
   S.bulleH = H;
   S.bulleOuvert = siteOuvert(S);
 }
@@ -5352,9 +5300,7 @@ function buildFarm(){
     ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2*BAT_ECHELLE + 4.0};
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
       ()=> actionsEntrepot(MACHINES[cur]).length > 0);
-    poseBulle('Entrepôt', 0x7C4A38,
-      [{titre:'STOCKE', lignes:[{nom:'Hors céréales', prix:''},
-                                {nom:'Produits finis', prix:''}]}],
+    poseBulle('Entrepôt', 0x7C4A38, '',
       // La bulle ne flottait que quarante centimètres au-dessus du faîtage de l'entrepôt ;
       // celui-ci ayant grandi, sans le facteur elle lui serait rentrée dedans.
       HANGAR.x, (H + 3.4)*BAT_ECHELLE, HANGAR.z, 0);
@@ -5667,7 +5613,15 @@ function buildFarm(){
      trottoir. Restent les mâts, qui éclairent la chaussée. */
   const RUE_MOB = [];
   const RUE_LAMPE_Z = ROC.z1 + ROAD_W/2 + 1.5;
-  for(let x = -50; x <= 110; x += 20){
+  /* MÊME PAS QUE LE POURTOUR DE LA FERME, ET MÊME PHASE. La rue du bas plantait un mât
+     tous les vingt mètres quand les quatre brins de rocade en plantent un tous les
+     QUARANTE — relevé : cinq mâts au nord pour huit dans la rue, et la différence se
+     voit d'un coup d'œil. Les boucles de la rocade écrivent pourtant `+= 20` elles
+     aussi : c'est `clearOfPath` qui en supprime un sur deux, les débouchés de chemin
+     tombant sur la même trame de quarante. La rue, elle, n'a pas de chemin à éviter et
+     les gardait tous. On écrit donc le pas réel, et on le cale sur la même phase — les
+     mâts des deux côtés de la chaussée se font face au lieu de s'entrelacer. */
+  for(let x = -60; x <= 100; x += 40){
     if(x <= RANG.x0 + 2 || x >= RANG.x1 - 2) continue;
     // un mât planté dans l'abri de bus ferait deux volumes qui se traversent
     if(RUE_MOB.length) continue;
@@ -6600,6 +6554,12 @@ function marquageParking(){
 }
 
 /* ---------- 10. MACHINES ---------- */
+/* LA COURSE DE SUSPENSION, EN RADIANS. Trois degrés : au-dessous, la caisse roule seule
+   au-dessus d'un essieu posé à plat — c'est ce qui donne l'impression du ressort — et
+   au-delà l'essieu suit, de sorte que le pneu ne traverse jamais l'aile. Le roulis de
+   caisse est borné à ±0,17 rad par la suspension : la butée en reprend donc les deux
+   tiers dans un virage à fond, et rien du tout en ligne droite. */
+const ROULIS_BUTEE = 0.052;
 function wheelMesh(r, w, hex){
   const g = new THREE.Group();
   /* L'ORDRE DES DEUX ROTATIONS DÉCIDE SI LA ROUE EST VOILÉE. Une roue directrice
@@ -7197,9 +7157,18 @@ class Vehicle {
     const ud = this.group.userData;
     const wheels = new Set([].concat(ud.wr||[], ud.wf||[]));
     this.body = new THREE.Group();
-    for(const c of this.group.children.slice()) if(!wheels.has(c)) this.body.add(c);
+    /* ET LES ROUES ONT LEUR PROPRE TRAIN. Elles restaient PLATES quand la caisse prenait
+       du roulis : en virage serré, la caisse basculait de dix degrés au-dessus d'un
+       essieu immobile, et le haut du pneu ressortait à travers l'aile — on voyait la
+       roue en transparence dans la carrosserie. Elles sont donc réunies sous un groupe
+       qui peut basculer lui aussi, sans rien changer à leur roulement (rotation.x) ni à
+       leur braquage (rotation.y), qui restent locaux. */
+    this.train = new THREE.Group();
+    for(const c of this.group.children.slice())
+      (wheels.has(c) ? this.train : this.body).add(c);
     this.exhaust = ud.exhaust || null;
     this.group.add(this.body);
+    this.group.add(this.train);
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.cap;
     scene.add(this.group);
@@ -7326,6 +7295,18 @@ class Vehicle {
     this.body.rotation.z = this.roll;
     this.body.rotation.x = this.pitch;
     this.body.position.y = Math.max(-0.16, Math.min(0.16, this.heave));
+    /* LE TRAIN SUIT, PASSÉ UN CERTAIN ÉCART. La suspension d'un vrai véhicule a une
+       course : sous un petit roulis la caisse bouge seule, les roues restent au sol —
+       c'est ce qu'on voulait et on le garde. Mais la course a une BUTÉE, et au-delà
+       l'essieu part avec. Sans butée, un virage à fond ouvrait dix degrés entre la
+       caisse et un essieu figé, et le pneu ressortait à travers l'aile.
+       Le roulis de caisse est inchangé — c'est lui qu'on voit — et l'écart entre les
+       deux ne dépasse plus jamais ROULIS_BUTEE. */
+    this.train.rotation.z = this.roll - Math.max(-ROULIS_BUTEE,
+                                        Math.min(ROULIS_BUTEE, this.roll));
+    // Le tangage, lui, ne fait pas ressortir de roue : l'aile est longue devant et
+    // derrière, et un essieu qui plonge du nez se verrait plus qu'il ne se corrigerait.
+
 
     // attelage : le timon tire l'essieu de l'outil, qui s'aligne tout seul
     const T = this.tool;
@@ -10292,9 +10273,20 @@ const PICTOS = {
     '<path d="M4 7h16M4 12h16M4 17h16" ' +
     'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
 };
+/* TOUS LES PICTOGRAMMES ONT LE MÊME TRAIT À L'ÉCRAN, ET C'EST CELUI DE LA POMPE.
+   Les dessins portent tous `stroke-width="2"` dans une boîte de 24, mais ils ne sont pas
+   rendus à la même taille : les jauges de droite demandent 18 pixels, les boutons 22.
+   Relevé à l'écran, la pompe à gazole traçait donc 1,95 px et le bouton d'à côté 2,38 —
+   un quart plus épais, et c'est ce quart qui se voit. L'épaisseur est maintenant DÉDUITE
+   de la taille demandée pour que le trait rendu soit toujours celui de la pompe : 2,00 à
+   dix-huit pixels, 1,64 à vingt-deux. Le dessin reste écrit une seule fois. */
+const TRAIT_PICTO = 2*18;                 // épaisseur × taille de référence, en px·px
 function picto(nom, taille){
-  return '<svg viewBox="0 0 24 24" width="' + (taille || 22) + '" height="' +
-         (taille || 22) + '" style="display:block">' + PICTOS[nom] + '</svg>';
+  const t = taille || 22;
+  const ep = Math.round(TRAIT_PICTO/t*100)/100;
+  return '<svg viewBox="0 0 24 24" width="' + t + '" height="' + t +
+         '" style="display:block">' +
+         PICTOS[nom].replace(/stroke-width="2"/g, 'stroke-width="' + ep + '"') + '</svg>';
 }
 /* Les boutons dont le signe ne change jamais reçoivent le leur une fois pour toutes.
    Ceux qui suivent l'état du jeu — l'attelage et le semoir — sont refaits par leur
@@ -12018,26 +12010,27 @@ function couleurGuide(nom){
   return GUIDE.GRIS;
 }
 
+/* LA COULEUR D'UN CERCLE AU SOL. Elle ajoute une chose à `couleurGuide` : CE QU'ON PEUT
+   FAIRE ICI, MAINTENANT. Le sol est la seule surface qui parle de l'endroit où l'on est
+   — la carte et les flèches, elles, parlent d'où aller, et gardent un seul jaune. Un
+   comptoir où l'on a de quoi acheter passe donc au jaune, et redevient bleu une fois la
+   remorque pleine. */
+function couleurAnneau(S){
+  if(quelqueChoseAFaire(S)) return GUIDE.JAUNE;
+  return couleurGuide(S.nom);
+}
 (function poserAnneauxCommerces(){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
     S.service = !!(S.fournisseur || S.achete.length || S.fabrique.length || S.abattoir);
-    anneauAction(S.dropX, S.dropZ, S.bat*0.05, ()=> quelqueChoseAFaire(S));
-    /* LA PASTILLE DU CONTRAT, au centre de l'anneau de livraison : on ne déplace pas le
-       joueur pour lui parler, on lui parle là où il s'arrête déjà. Elle s'allume pour
-       une proposition du commerce COMME pour une mission de campagne à prendre ici —
-       du point de vue du joueur c'est le même geste, et il n'y a qu'un seul signal à
-       apprendre. */
-    /* UNE SEULE PASTILLE, TROIS SENS. Elle était verte et ne disait qu'une chose :
-       « il y a une mission ici ». Elle porte maintenant la couleur du guidage — jaune
-       si c'est l'objectif du moment, verte s'il y a une mission à prendre, bleue si
-       c'est un service permanent — et le joueur n'a qu'un signal à apprendre au lieu
-       de trois. Un service bleu reste plus petit et ne respire presque pas : c'est une
-       possibilité, pas une obligation. */
-    anneauAction(S.dropX, S.dropZ, S.bat*0.05 + 1.6,
-                 ()=> couleurGuide(S.nom) !== GUIDE.GRIS,
-                 {coul:VERT_CONTRAT, r:2.05, plein:true, discret:true,
-                  coulDyn: ()=> couleurGuide(S.nom)});
+    /* UN SEUL CERCLE PAR COMMERCE. Il y en avait deux, posés au même point : l'anneau
+       jaune de l'action et, dedans, la pastille du guidage. Depuis qu'ils ont la même
+       forme, ce serait deux cercles concentriques identiques — et le joueur devrait
+       deviner lequel des deux vient de changer. Une seule marque, une seule règle de
+       couleur, et rien à apprendre. */
+    anneauAction(S.dropX, S.dropZ, S.bat*0.05,
+                 ()=> couleurAnneau(S) !== GUIDE.GRIS,
+                 {coulDyn: ()=> couleurAnneau(S)});
   }
 })();
 const prochePoint = (v, x, z, r)=> Math.hypot(v.pos.x-x, v.pos.z-z) <= (r || 8);
@@ -13152,10 +13145,11 @@ function poserCuve(){
   boxObs.push({x:CUVE_POS.x, z:CUVE_POS.z, hw:1.1, hd:3.2});   // pivotée avec elle
   // La cuve : jaune s'il reste du gazole dedans et de la place dans le réservoir.
   // Une cuve vide s'éteint — c'est le rappel qu'il faut recommander du vrac.
-  anneauAction(quaiCuve.x, quaiCuve.z, 1.6, ()=>{
-    const v = MACHINES[cur].v;
-    return CARBU.cuve > 0.01 && v.fuel < v.resMax - 0.05;
-  });
+  /* LA CUVE EST UN SERVICE PERMANENT, comme le Garage et le Comptoir : elle est BLEUE
+     et elle reste allumée. Elle passait au jaune quand on pouvait faire le plein et
+     s'éteignait sinon — mais on ne va pas au gazole parce qu'une lumière s'allume, on y
+     va parce qu'on en manque, et la jauge le dit déjà. */
+  anneauAction(quaiCuve.x, quaiCuve.z, 1.6, null, {coul:GUIDE.BLEU});
 }
 function commanderVrac(lots){
   if(CARBU.cuveMax <= 0) return 0;
@@ -13168,9 +13162,13 @@ function commanderVrac(lots){
   }
   return n;
 }
-// L'anneau vient se poser juste au pied du pistolet, qui sort à 3,3 m du centre de
-// la cuve côté allée : son bord nord affleure la pompe.
-const quaiCuve = {x: CUVE_POS.x, z: CUVE_POS.z + 3.3 + 4.1};
+/* LE CERCLE DU PLEIN EST SUR LE FLANC DE LA CUVE, PAS DANS SON AXE. Il était posé au
+   BOUT, quatre mètres au-delà du pistolet : on se rangeait nez à nez avec la cuve, dans
+   l'axe de ses six mètres quarante, et l'on ressortait en marche arrière. On se range
+   maintenant LE LONG d'elle, comme à une pompe — le côté est est le seul libre, le
+   hangar occupant tout l'ouest à deux mètres vingt — et le cercle est calé à la hauteur
+   de l'armoire de distribution, qui sort à 3,3 m du centre. */
+const quaiCuve = {x: CUVE_POS.x + 4.4, z: CUVE_POS.z + 3.0};
 
 /* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
 /* Une benne ne contient pas « des kilos », elle contient QUELQUE CHOSE : on ne vend
@@ -14334,10 +14332,13 @@ function ciblesGuidage(){
    seule pièce, déplacée là où le juge dit d'aller, couvre les onze cas au lieu d'en
    couvrir sept.
 
-   IL RESTE DEBOUT QUAND ON TOURNE. À plat sur le sol, un dessin est à l'endroit d'un
-   côté du champ et sur la tête de l'autre. Il pivote donc autour de la verticale pour
-   présenter son haut à la caméra : il reste une marque au sol — c'est le vocabulaire du
-   guidage — et il se lit de partout. */
+   ET IL EST DEBOUT, EN L'AIR. Il était couché sur le sol, dans le cercle, et pivotait
+   autour de la verticale pour présenter son haut à la caméra. Couché, il est toujours vu
+   de biais — jusqu'à quinze degrés d'inclinaison quand la caméra rase — et il se cachait
+   sous l'engin garé dessus, c'est-à-dire au moment précis où l'on regardait. Il flotte
+   maintenant À LA VERTICALE au-dessus du cercle, au-dessus du toit de la machine, face à
+   la caméra quoi qu'on fasse : c'est un objet du monde, il se cache derrière un bâtiment
+   comme le reste, et la flèche du bord prend le relais quand on ne le voit plus. */
 const PICTO_ACTION = {
   livrer:'depot', charger:'prise', collecter:'goutte',
   recolter:'epi', semer:'graine', labourer:'graine', pousse:'feuille',
@@ -14369,17 +14370,24 @@ function texAction(glyphe){
   return t;
 }
 let pictoObjectif = null, pictoGlyphe = '';
+/* À QUELLE HAUTEUR IL FLOTTE. Le plus haut des engins — la moissonneuse — culmine à
+   quatre mètres vingt ; le panneau fait trois mètres deux de côté. Son centre à cinq
+   mètres soixante le pose donc juste au-dessus du toit, sans jamais y entrer, et sous
+   les bulles des commerces, qui sont plus haut encore. */
+const PICTO_HAUT = 5.6, PICTO_COTE = 3.2;
 function majPictoObjectif(){
   const O = objectifMission();
   const g = (O && PICTO_ACTION[O.quoi]) || '';
   if(!pictoObjectif){
-    pictoObjectif = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2),
-      new THREE.MeshBasicMaterial({transparent:true, opacity:0.9, depthWrite:false,
-        blending:THREE.NormalBlending, side:THREE.DoubleSide}));
-    pictoObjectif.rotation.x = -Math.PI/2;
-    pictoObjectif.position.y = 0.16;
+    /* UN SPRITE, ET NON UN PLAN ORIENTÉ À LA MAIN. Le sprite fait face à la caméra de
+       lui-même, sans trigonométrie et sans se tromper de signe, et il reste vertical
+       quelle que soit la hauteur de vue. `depthTest` gardé : c'est un objet du monde, il
+       passe derrière un bâtiment comme tout le reste. */
+    pictoObjectif = new THREE.Sprite(new THREE.SpriteMaterial({
+      transparent:true, opacity:0.95, depthWrite:false, depthTest:true,
+      sizeAttenuation:true}));
     pictoObjectif.renderOrder = 4;
-    // Il bat avec l'anneau : ce qui recense le décor FIXE ne doit pas le compter.
+    // Il bat avec le cercle : ce qui recense le décor FIXE ne doit pas le compter.
     pictoObjectif.userData.anime = true;
     scene.add(pictoObjectif);
   }
@@ -14387,7 +14395,7 @@ function majPictoObjectif(){
   if(!g) return;
   if(g !== pictoGlyphe){ pictoObjectif.material.map = texAction(g); pictoGlyphe = g;
                          pictoObjectif.material.needsUpdate = true; }
-  pictoObjectif.position.x = O.x; pictoObjectif.position.z = O.z;
+  pictoObjectif.position.set(O.x, PICTO_HAUT, O.z);
 }
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
@@ -16545,21 +16553,15 @@ function loop(now){
        lui dispute pas le regard. */
     if(pictoObjectif && pictoObjectif.visible){
       const bp = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8), 1.6);
-      /* Le plan est couché par une rotation de −90° autour de X : son haut local pointe
-         alors vers le −Z du monde. Pour le tourner vers la caméra il faut donc l'angle
-         de l'opposé du vecteur qui y mène — sans le signe, le dessin regarde à l'exact
-         opposé et l'on lit la flèche à l'envers. */
-      pictoObjectif.rotation.z = Math.atan2(pictoObjectif.position.x - camera.position.x,
-                                            pictoObjectif.position.z - camera.position.z);
       pictoObjectif.material.opacity = 0.72 + 0.28*bp;
-      /* IL GARDE SA TAILLE À L'ÉCRAN, PAS AU SOL. Trois mètres de côté se lisent très
-         bien dans un anneau de commerce, sur lequel on est arrêté ; au milieu d'une
-         parcelle vue de cent mètres, c'est un point. Il grandit donc avec la distance,
-         entre une et quatre fois, ce qui lui donne une taille apparente à peu près
-         constante — la même idée que la flèche du bord, qui ne rapetisse pas non plus. */
-      const dCam = Math.hypot(camera.position.x - pictoObjectif.position.x,
-                              camera.position.z - pictoObjectif.position.z);
-      pictoObjectif.scale.setScalar((1 + 0.10*bp)*Math.max(1, Math.min(4, dCam/26)));
+      /* IL NE DISPARAÎT PAS AU LOIN. Un sprite rapetisse avec la distance comme tout
+         objet, et trois mètres de côté vus de cent vingt mètres ne sont plus qu'un
+         point. On rattrape la moitié du chemin — jusqu'à deux fois et demie — assez
+         pour qu'il reste lisible du bout d'une parcelle, pas assez pour qu'il cesse
+         d'appartenir au monde. */
+      const dCam = camera.position.distanceTo(pictoObjectif.position);
+      const k2 = (1 + 0.08*bp)*PICTO_COTE*Math.max(1, Math.min(2.5, dCam/34));
+      pictoObjectif.scale.set(k2, k2, 1);
     }
     for(const A of ANNEAUX){
       if(relire || A.on === undefined){
@@ -16573,38 +16575,18 @@ function loop(now){
       // et remonte franchement, au lieu de vibrer autour d'une valeur moyenne.
       const bat = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8 + A.ph), 1.6) * A.k;
       A.anneau.material.color.copy(A.cV || COUL_VEILLE).lerp(A.cA || COUL_ACTIVE, A.k);
-      A.halo.material.color.copy(A.cV || COUL_VEILLE).lerp(A.cA || COUL_ACTIVE, A.k);
-      // Un anneau discret n'existe que quand il a quelque chose à dire.
-      if(A.discret){
-        A.anneau.visible = A.halo.visible = A.k > 0.02;
-        if(!A.anneau.visible) continue;
-      }
-      // en veille : un blanc franchement transparent, immobile.
-      // en éveil : le jaune monte jusqu'à saturation et l'anneau enfle de 14 %.
-      if(A.plein){
-        /* LA PASTILLE RESPIRE FRANCHEMENT. Elle part à la moitié de son intensité et
-           monte au plein, en grandissant d'un cinquième : de loin on ne voit que ce
-           battement, et c'est précisément ce qu'on veut voir.
-
-           UN SERVICE BLEU NE RESPIRE PRESQUE PAS, et il est plus petit. « Le bleu
-           représente une possibilité, pas une obligation » : lui donner le même
-           battement qu'à l'objectif du moment mettrait trois lieux permanents au même
-           rang que la seule chose qu'on ait à faire. */
-        const bleu = A.coulDyn && A.cA.getHex() === GUIDE.BLEU;
-        const b2 = bleu ? bat*0.25 : bat;
-        A.anneau.material.opacity = (bleu ? 0.34 : 0.62 + 0.36*b2)*A.k;
-        A.anneau.scale.setScalar((bleu ? 0.62 : 1) + 0.20*b2);
-        A.halo.material.opacity = (0.055 + 0.075*b2)*A.k*(bleu ? 0.5 : 1);
-        A.halo.scale.setScalar((bleu ? 0.62 : 1) + 0.10*b2);
-        continue;
-      }
-      // L'anneau discret est plus petit, et posé sur le béton clair du quai : en mélange
-      // additif il s'y noyait. Un tiers d'intensité en plus le rend lisible sans le
-      // rendre criard sur l'herbe.
-      const fo = A.discret ? 1.35 : 1;
-      A.anneau.material.opacity = Math.min(1, (0.26 + 0.24*A.k + 0.62*bat)*fo);
-      A.anneau.scale.setScalar(1 + 0.14*bat);
-      A.halo.material.opacity = (0.030 + 0.030*A.k + 0.20*bat)*fo;
+      A.centre.material.color.copy(A.cV || COUL_VEILLE).lerp(A.cA || COUL_ACTIVE, A.k);
+      /* UN SERVICE BLEU RESPIRE MOINS. La forme est la même que partout — c'est ce qui
+         se voit et c'est ce qu'on voulait — mais « le bleu représente une possibilité,
+         pas une obligation » : donner aux quatre lieux permanents le battement de la
+         seule chose qu'on ait à faire les mettrait au même rang qu'elle, et ils
+         clignoteraient d'un bout à l'autre de la partie. */
+      const b2 = (A.cA.getHex() === GUIDE.BLEU) ? bat*0.30 : bat;
+      A.anneau.material.opacity = Math.min(1, 0.30 + 0.26*A.k + 0.50*b2);
+      A.centre.material.opacity = 0.045 + 0.085*A.k + 0.20*b2;
+      const sc = 1 + 0.12*b2;
+      A.anneau.scale.setScalar(sc);
+      A.centre.scale.setScalar(sc);
     }
     usineT -= dt;
     if(usineT <= 0){
