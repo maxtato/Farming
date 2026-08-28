@@ -182,6 +182,13 @@
   #fenargent{font-size:13px;font-weight:bold;color:#FAD201}
   #fenfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
     display:flex;align-items:center;justify-content:center;font-size:13px}
+  /* LA FENÊTRE A DES ONGLETS, ELLE AUSSI. Elle n'en avait pas — « un titre, une liste,
+     une croix, rien d'autre » — et c'était juste tant qu'elle ne portait qu'un sujet.
+     Le stockage en porte deux (ce qu'on a, ce qu'on peut en faire), la production deux
+     (les métiers, leurs réglages), le garage deux fois deux (acheter, améliorer ×
+     véhicules, outils). La barre est CELLE DU MENU, à la pastille près : le joueur en
+     connaît déjà le geste, et deux barres d'onglets différentes dans le même jeu
+     seraient une leçon à réapprendre pour rien. */
   #fenliste{flex:1;overflow-y:auto;padding:2px 9px 10px}
   /* Le chiffre qui décide : ce qu'on a en magasin et ce qu'on peut en sortir. Il doit
      se lire sans lire la phrase autour — d'où la graisse, la taille et la couleur. */
@@ -249,7 +256,7 @@
   #pargent{font-size:13px;font-weight:bold;color:#FAD201}
   #pfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
     display:flex;align-items:center;justify-content:center;font-size:13px}
-  #ponglets{display:flex;gap:5px;padding:7px 10px;overflow-x:auto;flex-shrink:0}
+  #ponglets,#fenonglets{display:flex;gap:5px;padding:7px 10px;overflow-x:auto;flex-shrink:0}
   .ong{padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.07);font-size:9px;
     font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;opacity:.55}
   .ong.on{opacity:1;background:#FAD201;color:#1B2429}
@@ -608,6 +615,7 @@
         <div id="fenargent">0 €</div>
         <div id="fenfermer">✕</div>
       </div>
+      <div id="fenonglets"></div>
       <div id="fenliste"></div>
     </div>
   </div>
@@ -1990,8 +1998,13 @@ const NIVEAUX = [
    modules:['farine'], sites:['Boulangerie'], parcelles:1},
   {nom:'Le maïs et les poules', resume:'Une deuxième parcelle, le broyeur, le poulailler',
    cultures:['mais'], modules:['aliment'], especes:['poule'], parcelles:2},
+  /* LE DEUXIÈME TRACTEUR OUVRE OÙ LE PALIER LE DEMANDE. « Deux chaînes à la fois » est
+     exactement le moment où l'on commence à faire l'aller-retour au parc à outils entre
+     la charrue et le semoir : le tracteur rouge achète l'attelage permanent, pas de la
+     puissance. Le palier n'ouvrait rien d'autre — il ne demandait que de tenir deux
+     filières — et un banc vérifie que rien de payant n'échappe à cette table. */
   {nom:'Deux chaînes à la fois', resume:'La farine ET les œufs dans la même tournée',
-   parcelles:2},
+   engins:['t2'], parcelles:2},
   {nom:'L\'orge', resume:'L\'orge, la brasserie, le restaurant',
    cultures:['orge'], engins:['fourgon'], sites:['Brasserie', 'Restaurant'], parcelles:3},
   {nom:'L\'avoine', resume:'L\'avoine et son usine',
@@ -2008,8 +2021,10 @@ const NIVEAUX = [
    modules:['fromageBrebis'], parcelles:6},
   {nom:'L\'apiculture', resume:'Le rucher, le miel, le marché du village',
    especes:['ruche'], sites:['Marché'], parcelles:6},
+  // Et le bleu au palier qui demande trois filières en même temps : dix-huit mille
+  // euros, c'est-à-dire le prix d'un pressoir, pour un troisième attelage debout.
   {nom:'La gamme fermière', resume:'Farine, œufs et miel dans la même commande',
-   parcelles:7},
+   engins:['t3'], parcelles:7},
   {nom:'Le colza', resume:'Le colza et le pressoir',
    cultures:['colza'], modules:['huile'], parcelles:7},
   {nom:'Les olives', resume:'L\'oliveraie, l\'enjambeuse, l\'huile d\'olive',
@@ -9453,23 +9468,27 @@ const MACHINES = [
      dans la liste du parc comme sur la carte du plan. Le nom sert donc enfin à dire ce
      qu'est l'engin. La teinte, elle, doit correspondre au modèle : celle du pick-up
      annonçait du rouge alors que sa caisse est bleue depuis toujours. */
-  {key:'t1', nom:'Tracteur', teinte:0x3B9440, v:new Vehicle({
+  {key:'t1', nom:'Tracteur', robe:'vert', teinte:0x3B9440, v:new Vehicle({
       x:placeCentre(0), z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  /* LES DEUX GROS TRACTEURS NE SONT PLUS À VENDRE. « Pas de gros tracteur », dit le
-     cahier des charges : on garde son matériel et on l'améliore, au lieu d'en racheter
-     un plus gros tous les cinq paliers. Les deux entrées restent — la sauvegarde
-     sérialise MACHINES par POSITION, et les retirer ferait repartir chaque partie en
-     cours sur la mauvaise machine — mais elles sont marquées `retire` : le garage ne
-     les propose plus, et une partie qui en possède déjà un le garde et le conduit. */
-  {key:'t2', nom:'Tracteur', teinte:0xD44435, verrou:true, retire:true, prix:4500, v:new Vehicle({
+  /* LE ROUGE ET LE BLEU REVIENNENT À LA VENTE. Ils avaient été retirés au nom du « pas
+     de gros tracteur » — on garde son matériel et on l'améliore, on n'en rachète pas un
+     plus gros tous les cinq paliers — et la règle tient toujours : ils ne sont pas
+     PLUS GROS, ils sont EN PLUS. Ce qu'on achète avec le deuxième tracteur, ce n'est
+     pas de la puissance, c'est un attelage permanent : la charrue reste sur l'un, le
+     semoir sur l'autre, et l'on cesse de faire l'aller-retour au parc à outils entre
+     deux passages. Chacun garde sa propre échelle de vitesse, comme le vert.
+     Les entrées n'ont pas bougé de place : la sauvegarde sérialise MACHINES par
+     POSITION, et les déplacer ferait repartir chaque partie en cours sur la mauvaise
+     machine. Seul `retire` tombe. */
+  {key:'t2', nom:'Tracteur', robe:'rouge', teinte:0xD44435, verrou:true, prix:4500, v:new Vehicle({
       x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Tracteur', teinte:0x2F6FB5, verrou:true, retire:true, prix:18000, v:new Vehicle({
+  {key:'t3', nom:'Tracteur', robe:'bleu', teinte:0x2F6FB5, verrou:true, prix:18000, v:new Vehicle({
       x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
       build:()=>buildTracteur(0x3574C6)
@@ -9509,6 +9528,12 @@ const MACHINES = [
 /* Les outils sont des objets INDÉPENDANTS des tracteurs : un outil dételé reste au sol
    et n'importe quel tracteur peut venir le reprendre. Ses caractéristiques de travail
    (largeur, états acceptés, état produit) voyagent avec lui, pas avec le véhicule. */
+/* TROIS LIGNES « TRACTEUR » DANS LA MÊME LISTE NE SE DISTINGUENT PLUS. La pastille de
+   couleur suffisait tant qu'on ne les voyait jamais ensemble ; au garage ils sont l'un
+   sous l'autre, à 4 500 et 18 000 €, et il faut pouvoir dire lequel on achète. La robe
+   ne s'ajoute QUE là où le doute existe — le nom reste « Tracteur » au bandeau, dans
+   la liste du parc et sur la carte, où la couleur du modèle est sous les yeux. */
+const nomEngin = (m)=> m.robe ? m.nom + ' ' + m.robe : m.nom;
 const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, width0:8.0, level:1,
                  from:[ST.MUR], to:ST.CHAUME, recolte:true, perennes:false};
 /* Le tunnel de l'enjambeuse. Même nature d'outil intégré que la coupe : il ne se
@@ -9619,7 +9644,13 @@ TOOLS.forEach((T, i)=>{
    la seule extrapolation qui garde son rôle : c'est le gros porteur de la ferme. */
 const PALIERS = {
   /* --- les engins --- */
-  t1:        {nom:'Tracteur',     donne:'vitesse de travail',
+  t1:        {nom:'Tracteur vert', donne:'vitesse de travail',
+              crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
+                     {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
+  t2:        {nom:'Tracteur rouge', donne:'vitesse de travail',
+              crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
+                     {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
+  t3:        {nom:'Tracteur bleu',  donne:'vitesse de travail',
               crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
                      {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
   moisson:   {nom:'Moissonneuse', donne:'vitesse, trémie et largeur de coupe',
@@ -10031,32 +10062,80 @@ const fen = document.getElementById('fen');
 const fenliste = document.getElementById('fenliste');
 const fentitre = document.getElementById('fentitre');
 const fenargent = document.getElementById('fenargent');
+const fenonglets = document.getElementById('fenonglets');
 /* TOUT ce qui se dessine dans une liste passe par `hote` — les lignes d'article
    comme les blocs sur mesure des rayons. Onze endroits écrivaient encore directement
    dans la liste du menu : ouverts depuis une fenêtre dédiée, leurs blocs partaient
    dans le menu fermé, et manquaient donc à l'écran qu'on regardait. */
 let hote = pliste;
+/* CHAQUE FENÊTRE PORTE SES ONGLETS. Un écran répondait à deux questions à la fois —
+   le stockage disait ce qu'on a ET ce qu'on peut en produire, la production listait
+   les métiers, leurs réglages et le potentiel du magasin dans la même colonne de
+   quatre-vingts lignes. On sépare : un onglet, une question. `vues` est la liste,
+   `fenVue` retient laquelle est ouverte POUR CHAQUE fenêtre, et il est déclaré ici,
+   hors de la fonction : n'importe quel geste redessine l'écran par rafraichirEcran(),
+   et une mémoire locale ramènerait au premier onglet à chaque achat. */
 const FENETRES = {
-  stockage:   {titre:'Stockage'},
-  production: {titre:'Production'},
-  prix:       {titre:'Prix des commerces'}
+  stockage:   {titre:'Stockage',   vues:[{id:'magasin',  nom:'En magasin'},
+                                         {id:'possible', nom:'Production possible'}]},
+  production: {titre:'Production', vues:[{id:'metiers',  nom:'Métiers'},
+                                         {id:'reglages', nom:'Améliorations'}]},
+  prix:       {titre:'Prix des commerces'},
+  achat:      {titre:'Acheter',    vues:[{id:'engins',   nom:'Véhicules'},
+                                         {id:'outils',   nom:'Outils & remorques'}]},
+  amelio:     {titre:'Améliorer',  vues:[{id:'engins',   nom:'Véhicules'},
+                                         {id:'outils',   nom:'Outils & remorques'}]}
 };
-let fenActive = null;
-function ouvrirFenetre(id){
+let fenActive = null, fenVue = {};
+function ouvrirFenetre(id, vue){
   if(!FENETRES[id]) return;
   fermerPanneau();
   fenActive = id;
+  if(vue) fenVue[id] = vue;
   fen.style.display = 'block';
   paused = true;
   rendreFenetre();
 }
 function rendreFenetre(){
   if(!fenActive) return;
-  fentitre.textContent = FENETRES[fenActive].titre;
+  const F = FENETRES[fenActive];
+  if(!F){ fermerFenetre(); return; }
+  fentitre.textContent = F.titre;
   fenargent.textContent = eur(money);
+  const vues = F.vues || null;
+  fenonglets.innerHTML = '';
+  fenonglets.style.display = vues ? 'flex' : 'none';
+  if(vues){
+    // Un onglet disparu — une fenêtre dont la liste a changé — ramène au premier
+    // plutôt que d'afficher du vide.
+    if(!vues.some((v)=> v.id === fenVue[fenActive])) fenVue[fenActive] = vues[0].id;
+    for(const v of vues){
+      const b = document.createElement('div');
+      b.className = 'ong' + (v.id === fenVue[fenActive] ? ' on' : '');
+      b.textContent = v.nom;
+      b.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation(); fenVue[fenActive] = v.id; rendreFenetre(); });
+      fenonglets.appendChild(b);
+    }
+  }
   fenliste.innerHTML = '';
   hote = fenliste;
-  ({stockage:ongletStockage, production:ongletProduction, prix:ongletPrix})[fenActive]();
+  /* CET AIGUILLAGE-CI A UN REPLI, à la différence de celui du panneau. Il porte
+     maintenant neuf vues au lieu de trois écrans : une entrée oubliée laisserait la
+     fenêtre vide, LE JEU EN PAUSE, et rien pour comprendre pourquoi. Toutes les
+     fonctions citées sont des déclarations, donc hissées : l'objet peut être écrit
+     ici alors qu'elles sont définies cinq mille lignes plus bas. */
+  const T = ({
+    stockage:   {magasin:vueStockMagasin, possible:vueStockPossible},
+    production: {metiers:vueProdMetiers,  reglages:vueProdReglages},
+    prix:       {_:ongletPrix},
+    achat:      {engins:vueAchatEngins,   outils:vueAchatOutils},
+    amelio:     {engins:vueAmelioEngins,  outils:vueAmelioOutils}
+  })[fenActive] || {};
+  const f = vues ? T[fenVue[fenActive]] : T._;
+  if(typeof f === 'function') f();
+  else article(0x8A9298, 'Rien à montrer ici',
+               'Cette page n\'a pas encore de contenu.', '\u2014', 'no', null);
   hote = pliste;
 }
 function fermerFenetre(){
@@ -10162,10 +10241,13 @@ function ongletEngins(){
      que MONTRER : ce qu'on possède, ce qui reste à prendre et ce qu'il coûterait. Pour
      le faire, il faut aller au garage du village — comme on va au silo pour vider une
      benne. Un menu qui agit à distance vide la carte de ses raisons d'être parcourue. */
+  /* ON NE DÉSIGNE PLUS CE QUE LE GARAGE SORTIRA. C'était le contournement d'une
+     vitrine à un seul article : il fallait venir ici pointer celui qu'on voulait, puis
+     rouler jusqu'au garage. Le garage a maintenant sa concession complète, en deux
+     onglets ; cette liste redevient ce qu'elle prétend être — un catalogue. */
   const dispo = articlesAVendre();
   if(dispo.length){
     titre('À prendre au garage');
-    const vise = articleAVendre();
     for(const a2 of dispo){
       const m = a2.m;
       const det = (a2.quoi === 'outil'
@@ -10174,15 +10256,12 @@ function ongletEngins(){
                                      + (m.v.cargo ? m.v.cargo.capacite : 0) + ' kg · '
            : m.v.cargo ? 'Transport ' + m.v.cargo.capacite + ' kg · ' : '')) + eur(a2.prix)
         + (money >= a2.prix ? ' · de quoi payer' : ' · il manque ' + eur(a2.prix - money));
-      const cible = vise && vise.cle === a2.cle;
-      article(0x8BE07A, a2.nom, det + (cible ? '<br>C\'est celui que le garage sortira.' : ''),
-        cible ? 'Au garage' : 'Choisir', cible ? 'vert' : '',
-        cible ? null : ()=>{ garageChoix = a2.cle; showHint(a2.nom.toUpperCase() + ' — AU GARAGE'); });
+      article(0x8BE07A, a2.nom, det, 'Au garage', 'no', null);
     }
   }
   // Ce qui reste fermé, et à quel palier il s'ouvre : sans cette ligne, un engin
   // simplement absent de la liste passe pour un engin qui n'existe pas.
-  const plusTard = MACHINES.filter((m)=> m.verrou && !m.retire && !ouvert('engins', m.key))
+  const plusTard = MACHINES.filter((m)=> m.verrou && !ouvert('engins', m.key))
     .concat(TOOLS.filter((T)=> T.verrou && !ouvert('outils', T.key)));
   if(plusTard.length){
     titre('Plus tard dans la campagne');
@@ -10275,6 +10354,147 @@ function ongletOutils(){
     'propre prix : il n\'est plus vendu par paquet avec le tracteur qui le tire. On peut ' +
     'donc élargir son semoir sans rien payer pour la charrue.</div></div>';
   hote.appendChild(d);
+}
+
+/* ---------- LE GARAGE : ACHETER, AMÉLIORER ----------
+   Deux boutons devant la porte, et derrière chacun deux onglets. Le garage n'avait
+   qu'une VITRINE D'UN SEUL ARTICLE — le moins cher de la liste, ou celui qu'on était
+   allé désigner dans le menu, trois écrans plus loin — et un seul cran d'amélioration,
+   celui de l'engin où l'on se trouvait : pour savoir ce que coûtait le cran du
+   fourgon, il fallait aller chercher le fourgon. Quatre listes remplacent tout ça, et
+   l'on paie sur place, ce qui est le propre d'un garage.
+
+   Le menu Engins, lui, ne change pas de rôle : il MONTRE ce qu'on a et ce qui reste à
+   prendre, sans agir. C'est ici qu'on agit, parce qu'il faut y être venu en roulant. */
+
+// Ce qu'un engin sait faire, en une ligne : c'est ce qu'on compare avant de payer.
+const VMAX_REF = MACHINES[0].v.vmax0 || 12;
+function detailEngin(m){
+  if(m.key === 'moisson')
+    return 'Moissonne les céréales · coupe ' + dec(MOISSON.width0, 1) + ' m';
+  if(m.key === 'enjambeuse')
+    return 'Récolte la vigne et les oliviers · benne '
+           + kg(m.v.cargo ? m.v.cargo.capacite : 100);
+  if(m.v.cargo)
+    return 'Transport sans outil · ' + kg(m.v.cargo.capacite) + ' à bord';
+  return 'Tire tous les outils du parc · vitesse '
+         + Math.round((m.v.vmax0 || m.v.vmax)/VMAX_REF*100) + ' %';
+}
+function detailOutil(T){
+  return (T.aide || 'Outil') + ' · '
+       + (T.cargo ? 'benne ' + kg(T.capacite) : 'largeur ' + dec(T.width0 || T.width, 1) + ' m');
+}
+// Une ligne d'achat, la même pour un engin et pour un outil : ce que c'est, ce que ça
+// coûte, et le bouton qui paie. Le palier de campagne passe avant l'argent.
+function ligneAchat(o){
+  const prix = o.prix || 0, libre = auNiveau(o.niv), ok = libre && money >= prix;
+  article(o.couleur, o.nom,
+    o.det + '<br>' + (libre ? '<b>' + eur(prix) + '</b>'
+                              + (ok ? '' : ' · il manque ' + eur(prix - money))
+                            : 'Ouvre au niveau ' + o.niv + ' — ' + NIVEAUX[o.niv-1].nom
+                              + ' · ' + eur(prix)),
+    !libre ? 'Niveau ' + o.niv : (ok ? 'Acheter' : 'Trop cher'),
+    ok ? 'vert' : 'no',
+    ok ? ()=>{ o.f(); rafraichirEcran(); refreshVehButton(); refreshAtelier(); } : null);
+}
+function vueAchatEngins(){
+  const aPrendre = MACHINES.filter((m)=> m.verrou);
+  if(aPrendre.length){
+    titre('À la concession');
+    for(const m of aPrendre)
+      ligneAchat({couleur:m.teinte || 0x8BE07A, nom:nomEngin(m), det:detailEngin(m),
+                  prix:m.prix || 0, niv:niveauDe('engins', m.key),
+                  f:()=>{ money -= (m.prix || 0);
+                          m.verrou = false;
+                          m.v.group.visible = true;
+                          showHint(nomEngin(m).toUpperCase() + ' ACHETÉ');
+                          setMachine(MACHINES.indexOf(m)); fermerFenetre(); }});
+  }
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">Un deuxième tracteur n\'est pas un ' +
+    'tracteur plus gros : c\'est un ATTELAGE DE PLUS. La charrue reste sur l\'un, le ' +
+    'semoir sur l\'autre, et l\'on cesse de revenir au parc à outils entre deux ' +
+    'passages — deux engins peuvent aussi travailler seuls en même temps.</div></div>';
+  hote.appendChild(d);
+
+  titre('Déjà à la ferme');
+  MACHINES.forEach((m, i)=>{
+    if(m.verrou) return;
+    article(m.teinte || 0xFAD201, nomEngin(m),
+      detailEngin(m) + ' · niveau ' + m.v.level,
+      i === cur ? 'À bord' : 'Possédé', i === cur ? 'ok' : 'no', null);
+  });
+}
+function vueAchatOutils(){
+  const aPrendre = TOOLS.filter((T)=> T.verrou);
+  if(aPrendre.length){
+    titre('À la concession');
+    for(const T of aPrendre)
+      ligneAchat({couleur:0x8BE07A, nom:T.nom, det:detailOutil(T),
+                  prix:T.prix || 0, niv:niveauDe('outils', T.key),
+                  f:()=>{ money -= (T.prix || 0);
+                          T.verrou = false;
+                          T.group.visible = true;
+                          /* L'OUTIL ACHETÉ ARRIVE SUR LE PARKING DE LA FERME, pas
+                             devant le garage : c'est là que sont les autres, et c'est
+                             là qu'on va chercher un outil. Le livrer sous les roues de
+                             l'acheteur le ferait apparaître au milieu de la rocade. */
+                          const k = TOOLS.indexOf(T), q = TOOL_PARK[k] || TOOL_PARK[0];
+                          T.group.position.set(q[0], 0, q[1]);
+                          T.group.rotation.y = Math.PI;
+                          T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
+                          showHint(T.nom.toUpperCase() + ' ACHETÉ — AU PARKING DE LA FERME'); }});
+  }
+  titre('Déjà à la ferme');
+  for(const T of TOOLS){
+    if(T.verrou) continue;
+    const porteur = T.attached ? MACHINES.find((m)=> m.v === T.attached) : null;
+    article(0xF0C24A, T.nom, detailOutil(T) + ' · niveau ' + T.level +
+      (porteur ? ' · attelé au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
+      porteur ? 'Attelé' : 'Libre', 'no', null);
+  }
+}
+/* AMÉLIORER : TOUT CE QU'ON POSSÈDE, pas seulement l'engin où l'on est assis. Le
+   bouton d'avant ne montrait qu'un cran, celui de la machine courante et de son outil
+   attelé — et l'on ne pouvait donc pas comparer, ni même savoir qu'il existait un
+   quatrième cran de trémie. */
+function vueAmelioEngins(){
+  const L = MACHINES.filter((m)=> !m.verrou && PALIERS[m.key]);
+  titre('Mes véhicules');
+  if(!L.length){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Aucun véhicule à l\'échelle.</div></div>';
+    hote.appendChild(d);
+    return;
+  }
+  for(const m of L) ligneAmelioration(m.key, m.teinte || 0x7FD1E8);
+}
+function vueAmelioOutils(){
+  const L = TOOLS.filter((T)=> !T.verrou && PALIERS[T.key]);
+  titre('Mes outils');
+  if(!L.length){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">Aucun outil à la ferme. ' +
+      'Ils s\'achètent à l\'onglet précédent.</div></div>';
+    hote.appendChild(d);
+    return;
+  }
+  for(const T of L) ligneAmelioration(T.key, 0xF0C24A);
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">Un outil s\'améliore SEUL, et pour ' +
+    'son propre prix : il n\'est plus vendu par paquet avec le tracteur qui le tire. ' +
+    'On peut donc élargir son semoir sans rien payer pour la charrue.</div></div>';
+  hote.appendChild(d);
+}
+// Tous les crans qu'on pourrait payer, tous matériels confondus : c'est le chiffre que
+// le bouton du garage affiche, et il vaut zéro quand il n'y a plus rien à prendre.
+function ameliorationsPossibles(){
+  const out = [];
+  for(const m of MACHINES)
+    if(!m.verrou && PALIERS[m.key] && niveauMateriel(m.key) < cransMax(m.key)) out.push(m.key);
+  for(const T of TOOLS)
+    if(!T.verrou && PALIERS[T.key] && niveauMateriel(T.key) < cransMax(T.key)) out.push(T.key);
+  return out;
 }
 
 /* LES GRAINES SE PAIENT ET SE MÉRITENT. Le prix seul ne suffisait pas : avec assez
@@ -10814,19 +11034,6 @@ function appliquerPalier(cle, niv){
 }
 // Tout ce qu'on peut améliorer ici et maintenant : l'engin qu'on conduit, et l'outil
 // qu'il tire. Un outil resté au parking s'améliore depuis son onglet.
-function ameliorationsDe(m){
-  const out = [];
-  const ajoute = (cle)=>{
-    if(!PALIERS[cle]) return;
-    const niv = niveauMateriel(cle);
-    if(niv >= cransMax(cle)) return;
-    out.push({cle, niv, prix:prixCranSuivant(cle, niv), P:PALIERS[cle]});
-  };
-  if(m) ajoute(m.key);
-  const T = m ? toolOf(m) : null;
-  if(T) ajoute(T.key);
-  return out;
-}
 function ameliorerItem(cle){
   const niv = niveauMateriel(cle), prix = prixCranSuivant(cle, niv);
   if(niv >= cransMax(cle) || money < prix) return false;
@@ -11381,98 +11588,63 @@ const outilVerrou = (cle)=>{ const T = TOOLS.find((x)=> x.key === cle); return !
    ne se vend qu'au sixième palier. On prend le moins cher d'abord — c'est l'ordre dans
    lequel un joueur les veut, et cela évite qu'un pressoir à quarante mille euros
    masque un épandeur à trois cent cinquante. */
-/* ET L'ON CHOISIT CE QU'ON VA CHERCHER. La vitrine ne montrait que le moins cher, et
-   il fallait donc acheter le deuxième tracteur pour avoir le droit d'acheter
-   l'enjambeuse trois paliers plus loin — un achat imposé, de quatre mille cinq cents
-   euros, pour arriver à celui qu'on voulait. On désigne maintenant l'article depuis
-   l'onglet Engins ; le garage vend celui-là. À défaut, il vend le moins cher, ce qui
-   est le bon défaut : c'est l'ordre dans lequel on les veut. */
-let garageChoix = null;
+/* CE QUE LE GARAGE A EN VITRINE, tout court. On DÉSIGNAIT autrefois l'article depuis
+   l'onglet Engins parce que le garage n'en montrait qu'un — le moins cher — et qu'il
+   fallait donc acheter le deuxième tracteur pour arriver à l'enjambeuse. La concession
+   les liste tous ; il ne reste de cette histoire que l'inventaire, qui sert encore à
+   l'anneau du garage et au catalogue du menu. */
 function articlesAVendre(){
   const out = [];
   for(const m of MACHINES)
-    if(m.verrou && !m.retire && ouvert('engins', m.key))
-      out.push({quoi:'engin', cle:m.key, m:m, nom:m.nom, prix:m.prix});
+    if(m.verrou && ouvert('engins', m.key))
+      out.push({quoi:'engin', cle:m.key, m:m, nom:nomEngin(m), prix:m.prix});
   for(const T of TOOLS)
     if(T.verrou && ouvert('outils', T.key))
       out.push({quoi:'outil', cle:T.key, T:T, nom:T.nom, prix:T.prix || 0});
   out.sort((a2, b2)=> a2.prix - b2.prix);
   return out;
 }
-function articleAVendre(){
-  const L = articlesAVendre();
-  if(!L.length){ garageChoix = null; return null; }
-  return L.find((a2)=> a2.cle === garageChoix) || L[0];
-}
-function vehiculeAVendre(){ const a2 = articleAVendre(); return a2 && a2.quoi === 'engin' ? a2.m : null; }
+/* LE BOUTON N'ACHÈTE PLUS, IL OUVRE LA CONCESSION. Un bouton pour un article, c'était
+   une vitrine à un seul objet : on ne pouvait ni voir ce qu'il y avait d'autre, ni
+   comparer deux prix, et le choix se faisait dans un menu à l'autre bout du jeu. Il
+   dit maintenant COMBIEN il y a à vendre, et la liste s'ouvre au doigt. */
 function refreshVehButton(){
   const v = MACHINES[cur].v;
-  const a2 = articleAVendre();
-  if(!a2 || !aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
+  if(!aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
+  /* IL COMPTE LA VITRINE, PAS LE CATALOGUE. Le premier compte annonçait cinq articles
+     au palier 1 alors que trois attendaient un palier de campagne : le bouton promettait
+     ce qu'il n'avait pas. Il dit ce qui est EN VENTE MAINTENANT — et la liste s'ouvre
+     quand même, pour montrer ce qui vient. */
+  const n = articlesAVendre().length;
+  const reste = MACHINES.some((m)=> m.verrou) || TOOLS.some((T)=> T.verrou);
   vehEl.style.display = 'block';
-  const ok = money >= a2.prix;
-  vehEl.classList.toggle('no', !ok);
-  vehEl.textContent = (ok ? 'ACHETER ' + a2.nom.toUpperCase() + ' ' + a2.prix.toLocaleString('fr-FR') + ' €'
-                          : 'IL MANQUE ' + Math.ceil(a2.prix-money).toLocaleString('fr-FR') + ' €');
-  vehEl._a = a2;
+  vehEl.classList.toggle('no', !reste);
+  vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
+                        : (reste ? 'RIEN À VENDRE À CE PALIER'
+                                 : 'TOUT LE MATÉRIEL EST À LA FERME');
 }
 vehEl.addEventListener('pointerdown', ()=>{
-  const a2 = vehEl._a;
-  if(!a2 || money < a2.prix) return;
-  if(a2.quoi === 'engin'){
-    const m = a2.m;
-    if(!m.verrou) return;
-    money -= m.prix;
-    m.verrou = false;
-    m.v.group.visible = true;
-    showHint(m.nom.toUpperCase() + ' ACHETÉ');
-    setMachine(MACHINES.indexOf(m));
-  } else {
-    const T = a2.T;
-    if(!T.verrou) return;
-    money -= (T.prix || 0);
-    T.verrou = false;
-    T.group.visible = true;
-    /* L'OUTIL ACHETÉ ARRIVE SUR LE PARKING DE LA FERME, pas devant le garage : c'est
-       là que sont les trois autres, et c'est là qu'on va chercher un outil. Le livrer
-       sous les roues de l'acheteur l'aurait fait apparaître au milieu de la rocade. */
-    const k = TOOLS.indexOf(T), q = TOOL_PARK[k] || TOOL_PARK[0];
-    T.group.position.set(q[0], 0, q[1]);
-    T.group.rotation.y = Math.PI;
-    T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
-    showHint(T.nom.toUpperCase() + ' ACHETÉ — IL EST AU PARKING DE LA FERME');
-  }
-  refreshVehButton();
+  if(MACHINES.some((m)=> m.verrou) || TOOLS.some((T)=> T.verrou)) ouvrirFenetre('achat');
 });
 
 const atelEl = document.getElementById('atelier');
 function refreshAtelier(){
-  const m = MACHINES[cur], v = m.v;
+  const v = MACHINES[cur].v;
   // Sur l'anneau du parking, et non plus « quelque part autour du bâtiment » : voir le
   // commentaire à la pose de cet anneau. Même rayon que la station et le comptoir.
   if(!aQuai(v, GARAGE)){ atelEl.style.display='none'; return; }
-  /* UN BOUTON, UN MATÉRIEL, UN PRIX. Il achetait l'engin ET son outil d'un seul coup,
-     pour une somme unique : impossible de savoir ce qu'on payait, et impossible de
-     n'améliorer que le semoir. Chaque cran est maintenant un achat distinct, et le
-     bouton propose le MOINS CHER de ceux qui restent — dételer suffit à passer à
-     l'autre, et l'onglet Engins les liste tous avec leur échelle. */
-  const L = ameliorationsDe(m).sort((a2, b2)=> a2.prix - b2.prix);
+  /* LE MÊME CHANGEMENT QUE POUR L'ACHAT. Le bouton ne portait qu'un cran — le moins
+     cher de la machine où l'on était assis, et de l'outil qui y était attelé. Pour
+     voir ce que coûtait la trémie de la moissonneuse, il fallait aller chercher la
+     moissonneuse. Il compte maintenant TOUT ce qu'on possède, et ouvre la liste. */
+  const n = ameliorationsPossibles().length;
   atelEl.style.display = 'block';
-  if(!L.length){ atelEl.classList.add('no'); atelEl.textContent = 'MATÉRIEL AU MAXIMUM';
-                 atelEl._up = null; return; }
-  const u = L[0], ok = money >= u.prix;
-  atelEl._up = u;
-  atelEl.classList.toggle('no', !ok);
-  atelEl.textContent = ok
-    ? u.P.nom.toUpperCase() + ' ' + (u.niv + 1) + ' · ' + u.prix.toLocaleString('fr-FR') + ' €'
-    : 'IL MANQUE ' + Math.ceil(u.prix - money).toLocaleString('fr-FR') + ' €';
+  atelEl.classList.toggle('no', !n);
+  atelEl.textContent = n ? 'AMÉLIORER  ·  ' + n + ' CRAN' + (n > 1 ? 'S' : '')
+                         : 'MATÉRIEL AU MAXIMUM';
 }
 atelEl.addEventListener('pointerdown', ()=>{
-  const u = atelEl._up;
-  if(!u || !ameliorerItem(u.cle)) return;
-  showHint(u.P.nom.toUpperCase() + ' — NIVEAU ' + niveauMateriel(u.cle));
-  showHint(machineLabel(cur));
-  refreshAtelier();
+  if(ameliorationsPossibles().length) ouvrirFenetre('amelio');
 });
 
 /* --- achat de parcelle : on s'approche du panneau, le bouton apparaît --- */
@@ -12137,11 +12309,12 @@ function quelqueChoseAFaire(S){
   if(S.fournisseur) return comptoirServable();
   if(S.abattoir) return siteOuvert(S) && (v.betail || 0) > 0;
   if(S.atelier){                                   // le garage : améliorer OU acheter
-    if(ameliorationsDe(m).some((u)=> money >= u.prix)) return true;
-    // La vitrine peut porter un OUTIL et plus seulement un engin : l'anneau restait
-    // éteint devant un épandeur qu'on avait de quoi payer.
-    const av = articleAVendre();
-    return !!av && money >= av.prix;
+    /* L'ANNEAU DIT CE QUE LES DEUX BOUTONS PROPOSENT, ET RIEN D'AUTRE. Il ne lisait
+       que l'engin courant et son outil attelé : il restait éteint devant un cran de
+       trémie qu'on avait de quoi payer, parce qu'on était arrivé en pick-up. */
+    if(ameliorationsPossibles().some((cle)=>
+         money >= prixCranSuivant(cle, niveauMateriel(cle)))) return true;
+    return articlesAVendre().some((a)=> money >= a.prix);
   }
   return actionsAuSite(m, S).length > 0;
 }
@@ -14310,12 +14483,24 @@ function acheterUp(quoi){
   rafraichirEcran();
   return true;
 }
-function ameliorerAtelier(){
-  const M = moduleSuivant();
-  if(!M || !ouvert('modules', M.cle) || money < M.prix) return false;
+/* ON MONTE LE MÉTIER QU'ON VEUT, plus seulement le suivant du tableau. L'ordre était
+   imposé : pour avoir la cave il fallait payer les sept autres, alors que le palier de
+   campagne est déjà là pour dire à quoi on a droit. Sans argument, la fonction garde
+   son ancien sens — le prochain de la liste — pour l'automate et pour les bancs.
+   L'ordre du TABLEAU reste celui du bâtiment : la liste des modules est retriée à
+   chaque achat, exactement comme elle l'est à la relecture d'une sauvegarde, sinon la
+   cave pousserait avant le moulin. */
+function ameliorerAtelier(cle){
+  const M = cle ? moduleDe(cle) : moduleSuivant();
+  if(!M || atelierA(M.cle) || !ouvert('modules', M.cle) || money < M.prix) return false;
   money -= M.prix;
   HALLE.modules.push(M.cle);
+  HALLE.modules.sort((a, b)=> ATELIER_MODULES.findIndex((X)=> X.cle === a)
+                            - ATELIER_MODULES.findIndex((X)=> X.cle === b));
   HALLE.niveau = HALLE.modules.length;
+  // Un atelier qui n'avait rien n'a pas de recette courante : le premier métier monté
+  // la lui donne, faute de quoi la halle reste muette jusqu'au relancement du jeu.
+  if(!HALLE.recette) HALLE.recette = HALLE.modules[0];
   poserAtelier();
   showHint('ATELIER — ' + M.module.toUpperCase());
   return true;
@@ -15550,7 +15735,9 @@ function ongletFilieres(){
 /* STOCKAGE : où dort la marchandise. Trois magasins — le silo, l'entrepôt, et les
    bennes qui roulent. Rien n'y est calculé : tout est relu dans l'état du jeu, donc
    rien ne peut y mentir. */
-function ongletStockage(){
+/* EN MAGASIN : le silo, l'entrepôt, et ce qui roule. Rien d'autre — ce que le stock
+   PERMET est une autre question, et elle a maintenant son onglet à côté. */
+function vueStockMagasin(){
   const ligne = (cle, q, ou)=> article(parseInt(PRODUITS[cle].couleur.slice(1), 16),
     PRODUITS[cle].nom, qte(cle, q) + ' · ' + dec(prixUnite(cle)) + ' ' + parUniteTxt(cle) +
       ' — soit ' + eur(q*prixDe(cle)),
@@ -15605,6 +15792,73 @@ function ongletStockage(){
     hote.appendChild(d);
   }
 }
+/* PRODUCTION POSSIBLE : la même question que « en magasin », posée à l'envers. Elle
+   vivait dans l'écran Production, sous le titre « Ce que le stock permet » — mais elle
+   ne parle PAS de l'atelier, elle parle du stock : combien de farine dort dans le blé
+   qu'on a. Elle passe donc du côté du stock, et l'écran Production ne garde que ce qui
+   lui appartient — les métiers et leurs réglages. */
+function vueStockPossible(){
+  /* CE QUI SORT AUJOURD'HUI D'ABORD, ce qui sortirait ensuite après. La liste suivait
+     l'ordre du tableau, si bien qu'un atelier à deux métiers montrait six lignes grises
+     avant la première ligne verte — et c'est la ligne verte qu'on vient chercher. */
+  const montes = ATELIER_MODULES.filter((R)=> atelierA(R.cle));
+  const autres = ATELIER_MODULES.filter((R)=> !atelierA(R.cle));
+  if(montes.length) titre('Ce que l\'atelier peut sortir');
+  else {
+    titre('L\'atelier n\'a encore aucun métier');
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">La halle est nue : rien ne se ' +
+      'transforme tant qu\'un métier n\'y est pas monté. Ils se montent dans ' +
+      '<b>Production · métiers</b>, et la liste ci-dessous dit ce que chacun tirerait ' +
+      'du magasin d\'aujourd\'hui.</div></div>';
+    hote.appendChild(d);
+  }
+  for(const R of montes) lignePossible(R);
+  if(autres.length && montes.length) titre('Ce qu\'un autre métier permettrait');
+  for(const R of autres) lignePossible(R);
+}
+function lignePossible(R){
+  {
+    const P = PRODUITS[R.cle], ent = recetteEntrees(R.cle);
+    const monte = atelierA(R.cle), niv = niveauDe('modules', R.cle);
+    // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
+    const recette = Object.keys(ent).map((k)=>
+      qteNom(k, 100*ent[k])).join(P.libre ? ' ou ' : ' + ');
+    const pot = potentiel(R.cle);
+    const assez = pot.sortie >= 1;
+    const place = HALLE.file.length < halleFileMax();
+    /* LES DEUX CHIFFRES QUI DÉCIDENT, mis en avant : ce qu'on a en matière, et ce
+       qu'on peut en sortir. Leur couleur dit s'ils sont ACTIONNABLES — vert on peut
+       lancer, rouge il manque de la matière, bleu le module n'est pas encore construit.
+       Un module non monté n'a pas à s'annoncer en vert : le chiffre serait juste et
+       le bouton gris, ce qui se lit comme une contradiction. */
+    const cl = !monte ? 'q neutre' : (assez ? 'q' : 'q court');
+    const enMagasin = Object.keys(ent)
+      .map((k)=> qteNom(k, disponible(k) + (HALLE.tremie[k] || 0)))
+      .join(P.libre ? ' \u00b7 ' : ' + ');
+    // `pot.court` est nul quand la recette n'a aucune entrée disponible : la phrase
+    // « pas assez de » n'a alors rien à nommer, et l'ancienne version levait ici.
+    const manque = pot.court && PRODUITS[pot.court]
+      ? ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')'
+      : ' (pas de matière)';
+    const det = recette + ' \u2192 ' + qteNom(R.cle, 100*P.rendement) +
+      ' en ' + Math.round(R.duree/halleVitesse()) + ' s' +
+      '<br>En magasin : <span class="' + cl + '">' + enMagasin + '</span>' +
+      '<br>De quoi produire au maximum <span class="' + cl + '">' +
+      qteNom(R.cle, pot.sortie) + '</span>' +
+      (assez ? ' \u2014 ' + eur(pot.sortie*prixDe(R.cle)) : manque);
+    const peut = monte && assez && place;
+    article(parseInt(P.couleur.slice(1), 16), R.module + ' \u2014 ' + P.nom, det,
+      !monte ? (auNiveau(niv) ? '\u00c0 monter' : 'Niveau ' + niv + ' requis')
+             : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
+      peut ? 'vert' : 'no',
+      peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null);
+  }
+}
+/* L'AIGUILLAGE DU PANNEAU N'A AUCUN REPLI : ces deux noms doivent continuer d'exister
+   même si plus personne ne les appelle par là. Ils déroulent les deux onglets à la
+   suite, ce qui est exactement l'écran d'avant. */
+function ongletStockage(){ vueStockMagasin(); vueStockPossible(); }
 
 /* PRODUCTION : ce que l'atelier sait faire, ce que le stock permet d'en tirer, et le
    bouton qui le met dessus. La conversion est écrite en clair — tant de kilos de blé
@@ -15675,7 +15929,12 @@ document.getElementById('dosego').addEventListener('pointerdown', (e)=>{
 });
 document.getElementById('dosefond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerDose(); });
 
-function ongletProduction(){
+/* MÉTIERS : ce que l'atelier fait en ce moment, et TOUS ceux qu'il pourrait faire.
+   Il n'en montrait qu'un — le prochain de la liste — et l'on découvrait la cave en
+   arrivant à la cave. Les huit sont là, avec leur prix et leur recette, et chacun se
+   monte pour lui-même dès que son palier est ouvert : l'ordre du tableau ne décide
+   plus que de la silhouette du bâtiment, pas de l'ordre des achats. */
+function vueProdMetiers(){
   const bati = HALLE.modules.length;
   titre('Atelier de la ferme — ' + (bati ? bati + ' module' + (bati > 1 ? 's' : '') : 'halle nue'));
 
@@ -15711,65 +15970,45 @@ function ongletProduction(){
   } else {
     article(0x8A9298, 'Atelier à l\'arrêt',
       'Rien ne se fabrique tant qu\'on ne l\'a pas demandé.<br>' +
-      'Choisis un produit ci-dessous, puis la quantité.',
+      'Les lots se lancent depuis <b>Stockage · production possible</b>, ' +
+      'là où l\'on voit ce que la matière permet.',
       'À l\'arrêt', 'no', null);
   }
 
-  titre('Ce que le stock permet');
-  for(const R of ATELIER_MODULES){
-    const P = PRODUITS[R.cle], ent = recetteEntrees(R.cle);
-    const monte = atelierA(R.cle), niv = niveauDe('modules', R.cle);
-    // La conversion, pour cent kilos engagés : c'est le chiffre qu'on compare.
-    const recette = Object.keys(ent).map((k)=>
-      qteNom(k, 100*ent[k])).join(P.libre ? ' ou ' : ' + ');
-    const pot = potentiel(R.cle);
-    const assez = pot.sortie >= 1;
-    const place = HALLE.file.length < halleFileMax();
-    /* LES DEUX CHIFFRES QUI DÉCIDENT, mis en avant : ce qu'on a en matière, et ce
-       qu'on peut en sortir. Leur couleur dit s'ils sont ACTIONNABLES — vert on peut
-       lancer, rouge il manque de la matière, bleu le module n'est pas encore construit.
-       Un module non monté n'a pas à s'annoncer en vert : le chiffre serait juste et
-       le bouton gris, ce qui se lit comme une contradiction. */
-    const cl = !monte ? 'q neutre' : (assez ? 'q' : 'q court');
-    const enMagasin = Object.keys(ent)
-      .map((k)=> qteNom(k, disponible(k) + (HALLE.tremie[k] || 0)))
-      .join(P.libre ? ' · ' : ' + ');
-    const det = recette + ' → ' + qteNom(R.cle, 100*P.rendement) +
-      ' en ' + Math.round(R.duree/halleVitesse()) + ' s' +
-      '<br>En magasin : <span class="' + cl + '">' + enMagasin + '</span>' +
-      '<br>De quoi produire au maximum <span class="' + cl + '">' +
-      qteNom(R.cle, pot.sortie) + '</span>' +
-      (assez ? ' — ' + eur(pot.sortie*prixDe(R.cle))
-             : ' (pas assez ' + dNom(PRODUITS[pot.court].nom.toLowerCase()) + ')');
-    const peut = monte && assez && place;
-    article(parseInt(P.couleur.slice(1), 16), R.module + ' — ' + P.nom, det,
-      !monte ? (auNiveau(niv) ? 'À monter' : 'Niveau ' + niv + ' requis')
-             : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
-      peut ? 'vert' : 'no',
-      peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null);
-  }
-
-  titre('Monter un métier');
-  const M = moduleSuivant();
-  if(!M)
-    article(0x9FD8E8, 'Tous les métiers sont montés',
-      'Moulin, broyeur, mélangeur, les deux fromageries, les deux pressoirs et la cave.',
-      'Complet', 'ok', null);
-  else {
-    const niv = niveauDe('modules', M.cle);
-    const assezNiv = auNiveau(niv), ok = assezNiv && money >= M.prix;
-    const P = PRODUITS[M.cle];
-    article(0x9FD8E8, M.module,
-      flecheur(M.cle) + P.nom + ' · ' + Math.round(100*P.rendement) + ' kg les 100 engagés · ' +
-      M.duree + ' s le lot de 100<br>' +
-      (assezNiv ? eur(M.prix) : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
-      !assezNiv ? 'Niveau ' + niv : (ok ? 'Monter' : 'Il manque ' + eur(M.prix - money)),
+  titre('Les huit métiers');
+  for(const M of ATELIER_MODULES){
+    const P = PRODUITS[M.cle], ent = recetteEntrees(M.cle);
+    const recette = Object.keys(ent).map((k)=> qteNom(k, 100*ent[k]))
+                                    .join(P.libre ? ' ou ' : ' + ');
+    // Ce qu'il SAIT FAIRE, en clair : la recette pour cent kilos engagés, le temps
+    // du lot, et ce que le produit vaut à la sortie. C'est de quoi choisir entre deux
+    // métiers ouverts en même temps sans avoir à ouvrir l'écran des prix.
+    const fait = recette + ' → <b>' + qteNom(M.cle, 100*P.rendement) + '</b> en ' +
+                 Math.round(M.duree/halleVitesse()) + ' s · ' +
+                 dec(prixUnite(M.cle)) + ' ' + parUniteTxt(M.cle) + ' à la vente';
+    if(atelierA(M.cle)){
+      article(parseInt(P.couleur.slice(1), 16), M.module + ' — ' + P.nom,
+        fait + '<br>Monté. Il tourne dès qu\'on lui donne de la matière.',
+        'Monté', 'ok', null);
+      continue;
+    }
+    const niv = niveauDe('modules', M.cle), libre = auNiveau(niv);
+    const ok = libre && money >= M.prix;
+    article(0x9FD8E8, M.module + ' — ' + P.nom,
+      fait + '<br>' + (libre ? 'Construction : <b>' + eur(M.prix) + '</b>' +
+                               (ok ? '' : ' · il manque ' + eur(M.prix - money))
+                             : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom +
+                               ' · ' + eur(M.prix)),
+      !libre ? 'Niveau ' + niv : (ok ? 'Monter' : 'Trop cher'),
       ok ? 'vert' : 'no',
-      ok ? ()=>{ ameliorerAtelier(); rafraichirEcran(); } : null);
+      ok ? ()=>{ ameliorerAtelier(M.cle); rafraichirEcran(); } : null);
   }
+}
 
-  /* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne s'achètent pas au garage : elles
-     se posent sur l'atelier, et l'atelier est à la ferme. */
+/* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne s'achètent pas au garage : elles se
+   posent sur l'atelier, et l'atelier est à la ferme. Elles ne donnent aucun métier
+   neuf, elles changent le RYTHME — d'où leur onglet à part. */
+function vueProdReglages(){
   titre('Régler l\'atelier');
   for(const q of ['capa', 'vite', 'queue']){
     const U = ATELIER_UP[q], n = HALLE[q], c = coutUp(q);
@@ -15785,8 +16024,15 @@ function ongletProduction(){
       ok ? eur(c) : 'Il manque ' + eur(c - money), ok ? 'vert' : 'no',
       ok ? ()=> acheterUp(q) : null);
   }
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">La capacité dit ce qu\'un lot ' +
+    'engage de matière, la vitesse à quelle cadence il sort, la file combien on peut ' +
+    'en empiler avant de repartir. Aucune n\'est obligatoire : c\'est le nombre ' +
+    'd\'allers-retours à l\'atelier qu\'elles achètent.</div></div>';
+  hote.appendChild(d);
 }
-
+// Le panneau, dont l'aiguillage n'a pas de repli, garde son nom d'origine.
+function ongletProduction(){ vueProdMetiers(); vueProdReglages(); }
 /* PRIX : le même kilo ne vaut pas la même chose partout. Le supermarché prend de très
    grosses quantités mais paie mal ; le marché paie bien mais son étal est petit. Cet
    écran met les deux côte à côte pour que le choix se fasse avant de charger, pas
@@ -16058,7 +16304,8 @@ function ongletCampagne(){
     const num = k + 1, ouvre = [];
     const noms = {cultures:(c)=> (CROPS.find((x)=> x.cle === c) || {}).nom,
                   outils:(c)=> (TOOLS.find((x)=> x.key === c) || {}).nom,
-                  engins:(c)=> (MACHINES.find((x)=> x.key === c) || {}).nom,
+                  engins:(c)=>{ const m = MACHINES.find((x)=> x.key === c);
+                                return m ? nomEngin(m) : undefined; },
                   modules:(c)=> (moduleDe(c) || {}).module,
                   especes:(c)=> (ESPECES[c] || {}).pluriel,
                   sites:(c)=> c};

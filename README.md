@@ -882,7 +882,7 @@ coûte, et **chacun s'achète seul** :
 
 | | ce qui monte | crans | prix |
 |---|---|---|---|
-| tracteur | vitesse | 100 · 112 · 125 · 140 · 155 % | 600 · 1 800 · 4 500 · 9 000 € |
+| tracteur (vert, rouge, bleu) | vitesse | 100 · 112 · 125 · 140 · 155 % | 600 · 1 800 · 4 500 · 9 000 € |
 | charrue | largeur | 100 · 125 · 155 · 190 % | 700 · 2 000 · 5 000 € |
 | semoir | largeur | 100 · 125 · 155 · 190 % | 800 · 2 500 · 6 000 € |
 | épandeur | largeur | 100 · 130 · 165 · 200 % | 750 · 2 200 · 5 000 € |
@@ -1244,6 +1244,102 @@ déborde.
 La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre froide.
 On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
 ainsi deux fois son prix de marché, au prix d'une tournée de plus.
+
+## Le garage : acheter, améliorer
+
+Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat
+sortait *un* article — le moins cher de la liste, ou celui qu'on était allé désigner dans
+l'onglet Engins, trois écrans plus loin : pour arriver à l'enjambeuse, il fallait avoir
+acheté le tracteur d'avant. Celui d'amélioration ne proposait qu'un cran, celui de la
+machine où l'on était assis et de l'outil qui y était attelé : pour savoir ce que coûtait
+la trémie de la moissonneuse, il fallait aller chercher la moissonneuse.
+
+Les deux boutons restent — **ACHETER** et **AMÉLIORER** — mais ils **ouvrent une liste**
+au lieu de payer, et chacune a deux onglets :
+
+| | véhicules | outils & remorques |
+|---|---|---|
+| **Acheter** | ce qui est en vente, ce qui ouvre plus tard, ce qu'on a déjà | l'épandeur, la benne, la charrue, le semoir |
+| **Améliorer** | tous les engins possédés, cran par cran | tous les outils possédés, cran par cran |
+
+Le bouton dit **combien il y a à vendre au palier du moment**, pas combien il existe
+d'articles : il annonçait cinq articles au palier 1 alors que trois attendaient un palier
+de campagne. La liste s'ouvre quand même, pour montrer ce qui vient.
+
+Le menu Engins, lui, redevient ce qu'il prétendait être : un **catalogue**. Il montre ce
+qu'on a et ce qui reste à prendre ; il ne fait plus désigner l'article que le garage
+sortira, puisque le garage les sort tous.
+
+### Le tracteur rouge et le bleu reviennent à la vente
+
+Ils avaient été **retirés** au nom du « pas de gros tracteur » : on garde son matériel et
+on l'améliore, on n'en rachète pas un plus gros tous les cinq paliers. La règle tient
+toujours, et c'est pour ça qu'ils peuvent revenir — **ils ne sont pas plus gros, ils sont
+en plus.** Ce qu'on achète avec le deuxième tracteur n'est pas de la puissance, c'est un
+**attelage permanent** : la charrue reste sur l'un, le semoir sur l'autre, et l'on cesse de
+faire l'aller-retour au parc à outils entre deux passages. Deux engins peuvent aussi
+travailler seuls en même temps.
+
+Chacun garde donc **la même échelle de cinq crans que le vert**, et prend son palier :
+
+| | prix | palier | ce que le palier demande |
+|---|---|---|---|
+| Tracteur vert | offert | 1 | — |
+| Tracteur rouge | 4 500 € | 5 | « Deux chaînes à la fois » |
+| Tracteur bleu | 18 000 € | 14 | « La gamme fermière » |
+
+Les deux paliers n'ouvraient rien d'autre, et ce sont exactement ceux où l'on commence à
+mener deux puis trois filières de front — c'est-à-dire le moment où l'attelage permanent
+se paie. Un banc vérifie que **rien de payant n'échappe à la table des paliers** : sans
+cette ligne, les deux tracteurs auraient été en vente dès la première minute.
+
+Ils ne changent pas de place dans `MACHINES` : la sauvegarde sérialise cette table **par
+position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tracteur » l'une
+sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
+bandeau et sur la carte, où la couleur du modèle est sous les yeux.
+
+## Un onglet, une question
+
+Une fenêtre répondait à deux questions à la fois. Le **stockage** disait ce qu'on a *et* ce
+que le stock permettrait d'en produire ; la **production** listait les métiers, leurs
+réglages *et* le potentiel du magasin, dans la même colonne de quatre-vingts lignes. Les
+trois fenêtres n'avaient qu'un écran chacune — « un titre, une liste, une croix, rien
+d'autre » — ce qui était juste tant qu'elles ne portaient qu'un sujet.
+
+Elles portent maintenant **la barre d'onglets du menu**, à la pastille près : le joueur en
+connaît déjà le geste, et deux barres d'onglets différentes dans le même jeu seraient une
+leçon à réapprendre pour rien.
+
+| fenêtre | onglet | ce qu'on y trouve |
+|---|---|---|
+| **Stockage** | En magasin | le silo, l'entrepôt, et ce qui roule dans les bennes |
+| | Production possible | ce que la matière du jour permet de sortir, et le bouton qui le lance |
+| **Production** | Métiers | la file en cours, puis **les huit métiers** avec leur recette, leur temps, leur prix |
+| | Améliorations | la capacité, la vitesse, la file |
+| **Acheter** | Véhicules · Outils | *voir le garage, plus haut* |
+| **Améliorer** | Véhicules · Outils | *idem* |
+| **Prix des commerces** | *(sans onglet)* | il ne pose qu'une question |
+
+**« Ce que le stock permet » a changé de fenêtre.** Ce bloc vivait dans la production,
+mais il ne parle pas de l'atelier : il parle du **stock** — combien de farine dort dans le
+blé qu'on a. Il passe donc du côté du stock, sous le nom « production possible », et l'écran
+Production ne garde que ce qui lui appartient. Dans cet onglet, **ce qui sort aujourd'hui
+vient en premier** : la liste suivait l'ordre du tableau, si bien qu'un atelier à deux
+métiers montrait six lignes grises avant la première ligne verte — et c'est la ligne verte
+qu'on vient chercher.
+
+**Les huit métiers sont tous montrés, et chacun se monte pour lui-même.** L'écran n'en
+proposait qu'un, le prochain de la liste : on découvrait la cave en arrivant à la cave, et
+pour l'avoir il fallait payer les sept autres, alors que le palier de campagne est déjà là
+pour dire à quoi on a droit. L'ordre du tableau ne décide plus que de la **silhouette du
+bâtiment** — la liste des modules est retriée à chaque achat, exactement comme elle l'est à
+la relecture d'une sauvegarde, sinon la cave pousserait avant le moulin.
+
+L'onglet ouvert est retenu **par fenêtre**, hors de la fonction qui dessine : n'importe quel
+geste redessine l'écran, et une mémoire locale ramènerait au premier onglet à chaque achat.
+Et cet aiguillage-ci **a un repli**, à la différence de celui du panneau : il porte neuf
+vues au lieu de trois écrans, et une entrée oubliée laisserait la fenêtre vide, *le jeu en
+pause*, sans rien pour comprendre pourquoi.
 
 ## L'atelier : huit métiers, trois réglages
 
