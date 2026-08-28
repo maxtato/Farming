@@ -343,10 +343,18 @@
   /* LE BOUTON DU PARC APPELLE. Pendant le tutoriel, quand l'étape demande une autre
      machine que celle qu'on pilote : il prend le jaune du guidage et bat lentement,
      comme les cercles au sol. Un halo qui s'écarte, pas un clignotement — on doit
-     pouvoir le voir du coin de l'œil sans qu'il gêne la conduite. */
-  #engins.appel{border-color:#FAD201;color:#FAD201;animation:appel 1.4s ease-out infinite}
-  @keyframes appel{0%{box-shadow:0 0 0 0 rgba(250,210,1,.6)}
-                   70%,100%{box-shadow:0 0 0 11px rgba(250,210,1,0)}}
+     pouvoir le voir du coin de l'œil sans qu'il gêne la conduite.
+     LE HALO EST UN CADRE QUI GRANDIT, ET NON UNE `box-shadow` QUI S'ÉTALE. Animer une
+     ombre portée est une propriété de PEINTURE : le bouton se repeignait à chaque image,
+     et cela seul coûtait un dixième des images du jeu — mesuré, 8,7 contre 9,6. Un
+     pseudo-élément qu'on met à l'échelle et qu'on efface ne touche que le compositeur. */
+  #engins{position:relative}
+  #engins.appel{border-color:#FAD201;color:#FAD201}
+  #engins.appel::after{content:'';position:absolute;inset:-2px;border-radius:14px;
+    border:2px solid #FAD201;pointer-events:none;
+    animation:appel 1.4s ease-out infinite}
+  @keyframes appel{0%{transform:scale(1);opacity:.7}
+                   70%,100%{transform:scale(1.42);opacity:0}}
   /* Le semoir monte EN HAUT. En bas il occupait une rangée à lui seul pour un réglage
      qu'on change une fois par parcelle. Il se pose SOUS le menu et la pause, contre le
      bord droit, et non à côté d'eux : la barre de progression est centrée et large de
@@ -15670,9 +15678,15 @@ function creerFlecheEngin(){
   x.fillStyle = '#FAD201'; x.fill();
   const tex = new THREE.CanvasTexture(c);
   tex.minFilter = THREE.LinearFilter;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
-                                                        depthWrite:false, fog:false}));
-  sp.scale.set(2.1, 2.8, 1);
+  /* UN PLAN, ET NON UN `THREE.Sprite`. Ils donnent la même image — le plan reçoit la
+     rotation de la caméra, plus bas, une fois celle-ci déplacée. Mais un lutin a son
+     PROPRE programme dans three.js : un seul, mesuré, coûtait un dixième des images sur
+     le rendu logiciel du banc, à cause du changement de programme à chaque image. Le
+     plan réutilise celui des enseignes et ne coûte rien de mesurable. */
+  const sp = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.1, 2.8),
+    new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false,
+                                 side:THREE.DoubleSide, fog:false}));
   sp.renderOrder = 5;
   sp.userData.anime = true;              // elle bat : le recensement du décor FIXE l'ignore
   const g = new THREE.Group();
@@ -18238,6 +18252,9 @@ function loop(now){
      il reste vertical dans le monde et retrouve à l'écran les proportions dans lesquelles
      le texte a été tracé. Le plancher à 0,55 évite qu'une vue quasi verticale ne l'étire
      sans fin. Quinze panneaux, quatre racines carrées chacun : rien du tout. */
+  // La flèche du tutoriel fait face ENTIÈREMENT — tangage compris. C'est un signe, pas
+  // un texte : un panneau debout vu de haut se tasse, et l'on n'en lirait qu'un trait.
+  if(flecheEngin && flecheEngin.visible) flecheEngin.children[0].quaternion.copy(camera.quaternion);
   for(const B of BULLES){
     const ex = camera.position.x - B.m.position.x;
     const ey = camera.position.y - B.m.position.y;

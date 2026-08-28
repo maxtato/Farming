@@ -1487,11 +1487,21 @@ du parc **bat en jaune** et une **flèche jaune** flotte au-dessus de la machine
 six mètres du sol. Rien n'est verrouillé — on peut labourer avec le tracteur bleu si on l'a —
 c'est une indication, et elle s'éteint dès qu'on est monté dedans.
 
-Deux détails de dessin, tous deux appris à l'essai. C'est un **lutin**, et non un volume :
-un cône posé pointe en bas se voit *d'au-dessus* dans cette vue plongeante, on n'en lit
-qu'un losange et la hampe se met de chant. Pour un signe — contrairement à une enseigne —
-faire face entièrement est exactement ce qu'on veut. Et il porte un **liseré sombre**, sans
-quoi il disparaît : la moissonneuse est jaune, et le jaune du guidage aussi.
+Trois détails, tous appris à l'essai. C'est une **image plate qui fait face**, et non un
+volume : un cône posé pointe en bas se voit *d'au-dessus* dans cette vue plongeante, on n'en
+lit qu'un losange et la hampe se met de chant. Pour un signe — contrairement à une enseigne
+— faire face entièrement, tangage compris, est exactement ce qu'on veut. Elle porte un
+**liseré sombre**, sans quoi elle disparaît : la moissonneuse est jaune, et le jaune du
+guidage aussi. Et c'est un **plan**, pas un `THREE.Sprite` : les lutins ont leur propre
+programme dans three.js, et un seul coûtait un dixième des images sur le rendu logiciel du
+banc, par changement de programme à chaque image. Le plan réutilise celui des enseignes ;
+neuf flèches à l'écran coûtent alors la même chose qu'une seule — mesuré.
+
+Le halo du bouton, lui, est un **cadre qu'on met à l'échelle**, et non une `box-shadow` qui
+s'étale. Animer une ombre portée est une propriété de *peinture* : le bouton se repeignait à
+chaque image, et **cela seul** coûtait un dixième des images du jeu — 8,7 contre 9,6 au
+banc, arrêté sur la même scène. Un pseudo-élément mis à l'échelle et effacé ne touche que le
+compositeur, et le compte est revenu à l'identique.
 
 ### Un préambule, et un seul
 
