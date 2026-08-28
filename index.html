@@ -445,6 +445,32 @@
      qu'une panne sèche au bout du champ coûte le trajet du retour à pied. */
   #fuel.bas{animation:clig .75s infinite}
   @keyframes clig{0%,100%{opacity:1}50%{opacity:.22}}
+  /* L'ÉCRAN DE FÉLICITATIONS. Un dégradé radial et non un aplat : on continue de voir sa
+     ferme derrière, et l'on n'a pas l'impression d'avoir quitté le jeu. Pas de
+     backdrop-filter — c'est le seul poste capable de faire tomber les images sur
+     mobile, et l'accueil le paie déjà une fois. */
+  #bravo{position:absolute;inset:0;z-index:25;display:none;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(12,18,22,.72), rgba(12,18,22,.18) 70%)}
+  #brboite{display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:auto;
+    padding:22px 34px}
+  #brtitre{font-size:26px;font-weight:bold;letter-spacing:11px;margin-right:-11px;color:#FAD201}
+  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;max-width:420px}
+  #brgains{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+  #brgains div{font-size:15px;font-weight:bold;letter-spacing:1.4px;color:#FFE7A6}
+  #brsuite{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;opacity:.55;margin-top:6px}
+  /* Une seule animation, et seulement opacity + transform : le compositeur s'en charge
+     sans remise en page. Les lignes de gain entrent l'une après l'autre — c'est ce qui
+     fait « le détail de ce qu'on a gagné » plutôt qu'un bloc de texte. */
+  @keyframes brmonte{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
+  #bravo.on #brtitre,#bravo.on #brsous,#bravo.on #brsuite,#bravo.on #brgains div{
+    animation:brmonte .42s cubic-bezier(.2,.9,.3,1) both}
+  #bravo.on #brsous{animation-delay:.10s}
+  #bravo.on #brgains div:nth-child(1){animation-delay:.20s}
+  #bravo.on #brgains div:nth-child(2){animation-delay:.30s}
+  #bravo.on #brgains div:nth-child(3){animation-delay:.40s}
+  #bravo.on #brgains div:nth-child(4){animation-delay:.50s}
+  #bravo.on #brsuite{animation-delay:.62s}
   #hopper{bottom:calc(208px + env(safe-area-inset-bottom));color:#FFAE2E;
     opacity:0;transition:opacity .3s}
   #hopfill{width:0%;background:#FFAE2E}
@@ -695,6 +721,15 @@
     Un anneau lumineux au sol : arrête-toi dessus, ça se fait tout seul.
   </div>
 </div>
+<!-- LA FÊTE D'UNE MISSION FINIE. Un calque à part, jamais l'écran d'accueil : celui-ci
+     met le jeu en PAUSE, ce qui gèlerait les pièces et le décompte, et il porte des
+     boutons `.accbtn.pri` par lesquels toute la suite de bancs entre dans le jeu. -->
+<div id="bravo"><div id="brboite">
+  <div id="brtitre">BRAVO</div>
+  <div id="brsous"></div>
+  <div id="brgains"></div>
+  <div id="brsuite"></div>
+</div></div>
 <div id="rot"><b>TOURNE L'ÉCRAN</b><span>Le jeu se joue en paysage</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -2268,17 +2303,65 @@ function testerFaire(quoi){
 function finirMission(){
   const M = missionCourante();
   if(!M) return;
+  const niv0 = CAMPAGNE.niveau;
   if(M.prime > 0) money += M.prime;
   CAMPAGNE.mission++;
   CAMPAGNE.faits = [];
   // La suivante est à prendre à son tour, chez qui la demande.
   CAMPAGNE.prise = false;
   const suite = missionCourante();
+  /* L'ORDRE A CHANGÉ, ET C'ÉTAIT UN BUG. Le bandeau annonçait « MISSION FAITE +2 800 € »
+     PUIS l'on gagnait l'expérience — et si elle faisait monter d'un palier,
+     `annoncerNiveau` écrasait la phrase deux millisecondes plus tard : le joueur ne
+     voyait jamais ce qu'il venait de gagner. L'expérience se compte donc d'abord, la
+     fête ensuite, et le bandeau en dernier. */
+  gagnerXp(M.xp);
+  ouvrirBravo(M, suite, niv0);
+  // On garde le bandeau : c'est son « € » qui déclenche le son de caisse.
   showHint('MISSION FAITE' + (M.prime > 0 ? '  +' + eur(M.prime) : '')
            + (M.xp ? '  ·  +' + M.xp + ' XP' : ''));
-  gagnerXp(M.xp);
-  void suite;
+  pluiePieces(M.prime, null, null, 9);
 }
+/* ---------- BRAVO, MISSION TERMINÉE ----------
+   Une mission se soldait sur une ligne de bandeau qui s'effaçait en deux secondes et
+   demie, entre deux autres. C'est le seul moment de la campagne où l'on a fini quelque
+   chose : il mérite qu'on s'arrête dessus.
+
+   MAIS LE JEU NE S'ARRÊTE PAS. Pas de `paused` — il gèlerait les pièces, le décompte et
+   le bandeau lui-même — pas de bouton, pas de `.accbtn` : le calque se ferme tout seul
+   au bout de cinq secondes, ou d'une pression si l'on est pressé. On continue de
+   conduire pendant qu'il est là. */
+let bravoT = 0;
+const bravoEl = document.getElementById('bravo');
+function ouvrirBravo(M, suite, niv0){
+  const g = [];
+  if(M.prime > 0) g.push('+ ' + eur(M.prime));
+  if(M.xp) g.push('+ ' + M.xp + ' XP');
+  if(!M.faire && M.lignes){
+    const val = M.lignes.reduce((t, l)=> t + l.need*prixDe(l.cle), 0);
+    if(val > 1) g.push('+ ' + eur(val) + ' de marchandise');
+  }
+  if(CAMPAGNE.niveau > niv0)
+    g.push('NIVEAU ' + CAMPAGNE.niveau + ' — ' + NIVEAUX[CAMPAGNE.niveau-1].nom.toUpperCase());
+  document.getElementById('brtitre').textContent = 'BRAVO';
+  document.getElementById('brsous').textContent = titreMission(M);
+  document.getElementById('brgains').innerHTML =
+    g.map((t)=> '<div>' + t + '</div>').join('');
+  document.getElementById('brsuite').textContent = suite
+    ? (suite.lieu ? 'Prochaine mission — ' + suite.lieu : 'Prochaine mission')
+    : 'La campagne est finie';
+  montrerBravo(5.0);
+}
+function montrerBravo(duree){
+  bravoEl.style.display = 'flex';
+  // On retire puis remet la classe : sans ce battement, l'animation ne rejoue pas.
+  bravoEl.classList.remove('on');
+  void bravoEl.offsetWidth;
+  bravoEl.classList.add('on');
+  bravoT = duree;
+}
+function fermerBravo(){ bravoT = 0; bravoEl.style.display = 'none'; bravoEl.classList.remove('on'); }
+bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerBravo(); });
 /* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
    Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
    serait la perdre ; la remettre au premier palier reverrouillerait tout ce que son
@@ -4155,35 +4238,6 @@ function dessinePicto(c, id, x, y, r, col){
     c.quadraticCurveTo( r*0.2, r*0.9,-r*0.8, r*0.7); c.fill();
     c.strokeStyle = '#00000055'; c.lineWidth = r*0.1;
     c.beginPath(); c.moveTo(-r*0.7, r*0.6); c.lineTo(r*0.6,-r*0.4); c.stroke();
-  } else if(id === 'depot'){
-    // LIVRER : une caisse ouverte, et ce qui descend dedans.
-    c.beginPath(); c.moveTo(-r*0.82, r*0.02); c.lineTo(-r*0.82, r*0.78);
-    c.lineTo(r*0.82, r*0.78); c.lineTo(r*0.82, r*0.02); c.stroke();
-    c.beginPath(); c.moveTo(0, -r*0.92); c.lineTo(0, r*0.16); c.stroke();
-    c.beginPath(); c.moveTo(-r*0.36, -r*0.24); c.lineTo(0, r*0.18); c.lineTo(r*0.36, -r*0.24); c.stroke();
-  } else if(id === 'prise'){
-    // CHARGER : la même caisse, et ce qui en sort.
-    c.beginPath(); c.moveTo(-r*0.82, r*0.02); c.lineTo(-r*0.82, r*0.78);
-    c.lineTo(r*0.82, r*0.78); c.lineTo(r*0.82, r*0.02); c.stroke();
-    c.beginPath(); c.moveTo(0, r*0.18); c.lineTo(0, -r*0.92); c.stroke();
-    c.beginPath(); c.moveTo(-r*0.36, -r*0.5); c.lineTo(0, -r*0.94); c.lineTo(r*0.36, -r*0.5); c.stroke();
-  } else if(id === 'usine'){
-    // L'ATELIER : trois toits en escalier, une seule forme fermée.
-    c.beginPath();
-    c.moveTo(-r*0.85, r*0.75); c.lineTo(-r*0.85, -r*0.38); c.lineTo(-r*0.28, 0);
-    c.lineTo(-r*0.28, -r*0.38); c.lineTo(r*0.29, 0); c.lineTo(r*0.29, -r*0.38);
-    c.lineTo(r*0.85, 0); c.lineTo(r*0.85, r*0.75); c.closePath(); c.stroke();
-  } else if(id === 'etiquette'){
-    // ACHETER : l'étiquette percée du prix.
-    c.beginPath();
-    c.moveTo(-r*0.1, -r*0.85); c.lineTo(r*0.85, -r*0.85); c.lineTo(r*0.85, r*0.1);
-    c.lineTo(-r*0.06, r*0.9); c.lineTo(-r*0.9, r*0.06); c.closePath(); c.stroke();
-    c.beginPath(); c.arc(r*0.5, -r*0.48, r*0.15, 0, 7); c.fill();
-  } else if(id === 'fanion'){
-    // ALLER VOIR : un fanion sur sa hampe.
-    c.beginPath(); c.moveTo(-r*0.5, -r*0.9); c.lineTo(-r*0.5, r*0.9); c.stroke();
-    c.beginPath(); c.moveTo(-r*0.5, -r*0.82); c.lineTo(r*0.8, -r*0.45);
-    c.lineTo(-r*0.5, -r*0.08); c.closePath(); c.fill();
   } else if(id === 'graine'){
     c.beginPath(); c.moveTo(-r*0.7,-r*0.5); c.lineTo(r*0.7,-r*0.5);
     c.lineTo(r*0.5, r*0.85); c.lineTo(-r*0.5, r*0.85); c.closePath(); c.fill();   // sac
@@ -5195,11 +5249,14 @@ function buildFarm(){
   // Le silo marche dans les deux sens : la moissonneuse y vide sa trémie, une caisse y
   // fait le plein de grain. Il s'éteint quand la trémie est vide ET le silo aussi — ou
   // quand la caisse porte déjà autre chose.
-  anneauAction(SILO.x, SILO.z, 1.1, ()=>{
-    const m = MACHINES[cur];
-    // Rentrer la trémie, ranger une caisse, ou se servir dans l'un des cinq tas.
-    return actionsAuSilo(m).length > 0;
-  });
+  /* LE SILO PORTE LA COULEUR DU GUIDAGE, LUI AUSSI. Il n'avait qu'un jaune fixe : il ne
+     pouvait donc pas dire « c'est ici, maintenant » ni « et ensuite », alors qu'il est le
+     maillon central de presque toutes les chaînes — le grain y passe entre le champ et
+     le client. */
+  const agirSilo = ()=> actionsAuSilo(MACHINES[cur]).length > 0;
+  anneauAction(SILO.x, SILO.z, 1.1,
+               ()=> couleurPoste('silo', agirSilo) !== GUIDE.GRIS,
+               {coulDyn: ()=> couleurPoste('silo', agirSilo)});
 
   // maison, à l'écart de la cour
   const h = new THREE.Group();
@@ -5314,8 +5371,10 @@ function buildFarm(){
     // mètres devant la façade, mais la façade a reculé : sans le facteur l'anneau se
     // serait retrouvé À L'INTÉRIEUR de la nouvelle emprise de collision.
     ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2*BAT_ECHELLE + 4.0};
+    const agirEnt = ()=> actionsEntrepot(MACHINES[cur]).length > 0;
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
-      ()=> actionsEntrepot(MACHINES[cur]).length > 0);
+      ()=> couleurPoste('entrepot', agirEnt) !== GUIDE.GRIS,
+      {coulDyn: ()=> couleurPoste('entrepot', agirEnt)});
     poseBulle('Entrepôt', 0x7C4A38, '',
       // La bulle ne flottait que quarante centimètres au-dessus du faîtage de l'entrepôt ;
       // celui-ci ayant grandi, sans le facteur elle lui serait rentrée dedans.
@@ -7432,6 +7491,70 @@ function updatePuffs(dt){
     p.m.material.opacity = p.op*(1-t*t);
   }
 }
+/* ---------- LES PIÈCES ----------
+   L'argent tombait en silence. On déchargeait quatre cents kilos de blé, le chiffre du
+   bandeau montait, et rien à l'écran ne disait qu'on venait d'être payé — le seul
+   encaissement qui parlait était celui de la boucherie.
+
+   UN POOL À PART, JAMAIS CELUI DES BOUFFÉES. Les puffs sont un anneau de cent trente que
+   la poussière de transfert, l'échappement et les cheminées se disputent déjà : y glisser
+   les pièces couperait la poussière au moment précis où elle sert. Vingt-huit jetons
+   préalloués, une géométrie partagée, zéro allocation en jeu. */
+const PIECES = [];
+const pieceGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.055, 10);
+for(let k = 0; k < 28; k++){
+  const m = new THREE.Mesh(pieceGeo, new THREE.MeshLambertMaterial({
+    color:0xFAD201, transparent:true, opacity:0}));
+  m.visible = false; m.userData.anime = true; scene.add(m);
+  PIECES.push({m, life:0, max:1, vy:0, vx:0, vz:0, spin:0});
+}
+let pieceI = 0;
+function piece(x, y, z){
+  const p = PIECES[pieceI = (pieceI + 1) % PIECES.length];
+  p.m.visible = true;
+  p.m.position.set(x + (Math.random()-0.5)*1.2, y, z + (Math.random()-0.5)*1.2);
+  p.m.rotation.set(Math.PI/2, 0, Math.random()*6.28);
+  p.life = 0; p.max = 0.85 + Math.random()*0.35;
+  p.vy = 3.2 + Math.random()*1.6;
+  p.vx = (Math.random()-0.5)*1.8; p.vz = (Math.random()-0.5)*1.8;
+  p.spin = 6 + Math.random()*6;
+}
+function updatePieces(dt){
+  for(const p of PIECES){
+    if(!p.m.visible) continue;
+    p.life += dt;
+    const t = p.life/p.max;
+    if(t >= 1){ p.m.visible = false; p.m.material.opacity = 0; continue; }
+    p.m.position.x += p.vx*dt; p.m.position.y += p.vy*dt; p.m.position.z += p.vz*dt;
+    p.vy -= 5.5*dt;
+    p.m.rotation.z += p.spin*dt;
+    // Franche puis disparue d'un coup : un jeton ne s'estompe pas, il tombe hors du champ.
+    p.m.material.opacity = 1 - t*t*t;
+  }
+}
+/* COMBIEN DE JETONS POUR COMBIEN D'EUROS. Un logarithme, sinon une prime de quarante
+   mille en cracherait quarante : quatre jetons pour vingt-cinq euros, huit pour deux
+   mille cinq cents, neuf au plafond. Sans x/z, elles jaillissent de l'engin qu'on
+   conduit — c'est là que le regard est. */
+function pluiePieces(euros, x, z, force){
+  if(!(euros > 0) && !force) return;
+  const n = force || Math.min(9, 1 + Math.round(Math.log(1 + euros)/Math.LN10*2.2));
+  const v = MACHINES[cur] && MACHINES[cur].v;
+  const px2 = (x === null || x === undefined) ? (v ? v.pos.x : 0) : x;
+  const pz2 = (z === null || z === undefined) ? (v ? v.pos.z : 0) : z;
+  for(let k = 0; k < n; k++) piece(px2, 3.2, pz2);
+}
+/* ET UN FILET, POUR CE QUI SE PAIE EN CONTINU. Une vente d'étal appelle `encaisser` À
+   CHAQUE IMAGE : émettre là un jeton par appel en cracherait soixante par seconde. On
+   accumule, et l'on sort une pièce tous les seizièmes de seconde tant que ça rentre. */
+let picoT = 0, picoX = 0, picoZ = 0, picoDu = false;
+function gainContinu(x, z){ picoDu = true; picoX = x; picoZ = z; }
+function updatePico(dt){
+  picoT -= dt;
+  if(picoT > 0 || !picoDu) return;
+  picoT = 0.16; picoDu = false;
+  piece(picoX, 2.8, picoZ);
+}
 
 /* ---------- LES COLIS : LA MARCHANDISE, ENFIN VISIBLE ---------- */
 /* Un transfert ne se voyait qu'à une barre qui montait et à trois billes de poussière.
@@ -8063,6 +8186,7 @@ function solderContrat(k){
   }
   money += C.prime;
   gagnerXp(C.xp);
+  pluiePieces(C.prime, null, null, 7);
   showHint('CONTRAT HONORÉ — ' + eur(C.prime) + '  ·  +' + C.xp + ' XP' +
            (S ? '  ·  RENOMMÉE ' + libelleRenom(S) : ''));
   CONTRATS.splice(k, 1);
@@ -11030,8 +11154,11 @@ function dessinerCarte(){
   for(const S of SITES){
     const g = couleurGuide(S.nom);
     if(g === GUIDE.GRIS) continue;              // un lieu sans rien à dire n'a pas de couronne
-    c.beginPath(); c.arc(px(S.dropX), pz(S.dropZ), g === GUIDE.BLEU ? 7.5 : 9, 0, Math.PI*2);
-    c.strokeStyle = HEX(g); c.lineWidth = g === GUIDE.BLEU ? 1.6 : 2.6; c.stroke();
+    // Le jaune doux et le bleu portent la même couronne fine : l'un dit « ensuite »,
+    // l'autre « quand tu veux ». Seul le jaune vif est épais — il n'y en a qu'un.
+    const mince = (g === GUIDE.BLEU || g === GUIDE.JAUNE_DOUX);
+    c.beginPath(); c.arc(px(S.dropX), pz(S.dropZ), mince ? 7.5 : 9, 0, Math.PI*2);
+    c.strokeStyle = HEX(g); c.lineWidth = mince ? 1.6 : 2.6; c.stroke();
     /* UN LIEU QUI COMPTE PORTE SON NOM. Les noms de la carte viennent des points de
        navette, et le garage comme le comptoir n'en sont pas : deux couronnes bleues
        restaient anonymes au milieu du village, alors que ce sont précisément les deux
@@ -11044,13 +11171,15 @@ function dessinerCarte(){
     // voisins écrits en entier se marchent dessus au zoom de départ.
     c.fillText(S.nom.toUpperCase().slice(0, 14), px(S.dropX), pz(S.dropZ) - 12);
   }
-  // Et l'objectif du moment, où qu'il soit — un champ, le silo, l'atelier, un enclos —
-  // même quand ce n'est pas un commerce : c'est LE point qu'on cherche sur la carte.
-  const OBJ = objectifMission();
-  if(OBJ && !SITES.some((S)=> S.nom === OBJ.lieu)){
-    c.beginPath(); c.arc(px(OBJ.x), pz(OBJ.z), 9, 0, Math.PI*2);
-    c.strokeStyle = HEX(GUIDE.JAUNE); c.lineWidth = 2.6; c.stroke();
-  }
+  /* ET TOUTE LA CHAÎNE DE LA MISSION, où qu'elle passe — un champ, le silo, l'atelier,
+     un enclos — même quand ce n'est pas un commerce. La carte montre ainsi le trajet
+     entier d'un coup d'œil : le vif où l'on va maintenant, les doux dans l'ordre. */
+  etapesMission().forEach((E, i)=>{
+    if(SITES.some((S)=> S.nom === E.lieu)) return;   // déjà couronné plus haut
+    c.beginPath(); c.arc(px(E.x), pz(E.z), i ? 7.5 : 9, 0, Math.PI*2);
+    c.strokeStyle = HEX(i ? GUIDE.JAUNE_DOUX : GUIDE.JAUNE);
+    c.lineWidth = i ? 1.6 : 2.6; c.stroke();
+  });
   // les flèches des navettes déjà en file
   c.lineWidth = 2;
   for(const t of planTaches){
@@ -11996,8 +12125,12 @@ function aQuelqueChoseADire(S){
    la commande soldée. Un seul endroit tranche — `couleurGuide` — et tout ce qui affiche
    une couleur la lui demande : les pastilles au sol, les flèches du bord, la carte.
    Deux écrans qui décideraient chacun de leur côté finiraient par se contredire. */
-const GUIDE = {JAUNE:0xFFD21E, VERT:0x62D84E, BLEU:0x4AA8E0, GRIS:0x8A9298,
-               ROUGE:0xE8563F, BLANC:0xE6F0F8};
+/* DEUX JAUNES, ET C'EST TOUTE LA DIFFÉRENCE. Le vif dit « c'est ICI, maintenant » et il
+   est seul à porter une flèche ; le doux dit « et ensuite ». Une mission éclaire ainsi
+   tout son chemin d'un coup — le champ, le silo, le client — sans qu'on ait à deviner
+   l'ordre, et sans qu'aucun autre lieu s'allume. */
+const GUIDE = {JAUNE:0xFFD21E, JAUNE_DOUX:0xC49A2E, VERT:0x62D84E, BLEU:0x4AA8E0,
+               GRIS:0x8A9298, ROUGE:0xE8563F, BLANC:0xE6F0F8};
 /* LES TROIS SERVICES PERMANENTS. Ils ne se méritent pas : on y va quand on veut, entre
    deux missions ou au milieu d'une, sans rien annuler. Leur sous-titre est celui du
    cahier des charges — c'est ce qu'on lit sous la flèche du bord. */
@@ -12192,24 +12325,104 @@ function serviceIci(v){
     if(SERVICES[S.nom] && siteOuvert(S) && aQuai(v, S)) return S;
   return null;
 }
-function couleurGuide(nom){
+/* ---------- TOUTE LA CHAÎNE D'UNE MISSION, ET RIEN D'AUTRE ----------
+   Un seul lieu s'allumait : celui de l'étape du moment. Tout le reste était gris — sauf
+   les commerces où l'on pouvait faire quelque chose, qui passaient au jaune parce qu'ils
+   achètent ce qu'on transporte. Pour « livrer 30 kg de blé à la Coopérative », l'usine
+   de céréales s'allumait donc en jaune : elle achète du blé. Ça n'a aucun sens pendant
+   une mission, et ça noyait le seul lieu qui comptait.
+
+   Une mission éclaire maintenant TOUT SON CHEMIN, et lui seul :
+     le CHAMP à récolter, le SILO où le grain se range, la COOPÉRATIVE qui l'attend.
+   L'étape du moment est en JAUNE VIF et porte la flèche du bord ; les suivantes sont en
+   JAUNE DOUX, sans flèche. Si l'on avait déjà moissonné avant d'aller prendre la
+   mission, le champ sort de la chaîne : le SILO devient vif et la Coopérative reste
+   douce. C'est la même règle qui décide, dans les deux cas — le juge dit où l'on en est,
+   le chemin dit ce qui vient après.
+
+   ET AVANT D'AVOIR PRIS LA MISSION, IL N'Y A QU'UN VERT. Aucune chaîne, donc aucun
+   jaune : le seul lieu qui parle est celui qui a une mission à donner. On ne peut pas se
+   tromper de premier geste. */
+function amontDe(cle, et){
+  const c = CROPS[CROP_DE[cle]];
+  if(c){
+    const champ = parcelleDe(cle);
+    if(champ) et.push({lieu:'champ', x:champ.p.x, z:champ.p.z, txt:'AU CHAMP'});
+    // Le magasin canonique de cette marchandise : le silo pour les cinq céréales,
+    // l'entrepôt pour tout le reste. C'est la même règle que suit l'atelier.
+    if(siloStock[cle] !== undefined) et.push({lieu:'silo', x:SILO.x, z:SILO.z, txt:'AU SILO'});
+    else if(ENTREPOT.quai)
+      et.push({lieu:'entrepot', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, txt:'À L\'ENTREPÔT'});
+    return;
+  }
+  for(let i = 0; i < PATURES.length; i++){
+    const P = PATURES[i], E = ESPECES[P.espece] || ESPECES.vache;
+    if(E.produit === cle || (E.second && E.second.cle === cle)){
+      et.push({lieu:'pature' + i, x:P.quai.x, z:P.quai.z, txt:'À L\'ENCLOS'});
+      return;
+    }
+  }
+}
+/* LE CHEMIN QUE LA MARCHANDISE DOIT PARCOURIR, du champ au client. Il ne dit pas où l'on
+   EN EST — c'est le travail du juge — il dit dans quel ORDRE les lieux se suivent. Un
+   produit d'atelier ajoute deux maillons : la halle qui le fabrique, et l'entrepôt où
+   elle le déverse toute seule. */
+function cheminMission(){
+  const M = missionVisible();
+  if(!M || M.faire) return [];
+  let ligne = null, reste = 0;
+  M.lignes.forEach((l, i)=>{
+    const r = l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0);
+    if(r > reste + 0.01){ reste = r; ligne = l; }
+  });
+  if(!ligne) return [];
+  const et = [], cle = ligne.cle, P = PRODUITS[cle];
+  if(P && P.de){
+    const e = entreeSeule(cle);
+    if(e) amontDe(e, et);
+    et.push({lieu:'atelier', x:HALLE.x, z:HALLE.z, txt:'À L\'ATELIER'});
+    if(ENTREPOT.quai)
+      et.push({lieu:'entrepot', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, txt:'À L\'ENTREPÔT'});
+  } else amontDe(cle, et);
+  const S = SITES.find((x)=> x.nom === M.lieu);
+  if(S) et.push({lieu:S.nom, x:S.dropX, z:S.dropZ, txt:S.nom.toUpperCase()});
+  return et;
+}
+/* LES ÉTAPES QUI RESTENT, la première en tête. Le juge dit où l'on en est ; on coupe le
+   chemin à cet endroit et l'on garde la suite. Un lieu que le juge désigne sans qu'il
+   soit du chemin — le comptoir où acheter la semence, le garage où prendre l'outil qui
+   manque — passe en tête : c'est un détour obligatoire avant que le chemin reprenne. */
+function etapesMission(){
   const O = objectifMission();
-  if(O && O.lieu === nom) return GUIDE.JAUNE;
+  if(!O) return [];
+  const ch = cheminMission();
+  const i = ch.findIndex((e)=> e.lieu === O.lieu);
+  if(i >= 0) return ch.slice(i);
+  return [{lieu:O.lieu, x:O.x, z:O.z, txt:O.txt}].concat(ch);
+}
+const enMission = ()=> etapesMission().length > 0;
+/* LA COULEUR D'UN LIEU, ET C'EST LE SEUL ENDROIT QUI TRANCHE. `nom` est un nom de
+   commerce ou une clé de poste — 'silo', 'entrepot', 'atelier', 'champ', 'pature0'. */
+function couleurLieu(nom){
+  const E = etapesMission();
+  for(let i = 0; i < E.length; i++)
+    if(E[i].lieu === nom) return i === 0 ? GUIDE.JAUNE : GUIDE.JAUNE_DOUX;
   const S = SITES.find((x)=> x.nom === nom);
   if(S && aQuelqueChoseADire(S)) return GUIDE.VERT;
   if(SERVICES[nom]) return GUIDE.BLEU;
   return GUIDE.GRIS;
 }
-
-/* LA COULEUR D'UN CERCLE AU SOL. Elle ajoute une chose à `couleurGuide` : CE QU'ON PEUT
-   FAIRE ICI, MAINTENANT. Le sol est la seule surface qui parle de l'endroit où l'on est
-   — la carte et les flèches, elles, parlent d'où aller, et gardent un seul jaune. Un
-   comptoir où l'on a de quoi acheter passe donc au jaune, et redevient bleu une fois la
-   remorque pleine. */
-function couleurAnneau(S){
-  if(quelqueChoseAFaire(S)) return GUIDE.JAUNE;
-  return couleurGuide(S.nom);
+function couleurGuide(nom){ return couleurLieu(nom); }
+/* LA COULEUR D'UN CERCLE AU SOL. Pendant une mission, elle ne dit QUE la chaîne : « rien
+   d'autre » est une règle, pas une préférence. Hors mission — en mode libre, ou avant
+   d'avoir pris la première — le cercle retrouve son rôle d'origine et dit ce qu'on peut
+   faire ici, maintenant. */
+function couleurPoste(cle, agir){
+  const c = couleurLieu(cle);
+  if(c !== GUIDE.GRIS) return c;
+  return (!enMission() && agir && agir()) ? GUIDE.JAUNE : GUIDE.GRIS;
 }
+function couleurAnneau(S){ return couleurPoste(S.nom, ()=> quelqueChoseAFaire(S)); }
 (function poserAnneauxCommerces(){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
@@ -12859,7 +13072,8 @@ function creerPature(p, espece){
   // prendre le produit, acheter une bête, en embarquer une. Acheter suffit — c'est le
   // geste qu'on vient faire quand l'enclos est encore vide, et rien d'autre ne
   // l'allumerait alors.
-  anneauAction(P.quai.x, P.quai.z, 1.4, ()=>{
+  const clePature = 'pature' + PATURES.length;
+  const agirPature = ()=>{
     const m = MACHINES[cur], T = caisseDe(m);
     if(T && RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax) return true;
     if(E.produit && peutPrendre(T, E.produit, P.produit)) return true;
@@ -12867,7 +13081,10 @@ function creerPature(p, espece){
     if(P.betes.length < P.places && money >= E.prix) return true;
     const cap = capaciteBetail(m);
     return E.prixBete > 0 && cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
-  });
+  };
+  anneauAction(P.quai.x, P.quai.z, 1.4,
+               ()=> couleurPoste(clePature, agirPature) !== GUIDE.GRIS,
+               {coulDyn: ()=> couleurPoste(clePature, agirPature)});
   if(E.decor) E.decor(P);
   PATURES.push(P);
   return P;
@@ -13802,7 +14019,7 @@ function executer(m, A, dt){
       const q = Math.min(lent, T.load, placeChez(A.S, A.cle),
                          A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
-      T.load -= q; encaisser(q*prixChez(A.S, A.cle));
+      T.load -= q; encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
       entamerEtal(A.S, A.cle, q);
       livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
@@ -13835,7 +14052,7 @@ function executer(m, A, dt){
       const q = Math.min(hopper, 47*dt, vente ? placeChez(A.S, A.cle) : Infinity);
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; livraison(A.S.nom, A.cle, q); compter(A.cle, q);
-      if(vente){ encaisser(q*prixChez(A.S, A.cle));
+      if(vente){ encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
                  entamerEtal(A.S, A.cle, q); }
       else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       if(Math.random() < 0.6)
@@ -13880,6 +14097,7 @@ function fabriquerSite(S, cle, debitKg, dt){
     // Boulangerie et atelier textile n'entreposent rien : ils vendent au comptoir.
     const gain = (U.stock[cle] || 0)*prixChez(S, cle);
     encaisser(gain); compter(cle, (U.stock[cle] || 0));
+    if(gain > 0) gainContinu(S.x, S.z);
     if(Math.random() < 0.10 && S.smoke)
       puff(S.smoke.x, S.smoke.y, S.smoke.z, 0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
   }
@@ -14092,6 +14310,7 @@ function updateBetail(dt){
        tête, directement. Le `compter('viande', …)` qui suivait ne comptait rien : la clé
        n'est pas dans COMPTEUR, et la ligne retombait dans le vide depuis toujours. */
     encaisser((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI);
+    pluiePieces((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI, BOUCHERIE.dropX, BOUCHERIE.dropZ);
     STAT.betes++;
     if(v.betailEspece === 'cochon') STAT.porcs++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
@@ -14499,6 +14718,10 @@ const FLECHE_SVG =
    l'atelier ou un enclos. C'est pour cela que la liste se compose ici plutôt que de
    parcourir SITES : le guidage désigne un ENDROIT, pas un bâtiment. */
 const MAX_VERTES = 3;
+/* UNE SEULE FLÈCHE JAUNE, ET C'EST CELLE DE L'ÉTAPE DU MOMENT. Les étapes suivantes
+   sont bien jaunes au sol et sur la carte, mais elles n'ont PAS de flèche : trois flèches
+   pour une seule mission borderaient l'écran et l'on ne saurait plus laquelle suivre.
+   Le bord dit où aller MAINTENANT ; le sol dit le reste du chemin. */
 function ciblesGuidage(){
   const out = [];
   const O = objectifMission();
@@ -14512,81 +14735,59 @@ function ciblesGuidage(){
     .slice(0, MAX_VERTES);
   return out.concat(verts);
 }
-/* ---------- LE PICTOGRAMME DE L'ACTION, POSÉ SUR L'OBJECTIF ----------
-   La couleur dit qu'il faut aller là ; elle ne dit pas ce qu'on y fera. Le bandeau
-   l'écrit — « CHARGER BLÉ 250 KG » — mais il faut lever les yeux du monde pour le lire,
-   et l'on conduit en regardant devant soi. Un pictogramme posé au sol, dans l'anneau
-   jaune, répond à la même question sans quitter la route des yeux.
+/* ---------- LE CERCLE MOBILE DE L'ÉTAPE DU MOMENT ----------
+   Un pictogramme d'action a été essayé à cet endroit — une caisse, une flèche, un épi —
+   posé au sol puis dressé face caméra. Il a été retiré : il ajoutait un vocabulaire de
+   plus à apprendre là où la couleur suffit, et il encombrait l'objectif au lieu de le
+   désigner.
 
-   IL SUIT L'OBJECTIF, PAS LES ANNEAUX. L'objectif du moment est parfois un champ, un
-   silo, un tank d'élevage — des endroits qui n'ont pas tous d'anneau de commerce. Une
-   seule pièce, déplacée là où le juge dit d'aller, couvre les onze cas au lieu d'en
-   couvrir sept.
-
-   ET IL EST DEBOUT, EN L'AIR. Il était couché sur le sol, dans le cercle, et pivotait
-   autour de la verticale pour présenter son haut à la caméra. Couché, il est toujours vu
-   de biais — jusqu'à quinze degrés d'inclinaison quand la caméra rase — et il se cachait
-   sous l'engin garé dessus, c'est-à-dire au moment précis où l'on regardait. Il flotte
-   maintenant À LA VERTICALE au-dessus du cercle, au-dessus du toit de la machine, face à
-   la caméra quoi qu'on fasse : c'est un objet du monde, il se cache derrière un bâtiment
-   comme le reste, et la flèche du bord prend le relais quand on ne le voit plus. */
-const PICTO_ACTION = {
-  livrer:'depot', charger:'prise', collecter:'goutte',
-  recolter:'epi', semer:'graine', labourer:'graine', pousse:'feuille',
-  atelier:'usine', produire:'usine', acheter:'etiquette', materiel:'cle',
-  aller:'fanion'
-};
-// Une texture par forme, dessinée une fois. Douze actions se partagent huit dessins.
-const _texAction = {};
-function texAction(glyphe){
-  if(_texAction[glyphe]) return _texAction[glyphe];
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 128;
-  const c = cv.getContext('2d');
-  /* UN LISERÉ SOMBRE, comme sur les pictogrammes du bandeau. Peint en mélange ADDITIF,
-     le dessin sature : les traits se rejoignent et la caisse devient un pâté jaune. En
-     mélange normal sans contour, il disparaît sur le béton clair d'un quai ou sur du
-     chaume mûr. On dilate donc la forme en sombre — huit copies décalées de deux pixels,
-     dessinées une seule fois dans la vie du jeu — puis on pose le jaune dessus. */
-  for(let a = 0; a < 8; a++){
-    c.save();
-    c.translate(Math.cos(a*Math.PI/4)*2.4, Math.sin(a*Math.PI/4)*2.4);
-    dessinePicto(c, glyphe, 64, 64, 40, 'rgba(10,16,22,0.92)');
-    c.restore();
-  }
-  dessinePicto(c, glyphe, 64, 64, 40, '#FFD21E');
-  const t = new THREE.CanvasTexture(cv);
-  t.minFilter = THREE.LinearFilter;
-  _texAction[glyphe] = t;
-  return t;
+   Reste le besoin qu'il servait : L'ÉTAPE DU MOMENT N'A PAS TOUJOURS D'ANNEAU. Les
+   commerces, le silo, l'entrepôt et les enclos en ont un ; un CHAMP n'en a pas, et c'est
+   pourtant lui qu'il faut aller récolter neuf fois sur dix. Un cercle mobile — le même
+   cercle que partout, liseré franc et centre transparent — se pose donc sur l'étape
+   courante quand elle n'en a pas déjà un. On teste la distance aux cercles fixes : à
+   moins d'un mètre, on laisse le cercle du lieu faire son travail et l'on s'efface. */
+/* UN PETIT JEU DE CERCLES MOBILES, un par étape sans domicile fixe. Le champ et
+   l'atelier n'ont pas d'anneau à eux, et ce sont pourtant deux maillons sur trois d'une
+   chaîne de farine. Trois cercles suffisent : une chaîne en compte au plus cinq, et les
+   commerces, le silo, l'entrepôt et les enclos portent déjà le leur. */
+const CERCLES_MOBILES = 3;
+const mobiles = [];
+function creerMobile(){
+  const g = new THREE.Group();
+  const mat = (op)=> new THREE.MeshBasicMaterial({color:GUIDE.JAUNE, transparent:true,
+                       opacity:op, blending:THREE.NormalBlending, side:THREE.DoubleSide,
+                       depthWrite:false});
+  const li = new THREE.Mesh(new THREE.RingGeometry(ANNEAU_R - ANNEAU_EP, ANNEAU_R, 48), mat(0.95));
+  li.rotation.x = -Math.PI/2; li.position.y = 0.11;
+  const ce = new THREE.Mesh(new THREE.CircleGeometry(ANNEAU_R - ANNEAU_EP, 40), mat(0.30));
+  ce.rotation.x = -Math.PI/2; ce.position.y = 0.10;
+  g.add(li); g.add(ce);
+  g.renderOrder = 3;
+  // Ils battent : ce qui recense le décor FIXE ne doit pas les compter.
+  g.userData.anime = li.userData.anime = ce.userData.anime = true;
+  g.visible = false;
+  scene.add(g);
+  return {g, li, ce, vif:true};
 }
-let pictoObjectif = null, pictoGlyphe = '';
-/* À QUELLE HAUTEUR IL FLOTTE. Le plus haut des engins — la moissonneuse — culmine à
-   quatre mètres vingt ; le panneau fait trois mètres deux de côté. Son centre à cinq
-   mètres soixante le pose donc juste au-dessus du toit, sans jamais y entrer, et sous
-   les bulles des commerces, qui sont plus haut encore. */
-const PICTO_HAUT = 5.6, PICTO_COTE = 3.2;
-function majPictoObjectif(){
-  const O = objectifMission();
-  const g = (O && PICTO_ACTION[O.quoi]) || '';
-  if(!pictoObjectif){
-    /* UN SPRITE, ET NON UN PLAN ORIENTÉ À LA MAIN. Le sprite fait face à la caméra de
-       lui-même, sans trigonométrie et sans se tromper de signe, et il reste vertical
-       quelle que soit la hauteur de vue. `depthTest` gardé : c'est un objet du monde, il
-       passe derrière un bâtiment comme tout le reste. */
-    pictoObjectif = new THREE.Sprite(new THREE.SpriteMaterial({
-      transparent:true, opacity:0.95, depthWrite:false, depthTest:true,
-      sizeAttenuation:true}));
-    pictoObjectif.renderOrder = 4;
-    // Il bat avec le cercle : ce qui recense le décor FIXE ne doit pas le compter.
-    pictoObjectif.userData.anime = true;
-    scene.add(pictoObjectif);
+function majAnneauObjectif(){
+  const E = etapesMission();
+  let n = 0;
+  for(let i = 0; i < E.length && n < CERCLES_MOBILES; i++){
+    // Un lieu qui a déjà son cercle n'en reçoit pas un second par-dessus.
+    let double = false;
+    for(const A of ANNEAUX)
+      if(Math.hypot(A.x - E[i].x, A.z - E[i].z) < 1.0){ double = true; break; }
+    if(double) continue;
+    if(!mobiles[n]) mobiles[n] = creerMobile();
+    const M2 = mobiles[n++];
+    M2.g.visible = true;
+    M2.g.position.set(E[i].x, 0, E[i].z);
+    M2.vif = (i === 0);
+    const c = M2.vif ? GUIDE.JAUNE : GUIDE.JAUNE_DOUX;
+    M2.li.material.color.setHex(c); M2.ce.material.color.setHex(c);
   }
-  pictoObjectif.visible = !!g;
-  if(!g) return;
-  if(g !== pictoGlyphe){ pictoObjectif.material.map = texAction(g); pictoGlyphe = g;
-                         pictoObjectif.material.needsUpdate = true; }
-  pictoObjectif.position.set(O.x, PICTO_HAUT, O.z);
+  for(let k = n; k < mobiles.length; k++) if(mobiles[k]) mobiles[k].g.visible = false;
 }
 const _vVis = new THREE.Vector3(), _cVis = new THREE.Vector3();
 function refreshViseurs(){
@@ -16787,22 +16988,17 @@ function loop(now){
        RESPIRATION, elle, reste à soixante images : c'est elle qu'on voit. */
     anneauT -= dt;
     const relire = anneauT <= 0;
-    if(relire){ anneauT = 0.125; majPictoObjectif(); }
-    /* LE PICTOGRAMME SUIT LA CAMÉRA, LUI, À CHAQUE IMAGE : c'est le seul moyen qu'il
-       reste debout quand on tourne, et c'est trois lignes de trigonométrie. Il respire
-       avec l'anneau qu'il occupe, un demi-ton plus bas — il complète la pastille, il ne
-       lui dispute pas le regard. */
-    if(pictoObjectif && pictoObjectif.visible){
-      const bp = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8), 1.6);
-      pictoObjectif.material.opacity = 0.72 + 0.28*bp;
-      /* IL NE DISPARAÎT PAS AU LOIN. Un sprite rapetisse avec la distance comme tout
-         objet, et trois mètres de côté vus de cent vingt mètres ne sont plus qu'un
-         point. On rattrape la moitié du chemin — jusqu'à deux fois et demie — assez
-         pour qu'il reste lisible du bout d'une parcelle, pas assez pour qu'il cesse
-         d'appartenir au monde. */
-      const dCam = camera.position.distanceTo(pictoObjectif.position);
-      const k2 = (1 + 0.08*bp)*PICTO_COTE*Math.max(1, Math.min(2.5, dCam/34));
-      pictoObjectif.scale.set(k2, k2, 1);
+    if(relire){ anneauT = 0.125; majAnneauObjectif(); }
+    // Le cercle mobile respire comme les autres, du même battement : c'est la même
+    // marque, elle a seulement le droit de se déplacer.
+    // Les cercles mobiles respirent comme les autres. Le doux respire au tiers : la
+    // même marque, la même forme, mais elle n'appelle pas.
+    for(const M2 of mobiles){
+      if(!M2 || !M2.g.visible) continue;
+      const bp = Math.pow(0.5 + 0.5*Math.sin(now/1000*2.8), 1.6)*(M2.vif ? 1 : 0.33);
+      M2.li.material.opacity = Math.min(1, 0.30 + 0.26 + 0.50*bp);
+      M2.ce.material.opacity = 0.045 + 0.085 + 0.20*bp;
+      M2.g.scale.setScalar(1 + 0.12*bp);
     }
     for(const A of ANNEAUX){
       if(relire || A.on === undefined){
@@ -16822,7 +17018,8 @@ function loop(now){
          pas une obligation » : donner aux quatre lieux permanents le battement de la
          seule chose qu'on ait à faire les mettrait au même rang qu'elle, et ils
          clignoteraient d'un bout à l'autre de la partie. */
-      const b2 = (A.cA.getHex() === GUIDE.BLEU) ? bat*0.30 : bat;
+      const cA = A.cA.getHex();
+      const b2 = (cA === GUIDE.BLEU || cA === GUIDE.JAUNE_DOUX) ? bat*0.30 : bat;
       A.anneau.material.opacity = Math.min(1, 0.30 + 0.26*A.k + 0.50*b2);
       A.centre.material.opacity = 0.045 + 0.085*A.k + 0.20*b2;
       const sc = 1 + 0.12*b2;
@@ -16843,6 +17040,8 @@ function loop(now){
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
     updatePuffs(dt);
+    updatePieces(dt);
+    updatePico(dt);
     updateColis(dt);
     flushTiles(2);
     // Un seul renvoi d'instances par image, plafonné : voir champsAJour().
@@ -16861,6 +17060,10 @@ function loop(now){
   sun.target.position.set(sx, 0, sz); sun.target.updateMatrixWorld();
 
   if(hintT > 0){ hintT -= dt; if(hintT <= 0) el.hint.style.opacity = 0; }
+  /* LE DÉCOMPTE DU BRAVO SURVIT À dt = 0. Ouvrir le plan ou les réglages met le jeu en
+     pause, et `dt` tombe à zéro en tête de boucle : un décompte pur laisserait l'écran
+     collé pour toujours. Le même repli que le tic d'interface. */
+  if(bravoT > 0){ bravoT -= (dt || 0.016); if(bravoT <= 0) fermerBravo(); }
   /* L'INTERFACE À VINGT IMAGES PAR SECONDE. Onze fonctions qui lisent l'état et
      écrivent dans le DOM, soixante fois par seconde : aucune n'affiche quoi que ce
      soit d'animé — de l'argent, une heure, des libellés de boutons. Vingt fois par

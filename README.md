@@ -381,50 +381,88 @@ qu'on voit, et l'écart entre les deux ne dépasse plus jamais **0,052 rad**, so
 degrés. Le roulis étant borné à ±0,17, la butée en reprend les deux tiers dans un virage à
 fond, et rien du tout en ligne droite.
 
-### Le pictogramme de l'action, posé sur l'objectif
+### Une mission éclaire tout son chemin, et rien d'autre
 
-La couleur dit qu'il faut aller là ; elle ne dit pas ce qu'on y fera. Le bandeau l'écrit —
-`CHARGER BLÉ 250 KG` — mais il faut lever les yeux du monde pour le lire, et l'on conduit
-en regardant devant soi. Un **pictogramme au sol**, dans l'anneau jaune, répond à la même
-question sans quitter la route des yeux.
+Un seul lieu s'allumait : celui de l'étape du moment. Tout le reste était gris — sauf les
+commerces où l'on pouvait faire quelque chose, qui passaient au jaune parce qu'ils achètent
+ce qu'on transporte. Pour « livrer 30 kg de blé à la Coopérative », **l'usine de céréales
+s'allumait donc en jaune** : elle achète du blé. Ça n'a aucun sens pendant une mission, et
+ça noyait le seul lieu qui comptait.
 
-| l'objectif | le dessin |
+Une mission éclaire maintenant **tout son chemin**, et lui seul :
+
+| | |
 |---|---|
-| livrer | une caisse ouverte, et la flèche qui descend dedans |
-| charger | la même caisse, et la flèche qui en sort |
-| collecter | la goutte du tank d'élevage |
-| récolter | l'épi |
-| semer, labourer | le sac de semence |
-| ça pousse | la feuille |
-| atelier, produire | l'usine |
-| acheter | l'étiquette du prix |
-| il faut du matériel | la clé du garage |
-| aller voir | le fanion |
+| **jaune vif** | l'étape du moment — et elle seule porte la flèche du bord |
+| **jaune doux** | les étapes suivantes, dans l'ordre, sans flèche |
+| **vert** | une mission à prendre |
+| **bleu** | un service permanent |
 
-**Il suit l'objectif, pas les anneaux.** Ce qu'il faut faire maintenant est parfois un
-champ, un silo, un tank d'élevage — des endroits qui n'ont pas tous d'anneau de commerce.
-Une seule pièce, déplacée là où le juge dit d'aller, couvre les **douze** natures
-d'objectif au lieu d'en couvrir sept. Elle se pose au centimètre sur le point que le
-bandeau et la flèche du bord désignent : trois surfaces, un seul calcul.
+Pour la première mission, cela donne **CHAMP → SILO → COOPÉRATIVE** : le champ en vif, les
+deux autres en doux. Si l'on avait déjà moissonné avant d'aller prendre la mission, le champ
+sort de la chaîne et c'est le **silo** qui passe vif ; la benne pleine, il ne reste que le
+client. C'est la même règle qui décide dans les trois cas — le juge dit où l'on en est, le
+chemin dit ce qui vient après.
 
-**Il est debout, en l'air.** Il était couché sur le sol, dans le cercle, et pivotait autour
-de la verticale pour présenter son haut à la caméra. Couché, il est toujours vu de biais —
-jusqu'à quinze degrés d'inclinaison quand la caméra rase — et il se cachait sous l'engin
-garé dessus, c'est-à-dire au moment précis où l'on regardait. Il flotte maintenant **à la
-verticale** à 5,60 m au-dessus du cercle, au-dessus du toit de la plus haute machine, en
-sprite face caméra : c'est un objet du monde, il passe derrière un bâtiment comme le reste,
-et la flèche du bord prend le relais quand on ne le voit plus.
+**Et avant d'avoir pris la mission, il n'y a qu'un vert.** Aucune chaîne, donc aucun jaune :
+le seul lieu qui parle est celui qui a une mission à donner. On ne peut pas se tromper de
+premier geste.
 
-**Il ne disparaît pas au loin.** Un sprite rapetisse avec la distance comme tout objet, et
-trois mètres de côté vus de cent vingt mètres ne sont plus qu'un point. On rattrape la
-moitié du chemin — jusqu'à deux fois et demie — assez pour qu'il reste lisible du bout d'une
-parcelle, pas assez pour qu'il cesse d'appartenir au monde.
+**Une seule flèche jaune**, celle de l'étape du moment. Trois flèches pour une seule mission
+borderaient l'écran et l'on ne saurait plus laquelle suivre : le bord dit où aller
+maintenant, le sol dit le reste du chemin. Et le jaune doux respire au tiers du vif — même
+marque, même forme, mais elle n'appelle pas.
 
-**Un liseré sombre, et le mélange normal.** Peint en additif, le dessin sature : les traits
-se rejoignent et la caisse devient un pâté jaune. En mélange normal sans contour, il
-disparaît sur le béton clair d'un quai ou sur du chaume mûr. La forme est donc dilatée en
-sombre — huit copies décalées de deux pixels, dessinées **une seule fois dans la vie du
-jeu** — puis le jaune est posé dessus. Dix dessins, huit textures, douze actions.
+**Le silo, l'entrepôt et les enclos portent la couleur du guidage**, eux aussi. Ils n'avaient
+qu'un jaune fixe et ne pouvaient donc dire ni « c'est ici » ni « et ensuite », alors que le
+silo est le maillon central de presque toutes les chaînes. Hors mission — en mode libre, ou
+avant d'avoir pris la première — leurs cercles retrouvent leur rôle d'origine et disent ce
+qu'on peut faire ici, maintenant.
+
+**Le pictogramme d'action a été retiré.** Une caisse, une flèche, un épi posés sur
+l'objectif : il ajoutait un vocabulaire de plus à apprendre là où la couleur suffit, et il
+encombrait l'objectif au lieu de le désigner. Restent trois **cercles mobiles**, pour les
+étapes sans domicile fixe : un champ n'a pas d'anneau à lui, et c'est pourtant lui qu'il faut
+aller récolter neuf fois sur dix.
+
+### Bravo, mission terminée
+
+Une mission se soldait sur une ligne de bandeau qui s'effaçait en deux secondes et demie,
+entre deux autres. C'est le seul moment de la campagne où l'on a fini quelque chose.
+
+Un écran s'ouvre maintenant : **BRAVO**, le nom de la mission, et le détail de ce qu'on a
+gagné — la prime, l'expérience, la valeur de la marchandise livrée, et le palier s'il vient
+de tomber. Les lignes entrent l'une après l'autre, à quatre-vingt-dix millisecondes
+d'intervalle. Puis la mission suivante est nommée.
+
+**Mais le jeu ne s'arrête pas.** Pas de pause — elle gèlerait les pièces, le décompte et le
+bandeau lui-même — pas de bouton, et surtout aucun `.accbtn` : c'est par le premier
+`.accbtn.pri` que toute la suite de bancs entre dans le jeu. Le calque se ferme seul au bout
+de cinq secondes, ou d'une pression si l'on est pressé, et l'on continue de conduire
+pendant qu'il est là. Un dégradé radial plutôt qu'un aplat : on voit sa ferme derrière.
+
+**Et l'ordre a changé, parce que c'était un bug.** Le bandeau annonçait « MISSION FAITE
++2 800 € » *puis* l'on gagnait l'expérience — et si elle faisait monter d'un palier,
+l'annonce du palier écrasait la phrase deux millisecondes plus tard : on ne voyait jamais ce
+qu'on venait de gagner. L'expérience se compte d'abord, la fête ensuite, le bandeau en
+dernier.
+
+### Des pièces, quand on est payé
+
+L'argent tombait en silence. On déchargeait quatre cents kilos de blé, le chiffre du bandeau
+montait, et rien à l'écran ne disait qu'on venait d'être payé — le seul encaissement qui
+parlait était celui de la boucherie.
+
+Vingt-huit jetons préalloués, une géométrie partagée, zéro allocation en jeu. **Un pool à
+part, jamais celui des bouffées** : les particules de poussière sont un anneau de cent trente
+que le transfert, l'échappement et les cheminées se disputent déjà, et y glisser les pièces
+couperait la poussière au moment précis où elle sert.
+
+Le nombre de jetons suit un **logarithme** : quatre pour vingt-cinq euros, huit pour deux
+mille cinq cents, neuf au plafond — sans quoi une prime de quarante mille en cracherait
+quarante. Et ce qui se paie en continu — une vente d'étal appelle l'encaissement à *chaque
+image* — passe par un accumulateur qui sort une pièce tous les seizièmes de seconde : un
+filet pendant qu'on décharge, qui s'arrête tout seul.
 
 ### Le service permanent sous les roues se nomme
 
