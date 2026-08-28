@@ -1245,6 +1245,43 @@ La boucherie ne paie pas de billets : elle abat et met la carcasse en chambre fr
 On revient la charger, et c'est le restaurant qui la paie le mieux. Une bête vaut
 ainsi deux fois son prix de marché, au prix d'une tournée de plus.
 
+## L'étiquette d'un commerce : debout, et tournée vers le regard
+
+Trois états successifs, et le troisième est le bon.
+
+1. **Un plan orienté comme la façade.** Les commerces des bandes est et ouest le
+   présentaient de trois quarts : on lisait leur nom en oblique, écrasé.
+2. **Un sprite.** Il fait face à la caméra quoi qu'on fasse — mais *entièrement*, tangage
+   compris. La caméra du jeu regarde d'en haut à 49° : le panneau se couchait donc en
+   arrière pour se mettre perpendiculaire à l'axe de vue, et il se lisait de biais dans
+   l'autre sens.
+3. **Un plan qui ne pivote que du lacet.** Il reste vertical dans le monde — planté comme
+   un panneau de rue, ce qu'il est — et ne tourne qu'autour de Y pour présenter sa face au
+   joueur d'où qu'il vienne. Une ligne de trigonométrie : `atan2` du vecteur bulle →
+   caméra dans le plan du sol.
+
+**Et l'on rattrape le raccourci.** Un panneau debout vu d'en haut se tasse : sa hauteur
+apparente vaut le cosinus de l'élévation du regard. Mesuré sur les seize enseignes du
+village, ce cosinus va de **0,74 à 0,97** — jusqu'à un quart de la hauteur perdu sur les
+plus proches, celles qu'on lit justement. On le rend en étirant le panneau d'autant
+(1,03× à 1,36×, plafonné à 1,82×) : il reste vertical dans le monde, et il retrouve à
+l'écran le rapport dans lequel le texte a été tracé. Mesuré : 0,217 et 0,328 vus pour
+0,221 et 0,336 dessinés, soit **1,8 % d'écart** au lieu du quart manquant.
+
+L'orientation se pose **après** que la caméra a bougé, et non avec le flottement : calculée
+au même endroit, elle viserait la position de l'image précédente.
+
+La pente qui reste — le nom penche un peu vers le bord de l'écran — n'est pas un défaut :
+une arête horizontale du monde ne se projette horizontalement que sur l'axe de vue, et
+c'est ce qui donne au panneau son assise, comme aux lignes de faîte des toits autour. Le
+banc le mesure ainsi : au milieu de l'écran la pente tombe à 0,04–0,15, au bord elle monte
+à 0,46, et le **roulis propre de l'objet reste nul**.
+
+Au passage, une fuite : la bulle est détruite et recréée à chaque changement de texte — un
+commerce qui s'ouvre, une mission qui change ce qu'elle attend — et rien n'était rendu au
+pilote graphique. Trente repeintes laissaient trente textures de 560 pixels derrière elles.
+Elles sont maintenant `dispose()`ées, géométrie comprise : **87 textures avant, 87 après**.
+
 ## Le garage : acheter, améliorer
 
 Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat
