@@ -340,6 +340,13 @@
     background:rgba(20,28,33,.62);border:2px solid rgba(255,255,255,.3)}
   #hitch.on{border-color:#FAD201;color:#FAD201}
   #auto.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.6)}
+  /* LE BOUTON DU PARC APPELLE. Pendant le tutoriel, quand l'étape demande une autre
+     machine que celle qu'on pilote : il prend le jaune du guidage et bat lentement,
+     comme les cercles au sol. Un halo qui s'écarte, pas un clignotement — on doit
+     pouvoir le voir du coin de l'œil sans qu'il gêne la conduite. */
+  #engins.appel{border-color:#FAD201;color:#FAD201;animation:appel 1.4s ease-out infinite}
+  @keyframes appel{0%{box-shadow:0 0 0 0 rgba(250,210,1,.6)}
+                   70%,100%{box-shadow:0 0 0 11px rgba(250,210,1,0)}}
   /* Le semoir monte EN HAUT. En bas il occupait une rangée à lui seul pour un réglage
      qu'on change une fois par parcelle. Il se pose SOUS le menu et la pause, contre le
      bord droit, et non à côté d'eux : la barre de progression est centrée et large de
@@ -358,6 +365,15 @@
   /* Cuve vide : le bouton passe au rouge. C'est la seule chose qu'on regarde en semant,
      et c'est là qu'on doit apprendre qu'il faut rentrer. */
   #crop.no{border-color:#E8563F;color:#E8563F}
+  /* ET CE QU'IL RESTE SE LIT EN JAUGE, PLUS EN CHIFFRES. « BLÉ 47 », « BLÉ 46 »,
+     « BLÉ 45 » : le nombre défilait à chaque cellule semée, et c'est justement ce qu'on
+     ne peut pas lire en conduisant. Une barre dit la même chose sans qu'on ait à la
+     lire — et elle dit en plus la PART de cuve, ce que le chiffre nu ne disait pas. */
+  #crop i{display:block;width:36px;height:7px;border-radius:4px;
+    background:rgba(255,255,255,.18);overflow:hidden;flex:none}
+  #crop i b{display:block;height:100%;width:0;border-radius:4px;background:#F0C24A;
+    transition:width .2s linear}
+  #crop.no i b{background:#E8563F}
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
@@ -480,10 +496,22 @@
   #bravo{position:absolute;inset:0;z-index:25;display:none;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;pointer-events:none;
     background:radial-gradient(ellipse at center, rgba(12,18,22,.72), rgba(12,18,22,.18) 70%)}
+  /* UNE FENÊTRE, ET NON PLUS DU TEXTE POSÉ SUR LE PAYSAGE. Ces mots-là tombaient sur un
+     champ de blé au soleil ou sur une façade claire, et l'on ne les lisait pas : c'est
+     ce que le joueur a dit de la fin de mission comme des étapes du tutoriel. Ils
+     prennent donc la boîte des missions — même fond, même rayon, même ombre portée — au
+     jaune près, qui est la couleur du guidage. Elle n'attrape PAS le doigt ailleurs que
+     sur elle-même (#bravo reste `pointer-events:none`) : on continue de conduire. */
   #brboite{display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:auto;
-    padding:22px 34px}
-  #brtitre{font-size:26px;font-weight:bold;letter-spacing:11px;margin-right:-11px;color:#FAD201}
-  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;max-width:420px;line-height:1.6}
+    width:min(92vw,420px);background:#1B2429;border:2px solid rgba(250,210,1,.32);
+    border-radius:16px;padding:18px 20px 15px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+  #brtitre{font-size:26px;font-weight:bold;letter-spacing:11px;margin-right:-11px;
+    color:#FAD201;line-height:1.15}
+  /* UNE ÉTAPE DE TUTORIEL PORTE UNE PHRASE, PAS UN MOT. « PRÉPARER LA PARCELLE » à
+     vingt-six pixels et onze d'interlettrage déborde d'un écran de téléphone en
+     paysage : les pages d'étape passent à quinze, et l'interlettrage à quatre. */
+  #bravo.etape #brtitre{font-size:15px;letter-spacing:4px;margin-right:-4px}
+  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;line-height:1.6}
   /* Ce que le client répond en payant : plus clair que le titre de la mission, pour
      qu'on voie d'un coup d'œil que c'est quelqu'un qui parle. */
   #brsous i{font-style:italic;color:#CFE6C6;opacity:.95}
@@ -572,6 +600,8 @@
     letter-spacing:.7px;text-transform:uppercase;opacity:.72}
   #planleg span{display:flex;align-items:center;gap:4px;white-space:nowrap}
   #planleg i{width:6px;height:6px;border-radius:3px;display:block;flex:none}
+  /* Le mot du point vert change avec le mode : la balise n'est là que pour le viser. */
+  #planleg b{font-weight:inherit}
   #plan .rang{display:flex;gap:5px;padding:6px 10px;overflow-x:auto;flex:none;
     scrollbar-width:none}
   #plan .rang::-webkit-scrollbar{display:none}
@@ -734,7 +764,7 @@
          veulent dire la même chose partout ailleurs. -->
     <div id="planleg">
       <span><i style="background:#FFD21E"></i>Objectif actuel</span>
-      <span><i style="background:#62D84E"></i>Mission disponible</span>
+      <span><i style="background:#62D84E"></i><b id="planlegvert">Mission disponible</b></span>
       <span><i style="background:#4AA8E0"></i>Service permanent</span>
     </div>
     <div id="planaide"></div>
@@ -2139,9 +2169,15 @@ const MISSIONS = [
      {cle:'epandeur', ou:'Garage', titre:'PRENDRE L\'ÉPANDEUR',
       txt:'L\'ÉPANDEUR — il t\'attend au garage du village, pour 250 €',
       fait:()=> !outilVerrou('engrais')},
-     {cle:'engrais', ou:'Comptoir agricole', titre:'REMPLIR L\'ÉPANDEUR',
+     /* ON DEMANDE CE QU'ON A DIT DE FAIRE. L'étape s'intitulait « remplir l'épandeur »
+        mais ne regardait que la cuve de l'outil : le joueur achetait ses vingt-cinq
+        kilos au comptoir, les voyait arriver au bac, et l'étape restait jaune. Acheter
+        de l'engrais suffit ; le transvasement dans la cuve est le geste d'après, et il
+        compte aussi. */
+     {cle:'engrais', ou:'Comptoir agricole', titre:'ACHETER DE L\'ENGRAIS',
       txt:'DE L\'ENGRAIS — au comptoir agricole, la quantité que tu veux',
-      fait:()=> ((TOOLS.find((T)=> T.key === 'engrais') || {}).cuveQ || 0) > 0.5}],
+      fait:()=> STOCK.engrais > 0.5
+                || ((TOOLS.find((T)=> T.key === 'engrais') || {}).cuveQ || 0) > 0.5}],
    texte:'J\'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l\'épandeur — l\'engrais peut vous faire gagner du temps, mais libre à vous de l\'utiliser ensuite.',
    fin:'Très bien. Votre ferme commence à trouver son rythme.'},
   {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
@@ -2474,7 +2510,15 @@ function peindreBravo(){
   document.getElementById('brgains').innerHTML =
     (P.gains || []).map((t)=> '<div>' + t + '</div>').join('');
   document.getElementById('brsuite').textContent = P.suite || '';
-  montrerBravo(bravoI === 0 ? 5.0 : 6.0);
+  bravoEl.classList.toggle('etape', !!P.etape);
+  montrerBravo(P.duree || (bravoI === 0 ? 5.0 : 6.0));
+}
+/* ET UNE ANNONCE NE PIÉTINE PAS CELLE QUI EST À L'ÉCRAN. Une étape de tutoriel peut se
+   franchir pendant qu'une page de fin de mission défile encore : elle prend la file au
+   lieu d'effacer ce qu'on était en train de lire. */
+function annoncerFenetre(page){
+  if(bravoPages.length){ bravoPages.push(page); return; }
+  bravoPages = [page]; bravoI = 0; peindreBravo();
 }
 // Le doigt et le temps font la même chose : passer à la suite, et fermer après la dernière.
 function suivantBravo(){
@@ -2491,7 +2535,8 @@ function montrerBravo(duree){
   bravoT = duree;
 }
 function fermerBravo(){ bravoT = 0; bravoPages = []; bravoI = 0;
-                       bravoEl.style.display = 'none'; bravoEl.classList.remove('on'); }
+                       bravoEl.style.display = 'none';
+                       bravoEl.classList.remove('on'); bravoEl.classList.remove('etape'); }
 bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); suivantBravo(); });
 /* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
    Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
@@ -4584,7 +4629,11 @@ function poseBulle(nom, toit, sous, x, y, z, rot){
     new THREE.MeshBasicMaterial({map:B.tex, transparent:true, depthWrite:false,
                                  depthTest:true, side:THREE.DoubleSide, fog:false}));
   m.position.set(x, y + LARGE*B.ratio*0.5, z);
-  m.renderOrder = 3;
+  /* AU-DESSUS DES CERCLES AU SOL. Un cercle jaune posé devant un commerce passait PAR
+     DESSUS son enseigne, et l'on ne lisait plus le nom de celui chez qui on allait.
+     Six, et non trois : les anneaux et les cercles mobiles sont à trois, et deux
+     transparents à égalité se départagent par la distance — donc au hasard du trajet. */
+  m.renderOrder = 6;
   void rot;                        // le lacet se pose à chaque image, pas à la pose
   scene.add(m);
   BULLES.push({m, y0: m.position.y, ph: x*0.1});
@@ -11477,6 +11526,7 @@ cropEl.addEventListener('pointerdown', ()=>{
   showHint('SEMOIR RÉGLÉ SUR ' + CROPS[T.crop].nom.toUpperCase());
   refreshCropButton();
 });
+let cropJauge = null;
 function refreshCropButton(){
   const T = toolOf(MACHINES[cur]);
   if(!T || T.key !== 'semis'){ cropEl.style.display = 'none'; return; }
@@ -11485,11 +11535,20 @@ function refreshCropButton(){
      graines, tomber en panne au milieu d'un rang est possible : le seul endroit où l'on
      regarde en semant, c'est ce bouton, et c'est donc là que le chiffre doit être. */
   const c = CROPS[T.crop || 0];
-  const reste = (T.cuveCle === c.cle) ? Math.round(T.cuveQ || 0) : 0;
-  const nom = c.nom.toUpperCase() + (c.perenne ? '' : ' ' + reste);
+  const reste = (T.cuveCle === c.cle) ? (T.cuveQ || 0) : 0;
+  const nom = c.nom.toUpperCase();
+  /* Le libellé ne change qu'au changement de culture — c'est la jauge, et elle seule,
+     qui bouge au fil du semis. Une pérenne se plante et ne puise rien : pas de jauge. */
   if(cropEl.dataset.crop !== nom){
     cropEl.dataset.crop = nom;
-    cropEl.innerHTML = picto('culture') + '<span>' + nom + '</span>';
+    cropEl.innerHTML = picto('culture') + '<span>' + nom + '</span>'
+                       + (c.perenne ? '' : '<i><b></b></i>');
+    cropJauge = cropEl.querySelector('i b');
+  }
+  if(cropJauge && !c.perenne){
+    const part = Math.max(0, Math.min(100, Math.round(reste/Math.max(1, T.cuveMax || 1)*100)));
+    if(cropJauge.dataset.p !== '' + part){ cropJauge.dataset.p = '' + part;
+                                           cropJauge.style.width = part + '%'; }
   }
   cropEl.classList.toggle('no', !c.perenne && reste < 1);
 }
@@ -11588,6 +11647,12 @@ function ouvrirPlan(){
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
+  /* LA LÉGENDE DIT CE QUE LE VERT VEUT DIRE ICI. « Mission disponible » était écrit en
+     dur, et le mode libre n'a pas de mission : le même point vert y annonce un contrat
+     de commerce. Un mot faux sous une carte se paie cher — c'est ce qu'on lit pour
+     décider où aller. */
+  document.getElementById('planlegvert').textContent =
+    MODE_LIBRE ? 'Contrat disponible' : 'Mission disponible';
   planEl.style.display = 'block';
   paused = true;
   majPlan();
@@ -12621,12 +12686,14 @@ function cellulesPossibles(T, voulu){
                                 : Math.floor(dansLaCuve(b)/b.par);
   if(possible >= voulu) return voulu;
   if(alerteStock <= 0){
-    // Le message dit où aller, et ce n'est pas le même endroit selon ce qui manque :
-    // la cour si le hangar a de quoi remplir, le comptoir s'il est vide lui aussi.
+    /* Le message dit quoi faire, et ce n'est pas la même chose selon ce qui manque : le
+       hangar a de quoi, il n'y a qu'à transvaser ; il est vide lui aussi, il faut
+       acheter. Les deux se font au comptoir — c'est le seul endroit depuis que la cour
+       ne remplit plus les cuves. */
     const auHangar = b.plantation ? 0 : dansLeBac(b);
     showHint(b.plantation ? 'PLUS DE QUOI PLANTER'
-             : b.nom + ' VIDE — ' + (auHangar > b.par ? 'REMPLIR À LA COUR'
-                                                      : 'AU COMPTOIR AGRICOLE'));
+             : b.nom + ' VIDE — ' + (auHangar > b.par ? 'REMPLIR AU COMPTOIR'
+                                                      : 'ACHETER AU COMPTOIR'));
     alerteStock = 6;
   }
   return Math.max(0, possible);
@@ -12638,8 +12705,9 @@ function consommerStock(T, n){
   b.cuve.cuveQ = Math.max(0, (b.cuve.cuveQ || 0) - b.par*n);
 }
 /* ---------- REMPLIR ET VIDER UNE CUVE ---------- */
-// La cour de la ferme : c'est là que sont le hangar et le parc à outils, donc là qu'on
-// attelle et qu'on charge. Deux mètres de marge, comme pour les autres quais.
+// La cour de la ferme, à deux mètres près, comme pour les autres quais. Elle n'ouvre
+// plus la cuve — ce geste appartient au comptoir — mais elle reste ce qui dit « on est
+// chez soi », et les bancs s'en servent pour poser une machine à sa place.
 const surLaCour = (v)=> Math.abs(v.pos.x - YARD.x) <= YARD.w/2 + 2
                      && Math.abs(v.pos.z - YARD.z) <= YARD.h/2 + 2;
 // Ce qu'on peut encore mettre dans la cuve d'un outil, pour la matière qu'il attend.
@@ -12821,25 +12889,25 @@ const SERVICES = {
       marchand parle. `CAMPAGNE.prise` reste donc faux tout du long, la Coopérative garde
       sa pastille verte de mission à prendre, et rien du reste du guidage ne bouge. */
 const TUTO = [
-  {cle:'labour', ou:'champ', titre:'PRÉPARER LA PARCELLE',
+  {cle:'labour', ou:'champ', engin:'t1', titre:'PRÉPARER LA PARCELLE',
    txt:'PRÉPARER LA PARCELLE — attelle la charrue et travaille le sol',
    fait:()=> parcelleTravaillee()},
-  {cle:'semis', ou:'champ', titre:'SEMER DU BLÉ',
+  {cle:'semis', ou:'champ', engin:'t1', titre:'SEMER DU BLÉ',
    txt:'SEMER DU BLÉ — attelle le semoir et sème ta première parcelle',
    fait:()=> PARCELS.some((p)=> p.owned && (p.pousseN || 0) > 0)},
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
    txt:'LAISSER POUSSER — le blé mûrit, la moisson vient',
    fait:()=> PARCELS.some((p)=> p.owned && (p.murN || 0) > 0)},
-  {cle:'recolte', ou:'champ', titre:'PREMIÈRE RÉCOLTE',
+  {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
    txt:'PREMIÈRE RÉCOLTE — moissonne au moins 30 kg de blé',
    fait:()=> bleRentre() >= 30},
-  {cle:'silo', ou:'silo', titre:'STOCKER LA RÉCOLTE',
+  {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
    txt:'STOCKER LA RÉCOLTE — décharge ton blé dans le silo',
    fait:()=> siloStock.ble >= 29.9},
-  {cle:'charger', ou:'silo', titre:'PRÉPARER LA LIVRAISON',
+  {cle:'charger', ou:'silo', engin:'pickup', titre:'PRÉPARER LA LIVRAISON',
    txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
    fait:()=> bleABord() >= 29.9},
-  {cle:'vendre', ou:'Coopérative', titre:'PREMIÈRE VENTE',
+  {cle:'vendre', ou:'Coopérative', engin:'pickup', titre:'PREMIÈRE VENTE',
    txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
    fait:()=> false}          // elle se solde en prenant la mission, pas par un test
 ];
@@ -12866,6 +12934,19 @@ function etapeTuto(){
   return (L && CAMPAGNE.tuto < L.length) ? L[CAMPAGNE.tuto] : null;
 }
 const tutoActif = ()=> !!etapeTuto();
+/* QUEL ENGIN L'ÉTAPE DEMANDE, ET SEULEMENT S'IL FAUT EN CHANGER.
+   Le tutoriel disait « moissonne au moins 30 kg » à qui pilotait encore son tracteur, et
+   rien ne disait laquelle des machines de la cour prendre ni par où : le bouton du parc
+   ressemblait à ses deux voisins et la moissonneuse était une silhouette parmi six. Le
+   bouton bat donc en jaune, et une flèche jaune descend sur la machine à prendre.
+   Rien n'est verrouillé — on peut labourer avec le tracteur bleu si on l'a — c'est une
+   indication, et elle s'éteint dès qu'on est monté dedans. */
+function enginTuto(){
+  const E = etapeTuto();
+  if(!E || !E.engin) return null;
+  const m = MACHINES.find((x)=> x.key === E.engin);
+  return (!m || m.verrou || m === MACHINES[cur]) ? null : m;
+}
 /* CE QUI SE MESURE, ET CE QUE ÇA COÛTE. `resumeParcelle` rebalaie la grille d'une
    parcelle — neuf cents cellules — et c'est le SEUL moyen du fichier de distinguer une
    terre labourée d'une jachère : `parcelleDe()` ne rend jamais 'labourer'. On ne le paie
@@ -12908,6 +12989,18 @@ function lieuTuto(E){
    traverse plusieurs étapes d'un coup quand il le faut — un joueur qui arrive avec sa
    benne déjà pleine saute quatre cases sans qu'on lui repose quatre questions — et le
    compteur de sécurité empêche qu'un test toujours vrai la fasse tourner sans fin. */
+/* L'ÉTAPE S'ANNONCE DANS LA FENÊTRE, PLUS DANS LE BANDEAU FUGACE. Le bandeau ne portait
+   que le titre, deux secondes, en haut d'un écran où l'on regarde la route : le joueur a
+   dit ne pas le voir. La même fenêtre que la fin de mission le dit en grand, avec la
+   phrase qui explique quoi faire — et le bandeau du bas garde la consigne tout du long,
+   pour quand on l'a fermée. Le titre du texte est retiré : il est déjà au-dessus. */
+function annoncerEtape(E){
+  const detail = (E.txt || '').split(' — ').slice(1).join(' — ');
+  annoncerFenetre({titre:E.titre, sous:detail || E.txt || '', gains:[], etape:true,
+                   duree:5.0,
+                   suite:E.ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
+                                          : 'Suis le cercle jaune — ' + E.ou});
+}
 function veillerTuto(){
   const L = listeEtapes();
   if(!L) return;
@@ -12915,7 +13008,7 @@ function veillerTuto(){
   while(CAMPAGNE.tuto < L.length && L[CAMPAGNE.tuto].fait() && n++ <= L.length){
     CAMPAGNE.tuto++;
     const E = L[CAMPAGNE.tuto];
-    if(E) showHint(E.titre);
+    if(E) annoncerEtape(E);
   }
 }
 function objectifMission(){
@@ -14435,7 +14528,19 @@ function actionsAuSite(m, S){
      La vente libre, elle, garde son curseur et le joueur décide seul.
 
      Les deux lignes coexistent donc devant un commerce qui a une commande en cours, et
-     celle de la commande passe la première : c'est ce qu'on est venu faire. */
+     celle de la commande passe la première : c'est ce qu'on est venu faire.
+
+     SAUF PENDANT UNE MISSION. Là, le joueur trouvait deux boutons jumeaux — « LIVRER LA
+     COMMANDE — BLÉ 30 T » et « VENDRE BLÉ » — sans rien qui dise lequel fait avancer la
+     mission. Les deux la faisaient avancer, mais l'un vidait toute la benne. Tant que la
+     mission attend CETTE marchandise ICI, elle est donc seule à s'afficher ; la vente
+     libre revient d'elle-même dès la commande comblée. */
+  const misAttend = (()=>{
+    const M = missionVisible();
+    if(!M || M.faire || !T || M.lieu !== S.nom) return false;
+    return M.lignes.some((l, i)=> l.cle === T.type
+      && l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01);
+  })();
   if(porte){
     const reste = resteCommande(S.nom, T.type);
     if(reste > 0.01 && (acheteMaintenant(S, T.type) || accepteMaintenant(S, T.type)))
@@ -14444,7 +14549,7 @@ function actionsAuSite(m, S){
                 txt:'LIVRER LA COMMANDE — ' + qteNomHaut(T.type, Math.min(reste, T.load))
                     + (T.load < reste - 0.01 ? ' SUR ' + qteHaut(T.type, reste) : '')});
   }
-  if(porte && acheteMaintenant(S, T.type)){
+  if(porte && !misAttend && acheteMaintenant(S, T.type)){
     // La place restante figure dans le libellé : sans elle, on vide sa benne en
     // croyant tout vendre et l'on repart avec les trois quarts.
     const pl = placeChez(S, T.type);
@@ -14453,7 +14558,7 @@ function actionsAuSite(m, S){
                   ' ' + parUniteTxt(T.type).toUpperCase() +
                   (pl < Infinity ? ' · ' + qteHaut(T.type, Math.min(pl, T.load)) : '')});
   }
-  if(porte && accepteMaintenant(S, T.type))
+  if(porte && !misAttend && accepteMaintenant(S, T.type))
     out.push({sens:'verser', lieu:S.nom, S:S, cle:T.type, txt:'LIVRER ' + nomHaut(T.type)});
   if(place && !S.caisse) for(const k in S.stock)
     if(S.stock[k] > 0.01 && peutCharger(T, k))
@@ -14525,8 +14630,12 @@ function empechementsIci(m){
      && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r)
      && siloStock[T.type] !== undefined)
     dit('RANGER ' + nomHaut(T.type), 'LES CÉRÉALES SE RENTRENT AU SILO');
-  // au silo et à l'entrepôt : dire qu'il manque le contenant plutôt que rien
-  if(!T){
+  /* AU SILO ET À L'ENTREPÔT : DIRE QU'IL MANQUE LE CONTENANT PLUTÔT QUE RIEN — MAIS
+     SEULEMENT À QUI PEUT EN PRENDRE UN. La moissonneuse n'a pas d'attelage : arrivé au
+     silo pour y vider sa trémie, on lisait « CHARGER AU SILO — IL FAUT UNE BENNE OU UN
+     UTILITAIRE » sous la seule ligne qui servait. Un conseil qu'on ne peut pas suivre
+     n'est pas un empêchement, c'est du bruit. */
+  if(!T && m.key !== 'moisson'){
     if(prochePoint(v, SILO.x, SILO.z, SILO.r) && siloTotal() > 0.5)
       dit('CHARGER AU SILO', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
     if(ENTREPOT.quai && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r)
@@ -15131,12 +15240,15 @@ const ARRET = 0.35;                       // m/s : au-dessous, l'engin est à l'
 function actionService(){
   const m = MACHINES[cur], v = m.v;
   if(v.speed > ARRET){ armePature = 0; return null; }
-  /* REMPLIR LA CUVE DE L'OUTIL. Deux endroits, et ce sont les deux bons : la cour de la
-     ferme, où sont le hangar et le parc à outils, et le comptoir agricole, où l'on vient
-     acheter — on repart chargé au lieu de refaire le trajet. */
+  /* REMPLIR LA CUVE DE L'OUTIL : AU COMPTOIR, ET NULLE PART AILLEURS. La cour le
+     proposait aussi, et c'était une fausse commodité — on attelait le semoir, on
+     s'arrêtait n'importe où chez soi, et le bandeau demandait de le remplir alors que
+     rien ne disait ce qu'il restait au hangar. Le geste appartient au comptoir : on y
+     voit le bac, on y achète, on repart chargé. Ce qui reste dans la cuve, lui, se lit
+     en haut à droite pendant tout le travail. */
   const outil = toolOf(m);
   const cuves = [];
-  if(outil && outil.cuveMax && (surLaCour(v) || aQuai(v, COMPTOIR))){
+  if(outil && outil.cuveMax && aQuai(v, COMPTOIR)){
     const eng = outil.key === 'engrais';
     const cle = eng ? null : CROPS[outil.crop || 0].cle;
     const perenne = !eng && CROPS[outil.crop || 0].perenne;
@@ -15536,6 +15648,39 @@ function ciblesGuidage(){
    l'atelier n'ont pas d'anneau à eux, et ce sont pourtant deux maillons sur trois d'une
    chaîne de farine. Trois cercles suffisent : une chaîne en compte au plus cinq, et les
    commerces, le silo, l'entrepôt et les enclos portent déjà le leur. */
+/* LA FLÈCHE QUI DÉSIGNE L'ENGIN À PRENDRE. Elle ne sert qu'au tutoriel, et il n'y en a
+   jamais qu'une : on la fabrique à la première demande et on la range en la rendant
+   invisible. Pas de `renderOrder` sur le groupe — posé là il devient le `groupOrder` de
+   ses enfants, comparé AVANT le renderOrder, et la flèche passerait devant tout. */
+let flecheEngin = null;
+function creerFlecheEngin(){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({color:0xFAD201, transparent:true, opacity:0.92,
+                                           depthWrite:false, fog:false});
+  const pointe = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.5, 4), mat);
+  pointe.rotation.x = Math.PI;                 // la pointe vers le bas, vers la machine
+  pointe.position.y = 0.75;
+  const tige = new THREE.Mesh(new THREE.BoxGeometry(0.40, 1.4, 0.40), mat);
+  tige.position.y = 2.2;
+  pointe.renderOrder = 5; tige.renderOrder = 5;
+  g.add(pointe); g.add(tige);
+  // Elle bat : ce qui recense le décor FIXE ne doit pas la compter.
+  g.userData.anime = pointe.userData.anime = tige.userData.anime = true;
+  g.visible = false;
+  scene.add(g);
+  return g;
+}
+function veillerFlecheEngin(now){
+  const m = enginTuto();
+  if(!m){ if(flecheEngin) flecheEngin.visible = false; return; }
+  if(!flecheEngin) flecheEngin = creerFlecheEngin();
+  flecheEngin.visible = true;
+  const P = m.v.pos;
+  // Elle monte et descend d'un demi-mètre, et tourne lentement : c'est le mouvement
+  // qu'on voit du coin de l'œil, pas la couleur.
+  flecheEngin.position.set(P.x, 3.9 + Math.sin(now/1000*2.2)*0.38, P.z);
+  flecheEngin.rotation.y = now/1000*0.9;
+}
 const CERCLES_MOBILES = 3;
 const mobiles = [];
 function creerMobile(){
@@ -15548,7 +15693,11 @@ function creerMobile(){
   const ce = new THREE.Mesh(new THREE.CircleGeometry(ANNEAU_R - ANNEAU_EP, 40), mat(0.30));
   ce.rotation.x = -Math.PI/2; ce.position.y = 0.10;
   g.add(li); g.add(ce);
-  g.renderOrder = 3;
+  /* SUR LES MAILLAGES, PAS SUR LE GROUPE. Posé sur un `Group`, `renderOrder` devient le
+     `groupOrder` de ses enfants — et le tri des transparents compare le groupOrder AVANT
+     le renderOrder. Ces deux cercles passaient donc devant TOUT, enseignes comprises,
+     quel que soit l'ordre qu'on donnait aux enseignes. */
+  li.renderOrder = 3; ce.renderOrder = 3;
   // Ils battent : ce qui recense le décor FIXE ne doit pas les compter.
   g.userData.anime = li.userData.anime = ce.userData.anime = true;
   g.visible = false;
@@ -16145,7 +16294,7 @@ function vueComptoirCuves(){
       (T ? lHaut(T.nom).charAt(0) + lHaut(T.nom).slice(1).toLowerCase() +
            ' n\'a pas de cuve : la charrue travaille la terre, la benne transporte.'
          : 'Aucun outil à cuve attelé. Le semoir et l\'épandeur se prennent au parc à ' +
-           'outils de la ferme, et se remplissent ici comme à la cour.') +
+           'outils de la ferme, et c\'est ici — et seulement ici — qu\'ils se remplissent.') +
       '</div></div>';
     hote.appendChild(d);
     return;
@@ -16886,13 +17035,18 @@ function ongletCampagne(){
   const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
   const reste = Math.max(0, Math.ceil(b1 - CAMPAGNE.xp));
-  titre('Niveau ' + n + ' — ' + N.nom);
-  article(0xFAD201, N.resume,
+  titre(MODE_LIBRE ? 'Expérience — niveau ' + n : 'Niveau ' + n + ' — ' + N.nom);
+  article(0xFAD201, MODE_LIBRE ? 'Aucun palier ne verrouille quoi que ce soit' : N.resume,
     Math.round(CAMPAGNE.xp) + ' XP' +
     (n < NIVEAUX.length ? '  ·  encore <span class="q">' + reste + ' XP</span> pour le niveau ' + (n+1)
                         : '  ·  dernier palier') +
-    '<br>Droit à ' + (N.parcelles > 90 ? 'toute la vallée' : N.parcelles + ' parcelle' +
-      (N.parcelles > 1 ? 's' : '')) + ' · ' + PARCELS.filter((p)=> p.owned).length + ' possédée' +
+    /* LE DROIT SE LIT LÀ OÙ IL EST CALCULÉ. Cette ligne relisait `N.parcelles`, le
+       plafond du PALIER, et annonçait donc « Droit à 1 parcelle » en mode libre, où
+       aucun palier ne verrouille rien et où l'on peut acheter toute la vallée.
+       `parcellesPermises()` est la seule fonction que l'achat consulte vraiment. */
+    '<br>Droit à ' + (parcellesPermises() > 90 ? 'toute la vallée'
+                      : parcellesPermises() + ' parcelle' + (parcellesPermises() > 1 ? 's' : ''))
+      + ' · ' + PARCELS.filter((p)=> p.owned).length + ' possédée' +
       (PARCELS.filter((p)=> p.owned).length > 1 ? 's' : ''),
     'Niveau ' + n, 'ok', null);
 
@@ -17777,12 +17931,11 @@ function lancerPartie(){
      met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
      dans la partie : s'en servir ici les arrêterait tous. */
   if(tutoActif() && CAMPAGNE.tuto === 0){
-    bravoPages = [{titre:'NOUVELLE EXPLOITATION', gains:[],
+    annoncerFenetre({titre:'NOUVELLE EXPLOITATION', gains:[],
       sous:'Cette ferme est maintenant entre vos mains.<br>' +
            'Commençons par votre première récolte.',
-      suite:TUTO[0].titre}];
-    bravoI = 0;
-    peindreBravo();
+      suite:TUTO[0].titre});
+    annoncerEtape(TUTO[0]);
   }
 }
 (function ouvrirAccueil(){
@@ -17968,16 +18121,22 @@ function loop(now){
       chimT = 0.16 + Math.random()*0.14;
     }
     for(const S of SITES) if(S.logo) S.logo.rotation.y += dt*0.9;
+    veillerFlecheEngin(now);
     /* LES BULLES SE TOURNENT VERS LE REGARD, ET FLOTTENT DOUCEMENT.
        Le lacet seul : `atan2` du vecteur bulle → caméra, dans le plan du sol. Le panneau
        reste donc droit quelle que soit la hauteur de la caméra — c'est ce qui le rend
        lisible, un sprite se couchant en arrière pour se mettre perpendiculaire à l'axe
        de vue. Quinze bulles, deux fonctions trigonométriques chacune : trente par image,
        de quoi ne rien coûter du tout. */
-    // Les bulles flottent doucement. Leur ORIENTATION, elle, se pose plus bas, une fois
-    // la caméra déplacée : la calculer ici la ferait suivre d'une image.
+    /* ELLES NE FLOTTENT PLUS QU'À PEINE. Trente-deux centimètres de battement, c'était
+       un tiers de la hauteur du panneau : quinze enseignes qui montaient et descendaient
+       chacune à son rythme faisaient bouger tout l'horizon, et l'on cherchait celle
+       qu'on voulait lire. Cinq centimètres, et deux fois plus lentement : il reste juste
+       de quoi distinguer une enseigne d'un élément du décor. Leur ORIENTATION, elle, se
+       pose plus bas, une fois la caméra déplacée : la calculer ici la ferait suivre
+       d'une image. */
     for(const B of BULLES)
-      B.m.position.y = B.y0 + Math.sin(now/1000*1.3 + B.ph)*0.32;
+      B.m.position.y = B.y0 + Math.sin(now/1000*0.65 + B.ph)*0.05;
     // Anneaux d'action : jaune et pulsant quand l'action est possible, blanc et fixe
     // sinon. La bascule est amortie (A.k) plutôt qu'immédiate — sans ça, rouler le long
     // d'une rangée de commerces ou finir de charger une benne fait clignoter la carte.
@@ -18102,6 +18261,7 @@ function loop(now){
     refreshCommandes();
     veillerBulles();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
+    enginsEl.classList.toggle('appel', !!enginTuto());
     refreshChoix(); refreshService(); refreshJauges();
   }
   /* LES FLÈCHES SUIVENT LA CAMÉRA, PAS L'INTERFACE. Elles étaient rafraîchies avec le

@@ -944,11 +944,14 @@ vider dans une cuve qu'on ne sait pas encore remplir, ferait échouer la premiè
 rien expliquer. Cinquante kilos de blé dedans, dix-huit au hangar : deux parcelles, ce qu'il
 faut très exactement pour la première mission et la suivante.
 
-Le bouton de culture porte le chiffre — « BLÉ 50 » — et **passe au rouge à zéro**. Depuis que
+Le bouton de culture porte **le nom et une jauge**, et **passe au rouge à zéro**. Depuis que
 le semoir porte ses graines, tomber en panne au milieu d'un rang est possible ; le seul endroit
-où l'on regarde en semant, c'est ce bouton, et c'est donc là que le chiffre doit être. Le
-message qui suit ne dit pas la même chose selon ce qui manque : *remplir à la cour* si le
-hangar a de quoi, *au comptoir agricole* s'il est vide lui aussi.
+où l'on regarde en semant, c'est ce bouton, et c'est donc là que la cuve doit se lire. Elle s'y
+lisait en chiffres — « BLÉ 47 », « BLÉ 46 », « BLÉ 45 », un nombre qui défile à chaque cellule
+semée, et c'est justement ce qu'on ne peut pas lire en conduisant. Une barre de trente-six
+pixels dit la même chose sans qu'on ait à la lire, et dit en plus la **part** de cuve, ce que
+le chiffre nu ne disait pas. Le message qui suit ne dit pas la même chose selon ce qui manque :
+*remplir au comptoir* si le hangar a de quoi, *acheter des semences* s'il est vide lui aussi.
 
 ### L'élevage se compte à la bête
 
@@ -1282,6 +1285,21 @@ commerce qui s'ouvre, une mission qui change ce qu'elle attend — et rien n'ét
 pilote graphique. Trente repeintes laissaient trente textures de 560 pixels derrière elles.
 Elles sont maintenant `dispose()`ées, géométrie comprise : **87 textures avant, 87 après**.
 
+**Elles ne flottent plus qu'à peine.** Trente-deux centimètres de battement, c'était un
+tiers de la hauteur du panneau : quinze enseignes qui montaient et descendaient chacune à
+son rythme faisaient bouger tout l'horizon, et l'on cherchait celle qu'on voulait lire.
+Cinq centimètres, et deux fois plus lentement — mesuré à **0,10 m creux à crête** sur une
+période contre 0,64 auparavant. Il reste juste de quoi distinguer une enseigne d'un élément
+du décor.
+
+**Et elles passent devant les cercles au sol.** Un cercle jaune posé devant un commerce se
+dessinait *par-dessus* son enseigne, et l'on ne lisait plus le nom de celui chez qui on
+allait. Le piège est dans three.js : `renderOrder` posé sur un `Group` devient le
+`groupOrder` de ses enfants, et le tri des transparents compare le **groupOrder avant le
+renderOrder**. Les cercles mobiles passaient donc devant tout, quel que soit l'ordre donné
+aux enseignes. L'ordre se pose maintenant sur les maillages — 3 pour les cercles, 6 pour
+les enseignes — et le nom se lit.
+
 ## Le garage : acheter, améliorer
 
 Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat
@@ -1448,11 +1466,36 @@ de fête, qui a exactement ce qu'il faut : du texte centré, une animation, un d
 passer, et surtout **aucune pause**. L'écran d'accueil, lui, met le jeu en pause et porte les
 boutons `.accbtn.pri` par lesquels dix bancs entrent dans la partie.
 
+**Chaque étape s'annonce dans cette même fenêtre.** Elle ne passait que par le bandeau
+fugace du haut — le titre, deux secondes, là où l'on regarde la route : on ne le voyait
+pas. La fenêtre le dit en grand, avec la phrase qui explique quoi faire, et le bandeau du
+bas garde la consigne tout du long, pour quand on l'a fermée. Une annonce qui tombe pendant
+qu'une autre défile **prend la file** au lieu d'effacer ce qu'on est en train de lire.
+
+**Et la fenêtre est une vraie boîte.** Ces mots-là tombaient sur un champ de blé au soleil
+ou sur une façade claire, et l'on ne les lisait pas — c'est vrai de la fin de mission comme
+des étapes. Ils prennent donc le fond, le rayon et l'ombre portée de la fenêtre des
+missions, au jaune près, qui est la couleur du guidage. Le titre d'une étape passe à quinze
+pixels et quatre d'interlettrage : « PRÉPARER LA PARCELLE » à vingt-six et onze déborde d'un
+écran de téléphone en paysage. La boîte n'attrape pas le doigt ailleurs que sur elle-même —
+on continue de conduire.
+
+**Le tutoriel désigne aussi le véhicule.** Il disait « moissonne au moins 30 kg » à qui
+pilotait encore son tracteur, sans dire laquelle des six machines de la cour prendre. Chaque
+étape porte donc l'engin qu'elle demande ; quand ce n'est pas celui qu'on pilote, le bouton
+du parc **bat en jaune** et une **flèche jaune** descend sur la machine à prendre, à quatre
+mètres du sol, en tournant lentement. Rien n'est verrouillé — on peut labourer avec le
+tracteur bleu si on l'a — c'est une indication, et elle s'éteint dès qu'on est monté dedans.
+
 ### Un préambule, et un seul
 
 Le même mécanisme sert quand un client demande d'aller chercher quelque chose avant de
 pouvoir le servir. La **troisième mission** présente l'épandeur : au garage pour l'acheter,
-au comptoir pour le remplir, puis la chaîne normale reprend. Deux étapes qui **indiquent et
+au comptoir pour acheter l'engrais, puis la chaîne normale reprend. La seconde étape
+s'intitulait *« remplir l'épandeur »* mais ne regardait que la cuve de l'outil : le joueur
+achetait ses vingt-cinq kilos au comptoir, les voyait arriver au bac, et l'étape restait
+jaune. Acheter suffit ; le transvasement dans la cuve est le geste d'après, et il la
+franchit aussi. Deux étapes qui **indiquent et
 ne bloquent rien** — livrer les cent cinquante kilos sans avoir acheté l'épandeur solde
 quand même la mission, et l'engrais redevient facultatif dès la suivante, comme le cahier
 des charges le demande.
@@ -1540,6 +1583,12 @@ bêtes, remplir une benne et maintenant acheter au kilo.
 se faisait déjà ici, mais par un bouton flottant à quai, sans qu'on puisse voir ce qu'il
 restait au hangar. C'est pourtant le geste qui suit l'achat — on vient acheter vingt-cinq
 kilos, et l'on veut repartir avec.
+
+**Et c'est ici, et nulle part ailleurs.** La cour de la ferme le proposait aussi, et c'était
+une fausse commodité : on attelait le semoir, on s'arrêtait n'importe où chez soi, et le
+bandeau demandait de le remplir alors que rien ne disait ce qu'il restait au hangar. Le
+geste appartient au comptoir — on y voit le bac, on y achète, on repart chargé. Ce qui reste
+dans la cuve, lui, se lit en haut à droite pendant tout le travail.
 
 `ongletComptoir()` déroule toujours les trois vues à la suite : l'aiguillage du menu n'a pas
 de repli, et trois bancs lisent encore le comptoir dans `#pliste`.
@@ -2039,6 +2088,18 @@ pas. Le même enclos annonce désormais :
 
 L'entrepôt explique de même qu'il ne prend pas les céréales — elles se rentrent au silo —
 au lieu de rester muet.
+
+**Mais seulement à qui peut y remédier.** La moissonneuse n'a pas d'attelage : arrivé au
+silo pour y vider sa trémie, on lisait « CHARGER AU SILO — IL FAUT UNE BENNE OU UN
+UTILITAIRE » sous la seule ligne qui servait. Un conseil qu'on ne peut pas suivre n'est pas
+un empêchement, c'est du bruit. Le tracteur nu, lui, garde la ligne : il *peut* atteler une
+benne.
+
+**Et pendant une mission, une seule ligne.** Devant un commerce qui attend une livraison,
+le joueur trouvait deux boutons jumeaux — « LIVRER LA COMMANDE — BLÉ 30 KG » et « VENDRE
+BLÉ » — sans rien qui dise lequel fait avancer la mission. Les deux la faisaient avancer,
+mais l'un vidait toute la benne. Tant que la mission attend *cette* marchandise *ici*, elle
+est donc seule à s'afficher ; la vente libre revient d'elle-même dès la commande comblée.
 
 **Un curseur de quantité, mais pas pour un dépôt.** Il s'ouvrait sur TOUT transfert de
 plus de deux kilos : rentrer une benne au silo demandait deux appuis — l'action, puis
@@ -2587,6 +2648,24 @@ le doigt qui désigne le bouton actif à chaque déplacement : gauche → droite
 → frein, sans décoller. L'écart entre deux boutons ne relâche rien — tant que le doigt
 reste dans le cadre du groupe on garde le dernier appuyé, sinon traverser les six pixels
 du milieu couperait les gaz le temps d'une image.
+
+**Et aucun appui ne se perd.** Deux symptômes, une même cause : « parfois j'appuie et ça
+ne fait rien », « parfois un bouton reste enclenché même quand je relâche ». L'état des
+flèches et des pédales était **recopié à la main**, à trois endroits, à partir
+d'événements qui n'arrivent pas toujours — un `pointerup` qui part sur le calque d'un menu
+venu se poser par-dessus, un écran qui se verrouille sans rien émettre du tout, un
+changement de mode qui cache l'élément en pleine capture.
+
+Il n'y a plus qu'**une source de vérité** : la table des pointeurs de chaque groupe. `.on`
+et `BTN` en sont *déduits* à chaque changement, et `relacherCommandes()` rend tout d'un
+seul appel — à l'ouverture d'un menu, d'une fenêtre, du parc ou d'un curseur, quand
+l'onglet passe derrière, quand le téléphone tourne, à chaque changement de mode. Trois
+détails complètent le remède : le bouton sous le doigt se trouve par sa **boîte** avec six
+pixels de tolérance (`.dir.on` rétrécit la flèche de sept pour cent — le dessin se
+dérobait sous le doigt et le voisin répondait à sa place) ; on écoute
+`lostpointercapture`, seul événement émis quand un élément est caché pendant la capture ;
+et `touch-action:none` sur les quatre commandes empêche un geste du navigateur de voler le
+doigt en chemin. Dix-sept contrôles rejouent les neuf chemins connus.
 
 ## Deux détails d'engin
 
