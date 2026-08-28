@@ -1209,7 +1209,7 @@ for(const c of P_COLS) for(const r of P_ROWS){
      doubler de prix indéfiniment, sans quoi les dernières parcelles ne se prennent
      jamais. Le total reste du même ordre qu'avant, à peu près deux millions et demi ;
      c'est sa RÉPARTITION qui change, et avec elle les vingt premières minutes. */
-  const GRILLE = [1200, 2500, 4500, 7500, 12000, 18000, 27000, 40000, 60000,
+  const GRILLE = [1000, 1800, 3500, 5500, 8000, 12000, 18000, 27000, 40000,
                   73000, 89000, 109000, 133000, 162000, 198000, 241000,
                   294000, 359000, 438000, 534000, 651000];
   rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
@@ -1414,6 +1414,11 @@ const qte      = (cle, v)=> Math.round(enUnites(cle, v)).toLocaleString('fr-FR')
 const qteHaut  = (cle, v)=> Math.round(enUnites(cle, v)) + ' ' + uniteDe(cle).toUpperCase();
 // Le prix dans l'unité officielle : 0,20 € l'œuf là où le stock en compte 3,33 le kilo.
 const prixUnite = (cle)=> prixDe(cle)/parKgDe(cle);
+/* L'INVERSE, pour ÉCRIRE une quantité. Une commande se pense dans l'unité officielle —
+   « vingt-quatre œufs », « cent quarante litres de vin » — et se stocke en kilos. Écrire
+   1,44 dans une table de missions ne dit rien à personne ; `u2kg('oeufs', 24)` se relit,
+   et c'est le seul endroit où la conversion apparaît. */
+const u2kg = (cle, u)=> u/parKgDe(cle);
 // Comment on dit ce prix : « € / kg », « € / L », « € pièce ».
 const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce' : '€ / ' + uniteDe(cle);
 // Le singulier, pour les tournures « par litre apporté », « par œuf engagé ».
@@ -1497,12 +1502,16 @@ function fabriquer(U, dt, plafond){
     if(q <= 0.0001) return 0;
     U.tremie[meilleur] -= q;
     U.stock[cle] = (U.stock[cle] || 0) + q*P.rendement;
+    if(cle === 'alimentPlus') STAT.alimentPlus += q*P.rendement;
     return q;
   }
   for(const k in ent) q = Math.min(q, (U.tremie[k] || 0)/ent[k]);
   if(q <= 0.0001) return 0;
   for(const k in ent) U.tremie[k] -= q*ent[k];
   U.stock[cle] = (U.stock[cle] || 0) + q*P.rendement;
+  // Compté À LA SOURCE : ce qui sort de l'atelier, et non ce qui reste en
+  // magasin — un lot vendu compte autant qu'un lot gardé.
+  if(cle === 'alimentPlus') STAT.alimentPlus += q*P.rendement;
   return q;
 }
 
@@ -1528,13 +1537,13 @@ const HALLE = {x: 84, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
    toujours le même temps à passer au moulin. */
 const ATELIER_MODULES = [
   {cle:'farine',        module:'Moulin',                prix:650,   duree:90},
-  {cle:'aliment',       module:'Broyeur',               prix:1400,  duree:65},
-  {cle:'alimentPlus',   module:'Mélangeur premium',     prix:3200,  duree:130},
-  {cle:'fromage',       module:'Fromagerie',            prix:6000,  duree:400},
-  {cle:'fromageBrebis', module:'Fromagerie de brebis',  prix:11000, duree:530},
+  {cle:'aliment',       module:'Broyeur',               prix:700,   duree:65},
+  {cle:'alimentPlus',   module:'Mélangeur premium',     prix:1200,  duree:130},
+  {cle:'fromage',       module:'Fromagerie',            prix:1800,  duree:400},
+  {cle:'fromageBrebis', module:'Fromagerie de brebis',  prix:1600,  duree:530},
   {cle:'huile',         module:'Pressoir à colza',      prix:18000, duree:265},
   {cle:'huileOlive',    module:'Pressoir à olives',     prix:30000, duree:400},
-  {cle:'vin',           module:'Cave',                  prix:48000, duree:530}
+  {cle:'vin',           module:'Cave',                  prix:4500,  duree:530}
 ];
 const moduleDe = (cle)=> ATELIER_MODULES.find((M)=> M.cle === cle) || null;
 // Le palier de campagne d'un module, c'est sa place dans le tableau : les deux listes
@@ -1907,6 +1916,17 @@ const CAMPAGNE = {niveau:1, xp:0, mission:0};
 /* Ce que chaque palier ouvre. Une famille par colonne, la clé de l'objet dans la
    famille. `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder — un
    compte, pas une liste, parce que le joueur choisit lesquelles. */
+/* LES VINGT PALIERS. Chacun ouvre CE QUE LA MISSION SUIVANTE VA DEMANDER, et pas ce
+   qu'elle vient de faire gagner : une mission qui réclame de la farine doit trouver le
+   moulin déjà en vente quand elle se présente. Le barème donne le « niveau après » —
+   celui où l'on arrive une fois la mission finie — et les ouvertures sont donc posées un
+   cran plus tôt, au palier où la mission s'affiche. Un banc parcourt les trente missions
+   et vérifie qu'aucune ne demande quelque chose d'encore verrouillé.
+
+   `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder. Il tient compte
+   de ce que la campagne oblige à garder en terre : le blé jusqu'au bout, le colza, les
+   olives et la vigne qui sont permanentes, et les cinq enclos, qui le sont aussi. À
+   chaque palier le droit couvre le besoin — le même banc le vérifie. */
 const NIVEAUX = [
   {nom:'Le fermier', resume:'Le blé, la coopérative, une parcelle',
    cultures:['ble'], outils:['labour', 'semis', 'benne'], engins:['t1', 'moisson', 'pickup'],
@@ -1915,33 +1935,42 @@ const NIVEAUX = [
    outils:['engrais'], parcelles:1},
   {nom:'Première transformation', resume:'Le moulin, la farine, la boulangerie',
    modules:['farine'], sites:['Boulangerie'], parcelles:1},
-  {nom:'Expansion', resume:'Une deuxième parcelle et le maïs',
-   cultures:['mais'], engins:['t2'], parcelles:2},
-  {nom:'Élevage léger', resume:'Le broyeur, les poules, le marché',
-   modules:['aliment'], especes:['poule'], sites:['Marché'], parcelles:2},
-  {nom:'L\'orge', resume:'Une troisième parcelle, l\'orge et la brasserie',
-   cultures:['orge'], engins:['fourgon'], sites:['Brasserie'], parcelles:3},
-  {nom:'L\'avoine', resume:'L\'avoine, son usine, et l\'aliment premium',
-   cultures:['avoine'], modules:['alimentPlus'], especes:['ruche'],
-   sites:['Usine avoine'], parcelles:3},
-  {nom:'Les vaches', resume:'Le lait, la laiterie, la fromagerie du village',
-   especes:['vache'], sites:['Laiterie', 'Fromagerie'], parcelles:4},
-  {nom:'Fromage fermier', resume:'La fromagerie de la ferme et le restaurant',
-   modules:['fromage'], engins:['t3'], sites:['Restaurant'], parcelles:5},
-  {nom:'Les moutons', resume:'La laine, le lait de brebis, le fromage de brebis',
-   especes:['mouton', 'brebis'], modules:['fromageBrebis'],
-   sites:['Atelier textile'], parcelles:6},
-  {nom:'Le colza', resume:'Le pressoir et l\'huile de colza',
+  {nom:'Le maïs et les poules', resume:'Une deuxième parcelle, le broyeur, le poulailler',
+   cultures:['mais'], modules:['aliment'], especes:['poule'], parcelles:2},
+  {nom:'Deux chaînes à la fois', resume:'La farine ET les œufs dans la même tournée',
+   parcelles:2},
+  {nom:'L\'orge', resume:'L\'orge, la brasserie, le restaurant',
+   cultures:['orge'], engins:['fourgon'], sites:['Brasserie', 'Restaurant'], parcelles:3},
+  {nom:'L\'avoine', resume:'L\'avoine et son usine',
+   cultures:['avoine'], sites:['Usine avoine'], parcelles:3},
+  {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',
+   modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
+  {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
+   modules:['fromage'], parcelles:4},
+  {nom:'Gros volumes', resume:'Le supermarché et son rayon fermier',
+   sites:['Supermarché'], parcelles:5},
+  {nom:'Les brebis', resume:'La bergerie, la laine, le lait de brebis',
+   especes:['mouton', 'brebis'], sites:['Atelier textile', 'Fromagerie'], parcelles:5},
+  {nom:'Fromage de brebis', resume:'Le produit le mieux payé de la ferme',
+   modules:['fromageBrebis'], parcelles:6},
+  {nom:'L\'apiculture', resume:'Le rucher, le miel, le marché du village',
+   especes:['ruche'], sites:['Marché'], parcelles:6},
+  {nom:'La gamme fermière', resume:'Farine, œufs et miel dans la même commande',
+   parcelles:7},
+  {nom:'Le colza', resume:'Le colza et le pressoir',
    cultures:['colza'], modules:['huile'], parcelles:7},
   {nom:'Les olives', resume:'L\'oliveraie, l\'enjambeuse, l\'huile d\'olive',
    cultures:['olives'], engins:['enjambeuse'], modules:['huileOlive'], parcelles:8},
-  {nom:'Le raisin', resume:'La vigne, la cave, le caviste',
-   cultures:['raisin'], modules:['vin'], sites:['Caviste'], parcelles:9},
-  {nom:'Les cochons', resume:'L\'engraissement et la boucherie',
-   especes:['cochon'], sites:['Boucherie'], parcelles:10},
-  {nom:'Exploitation complète', resume:'Le supermarché, et toute la vallée à prendre',
-   sites:['Supermarché'], parcelles:99}
+  {nom:'Le raisin', resume:'La vigne, et ce qu\'elle promet',
+   cultures:['raisin'], parcelles:8},
+  {nom:'Le vin', resume:'La cave et le caviste',
+   modules:['vin'], sites:['Caviste'], parcelles:9},
+  {nom:'Les cochons', resume:'La porcherie et la boucherie',
+   especes:['cochon'], sites:['Boucherie'], parcelles:9},
+  {nom:'Exploitation complète', resume:'La grande réception, et toute la vallée à prendre',
+   parcelles:99}
 ];
+
 const FAMILLES_NIV = ['cultures', 'outils', 'engins', 'modules', 'especes', 'sites'];
 /* À quel palier tel objet s'ouvre. La table est retournée UNE FOIS en index inverse :
    les verrous sont relus vingt fois par seconde par l'interface, ils ne peuvent pas
@@ -1965,77 +1994,114 @@ const parcellesPermises = ()=> NIVEAUX[Math.min(NIVEAUX.length, CAMPAGNE.niveau)
        acheter une parcelle, monter un enclos).
    Une mission de campagne ne remplace pas les quatre commandes libres : elle donne la
    direction, elles donnent le rythme. */
+/* LES TRENTE MISSIONS DE LA CAMPAGNE. Une seule court à la fois, la suivante n'apparaît
+   qu'une fois la précédente soldée, et l'ordre raconte l'exploitation qui grandit : le
+   blé, le silo, la vente, la farine, les poules, l'orge, la bière, l'avoine, les vaches,
+   le fromage, les brebis, la laine, les ruches, le colza, les olives, la vigne, les
+   cochons, puis une grande commande où tout se retrouve.
+
+   `prime` est la PRIME DE MISSION. Le joueur touche EN PLUS le prix normal de ce qu'il
+   livre — c'est la règle du barème des acheteurs, et c'est ce qui fait qu'une commande
+   paie toujours mieux qu'une vente libre du même volume.
+
+   Les quantités sont écrites dans l'unité officielle et converties par `u2kg` : le jeu
+   stocke des kilos, le cahier des charges parle en œufs et en litres, et l'on n'écrit
+   nulle part un 1,44 que personne ne sait relire.
+
+   AUCUNE AMÉLIORATION N'EST OBLIGATOIRE. Chaque mission se fait avec le matériel minimum
+   de sa filière ; un tracteur plus rapide, un semoir plus grand ou dix vaches de plus ne
+   font que réduire le nombre de trajets, de remplissages et de cycles d'attente. C'est
+   exactement là que le joueur choisit de dépenser, et personne ne le lui impose. */
 const MISSIONS = [
-  {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:120, xp:20,
-   texte:'La coopérative t\'attend avec 30 kg de blé. Laboure, sème, moissonne, rentre au silo, charge la benne et va livrer.'},
-  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:60}], prime:250, xp:35,
-   texte:'L\'usine de céréales en prend 60 kg d\'un coup, et elle paie mieux que la coopérative.'},
-  {niv:2, faire:'engrais', prime:0, xp:15,
-   texte:'Prends l\'épandeur au garage : la même terre pousse un quart plus vite.',
-   titre:'S\'équiper d\'un épandeur'},
-  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:120}], prime:400, xp:45,
-   texte:'120 kg de blé pour l\'usine — la moitié d\'une parcelle. Avec l\'épandeur, elle vient plus vite.'},
-  {niv:3, faire:'moulin', prime:0, xp:20, titre:'Monter le moulin',
-   texte:'Le moulin s\'installe à l\'atelier de la ferme. 100 kg de blé y donnent 72 kg de farine.'},
-  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:50}], prime:600, xp:70,
-   texte:'50 kg de farine à la boulangerie — soit 70 kg de blé au moulin, un tiers de parcelle. Champ, silo, atelier, entrepôt, benne, client : la chaîne entière.'},
-  {niv:4, faire:'parcelle2', prime:0, xp:30, titre:'Acheter une deuxième parcelle',
-   texte:'Une seule parcelle ne suffira plus. La deuxième se prend au menu Parcelles.'},
-  {niv:4, lieu:'Coopérative', lignes:[{cle:'mais', need:120}], prime:500, xp:80,
-   texte:'Le maïs rend plus au mètre que le blé, mais il pousse plus lentement. 120 kg à la coopérative.'},
-  {niv:5, faire:'poules', prime:0, xp:40, titre:'Monter un poulailler',
-   texte:'Aménage une parcelle en enclos et prends-y trois poules. Elles mangent ton grain et pondent toute la journée.'},
-  /* CENT ŒUFS, ET NON DEUX CENT DIX-SEPT. La commande disait « 13 kg d'œufs » : depuis
-     qu'on les compte à la pièce on voit ce que cela demandait vraiment, et depuis que
-     chaque poule pond pour elle on sait combien de temps — une heure et demie avec un
-     poulailler plein. Le cahier des charges donne lui-même l'exemple d'une commande de
-     CENT œufs, « possible mais lent avec quatre poules » : c'est l'échelle juste, et
-     c'est celle-là. La refonte de la campagne reprendra les trente commandes ensemble ;
-     celle-ci ne pouvait pas attendre, elle bloquait le palier 5. */
-  {niv:5, lieu:'Boulangerie', lignes:[{cle:'farine', need:60}, {cle:'oeufs', need:6}],
-   prime:1200, xp:100,
-   texte:'Première commande à deux chaînes : de la farine ET des œufs, dans la même tournée.'},
-  {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:100}], prime:900, xp:120,
-   texte:'La brasserie ne prend que de l\'orge. 100 kg, et elle brasse elle-même.'},
-  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:100}], prime:1400, xp:150,
-   texte:'100 kg d\'avoine. Tu peux aussi la garder pour l\'aliment premium — c\'est ton arbitrage.'},
-  {niv:8, faire:'vaches', prime:0, xp:60, titre:'Monter une pâture et deux vaches',
-   texte:'Une pâture, deux vaches. Le lait coule tout seul tant que l\'auge est pleine.'},
-  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:80}], prime:2200, xp:170,
-   texte:'80 L de lait à la laiterie — les deux tiers d\'une cuve. Ou garde-le pour le fromage — mais ça, ce sera au palier suivant.'},
-  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:10}, {cle:'farine', need:60}],
-   prime:4000, xp:220,
-   texte:'Le restaurant paie le fromage de ferme au prix fort. 10 kg de fromage — quatre-vingts litres de lait — et 60 kg de farine.'},
-  {niv:10, lieu:'Atelier textile', lignes:[{cle:'laine', need:28}], prime:6000, xp:280,
-   texte:'28 kg de laine à l\'atelier textile. Tes brebis donnent aussi du lait : il fait le fromage le plus cher de la ferme.'},
-  {niv:11, lieu:'Marché', lignes:[{cle:'huile', need:60}], prime:8000, xp:330,
-   texte:'60 L d\'huile de colza au marché. Le colza pousse lentement, le pressoir presse lentement : lance-le et va faire autre chose.'},
-  {niv:12, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:22}], prime:12000, xp:400,
-   texte:'22 L d\'huile d\'olive — cent dix kilos d\'olives. L\'oliveraie reste en place après la récolte.'},
-  {niv:13, lieu:'Caviste', lignes:[{cle:'vin', need:80}], prime:16000, xp:480,
-   texte:'80 L de vin au caviste — cent quinze kilos de raisin. La cave met neuf minutes pour cent kilos de raisin : c\'est la plus longue attente du jeu, et la mieux payée.'},
-  {niv:14, faire:'betes6', prime:20000, xp:560, titre:'Vendre six bêtes à la boucherie',
-   texte:'Six bêtes adultes à la boucherie. Une bête vendue, c\'est un lait ou une laine en moins : à toi de voir.'},
-  {niv:15, faire:'parcelles12', prime:30000, xp:700, titre:'Douze parcelles',
-   texte:'La vallée est ouverte. Douze parcelles, et le supermarché prend tout ce que tu produis.'}
+  {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:200, xp:60,
+   texte:'Bonjour. Commençons simplement : apportez-moi 30 kg de votre première récolte de blé.'},
+  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:300, xp:80,
+   texte:'La Coopérative m\'a parlé de votre récolte. J\'aimerais tester 80 kg de blé.'},
+  {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:600, xp:100,
+   texte:'J\'ai besoin d\'un volume un peu plus important cette fois. Préparez 150 kg.'},
+  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
+   texte:'Votre exploitation prend son rythme. Je peux utiliser 250 kg de blé.'},
+  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1400, xp:150,
+   texte:'J\'aimerais travailler directement avec votre farine. Un premier lot de 72 kg suffira.'},
+  {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1800, xp:170,
+   texte:'Nous voulons maintenant essayer votre maïs. Préparez-moi 180 kg.'},
+  {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:2500, xp:180,
+   texte:'Pour compléter la farine, j\'aimerais désormais acheter vos œufs. Commencez avec 24.'},
+  {niv:5, lieu:'Boulangerie',
+   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2800, xp:200,
+   texte:'Cette fois j\'ai besoin des deux : votre farine et vos œufs.'},
+  {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:200}], prime:3200, xp:220,
+   texte:'Je cherche de l\'orge locale pour une première production. Il me faut 200 kg.'},
+  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3600, xp:240,
+   texte:'La Brasserie prépare une série locale. J\'aimerais en réserver 140 litres.'},
+  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:4000, xp:260,
+   texte:'Nous cherchons un fournisseur d\'avoine. Préparez 200 kg pour notre premier essai.'},
+  {niv:8, faire:'alimentPlus', prime:4500, xp:280, titre:'Produire de l\'aliment premium',
+   texte:'Vos élevages vont bientôt demander davantage. Montez le mélangeur et préparez votre premier aliment premium.'},
+  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:5500, xp:300,
+   texte:'Votre ferme est prête pour l\'élevage laitier. J\'aimerais une première collecte de 200 litres.'},
+  {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:6000, xp:320,
+   texte:'La qualité nous convient. Passez maintenant à 350 litres.'},
+  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:7000, xp:340,
+   texte:'Votre lait est maintenant connu. Je voudrais proposer votre propre fromage fermier.'},
+  {niv:10, lieu:'Supermarché',
+   lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:8000, xp:360,
+   texte:'Nous ouvrons un rayon consacré à votre exploitation. Préparez fromage et œufs.'},
+  {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:8500, xp:380,
+   texte:'Je souhaite tester votre laine sur une première série. Il m\'en faudrait 40 kg.'},
+  {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:9000, xp:400,
+   texte:'J\'aimerais maintenant travailler le lait de vos brebis. Préparez 160 litres.'},
+  {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:9500, xp:420,
+   texte:'Le lait de brebis est très intéressant. J\'aimerais votre propre fromage pour la carte.'},
+  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:10000, xp:450,
+   texte:'La première laine s\'est bien comportée. Cette fois j\'en voudrais 100 kg.'},
+  {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:11000, xp:480,
+   texte:'Plusieurs clients me demandent du miel local. Installez quelques ruches et apportez-moi un premier lot.'},
+  {niv:14, lieu:'Boulangerie',
+   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}, {cle:'miel', need:12}],
+   prime:12000, xp:500,
+   texte:'J\'aimerais préparer une gamme fermière avec vos œufs, votre farine et votre miel.'},
+  {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:13000, xp:520,
+   texte:'Nous avons maintenant une vraie demande sur le colza. Je peux prendre 300 kg.'},
+  {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:14500, xp:560,
+   texte:'Je voudrais remplacer une partie de nos huiles par votre production locale.'},
+  {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:17000, xp:600,
+   texte:'Nous voulons proposer vos olives directement en rayon. Préparez-en 200 kg.'},
+  {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:18000, xp:650,
+   texte:'Les olives ont trouvé leur public. J\'aimerais maintenant recevoir 40 litres d\'huile d\'olive.'},
+  {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:20000, xp:700,
+   texte:'Nous voudrions maintenant ajouter votre raisin à notre gamme locale.'},
+  {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:22000, xp:750,
+   texte:'Votre raisin possède un profil intéressant. Voyons maintenant ce qu\'il donne une fois vinifié.'},
+  {niv:19, faire:'porcs4', prime:26000, xp:850, titre:'Livrer quatre porcs à la boucherie',
+   texte:'Votre élevage est suffisamment développé pour que nous travaillions ensemble. J\'aurais besoin de quatre porcs.'},
+  /* LA DERNIÈRE. Huit marchandises de sept filières différentes : c'est toute
+     l'exploitation qui passe en revue, et c'est pour cela qu'elle vaut quarante mille
+     euros. Rien de neuf à acheter — tout ce qu'elle demande, on l'a déjà monté. */
+  {niv:20, lieu:'Restaurant',
+   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 60)},
+           {cle:'fromage', need:28}, {cle:'fromageBrebis', need:20},
+           {cle:'miel', need:12}, {cle:'huile', need:34},
+           {cle:'huileOlive', need:20}, {cle:'vin', need:140}],
+   prime:40000, xp:1000,
+   texte:'Nous préparons une grande réception autour des producteurs du village. J\'aimerais que votre exploitation fournisse l\'essentiel de la carte.'}
 ];
-/* LES SEUILS D'EXPÉRIENCE SE DÉDUISENT DES MISSIONS, ILS NE SE RÈGLENT PAS.
-   Deux tables réglées à la main finissent toujours par se contredire — un palier
-   qu'on n'atteint pas en faisant exactement ce que le jeu demande, ou un palier
-   franchi avant sa mission. Le seuil du palier n+1, c'est la somme des expériences
-   des missions du palier n et de tous ceux d'avant. Faire la campagne suffit donc
-   toujours, très exactement ; et les commandes libres, qui donnent de l'expérience
-   elles aussi, permettent d'aller plus vite sans jamais permettre de sauter un
-   maillon. */
-const XP_SEUIL = (function(){
-  const s = [0];
-  for(let n = 1; n <= NIVEAUX.length; n++){
-    let t = s[n-1];
-    for(const M of MISSIONS) if(M.niv === n) t += M.xp;
-    s.push(t);
-  }
-  return s;
-})();
+/* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
+   Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
+   réglées à la main finissent toujours par se contredire : un palier qu'on n'atteint pas
+   en faisant exactement ce que le jeu demande, ou un palier franchi avant sa mission.
+
+   Le cahier des charges donne maintenant les vingt seuils et, pour chaque mission, le
+   palier auquel elle doit mener. Les deux s'accordent au chiffre près — la campagne
+   entière vaut 11 640 XP pour un dernier seuil à 10 450, et chacune des trente missions
+   tombe très exactement sur le palier annoncé. On écrit donc les seuils du barème, et
+   c'est un banc qui parcourt la campagne mission par mission pour vérifier l'accord :
+   une preuve vaut mieux qu'une dérivation, parce qu'elle survit au jour où l'on voudra
+   qu'un palier arrive plus tôt que la somme ne le voudrait. */
+// Un seuil par palier, dans l'ordre : XP_SEUIL[n-1] est ce qu'il faut pour être au
+// niveau n. Zéro pour le premier, dix mille quatre cent cinquante pour le vingtième.
+const XP_SEUIL = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700,
+                  3250, 3850, 4500, 5200, 5950, 6750, 7600, 8500, 9450, 10450];
 const xpNiveau = (n)=> XP_SEUIL[Math.max(0, Math.min(XP_SEUIL.length - 1, n - 1))];
 // Le palier que vaut une expérience donnée. Borné au dernier : la campagne finie,
 // l'expérience continue de monter mais n'ouvre plus rien.
@@ -2158,6 +2224,12 @@ function testerFaire(quoi){
     case 'poules':      return PATURES.some((P)=> P.espece === 'poule' && P.betes.length >= 3);
     case 'vaches':      return PATURES.some((P)=> P.espece === 'vache' && P.betes.length >= 2);
     case 'betes6':      return STAT.betes >= 6;
+    // « Préparez votre premier aliment premium » : le mélangeur monté ET un lot sorti.
+    case 'alimentPlus': return atelierA('alimentPlus')
+                            && (entrepotStock('alimentPlus') + (HALLE.stock.alimentPlus || 0)
+                                + STAT.alimentPlus) > 0.5;
+    // « J'aurais besoin de quatre porcs » : quatre cochons passés par la boucherie.
+    case 'porcs4':      return STAT.porcs >= 4;
   }
   return false;
 }
@@ -8986,7 +9058,7 @@ const MACHINES = [
       susp:{k:20, d:3.8, roll:0.052, pitch:0.024, rough:1.3},
       toolOffset:4.6, build:buildMoissonneuse
     })},
-  {key:'enjambeuse', nom:'Enjambeuse', teinte:0xE07B24, verrou:true, prix:26000,
+  {key:'enjambeuse', nom:'Enjambeuse', teinte:0xE07B24, verrou:true, prix:5000,
    v:new Vehicle({
       x:placeCentre(5), z:47, cap:Math.PI, vmax:8.5, accel:6.5, turn:1.35, grip:4.2,
       trackW:2.6,
@@ -9035,7 +9107,7 @@ const TOOLS = [
      s'en passer — et c'est exactement ce qui en fait un choix. */
   makeTool({key:'engrais', nom:'Épandeur',build:buildEpandeur, hitch:2.0, L:3.9,  width:12.0,
             from:[ST.SEME], to:ST.SEME, aide:'Booste la croissance',
-            verrou:true, prix:350}),
+            verrou:true, prix:250}),
   // La benne ne travaille pas la terre : elle transporte. C'est elle qui relie le
   // moulin à la boulangerie, deuxième maillon de la chaîne économique.
   makeTool({key:'benne', nom:'Benne', build:buildBenne, hitch:2.0, L:3.2,
@@ -9219,7 +9291,10 @@ function compter(cle, q, entreeSilo){
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel:0, betes:0,
-              oeufs:0, laine:0, huile:0, fromage:0};
+              oeufs:0, laine:0, huile:0, fromage:0,
+              // Deux compteurs que la campagne interroge : les porcs vendus à la
+              // boucherie, et l'aliment premium jamais sorti de l'atelier.
+              porcs:0, alimentPlus:0};
 // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
 // n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
 let hopCrop = 0;
@@ -12111,7 +12186,7 @@ const ESPECES = {
   },
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
-    pature:900, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
+    pature:800, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
     cycle:300, rationCycle:0.25, batiment:'Poulailler',
     capacites:[6, 12, 20, 32], prixTaille:[600, 1500, 3500],
     produit:'oeufs', nomProduit:'Œufs', parCycle:2,
@@ -12898,7 +12973,13 @@ function chargerBetail(P, v, n){
   v.betail = (v.betail || 0) + pris.length;
   // Le tarif suit l'espèce embarquée : un cochon ne vaut pas une vache. Une caisse
   // n'accepte qu'une seule espèce à la fois, la valeur ne peut donc pas se mélanger.
-  if(pris.length) v.betailPrix = (ESPECES[P.espece] || ESPECES.vache).prixBete;
+  if(pris.length){
+    const E2 = ESPECES[P.espece] || ESPECES.vache;
+    v.betailPrix = E2.prixBete;
+    // L'espèce voyage avec la bête : la boucherie paie pareil, mais la campagne
+    // demande « quatre porcs » et non « quatre bêtes ».
+    v.betailEspece = E2.cle;
+  }
   return pris.length;
 }
 function acheterPature(p, espece){
@@ -13714,6 +13795,7 @@ function updateBetail(dt){
        n'est pas dans COMPTEUR, et la ligne retombait dans le vide depuis toujours. */
     encaisser((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI);
     STAT.betes++;
+    if(v.betailEspece === 'cochon') STAT.porcs++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
     showHint('BÊTE ABATTUE — ' + eur((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI));
   }

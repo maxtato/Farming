@@ -27,7 +27,7 @@ alors pas conservée. Le jeu le dit sur son écran d'accueil quand il détecte l
 | **Vendanger** | l'**enjambeuse**, achetée au garage : elle seule passe au-dessus d'un rang |
 | **Changer d'engin** | le **garage**, tout en bas, ou les touches 1 à 4 : la liste du parc s'ouvre |
 | **Automatiser** | le **A cerclé**, à droite du crochet : la carte en grand, on compose une file de tâches |
-| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les contrats en cours, la renommée du village, et les quinze paliers à venir |
+| **Voir où l'on en est** | la **barre de progression**, en haut : elle ouvre l'écran de campagne — le palier, la mission, les contrats en cours, la renommée du village, et les vingt paliers à venir |
 | **Régler le semoir** | l'**épi**, à gauche du crochet — le seul bouton qui garde un mot, parce qu'aucun dessin ne dit « tournesol » |
 | **Acheter, améliorer** | au **garage**, sur la rocade ouest, et nulle part ailleurs |
 
@@ -101,46 +101,86 @@ de la ferme en donne un filet — un centième d'euro de marchandise vendue.
 La règle de découverte est toujours la même : **un acheteur réclame quelque chose
 qu'on ne sait pas encore produire**. C'est la demande qui enseigne la mécanique.
 
-### Les quinze paliers
+### Les vingt paliers
 
 | | ouvre |
 |---|---|
-| 1 · Le fermier | blé, charrue, semoir, benne, tracteur, moissonneuse, pick-up, coopérative, usine de céréales |
-| 2 · Productivité | l'épandeur, 350 € |
+| 1 · Le fermier | blé, charrue, semoir, benne, tracteur, moissonneuse, pick-up, coopérative, comptoir agricole, garage, usine de céréales |
+| 2 · Productivité | l'épandeur |
 | 3 · Première transformation | le moulin, la farine, la boulangerie |
-| 4 · Expansion | deuxième parcelle, maïs, deuxième tracteur |
-| 5 · Élevage léger | broyeur, poules, marché |
-| 6 · L'orge | troisième parcelle, orge, brasserie, fourgon |
-| 7 · L'avoine | avoine, usine d'avoine, mélangeur premium, ruches |
-| 8 · Les vaches | vaches, laiterie, fromagerie du village |
-| 9 · Fromage fermier | fromagerie de la ferme, restaurant, troisième tracteur |
-| 10 · Les moutons | moutons, brebis, atelier textile, fromagerie de brebis |
-| 11 · Le colza | colza, pressoir, huile de colza |
-| 12 · Les olives | oliveraie, enjambeuse, huile d'olive |
-| 13 · Le raisin | vigne, cave, caviste |
-| 14 · Les cochons | cochons, boucherie |
-| 15 · Exploitation complète | supermarché, toute la vallée |
+| 4 · Le maïs et les poules | deuxième parcelle, maïs, broyeur, poules |
+| 5 · Deux chaînes à la fois | rien — c'est la tournée qui change, pas l'outillage |
+| 6 · L'orge | troisième parcelle, orge, fourgon, brasserie, restaurant |
+| 7 · L'avoine | avoine, usine d'avoine |
+| 8 · Les vaches | quatrième parcelle, mélangeur premium, vaches, laiterie |
+| 9 · Fromage fermier | la fromagerie de la ferme |
+| 10 · Gros volumes | cinquième parcelle, supermarché |
+| 11 · Les brebis | moutons, brebis, atelier textile, fromagerie du village |
+| 12 · Fromage de brebis | sixième parcelle, fromagerie de brebis |
+| 13 · L'apiculture | ruches, marché |
+| 14 · La gamme fermière | septième parcelle |
+| 15 · Le colza | colza, pressoir |
+| 16 · Les olives | huitième parcelle, oliveraie, enjambeuse, huile d'olive |
+| 17 · Le raisin | vigne |
+| 18 · Le vin | neuvième parcelle, cave, caviste |
+| 19 · Les cochons | cochons, boucherie |
+| 20 · Exploitation complète | toute la vallée, autant de parcelles qu'on en veut |
 
 Un commerce est **bâti dès le premier jour** — on le voit, on passe devant — mais il
 ne traite avec la ferme qu'à son palier, et sa bulle le dit depuis la route. C'est ce
 qui donne à un village construit d'un bloc l'allure d'un village qui s'ouvre.
 
+**Un palier ouvre ce que sa mission va demander, pas ce qu'elle vient de faire gagner.**
+Le barème donne pour chaque mission le « niveau après » — celui où l'on arrive une fois
+qu'elle est finie — et les ouvertures sont donc posées **un cran plus tôt**, au palier où
+la mission s'affiche. Écrites au niveau d'arrivée, vingt-huit des trente missions
+réclamaient quelque chose d'encore verrouillé : on lisait « apportez-moi 72 kg de farine »
+avec un moulin invendable. Un banc parcourt les trente missions, ligne par ligne, et
+compte les demandes impossibles : **zéro**.
+
 La table `NIVEAUX` est la seule source de tout cela. Elle est retournée **une fois**
 en index inverse : les douze verrous du fichier l'interrogent vingt fois par seconde
-sans jamais parcourir quinze niveaux.
+sans jamais parcourir vingt niveaux.
 
-### Les missions, et les seuils qui s'en déduisent
+Le **nombre de parcelles** monte de un tous les deux paliers, et il tient compte de ce que
+la campagne oblige à garder en terre — le blé jusqu'au bout, le colza, les olives et la
+vigne qui sont permanentes, les enclos qui le sont aussi. Le même banc vérifie qu'à chaque
+palier le droit couvre le besoin.
 
-Vingt et une missions de campagne, une à la fois, dans l'ordre. Deux formes : **livrer**
-des lignes chez un commerce nommé, ou **faire** quelque chose qui ne se livre pas —
-s'équiper d'un épandeur, acheter une deuxième parcelle, monter un poulailler.
+### Les trente missions, et les seuils qu'un banc vérifie
 
-Les seuils d'expérience **ne se règlent pas** : le seuil du palier *n+1* est la somme
-des expériences des missions du palier *n* et de tous ceux d'avant. Deux tables réglées
-à la main finissent toujours par se contredire — un palier qu'on n'atteint pas en
-faisant exactement ce que le jeu demande, ou un palier franchi avant sa mission. Faire
-la campagne suffit donc toujours, très exactement, et les contrats du village permettent
-d'aller plus vite sans jamais permettre de sauter un maillon.
+Trente missions de campagne, une à la fois, dans l'ordre : de 30 kg de blé à la
+coopérative jusqu'à une réception de village qui réclame **huit marchandises de sept
+filières** à la fois. Deux formes : **livrer** des lignes chez un commerce nommé, ou
+**faire** quelque chose qui ne se livre pas — monter le mélangeur premium et en sortir un
+premier aliment, engraisser quatre porcs pour la boucherie.
+
+Chacune parle. Le texte est celui du client, pas celui du jeu : *« La Coopérative m'a
+parlé de votre récolte. J'aimerais tester 80 kg de blé. »* On n'y explique jamais comment
+faire — c'est le rôle du guidage — seulement ce qu'on veut et pourquoi.
+
+**Les seuils d'expérience sont écrits, et c'est un banc qui prouve qu'ils tombent juste.**
+Ils étaient déduits : le seuil du palier *n+1* valait la somme des expériences du palier
+*n*. La déduction ne se trompe jamais, mais elle interdit aussi de vouloir qu'un palier
+arrive plus tôt que la somme ne le voudrait. Les vingt seuils sont donc posés à la main —
+0, 100, 250, 450, 700, 1 000 … 10 450 — et un banc joue la campagne mission par mission,
+en ajoutant chaque prime d'expérience, pour vérifier que **chacune des trente tombe très
+exactement sur le palier que le barème lui donne** :
+
+```
+paliers : N1 N2 N2 N3 N4 N4 N5 N6 N6 N7 N8 N8 N9 N9 N10
+          N11 N11 N12 N13 N13 N14 N15 N15 N16 N17 N17 N18 N19 N20 N20
+```
+
+La campagne entière vaut **11 640 XP** pour un dernier seuil à 10 450 : faire la campagne
+suffit toujours, avec de la marge, et les contrats du village permettent d'aller plus vite
+sans jamais permettre de sauter un maillon. Une preuve vaut mieux qu'une dérivation —
+elle survit au jour où l'on voudra déplacer un seuil.
+
+**Les primes suivent l'échelle de ce qu'on livre**, de 200 € pour les trente premiers
+kilos de blé à 40 000 € pour la réception finale, et les prix du matériel qu'une mission
+exige sont ceux du barème d'équipement : épandeur 250 €, poulailler 800 €, mélangeur
+premium 1 200 €, fromagerie 1 800 €, cave 4 500 €, enjambeuse 5 000 €.
 
 ### Les contrats se proposent, ils ne tombent plus du ciel
 
