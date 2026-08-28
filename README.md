@@ -630,11 +630,36 @@ Les capacités de niveau 1 viennent de cette même table : trémie 150 au lieu d
 pick-up 150 au lieu de 70, remorque 200 au lieu de 135. Deux endroits qui disent la capacité
 d'un matériel neuf finissent toujours par diverger.
 
-Les cuves du semoir et de l'épandeur sont écrites dans le barème — 50 à 350 kg, 30 à 250 —
-mais **pas encore portées** : les deux outils puisent directement dans le hangar de la ferme.
-L'échelle n'annonce donc que la largeur ; on ne fait pas payer pour une cuve qui n'existe pas
-encore. Elle vient avec la tranche suivante, celle qui fait vraiment perdre au semoir les
-graines qu'il sème.
+### Le semoir perd vraiment les graines qu'il sème
+
+Il puisait dans le hangar de la ferme, depuis l'autre bout de la vallée. Il **porte**
+maintenant ce qu'il sème : 50 kg au neuf, 350 au dernier cran, soit deux parcelles de blé
+contre quatorze. C'est la seule amélioration du jeu qui se compte en allers-retours épargnés,
+et c'est ce qui donne enfin un sens à la capacité du barème.
+
+Une cuve ne mélange pas : elle contient **une** graine, comme une benne contient une seule
+nature. Une cuve pleine d'orge ne sème pas du blé — elle vaut zéro pour le blé, et le hangar
+n'y peut rien.
+
+**Et une graine ne se perd jamais.** Changer de culture au bouton du semoir renvoie ce qui
+reste au hangar ; si le hangar est plein, le réglage est **refusé** plutôt que de jeter vingt
+kilos de blé. Le geste inverse existe aussi, sur la cour : vider la cuve pour changer d'avis.
+
+On remplit sur la **cour de la ferme** — c'est là que sont le hangar et le parc à outils, donc
+là qu'on attelle — et au **comptoir agricole**, où l'on vient acheter : on repart chargé au
+lieu de refaire le trajet.
+
+**Le semoir part plein.** Le jeu commence à zéro euro et donne de quoi faire un aller-retour
+complet dès la première minute ; un semoir vide, avec un hangar qu'on n'a pas les moyens de
+vider dans une cuve qu'on ne sait pas encore remplir, ferait échouer la première mission sans
+rien expliquer. Cinquante kilos de blé dedans, dix-huit au hangar : deux parcelles, ce qu'il
+faut très exactement pour la première mission et la suivante.
+
+Le bouton de culture porte le chiffre — « BLÉ 50 » — et **passe au rouge à zéro**. Depuis que
+le semoir porte ses graines, tomber en panne au milieu d'un rang est possible ; le seul endroit
+où l'on regarde en semant, c'est ce bouton, et c'est donc là que le chiffre doit être. Le
+message qui suit ne dit pas la même chose selon ce qui manque : *remplir à la cour* si le
+hangar a de quoi, *au comptoir agricole* s'il est vide lui aussi.
 
 ## La chaîne
 
