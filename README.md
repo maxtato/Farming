@@ -433,6 +433,54 @@ test : un phare ne doit pas traverser le bâtiment devant lequel il est garé.
 panneau « à vendre » se voit à quatorze mètres, deux secondes de route : « PALIER ATTEINT —
 3 PARCELLES » n'avait pas le temps d'être lu qu'il était déjà parti.
 
+### Le barème : rendements et prix
+
+Le jeu a reçu son **barème économique** — un tableau de rendements, de temps de pousse et
+de prix par acheteur, écrit hors du code — et les tables du jeu s'y calent.
+
+**Sept cultures, entre 110 et 140 kg la parcelle.** `kg` est ce que rend une cellule, et la
+parcelle de départ en compte 552 : c'est elle, la parcelle standard du barème. Blé 120 kg
+en 75 s, maïs 140 en 110, orge 130 en 95, avoine 125 en 90, colza 110 en 140 ; raisin 140
+et olives 120, qui repoussent en 150 et 180 s. Une culture longue rend plus, mais pas assez
+pour qu'on l'attende sans raison : c'est le prix qui décide, pas le rendement.
+
+**La hiérarchie des acheteurs tient en cinq coefficients.** Le barème donne un prix par
+produit et par commerce ; en les divisant les uns par les autres on retrouve toujours les
+mêmes rapports — supermarché 1,00, marché 1,09, restaurant 1,28, spécialiste 1,33 et plus.
+Ce sont donc des coefficients de site, et le prix de référence d'un produit est celui du
+supermarché. Relevé, les prix obtenus tombent à deux centimes près sur le barème :
+
+| | coop | supermarché | marché | restaurant | spécialiste |
+|---|---:|---:|---:|---:|---:|
+| blé | **0,50** | | | | |
+| olives | | **1,03** | 1,12 | 1,32 | |
+| raisin | | **0,95** | 1,04 | 1,22 | 1,26 caviste |
+| farine | | **0,90** | 0,98 | 1,15 | 1,26 boulangerie |
+| lait | | **0,53** | 0,58 | 0,68 | 0,75 laiterie |
+| vin | | **2,71** | 2,96 | 3,47 | 3,61 caviste |
+| huile d'olive | | **7,72** | 8,42 | 9,89 | |
+| miel | | **2,75** | 3,00 | 3,52 | 3,85 boulangerie |
+| laine | | | **1,97** | | 3,14 atelier textile |
+
+**La coopérative est le plancher**, à 0,85, et elle ne prend que ce qui sort de la terre en
+vrac. Le barème l'autorisait à prendre aussi le raisin, les olives et la laine : cela en
+aurait fait un acheteur **strictement dominé** sur ces trois-là, le supermarché payant plus
+et prenant plus, ce que le jeu s'interdit depuis toujours. Sa raison d'être est ailleurs —
+elle est la seule à prendre les céréales, et elle en prend sept tonnes.
+
+**Deux prix sont écrits à la main.** La formule des paliers — ×1,5 pour une transformation,
+×2 pour un produit fini, ×2,5 pour une recette composée — manque la farine (elle en donnerait
+1,22 là où le barème dit 0,90) et l'huile de colza (4,67 contre 3,41). On ne tord pas le
+palier pour deux produits : ils portent un `tarif`, et un contrôle vérifie que **les
+dix-neuf transformations paient toujours plus que vendre la matière** — la plus maigre à
++9 %, la plupart à +50 %.
+
+**Une note sur les œufs.** Le barème les tarife à 0,20 € *pièce* ; le jeu les pèse encore au
+kilo. On écrit donc l'équivalent — un œuf fait soixante grammes, soit 3,33 € le kilo. À
+0,20 le kilo, une viennoiserie coûtait moins cher qu'un pain : l'échelle de la boulangerie
+à l'envers. C'est le premier symptôme du chantier suivant, celui des unités — les œufs à la
+pièce, le lait et les huiles au litre, les bêtes à la tête.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente
