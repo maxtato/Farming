@@ -745,6 +745,38 @@ On paie donc la tête, directement. La ligne qui suivait, censée compter la via
 comptait rien du tout : sa clé n'est pas dans la table des compteurs, et elle retombait dans le
 vide depuis toujours.
 
+### Livrer une commande n'est pas vendre
+
+On arrivait à la coopérative avec cent kilos de blé pour une commande de trente, et l'on
+repartait les mains vides. Le stock qu'on avait mis de côté pour le moulin partait avec le
+reste, sans qu'on l'ait voulu.
+
+**Une commande prélève exactement ce qu'elle attend encore.** Trente kilos demandés, cent à
+bord : trente partent, **soixante-dix restent dans la benne**. Et ce que le client attend
+encore, c'est *demandé moins déjà livré*, jamais le total initial — soixante kilos livrés sur
+cent, et la ligne annonce d'elle-même « LIVRER LA COMMANDE — BLÉ 40 KG » au retour. Le commerce
+garde ce qu'il a reçu ; on ne refait jamais une livraison complète.
+
+Les deux gestes coexistent devant un commerce qui a une commande en cours, et c'est la
+distinction que le cahier des charges demande :
+
+| | |
+|---|---|
+| **LIVRER LA COMMANDE** | la quantité est celle du client, exacte, sans curseur |
+| **VENDRE** | le joueur choisit combien, au curseur, jusqu'au dernier kilo |
+
+La commande passe la première — c'est ce qu'on est venu faire — et la ligne du dessous reste là
+pour qui veut tout écouler.
+
+La borne se relit **à chaque image** plutôt que d'être calculée une fois : le crédit de la
+livraison vient d'en retirer ce qu'on a versé, donc elle fond au même rythme et le transfert
+s'arrête pile. Rien n'a été ajouté au moteur de transfert — c'est le même code qui vend, verse
+et charge, avec un plafond de plus.
+
+Deux commandes de blé au même quai ? Une seule livraison les crédite toutes les deux, donc on
+prépare **la plus grosse**. Et la mission de campagne du moment compte comme une commande : elle
+prend ses trente kilos et laisse les autres.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente

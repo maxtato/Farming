@@ -7844,6 +7844,33 @@ function livraison(lieu, cle, q){
     });
   }
 }
+/* ---------- CE QU'UNE COMMANDE ATTEND ENCORE ---------- */
+/* « Le MissionResolver doit toujours travailler avec quantité demandée moins quantité
+   déjà livrée, et non avec la quantité totale initiale. » C'est la règle, et c'est cette
+   fonction : elle rend ce qui MANQUE ici, pour cette marchandise-là, tous engagements
+   confondus — les contrats signés et la mission de campagne du moment.
+
+   Quand deux commandes du même lieu veulent du blé, on prend la plus grosse : une seule
+   livraison les crédite toutes les deux, et il faut donc de quoi combler la plus exigeante.
+
+   Zéro veut dire « rien n'attend » : c'est de la vente libre, et le joueur décide seul de
+   ce qu'il en fait. */
+function resteCommande(lieu, cle){
+  let r = 0;
+  for(const C of CONTRATS){
+    if(!C || C.lieu !== lieu) continue;
+    const l = C.lignes.find((x)=> x.cle === cle);
+    if(l) r = Math.max(r, l.need - Math.min(l.need, l.fait || 0));
+  }
+  const M = missionVisible();
+  if(M && !M.faire && M.lieu === lieu)
+    M.lignes.forEach((l, i)=>{
+      if(l.cle === cle)
+        r = Math.max(r, l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0));
+    });
+  return r;
+}
+
 /* Un contrat honoré paie la prime, donne l'XP, et fait monter la renommée d'un cran
    chez ce commerce-là. C'est le seul endroit où la renommée monte : elle s'achète en
    servant, pas en discutant. */
@@ -12740,6 +12767,21 @@ function actionsPature(m, pat){
 function actionsAuSite(m, S){
   const T = caisseDe(m), out = [];
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
+  /* LIVRER UNE COMMANDE N'EST PAS VENDRE. Le cahier des charges les sépare, et c'est ce
+     qui empêche de perdre par mégarde un stock prévu pour autre chose : une commande
+     prélève EXACTEMENT ce qu'elle attend encore, et le reste ne bouge pas de la benne.
+     La vente libre, elle, garde son curseur et le joueur décide seul.
+
+     Les deux lignes coexistent donc devant un commerce qui a une commande en cours, et
+     celle de la commande passe la première : c'est ce qu'on est venu faire. */
+  if(porte){
+    const reste = resteCommande(S.nom, T.type);
+    if(reste > 0.01 && (acheteMaintenant(S, T.type) || accepteMaintenant(S, T.type)))
+      out.push({sens: acheteMaintenant(S, T.type) ? 'vendre' : 'verser',
+                commande:true, lieu:S.nom, S:S, cle:T.type,
+                txt:'LIVRER LA COMMANDE — ' + qteNomHaut(T.type, Math.min(reste, T.load))
+                    + (T.load < reste - 0.01 ? ' SUR ' + qteHaut(T.type, reste) : '')});
+  }
   if(porte && acheteMaintenant(S, T.type)){
     // La place restante figure dans le libellé : sans elle, on vide sa benne en
     // croyant tout vendre et l'on repart avec les trois quarts.
@@ -12854,8 +12896,12 @@ function actionsIci(m){
    à chaque image, et patureProche() y remet une enveloppe neuve à chaque appel. Comparer
    ces enveloppes, c'était ne jamais reconnaître l'action en cours — donc l'interrompre
    au premier kilo, à la pâture comme ailleurs. */
+/* `commande` fait partie de l'identité, et c'est indispensable : livrer sa commande et
+   vendre le même produit au même quai partagent les trois autres champs. Sans ce
+   quatrième, choisir la vente libre retrouvait la ligne de la commande à l'image
+   suivante — et l'on repartait avec ce qu'on venait d'essayer d'écouler. */
 const memeAction = (A, B)=> !!A && !!B && A.sens === B.sens && A.cle === B.cle
-                            && A.lieu === B.lieu;
+                            && A.lieu === B.lieu && !A.commande === !B.commande;
 
 /* L'action retenue pour cet arrêt. Elle se choisit au doigt quand il y en a plusieurs,
    et s'oublie dès qu'on repart ou qu'elle devient impossible — un choix qui survivrait
@@ -12887,8 +12933,10 @@ function quantiteMax(m, A){
     case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
     case 'traire': return Math.min(place, A.P.produit);
     case 'traire2': return Math.min(place, A.P.produit2);
-    case 'vendre': return Math.min(porte, placeChez(A.S, A.cle));
-    case 'verser': return porte;
+    case 'vendre': return Math.min(porte, placeChez(A.S, A.cle),
+                                   A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
+    case 'verser': return Math.min(porte,
+                                   A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
     case 'reprendre': return Math.min(place, A.S.stock[A.cle] || 0);
     default: return porte;
   }
@@ -13063,7 +13111,10 @@ function executer(m, A, dt){
       return;
     }
     case 'vendre': {
-      const q = Math.min(lent, T.load, placeChez(A.S, A.cle));
+      // `resteCommande` est relu à CHAQUE image : `livraison()` vient d'en retirer ce
+      // qu'on a versé, donc la borne fond au même rythme et le transfert s'arrête pile.
+      const q = Math.min(lent, T.load, placeChez(A.S, A.cle),
+                         A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
       T.load -= q; encaisser(q*prixChez(A.S, A.cle));
       entamerEtal(A.S, A.cle, q);
@@ -13075,7 +13126,8 @@ function executer(m, A, dt){
       return;
     }
     case 'verser': {
-      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(A.S));
+      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(A.S),
+                         A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
       T.load -= q; A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       livraison(A.S.nom, A.cle, q); compter(A.cle, q);
@@ -13640,9 +13692,12 @@ function refreshChoix(){
      ne passent pas par la benne. Ce qui est EMPÊCHÉ figure en gris avec sa raison :
      c'est ce qui manquait le plus, car une action absente se lit comme une action qui
      n'existe pas. */
+    // Une commande passe avant la vente libre du même produit : c'est l'ordre dans lequel
+  // on y pense en arrivant, et la ligne du dessous reste là pour qui veut tout écouler.
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
                 auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2, traire:2};
-  const tri = L.slice().sort((A, B)=> (rang[A.sens] - rang[B.sens]) || A.txt.localeCompare(B.txt));
+  const rangDe = (A)=> (A.commande ? -1 : rang[A.sens]);
+  const tri = L.slice().sort((A, B)=> (rangDe(A) - rangDe(B)) || A.txt.localeCompare(B.txt));
   const lignes = [];
   let titreTxt;
   if(retenue && !memeAction(retenue, dOffice)){
@@ -13669,7 +13724,10 @@ function refreshChoix(){
          transfert où il en est. */
       const max = quantiteMax(m, A);
       lignes.push({txt:A.txt, cls:'ch', f:()=>{
-        if(SENS_DOSABLE[A.sens] && max >= 2)
+        // Une COMMANDE ne se dose pas : sa quantité est celle qu'on lui doit, ni plus
+        // ni moins. Ouvrir un curseur dessus serait demander au joueur de retrouver un
+        // chiffre que le client vient de lui donner.
+        if(SENS_DOSABLE[A.sens] && !A.commande && max >= 2)
           ouvrirQuantite({
             max: max, titre: A.txt,
             sortie: (q)=> qteHaut(A.cle, q),
