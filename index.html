@@ -8509,7 +8509,7 @@ function voieLibre(ax, az, bx, bz){
    entièrement sur la terre quand la cabine l'avait quittée de dix centimètres — et le
    passage suivant recommençait sur un outil encore engagé. On ajoute donc la longueur
    de l'attelage. */
-function pointSortie(p, fin, avant, sup){
+function pointSortie(p, fin, avant, sup, sauf){
   if(!p || !fin) return null;
   /* ON SORT AUSSI LOIN QU'ON PEUT, ET PAS PLUS. La sortie visait un point à distance
      fixe du bord ; si rien n'y menait — la clôture de la ferme longe trois colonnes de
@@ -8541,22 +8541,58 @@ function pointSortie(p, fin, avant, sup){
                fin.z - (p.z - hz), (p.z + hz) - fin.z];
     const bord = [{x:p.x - hx, z:fin.z, sortie:true}, {x:p.x + hx, z:fin.z, sortie:true},
                   {x:fin.x, z:p.z - hz, sortie:true}, {x:fin.x, z:p.z + hz, sortie:true}];
-    [0, 1, 2, 3].sort((a2, b2)=> d[a2] - d[b2]).forEach((k)=>{ if(d[k] >= 1.2) cand.push(bord[k]); });
-    for(const q of cand) if(voieLibre(fin.x, fin.z, q.x, q.z)) return q;
+    /* LES QUATRE BORDS SE CLASSENT PAR CAP, PAS PAR DISTANCE. Le plus proche était pris
+       d'abord — et le plus proche est souvent DERRIÈRE : une machine de douze mètres de
+       large traînant six mètres d'attelage y pivote sur place, n'avance plus, et le
+       garde-fou des huit secondes l'abandonne dans le champ. On préfère donc le bord
+       vers lequel elle roule DÉJÀ, et la distance ne départage que les ex æquo. */
+    const ali = [dx < 0 ? 1 : -1, dx > 0 ? 1 : -1, dz < 0 ? 1 : -1, dz > 0 ? 1 : -1];
+    [0, 1, 2, 3].sort((a2, b2)=> (ali[b2] - ali[a2]) || (d[a2] - d[b2]))
+                .forEach((k)=>{ if(d[k] >= 1.2) cand.push(bord[k]); });
+    // au deuxième essai, on ne repart pas dans la direction qu'on vient d'abandonner
+    if(sauf) for(let k = cand.length - 1; k >= 0; k--){
+      const ux = cand[k].x - fin.x, uz = cand[k].z - fin.z, Lu = Math.hypot(ux, uz) || 1;
+      const wx = sauf.x - fin.x, wz = sauf.z - fin.z, Lw = Math.hypot(wx, wz) || 1;
+      if((ux*wx + uz*wz)/(Lu*Lw) > 0.4) cand.splice(k, 1);
+    }
+    /* ET LE CANDIDAT RETENU DOIT LUI AUSSI ÉLOIGNER. Une machine déjà sortie d'un
+       demi-mètre se voyait renvoyer vers le bord opposé — huit mètres de champ à
+       retraverser pour en ressortir de l'autre côté. */
+    const dehors0 = Math.max(Math.abs(fin.x - p.x) - p.w/2, Math.abs(fin.z - p.z) - p.h/2);
+    for(const q of cand){
+      const dq = Math.max(Math.abs(q.x - p.x) - p.w/2, Math.abs(q.z - p.z) - p.h/2);
+      if(dq > dehors0 + 0.3 && voieLibre(fin.x, fin.z, q.x, q.z)) return q;
+    }
     /* AUCUNE VOIE LIBRE : ON S'ARRÊTE OÙ L'ON PEUT, PAS OÙ L'ON VOULAIT. On rendait quand
        même le premier candidat, et la machine poussait contre la clôture jusqu'à ce que
        le garde-fou des huit secondes l'abandonne — à six centimètres du champ, outil
        compris. On raccourcit donc le trajet jusqu'à ce qu'il passe : mieux vaut sortir
        de deux mètres que de viser huit et n'en faire aucun. */
+    /* ON PREND ALORS CE QUI VA LE PLUS LOIN. On raccourcissait chaque candidat par
+       paliers de quinze pour cent, et si aucun ne passait on rendait quand même le
+       premier — inatteignable. On marche donc chaque direction MÈTRE PAR MÈTRE et l'on
+       garde le point le plus éloigné qui reste libre : mieux vaut sortir de deux mètres
+       que de viser huit et n'en faire aucun. */
     for(const q of cand){
-      const dxq = q.x - fin.x, dzq = q.z - fin.z, Lq = Math.hypot(dxq, dzq);
-      for(let f = 0.8; f >= 0.25; f -= 0.15){
-        if(Lq*f < 1.2) break;
-        const bx = fin.x + dxq*f, bz = fin.z + dzq*f;
-        if(voieLibre(fin.x, fin.z, bx, bz)) return {x:bx, z:bz, sortie:true};
+      const dxq = q.x - fin.x, dzq = q.z - fin.z, Lq = Math.hypot(dxq, dzq) || 1;
+      let libre = 0;
+      for(let l = 1.2; l <= Lq; l += 1.0){
+        const bx = fin.x + dxq*l/Lq, bz = fin.z + dzq*l/Lq;
+        if(!voieLibre(fin.x, fin.z, bx, bz)) break;
+        libre = l;
       }
+      /* ET LE REPLI DOIT ÉLOIGNER DU CHAMP. On gardait le point libre le plus lointain,
+         même s'il ramenait DANS la parcelle : la machine, déjà sortie d'un demi-mètre,
+         faisait demi-tour pour aller chercher une sortie qu'elle avait dans le dos,
+         pivotait sur place jusqu'au garde-fou des huit secondes, et s'immobilisait un
+         mètre soixante-treize À L'INTÉRIEUR. Une sortie qui rapproche du champ n'est pas
+         une sortie. */
+      const rx = fin.x + dxq*libre/Lq, rz = fin.z + dzq*libre/Lq;
+      const hors = (qx, qz)=> Math.max(Math.abs(qx - p.x) - p.w/2, Math.abs(qz - p.z) - p.h/2);
+      if(libre >= 1.2 && hors(rx, rz) > hors(fin.x, fin.z) + 0.3
+         && (!repli || libre > repli.d))
+        repli = {x:rx, z:rz, sortie:true, d:libre};
     }
-    if(!repli) repli = cand[0] || null;
   }
   return repli;
 }
@@ -8595,11 +8631,27 @@ function finDePlan(m){
       return true;
     }
   }
-  plan.sorti = true;
-  const n2 = plan.pts.length;
-  const T2 = toolOf(m);
-  const s = pointSortie(plan.p, plan.pts[n2 - 1], plan.pts[n2 - 2],
-                        T2 ? (T2.hitch || 0) + (T2.L || 0) : 0);
+  /* DEUX ESSAIS DE SORTIE, PAS UN. Le point de sortie est choisi sur ce que `voieLibre`
+     autorise, mais la voie se juge en ligne droite : une machine qui l'aborde de travers
+     peut buter sur ce que la ligne évitait, et le garde-fou des huit secondes l'abandonne
+     alors À L'INTÉRIEUR du champ. On lui laisse une seconde chance, dans une AUTRE
+     direction — on écarte tout ce qui repart vers le point qu'elle vient d'abandonner. */
+  plan.sorti = (plan.sorti || 0) + 1;
+  if(plan.sorti > 2) return false;
+  /* LA SORTIE SE CALCULE D'OÙ LA MACHINE EST, PAS D'OÙ LE PLAN FINISSAIT. Elle partait
+     du dernier point du tracé — or l'engin ne l'atteint pas toujours : il abandonne un
+     point qu'il ne peut pas rejoindre, ou le rattrapage s'arrête ailleurs. Relevé sur
+     l'épandeur : le plan finissait au coin ouest, la machine était au coin EST, et on
+     lui demandait de traverser dix-huit mètres en diagonale pour sortir par un bord
+     qu'elle avait dans le dos. Elle pivotait sur place jusqu'au garde-fou des huit
+     secondes et s'arrêtait à trente centimètres du champ, épandeur entièrement dedans.
+     On part donc de sa position et de son cap réels. */
+  const v2 = m.v, T2 = toolOf(m);
+  const ici = {x:v2.pos.x, z:v2.pos.z};
+  const der = {x:v2.pos.x - Math.sin(v2.cap), z:v2.pos.z - Math.cos(v2.cap)};
+  const s = pointSortie(plan.p, ici, der,
+                        T2 ? (T2.hitch || 0) + (T2.L || 0) : 0,
+                        plan.sorti > 1 ? plan.pts[plan.pts.length - 1] : null);
   if(s){ plan.pts.push(s); return true; }
   return false;
 }
@@ -8645,16 +8697,42 @@ function itineraire(ax, az, bx, bz){
      aborder l'anneau par le travers au dernier mètre. C'est arrivé au restaurant le jour
      où les dalles ont grandi et où les commerces ont glissé le long de leur bande. */
   const CALE = 2.0;
-  const vA2 = Math.abs(vA - bx) < CALE ? bx : vA;
-  const hA2 = Math.abs(hA - bz) < CALE ? bz : hA;
+  const cale = {v: Math.abs(vA - bx) < CALE, h: Math.abs(hA - bz) < CALE};
+  const vA2 = cale.v ? bx : vA;
+  const hA2 = cale.h ? bz : hA;
+  /* ON ROULE SUR LA VOIE DE DROITE, COMME UN VÉHICULE NORMAL. Les points étaient posés
+     sur l'AXE de la chaussée : deux engins se croisant sur la rocade se rentraient
+     dedans, et l'on roulait sur la ligne blanche du milieu devant les maisons.
+
+     LE SENS DE CHAQUE TRONÇON EST CONNU À LA CONSTRUCTION — la polyligne se bâtit de A
+     vers B, les deux bouts sont sous la main — et le repère du jeu est établi : nord en
+     -z, est en +x, et la circulation de fond tourne dans le sens des aiguilles d'une
+     montre. Pour un trajet vers +x la droite est donc en +z ; vers +z elle est en -x.
+     Un quart de chaussée, deux mètres cinquante : c'est à un dixième près le décalage
+     que prend déjà le trafic de fond.
+
+     ATTENTION au piège du fichier : `right(cap)` rend {cos, -sin}, ce qui est la GAUCHE
+     sous cette convention. Les deux seuls usages en sont symétriques — traces de roues,
+     ±s — et personne ne l'avait vu. On ne s'en sert donc pas ici.
+
+     Et l'on ne décale PAS une voie qui a été calée sur le but : ce calage existe parce
+     qu'un quai posé à un mètre de l'axe donnerait sinon un dernier tronçon d'un mètre
+     perpendiculaire au bon sens d'approche. Le décaler l'éloignerait de ce qu'il vise. */
+  const Q = ROAD_W/4;
+  const sgn = (a, b)=> (b > a ? 1 : (b < a ? -1 : 0));
   if(Math.abs(bx - vB) <= Math.abs(bz - hB)){
-    pts.push({x:ax, z:hA2});         // on gagne la voie horizontale la plus proche
-    pts.push({x:vB, z:hA2});         // on la suit jusqu'à la voie qui dessert le but
-    pts.push({x:vB, z:bz});          // puis celle-ci jusqu'à la hauteur du but
+    // on suit une horizontale (en x) puis une verticale (en z)
+    const zH = cale.h ? hA2 : hA2 + Q*sgn(ax, vB);
+    const xV = cale.v ? vB  : vB  - Q*sgn(zH, bz);
+    pts.push({x:ax, z:zH});          // on gagne la voie horizontale la plus proche
+    pts.push({x:xV, z:zH});          // on la suit jusqu'à la voie qui dessert le but
+    pts.push({x:xV, z:bz});          // puis celle-ci jusqu'à la hauteur du but
   } else {
-    pts.push({x:vA2, z:az});
-    pts.push({x:vA2, z:hB});
-    pts.push({x:bx, z:hB});
+    const xV = cale.v ? vA2 : vA2 - Q*sgn(az, hB);
+    const zH = hB + Q*sgn(xV, bx);
+    pts.push({x:xV, z:az});
+    pts.push({x:xV, z:zH});
+    pts.push({x:bx, z:zH});
   }
   pts.push({x:bx, z:bz});            // et l'équerre, en dernier
   /* Deux points confondus font tourner l'engin sur place : on les élague. Mais élaguer
@@ -8688,7 +8766,7 @@ function suivreRoute(v, bx, bz, cle, rayon){
        chargement refabrique un itinéraire depuis le point de dépose et pivote sur place
        pour le prendre — un demi-tour de dix mètres de rayon collé au bâtiment, qui
        balaie la tour du silo avec sa remorque. */
-    v.sortie = (v.routeSortieCle === cle) ? v.routeSortie : null;
+    v.sortie = sortieDeQuai(v, cle);
     v.route = null; v.routeBut = null; v.routeArr = cle; return null;
   }
   if(!v.route || v.routeBut !== cle){
@@ -8765,6 +8843,26 @@ function marcheArriere(v, tx, tz, rayon){
    Relevé : sur soixante-quatre couples position × cap essayés après un plan terminé,
    vingt et un déclenchaient ce recul, le pire de 39,7 m. Le pilote désarme donc
    partout où il rend la main. */
+/* ON REPART EN AVANÇANT QUAND IL Y A LA PLACE, ET EN RECULANT SEULEMENT SINON.
+   On ressortait TOUJOURS en marche arrière, jusqu'au coude par lequel on était entré.
+   C'était juste pour un quai de commerce — il n'y a que 5,40 m entre le point de dépose
+   et la façade, et la façade est un mur — mais pas pour le silo : devant lui s'ouvre la
+   cour de transformation, dix-neuf mètres de bitume jusqu'à son bord sud et vingt-quatre
+   jusqu'à l'axe de la rocade, qui est justement une voie du réseau. On y reculait
+   pourtant dix-huit mètres.
+
+   On avance donc de neuf mètres dans le cap d'arrivée dès que la voie est libre, et
+   c'est seulement quand elle ne l'est pas — au fond des seize parvis de commerce — qu'on
+   ressort par où l'on est entré. Neuf mètres, c'est la longueur d'un attelage plus de
+   quoi braquer sans que la remorque touche ce qu'on vient de quitter. */
+const SORTIE_AVANT = 9;
+function sortieDeQuai(v, cle){
+  const arriere = (v.routeSortieCle === cle) ? v.routeSortie : null;
+  const f = {x:Math.sin(v.cap), z:Math.cos(v.cap)};
+  const ax = v.pos.x + f.x*SORTIE_AVANT, az = v.pos.z + f.z*SORTIE_AVANT;
+  if(voieLibre(v.pos.x, v.pos.z, ax, az)) return {x:ax, z:az, avant:true};
+  return arriere;
+}
 function desarmerRecul(v){
   v.reculer = null; v.reculT = 0; v.sortie = null;
   v.routeSortie = null; v.routeSortieCle = null;
@@ -8772,7 +8870,13 @@ function desarmerRecul(v){
 function pasDeRecul(v, dt){
   if(!v.reculer) return null;
   v.reculT = (v.reculT || 0) + dt;
-  const r = (v.reculT < 8) ? marcheArriere(v, v.reculer.x, v.reculer.z, 3.5) : null;
+  const Q = v.reculer;
+  // Le même compte à rebours de huit secondes dans les deux sens : une machine qui bute
+  // sur quelque chose en dégageant ne doit pas y rester la nuit.
+  const r = (v.reculT >= 8) ? null
+          : Q.avant ? (Math.hypot(Q.x - v.pos.x, Q.z - v.pos.z) > 3.0
+                       ? viser(v, Q.x, Q.z, 2.5) : null)
+                    : marcheArriere(v, Q.x, Q.z, 3.5);
   if(r) return r;
   v.reculer = null; v.reculT = 0;
   return null;
@@ -8941,6 +9045,18 @@ function autoDrive(m, dt){
   if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < (wp.sortie ? 1.0 : 2.0)
      || pointPerdu(v, wp, dt)){
     v.plan.i++; return [0, 0.5];
+  }
+  /* ET L'ON RESSORT EN MARCHE ARRIÈRE QUAND LA SORTIE EST DERRIÈRE. Elle l'est chaque
+     fois que la dernière ligne se termine face à un bord bouché — la clôture de la
+     ferme longe trois colonnes de parcelles. L'engin cherchait alors à faire demi-tour
+     sur place : un attelage n'y arrive pas, la distance ne diminuait plus, et le
+     garde-fou des huit secondes l'abandonnait UN MÈTRE SOIXANTE-TREIZE À L'INTÉRIEUR du
+     champ, après l'avoir traversé à l'envers. `marcheArriere` ne rend une commande que
+     si le but est vraiment dans le dos — au-delà d'un radian de travers elle passe la
+     main, et l'on repart en marche avant comme avant. */
+  if(wp.sortie){
+    const r = marcheArriere(v, wp.x, wp.z, 1.0);
+    if(r) return r;
   }
   return viser(v, wp.x, wp.z, 1.2);
 }
