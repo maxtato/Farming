@@ -1476,6 +1476,9 @@ Ce que les douze chantiers du banc de clôture disent des deux changements réun
 
 | | avant | après |
 |---|---|---|
+| vitesse d'entrée en demi-tour, charrue | 11,2 m/s | **4,2 m/s** |
+| — et donc rayon de virage | 5,9 m | **2,2 m** |
+| vitesse d'entrée, moissonneuse | 8,7 m/s | **5,2 m/s** |
 | passes par parcelle | jusqu'à 4 | **1** |
 | images pour les douze chantiers | 59 824 | **30 204** |
 | clôtures couchées en travaillant | 2 | **0** |
