@@ -10107,6 +10107,10 @@ const FENETRES = {
   production: {titre:'Production', vues:[{id:'metiers',  nom:'Métiers'},
                                          {id:'reglages', nom:'Améliorations'}]},
   prix:       {titre:'Prix des commerces'},
+  comptoir:   {titre:'Comptoir agricole',
+                                   vues:[{id:'semences', nom:'Semences'},
+                                         {id:'consos',   nom:'Engrais & gazole'},
+                                         {id:'cuves',    nom:'Remplir les cuves'}]},
   achat:      {titre:'Acheter',    vues:[{id:'engins',   nom:'Véhicules'},
                                          {id:'outils',   nom:'Outils & remorques'}]},
   amelio:     {titre:'Améliorer',  vues:[{id:'engins',   nom:'Véhicules'},
@@ -10155,6 +10159,8 @@ function rendreFenetre(){
     stockage:   {magasin:vueStockMagasin, possible:vueStockPossible},
     production: {metiers:vueProdMetiers,  reglages:vueProdReglages},
     prix:       {_:ongletPrix},
+    comptoir:   {semences:vueComptoirSemences, consos:vueComptoirConsos,
+                 cuves:vueComptoirCuves},
     achat:      {engins:vueAchatEngins,   outils:vueAchatOutils},
     amelio:     {engins:vueAmelioEngins,  outils:vueAmelioOutils}
   })[fenActive] || {};
@@ -14643,8 +14649,13 @@ function actionService(){
                           showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
                                      : 'LE HANGAR EST PLEIN'); }});
   }
+  /* LE COMPTOIR A SA FENÊTRE, ET N'OUVRE PLUS LE MENU GÉNÉRAL. On arrivait au quai, on
+     appuyait, et l'on tombait dans le menu de la ferme à un onglet, au milieu d'une barre
+     de onze autres qui n'avaient rien à voir avec le geste demandé — exactement le défaut
+     que les trois fenêtres dédiées avaient déjà corrigé pour le stock, la production et
+     les prix. Le rayon est le même, il est seulement chez lui, et rangé en trois onglets. */
   if(aQuai(v, COMPTOIR))
-    return cuves.concat([{txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirPanneau('comptoir')}]);
+    return cuves.concat([{txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirFenetre('comptoir')}]);
   if(cuves.length) return cuves;
   // Devant un enclos, deux gestes qui ne passent pas par la benne : acheter une bête,
   // en embarquer pour la boucherie. Ils sortent ensemble — l'un remplit l'enclos,
@@ -15466,95 +15477,198 @@ const litres = (v)=> Math.round(v).toLocaleString('fr-FR') + ' L';
 
 /* Les lots du comptoir. Dix kilos, vingt-cinq, ou de quoi remplir le hangar : le
    deuxième est la dose d'une parcelle de blé, le premier de quoi finir un rang. */
+/* Les lots du comptoir. Dix kilos, vingt-cinq : le deuxième est la dose d'une parcelle
+   de blé, le premier de quoi finir un rang. Ils ne servent plus de boutons — on achète
+   au kilo, au curseur — mais `comptoirServable()` s'en sert encore pour dire si la
+   bourse permet le plus petit achat imaginable, et donc si l'anneau doit s'allumer. */
 const LOT_GRAINE = [10, 25];
-function ongletComptoir(){
-  /* UNE LIGNE PAR GRAINE. Les cultures n'ont ni le même prix au kilo ni la même dose :
-     un seul rayon « Semences » ne pouvait plus dire ni l'un ni l'autre. On n'affiche que
-     ce qu'on a le droit de semer — une graine qu'on ne peut pas mettre en terre n'a rien
-     à faire dans un rayon. */
+
+/* ---------- LE COMPTOIR AGRICOLE, CHEZ LUI ----------
+   Il ouvrait le MENU DE LA FERME sur un onglet, au milieu d'une barre de onze autres :
+   on venait acheter un sac de graines et l'on arrivait devant la campagne, les engins,
+   l'élevage et les réglages. C'est le défaut que les fenêtres dédiées avaient déjà
+   corrigé pour le stock, la production et les prix ; le comptoir le gardait seul.
+
+   Il a maintenant sa fenêtre et trois onglets — ce qu'on sème, ce qu'on consomme, ce
+   qu'on emporte dans la cuve de l'outil — et l'on achète AU KILO, au curseur, au lieu de
+   choisir entre deux lots écrits d'avance. Le rayon des semences comptait quatre lignes
+   par culture, soit vingt-huit lignes à faire défiler pour sept cultures ; il en compte
+   une par culture, et le curseur dit le reste.
+
+   `ongletComptoir()` existe toujours et déroule les trois vues à la suite : l'aiguillage
+   du menu n'a pas de repli, et trois bancs lisent encore le comptoir dans #pliste. */
+function ligneGraine(c){
+  const ici = STOCK.graines[c.cle] || 0;
+  const niv = niveauDe('cultures', c.cle);
+  if(c.verrou){
+    article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
+      dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) + ' la parcelle<br>' +
+      (auNiveau(niv) ? 'La culture n\'est pas encore acquise — elle se prend à l\'onglet ' +
+                       'Graines du menu.'
+                     : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
+      auNiveau(niv) ? 'Fermé' : 'Niveau ' + niv, 'no', null);
+    return;
+  }
+  const place = grainesPlace();
+  const max = Math.min(place, Math.floor(money/Math.max(0.01, c.grainePrix)));
+  const ok = max >= 1;
+  article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
+    dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) + ' pour une parcelle, soit ' +
+    euroFin(c.graineKg*c.grainePrix) + '<br>En stock : <span class="' +
+    (ici >= c.graineKg ? 'q' : 'q court') + '">' + kg(ici) + '</span>' +
+    (ici < 1 ? ' — le sac est vide'
+             : ' — de quoi semer ' + (ici/c.graineKg).toFixed(1).replace('.', ',') +
+               ' parcelle' + (ici >= 2*c.graineKg ? 's' : '')),
+    place < 1 ? 'Hangar plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+    ok ? ()=> ouvrirQuantite({
+      max: max, titre: 'Semences ' + dNom(c.nom.toLowerCase()), action: 'Acheter',
+      depart: c.graineKg,
+      sortie: (q)=> kg(q) + ' ' + dNom(c.nom.toLowerCase()),
+      detail: (q)=> 'Coûte <b>' + euroFin(q*c.grainePrix) + '</b>' +
+                    '<br>De quoi semer ' + (q/c.graineKg).toFixed(1).replace('.', ',') +
+                    ' parcelle' + (q >= 2*c.graineKg ? 's' : '') +
+                    '<br>Il restera ' + eur(money - q*c.grainePrix) + ' en caisse',
+      valider: (q)=>{ const pris = acheterIntrant(c.cle, q);
+                      if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()); }
+    }) : null);
+}
+function vueComptoirSemences(){
   titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(STOCK.max) + ' au hangar');
-  const achat = (couleur, clef, nom, prix, q)=>{
-    const cout = q*prix, place = grainesPlace() >= 1, ok = money >= cout && place;
-    article(couleur, '+ ' + kg(q) + ' ' + dNom(nom.toLowerCase()),
-      euroFin(cout) + '  ·  ' + dec(prix) + ' € / kg',
-      !place ? 'Hangar plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
-      ()=>{ const pris = acheterIntrant(clef, q); if(pris) showHint('+ ' + kg(pris) + ' EN STOCK'); });
-  };
+  /* UNE LIGNE PAR GRAINE, ET LE CURSEUR POUR LA QUANTITÉ. On n'affiche que ce qu'on a le
+     droit de semer avec sa raison : une graine absente de la liste passe pour une graine
+     qui n'existe pas. */
+  let rien = true;
   for(const c of CROPS){
     if(!c.grainePrix) continue;                 // une permanente ne se sème pas
-    const ici = STOCK.graines[c.cle] || 0;
-    if(c.verrou){
-      article(c.hi.getHex(), c.nom, dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) +
-              ' la parcelle<br>La culture n\'est pas encore acquise.', 'Fermé', 'no', null);
-      continue;
-    }
-    article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
-      dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) + ' pour une parcelle, soit ' +
-      euroFin(c.graineKg*c.grainePrix) + '<br>En stock : ' + kg(ici) +
-      (ici < 1 ? ' — le sac est vide'
-               : ' — de quoi semer ' + (ici/c.graineKg).toFixed(1).replace('.', ',') +
-                 ' parcelle' + (ici >= 2*c.graineKg ? 's' : '')),
-      'Stock', 'no', null);
-    for(const q of LOT_GRAINE) achat(c.hi.getHex(), c.cle, c.nom, c.grainePrix, q);
-    const reste = grainesPlace();
-    if(reste >= 1)
-      achat(c.hi.getHex(), c.cle, c.nom + ' — remplir le hangar', c.grainePrix,
-            Math.min(reste, Math.floor(money/c.grainePrix)));
+    rien = false;
+    ligneGraine(c);
+  }
+  if(rien){
+    const v = document.createElement('div'); v.className = 'art';
+    v.innerHTML = '<div class="txt"><div class="det">Aucune semence à vendre.</div></div>';
+    hote.appendChild(v);
   }
   /* LES DEUX PERMANENTES NE S'ACHÈTENT PAS AU SAC. Une vigne et une oliveraie se
      plantent une fois, se paient en euros à la cellule plantée, et repartent toutes
      seules après chaque récolte : le rayon n'a rien à leur vendre, il a seulement à
      dire ce que coûte la plantation. */
-  for(const c of CROPS){
-    if(!c.plantation || c.verrou) continue;
-    article(c.hi.getHex(), 'Plantation ' + dNom(c.nom.toLowerCase()),
-      eur(c.plantation) + ' la parcelle, payés au fur et à mesure du semoir.<br>' +
-      'Une fois en terre, elle repart seule après chaque récolte : plus rien à acheter.',
-      'Au champ', 'no', null);
+  const perm = CROPS.filter((c)=> c.plantation && !c.verrou);
+  if(perm.length){
+    titre('Ce qui se plante');
+    for(const c of perm)
+      article(c.hi.getHex(), 'Plantation ' + dNom(c.nom.toLowerCase()),
+        eur(c.plantation) + ' la parcelle, payés au fur et à mesure du semoir.<br>' +
+        'Une fois en terre, elle repart seule après chaque récolte : plus rien à acheter.',
+        'Au champ', 'no', null);
   }
-
-  titre('Engrais');
+}
+function vueComptoirConsos(){
+  titre('Engrais — ' + kg(STOCK.engrais) + ' sur ' + kg(STOCK.max) + ' au bac');
   {
-    const b = {clef:'engrais', nom:'Engrais', couleur:0x9FD8E8, prix:STOCK.prixEngrais};
-    article(b.couleur, b.nom,
+    const prix = STOCK.prixEngrais;
+    const place = Math.max(0, STOCK.max - STOCK.engrais);
+    const max = Math.min(place, Math.floor(money/Math.max(0.01, prix)));
+    const ok = max >= 1;
+    article(0x9FD8E8, 'Engrais',
       'L\'épandeur y puise ' + Math.round(STOCK.parCellEngrais*1000) +
       ' g par cellule traitée, soit ' + kg(PARC_REF*STOCK.parCellEngrais) +
-      ' pour une parcelle — ' + euroFin(PARC_REF*STOCK.parCellEngrais*b.prix) +
-      ' pour un quart de pousse en moins.<br>En stock : ' + kg(STOCK.engrais) +
-      ' / ' + kg(STOCK.max), 'Stock', 'no', null);
-    for(const q of [25, 100]){
-      const cout = q*b.prix, place = STOCK.max - STOCK.engrais >= 1;
-      const ok = money >= cout && place;
-      article(b.couleur, '+ ' + kg(q) + ' ' + dNom(b.nom.toLowerCase()),
-        eur(cout) + '  ·  ' + dec(b.prix) + ' € / kg',
-        !place ? 'Bac plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
-        ()=>{ const pris = acheterIntrant(b.clef, q); if(pris) showHint('+ ' + kg(pris) + ' EN STOCK'); });
-    }
+      ' pour une parcelle — ' + euroFin(PARC_REF*STOCK.parCellEngrais*prix) +
+      ' pour un quart de pousse en moins.<br>' + dec(prix) + ' € / kg · en stock ' +
+      '<span class="' + (STOCK.engrais >= 1 ? 'q' : 'q court') + '">' + kg(STOCK.engrais) +
+      '</span> sur ' + kg(STOCK.max),
+      place < 1 ? 'Bac plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      ok ? ()=> ouvrirQuantite({
+        max: max, titre: 'Acheter de l\'engrais', action: 'Acheter',
+        depart: PARC_REF*STOCK.parCellEngrais,
+        sortie: (q)=> kg(q) + ' d\'engrais',
+        detail: (q)=> 'Coûte <b>' + euroFin(q*prix) + '</b>' +
+                      '<br>De quoi traiter ' +
+                      (q/(PARC_REF*STOCK.parCellEngrais)).toFixed(1).replace('.', ',') +
+                      ' parcelle' + (q >= 2*PARC_REF*STOCK.parCellEngrais ? 's' : '') +
+                      '<br>Il restera ' + eur(money - q*prix) + ' en caisse',
+        valider: (q)=>{ const pris = acheterIntrant('engrais', q);
+                        if(pris) showHint('+ ' + kg(pris) + ' D’ENGRAIS'); }
+      }) : null);
   }
 
-  titre('Gazole');
-  {
-    article(0xE8563F, 'Cuve de ferme',
-      'Contient ' + litres(CARBU.cuve) + ' / ' + litres(CARBU.cuveMax) +
-      '<br>Les pleins y sont gratuits : le gazole est déjà payé. Le gros est livré à ' +
-      dec(CARBU.prixVrac) + ' € / L au lieu de ' + dec(CARBU.prixPompe) + ' € à la pompe.',
-      'Fournie', 'ok', null);
-    for(const lots of [1, 4]){
-      const q = lots*CARBU.lotVrac, cout = q*CARBU.prixVrac;
-      const place = CARBU.cuve < CARBU.cuveMax - 1;
-      const ok = money >= cout && place;
-      article(0xE8563F, '+ ' + litres(q), eur(cout) + '  ·  livraison à la cuve',
-        !place ? 'Cuve pleine' : (ok ? 'Commander' : 'Trop cher'), ok ? 'vert' : 'no',
-        ()=>{ const pris = commanderVrac(lots); if(pris) showHint('+ ' + litres(pris) + ' DANS LA CUVE'); });
-    }
+  titre('Gazole — ' + litres(CARBU.cuve) + ' sur ' + litres(CARBU.cuveMax) + ' à la cuve');
+  article(0xE8563F, 'Cuve de ferme',
+    'Les pleins y sont gratuits : le gazole est déjà payé. Le gros est livré à ' +
+    dec(CARBU.prixVrac) + ' € / L au lieu de ' + dec(CARBU.prixPompe) + ' € à la pompe.',
+    'Fournie', 'ok', null);
+  for(const lots of [1, 4]){
+    const q = lots*CARBU.lotVrac, cout = q*CARBU.prixVrac;
+    const place = CARBU.cuve < CARBU.cuveMax - 1;
+    const ok = money >= cout && place;
+    article(0xE8563F, '+ ' + litres(q), eur(cout) + '  ·  livraison à la cuve',
+      !place ? 'Cuve pleine' : (ok ? 'Commander' : 'Trop cher'), ok ? 'vert' : 'no',
+      ()=>{ const pris = commanderVrac(lots); if(pris) showHint('+ ' + litres(pris) + ' DANS LA CUVE'); });
   }
-  titre('Où faire le plein');
   const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="det">À la pompe de la station-service, ' +
-    'ou à la cuve de la cour une fois installée. Dans les deux cas il suffit de s\'arrêter ' +
-    'sur l\'anneau au sol : le plein se fait tout seul.</div></div>';
+  d.innerHTML = '<div class="txt"><div class="det">Où faire le plein : à la pompe de la ' +
+    'station-service, ou à la cuve de la cour. Dans les deux cas il suffit de s\'arrêter ' +
+    'sur l\'anneau au sol — le plein se fait tout seul.</div></div>';
   hote.appendChild(d);
 }
+/* LA TROISIÈME PORTE : REPARTIR CHARGÉ. Remplir la cuve du semoir ou de l'épandeur se
+   faisait déjà ici, mais uniquement par un bouton flottant à quai — et l'on ne pouvait ni
+   voir combien il restait au hangar, ni décider de la quantité. C'est pourtant le geste
+   qui suit l'achat : on vient acheter vingt-cinq kilos, et l'on veut repartir avec. */
+function vueComptoirCuves(){
+  const m = MACHINES[cur], T = toolOf(m);
+  titre('La cuve de l\'outil attelé');
+  if(!T || !T.cuveMax){
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">' +
+      (T ? lHaut(T.nom).charAt(0) + lHaut(T.nom).slice(1).toLowerCase() +
+           ' n\'a pas de cuve : la charrue travaille la terre, la benne transporte.'
+         : 'Aucun outil à cuve attelé. Le semoir et l\'épandeur se prennent au parc à ' +
+           'outils de la ferme, et se remplissent ici comme à la cour.') +
+      '</div></div>';
+    hote.appendChild(d);
+    return;
+  }
+  const eng = T.key === 'engrais';
+  const c = eng ? null : CROPS[T.crop || 0];
+  const cle = eng ? null : c.cle;
+  const nom = eng ? 'engrais' : c.nom.toLowerCase();
+  const place = placeCuve(T);
+  const dispo = eng ? STOCK.engrais : (STOCK.graines[cle] || 0);
+  const perenne = !eng && c.perenne;
+  article(0xF0C24A, T.nom + ' — ' + kg(T.cuveQ || 0) + ' sur ' + kg(T.cuveMax),
+    (eng ? 'Il épand l\'engrais du bac.'
+         : 'Il est réglé sur ' + lNom(nom) + ' — le bouton de l\'écran de conduite en ' +
+           'change.') +
+    '<br>Au hangar : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
+    kg(dispo) + ' ' + dNom(nom) + '</span>',
+    'Cuve', 'no', null);
+  if(perenne)
+    article(0x8A9298, c.nom + ' ne se sème pas',
+      'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
+      'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null);
+  else {
+    const q = Math.min(place, dispo);
+    const ok = q >= 0.5;
+    article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase(),
+      place < 0.5 ? 'La cuve est pleine.'
+                  : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' au hangar — le rayon ' +
+                                   'des semences est à l\'onglet précédent.'
+                                 : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' au hangar.'),
+      ok ? '+ ' + kg(q) : (place < 0.5 ? 'Pleine' : 'Hangar vide'), ok ? 'vert' : 'no',
+      ok ? ()=>{ const pris = remplirCuve(T, cle);
+                 if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null);
+  }
+  if((T.cuveQ || 0) > 0.5)
+    article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
+      'Rend ' + kg(T.cuveQ) + ' au hangar. Une cuve entamée d\'une autre graine se vide ' +
+      'toute seule avant de se remplir : rien ne se perd.',
+      'Rendre', 'vert', ()=>{ const q = viderCuve(T);
+                              showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
+                                         : 'LE HANGAR EST PLEIN'); });
+}
+// Le menu garde son onglet : son aiguillage n'a pas de repli, et trois bancs lisent
+// encore le comptoir dans #pliste.
+function ongletComptoir(){ vueComptoirSemences(); vueComptoirConsos(); vueComptoirCuves(); }
 
 function ongletElevage(){
   titre('Espèce du prochain enclos');
@@ -15904,8 +16018,20 @@ let dose = null;   // {max, titre, sortie(q), detail(q), valider(q)}
 function ouvrirQuantite(o){
   dose = o;
   const max = Math.max(1, Math.floor(o.max));
-  doseCurseur.min = 1; doseCurseur.max = max; doseCurseur.value = max;
+  /* IL S'OUVRE SUR LA DOSE UTILE, PAS SUR TOUT. « Tout » est le bon défaut pour une
+     production — on transforme ce qu'on a — mais pas pour un ACHAT : le curseur s'ouvrait
+     sur les 450 kg que la bourse permettait, et deux appuis vidaient la caisse pour
+     remplir le hangar de blé. `depart` donne la dose qu'on vient chercher — une parcelle
+     de semence, une parcelle d'engrais — et les trois raccourcis restent là pour aller
+     plus haut d'un doigt. */
+  doseCurseur.min = 1; doseCurseur.max = max;
+  doseCurseur.value = Math.max(1, Math.min(max, Math.round(o.depart || max)));
   document.getElementById('dosetitre').textContent = o.titre;
+  /* LE BOUTON DIT CE QU'IL FAIT. Son libellé était écrit en dur dans le HTML —
+     « Lancer la production » — et le curseur sert pourtant à trois choses de plus :
+     embarquer des bêtes, remplir une benne, et maintenant acheter au kilo. On demandait
+     donc à un fermier de « lancer la production » pour acheter un sac de graines. */
+  document.getElementById('dosego').textContent = o.action || 'Lancer la production';
   doseEl.style.display = 'block';
   rendreDose();
 }

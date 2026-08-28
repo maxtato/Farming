@@ -1335,6 +1335,43 @@ position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tract
 sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
 bandeau et sur la carte, où la couleur du modèle est sous les yeux.
 
+## Le comptoir agricole, chez lui
+
+Il ouvrait **le menu de la ferme** sur un onglet. On venait acheter un sac de graines et
+l'on arrivait devant la campagne, les engins, l'élevage et les réglages — au milieu d'une
+barre de onze onglets qui n'avaient rien à voir avec le geste demandé. C'est exactement le
+défaut que les fenêtres dédiées avaient corrigé pour le stock, la production et les prix ;
+le comptoir le gardait seul.
+
+Il a maintenant **sa fenêtre et trois onglets** :
+
+| onglet | ce qu'on y trouve |
+|---|---|
+| **Semences** | une ligne par culture — prix au kilo, dose d'une parcelle, ce qu'il reste au hangar — puis les deux permanentes, qui ne se vendent pas au sac mais se paient au champ |
+| **Engrais & gazole** | l'engrais du bac, et le gazole livré en gros à 1,60 € / L au lieu de 2,00 € à la pompe |
+| **Remplir les cuves** | la cuve de l'outil attelé : ce qu'elle porte, ce que le hangar peut y verser, et de quoi la vider |
+
+**On achète au kilo, au curseur.** Le rayon vendait par lots écrits d'avance — 10 kg, 25 kg,
+« remplir le hangar » — soit **quatre lignes par culture**, vingt-huit lignes à faire défiler
+pour sept cultures. Il en a **une par culture**, et le curseur dit le reste : combien ça
+coûte, combien de parcelles ça sème, ce qu'il restera en caisse.
+
+Le curseur s'ouvre sur **la dose utile, pas sur tout**. « Tout » est le bon défaut pour une
+production — on transforme ce qu'on a — mais pour un achat il s'ouvrait sur les 450 kg que
+la bourse permettait : deux appuis vidaient la caisse pour remplir le hangar de blé. Il
+s'ouvre sur une parcelle de semence, une parcelle d'engrais, et les trois raccourcis restent
+là pour aller plus haut d'un doigt. Son bouton dit enfin ce qu'il fait : il était écrit en
+dur dans le HTML — « Lancer la production » — alors que le même curseur sert à embarquer des
+bêtes, remplir une benne et maintenant acheter au kilo.
+
+**Le troisième onglet est celui qu'on cherchait sans le savoir** : remplir la cuve du semoir
+se faisait déjà ici, mais par un bouton flottant à quai, sans qu'on puisse voir ce qu'il
+restait au hangar. C'est pourtant le geste qui suit l'achat — on vient acheter vingt-cinq
+kilos, et l'on veut repartir avec.
+
+`ongletComptoir()` déroule toujours les trois vues à la suite : l'aiguillage du menu n'a pas
+de repli, et trois bancs lisent encore le comptoir dans `#pliste`.
+
 ## Un onglet, une question
 
 Une fenêtre répondait à deux questions à la fois. Le **stockage** disait ce qu'on a *et* ce
