@@ -4423,6 +4423,55 @@ la couverture moyenne passe de **98,49 % à 98,70 %** et l'écart de 1,60 m à 0
 virage à la tangente ne travaille plus, le tour de périphérie et le demi-recouvrement
 l'avaient déjà fait.
 
+### Et en automatique, la machine roule à sa vitesse d'origine
+
+Le joueur l'a demandé, et cela répare un défaut de conception : « brider la vitesse même
+quand on est avec une amélioration de trois ou quatre pour le tracteur et même les autres,
+tu laisses la vitesse standard en automatique pour le traitement de la parcelle, comme ça
+y a pas de mauvaise surprise. »
+
+**Pourquoi acheter de la vitesse dégradait le travail.** Le rayon de braquage est
+proportionnel à la vitesse — `R = v / (braquage × turn)` — et la direction, elle, ne
+s'achète pas : `turn` vaut la même chose au premier cran qu'au dernier, et c'est écrit dans
+le jeu depuis longtemps. Le palier de vitesse n'achetait donc, au champ, qu'un rayon de
+virage plus grand sans rien qui le compense : 9,8 m au dernier cran contre 6,3 au premier,
+sur des bords où la clôture de la ferme ne laisse que vingt-cinq centimètres de jeu.
+
+**La règle a deux moitiés, et c'est une leçon payée.** La vitesse se borne au GAZ, dans
+`piloteChamp` : la consigne y est une fraction de `vmax`, on la plafonne à `vmax0/vmax`. La
+reprise, elle, ne s'y borne pas — dans ce moteur `vf` avance de `accel·dt` par image quelle
+que soit la consigne — et se borne donc dans `Vehicle.update`. Les mettre toutes les deux
+dans le moteur a été essayé et mesuré : plafonner `vmax` là où la consigne est une fraction
+de `vmax`, c'est diviser la consigne d'autant. La machine roulait à **64 % de la vitesse
+voulue** et la passe passait de 108 à 160 secondes. Une borne par endroit, celui qui la
+comprend.
+
+**Et la règle ne tient à aucun drapeau.** Elle se lit dans l'état du véhicule : il conduit
+tout seul, il a un plan, il est entré dans sa terre et n'en est pas sorti. Les deux pilotes
+rangent le plan sous les mêmes noms, donc elle vaut pour les deux sans qu'aucun ait à la
+connaître. Elle s'arrête au bord du champ : sur la route, au volant et pour les navettes,
+le cran acheté sert exactement comme avant. Et c'est la vitesse de CHAQUE machine, pas un
+chiffre — 12 m/s pour le tracteur de départ, 9,5 pour la moissonneuse, 8,5 pour
+l'enjambeuse.
+
+**Ce que ça donne**, douze cas, tracteur au dernier cran (×1,55) :
+
+| | avant | après |
+|---|---|---|
+| écart à la ligne, au pire | 0,40 m | **0,26 m** — celui du tracteur de départ |
+| temps par parcelle | 68 s | **68 s** — inchangé |
+| couverture moyenne | 98,5 % | 98,6 % |
+
+Le cran de vitesse ne change donc plus rien au champ, ni en bien ni en mal, et il ne coûte
+rien en temps : la rampe de freinage tenait déjà la machine autour de 12 m/s sur des
+parcelles de trente mètres, et ce qui restait de l'écart venait entièrement de la REPRISE.
+
+**Et il reste quatre clôtures couchées, toutes sur la route.** Mesuré en attribuant chaque
+choc à sa phase, sur les quatre parcelles collées au mur, trois outils chacune, tracteur au
+dernier cran : **route 4, travail 0, sortie 0**. Le champ est propre ; ce qui accroche
+encore, c'est l'approche, où le cran de vitesse continue de s'appliquer — c'est le choix
+assumé de laisser l'amélioration servir là où elle a été achetée.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

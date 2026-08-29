@@ -8183,10 +8183,44 @@ class Vehicle {
     let vr = this.vel.x*r.x + this.vel.y*r.z;
     const cap0 = this.cap, vr0 = vr;
 
+    /* ---------- AU CHAMP ET EN AUTOMATIQUE, LA VITESSE D'ORIGINE ----------
+       C'est une demande du joueur, et elle répare un défaut de conception : « brider la
+       vitesse même quand on est avec une amélioration de trois ou quatre pour le tracteur
+       et même les autres, tu laisses la vitesse standard en automatique pour le traitement
+       de la parcelle, comme ça y a pas de mauvaise surprise. »
+
+       POURQUOI ACHETER DE LA VITESSE DÉGRADAIT LE TRAVAIL. Le rayon de braquage est
+       proportionnel à la vitesse — `R = v/(braquage × turn)` — et la direction, elle, ne
+       s'achète pas : `turn` est le même au premier cran qu'au dernier. Le cran de vitesse
+       n'achetait donc qu'un rayon de virage plus grand, sans rien qui le compense : 9,8 m
+       au dernier cran contre 6,3 au premier, sur des bords où la clôture de la ferme ne
+       laisse que vingt-cinq centimètres de jeu.
+
+       LA RÈGLE A DEUX MOITIÉS, ET UNE SEULE EST ICI. La VITESSE se borne au gaz, dans
+       `piloteChamp` : la consigne y est une fraction de `vmax`, il suffit de la plafonner à
+       `vmax0/vmax`. La REPRISE, elle, ne s'y borne pas — dans ce moteur `vf` avance de
+       `accel·dt` par image quelle que soit la consigne —, et c'est elle qu'on borne ici.
+       Les mettre toutes les deux ici a été essayé et mesuré : plafonner `vmax` dans le
+       moteur alors que la consigne est une fraction de `vmax`, c'est diviser la consigne
+       d'autant — la machine roulait à 64 % de la vitesse voulue et la passe passait de 108
+       à 160 secondes. Une borne par endroit, celui qui la comprend.
+       CE QUE LA REPRISE CHANGE : le palier multiplie `accel` comme `vmax` (×1,55 au dernier
+       cran). Un tracteur amélioré reprenait son élan une fois et demie plus vite EN SORTANT
+       du virage, là où la machine est encore à côté de sa ligne — écart mesuré 0,26 m au
+       premier cran contre 0,40 au dernier.
+
+       LA RÈGLE NE TIENT À AUCUN DRAPEAU : elle se lit dans l'état du véhicule — il conduit
+       tout seul (`auto`), il a un plan, il est entré dans sa terre et n'en est pas encore
+       sorti. Les deux pilotes, celui du joueur et celui de la campagne, rangent le plan sous
+       les mêmes noms, donc la règle vaut pour les deux sans qu'aucun ait à la connaître.
+       Elle s'arrête au bord du champ : sur la route, au volant, et pour toutes les navettes,
+       le cran de vitesse acheté sert exactement comme avant. */
+    const champAuto = this.auto && this.plan && this.plan.entre && !this.plan.sorti;
+    const accelE = champAuto ? Math.min(this.accel, this.accel0 || this.accel) : this.accel;
     // moteur / frein moteur
     const target = throttle * this.vmax;
     if(Math.abs(throttle) > 0.05){
-      const acc = (Math.sign(target-vf) === Math.sign(throttle)) ? this.accel : this.accel*2.2;
+      const acc = (Math.sign(target-vf) === Math.sign(throttle)) ? accelE : accelE*2.2;
       vf += Math.sign(target - vf) * acc * dt;
       if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
@@ -10417,6 +10451,18 @@ function piloteChamp(v, dt){
      LE RAYON N'EST PAS CHOISI, IL EST MESURÉ. `VIT_PIVOT/turn` est le cercle le plus court
      que la machine sache décrire — 1,16 m pour le tracteur de départ, 1,00 pour le dernier.
      C'est lui qui fixe où commence le virage, et c'est pour l'atteindre qu'on freine. */
+  /* ---------- ET L'AUTOMATIQUE ROULE À LA VITESSE D'ORIGINE ----------
+     C'est le joueur qui l'a demandé : « brider la vitesse même quand on est avec une
+     amélioration de trois ou quatre pour le tracteur et même les autres, tu laisses la
+     vitesse standard en automatique pour le traitement de la parcelle, comme ça y a pas de
+     mauvaise surprise. » C'est ici la moitié VITESSE de la règle ; l'autre moitié, la
+     reprise, est dans `Vehicle.update` — le gaz ne sait pas la borner.
+     La consigne de gaz est une fraction de la vitesse maximale : on la plafonne donc à
+     `vmax0/vmax`, et chaque machine retrouve la sienne — 12 m/s pour le tracteur de départ,
+     9,5 pour la moissonneuse, 8,5 pour l'enjambeuse. Le cran de vitesse acheté garde tout
+     son sens là où il a été acheté : sur la route, au volant, et pour les navettes. */
+  const BRIDE = Math.min(1, (v.vmax0 || v.vmax)/Math.max(0.1, v.vmax));
+  const bride = (c)=> (c ? [c[0], Math.max(-BRIDE, Math.min(BRIDE, c[1]))] : c);
   const wp = v.plan.pts[v.plan.i];
   const A = v.plan.pts[v.plan.i - 1] || v.plan.dep || {x:v.pos.x, z:v.pos.z};
   let ux = wp.x - A.x, uz = wp.z - A.z;
@@ -10483,7 +10529,7 @@ function piloteChamp(v, dt){
                 && (dejaPasse || L < 0.40 || s > v.plan.s0 + 0.30))
             || (wp.sortie && Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 1.2);
   if(bout || v.plan.tour > 7.0 || pointPerdu(v, wp, dt)){
-    v.plan.i++; return [0, 0.5];
+    v.plan.i++; return bride([0, 0.5]);
   }
   /* ET L'ON RESSORT EN MARCHE ARRIÈRE QUAND LA SORTIE EST DERRIÈRE. Elle l'est chaque
      fois que la dernière ligne se termine face à un bord bouché — la clôture de la
@@ -10495,7 +10541,7 @@ function piloteChamp(v, dt){
      main, et l'on repart en marche avant comme avant. */
   if(wp.sortie){
     const r = marcheArriere(v, wp.x, wp.z, 1.0);
-    if(r) return r;
+    if(r) return bride(r);
   }
   /* L'ÉCART À LA LIGNE, COMPTÉ EN SIGNE. Positif d'un côté, négatif de l'autre : c'est la
      seule mesure dont la conduite ait besoin, avec le cap de la ligne. On ne vise plus
@@ -10562,7 +10608,7 @@ function piloteChamp(v, dt){
     while(psi < -Math.PI) psi += Math.PI*2;
     if(Math.abs(psi) > 0.30) cmd[1] = Math.min(cmd[1], VIT_PIVOT/v.vmax);
   }
-  return cmd;
+  return bride(cmd);
 }
 // oriente la machine vers un point : braquage proportionnel, ralenti dans les virages
 function viser(v, tx, tz, rayon, vTour){
