@@ -9858,7 +9858,7 @@ function viser(v, tx, tz, rayon, vTour){
 }
 
 /* --- circulation : voitures et camions sur la rocade --- */
-/* ---------- LES SIX VÉHICULES DU TRAFIC ----------
+/* ---------- LES SEIZE VÉHICULES DU TRAFIC ----------
    Ils viennent de la planche du joueur, portés tels quels : mêmes cotes, mêmes couleurs,
    même façon de bâtir un habitacle. Cinq boîtes empilées ne font pas une voiture ; ce qui
    la fait, c'est le SANDWICH — ceinture de caisse, bandeau vitré, pavillon, tous
@@ -10203,8 +10203,13 @@ const TRAFIC_MODELES = (function(){
     P.push(B(2.36, 0.18, 3.7, 0x8E2A22, 0, 2.7, -1.4));
     for(const sx of [-0.6, 0.6]) P.push(B(0.1, 0.1, 4.6, INOX, sx, 2.92, -1.2));
     for(let k = 0; k < 9; k++) P.push(B(1.3, 0.07, 0.07, INOX, 0, 2.92, -3.4 + k*0.55));
-    gyro(P, -0.6, 3.06, 2.6, 0x4A90D9, 0);
-    gyro(P,  0.6, 3.06, 2.6, 0x4A90D9, 0);
+    /* LA RAMPE SE POSE SUR LE PAVILLON, ELLE NE FLOTTE PAS AU-DESSUS. La planche la
+       plaçait à 3,06, trente et un centimètres au-dessus d'un toit de cabine qui
+       plafonne à 2,69 — un demi-mètre d'air sous une lampe une fois l'échelle du trafic
+       appliquée. Le socle fait douze centimètres de haut : son centre va donc à
+       2,69 + 0,06. Même correction pour la postale et la dépanneuse. */
+    gyro(P, -0.6, 2.75, 2.6, 0x4A90D9, 0);
+    gyro(P,  0.6, 2.75, 2.6, 0x4A90D9, 0);
     feux(P, 0.82, 0.86, 3.32, -3.5);
     roues(P, 1.02, 2.1, -1.8, 0.46, 0.34, true);
     return P;
@@ -10216,7 +10221,7 @@ const TRAFIC_MODELES = (function(){
     cabine(P, 1.9, 1.25, 1.6, C, 0.56, 1.3);
     caisseFermee(P, 1.94, 1.6, 2.6, C, 0.56, -0.85, 3);
     P.push(B(1.0, 0.44, 0.12, 0x2E4A6B, 0, 1.5, -2.2));
-    gyro(P, 0, 2.24, 0.9, 0x4A90D9);
+    gyro(P, 0, 1.87, 0.9, 0x4A90D9);
     P.push(B(1.96, 0.16, 0.38, 0x2A2E32, 0, 0.4, 2.22));
     feux(P, 0.7, 0.68, 2.24, -2.2);
     roues(P, 0.86, 1.45, -1.45, 0.35, 0.26);
@@ -10233,7 +10238,7 @@ const TRAFIC_MODELES = (function(){
     P.push(B(0.7, 0.7, 0.7, C, 0, 1.6, 0.7));
     P.push(CY(0.12, 0.8, 8, INOX, 0, 1.85, 0.7, 0, Math.PI/2));
     P.push(B(0.08, 0.08, 1.6, 0x9AA2A7, 0, 1.5, -0.2));
-    gyro(P, 0, 2.6, 1.6, ORANGE);
+    gyro(P, 0, 2.56, 1.6, ORANGE);
     P.push(B(2.16, 0.18, 0.4, 0x2A2E32, 0, 0.46, 3.06));
     feux(P, 0.78, 0.8, 3.08, -3.06);
     roues(P, 0.96, 1.9, -1.7, 0.42, 0.3, true);
@@ -10257,8 +10262,8 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
    voitures : une rocade de village n'a pas cette allure. Les poids se lisent comme un
    pourcentage — ils font cent — et ils tiennent dans l'esprit des deux autres tirages du
    trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts écrites en clair.
-   Voitures 56 %, utilitaires 11 %, camions de travail 22 %, car et camping-car 7 %,
-   secours et dépannage 4 %. */
+   Voitures 56 %, utilitaires 11 %, camions de travail 23 %, car et camping-car 7 %,
+   secours et dépannage 3 %. */
 const POIDS_TRAFIC = [14, 11, 13,  5,  5,  9,      // berline, break, citadine, bétaillère, bottes, monospace
                        9,  8,  5,  4,  4,  4,      // pick-up, fourgon, caisse, citerne, benne, autocar
                        3,  1,  3,  2];             // camping-car, pompiers, postale, dépanneuse
@@ -10667,8 +10672,8 @@ const _susRem = {roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0};
 /* ---------- LE VIVIER, ET CE QUI L'ALIMENTE ----------
    Les places sont créées une fois pour toutes et RECYCLÉES : une place inoccupée est
    simplement invisible et ne coûte rien au rendu. On change la géométrie du maillage à
-   chaque naissance — c'est ce qui permet d'avoir trente-quatre places pour sept modèles
-   sans fabriquer trente-quatre carrosseries. */
+   chaque naissance — c'est ce qui permet d'avoir vingt-huit places pour dix-sept modèles
+   sans fabriquer vingt-huit carrosseries. */
 const POOL_TRAFIC = 28;
 const PART_LOURD = 0.16;                        // un attelage tous les six véhicules
 const CADENCE_MIN = 7, CADENCE_MAX = 16;        // secondes entre deux départs sur UNE file
@@ -10913,7 +10918,9 @@ function updateTrafic(dt){
        à trente mètres une rampe se lit comme une lueur unique, et deux billes à quarante
        centimètres coûteraient le double pour ne rien montrer de plus. Elle change de
        couleur à la naissance ; éteinte, elle ne coûte que son parcours de scène. */
-    t.gyro = billeLumiere(0.26, 0xFFFFFF);
+    // `traverse` : posée à cheval sur le pavillon, une lueur qui garde le test de
+    // profondeur se fait trancher au couteau et l'on voit un demi-disque.
+    t.gyro = billeLumiere(0.26, 0xFFFFFF, true);
     m.add(t.avG); m.add(t.avD); m.add(t.arG); m.add(t.arD); m.add(t.gyro);
     t.coG = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
     t.coD = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
@@ -18606,16 +18613,23 @@ const AUDIO = {
     if(!this.dispo || !this.on || !this.trafic) return;
     try {
       const t = this.ctx.currentTime, PORTEE = 55;
+      /* TROIS MOTEURS, DEUX VOIX. La chaîne grave ne prenait que l'attelage articulé :
+         un autocar, un camion de pompiers, une citerne à lait et une benne sonnaient
+         donc exactement comme une berline. Un CAMION RIGIDE la rejoint — c'est la même
+         table `PORTEUR_TRAFIC` qui lui donne déjà le ressort long — et la voix se lit
+         alors à 0,72 au lieu de 0,58 : entre la voiture et le semi, ce qui est
+         exactement où il est. Toujours deux boucles, et pas une de plus. */
       for(let k = 0; k < 2; k++){
-        let d = Infinity, vit = 0;
+        let d = Infinity, vit = 0, ton = k ? 0.72 : 0.95;
         for(const T of TRAFIC){
-          if(!T.actif || !!T.lourd !== (k === 1)) continue;
+          const gros = !!(T.lourd || PORTEUR_TRAFIC[T.modele]);
+          if(!T.actif || gros !== (k === 1)) continue;
           const dd = Math.hypot(T.m.position.x - cx, T.m.position.z - cz);
-          if(dd < d){ d = dd; vit = T.vEff; }
+          if(dd < d){ d = dd; vit = T.vEff; ton = k ? (T.lourd ? 0.58 : 0.72) : 0.95; }
         }
         const pres = Math.max(0, 1 - d/PORTEE);
         const C = this.trafic[k];
-        C.src.playbackRate.setTargetAtTime((k ? 0.58 : 0.95)*(0.86 + vit/30), t, 0.2);
+        C.src.playbackRate.setTargetAtTime(ton*(0.86 + vit/30), t, 0.2);
         C.g.gain.setTargetAtTime(pres*pres*(k ? 0.26 : 0.17), t, 0.12);
       }
     } catch(e){}

@@ -2193,7 +2193,7 @@ en moyenne :
 Cadence : une voiture toutes les **7,6 à 8,4 s** sur chacune des quatre routes — la
 fourchette demandée était 4 à 10. Dix-huit véhicules visibles à la fois en moyenne, vingt-
 trois au plus. Débord de carrosserie en virage : 0,90 m pour une voiture, 0,09 m pour un
-camion.
+camion — et 0,94 m depuis que l'autocar roule, qui est le plus long des seize.
 
 Le seul dégagement qui reste juste est celui de **deux semis qui se croisent** : 0,21 m. Ce
 n'est pas un réglage mais une fatalité géométrique — voir plus bas.
@@ -2301,7 +2301,7 @@ du trafic, `PART_LOURD` et `PART_VIRAGE`, qui sont eux aussi des parts écrites 
 |---|---|---|
 | **voitures** | 56 % | berline 14, citadine 13, break 11, monospace 9, pick-up 9 |
 | **utilitaires** | 11 % | fourgon 8, postale 3 |
-| **camions de travail** | 22 % | bétaillère 5, plateau à bottes 5, camion à caisse 5, citerne 4, benne 4 |
+| **camions de travail** | 23 % | bétaillère 5, plateau à bottes 5, camion à caisse 5, citerne 4, benne 4 |
 | **car et camping-car** | 7 % | autocar 4, camping-car 3 |
 | **secours et dépannage** | 3 % | dépanneuse 2, pompiers 1 |
 
@@ -2312,7 +2312,15 @@ n'existe alors pour personne. Quinze pour cent d'écart se voient sans rien cass
 **porteur** — un camion rigide — roule en plus sur le ressort long, celui de l'attelage :
 c'est ce qui fait qu'une caisse haute dodeline là où une berline reste plate.
 
-**Le gyrophare est un signal, pas un phare.** Trois modèles en portent un — les pompiers
+**Le gyrophare est un signal, pas un phare** — et il est **posé** sur son pavillon, non
+flottant au-dessus. La planche le plaçait 31 cm au-dessus du toit de cabine des pompiers
+et 37 cm au-dessus de celui de la postale : à l'échelle une et demie du trafic, cela fait
+un demi-mètre d'air sous une lampe, et cela se voit tout de suite. Le socle mesure douze
+centimètres : son centre va donc à `toit + 0,06`, mesuré au banc à zéro centimètre d'air
+aux trois modèles. Sa bille, du coup, doit **traverser la tôle** — une lueur posée à
+cheval sur un pavillon qui garde le test de profondeur se fait trancher au couteau et
+l'on en voit un demi-disque ; c'est la même règle que le gyrophare des engins du joueur.
+ Trois modèles en portent un — les pompiers
 en bleu, la postale en bleu, la dépanneuse en orange. Il bat de jour comme de nuit, mais
 le jour le lave : 0,29 d'opacité au plus fort du battement au soleil, 0,81 au clair de
 lune. Sans cela on aurait au choix un feu de détresse en plein midi ou un camion de
@@ -2394,10 +2402,17 @@ Six mille hertz laissent trois mille de bande passante, le double de ce qui s'y 
 l'aller-retour 44 100 → 6 000 → 44 100 rend un écart de **0,006 %**. Ce qu'on gagne :
 38 000 caractères au lieu de 280 000, soit 3,5 % du fichier au lieu de 21.
 
-**Le trafic n'a que deux voix pour douze véhicules.** Chacune suit le plus proche de sa
-sorte — une voiture, un camion — et son volume décroît au carré de la distance jusqu'à
-s'éteindre à cinquante-cinq mètres. Douze boucles tournant en permanence coûteraient douze
-fois plus pour un décor qu'on n'entend qu'un à la fois.
+**Le trafic n'a que deux voix pour vingt-huit places.** Chacune suit le plus proche de sa
+sorte et son volume décroît au carré de la distance jusqu'à s'éteindre à cinquante-cinq
+mètres. Vingt-huit boucles tournant en permanence coûteraient vingt-huit fois plus pour un
+décor qu'on n'entend qu'un à la fois.
+
+Deux voix, mais **trois moteurs**. La chaîne grave ne prenait que l'attelage articulé : un
+autocar, un camion de pompiers, une citerne à lait et une benne sonnaient donc exactement
+comme une berline. Un **camion rigide** la rejoint — c'est la même table `PORTEUR_TRAFIC`
+qui lui donne déjà le ressort long — et la voix se lit alors à **0,72** au lieu de 0,58 :
+entre la voiture et le semi, ce qui est exactement où il est. Mesuré au banc, l'allure du
+véhicule mise de côté : 0,95 pour une berline, 0,718 pour un porteur, 0,58 pour un semi.
 
 L'interrupteur et le volume étaient déjà dans les Réglages, et déjà sauvegardés : rien à
 ajouter, et la version du fichier de partie ne bouge pas. Couper le son coupe **toutes** les
