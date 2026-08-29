@@ -1907,162 +1907,194 @@ permet de choisir quel engin envoyer où sans quitter la carte.
 
 Elle existait depuis le premier jour, **éteinte** : les modèles, le tracé, l'attelage
 articulé, tout était là derrière un `NB_VEHICULES = 0`. Ce qui manquait n'était pas le
-code mais des réglages qu'on ne voit pas sans les mesurer — et une idée juste de ce
-qu'est une route.
+code mais une idée juste de ce qu'est une route de passage — et il a fallu trois versions
+ratées pour l'attraper.
 
-**Elle ne tourne plus en rond.** La première version était un *anneau* : douze véhicules
-faisaient le tour des quatre brins indéfiniment, et l'on reconnaissait la même berline
-tous les trois quarts de minute. Or le bitume, lui, n'a jamais été un circuit : les quatre
-chaussées traversent la carte de bord à bord et se perdent hors champ. Chaque véhicule a
-donc maintenant un **itinéraire** : il entre par un bord, roule tout droit ou tourne au
-plus *une* fois à un croisement, et ressort par un autre bord ; une fois dehors il
-disparaît, et l'on en fait entrer un autre ailleurs. Sur six cents tirages, une voiture
-sur trois file tout droit et les deux autres tournent ; les semi-remorques, elles, ne
-tournent jamais — vingt-sept mètres d'attelage dans un carrefour de village, c'est le
-trottoir. Mesuré : **cent cinquante traversées complètes** en cinq minutes, et chaque
-trajet commence et finit *hors* de la carte.
+### Trois versions, et pourquoi les deux premières échouent
 
-**Combien.** Un trajet fait 343 mètres de bord à bord, un peu plus s'il tourne, parcourus
-à une dizaine de mètres par seconde. **Vingt-quatre véhicules** donnent une voiture toutes
-les sept à huit secondes sur chacune des quatre routes — la fourchette demandée était
-quatre à dix — mesuré sur cinq minutes.
+1. **L'ANNEAU.** Les véhicules faisaient le tour des quatre brins indéfiniment : on
+   reconnaissait la même berline tous les trois quarts de minute.
+2. **LES ITINÉRAIRES OUVERTS AVEC ARBITRAGE AU CARREFOUR.** Chacun entre par un bord et
+   ressort par un autre — c'était la bonne idée —, mais il fallait bien empêcher deux
+   trajectoires de se couper, et l'on s'y prenait **en freinant** : priorité de chaussée,
+   puis classement de préséance à quatre rangs, puis places de carrefour réservées avec
+   file d'attente. Chaque règle était juste et chacune arrangeait un cas ; ensemble elles
+   faisaient des embouteillages. Mesuré sur la dernière : **74 % des véhicules collés à
+   celui de devant, des pelotons de sept, et vingt-six traversées en cinq minutes** là où
+   il en fallait cent cinquante. Le joueur a vu exactement cela — « ils tournent en rond
+   et se retrouvent les uns derrière les autres ».
+3. **LE FLUX VÉRIFIÉ À L'ENTRÉE**, celle d'aujourd'hui.
 
-**Le rayon des virages.** L'axe du virage s'écarte de la file de 0,293 rayon ; au-delà de
-huit mètres cinquante il sort dans l'herbe (mesuré : trente-trois centimètres à neuf,
-cinquante-trois à dix). Le rayon à droite est donc plafonné à **huit mètres** pour tout le
-monde — c'est la place qu'il y a, pas celle qu'on voudrait. À gauche la courbe est large
-et la place ne manque pas : neuf. Mesuré après correction, sur cinq minutes : **zéro image
-hors chaussée**, et le pire débord de carrosserie tombe à 1,13 m pour une voiture, 0,09 m
-pour un camion.
+Le défaut commun aux deux premières est de **décider trop tard**. Freiner, c'est résoudre
+au dernier moment un conflit qu'on aurait pu ne jamais créer.
 
-**Un carrefour ne tient qu'un véhicule à la fois.** C'est tout le secret, et il a fallu
-trois tentatives ratées pour y venir. Depuis que les trajets sont ouverts, deux chaussées
-perpendiculaires se coupent pour de bon, et sans règle une berline traversait le camion
-qui remontait la nationale — six mètres quarante de recouvrement.
+### On décide à l'entrée, et une fois pour toutes
 
-On a essayé, dans l'ordre :
+Un véhicule roule **à vitesse constante** d'un bout à l'autre de son trajet, et son trajet
+n'est accepté que si, sur toute sa durée, il ne s'approche jamais trop d'un seul de ceux
+qui roulent déjà. S'il ne passe pas, on ne le fait pas entrer : on attend une seconde et
+l'on retire au sort. Personne ne freine donc jamais, personne ne s'arrête, et aucun peloton
+ne peut se former — non pas « rarement », mais **jamais**, et sans qu'aucun réglage de
+seuil n'ait à être juste.
 
-- **« Celui qui arrivera le dernier cède »**, le bon sens même. Résultat : cent quatre
-  secondes d'embouteillage d'affilée, quarante pour cent des images à l'arrêt. Le bon sens
-  est pourtant juste *entre deux véhicules* ; ce qu'il ne voit pas, c'est la **boucle** — A
-  cède à B, B est coincé derrière C, C cède à D, D est coincé derrière A. Personne n'a
-  tort, et plus rien ne bouge. Aucun réglage de seuils n'en vient à bout, parce que le
-  défaut n'est pas dans les seuils : « céder » n'ordonne rien.
-- **Une priorité de chaussée** — est-ouest passe, nord-sud attend. L'attente devient
-  acyclique et l'embouteillage disparaît, mais deux véhicules se retrouvent encore
-  ensemble dans le carrefour dès que l'un a mal jugé son créneau.
-- **Un classement total à quatre rangs**, priorité puis tourne-à-gauche puis ordre de la
-  liste. Cela n'a fait que déplacer les cas limites : un créneau, ça s'estime, et une
-  estimation se trompe.
+La vérification tient en deux tests **exacts**, et non en un échantillonnage :
 
-Le remède est de **ne plus rien estimer**. Chaque carrefour est une *place*, et il n'y en
-a qu'une : on la prend en arrivant si elle est libre, on la rend quand la remorque en est
-sortie, et celui qui ne l'a pas s'arrête sur sa ligne — mesurée au **capot**, non au
-nombril, sans quoi un véhicule sagement arrêté a déjà trois mètres et demi de tôle en
-travers du bitume perpendiculaire. Deux véhicules ne peuvent alors pas s'y rencontrer :
-non pas « rarement », mais jamais, et sans qu'aucun réglage n'ait à être juste.
+- **Dans une même file**, deux véhicules à vitesse constante ont un écart qui varie
+  *linéairement* dans le temps. Il suffit donc de le calculer aux deux bouts de la période
+  où ils partagent la file : s'il tient à ces deux instants, il tient partout entre les
+  deux. Vingt mètres entre carrosseries.
+- **À un carrefour**, chacun l'occupe pendant un intervalle de temps qu'on sait calculer
+  d'avance — du moment où son capot y entre à celui où sa remorque en sort. Deux
+  intervalles disjoints, c'est deux véhicules qui ne se rencontrent pas. Sont dispensés
+  ceux qui suivent la même chaussée sans y tourner : les deux sens d'une route se croisent
+  mille fois par partie sans jamais se toucher, et les mettre à la file viderait la route
+  pour rien.
 
-Deux détails font tenir l'ensemble. **La sortie doit être dégagée** avant qu'on accorde la
-place — c'est la vieille règle du carrefour qu'on n'encombre pas, et c'est la seule façon
-dont ce système pourrait se figer. Et **la place va au plus patient**, puis au plus
-proche : au seul critère de la distance, une file qui a toujours quelqu'un sur sa ligne
-rafle le carrefour à chaque fois et la perpendiculaire n'y passe jamais.
+**Les quarante itinéraires possibles sont bâtis au chargement** — huit files, et pour
+chacune un trajet tout droit plus quatre virages — et ils se *partagent* entre les
+véhicules qui les empruntent. Rien n'y est jamais écrit.
 
-Une place unique par carrefour mettrait cependant à la file *tout* ce qui arrive — y
-compris les deux voies d'une même route, qui ne se rencontrent jamais, et les véhicules
-qui se suivent, dont la distance de sécurité s'occupe déjà. Sont donc **compatibles** ceux
-qui suivent la même chaussée, sauf si l'un s'apprête à tourner à gauche en travers de
-l'autre ; et cela se lit sur l'**itinéraire**, non sur le cap du moment — au milieu d'un
-virage, un cap en biais ne dit plus de quelle route on vient.
+### Les routes ne s'arrêtent pas
 
-Mesuré sur cinq minutes, vingt-quatre véhicules : dans les carrefours, **0,21 m** entre
-deux carrosseries au plus juste, pas un contact ; 16 % du temps à l'arrêt devant une
-ligne, 25 secondes d'attente au plus long. On attend son tour, on ne reste pas planté.
+Elles commencent et finissent quarante-deux mètres au-delà du monde dessiné : un véhicule
+est **déjà lancé, et à sa place dans la circulation**, quand il paraît au bord de la carte,
+et il continue tout droit quand il en sort. On le cache dès que sa carrosserie a
+entièrement quitté le monde — le bitume peint s'arrête là lui aussi, et il n'y a plus de
+sol dessous. Au passage, cela corrige un défaut ancien : les véhicules roulaient jusque-là
+trente-quatre mètres **au-dessus du vide**, en projetant leur ombre sur rien.
 
-**Et l'on ne se traverse plus non plus en file.** Chaque véhicule avançait à sa vitesse
-propre sans jamais regarder devant : une citadine à quatorze mètres par seconde rattrapait
-un camion à six et lui passait au travers. La loi de poursuite se cale sur celui de devant
-à partir de **sa** longueur — un attelage traîne treize mètres de remorque, une voiture
-trois — et, sous la distance de sécurité, roule *moins vite* que lui, ce qui rouvre
-l'écart. Deux versions ont échoué avant :
+Trois voitures sur dix tournent une fois puis continuent jusqu'au bout ; les sept autres
+traversent sans dévier. Les semi-remorques ne tournent jamais — vingt-sept mètres
+d'attelage dans un carrefour de village, c'est le trottoir (mesuré : deux mètres de
+bas-côté balayés).
 
-- se caler *exactement* sur sa vitesse : l'écart cessait de se réduire mais ne se rouvrait
-  jamais, et une file où chacun freine pour le précédent finissait par se tasser jusqu'à
-  superposer deux carrosseries ;
-- se caler sur sa vitesse **de croisière** plutôt que sur sa vitesse réelle : tant qu'il
-  roulait cela ne se voyait pas, mais le jour où il s'est arrêté à un carrefour, son
-  suiveur a continué de viser dix mètres par seconde à moitié distance et lui est entré
-  dedans jusqu'à se superposer *exactement* — et deux carrosseries au même point ne se
-  voient d'ailleurs plus l'une l'autre, l'écart longitudinal étant nul, donc « derrière ».
+### Les quatre pièges qu'il a fallu mesurer pour voir
 
-Le seuil de cap est large, aussi : à trente et un degrés, un véhicule en plein virage
-n'était le « même cap » de personne et sortait du carrefour en biais sur une file déjà
-occupée sans jamais voir celui qu'il rejoignait. À soixante degrés on se voit dès le
-milieu de l'arc — et la relation reste **antisymétrique**, il faut être devant *nous* et
-nous derrière *lui*, sans quoi deux véhicules en biais se croiraient chacun suiveur de
-l'autre et s'arrêteraient tous les deux pour toujours.
+- **La boîte d'un carrefour se mesure, elle ne se choisit pas.** Elle valait 7,50 m de
+  demi-côté, « la chaussée plus deux mètres cinquante », choisis à vue. Or ce qu'un
+  véhicule doit éviter, c'est la bande où passe la carrosserie de ceux qui viennent de
+  l'autre route : la file d'en face plus la demi-largeur d'un camion, soit **5,10 m**.
+  L'occupation étant proportionnelle à la taille de la boîte, chacun la bloquait moitié
+  plus longtemps qu'il n'était nécessaire, les créneaux ne se trouvaient plus, et le semeur
+  ralentissait les arrivants **jusqu'à quatre mètres par seconde** pour leur en fabriquer —
+  ce qui les faisait occuper le carrefour encore plus longtemps. Une spirale, qui a mis la
+  rocade au pas.
+- **On cherche son créneau en changeant de route, pas en ralentissant.** D'où deux crans de
+  vitesse au plus, et cinq tracés essayés : les cinq trajets d'une file franchissent les
+  carrefours à des instants très différents, c'est là qu'est le jeu.
+- **Le tirage se biaisait tout seul, deux fois.** D'abord parce qu'on retirait le type à
+  chaque essai : un trajet qui tourne libère sa file au carrefour, il se glisse donc plus
+  facilement qu'un trajet tout droit qui l'occupe d'un bout à l'autre — on demandait une
+  voiture sur quatre qui tourne, il en passait **sept sur dix**. Ensuite parce qu'un trajet
+  tout droit n'a qu'une seule forme par file : il ne peut chercher son créneau qu'en jouant
+  sur la vitesse, là où un virage a cinq tracés au choix. On lui accorde donc plus de crans.
+- **Qui tourne occupe tout son arc**, et pas seulement la boîte : la boîte fait onze mètres
+  de côté, l'arc en fait treize à dix-sept. Une voiture qui pivote balayait encore la
+  chaussée quand son intervalle était fini — un frôlement à cinquante centimètres, une fois
+  en cinq minutes. Une fois de trop : le système est fait pour que ce soit jamais.
 
-**Et l'on n'entre pas l'un dans l'autre en arrivant.** Un véhicule qui ressort de la carte
-revient aussitôt par un autre bord, et l'entrée qu'on lui tire au sort peut être occupée :
-un semi de vingt-cinq mètres réapparaissait dix-sept mètres derrière un autre semi, donc
-dedans. Plutôt que de retirer au sort jusqu'à ce que ça tombe bien, on **recule** le long
-de son propre tracé jusqu'à ce que la place soit faite — l'abscisse devient négative, le
-véhicule attend quelques secondes de plus hors champ, et il entre proprement derrière
-celui qui le précède. On regarde les *carrosseries*, non les origines : deux semis posés
-au hasard, l'un sur la file nord-sud et l'autre sur la file est-ouest, se retrouvaient
-emboîtés en travers d'un carrefour dès la première image, leurs origines à vingt mètres
-l'une de l'autre pour vingt-sept mètres de longueur.
+### Ce que ça donne
 
-**À l'échelle une et demie**, sauf en largeur pour les poids lourds. Les véhicules avaient
-été dessinés plus petits que les engins de la ferme — une berline de 4,40 m à côté d'un
-tracteur de 4,80 — et la rocade, vue de la cour, avait l'air d'un circuit de voitures
-miniatures. Le facteur porte sur *tout* : la caisse, mais aussi la sellette, le timon de la
-remorque et les distances de sécurité.
+Mesuré sur quinze minutes, vingt-huit places dans le vivier et vingt-deux véhicules vivants
+en moyenne :
 
-Sauf que les camions du modèle sont taillés large : **cinq mètres soixante-treize** de
-carrosserie une fois grandis d'une moitié, sur une chaussée de dix. Deux files à deux
-mètres soixante de part et d'autre de l'axe laissent cinq mètres vingt entre les deux
-essieux de file — un demi-mètre de moins qu'il n'en faut, et deux semis qui se croisaient
-se traversaient d'un demi-mètre. On ne peut ni élargir la rocade, dont le bord dessine la
-cour de ferme, ni écarter les files sans sortir du bitume. Le camion est donc **affiné de
-treize pour cent en largeur seulement** : sa longueur et sa hauteur restent à une fois et
-demie — c'est là que se lit la taille —, et deux camions se croisent enfin sans se
-pénétrer.
+| | avant (arbitrage au frein) | après (flux vérifié) |
+|---|---|---|
+| véhicules collés à celui de devant | 74 % | **1,7 %** |
+| plus long peloton | 7 | **3** |
+| traversées complètes en 5 min | 26 | **139** |
+| images où quelqu'un freine | — | **0** |
+| dégagement au plus juste | −4,4 m (contact) | **+0,21 m** |
+| images hors chaussée | 0 | **0** |
 
-**La remorque suit le rail, elle n'est plus traînée.** Le modèle traîné est celui des
-outils de la ferme, et il est juste tant que le timon est plus *court* que le rayon du
-virage. À cette échelle le timon d'un semi fait douze mètres et les virages huit : la
-remorque ne pouvait plus suivre du tout, elle coupait le coin en ligne droite — cinq
-mètres soixante dans l'herbe, essieux au ras de la clôture. Posée sur le rail, un timon
-d'abscisse curviligne derrière le tracteur, elle reste dans sa file au centimètre, et son
-cap diffère naturellement de celui du tracteur dans les courbes : c'est exactement ce que
-l'œil lit d'un attelage. Débord ramené de 5,60 m à 2,17.
+Cadence : une voiture toutes les **7,6 à 8,4 s** sur chacune des quatre routes — la
+fourchette demandée était 4 à 10. Dix-huit véhicules visibles à la fois en moyenne, vingt-
+trois au plus. Débord de carrosserie en virage : 0,90 m pour une voiture, 0,09 m pour un
+camion.
 
-**Et la physique est celle des engins du joueur.** La suspension — ressort-amortisseur mou
-sur trois axes, roulis en virage, tangage à l'accélération et au freinage, pompage sur les
-bosses — vivait à l'intérieur de `Vehicle.update`, où seules les machines de la ferme en
-profitaient ; les voitures avaient un roulis à elles, bricolé, sans ressort ni tangage.
-C'est la **même fonction et les mêmes constantes** qui les animent, à la mollesse près :
-une voiture est plus ferme qu'un tracteur, un camion plus mou. Le moteur aussi : la vitesse
-*tend* vers sa consigne au lieu d'y sauter, avec le frein moteur deux fois plus fort que la
-reprise — ce qui fait qu'un camion pris derrière une voiture lente met du temps à ralentir,
-et que le ralentissement se voit, puisqu'il fait plonger le nez. Le roulis se vérifie
-d'ailleurs *en moyenne* et non au pic : sur les cahots la caisse prend un coup de roulis en
-ligne droite aussi, et le maximum d'une ligne droite d'une minute finit par égaler celui
-d'un virage.
+Le seul dégagement qui reste juste est celui de **deux semis qui se croisent** : 0,21 m. Ce
+n'est pas un réglage mais une fatalité géométrique — voir plus bas.
 
-Les six modèles viennent de la planche du joueur — berline, break à galerie, citadine,
-bétaillère à claire-voie, plateau à bottes, monospace — et le camion orange garde ses trois
-remorques. Chacun est fusionné en **une** géométrie, donc un appel de rendu, comme les
-maisons. Un détail de portage : la planche peignait en `DoubleSide`, ce qui masquait un
-enroulement de faces inversé sur les capots ; ici la matière n'a qu'une face, et il a fallu
-retourner les triangles — sans quoi on voyait les voitures de l'intérieur.
+### À l'échelle une et demie, sauf en largeur pour les poids lourds
+
+Les véhicules avaient été dessinés plus petits que les engins de la ferme — une berline de
+4,40 m à côté d'un tracteur de 4,80 — et la route, vue de la cour, avait l'air d'un circuit
+de voitures miniatures. Le facteur porte sur *tout* : la caisse, mais aussi la sellette, le
+timon de la remorque et les distances de sécurité.
+
+Sauf que les camions du modèle sont taillés large : **5,73 m** de carrosserie une fois
+grandis d'une moitié, sur une chaussée de dix. Deux files à 2,60 m de part et d'autre de
+l'axe laissent 5,20 m entre les deux essieux de file — un demi-mètre de moins qu'il n'en
+faut, et deux semis qui se croisaient se traversaient. On ne peut ni élargir la rocade,
+dont le bord dessine la cour de ferme, ni écarter les files sans sortir du bitume. Le camion
+est donc **affiné de treize pour cent en largeur seulement** : sa longueur et sa hauteur
+restent à une fois et demie — c'est là que se lit la taille.
+
+**La remorque suit le rail, elle n'est plus traînée.** Le modèle traîné est celui des outils
+de la ferme, et il est juste tant que le timon est plus *court* que le rayon du virage. À
+cette échelle le timon d'un semi fait douze mètres et les virages huit à onze : la remorque
+coupait le coin en ligne droite — cinq mètres soixante dans l'herbe, essieux au ras de la
+clôture. Posée sur le tracé, un timon d'abscisse curviligne derrière le tracteur, elle reste
+dans sa file au centimètre, et son cap diffère naturellement de celui du tracteur dans les
+courbes. Débord ramené de 5,60 m à 2,17.
+
+**Le camion orange n'a plus qu'une remorque : la citerne.** Le plateau porte-engins et le
+fourgon restent écrits — ils ne coûtent rien tant qu'on ne les fabrique pas — mais ne sont
+plus assemblés.
+
+### Les phares du camion étaient enfoncés dans sa calandre
+
+Ils sont là depuis le portage : deux pavés crème de 0,42 × 0,30 × 0,16 à 1,02 m de l'axe.
+Mais ils occupent z ∈ [5,00 ; 5,16] quand la calandre, elle, avance jusqu'à 5,20 : **leur
+face avant est derrière celle de la calandre**. Il n'en dépassait que deux liserés de vingt
+centimètres sur les côtés, et le camion paraissait n'avoir pas de phares du tout. C'est le
+patron du monospace qu'on reprend — entourage sombre, lentille par-dessus, « posés sur la
+calandre, non enfoncés » —, calé pour rester en deçà du pare-chocs : le porte-à-faux avant
+ne bouge pas, et avec lui la ligne d'entrée des carrefours.
+
+### Tout le trafic s'allume la nuit
+
+Un véhicule de passage porte les mêmes lumières qu'un engin de la ferme, et par le même
+mécanisme : deux billes additives crème devant, deux rouges derrière — **sur la citerne**
+pour un attelage, sur la caisse pour une voiture —, et deux faisceaux en tronc de cône. Les
+lumières sont **enfants de la carrosserie** : elles prennent le cap, le roulis et le
+pompage de la suspension, et le faisceau balaie le paysage quand la voiture passe une bosse.
+
+Le calcul des cotes du faisceau — pente déduite de la hauteur du phare, longueur coupée là
+où sa génératrice basse touche le sol, écrasement de moitié — était écrit au milieu de la
+construction des éclairages de nuit. Il est maintenant une fonction, `reglageFaisceau()`,
+et **sert deux fois** : un tracteur et une berline de passage éclairent selon la même règle.
+Vérifié par différentiel : les faisceaux des sept engins du joueur sont inchangés au bit
+près après l'extraction.
+
+Deux économies, parce qu'il y a vingt-deux véhicules et non sept :
+
+- **les faisceaux ne s'allument que de près** (95 m). Deux troncs additifs par véhicule sur
+  toute la carte, cela fait quarante volumes transparents à remplir pour des voitures
+  grosses comme un ongle ; au-delà, les deux billes disent déjà tout ce qu'il y a à savoir —
+  qu'une voiture arrive, et par où. Cinq ou six faisceaux allumés à la fois, mesuré ;
+- **huit pans sur quatre anneaux** pour un cône de décor, au lieu des quatorze sur huit des
+  engins du joueur : 224 triangles économisés par phare. La finesse est un argument par
+  défaut de `faisceauPhare()`, les engins gardent la leur.
+
+Où sont les optiques de chaque modèle ? **On le note en les posant**, au lieu d'aller le
+redécouvrir sur la boîte englobante : un monospace au museau court et une bétaillère à long
+capot ne les portent pas au même endroit, et une lueur posée à côté de son verre se voit
+tout de suite.
+
+Coût mesuré de l'ensemble — le flux, les vingt-deux véhicules, et l'éclairage de nuit de
+tous : **2 à 3 % des images**, de jour comme de nuit.
+
+Les six modèles de voiture viennent de la planche du joueur — berline, break à galerie,
+citadine, bétaillère à claire-voie, plateau à bottes, monospace — chacun fusionné en **une**
+géométrie, donc un appel de rendu. Un détail de portage : la planche peignait en
+`DoubleSide`, ce qui masquait un enroulement de faces inversé sur les capots ; ici la
+matière n'a qu'une face, et il a fallu retourner les triangles.
 
 Le trafic n'a **aucune emprise de collision** vis-à-vis du joueur, et c'est voulu :
-`obstacles` est un tableau balayé à chaque image par le pilote, et y injecter vingt-quatre
+`obstacles` est un tableau balayé à chaque image par le pilote, et y injecter vingt-deux
 cercles mobiles transformerait un croisement en accrochage. On les traverse, comme tout le
-décor mobile. Coût mesuré du passage de douze à vingt-quatre véhicules, itinéraires et
-carrefours compris : **2,6 % des images** (8,98 → 8,75 par seconde au banc).
+décor mobile.
 
 ## Le son du moteur
 
