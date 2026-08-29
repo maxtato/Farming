@@ -110,7 +110,7 @@ qu'on ne sait pas encore produire**. C'est la demande qui enseigne la mécanique
 | 3 · Première transformation | le moulin, la farine, la boulangerie |
 | 4 · Le maïs et les poules | deuxième parcelle, maïs, broyeur, poules |
 | 5 · Deux chaînes à la fois | rien — c'est la tournée qui change, pas l'outillage |
-| 6 · L'orge | troisième parcelle, orge, fourgon, brasserie, restaurant |
+| 6 · L'orge | troisième parcelle, orge, fourgon, cuve de brassage, épicerie, restaurant |
 | 7 · L'avoine | avoine, usine d'avoine |
 | 8 · Les vaches | quatrième parcelle, mélangeur premium, vaches, laiterie |
 | 9 · Fromage fermier | la fromagerie de la ferme |
@@ -1771,6 +1771,11 @@ qu'on ne sait pas ce qu'une moisson rapporte.
 
 ## Deux missions qu'on ne pouvait pas finir
 
+> Cette passe a réparé les deux lignes impossibles ; le palier six a été refait *ensuite*, et
+> la Brasserie du village y a laissé la place à une Épicerie — voir
+> « [La Brasserie devient l'Épicerie, et la bière se brasse à la ferme](#la-brasserie-devient-lépicerie-et-la-bière-se-brasse-à-la-ferme) ».
+> Ce qui suit raconte l'état d'avant.
+
 **« Après la brasserie, il me demande de la bière alors que j'ai pas de quoi fabriquer de la
 bière. »** Le joueur a raison, et il y en avait une seconde qu'il n'avait pas encore
 rencontrée. Sur les trente-neuf lignes de marchandise que réclament les trente missions,
@@ -2676,8 +2681,8 @@ un engin en mission ne touche à rien : il traverse le silo sans s'y vider.
 l'engin chargeait le premier tas venu, et l'on découvrait au retour qu'il avait livré de
 l'avoine là où l'on attendait du blé. La question se pose donc à la création du trajet,
 et ne propose que ce qui a un sens dessus — ce que le départ peut donner ET ce que
-l'arrivée veut bien prendre : trois céréales pour l'usine de céréales, l'orge seule pour
-la brasserie, les quatre grains que mangent les bêtes pour une pâture. Les deux tables
+l'arrivée veut bien prendre : trois céréales pour l'usine de céréales, l'avoine seule pour
+l'usine d'avoine, les quatre grains que mangent les bêtes pour une pâture. Les deux tables
 raisonnent en POSSIBLE et non en présent : un plan est un ordre permanent, il doit se
 composer même quand le tas est momentanément vide. Répondre **Tout**, ou reprendre un
 plan composé avant que la question existe, rend le comportement d'origine — on prend ce
@@ -3369,14 +3374,14 @@ de 25-57 % à **16 %**, sur la seule portion où l'on ne voit plus rien.
                    +-> atelier (il se sert seul) -+-> farine       -> entrepôt
                    |                              |-> huile        -> entrepôt
                    |                              |-> aliment      -> entrepôt
+                   |                              |-> bière        -> entrepôt
                    |                              \-> vin          -> entrepôt
                    |                                       |
-                   |   entrepôt -+-> boulangerie / marché / restaurant / caviste
+                   |   entrepôt -+-> boulangerie / épicerie / marché / restaurant / caviste
                    |             |-> les mangeoires, pour l'aliment
                    |             \-> raisin, olives, lait, œufs, laine, miel en attente
                    |
                    +-> usines du bord de route : on verse, elles PAIENT
-                   |     orge   -> brasserie      -> bière
                    |     avoine -> usine d'avoine -> lait d'avoine
                    |     blé/maïs/avoine -> usine de céréales -> céréales
                    |     lait   -> laiterie   -> beurre + yaourt
@@ -3742,9 +3747,10 @@ tous jointifs, sous une clôture commune. Relevé, bande par bande :
 `M B B ~ B M B ~ B` à l'ouest, `B M B ~ M B M ~ B M` au nord, `U U ~ U U ~ U U` à l'est.
 Une seule jointure commerce-contre-commerce dans tout le village, à l'ouest : cette bande
 porte cinq dalles dont le supermarché, et depuis que le bâti est à l'échelle des engins
-elle ne tient plus que deux maisons. On la place entre la brasserie et le caviste, les
-deux plus petites — trente-neuf mètres de devanture d'un tenant — plutôt qu'entre le
-marché et le supermarché, qui en feraient cinquante-deux. Partout ailleurs c'est une
+elle ne tient plus que deux maisons. On la place entre l'épicerie et le caviste, les
+deux plus petites — trente-huit mètres et demi de devanture d'un tenant, trente-neuf du
+temps de la brasserie qui l'a précédée — plutôt qu'entre le marché et le supermarché, qui
+en feraient cinquante-deux. Partout ailleurs c'est une
 maison qui s'intercale.
 
 Une **maison est au recul de la dalle voisine**, trois mètres, et pas un de plus — sans
@@ -4960,6 +4966,93 @@ commençant à 68,4.
 **Et rien de tout cela n'arrête un engin.** Aucun de ces objets ne pousse d'obstacle : c'est la
 règle que suit déjà le fourbi de l'atelier, et c'est la bonne, parce qu'un décor qui bloque un
 épandeur de douze mètres dans sa propre cour est un piège et non un détail.
+
+## La Brasserie devient l'Épicerie, et la bière se brasse à la ferme
+
+**« Vu que la Brasserie nous demande de l'orge, mais que juste après on va fabriquer sa propre
+bière, la Brasserie n'a plus lieu d'être. »** Le joueur a vu juste, et le défaut était visible
+au palier six : la mission 9 lui faisait porter 200 kg d'orge à la Brasserie *pour qu'elle en
+brasse la bière*, la mission 10 lui faisait livrer 140 L de bière au Restaurant, et le même
+palier lui vendait la **cuve de brassage** de sa halle. Le village achetait donc la matière
+première d'un métier qu'on venait tout juste d'acquérir. Pire, l'arithmétique tournait en
+rond : 200 kg d'orge × 0,70 de rendement font très exactement 140 L, c'est-à-dire **la même
+orge comptée deux fois**, payée deux fois, sur deux missions.
+
+**Ce qui remplace les deux.** Le rang 9 va maintenant au **Restaurant**, qui ne commande pas de
+la bière mais *cherche quelqu'un qui la brasserait* : « Je cherche quelqu'un qui cultiverait de
+l'orge dans le coin et qui se lancerait dans une bière artisanale — une vraie, brassée ici. »
+C'est l'orge et la cuve d'un seul mouvement, et le joueur reste propriétaire de sa filière d'un
+bout à l'autre. Le rang 10 va à l'**Épicerie**, qui ouvre un rayon de produits de la ferme —
+60 L de bière et 120 kg de farine — sur la recommandation du Restaurant. On retombe donc bien
+sur **trente missions**, et les primes et l'expérience ne bougent pas d'un euro : 3 200 € /
+220 XP au rang 9, 3 600 € / 240 XP au rang 10, comme avant.
+
+**L'Épicerie prend la place de la Brasserie, sur place.** Le rang 0 de `SITES` est **renommé**,
+jamais déplacé : `negoce` est sérialisé par position, et sortir la Brasserie pour ajouter
+l'Épicerie en fin de table déplacerait le contenu de tous les commerces d'un cran. Elle garde
+donc le rang, la bande ouest, le `bat` et — comme demandé — les **clôtures en muret** de la
+Brasserie. Elle n'apporte **pas de dalle** : le jeu en pose déjà une sous chaque commerce, et
+une seconde épaisseur à deux centimètres au-dessus de la première est un défaut que ce fichier
+a déjà corrigé une fois.
+
+**Sa taille.** L'ancienne Brasserie faisait 22,82 m de large — pas parce qu'une brasserie est
+grande, mais parce que ses trois cuves de cuivre sortaient six mètres sur le côté. C'était
+l'exception du village, pas la règle. L'Épicerie est mesurée à **16,04 × 13,31 m**, ce qui la
+range entre le Marché (16,76) et la Fromagerie (16,65), et bien au-dessus de la Boulangerie
+(10,62), de la Boucherie (10,03) et du Caviste (10,50) : une devanture de commerce de village,
+à la taille des autres. Le rang ouest — maison, Épicerie, Caviste — mesure maintenant
+**38,54 m** d'un tenant contre 39,32 du temps de la Brasserie ; il reste le plus court des
+appariements possibles, et les deux plus grosses dalles restent séparées par une maison.
+
+**Ce qu'elle achète, et pourquoi à ce prix.** Le fichier tient une hiérarchie stricte entre
+acheteurs — plus on paie cher, moins on tient — et se méfie des acheteurs strictement dominés,
+qui n'auraient aucune raison d'exister. L'Épicerie s'y insère à **1,18 pour 1 200** : caviste
+1,33 pour 600, restaurant 1,28 pour 900, **épicerie 1,18 pour 1 200**, marché 1,09 pour 2 000,
+supermarché 1,00 pour 9 000. Elle ne domine personne et personne ne la domine. Elle prend ce
+qu'une épicerie de village met en rayon — tout ce qui se mange, de la ferme d'à côté. Pas la
+laine : ce n'est pas de l'épicerie.
+
+### Ce qu'une vieille sauvegarde traversait sans garde
+
+Trois choses, et deux d'entre elles étaient **silencieuses**. Elles ne tiennent pas au dessin
+du bâtiment mais à la façon dont le fichier range son état.
+
+- **`CAMPAGNE.mission` est un INDICE**, pas un nom de mission ; et `CAMPAGNE.faits` est indexé
+  par *ligne* de la mission de ce rang. Une partie arrêtée au rang 9 avec `faits:[150]` — cent
+  cinquante kilos d'orge déjà portés à la Brasserie — se relisait sur la nouvelle mission du
+  même rang, qui demande 140 L de bière : `veillerMission()` la soldait **à la première
+  image**. Trois mille deux cents euros, deux cent vingt points d'expérience et la découverte
+  de la cuve, sautés d'un coup, sans un mot. C'est la régression la plus coûteuse des trois.
+  La sauvegarde écrit donc maintenant `mv`, le **rang de la table des missions**, et
+  `MISSIONS_REECRITS` dit lesquelles ont changé de contenu depuis. Le chargement remet ces
+  missions-là à zéro, et **elles seules** : le rang 12 garde son avancement, et une partie
+  enregistrée depuis garde le sien. On perd au pire une mission à moitié faite, jamais une
+  mission finie — le rang n'avance qu'une fois la mission soldée. Ajouter une mission *à la
+  fin* ne coûtera toujours rien ; c'est insérer ou réécrire qui se paie ici.
+- **La renommée est le seul état durable rangé par NOM de commerce.** La clé écrite hier était
+  `'Brasserie'`, celle qu'on cherche aujourd'hui est `'Épicerie'` : le test échouait, la
+  renommée retombait à zéro, et un joueur qui avait servi ce commerce dix fois — prime ×1,5,
+  attente −70 % — repartait de rien sans que rien ne l'en avertisse. Une table d'anciens noms,
+  `SITES_ANCIENS_NOMS`, rattrape la clé, et ne sert que si le nouveau nom est absent.
+- **Un contrat est repéré par nom de lieu.** Un contrat d'orge accepté chez la Brasserie
+  devenait insolvable chez l'Épicerie, qui n'en achète pas ; et comme le temps ne court que sur
+  les contrats à délai, il occupait *pour toujours* une des quatre places. Le chargement le
+  laisse donc tomber — la règle est générale, et vaudra pour le prochain commerce qui changera
+  de métier. Elle ne se voit qu'en **mode libre** : en campagne, `remplirCommandes(0)` balaie
+  déjà les contrats au chargement.
+
+Ce que la trémie du rang 0 contenait, enfin, est filtré à la relecture : l'Épicerie héritait
+sinon de jusqu'à 335 kg d'orge, invisibles et éternels, puisqu'elle ne fabrique plus rien.
+
+**Six contrôles nouveaux dans le banc `campagne`** tiennent tout cela : que la sauvegarde écrit
+le rang de la table, qu'une mission réécrite repart de zéro, qu'une mission intacte garde son
+avancement, qu'une sauvegarde d'aujourd'hui n'est pas remise à zéro, que la renommée change de
+nom sans que celle des autres bouge, et qu'en mode libre le contrat du commerce disparu tombe
+pendant que les deux autres restent. Le banc `chaine` mesurait, lui, une vraie règle — « on
+verse dans une trémie d'usine, elle transforme, elle paie toute seule, on repart vide, on ne
+peut rien y recharger » — mais il l'avait écrite sur le seul commerce qui disparaissait. Il est
+repointé sur l'**usine à avoine**, qui a exactement le même profil, plutôt que supprimé : la
+règle valait mieux que l'exemple.
 
 ## Trois âges par culture
 

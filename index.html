@@ -1916,14 +1916,16 @@ const HALLE = {x: 90.8, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
    moudre du blé, presque neuf pour faire du vin. Ces durées ont été multipliées par
    4,44 en même temps que les kilos étaient divisés d'autant : une parcelle met donc
    toujours le même temps à passer au moulin. */
-/* ET LA BRASSERIE DE LA FERME, PARCE QU'UNE MISSION LA RÉCLAMAIT SANS ELLE.
-   Au palier six, une mission demande cent quarante litres de bière au Restaurant. Or la
-   bière n'était fabriquée que par la Brasserie du village, qui ENCAISSE — « il vend
+/* ET LA BRASSERIE EST À LA FERME, ET NULLE PART AILLEURS.
+   Au palier six, une mission demande cent quarante litres de bière au Restaurant. La bière
+   n'était alors fabriquée que par la Brasserie du village, qui ENCAISSE — « il vend
    lui-même, il n'y a rien à emporter » — et aucun module de la halle ne la faisait. Le
    joueur : « après la brasserie, il me demande de la bière alors que j'ai pas de quoi
    fabriquer de la bière. » Mesuré sur les trente missions : c'était la SEULE marchandise
-   demandée que la ferme ne savait pas produire.
-   La cuve entre au palier six, celui qui ouvre justement l'orge, la Brasserie et le
+   demandée que la ferme ne savait pas produire. La cuve a réglé cela ; et le village a
+   depuis perdu sa brasserie, devenue une épicerie, parce qu'un commerce qui achetait
+   l'orge pour brasser n'avait plus de raison d'être en face d'une ferme qui brasse.
+   La cuve entre au palier six, celui qui ouvre justement l'orge, l'Épicerie et le
    Restaurant : on vend son orge au village, et on brasse la sienne chez soi. Elle se
    range après le broyeur, entre les paliers quatre et huit, parce que l'ordre de ce
    tableau est celui des paliers — c'est lui qui décide de la silhouette du bâtiment.
@@ -2037,9 +2039,18 @@ const SITES = [
   // le gabarit générique piloté par leurs drapeaux.
 
   /* --- bande OUEST, six commerces --- */
-  {nom:'Brasserie', enseigne:'potence', picto:'chope', dir:'W', bat:-102, park:-89,
-   style:'boutique', crop:1, prix:0.52, cloture:'muret', modele:()=> batBrasserie(),
-   w:13.0, d:9.5,  pw:12, ph:12, toit:0xA85440, mur:0xE8D6BC},
+  /* L'ÉPICERIE A PRIS LA PLACE DE LA BRASSERIE, ET ELLE L'A PRISE EN PLACE.
+     Le joueur : « vu que la Brasserie nous demande de l'orge, mais que juste après on va
+     fabriquer sa propre bière, la Brasserie n'a plus lieu d'être ». Il a raison : le village
+     achetait la matière première d'un métier qu'on venait d'acheter au palier six.
+     ET C'EST UN RENOMMAGE, PAS UN REMPLACEMENT. `SITES` est sérialisée PAR RANG dans le
+     champ `negoce` d'une sauvegarde — `SITES.map(...)` à l'écriture, `S.negoce[i]` à la
+     relecture. Retirer la Brasserie pour ajouter l'Épicerie en fin de table décalerait les
+     quinze commerces d'un cran : la trémie de l'un atterrirait chez l'autre, et le quai de
+     la Coopérative chez le Garage. On garde donc le rang 0, on change ce qui s'y trouve. */
+  {nom:'Épicerie', enseigne:'potence', picto:'graine', dir:'W', bat:-102, park:-89,
+   style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batEpicerie(),
+   w:13.0, d:9.5,  pw:12, ph:12, toit:0x9C4A32, mur:0xF6EFE0},
   // Le garage : on y répare, on y améliore, et c'est le SEUL endroit où l'on achète
   // un véhicule. Il s'appelait « Atelier », ce qui le confondait avec l'atelier de
   // production de la ferme et avec l'atelier textile du village.
@@ -2150,7 +2161,6 @@ const NEGOCE = {
   'Usine céréales':  {fabrique:['cerealesPlus','cereales'], choix:'meilleure',
                       caisse:true, coef:1.00, debit:1.24},
   'Usine avoine':    {fabrique:['laitAvoine'], caisse:true, coef:1.00, debit:1.06},
-  'Brasserie':       {fabrique:['biere'], caisse:true, coef:1.00, debit:1.06},
   'Laiterie':        {fabrique:['beurre','yaourt'], choix:'toutes',
                       caisse:true, coef:1.42, debit:1.35},
   /* L'ordre du tableau EST la priorité : `choix:'meilleure'` prend la première recette
@@ -2183,6 +2193,19 @@ const NEGOCE = {
      benne au prix fort, et on descend l'échelle pour le reste — c'est le choix qu'on
      veut poser : moins cher, mais tout part. */
   'Caviste':         {achete:['vin','raisin'], coef:1.33, etal:600},
+  /* L'ÉPICERIE DU VILLAGE, ET SA PLACE DANS L'ÉCHELLE. Elle a remplacé la Brasserie, qui
+     FABRIQUAIT ; elle, elle achète. Le fichier tient une hiérarchie stricte — plus on paie
+     cher, moins on tient — et il se méfie des acheteurs « strictement dominés », qui
+     n'auraient aucune raison d'exister : caviste 1,33 pour 600, restaurant 1,28 pour 900,
+     ÉPICERIE 1,18 POUR 1 200, marché 1,09 pour 2 000, supermarché 1,00 pour 9 000. Elle
+     s'insère sans dominer personne ni être dominée : elle paie mieux que le marché et tient
+     moins, moins bien que le restaurant et tient plus.
+     Elle prend ce qu'une épicerie de village met en rayon — tout ce qui se mange, de la
+     ferme d'à côté. Pas la laine : ce n'est pas de l'épicerie. */
+  'Épicerie':        {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
+                              'huile','huileOlive','vin','miel','fromage','fromageBrebis',
+                              'biere'],
+                      coef:1.18, etal:1200},
   /* ET LA BIÈRE Y ENTRE, MAINTENANT QU'ON SAIT LA FAIRE. Elle avait été retirée de ces
      trois listes, et à raison : « le reste — bière, fromage, beurre, yaourt, lait
      d'avoine — est fabriqué et vendu par les usines elles-mêmes ; l'afficher ici, c'était
@@ -2290,7 +2313,7 @@ function entamerEtal(S, cle, q){
   const r = S.reste[cle];
   S.reste[cle] = Math.max(0, (r === undefined ? S.etal : r) - q);
 }
-/* UN COMMERCE OUVRE À SON PALIER. La brasserie est bâtie du premier jour — on la voit,
+/* UN COMMERCE OUVRE À SON PALIER. L'épicerie est bâtie du premier jour — on la voit,
    on passe devant — mais elle ne traite avec la ferme qu'au sixième palier. C'est ce
    qui donne à un village construit d'un bloc l'allure d'un village qui s'ouvre : on
    découvre un débouché parce qu'on a appris à produire ce qu'il achète, pas parce
@@ -2375,9 +2398,9 @@ const NIVEAUX = [
      filières — et un banc vérifie que rien de payant n'échappe à cette table. */
   {nom:'Deux chaînes à la fois', resume:'La farine ET les œufs dans la même tournée',
    engins:['t2'], parcelles:2},
-  {nom:'L\'orge', resume:'L\'orge, la brasserie, le restaurant',
+  {nom:'L\'orge', resume:'L\'orge, la cuve de brassage, le restaurant',
    cultures:['orge'], engins:['fourgon'], modules:['biere'],
-   sites:['Brasserie', 'Restaurant'], parcelles:3},
+   sites:['Épicerie', 'Restaurant'], parcelles:3},
   {nom:'L\'avoine', resume:'L\'avoine et son usine',
    cultures:['avoine'], sites:['Usine avoine'], parcelles:3},
   {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',
@@ -2510,12 +2533,26 @@ const MISSIONS = [
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2800, xp:200,
    texte:'Cette fois, j\'ai besoin des deux. Préparez-moi 72 kg de farine et 36 œufs.',
    fin:'Tout est là. C\'est exactement le type d\'approvisionnement que je recherchais.'},
-  {niv:6, lieu:'Brasserie', lignes:[{cle:'orge', need:200}], prime:3200, xp:220,
-   texte:'Je cherche une orge cultivée ici pour lancer un brassin local. Si vous vous lancez, je vous prends les premiers 200 kg.',
-   fin:'Très belle matière première. La cuve peut démarrer.'},
-  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3600, xp:240,
-   texte:'La Brasserie m\'a parlé de son nouveau brassin à partir de votre orge. J\'aimerais en réserver 140 litres.',
-   fin:'Très bien. On pourra enfin proposer une bière vraiment produite dans le village.'},
+  /* LE PALIER SIX NE COMPTE PLUS DEUX FOIS LA MÊME ORGE.
+     Il demandait 200 kg d'orge à la Brasserie, puis 140 L de bière au Restaurant. Or 140 L
+     de bière, c'est EXACTEMENT 200 kg d'orge — le rendement vaut 0,70 : la campagne faisait
+     livrer deux fois la même récolte, une fois en grain et une fois en bouteille. Le joueur
+     l'a vu de lui-même : « vu que la Brasserie nous demande de l'orge, mais que juste après
+     on va fabriquer sa propre bière, la Brasserie n'a plus lieu d'être. »
+     Les deux temps n'en font donc plus qu'un, et c'est le Restaurant qui parle : il cherche
+     quelqu'un qui cultiverait l'orge ET la brasserait, et il s'engage d'avance. C'est ce
+     qui donne au joueur les deux raisons d'un coup — semer l'orge, monter la cuve.
+     LE CRÉNEAU LIBÉRÉ VA À L'ÉPICERIE, comme demandé : « il faudra ensuite faire une mission
+     liée à l'épicerie pour rattraper la mission qu'on a perdue avec la brasserie, pour
+     arriver à 30. » Les primes et les expériences ne bougent PAS de position — 3 200 puis
+     3 600, 220 puis 240 — parce que la campagne entière vaut 11 640 XP et qu'un banc compte
+     les trente valeurs dans l'ordre. */
+  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3200, xp:220,
+   texte:'Je cherche quelqu\'un qui cultiverait de l\'orge dans le coin et qui se lancerait dans une bière artisanale — une vraie, brassée ici. Si vous vous y mettez, je vous en prends 140 litres sans hésiter.',
+   fin:'C\'est exactement ce que j\'espérais. Une bière du village, brassée à la ferme d\'à côté : la carte peut enfin le dire.'},
+  {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:60}, {cle:'farine', need:120}], prime:3600, xp:240,
+   texte:'Le Restaurant m\'a fait goûter votre bière, et on me la réclame déjà au comptoir. J\'ouvre un rayon de produits de la ferme : 60 litres et 120 kg de farine pour commencer.',
+   fin:'Le rayon est monté. Vos produits sont les premiers qu\'on voit en entrant, maintenant.'},
   {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:4000, xp:260,
    texte:'Nous cherchons un producteur local d\'avoine. Une première livraison de 200 kg nous permettra de voir si votre récolte convient à notre procédé.',
    fin:'Ça nous convient. Gardez de l\'avoine en production, nous en aurons probablement encore besoin.'},
@@ -2589,6 +2626,29 @@ const MISSIONS = [
    fin:'Tout est là. En regardant cette livraison, on mesure le chemin parcouru depuis vos premiers 30 kg de blé. Votre ferme est devenue une véritable exploitation.',
    apres:[{titre:'EXPLOITATION ÉTABLIE', txt:'Vous avez développé les principales filières de votre ferme.'}, {titre:'À VOUS DE JOUER', txt:'Les commerces continueront désormais à proposer des contrats, tandis que vous pouvez développer librement vos parcelles, vos élevages, vos ruches, vos bâtiments et votre matériel.'}]}
 ];
+/* LA TABLE DES MISSIONS EST LUE PAR RANG, ET C'EST UN PIÈGE DE SAUVEGARDE.
+   `CAMPAGNE.mission` est un INDICE dans MISSIONS, et `CAMPAGNE.faits` est indexé par
+   LIGNE de la mission de ce rang. Ni l'un ni l'autre ne porte le nom de ce qu'il
+   désigne : le jour où une mission change de contenu en gardant son rang, une partie
+   arrêtée dessus se réveille avec l'avancement d'une autre.
+   D'où ces deux constantes. `MISSIONS_V` est le numéro de la table — on l'incrémente
+   à CHAQUE fois qu'une mission déjà écrite change de marchandise ou de quantité — et
+   `MISSIONS_REECRITS` dit lesquelles ont changé depuis la version d'avant. Le
+   chargement remet ces missions-là à zéro, et elles seules.
+   Version 2 : les rangs 8 et 9 du palier 6. La Brasserie achetait 200 kg d'orge pour
+   en brasser la bière, puis le palier suivant vendait au joueur sa propre cuve de
+   brassage : le village achetait la matière d'un métier qu'on venait d'acheter. Le
+   rang 8 va maintenant au Restaurant, qui cherche quelqu'un pour brasser une bière du
+   village, et le rang 9 à l'Épicerie, qui ouvre un rayon de produits de la ferme.
+   AJOUTER une mission à la fin, elle, ne coûte rien : les rangs d'avant ne bougent
+   pas. C'est INSÉRER ou RÉÉCRIRE qui se paie ici. */
+const MISSIONS_V = 2;
+const MISSIONS_REECRITS = [8, 9];
+/* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
+   nom de site (les contrats aussi, mais eux se laissent tomber : voir `chargerCampagne`).
+   Un commerce qui change de nom perdrait donc en silence tout ce qu'un joueur avait
+   bâti avec lui. La table se lit « nom d'aujourd'hui : nom d'hier ». */
+const SITES_ANCIENS_NOMS = {'Épicerie': 'Brasserie'};
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
    réglées à la main finissent toujours par se contredire : un palier qu'on n'atteint pas
@@ -2624,9 +2684,9 @@ function niveauPourXp(xp){
 const XP_PAR_EURO = 0.01;
 /* LE FILET SUIT L'ARGENT, PAS LA MARCHANDISE. Il était accroché à `compter()`, seul
    endroit par où passe tout ce qui quitte la ferme — mais une même récolte y passe
-   DEUX fois quand elle traverse une usine : une fois en versant l'orge à la brasserie,
-   qui ne paie rien, et une fois quand la brasserie vend sa bière et nous paie. Deux
-   fois cinq dixièmes d'expérience pour un seul kilo d'orge. On l'accroche donc à
+   DEUX fois quand elle traverse une usine : une fois en versant le blé à l'usine à
+   céréales, qui ne paie rien sur le versement, et une fois quand l'usine vend et nous
+   paie. Deux fois cinq dixièmes d'expérience pour un seul kilo de blé. On l'accroche donc à
    l'encaissement : un centième d'euro reçu, quelle qu'en soit la source. C'est la même
    règle pour tout le monde, et elle ne peut plus compter deux fois ce qui n'est payé
    qu'une. */
@@ -2886,6 +2946,17 @@ function chargerCampagne(S){
     CAMPAGNE.xp = Math.max(0, C.xp);
     CAMPAGNE.mission = Math.max(0, Math.min(MISSIONS.length, C.mission | 0));
     CAMPAGNE.faits = Array.isArray(C.faits) ? C.faits.slice() : [];
+    /* UN AVANCEMENT ÉCRIT SUR UNE AUTRE TABLE NE VEUT PLUS RIEN DIRE.
+       `CAMPAGNE.faits` est indexé par LIGNE de la mission courante, et la mission
+       courante est repérée par son RANG. Les rangs 8 et 9 ont changé de contenu en
+       gardant leur rang : 8 demandait 200 kg d'orge à la Brasserie, il demande
+       maintenant 140 L de bière au Restaurant. Relire tel quel un `faits:[150]` de
+       l'ancienne table soldait la mission à la première image — 3 200 € et 220 XP sans
+       avoir brassé un litre, et la découverte de la cuve sautée, EN SILENCE. On remet
+       donc ces deux missions-là à zéro : on perd un avancement partiel, jamais une
+       mission finie, puisque le rang n'avance qu'une fois la mission soldée. */
+    if((C.mv | 0) < MISSIONS_V && MISSIONS_REECRITS.indexOf(CAMPAGNE.mission) >= 0)
+      CAMPAGNE.faits = [];
     /* UNE PARTIE D'AVANT AVAIT DÉJÀ SA MISSION. Le drapeau n'existait pas, et l'absence
        vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
        faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
@@ -2909,13 +2980,34 @@ function chargerCampagne(S){
     if(Array.isArray(C.contrats)) for(const D of C.contrats){
       if(!D || !Array.isArray(D.lignes) || !D.lignes.length) continue;
       if(CONTRATS.length >= CONTRAT_MAX) break;
+      /* UN CONTRAT CHEZ UN COMMERCE QUI A CHANGÉ DE MÉTIER NE SE RECOLLE PAS.
+         Il est repéré par NOM de lieu, et le rang 0 s'appelait la Brasserie : un contrat
+         d'orge accepté chez elle devient insolvable chez l'Épicerie, qui n'en achète pas.
+         Comme `updateCommandes` ne fait courir le temps que sur les contrats à délai, il
+         occuperait une case sur quatre jusqu'à la fin de la partie. On le laisse tomber :
+         perdre un contrat qu'on ne peut plus honorer vaut mieux que garder une case morte.
+         La règle est GÉNÉRALE et non un rustine : elle vaudra pour le prochain commerce qui
+         changera de métier. */
+      const SC = SITES.find((X)=> X.nom === D.lieu);
+      if(!SC || !D.lignes.every((l)=> SC.achete.indexOf(l.cle) >= 0
+                                   || SC.accepte.indexOf(l.cle) >= 0)) continue;
       CONTRATS.push({type:D.type || 'brute', lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
                      temps:D.temps || 0,
                      lignes:D.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait || 0}))});
     }
-    if(C.renom) for(const X of SITES)
-      if(typeof C.renom[X.nom] === 'number')
-        X.renom = Math.max(RENOM_MIN, Math.min(RENOM_MAX, C.renom[X.nom]));
+    /* LA RENOMMÉE EST LE SEUL ÉTAT DURABLE RANGÉ PAR NOM DE SITE.
+       Le rang 0 s'appelait la Brasserie et s'appelle l'Épicerie : la clé écrite hier
+       n'est plus celle qu'on cherche aujourd'hui, et un joueur qui avait servi ce
+       commerce dix fois repartirait de zéro sans que rien ne l'en avertisse. La table
+       des anciens noms rattrape la clé, et ne sert que si le nouveau nom est absent —
+       une partie enregistrée depuis garde évidemment sa propre valeur. */
+    if(C.renom) for(const X of SITES){
+      let R = C.renom[X.nom];
+      if(typeof R !== 'number' && SITES_ANCIENS_NOMS[X.nom])
+        R = C.renom[SITES_ANCIENS_NOMS[X.nom]];
+      if(typeof R === 'number')
+        X.renom = Math.max(RENOM_MIN, Math.min(RENOM_MAX, R));
+    }
   } else {
     // Une partie d'avant : on lui rend le palier qu'elle a gagné sur le terrain.
     CAMPAGNE.niveau = niveauRetrouve();
@@ -3146,10 +3238,10 @@ const BANDES = {
      C'est le même arbitrage que « trois maisons et non quatre », poussé d'un cran.
      C'est la maison du PREMIER paquet qu'on retire, et pas celle du troisième : à
      nombre égal, cela laisse la seule jointure commerce-contre-commerce de la bande
-     entre la brasserie et le caviste — trente-neuf mètres de devanture d'un tenant —
-     au lieu de la mettre entre le marché et le supermarché, qui en feraient cinquante-
-     deux. Les deux plus grosses dalles restent séparées par une maison. */
-  W: [{paquet:['maison', 'Brasserie', 'Caviste']},
+     entre l'épicerie et le caviste — trente-huit mètres et demi de devanture d'un tenant,
+     trente-neuf du temps de la brasserie qui l'a précédée — au lieu de la mettre entre le
+     marché et le supermarché, qui en feraient cinquante-deux. Les deux plus grosses dalles restent séparées par une maison. */
+  W: [{paquet:['maison', 'Épicerie', 'Caviste']},
       {creux:'village', poids:1},
       {paquet:['Marché', 'maison', 'Supermarché']},
       {creux:'village', poids:0.9},
@@ -5025,7 +5117,7 @@ function bulleTex(nom, toit, sous){
 function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
   // Douze mètres : assez pour se lire de la route sans qu'on plisse les yeux, pas assez
-  // pour manger le bâtiment qu'elle nomme — la façade d'une brasserie en fait treize.
+  // pour manger le bâtiment qu'elle nomme — la façade d'un supermarché en fait vingt-trois.
   const LARGE = 12.0;
   /* ET C'EST UN SPRITE, COMME LES ÉTIQUETTES DE LIEU.
      L'enseigne a été un SPRITE, puis un plan qui pivotait vers la caméra à chaque image,
@@ -5152,7 +5244,7 @@ const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacit
 const porte = (T, type)=> chargeDe(T, type) > 0.01;
 /* CE QUE L'ÉTIQUETTE DIT SOUS LE NOM, ET RIEN D'AUTRE. Deux cas, jamais les deux à la
    fois : un commerce FERMÉ dit le palier qui l'ouvrira — sans quoi on s'arrête sur un
-   cercle éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
+   cercle éteint sans comprendre pourquoi l'épicerie ne prend pas la farine qu'on lui
    apporte — et un commerce qui ATTEND quelque chose pour la mission en cours dit quoi.
    C'est la même information que le cercle jaune au sol, écrite. */
 function bulleSous(S){
@@ -5203,7 +5295,7 @@ function ajouteBulleRendu(S, H, sous){
 }
 /* ---------- LES COMMERCES DU VILLAGE ----------
    Treize bâtiments, chacun avec sa silhouette et ses attributs : on reconnaît une
-   fromagerie d'une brasserie du premier coup d'œil, ce qu'un gabarit générique piloté
+   fromagerie d'une épicerie du premier coup d'œil, ce qu'un gabarit générique piloté
    par des drapeaux ne permettait pas. Chaque fonction rend un groupe posé à l'origine,
    nez vers +Z ; buildCommerce l'oriente et le pose sur sa dalle. */
 const CM = {
@@ -5310,19 +5402,117 @@ function batBoulangerie(){
   for(let k = 0; k < 3; k++) g.add(box(0.9, 0.3, 0.7, 0xE0B463, -1.0 + k*1.0, 0.3, 5.4));
   return g;
 }
-/* 3 — Brasserie */
-function batBrasserie(){
+/* 3 — Épicerie du village.
+   Elle a remplacé la Brasserie, et pour une raison de jeu : « vu que la Brasserie nous
+   demande de l'orge, mais que juste après on va fabriquer sa propre bière, la Brasserie n'a
+   plus lieu d'être ». Le village achetait la matière première d'un métier qu'on venait
+   d'acheter. Une épicerie, elle, achète ce que la ferme sort toute l'année.
+
+   UNE ÉPICERIE SE LIT À CE QU'ELLE DÉBORDE SUR LE TROTTOIR : étals, présentoirs étagés,
+   cageots empilés, tonnelets, un vélo, un banc. La boutique n'en est que le support — c'est
+   l'inverse de la brasserie, qui se lisait à ses trois cuves de cuivre.
+
+   PAS DE DALLE. Le modèle d'origine posait son propre trottoir de béton ; `buildCommerce`
+   en peint déjà un sous chaque commerce, et deux épaisseurs de gris à deux centimètres l'une
+   de l'autre se voient. Les treize autres modèles importés ont perdu la leur pour la même
+   raison, et le joueur l'a redemandé pour celui-ci.
+
+   LES AIDES SONT PRÉFIXÉES `ep`, ET CE N'EST PAS DE LA COQUETTERIE : le fichier d'origine
+   nomme `porte`, `store`, `banc`, `dalle`, `cheminee` — et `porte` est déjà, dans ce
+   fichier-ci, une constante globale du jeu. La recopier telle quelle empêchait le jeu de
+   démarrer, d'un bout à l'autre. */
+function epCagette(g, x, y, z, c){
+  g.add(box(0.62, 0.26, 0.46, CM.BOIS, x, y, z));
+  g.add(box(0.5, 0.14, 0.36, c, x, y + 0.16, z));
+  for(const sx of [-0.28, 0.28]) g.add(box(0.06, 0.28, 0.46, CM.BOIS2, x + sx, y, z));
+}
+// l'étal : un plateau sur tréteaux et ses quatre cagettes de couleur
+function epEtal(g, x, z, ry){
+  const e = new THREE.Group();
+  e.add(box(2.6, 0.12, 1.1, CM.BOIS, 0, 0.86, 0));
+  for(const sx of [-1.15, 1.15]) for(const sz of [-0.42, 0.42])
+    e.add(box(0.12, 0.86, 0.12, CM.BOIS2, sx, 0.43, sz));
+  const teintes = [0xC0392B, 0xE8A62E, 0x7BA84A, 0xE8D24A];
+  for(let k = 0; k < 4; k++) epCagette(e, -0.95 + k*0.66, 1.05, 0, teintes[k]);
+  e.position.set(x, 0, z); if(ry) e.rotation.y = ry;
+  g.add(e);
+}
+// le présentoir : trois plateaux étagés, celui qu'on voit de la rue
+function epPresentoir(g, x, z, ry){
+  const p = new THREE.Group();
+  const teintes = [0xC0392B, 0xE8A62E, 0x7BA84A];
+  for(let k = 0; k < 3; k++){
+    p.add(box(1.5, 0.08, 0.5, CM.BOIS, 0, 0.55 + k*0.38, -k*0.16));
+    for(let i = 0; i < 2; i++)
+      epCagette(p, -0.38 + i*0.76, 0.72 + k*0.38, -k*0.16, teintes[(k + i) % 3]);
+  }
+  for(const sx of [-0.66, 0.66]) p.add(box(0.1, 1.5, 0.1, CM.BOIS2, sx, 0.75, 0.2));
+  p.position.set(x, 0, z); if(ry) p.rotation.y = ry;
+  g.add(p);
+}
+function epTonnelet(g, x, z, c){
+  g.add(cyl(0.28, 0.28, 0.62, 10, CM.BOIS, x, 0.31, z));
+  for(const dy of [0.12, 0.5]) g.add(cyl(0.3, 0.3, 0.07, 10, 0x5A4326, x, dy, z));
+  g.add(cyl(0.26, 0.26, 0.06, 10, c, x, 0.63, z));
+}
+function epArdoise(g, x, y, z){
+  g.add(box(0.7, 1.0, 0.1, CM.SOMBRE, x, y, z));
+  g.add(box(0.78, 0.08, 0.12, CM.BOIS2, x, y + 0.52, z));
+  for(let k = 0; k < 4; k++) g.add(box(0.42, 0.05, 0.12, 0xE8E2D0, x, y + 0.28 - k*0.18, z + 0.02));
+}
+function epVelo(g, x, z, ry){
+  const v = new THREE.Group();
+  for(const dz of [-0.55, 0.55]){
+    v.add(cyl(0.32, 0.32, 0.06, 12, 0x2A2622, 0, 0.32, dz, 0, 0, Math.PI/2));
+    v.add(cyl(0.1, 0.1, 0.08, 8, CM.METAL, 0, 0.32, dz, 0, 0, Math.PI/2));
+  }
+  v.add(box(0.05, 0.05, 1.0, 0x3E6B7A, 0, 0.5, 0));
+  v.add(box(0.05, 0.3, 0.05, 0x3E6B7A, 0, 0.42, -0.3));
+  v.add(box(0.05, 0.36, 0.05, 0x3E6B7A, 0, 0.5, 0.5));
+  v.add(box(0.34, 0.05, 0.05, CM.SOMBRE, 0, 0.7, 0.55));          // guidon
+  v.add(box(0.24, 0.07, 0.3, CM.SOMBRE, 0, 0.66, -0.32));         // selle
+  v.add(box(0.36, 0.26, 0.3, CM.BOIS, 0, 0.62, 0.62));            // panier
+  v.position.set(x, 0, z); if(ry) v.rotation.y = ry;
+  g.add(v);
+}
+function batEpicerie(){
   const g = new THREE.Group();
-  cmBoutique(g, 10, 7, 4.4, CM.BRIQUE, CM.ARDOISE);
-  for(let k = 0; k < 8; k++) g.add(box(9.6, 0.12, 0.1, 0x8E4436, 0, 0.5 + k*0.5, 3.55));
-  cmVitrine(g, 2.4, 2.2, 3.55, 3.0, 2.2, 0xE8DCC0);
-  cmPorte(g, -2.6, 3.55, 1.8, 2.8, CM.BOIS2);
-  cmEnseigne(g, 0, 4.6, 3.6, 5.5, 0xC08A3E);
-  for(let k = 0; k < 3; k++) cmCuve(g, -6.6, -2.0 + k*2.0, 1.0, 4.2, CM.CUIVRE);
-  g.add(box(0.26, 0.26, 4.4, 0x8A9298, -6.6, 4.8, 0));
-  g.add(cmTonneau(4.6, 0.62, 4.4, 0.62, 1.3, false));
-  g.add(cmTonneau(5.9, 0.62, 4.4, 0.62, 1.3, false));
-  g.add(cmTonneau(5.25, 1.85, 4.4, 0.62, 1.3, false));
+  const W = 10, D = 7, H = 4.4;
+  cmBoutique(g, W, D, H, CM.CREME, CM.TUILE);
+  dCheminee(g, 3.4, -1.6, H + 2.2, CM.PIERRE);
+  // la devanture : soubassement bois, vitrine, porte vitrée, store rayé, enseigne, potence
+  g.add(box(W - 0.5, 0.8, 0.16, CM.BOIS2, 0, 0.4, D/2 + 0.06));
+  cmVitrine(g, 1.9, 2.1, D/2 + 0.06, 4.0, 2.3, CM.BOIS2);
+  cmPorte(g, -2.9, D/2 + 0.06, 1.7, 2.7, CM.BOIS2);
+  g.add(box(1.3, 1.7, 0.1, CM.VITRE, -2.9, 1.6, D/2 + 0.13));
+  cmStore(g, 1.9, 3.5, D/2 + 0.95, 4.4, 1.7, CM.VERT, CM.CREME);
+  cmEnseigne(g, 0, H + 0.9, D/2 + 0.3, 5.0, CM.VERT);
+  cmPotence(g, -4.2, 3.4, D/2 + 0.06, 0xC0392B);
+  // le pignon n'est pas nu : une fenêtre et une porte de service
+  const cote = new THREE.Group();
+  cote.add(box(1.1, 1.3, 0.14, CM.CREME, 0.9, 2.4, D/2 + 0.04));
+  cote.add(box(0.85, 1.05, 0.18, CM.VITRE, 0.9, 2.4, D/2 + 0.08));
+  cote.add(box(1.0, 2.1, 0.16, CM.BOIS2, -1.8, 1.05, D/2 + 0.04));
+  cote.rotation.y = -Math.PI/2; g.add(cote);
+  // et tout ce qui occupe le trottoir — c'est cela qui dit « épicerie »
+  epEtal(g, 2.8, D/2 + 1.7, 0);
+  epPresentoir(g, -0.4, D/2 + 1.9, 0.12);
+  for(let k = 0; k < 5; k++)                                      // pile de cageots vides
+    epCagette(g, -4.3 + (k % 2)*0.68, 0.14 + Math.floor(k/2)*0.28, D/2 + 1.1,
+              [0xE8A62E, 0x7BA84A, 0xC0392B, 0xE8D24A, 0x9C7B4A][k]);
+  epTonnelet(g, 5.4, D/2 + 1.2, 0xC9A23E);
+  epTonnelet(g, 5.4, D/2 + 2.0, 0x7BA84A);
+  epTonnelet(g, 6.1, D/2 + 1.6, 0xC0392B);
+  epArdoise(g, -2.2, 0.6, D/2 + 3.1);
+  epVelo(g, 4.4, D/2 + 3.2, 0.35);
+  dBanc(g, -3.8, D/2 + 3.2, 2.0, 0);
+  dJardiniere(g, 1.4, D/2 + 0.55, 1.3);
+  dJardiniere(g, -4.6, D/2 + 0.55, 1.0);
+  // la caisse de livraison contre le pignon ouest, et les cageots qui l'accompagnent
+  g.add(box(1.1, 0.9, 0.8, CM.BOIS, -W/2 - 1.0, 0.45, 0.6));
+  g.add(box(0.9, 0.12, 0.7, CM.BOIS2, -W/2 - 1.0, 0.96, 0.6));
+  epCagette(g, -W/2 - 1.9, 0.14, -0.4, 0xE8A62E);
+  epCagette(g, -W/2 - 1.9, 0.42, -0.4, 0x7BA84A);
   return g;
 }
 /* 4 — Usine de céréales */
@@ -17647,7 +17837,7 @@ const quaiCuve = {x: CUVE_POS.x + 4.4, z: CUVE_POS.z + 3.0};
 
 /* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
 /* Une benne ne contient pas « des kilos », elle contient QUELQUE CHOSE : on ne vend
-   pas du lait à la brasserie et on ne verse pas des olives dans le moulin. Chaque
+   pas du lait à l'usine à céréales et on ne verse pas des olives dans le moulin. Chaque
    caisse porte donc la clé d'un produit, posée au chargement et effacée au vidage.
    Une caisse entamée n'accepte plus rien d'autre — c'est ce qui oblige à planifier
    ses tournées plutôt qu'à tout empiler.
@@ -21259,7 +21449,7 @@ function etatJeu(){
     money, hopper, hopCrop, delivered, breadKg,
     silo: Object.assign({}, siloStock),
     // Ce que les usines du bord de route ont en trémie, sur leur quai et sur leur étal :
-    // sans ça, une benne d'orge versée à la brasserie s'évaporerait au rechargement, et
+    // sans ça, une benne de blé versée à l'usine s'évaporerait au rechargement, et
     // un étal qu'on vient de vider se retrouverait plein.
     negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
                               stock: Object.assign({}, S.stock),
@@ -21300,6 +21490,12 @@ function etatJeu(){
        d'avant la campagne n'a pas ce bloc et se relit sans lui. */
     campagne: {niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
                faits: CAMPAGNE.faits.slice(), prise: CAMPAGNE.prise,
+               /* LE RANG DE LA TABLE DES MISSIONS. `CAMPAGNE.mission` est un INDICE
+                  dans MISSIONS : le jour où une mission change de contenu sans changer
+                  de rang, l'avancement enregistré parle d'autre chose que la mission
+                  qu'il désigne. Ce compteur dit quelle table a écrit ce `faits`. Il est
+                  facultatif comme le reste du bloc, et `v` ne bouge toujours pas. */
+               mv: MISSIONS_V,
                // Facultatif, comme le reste du bloc : absent d'une vieille sauvegarde,
                // il vaut false et la partie repart en campagne. `v` ne bouge pas.
                libre: MODE_LIBRE,
@@ -21582,6 +21778,16 @@ function chargerPartie(S){
       const N = S.negoce && S.negoce[i];
       St.tremie = (N && N.tremie) ? Object.assign({}, N.tremie) : {};
       St.stock  = (N && N.stock)  ? Object.assign({}, N.stock)  : {};
+      /* ET L'ON NE RECOPIE QUE CE QUE LE COMMERCE SAIT ENCORE FAIRE.
+         Le rang d'un commerce est stable, son MÉTIER ne l'est pas : la Brasserie du rang 0
+         est devenue une Épicerie, qui ne fabrique plus de bière et n'accepte plus d'orge.
+         Une partie enregistrée avec deux cents kilos d'orge dans sa trémie les rouvrait
+         chez l'épicier — comptés dans son plafond de trémie, consommés par aucune recette,
+         et impossibles à ressortir. On filtre donc sur ce que le commerce accepte et
+         fabrique AUJOURD'HUI ; le reste s'oublie, ce qui est le seul sort raisonnable
+         d'une matière première livrée à un métier qui n'existe plus. */
+      for(const k in St.tremie) if(St.accepte.indexOf(k) < 0) delete St.tremie[k];
+      for(const k in St.stock)  if(St.fabrique.indexOf(k) < 0) delete St.stock[k];
       // `reste` était un nombre (un seul étal partagé) ; c'est maintenant un tas par
       // nature. Une vieille sauvegarde apporte un nombre : on le répartit sur toutes
       // les natures plutôt que de planter, et un étal plein est de toute façon l'état
