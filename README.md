@@ -1922,6 +1922,60 @@ La fromagerie du village reste utile : elle achète le lait directement. Le choi
 donc entier — lait à la fromagerie, argent tout de suite ; ou lait à l'atelier, fromage
 au restaurant, davantage d'argent contre du temps et du transport.
 
+### On ne se cogne plus dans le vide en longeant l'atelier
+
+*« Quand on passe sur le côté droit, on se cogne alors qu'on est loin de le toucher. »*
+L'emprise de collision était **un rectangle centré** sur le bâtiment, dont le demi-côté
+valait `max(débord gauche, débord droit)`. Or l'atelier ne pousse pas de front : la
+trémie, le hangar d'aliment, la fromagerie et le conteneur s'ajoutent tous **à gauche**,
+le pressoir et l'appentis n'arrivent à droite qu'aux paliers 6 et 7. Le côté droit
+héritait donc de la largeur du gauche.
+
+| palier | débord gauche | débord droit | mur fantôme à droite |
+|---|---|---|---|
+| 0–1 | 8,6–8,9 m | 5,6–5,8 m | **3,1 m** |
+| 2–3 | 9,9–10,2 m | 6,1–6,4 m | **3,8 m** |
+| 4–5 | 11,8–12,1 m | 6,7–7,0 m | **5,1 m** |
+| 6 | 12,4 m | 11,1 m | 1,3 m |
+| 7–8 | 12,7–13,0 m | 12,6–12,9 m | 0,1 m |
+
+Le pire tombe précisément quand la fromagerie arrive et que la droite n'a encore rien.
+Mesuré en poussant un vrai tracteur contre la façade est, au palier 5 il s'arrêtait à
+x = 97,45 alors que le mur est à 91,02 : **5,08 m de vide**, plus qu'une largeur de
+machine. Le couloir libre du côté est passait de 12,3 m à 7,2 m — 41 % mangés par rien.
+
+L'emprise se pose maintenant en **deux ou trois rectangles** — l'annexe de gauche, le
+corps, celle de droite — chacun mesuré sur ce qu'il contient vraiment. Un obstacle ne
+sait pas faire un L, mais trois obstacles côte à côte le font très bien, et la boucle de
+collision n'en parcourt que deux de plus. Relevé après : **0,00 à 0,04 m** de mur fantôme
+aux neuf paliers, et rien de solide laissé dehors.
+
+**La profondeur se mesure aussi.** Elle était *déclarée* — la cote `D` du modèle — et le
+bâtiment la dépassait : les tanks de la fromagerie de 1,68 m par l'arrière dès le palier
+4, le cuvier du pressoir de 1,69 m par l'avant à partir du palier 6. On roulait au
+travers. Ce qui *sélectionne* les maillages reste leur centre, à un mètre près de la
+profondeur déclarée : sans ce filtre, le conteneur et l'auvent du quai, plantés devant,
+allongeraient l'emprise jusqu'à interdire le quai. C'est un compromis assumé — les deux
+poteaux de l'auvent restent traversables.
+
+### La dalle du quai, et rien qu'elle
+
+Le quai de l'atelier portait **trois bandes blanches** — des places de parking dessinées
+avec le bâtiment. Elles disaient *« garez-vous ici »*, ce qui est faux : l'atelier se
+sert tout seul au silo et à l'entrepôt, il n'y a rien à venir y faire, et il n'a même plus
+d'anneau. Elles **grandissaient** en plus avec les paliers : le même trait de 0,165 m,
+mais un entraxe de 2,31 m au premier cran contre 3,79 m au huitième, soit +64 % — trois
+places trop étroites pour un pick-up qui devenaient trois places larges. Un marquage qui
+s'étire n'est plus un marquage. Au palier 8, les palettes et les caisses se posaient
+carrément par-dessus.
+
+Elles n'étaient l'exception nulle part ailleurs : **tous** les autres marquages du jeu
+sont *peints dans la texture du sol* — la cour de ferme et le garage par
+`marquageParking()`, les quinze parvis de commerce par `buildCommerce` — à la largeur
+canonique 4/PPU = 0,344 m. Ces trois-là étaient de la géométrie posée par-dessus la
+dalle, 3 maillages et 36 triangles. Elles partent ; il reste le béton et son liseré, qui
+n'ont jamais rien promis.
+
 ## Deux magasins, et un atelier qui travaille seul
 
 La chaîne tenait en trois trajets sur la même dalle : charger du blé au silo, le porter
@@ -2214,11 +2268,95 @@ tout de suite.
 Coût mesuré de l'ensemble — le flux, les vingt-deux véhicules, et l'éclairage de nuit de
 tous : **2 à 3 % des images**, de jour comme de nuit.
 
-Les six modèles de voiture viennent de la planche du joueur — berline, break à galerie,
-citadine, bétaillère à claire-voie, plateau à bottes, monospace — chacun fusionné en **une**
-géométrie, donc un appel de rendu. Un détail de portage : la planche peignait en
-`DoubleSide`, ce qui masquait un enroulement de faces inversé sur les capots ; ici la
-matière n'a qu'une face, et il a fallu retourner les triangles.
+### Les seize de la planche
+
+La planche du joueur en portait **seize** ; le jeu n'en faisait rouler que six. Les dix
+autres roulent maintenant : pick-up, fourgon de livraison, camion à caisse, citerne à
+lait, camion-benne, autocar de village, camping-car, camion de pompiers, fourgonnette
+postale, dépanneuse. Chacun est fusionné en **une** géométrie, donc un appel de rendu, et
+tous sont bâtis avec les mêmes six pièces que les six premiers — châssis, serre ou
+cabine-sandwich, feux, roues — ce qui est précisément ce qui les fait appartenir à la
+même famille. Trois pièces manquaient et ont été ajoutées : la **caisse fermée** (le
+fourgon, le camion à caisse et la postale portent le même volume à la taille près), le
+**gyrophare**, et une boîte **penchée** — le plateau incliné de la dépanneuse est le seul
+volume du trafic qui ne soit pas d'aplomb.
+
+Trois détails de portage, et le troisième était un vrai piège :
+
+- la planche peignait en `DoubleSide`, ce qui masquait un enroulement de faces inversé sur
+  les capots ; ici la matière n'a qu'une face, et il a fallu retourner les triangles ;
+- la citerne à lait couche son fût **le long** du camion — une rotation autour de X, pas
+  de Z. Tournée sur Z elle se mettrait en travers de la route ;
+- **le camion-benne tirait son gravier au sort.** Cinq `Math.random()` dans la
+  construction de la géométrie : deux ouvertures du jeu n'auraient pas donné le même
+  camion, et la règle du fichier est que le décor est tiré au sort mais **toujours le
+  même**. Cinq largeurs écrites, et c'est réglé.
+
+**Seize modèles tirés à égalité ne font pas un village.** Un camion de pompiers passerait
+aussi souvent qu'une berline, et une dépanneuse toutes les seize voitures. Les parts se
+lisent donc comme un pourcentage — elles font cent — dans l'esprit des deux autres tirages
+du trafic, `PART_LOURD` et `PART_VIRAGE`, qui sont eux aussi des parts écrites en clair :
+
+| | | |
+|---|---|---|
+| **voitures** | 56 % | berline 14, citadine 13, break 11, monospace 9, pick-up 9 |
+| **utilitaires** | 11 % | fourgon 8, postale 3 |
+| **camions de travail** | 22 % | bétaillère 5, plateau à bottes 5, camion à caisse 5, citerne 4, benne 4 |
+| **car et camping-car** | 7 % | autocar 4, camping-car 3 |
+| **secours et dépannage** | 3 % | dépanneuse 2, pompiers 1 |
+
+**Et chacun son allure — mais l'éventail reste étroit**, entre 0,90 et 1,05. C'est une
+contrainte et non un goût : sur trois cent cinquante mètres de file, une voiture rapide
+rattrape immanquablement une voiture lente, si loin devant soit-elle, et le créneau
+n'existe alors pour personne. Quinze pour cent d'écart se voient sans rien casser. Un
+**porteur** — un camion rigide — roule en plus sur le ressort long, celui de l'attelage :
+c'est ce qui fait qu'une caisse haute dodeline là où une berline reste plate.
+
+**Le gyrophare est un signal, pas un phare.** Trois modèles en portent un — les pompiers
+en bleu, la postale en bleu, la dépanneuse en orange. Il bat de jour comme de nuit, mais
+le jour le lave : 0,29 d'opacité au plus fort du battement au soleil, 0,81 au clair de
+lune. Sans cela on aurait au choix un feu de détresse en plein midi ou un camion de
+pompiers aux dômes éteints qui ne servent à rien. Il ne balaie pas le paysage — un cône
+de plus par véhicule pour un feu qui tourne coûterait cher pour un effet qu'on ne verrait
+qu'en passant à côté. Et **une seule bille**, même quand le toit en porte deux : à trente
+mètres une rampe se lit comme une lueur unique.
+
+Ce que ça change, mesuré sur cinq minutes de circulation, six modèles contre seize :
+
+| | 6 modèles | 16 modèles |
+|---|---|---|
+| véhicules visibles en moyenne | 18,4 | 17,8 |
+| cadence par route | 6,8 à 9,4 s | 7,5 à 8,8 s |
+| traversées complètes | 149 | 127 |
+| images où quelqu'un freine | 0 | 0 |
+| contacts entre carrosseries | 0 | 0 |
+| pire dégagement | +0,21 m | +0,21 m |
+| images hors chaussée | 0 | 0 |
+| débord de carrosserie en virage | 0,90 m | 0,94 m |
+| plus long peloton | 3 | **2** |
+
+La cadence se **resserre** au lieu de s'étaler et le peloton raccourcit : les allures plus
+variées désynchronisent les départs. Le débit perd 15 % — un autocar occupe son créneau
+plus longtemps qu'une citadine — mais le nombre de véhicules à l'écran ne bouge que de
+0,6, parce qu'ils y restent d'autant plus longtemps. On ne voit pas la différence.
+
+Le coût, lui, se mesure sur ce qui ne bouge pas d'une exécution à l'autre, parce que le
+rendu logiciel du banc fait trop de bruit pour qu'une mesure d'images par seconde dise
+quoi que ce soit (7,1 à 8,0 le jour des deux côtés) :
+
+| | 6 modèles | 16 modèles |
+|---|---|---|
+| `updateTrafic`, par appel | 18,9 µs | 17,0 µs |
+| `majEclairagesNuit`, de nuit | 2,15 µs | 2,35 µs |
+| triangles des modèles | 4 980 | 12 344 |
+| géométries en mémoire | 175 Kio | 434 Kio (+265) |
+| objets de scène | 2 416 | 2 472 |
+
+Le temps de calcul ne bouge pas — c'est le nombre de véhicules qui compte, pas le nombre
+de modèles — et 265 Kio de géométrie de plus se lisent contre les 57 Mio de textures que
+le jeu porte déjà. Les 56 objets de scène en plus sont les vingt-huit billes de gyrophare
+et leur halo, une par place du vivier, éteintes tant que la place ne porte pas un des
+trois modèles qui en ont un.
 
 Le trafic n'a **aucune emprise de collision** vis-à-vis du joueur, et c'est voulu :
 `obstacles` est un tableau balayé à chaque image par le pilote, et y injecter vingt-deux

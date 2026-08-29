@@ -6761,13 +6761,16 @@ const ATL = {
   // Les prix ne sont plus ici : un palier ne donne plus à la fois un métier et de la
   // capacité. Les métiers sont dans ATELIER_MODULES, les capacités dans ATELIER_UP.
 };
-// dalle de chargement : béton, bordure et marquage
+/* LA DALLE DU QUAI, ET RIEN QU'ELLE. Elle portait trois bandes blanches — des places de
+   parking dessinées avec le bâtiment. Elles disaient « garez-vous ici », ce qui est faux :
+   l'atelier se sert tout seul au silo et à l'entrepôt, il n'y a rien à venir y faire, et
+   il n'a même plus d'anneau. Elles grandissaient en plus avec les paliers, si bien que
+   trois places au premier cran devenaient trois places bien plus larges au huitième — un
+   marquage qui s'étire n'est plus un marquage. Reste la dalle et son liseré. */
 function quaiBeton(x, z, w, d){
   const g = new THREE.Group();
   g.add(box(w, 0.16, d, ATL.BETON, 0, 0.08, 0));
   g.add(box(w + 0.3, 0.1, d + 0.3, ATL.BETON2, 0, 0.03, 0));
-  for(let k = -1; k <= 1; k++)
-    g.add(box(0.14, 0.04, d*0.72, 0xF0F2F3, k*w*0.28, 0.18, 0));
   g.position.set(x, 0, z);
   return g;
 }
@@ -6882,7 +6885,7 @@ function modeleAtelier(niveau){
 }
 // Pose ou repose la halle. L'emprise d'obstacle suit le niveau : les modules
 // latéraux débordent, et on ne doit pas pouvoir rouler au travers.
-let atelierMesh = null, atelierObs = null;
+let atelierMesh = null, atelierObs = [];
 function poserAtelier(){
   if(atelierMesh){ scene.remove(atelierMesh); }
   atelierMesh = modeleAtelier(HALLE.niveau);
@@ -6905,26 +6908,54 @@ function poserAtelier(){
      maillages et le filtre en hauteur ne discrimine plus rien — l'emprise couvrirait
      alors le quai et le conteneur, soit vingt-six mètres de profondeur au lieu de
      neuf. La mesure vient donc avant. */
-  const hd = u.D/2*BAT_ECHELLE;
-  const bbObs = new THREE.Box3(), _bbM = new THREE.Box3();
-  bbObs.makeEmpty();
+  /* ET ELLE N'EST PAS CENTRÉE SUR LE BÂTIMENT, PARCE QUE LE BÂTIMENT NE L'EST PAS.
+     C'était UN rectangle centré sur HALLE.x dont le demi-côté valait le PLUS GRAND des
+     deux débords. Or l'atelier ne pousse pas de front : la trémie, l'alimentation
+     animale, la fromagerie et le conteneur s'ajoutent tous À GAUCHE, le pressoir et
+     l'appentis à droite et plus tard. Le côté droit héritait donc de la largeur du
+     gauche, et l'on se cognait dans du vide en longeant le bâtiment — mesuré, TROIS
+     mètres de mur fantôme aux premiers paliers et CINQ mètres aux paliers 4 et 5, plus
+     qu'une largeur de tracteur.
+     L'emprise se pose donc en TROIS rectangles — l'annexe de gauche, le corps, l'annexe
+     de droite — chacun mesuré sur ce qu'il contient vraiment. Un obstacle ne sait pas
+     faire un L, mais trois obstacles côte à côte le font très bien, et la boucle de
+     collision n'en compte que deux de plus.
+     LA PROFONDEUR SE MESURE AUSSI. Elle était DÉCLARÉE — la cote D du modèle — alors que
+     les cuves de la fromagerie et celles du pressoir débordent de deux mètres devant et
+     derrière : on roulait au travers. Ce qui sélectionne les maillages reste leur CENTRE,
+     à un mètre près de la profondeur déclarée, sinon le conteneur et l'auvent du quai,
+     plantés devant, allongeraient l'emprise jusqu'à interdire le quai. */
+  const hd = u.D/2*BAT_ECHELLE, demiW = u.W/2*BAT_ECHELLE;
+  const bandes = [new THREE.Box3(), new THREE.Box3(), new THREE.Box3()];
+  for(const b of bandes) b.makeEmpty();
+  const _bbM = new THREE.Box3();
   atelierMesh.updateMatrixWorld(true);
   atelierMesh.traverse((o)=>{
     if(!o.geometry) return;
     _bbM.setFromObject(o);
-    // On ne mesure QUE la largeur, et QUE sur ce qui est à hauteur de capot : un
-    // obstacle est un rectangle aligné sur les axes, il ne sait pas faire un L. Le
-    // conteneur et les palettes de la cour, plantés DEVANT le bâtiment, allongeraient
-    // l'emprise jusqu'à couvrir le quai — on ne pourrait plus s'en approcher.
     if(Math.abs((_bbM.min.z + _bbM.max.z)/2 - HALLE.z) > hd + 1) return;
-    if(_bbM.min.y < 2.5*BAT_ECHELLE && _bbM.max.y > 1.2*BAT_ECHELLE) bbObs.union(_bbM);
+    // À hauteur de capot seulement : la dalle de quai, haute de seize centimètres, est
+    // ignorée, et l'auvent, qui commence à cinq mètres, aussi — on passe dessous.
+    if(!(_bbM.min.y < 2.5*BAT_ECHELLE && _bbM.max.y > 1.2*BAT_ECHELLE)) return;
+    const cx = (_bbM.min.x + _bbM.max.x)/2 - HALLE.x;
+    bandes[cx < -demiW ? 0 : (cx > demiW ? 2 : 1)].union(_bbM);
   });
-  const demi = bbObs.isEmpty() ? (u.W/2 + 2.7)*BAT_ECHELLE
-             : Math.max(HALLE.x - bbObs.min.x, bbObs.max.x - HALLE.x);
   // Le bâtiment de l'atelier ne bouge pas non plus : on le recuit, en gardant ses cotes.
   fusionnerGroupe(atelierMesh);
-  if(!atelierObs){ atelierObs = {x:HALLE.x, z:HALLE.z, hw:demi, hd}; boxObs.push(atelierObs); }
-  else { atelierObs.hw = demi; atelierObs.hd = hd; }
+  for(const b of atelierObs){ const i = boxObs.indexOf(b); if(i >= 0) boxObs.splice(i, 1); }
+  atelierObs = [];
+  for(const b of bandes){
+    if(b.isEmpty()) continue;
+    const R = {x:(b.min.x + b.max.x)/2, z:(b.min.z + b.max.z)/2,
+               hw:(b.max.x - b.min.x)/2, hd:(b.max.z - b.min.z)/2};
+    atelierObs.push(R); boxObs.push(R);
+  }
+  // Un atelier dont rien ne serait à hauteur de capot n'existe pas, mais s'il arrivait
+  // il vaut mieux un mur au bon endroit que pas de mur du tout.
+  if(!atelierObs.length){
+    const R = {x:HALLE.x, z:HALLE.z, hw:demiW + 2.7*BAT_ECHELLE, hd:hd};
+    atelierObs.push(R); boxObs.push(R);
+  }
   // PLUS D'ANNEAU DEVANT L'ATELIER. Il se sert tout seul au silo et à l'entrepôt, et
   // dépose tout seul à l'entrepôt : il n'y a plus rien à venir y faire. On garde le
   // point de quai, qui sert encore à situer le bâtiment et sa fumée.
@@ -9835,9 +9866,14 @@ function viser(v, tx, tz, rayon, vTour){
    Chacun est fusionné en UNE géométrie, donc un seul appel de rendu, comme les maisons. */
 const TRAFIC_MODELES = (function(){
   const NOIR = 0x2A2622, VITRE = 0x22303A, CREME = 0xF2E7D2, INOX = 0xC9CFD3,
-        GRIS = 0x8A9298, CHASSIS = 0x3A3630, ROUGE = 0xC0392B;
+        GRIS = 0x8A9298, CHASSIS = 0x3A3630, ROUGE = 0xC0392B,
+        JAUNE = 0xF0C24A, ORANGE = 0xE07B24, BLEU = 0x3E7CB8;
   const T = (x, y, z)=> new THREE.Matrix4().makeTranslation(x||0, y||0, z||0);
   const B = (w,h,d, c, x,y,z)=>({g:new THREE.BoxGeometry(w,h,d), m:T(x,y,z), c});
+  // La même boîte, penchée autour de X : le plateau incliné de la dépanneuse est le seul
+  // volume du trafic qui ne soit pas d'aplomb, et c'est ce qui la fait reconnaître.
+  const BX = (w,h,d, c, x,y,z, rx)=>({g:new THREE.BoxGeometry(w,h,d),
+    m:new THREE.Matrix4().makeRotationX(rx).setPosition(x||0,y||0,z||0), c});
   const CY = (r,h,seg, c, x,y,z, rx,rz)=>({g:new THREE.CylinderGeometry(r,r,h,seg),
     m:new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx||0,0,rz||0))
                          .setPosition(x||0,y||0,z||0), c});
@@ -9910,6 +9946,28 @@ const TRAFIC_MODELES = (function(){
       P.push(B(0.15, hV, 0.13, c, sx*(w/2 - 0.075), yV, zc - d/2 + k*(d/n)));
     P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + 0.02, zc));
     P.push(B(w + 0.02, 0.05, d + 0.02, c, 0, yBas + hC + hV - 0.02, zc));
+  }
+  /* LE GYROPHARE. Un socle et son dôme, posés sur un pavillon — et l'on NOTE au passage
+     où il brille, comme pour les optiques : c'est ce qui permet de l'allumer la nuit sans
+     aller redécouvrir sa position sur la géométrie cuite. Un modèle qui en porte deux
+     note le MILIEU : à trente mètres, une rampe de toit se lit comme une seule lueur, et
+     deux billes à quarante centimètres l'une de l'autre coûteraient le double pour ne
+     rien montrer de plus. */
+  let _gyroPose = null;
+  function gyro(P, x, y, z, c, milieu){
+    P.push(B(0.5, 0.12, 0.3, GRIS, x, y, z));
+    P.push(CY(0.13, 0.2, 6, c, x, y + 0.14, z));
+    _gyroPose = {x:(milieu === undefined ? x : milieu), y:y + 0.16, z:z, c:c};
+  }
+  /* LA CAISSE FERMÉE : le fourgon, le camion à caisse et la fourgonnette postale portent
+     le même volume, à la taille près — un pavé, un bandeau de toit, et des nervures
+     réparties sur la longueur. Une seule fonction, trois carrosseries. */
+  function caisseFermee(P, w, h, d, c, y, z, nerv){
+    P.push(B(w, h, d, c, 0, y + h/2, z));
+    P.push(B(w + 0.1, 0.2, d + 0.1, 0x9C8C6E, 0, y + h, z));
+    const n = nerv || 5;
+    for(let k = 0; k < n; k++)
+      P.push(B(w + 0.04, h*0.9, 0.07, 0xE2D9C4, 0, y + h/2, z - d/2 + d*(k + 0.5)/n));
   }
   // Cabine de poids lourd : même sandwich, ceinture plus haute et pavillon mince.
   function cabine(P, w, h, d, c, yBas, zc){
@@ -10022,12 +10080,207 @@ const TRAFIC_MODELES = (function(){
     roues(P, 0.88, 1.6, -1.6, 0.37, 0.26);
     return P;
   }
-  const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace];
-  const geos = [], optiques = [];
-  for(const f of modeles){ _feuxPoses = null; geos.push(mergeParts(f())); optiques.push(_feuxPoses); }
-  return {geos:geos, feux:optiques};
+  // 7 — Pick-up : cabine courte et plateau ouvert à ridelles.
+  function pickup(){
+    const C = 0x2F5D4A, P = [];
+    P.push(B(2.0, 0.34, 5.0, CHASSIS, 0, 0.5, 0));
+    P.push(slab({w:1.96, h:0.64, d:2.3, tw:1.9, td:2.2, c:C, y:0.44, z:1.5}));
+    serre(P, 1.86, 0.92, 1.5, C, 1.08, 1.0, 1);
+    P.push(B(1.96, 0.9, 2.5, C, 0, 0.85, -1.3));
+    P.push(B(1.7, 0.1, 2.3, 0x6B5A44, 0, 1.28, -1.3));
+    for(const sx of [-0.94, 0.94]) P.push(B(0.1, 0.34, 2.5, C, sx, 1.42, -1.3));
+    P.push(B(1.96, 0.34, 0.1, C, 0, 1.42, -2.5));
+    P.push(B(2.02, 0.18, 0.42, 0x2A2E32, 0, 0.5, 2.6));
+    feux(P, 0.74, 0.86, 2.62, -2.62);
+    roues(P, 0.9, 1.6, -1.6, 0.4, 0.28);
+    return P;
+  }
+  // 8 — Fourgon de livraison : caisse haute nervurée, marquage latéral.
+  function fourgon(){
+    const C = 0xF2EAD8, P = [];
+    P.push(B(2.0, 0.3, 5.4, CHASSIS, 0, 0.5, 0));
+    cabine(P, 2.0, 1.5, 1.9, C, 0.62, 1.7);
+    caisseFermee(P, 2.06, 2.0, 3.5, C, 0.62, -0.85, 4);
+    P.push(B(1.3, 0.5, 0.12, BLEU, 0, 1.9, -2.64));
+    P.push(B(2.06, 0.18, 0.4, 0x2A2E32, 0, 0.42, 2.72));
+    feux(P, 0.74, 0.74, 2.74, -2.66);
+    roues(P, 0.9, 1.75, -1.75, 0.38, 0.28);
+    return P;
+  }
+  // 9 — Camion à caisse : cabine rouge, caisse crème, jumelage arrière.
+  function camionCaisse(){
+    const CAB = ROUGE, CAISSE = 0xEFE7D6, P = [];
+    P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
+    caisseFermee(P, 2.4, 2.5, 4.6, CAISSE, 0.79, -1.5, 5);
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.2));
+    feux(P, 0.82, 0.86, 3.42, -3.86);
+    roues(P, 1.02, 2.3, -1.9, 0.46, 0.34, true);
+    return P;
+  }
+  /* 10 — Citerne à lait : fût inox cerclé. Le fût couche son axe LE LONG du camion —
+     une rotation autour de X, pas de Z : tournée sur Z, la citerne se mettrait en
+     travers de la route. */
+  function citerneLait(){
+    const CAB = BLEU, P = [];
+    P.push(B(2.2, 0.34, 7.2, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.4);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.5));
+    P.push(CY(1.15, 5.0, 14, INOX, 0, 2.0, -1.4, Math.PI/2));
+    for(const dz of [-3.6, -2.2, -0.8, 0.6])
+      P.push(CY(1.2, 0.16, 14, 0xA8B0B5, 0, 2.0, dz, Math.PI/2));
+    P.push(B(0.7, 0.4, 0.7, GRIS, 0, 3.2, -1.4));
+    P.push(B(0.34, 0.34, 4.6, GRIS, 0, 0.86, -1.4));
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.3));
+    feux(P, 0.82, 0.86, 3.52, -3.96);
+    roues(P, 1.02, 2.4, -1.9, 0.46, 0.34, true);
+    return P;
+  }
+  /* 11 — Camion-benne : caisse basculante, vérin, chargement de gravier.
+     LES CINQ BLOCS DE GRAVIER SONT ÉCRITS, PAS TIRÉS AU SORT. La planche appelait
+     Math.random() en les posant : deux ouvertures du jeu n'auraient pas donné le même
+     camion, et la règle du fichier est que le décor est tiré au sort mais toujours le
+     même. Une largeur par bloc, cinq nombres, et c'est réglé. */
+  const GRAVIER = [0.86, 0.62, 0.74, 0.55, 0.80];
+  function benne(){
+    const CAB = JAUNE, CAISSE = 0x8E8172, P = [];
+    P.push(B(2.2, 0.34, 6.4, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.0);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.1));
+    P.push(B(2.36, 0.2, 4.0, CAISSE, 0, 0.9, -1.3));
+    for(const sx of [-1.14, 1.14]) P.push(B(0.12, 1.1, 4.0, CAISSE, sx, 1.5, -1.3));
+    P.push(B(2.36, 1.1, 0.12, CAISSE, 0, 1.5, -3.24));
+    P.push(B(2.36, 1.1, 0.12, CAISSE, 0, 1.5, 0.64));
+    for(let k = 0; k < 5; k++)
+      P.push(B(GRAVIER[k], 0.3, 0.5, 0x9AA2A7,
+               -0.7 + (k % 3)*0.7, 1.15, -2.4 + Math.floor(k/3)*1.2));
+    P.push(CY(0.14, 1.2, 8, INOX, 0, 1.15, 0.3, 0.6));
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 1.9));
+    feux(P, 0.82, 0.86, 3.12, -3.3);
+    roues(P, 1.02, 2.0, -1.7, 0.46, 0.34, true);
+    return P;
+  }
+  // 12 — Autocar de village : six baies vitrées, pavillon marqué, girouette.
+  function autocar(){
+    const C = 0xE0A02E, P = [];
+    P.push(B(2.3, 0.34, 8.4, CHASSIS, 0, 0.58, 0));
+    serre(P, 2.4, 2.5, 8.2, C, 0.72, 0, 6);
+    P.push(B(2.44, 0.24, 8.0, 0xC98C22, 0, 3.24, 0));
+    P.push(B(2.42, 0.3, 1.0, 0xC98C22, 0, 1.5, 3.3));
+    P.push(B(0.9, 0.34, 0.1, 0x2E3438, 0, 3.0, 4.08));
+    feux(P, 0.86, 0.9, 4.14, -4.14);
+    roues(P, 1.06, 3.0, -2.6, 0.48, 0.34, true);
+    return P;
+  }
+  // 13 — Camping-car : la cabine dépasse, la cellule la coiffe d'une capucine.
+  function campingCar(){
+    const C = 0xF4F0E4, P = [];
+    P.push(B(2.1, 0.32, 6.6, CHASSIS, 0, 0.52, 0));
+    cabine(P, 2.1, 1.5, 1.9, C, 0.64, 2.2);
+    P.push(B(2.2, 2.3, 4.4, C, 0, 1.79, -0.7));
+    P.push(B(2.26, 0.2, 4.5, 0xD8D2C0, 0, 2.94, -0.7));
+    P.push(B(2.16, 0.7, 1.7, C, 0, 3.24, 2.0));
+    P.push(B(1.5, 0.5, 0.12, VITRE, 0, 3.24, 2.86));
+    for(const sx of [-1.12, 1.12]) P.push(B(0.1, 0.6, 1.0, VITRE, sx, 2.1, -0.2));
+    P.push(B(0.12, 0.9, 0.9, 0xD8D2C0, 1.12, 1.55, -2.0));
+    P.push(B(1.9, 0.1, 2.6, 0xD8D2C0, 0, 3.06, -1.4));
+    P.push(B(0.7, 0.14, 0.7, 0x9AA2A7, -0.5, 3.12, -0.2));
+    P.push(B(2.16, 0.18, 0.4, 0x2A2E32, 0, 0.46, 3.32));
+    feux(P, 0.78, 0.78, 3.34, -2.96);
+    roues(P, 0.94, 2.2, -1.9, 0.4, 0.3);
+    return P;
+  }
+  // 14 — Camion de pompiers : volets roulants, échelle sur le toit, rampe bleue.
+  function pompiers(){
+    const C = 0xB8342A, P = [];
+    P.push(B(2.2, 0.34, 6.8, CHASSIS, 0, 0.62, 0));
+    cabine(P, 2.24, 1.9, 2.4, C, 0.79, 2.0);
+    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.3));
+    P.push(B(2.3, 1.9, 3.6, C, 0, 1.74, -1.4));
+    for(let k = 0; k < 3; k++) for(const sx of [-1.17, 1.17])
+      P.push(B(0.08, 1.0, 0.95, 0xD8CFC0, sx, 1.7, -2.6 + k*1.2));
+    P.push(B(2.36, 0.18, 3.7, 0x8E2A22, 0, 2.7, -1.4));
+    for(const sx of [-0.6, 0.6]) P.push(B(0.1, 0.1, 4.6, INOX, sx, 2.92, -1.2));
+    for(let k = 0; k < 9; k++) P.push(B(1.3, 0.07, 0.07, INOX, 0, 2.92, -3.4 + k*0.55));
+    gyro(P, -0.6, 3.06, 2.6, 0x4A90D9, 0);
+    gyro(P,  0.6, 3.06, 2.6, 0x4A90D9, 0);
+    feux(P, 0.82, 0.86, 3.32, -3.5);
+    roues(P, 1.02, 2.1, -1.8, 0.46, 0.34, true);
+    return P;
+  }
+  // 15 — Fourgonnette postale : jaune, caisse courte, un gyrophare.
+  function postale(){
+    const C = JAUNE, P = [];
+    P.push(B(1.9, 0.3, 4.4, CHASSIS, 0, 0.46, 0));
+    cabine(P, 1.9, 1.25, 1.6, C, 0.56, 1.3);
+    caisseFermee(P, 1.94, 1.6, 2.6, C, 0.56, -0.85, 3);
+    P.push(B(1.0, 0.44, 0.12, 0x2E4A6B, 0, 1.5, -2.2));
+    gyro(P, 0, 2.24, 0.9, 0x4A90D9);
+    P.push(B(1.96, 0.16, 0.38, 0x2A2E32, 0, 0.4, 2.22));
+    feux(P, 0.7, 0.68, 2.24, -2.2);
+    roues(P, 0.86, 1.45, -1.45, 0.35, 0.26);
+    return P;
+  }
+  // 16 — Dépanneuse : plateau incliné, treuil et câble, gyrophare orange.
+  function depanneuse(){
+    const C = ORANGE, P = [];
+    P.push(B(2.1, 0.32, 6.2, CHASSIS, 0, 0.56, 0));
+    cabine(P, 2.14, 1.8, 2.0, C, 0.7, 1.9);
+    P.push(B(2.2, 0.22, 0.48, GRIS, 0, 0.58, 3.0));
+    P.push(BX(2.16, 0.16, 4.0, 0x8E8172, 0, 1.16, -1.2, 0.12));
+    for(const sx of [-1.04, 1.04]) P.push(BX(0.1, 0.28, 4.0, C, sx, 1.3, -1.2, 0.12));
+    P.push(B(0.7, 0.7, 0.7, C, 0, 1.6, 0.7));
+    P.push(CY(0.12, 0.8, 8, INOX, 0, 1.85, 0.7, 0, Math.PI/2));
+    P.push(B(0.08, 0.08, 1.6, 0x9AA2A7, 0, 1.5, -0.2));
+    gyro(P, 0, 2.6, 1.6, ORANGE);
+    P.push(B(2.16, 0.18, 0.4, 0x2A2E32, 0, 0.46, 3.06));
+    feux(P, 0.78, 0.8, 3.08, -3.06);
+    roues(P, 0.96, 1.9, -1.7, 0.42, 0.3, true);
+    return P;
+  }
+  const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace,
+                   pickup, fourgon, camionCaisse, citerneLait, benne, autocar,
+                   campingCar, pompiers, postale, depanneuse];
+  const geos = [], optiques = [], gyros = [];
+  for(const f of modeles){
+    _feuxPoses = null; _gyroPose = null;
+    geos.push(mergeParts(f()));
+    optiques.push(_feuxPoses); gyros.push(_gyroPose);
+  }
+  return {geos:geos, feux:optiques, gyros:gyros};
 })();
-const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux;
+const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
+      TRAFIC_GYROS = TRAFIC_MODELES.gyros;
+/* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Seize modèles tirés à égalité feraient passer un
+   camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les seize
+   voitures : une rocade de village n'a pas cette allure. Les poids se lisent comme un
+   pourcentage — ils font cent — et ils tiennent dans l'esprit des deux autres tirages du
+   trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts écrites en clair.
+   Voitures 56 %, utilitaires 11 %, camions de travail 22 %, car et camping-car 7 %,
+   secours et dépannage 4 %. */
+const POIDS_TRAFIC = [14, 11, 13,  5,  5,  9,      // berline, break, citadine, bétaillère, bottes, monospace
+                       9,  8,  5,  4,  4,  4,      // pick-up, fourgon, caisse, citerne, benne, autocar
+                       3,  1,  3,  2];             // camping-car, pompiers, postale, dépanneuse
+/* ET L'ALLURE DE CHACUN. Un autocar, un camping-car et un camion-benne ne roulent pas
+   comme une citadine — mais L'ÉVENTAIL RESTE ÉTROIT, entre 0,90 et 1,05, et c'est une
+   contrainte et non un goût : sur trois cent cinquante mètres de file, une voiture rapide
+   rattrape immanquablement une voiture lente, si loin devant soit-elle, et le créneau
+   n'existe alors pour personne. Quinze pour cent d'écart se voient sans rien casser. */
+const ALLURE_TRAFIC = [1.05, 1.00, 1.04, 0.92, 0.92, 1.00,
+                       1.02, 0.98, 0.92, 0.92, 0.90, 0.90,
+                       0.90, 0.95, 0.96, 0.94];
+// Un PORTEUR est un camion rigide : il roule sur le ressort long, celui de l'attelage,
+// et non sur celui d'une voiture. C'est ce qui fait qu'une caisse haute dodeline.
+const PORTEUR_TRAFIC = [false, false, false, true, true, false,
+                        false, false, true, true, true, true,
+                        false, true, false, true];
+const POIDS_TOTAL = POIDS_TRAFIC.reduce((a, b)=> a + b, 0);
+function tirerModele(){
+  let r = Math.random()*POIDS_TOTAL;
+  for(let k = 0; k < POIDS_TRAFIC.length; k++){ r -= POIDS_TRAFIC[k]; if(r < 0) return k; }
+  return 0;
+}
 /* CAMION DE LIVRAISON : UN TRACTEUR ROUTIER ET SA CITERNE, ET RIEN D'AUTRE.
    Il avait trois remorques interchangeables — citerne, plateau à tracteur sanglé,
    fourgon. On n'en garde qu'une, à la demande : la citerne. Le plateau et le fourgon
@@ -10474,15 +10727,16 @@ function tenterDepart(iFile){
      voulait qu'une sur quatre, et la rocade se remettait à ressembler à un circuit. */
   const lourd = Math.random() < PART_LOURD;
   const tourne = !lourd && Math.random() < PART_VIRAGE;
-  const modele = lourd ? I_LOURD : (Math.random()*TRAFIC_GEOS.length)|0;
+  const modele = lourd ? I_LOURD : tirerModele();
   const D = lourd ? DIM_LOURD : DIM_LEGER[modele];
   /* Qui tourne roule moins vite : un virage de huit mètres de rayon pris à douze mètres
      par seconde coucherait la caisse. Et l'ÉVENTAIL DES VITESSES EST ÉTROIT : c'est lui
      qui fait qu'un trajet est refusé. Sur trois cent cinquante mètres de file, une voiture
      à quatorze rattrape immanquablement une voiture à neuf, si loin devant soit-elle — le
      créneau n'existe alors pour personne. */
-  const v0 = lourd ? 7 + Math.random()*2
-                   : (tourne ? 7.5 + Math.random()*2 : 9.5 + Math.random()*3);
+  const v0 = (lourd ? 7 + Math.random()*2
+                    : (tourne ? 7.5 + Math.random()*2 : 9.5 + Math.random()*3))
+             * (lourd ? 1 : ALLURE_TRAFIC[modele]);
   /* ON CHERCHE SON CRÉNEAU EN CHANGEANT DE ROUTE, PAS EN RALENTISSANT. Une première
      version descendait la vitesse de onze pour cent par essai, jusqu'à cinq crans : elle
      trouvait toujours un créneau, mais en lâchant sur la rocade des voitures à quatre
@@ -10517,7 +10771,7 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.route = route; t.v = v; t.vEff = v; t.vit = v;
   t.t0 = tempsTrafic; t.s = 0;
   t.avant = D.avant; t.arriere = D.arriere;
-  t.susp = lourd ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
+  t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
   t.m.geometry = lourd ? CAMIONS_GEOS.tracteur : TRAFIC_GEOS[modele];
   t.m.scale.set(ECH_TRAFIC*(lourd ? LARG_LOURD : 1), ECH_TRAFIC, ECH_TRAFIC);
   t.rem.scale.set(ECH_TRAFIC*LARG_LOURD, ECH_TRAFIC, ECH_TRAFIC);
@@ -10538,6 +10792,11 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.arG.position.set(-AR.w, AR.y, AR.zAr);
   t.arD.position.set( AR.w, AR.y, AR.zAr);
   t.arG.visible = t.arD.visible = false;
+  // Le gyrophare, s'il y en a un : sa place et sa couleur ont été notées en sculptant.
+  const GY = lourd ? null : TRAFIC_GYROS[modele];
+  t.gy = GY;
+  if(GY){ t.gyro.position.set(GY.x, GY.y, GY.z); t.gyro.material.color.setHex(GY.c); }
+  t.gyro.visible = false;
   for(const c of [t.coG, t.coD]) c.geometry = CONE_TRAFIC[modele];
   t.coG.position.set(-F.w, F.y, F.zAv); t.coG.rotation.set(PENTE_TRAFIC[modele], -0.11, 0);
   t.coD.position.set( F.w, F.y, F.zAv); t.coD.rotation.set(PENTE_TRAFIC[modele],  0.11, 0);
@@ -10649,7 +10908,13 @@ function updateTrafic(dt){
     // ce qui naît : en garder deux paires dormantes, c'est cent trente-six objets de plus
     // à parcourir dans la scène à chaque image, pour n'en montrer jamais que la moitié.
     t.arG = billeLumiere(0.24, 0xFF7A5E); t.arD = billeLumiere(0.24, 0xFF7A5E);
-    m.add(t.avG); m.add(t.avD); m.add(t.arG); m.add(t.arD);
+    /* ET UNE SEULE BILLE DE GYROPHARE, pour les trois modèles qui en portent un — les
+       pompiers, la postale, la dépanneuse. Une seule, même quand le toit en porte deux :
+       à trente mètres une rampe se lit comme une lueur unique, et deux billes à quarante
+       centimètres coûteraient le double pour ne rien montrer de plus. Elle change de
+       couleur à la naissance ; éteinte, elle ne coûte que son parcours de scène. */
+    t.gyro = billeLumiere(0.26, 0xFFFFFF);
+    m.add(t.avG); m.add(t.avD); m.add(t.arG); m.add(t.arD); m.add(t.gyro);
     t.coG = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
     t.coD = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
     for(const c of [t.coG, t.coD]){
@@ -13438,6 +13703,21 @@ function majEclairagesNuit(){
     // l'autre paire reste éteinte, elle n'a rien à éclairer.
     for(const h of [t.arG, t.arD]){ h.visible = allume; h.material.opacity = k*0.50;
                                     h.scale.setScalar(0.85 + 0.3*k); }
+    /* LE GYROPHARE TOURNE, ET C'EST TOUT CE QU'ON LUI DEMANDE. Il ne balaie pas le
+       paysage — un cône de plus par véhicule pour un feu qui fait un tour par seconde
+       coûterait cher pour un effet qu'on ne verrait qu'en passant à côté. Une lueur qui
+       enfle et s'efface deux fois par seconde dit la même chose, et elle brille de jour
+       comme de nuit : un camion de pompiers en course n'attend pas le crépuscule. */
+    if(t.gy){
+      const b = 0.5 + 0.5*Math.sin(tempsTrafic*6.3 + t.t0);
+      t.gyro.visible = t.actif && t.m.visible;
+      // Il bat de jour comme de nuit — c'est un signal, pas un phare — mais le jour le
+      // lave, comme il lave un vrai gyrophare : un tiers de la lueur au soleil, tout au
+      // clair de lune. Sans cela on aurait au choix un feu de détresse en plein midi, ou
+      // un camion de pompiers aux dômes éteints qui ne servent à rien.
+      t.gyro.material.opacity = (0.30 + 0.55*b)*(0.34 + 0.66*nuitK);
+      t.gyro.scale.setScalar(0.75 + 0.45*b);
+    } else if(t.gyro.visible) t.gyro.visible = false;
     const dx = t.m.position.x - camera.position.x, dz = t.m.position.z - camera.position.z;
     const pres = allume && (dx*dx + dz*dz) < loinCarre;
     for(const c of [t.coG, t.coD]){ c.visible = pres; c.material.opacity = k*0.22; }
