@@ -5090,7 +5090,7 @@ const tremiePleine = (m)=> m.key === 'moisson' && hopper > 0.01;
 // Charger : il faut de la place, de la marchandise, et une caisse qui accepte la nature.
 const peutPrendre = (T, type, dispo)=> !!T && dispo > 0.01 && T.load < T.capacite && peutCharger(T, type);
 // Décharger : il faut porter cette nature-là, et en quantité non nulle.
-const porte = (T, type)=> !!T && T.type === type && T.load > 0.01;
+const porte = (T, type)=> chargeDe(T, type) > 0.01;
 /* CE QUE L'ÉTIQUETTE DIT SOUS LE NOM, ET RIEN D'AUTRE. Deux cas, jamais les deux à la
    fois : un commerce FERMÉ dit le palier qui l'ouvrira — sans quoi on s'arrête sur un
    cercle éteint sans comprendre pourquoi la brasserie ne prend pas l'orge qu'on lui
@@ -9393,6 +9393,26 @@ function marquer(q, p, serre){
    de la terre du voisin. On borne donc le débord à huit mètres, exactement ce que faisait
    l'ancien retrait d'un sixième, et ce plancher ne rentre AUCUN outil de seize mètres ou
    moins : ni la charrue, ni le semoir, ni l'épandeur avant son dernier cran. */
+/* ---------- CE QUE CHAQUE TOUR REPREND DU PRÉCÉDENT ----------
+   Le pas a valu deux tiers de largeur, puis la MOITIÉ — « la moitié du véhicule sur la
+   partie déjà travaillée, l'autre moitié sur la terre brute » — et le joueur revient
+   dessus : « fais un espacement un petit peu plus large entre chaque passe, là tu remords
+   trop sur tes traces et du coup le temps de la passe complète est trop long. »
+   Il a raison, et cela se chiffre. Douze cas — deux tailles de parcelle, trois outils, deux
+   crans de vitesse — pilotés image par image :
+
+       pas      couverture moyenne   pire cas   temps par parcelle
+       0,50           98,5 %          95,6 %         69 s
+       0,60           98,0 %          95,6 %         61 s
+       0,70           97,6 %          95,6 %         57 s
+       0,80           95,1 %          86,7 %         52 s
+
+   0,70 rend dix-sept pour cent du temps pour neuf dixièmes de point de couverture, et le
+   PIRE CAS ne bouge pas d'un dixième. 0,80, lui, s'effondre : l'épandeur de douze mètres
+   sur une petite parcelle tombe à 86,7 %, parce qu'un outil traîné qui coupe les virages ne
+   rattrape plus un recouvrement d'un cinquième. C'est donc 0,70 — un tiers de recouvrement
+   au lieu de la moitié. */
+const PAS_PASSE = 0.70;
 const DEBORD_MAX = 8.0;
 function retraitsDe(p, T){
   const voisin = Math.max(0, T.width/2 - DEBORD_MAX);
@@ -9460,7 +9480,7 @@ function planAuto(m, cible){
      qu'on achète est un recouvrement qui ne dépend plus de la finesse du virage — un
      outil traîné quatre à six mètres derrière coupe les angles, et c'est là, et nulle
      part ailleurs, que restaient les coins jamais travaillés. */
-  const pas = T.width/2;
+  const pas = T.width*PAS_PASSE;
   // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
   // affleure la clôture sans que la machine s'en approche.
   /* LA MARGE TIENT LE TRACTEUR DANS LA PARCELLE, PAS L'OUTIL. Elle valait une
@@ -10040,6 +10060,59 @@ function finDePlan(m){
   return false;
 }
 
+/* ---------- CE QUI RESTE DEBOUT APRÈS UNE MOISSON FINIT PAR TOMBER ----------
+   Le joueur : « si on a moissonné un terrain et qu'il reste 5 % du terrain qui n'a pas été
+   moissonné correctement, au bout d'une dizaine de secondes, je veux que le reste de la
+   culture qui n'a pas été moissonnée disparaisse. »
+
+   C'EST LE PENDANT DE « N'ESSAIE PAS DE REMPLIR LE CHAMP ». L'escargot laisse ce que tout
+   escargot laisse — des coins que l'outil traîné coupe, quelques pieds isolés au centre —
+   et l'on a retiré le rattrapage parce qu'il coûtait sept traversées pour trois coins. Mais
+   ces pieds restaient DEBOUT : le champ n'était jamais tout à fait fini, la parcelle
+   ressortait dans la liste de ce qu'il y a à faire, et la passe suivante repartait pour
+   rien. Ils tombent maintenant tout seuls, dix secondes après la fin de la passe.
+
+   ET SEULEMENT SI C'EST VRAIMENT UN RELIQUAT. Cinq pour cent de la parcelle : au-delà, ce
+   n'est plus un reliquat de virages mais du travail qui ne s'est pas fait — une panne
+   sèche, une machine bloquée — et l'effacer masquerait le vrai problème. C'est le même
+   raisonnement, et presque le même chiffre, que le seuil de repasse d'autrefois.
+
+   ET LA VIGNE EST ÉPARGNÉE. Un pied pérenne qu'on n'a pas vendangé reste un pied : le faire
+   disparaître, ce serait arracher la vigne pour une grappe oubliée. Seules les cultures
+   annuelles, qu'on ressème de toute façon, sont fauchées. */
+const SEUIL_RELIQUAT = 0.05, DELAI_RELIQUAT = 10;
+const RELIQUATS = [];
+function noterReliquat(m, p){
+  const T = toolOf(m);
+  if(!T || !T.recolte || T.perennes || !p) return;
+  const R = resteCellules(T, p);
+  if(!R.n || !R.total || R.n > R.total*SEUIL_RELIQUAT) return;
+  if(RELIQUATS.some((q)=> q.p === p)) return;
+  RELIQUATS.push({p:p, t:0});
+}
+function nettoyerReliquats(dt){
+  for(let k = RELIQUATS.length - 1; k >= 0; k--){
+    const Q = RELIQUATS[k];
+    Q.t += dt;
+    if(Q.t < DELAI_RELIQUAT) continue;
+    RELIQUATS.splice(k, 1);
+    const p = Q.p;
+    const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+    const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+    let n = 0;
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+      const id = j*GNX+i;
+      if(state[id] !== ST.MUR || instOf[id] < 0) continue;
+      const C = CROPS[cropCell[id]];
+      if(C && C.perenne) continue;
+      state[id] = ST.CHAUME; growth[id] = 0; fert[id] = 0;
+      setInstance(instOf[id], 0, 0);
+      n++;
+    }
+    if(n) showHint('CHAMP NETTOYÉ — ' + n + ' PIED' + (n > 1 ? 'S' : '') + ' LAISSÉ'
+                   + (n > 1 ? 'S' : ''));
+  }
+}
 /* ALLER D'UN POINT À UN AUTRE SANS PIÉTINER LES CHAMPS.
    Le pilote visait sa destination en ligne droite : il traversait tout ce qu'il y
    avait entre les deux, semis compris. Les chemins de sable et les rocades forment
@@ -10372,6 +10445,11 @@ function pasDeRecul(v, dt){
 function quitterLieu(v){
   v.reculer = v.sortie; v.reculT = 0; v.sortie = null;
   v.route = null; v.routeBut = null; v.routeArr = null;
+  /* ET L'ON REVIENT LÀ OÙ L'ON S'EST ARRÊTÉ, PAS AU BOUT DE LA LIGNE. La passe reprenait
+     au POINT COURANT du plan, c'est-à-dire à la fin du tronçon interrompu : tout ce qui
+     restait de cette ligne — jusqu'à trente mètres — était sauté. On note donc l'endroit
+     exact où la trémie s'est remplie, et c'est là qu'on redescend. */
+  if(v.plan && v.plan.entre && !v.plan.sorti) v.plan.reprise = {x:v.pos.x, z:v.pos.z};
   /* ET L'ON REGAGNE SON CHANTIER PAR LA ROUTE. Le plan de travail garde son point
      courant, mais le drapeau « déjà entré » retombe : sans lui, la moissonneuse qui
      vient de vider sa trémie visait sa passe suivante EN LIGNE DROITE depuis la grille
@@ -10425,14 +10503,20 @@ function missionDrive(m, dt){
     // avait coupés, et l'engin partait du milieu du champ.
     if(!wp){
       if(finDePlan(m)) return [0, 0.5];
+      noterReliquat(m, v.plan && v.plan.p);
+      /* ET LA MOISSONNEUSE VIDE AVANT DE PASSER À LA TÂCHE SUIVANTE. Le plan remis à zéro,
+         `goSilo` reprend la main au tour d'après : elle va verser, puis `planAuto` ne
+         trouve plus rien à faire sur cette parcelle et la file avance toute seule. */
+      if(m.key === 'moisson' && hopper > 0.5){ v.goSilo = true; v.plan = null; return [0, 0.5]; }
       tacheSuivante(m); return [0, 0];
     }
     // On rejoint le premier point du travail PAR LES CHEMINS. Sans ça, l'engin part en
     // diagonale et laboure au passage toutes les parcelles qui le séparent du chantier.
     if(!v.plan.entre){
-      const r = suivreRoute(v, wp.x, wp.z, 'p' + t.p);
+      const R0 = v.plan.reprise;
+    const r = suivreRoute(v, R0 ? R0.x : wp.x, R0 ? R0.z : wp.z, 'p' + t.p);
       if(r) return r;
-      v.plan.entre = true;
+      v.plan.entre = true; v.plan.reprise = null;
       v.plan.dep = {x:v.pos.x, z:v.pos.z};
     }
     return piloteChamp(v, dt);
@@ -10475,9 +10559,24 @@ function autoDrive(m, dt){
   const rec = pasDeRecul(v, dt);
   if(rec) return rec;
   // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
-  if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
+  /* ---------- UNE MOISSONNEUSE FINIT TOUJOURS PAR VIDER ----------
+     Elle partait déjà au silo trémie pleine, et revenait finir sa passe. Ce qui manquait
+     est l'autre bout : LA FIN DU CHAMP. Le plan terminé, elle rendait la main là où elle
+     était, quatre-vingt-dix kilos de blé dans le ventre, et il fallait aller la chercher à
+     la main pour les verser. « Après avoir moissonné un champ, la moissonneuse est livrée
+     au silo » : `finMoisson` est ce drapeau-là, posé quand le plan n'a plus de point et
+     que la trémie n'est pas vide. */
+  if(m.key === 'moisson' && (hopper >= HOP_MAX || (v.finMoisson && hopper > 0.5)))
+    v.goSilo = true;
   if(v.goSilo){
-    if(hopper <= 0.5){ v.goSilo = false; quitterLieu(v); }
+    if(hopper <= 0.5){
+      v.goSilo = false; quitterLieu(v);
+      // vidée après la fin du champ : c'est fini pour de bon, on ne repart pas
+      if(v.finMoisson){
+        v.finMoisson = false; v.auto = false; v.plan = null;
+        showHint('TRAVAIL TERMINÉ'); return [0, 0];
+      }
+    }
     else return suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0) || [0, 0];
   }
   if(!v.plan){
@@ -10492,12 +10591,18 @@ function autoDrive(m, dt){
        faire — le plan courant a été remplacé, ou allongé d'un point. */
     // `finDePlan` dit lui-même ce qu'il fait quand il relance : ici on ne fait que suivre.
     if(finDePlan(m)) return [0, 0.5];
+    noterReliquat(m, v.plan && v.plan.p);
+    // le champ est fait : s'il reste du grain, on va le verser avant de s'arrêter
+    if(m.key === 'moisson' && hopper > 0.5){
+      v.finMoisson = true; v.plan = null; return [0, 0.5];
+    }
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
   }
   if(!v.plan.entre){
-    const r = suivreRoute(v, wp.x, wp.z, 'a' + PARCELS.indexOf(v.plan.p));
+    const R0 = v.plan.reprise;
+    const r = suivreRoute(v, R0 ? R0.x : wp.x, R0 ? R0.z : wp.z, 'a' + PARCELS.indexOf(v.plan.p));
     if(r) return r;
-    v.plan.entre = true;
+    v.plan.entre = true; v.plan.reprise = null;
     /* ET LE PREMIER TRONÇON A BESOIN D'UNE ORIGINE. Un tronçon va d'un point du plan au
        suivant ; le tout premier, lui, part de LÀ OÙ LA ROUTE A LAISSÉ LA MACHINE. On note
        donc cet endroit une fois pour toutes : sans lui, l'origine serait la position
@@ -12403,10 +12508,13 @@ function reservoirRecolte(m, T){
     nature: ()=> (K.load > 0.01 && K.type) ? CROPS.findIndex((C)=> C.cle === K.type) : -1,
     verser: (c, q)=>{
       const cle = CROPS[c].cle;
+      // le transport mélange, la RÉCOLTE non : une caisse entamée d'une autre culture
+      // refuse, et c'est ce verrou-là que `work()` lit pour écarter l'andain
       if(!peutCharger(K, cle)) return 0;
+      if(naturesDe(K).some((k)=> k !== cle)) return 0;
       const was = K.load;
-      K.load = Math.min(K.capacite, K.load + q);
-      poserType(K, cle);
+      const q2 = Math.min(q, K.capacite - K.load);
+      if(q2 > 0) ajouterCharge(K, cle, q2);
       if(was < K.capacite - 0.01 && K.load >= K.capacite - 0.01) showHint('BENNE PLEINE');
       return K.load - was;
     }};
@@ -12511,16 +12619,37 @@ function work(m, dt){
     touched.length = 0;
     if(bacDe(T)) eligible = false;
   }
-  // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
-  // n'accepte plus qu'une seule nature. Un andain qui mordrait sur une autre culture
-  // est refusé en entier — et rien n'est peint, sinon la moissonneuse laisserait du
-  // chaume sur du blé encore debout.
+  /* LA TRÉMIE NE MÉLANGE PAS — MAIS L'ANDAIN N'EST PLUS REFUSÉ EN ENTIER POUR AUTANT.
+     Une trémie entamée ne prend qu'une nature : c'est une règle de contenant, et elle
+     reste. Ce qui change, c'est ce qu'on en fait. L'andain qui mordait sur une autre
+     culture était jeté TOUT ENTIER, avec l'idée qu'il valait mieux ne rien couper que
+     de laisser du chaume sur du blé debout. Mais rien n'obligeait à choisir entre les
+     deux : on garde les cellules de la bonne nature, et les autres restent debout,
+     ni coupées ni peintes — ce que la ligne au-dessus fait déjà pour la vigne quand
+     une moissonneuse la traverse.
+     ET C'EST CE QUI DÉBLOQUAIT LE CHAMP. Le joueur : « si on commence à mettre des
+     grains sur un terrain par erreur mais qu'on n'a pas continué, et qu'on demande une
+     automatisation sur ce terrain, il faut pas qu'on soit bloqué par le peu de grains
+     qui ne serait pas de la même semence. » Une poignée de cellules d'une autre semence
+     au milieu d'un champ suffisait à faire refuser tout andain qui les touchait : la
+     machine repassait dessus sans rien couper, le garde-fou des huit secondes finissait
+     par abandonner le point, et la passe s'arrêtait là. Elle les contourne maintenant. */
   if(T.recolte && RES && touched.length){
     const nat = RES.nature();
-    if(nat >= 0 && touched.some((id)=> cropCell[id] !== nat)){
-      touched.length = 0; eligible = false;
-      showHint((T.caisse ? 'BENNE OCCUPÉE PAR DU ' : 'TRÉMIE OCCUPÉE PAR DU ')
-               + CROPS[nat].nom.toUpperCase());
+    if(nat >= 0){
+      const garde = touched.filter((id)=> cropCell[id] === nat);
+      if(garde.length !== touched.length){
+        const toutRefuse = !garde.length;
+        touched.length = 0;
+        for(const id of garde) touched.push(id);
+        // On ne le dit QUE si l'andain entier est d'une autre nature : sinon le message
+        // s'afficherait à chaque image le long de la lisière entre deux cultures.
+        if(toutRefuse){
+          eligible = false;
+          showHint((T.caisse ? 'BENNE OCCUPÉE PAR DU ' : 'TRÉMIE OCCUPÉE PAR DU ')
+                   + CROPS[nat].nom.toUpperCase());
+        }
+      }
     }
   }
   consommerStock(T, touched.length);
@@ -13945,6 +14074,55 @@ function lieuPrend(cle){
   for(const k of S.accepte) if(out.indexOf(k) < 0) out.push(k);
   return out;
 }
+/* ---------- CE QU'IL Y A LÀ, ET QUI EN VEUT ----------
+   Le joueur a redessiné l'ordre des questions : « je prends le fourgon, je choisis
+   l'entrepôt, il y a dans l'entrepôt de la farine et des œufs ; si je choisis œufs je peux
+   livrer à la boulangerie, supermarché, marché — à condition que ces lieux aient une
+   demande en cours pour ces produits. »
+   Trois fonctions suffisent, et elles ne disent que ce que le jeu sait déjà : combien il y
+   en a là, ce qu'on peut donc emporter, et qui en veut MAINTENANT. */
+function quantiteAuLieu(cle, quoi){
+  if(cle === 'silo') return siloStock[quoi] || 0;
+  if(cle === 'entrepot') return ENTREPOT.stock[quoi] || 0;
+  if(cle.slice(0, 6) === 'pature'){
+    const P = PATURES[+cle.slice(6)];
+    if(!P) return 0;
+    const E = ESPECES[P.espece] || ESPECES.vache;
+    if(E.produit === quoi) return P.produit || 0;
+    if(E.second && E.second.cle === quoi) return P.produit2 || 0;
+    return 0;
+  }
+  const S = SITES.find((s)=> s.nom === cle);
+  return (S && S.stock) ? (S.stock[quoi] || 0) : 0;
+}
+/* CE QU'ON PEUT EMPORTER D'ICI. Ce qu'il y a vraiment, du plus gros tas au plus petit —
+   et si le lieu est vide, tout ce qu'il sait donner : on prépare une navette en boucle
+   avant que le silo ne se remplisse, et une liste vide n'aurait rien laissé choisir. */
+function dispoAuLieu(cle){
+  const tout = lieuDonne(cle);
+  const plein = tout.filter((k)=> quantiteAuLieu(cle, k) > 0.01)
+                    .sort((a, b)=> quantiteAuLieu(cle, b) - quantiteAuLieu(cle, a));
+  return plein.length ? plein : tout;
+}
+/* UNE DEMANDE EN COURS, ET PAS SEULEMENT UNE PORTE OUVERTE. Un commerce fermé, un étal
+   déjà plein, une usine dont la trémie déborde : la marchandise y arriverait pour rester
+   sur le quai. On pose donc exactement les questions que se pose le transfert lui-même —
+   `acheteMaintenant` pour la revente, `accepteMaintenant` pour l'entrée d'une recette —
+   et pour les trois lieux de la ferme, la place qui reste. */
+function demandeChez(cle, quoi){
+  if(cle === 'silo') return siloStock[quoi] !== undefined && siloTotal() < siloMax() - 0.01;
+  if(cle === 'entrepot') return entrepotAccepte(quoi) && entrepotPlace() > 0.01;
+  if(cle.slice(0, 6) === 'pature'){
+    const P = PATURES[+cle.slice(6)];
+    return !!(P && RATION[quoi] && P.grain < P.grainMax - 0.01);
+  }
+  const S = SITES.find((s)=> s.nom === cle);
+  return !!S && (acheteMaintenant(S, quoi) || accepteMaintenant(S, quoi));
+}
+const preneursDe = (quoi, depart)=> lieuxPossibles()
+  .filter((P)=> P.cle !== depart && lieuPrend(P.cle).indexOf(quoi) >= 0
+             && demandeChez(P.cle, quoi))
+  .map((P)=> P.cle);
 // Ce qui a un sens sur CE trajet : ce que le départ donne et que l'arrivée veut bien.
 function naturesNavette(a, b){
   const pris = lieuPrend(b);
@@ -13955,6 +14133,9 @@ const planEl = document.getElementById('plan');
 const planCv = document.getElementById('plancv');
 // Ce qu'on est en train de composer. `taches` est la file, `mode` ce qu'on ajoute.
 let planEngin = 0, planMode = 'parcelle', planTaches = [], planBoucle = false, planNav = null;
+// La marchandise choisie au départ, avant de dire où on la porte : c'est elle qui
+// décide quels lieux d'arrivée s'allument.
+let planNavCle = null;
 // L'indice de la navette dont on choisit la nature, ou -1 : la rangée des natures
 // n'apparaît que le temps de répondre.
 let planProd = -1;
@@ -14001,15 +14182,15 @@ function majPlan(){
       planEngin = i;
       planTaches = (m.v.mission ? m.v.mission.taches.slice() : []);
       planBoucle = !!(m.v.mission && m.v.mission.boucle);
-      planNav = null; planProd = -1; majPlan();
+      planNav = null; planNavCle = null; planProd = -1; majPlan();
     }, couleurEngin(m)));
   });
   const M = MACHINES[planEngin], T = toolOf(M);
   const peutTravailler = !!(T && T.from) || M.key === 'moisson';
   rM.appendChild(planPuce('Travailler des parcelles', planMode === 'parcelle',
-    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; planProd = -1; majPlan(); } : null));
+    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; planNavCle = null; planProd = -1; majPlan(); } : null));
   rM.appendChild(planPuce('Navette entre deux lieux', planMode === 'navette',
-    ()=>{ planMode = 'navette'; planNav = null; planProd = -1; majPlan(); }));
+    ()=>{ planMode = 'navette'; planNav = null; planNavCle = null; planProd = -1; majPlan(); }));
   if(!peutTravailler && planMode === 'parcelle'){ planMode = 'navette'; return majPlan(); }
 
   if(!planTaches.length) rT.appendChild(planPuce('Aucune tâche — touche la carte', false, null));
@@ -14052,15 +14233,35 @@ function majPlan(){
     if(!nats.length)
       rP.appendChild(planPuce('rien ne circule sur ce trajet', false, null)).classList.add('vide');
   }
+  /* ET LA MÊME RANGÉE POSE LA TROISIÈME QUESTION, celle qui vient d'être ajoutée : le lieu
+     de départ est touché, on dit CE QU'ON EMPORTE, et c'est seulement après que la carte
+     n'allume plus que les preneurs. La quantité est écrite à côté du nom — c'est la seule
+     façon de savoir, sans fermer la fenêtre, s'il y a assez de ce qu'on croit charger. */
+  else if(planMode === 'navette' && planNav){
+    const dispo = dispoAuLieu(planNav);
+    for(const k of dispo){
+      const q = quantiteAuLieu(planNav, k);
+      rP.appendChild(planPuce(nomDe(k) + (q > 0.01 ? ' · ' + qteHaut(k, q) : ''),
+        planNavCle === k, ()=>{ planNavCle = k; majPlan(); },
+        (PRODUITS[k] || {}).couleur));
+    }
+    if(!dispo.length)
+      rP.appendChild(planPuce('rien à emporter d\'ici', false, null)).classList.add('vide');
+  }
   rP.style.display = rP.children.length ? '' : 'none';
   // Le pincement ne se devine pas : on le dit, et seulement tant qu'on ne s'en est pas
   // servi — une fois la carte grossie, la ligne redevient l'aide au choix.
   const zoomDit = planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.';
+  const nomDuLieu = (cle)=>{ const P = lieuPoint(cle); return P ? P.nom : cle; };
   document.getElementById('planaide').textContent = (tp
     ? 'Et qu\'est-ce qu\'il transporte ?'
     : ((planMode === 'parcelle')
       ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
-      : (planNav ? 'Et maintenant le lieu d\'arrivée.' : 'Touche le lieu de départ, puis celui d\'arrivée.'))
+      : (!planNav ? 'Touche le lieu de départ.'
+         : (!planNavCle
+            ? 'Qu\'est-ce qu\'on emporte de ' + nomDuLieu(planNav) + ' ?'
+            : nomDe(planNavCle) + ' — où livrer ? Seuls les lieux qui en veulent '
+              + 'maintenant sont allumés.')))
       + zoomDit);
   document.getElementById('planboucle').classList.toggle('on', planBoucle);
   const lancer = document.getElementById('planlancer');
@@ -14174,11 +14375,19 @@ function dessinerCarte(){
                (S.emp.x1 - S.emp.x0)*planEch, (S.emp.z1 - S.emp.z0)*planEch);
   // les lieux où l'on charge et décharge
   const lieux = lieuxPossibles();
+  /* ET QUAND ON SAIT CE QU'ON EMPORTE, LA CARTE NE MONTRE PLUS QUE CEUX QUI EN VEULENT.
+     Les autres restent dessinés — on ne fait pas disparaître la moitié du village sous le
+     doigt du joueur — mais éteints, à un quart d'opacité : on lit d'un coup d'œil où ce
+     qu'on tient peut aller, et l'on ne compose plus un trajet qui ne livrera rien. */
+  const preneurs = (planMode === 'navette' && planNav && planNavCle)
+                   ? preneursDe(planNavCle, planNav) : null;
   for(const P of lieux){
     const dep = planNav === P.cle;
     const pris = planTaches.some((t)=> t.quoi === 'navette' && (t.a === P.cle || t.b === P.cle));
+    const eteint = !!preneurs && !dep && preneurs.indexOf(P.cle) < 0;
+    c.globalAlpha = eteint ? 0.25 : 1;
     c.beginPath(); c.arc(px(P.x), pz(P.z), dep ? 7 : 5, 0, Math.PI*2);
-    c.fillStyle = dep ? '#FFF' : (pris ? '#FAD201' : '#7FD1E8');
+    c.fillStyle = dep ? '#FFF' : (pris ? '#FAD201' : (preneurs ? '#8BE07A' : '#7FD1E8'));
     c.fill();
     /* UN LIEU, UN NOM. Ceux qui portent une couleur de guidage sont nommés plus bas, en
        couleur : les écrire ici aussi les doublait, et « COOPÉRATIVE » venait se coucher
@@ -14189,6 +14398,7 @@ function dessinerCarte(){
       c.font = 'bold 8px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
       c.fillText(P.nom.slice(0, 14), px(P.x), pz(P.z) - 8);
     }
+    c.globalAlpha = 1;
   }
   /* LA CARTE PARLE LA MÊME LANGUE QUE LE SOL, et elle le dit PAR-DESSUS. Les points de
      navette sont tous du même bleu clair — c'est leur rôle, on les touche pour composer
@@ -14334,15 +14544,21 @@ function planDesigner(ev){
       if(d < bd){ bd = d; best = P; }
     }
     if(!best) return;
-    if(!planNav){ planNav = best.cle; }
-    else if(planNav !== best.cle){
-      planTaches.push({quoi:'navette', a:planNav, b:best.cle, cle:null});
-      planNav = null;
-      // La question de la nature vient tout de suite : c'est le moment où l'on sait
-      // encore ce qu'on voulait faire de ce trajet.
-      planProd = planTaches.length - 1;
+    /* TROIS TOUCHES, DANS CET ORDRE : le départ, la marchandise (dans la rangée du bas),
+       puis l'arrivée. Tant que la marchandise n'est pas dite, toucher un autre lieu
+       CHANGE le départ au lieu de créer un trajet — c'est ce qu'on veut faire neuf fois
+       sur dix quand on s'est trompé de point.
+       Et une fois la marchandise dite, seuls les preneurs répondent : toucher un lieu qui
+       n'en veut pas ne fait rien, ce qui vaut mieux qu'un trajet qui ne livrera rien. */
+    if(!planNav || planNav === best.cle){
+      planNav = (planNav === best.cle) ? null : best.cle;
+      planNavCle = null;
     }
-    else planNav = null;
+    else if(!planNavCle) planNav = best.cle;
+    else if(preneursDe(planNavCle, planNav).indexOf(best.cle) >= 0){
+      planTaches.push({quoi:'navette', a:planNav, b:best.cle, cle:planNavCle});
+      planNav = null; planNavCle = null;
+    }
   }
   majPlan();
 }
@@ -15499,7 +15715,7 @@ function bleABord(){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const T = caisseDe(m);
-    if(T && T.type === 'ble') t += T.load || 0;
+    if(T) t += chargeDe(T, 'ble');
   }
   return t;
 }
@@ -15625,9 +15841,11 @@ function objectifProduit(cle, reste, S){
     // déjà ce tri ; le juge, non.
     if(m2.verrou) continue;
     const C2 = caisseDe(m2);
-    if(!C2 || C2.type !== cle || C2.load <= 0.01) continue;
-    aBord += C2.load;
-    if(!T || C2.load > T.load) T = C2;
+    // une caisse peut porter plusieurs natures : c'est le LOT de celle-ci qui compte
+    const qC = chargeDe(C2, cle);
+    if(!C2 || qC <= 0.01) continue;
+    aBord += qC;
+    if(!T || qC > chargeDe(T, cle)) T = C2;
   }
   if(S && T && (aBord >= reste - 0.01 || T.load >= T.capacite - 0.01))
     return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, aBord)),
@@ -16728,7 +16946,8 @@ function creerPature(p, espece){
   const clePature = 'pature' + PATURES.length;
   const agirPature = ()=>{
     const m = MACHINES[cur], T = caisseDe(m);
-    if(T && RATION[T.type] && T.load > 0.01 && P.grain < P.grainMax) return true;
+    if(T && T.load > 0.01 && P.grain < P.grainMax
+       && naturesDe(T).some((k)=> RATION[k])) return true;
     if(E.produit && peutPrendre(T, E.produit, P.produit)) return true;
     if(E.second && peutPrendre(T, E.second.cle, P.produit2)) return true;
     if(P.betes.length < P.places && money >= E.prix) return true;
@@ -17258,9 +17477,74 @@ const quaiCuve = {x: CUVE_POS.x + 4.4, z: CUVE_POS.z + 3.0};
    encaisser chez un acheteur. Le reste n'est que la table des produits et celle du
    négoce. */
 const NATURES = PRODUITS;              // ancien nom, gardé là où il se lit mieux
-const peutCharger = (T, type)=> T.load < 0.01 || T.type === type;
+/* ---------- UNE CAISSE PORTE PLUSIEURS NATURES ----------
+   Le joueur : « je veux aussi que dans les camions de transport on puisse transporter
+   plusieurs produits différents tant que la capacité de charge n'est pas atteinte. »
+   La règle d'avant tenait en une ligne — une caisse entamée n'accepte plus que sa propre
+   nature — et elle obligeait à faire deux voyages pour porter de la farine et des œufs au
+   même commerce. La seule limite qui reste est la CAPACITÉ.
+
+   CE QUI PORTE LA CHARGE. `T.charge` est un dictionnaire {nature: kilos} et `T.load` en
+   reste la somme : tout ce qui affiche une jauge, borne un chargement ou lit un poids
+   continue de lire `T.load` sans rien savoir du reste. `T.type` reste la nature
+   PRINCIPALE — celle qu'on nomme quand il faut n'en nommer qu'une.
+
+   ET UNE VIEILLE PARTIE SE RELIT SANS RIEN. Le dictionnaire se fabrique à la première
+   écriture, à partir de `type` et `load` s'ils existent : une benne sauvegardée avec
+   trois cents kilos de blé se retrouve avec {ble: 300}. Le numéro de version ne bouge pas,
+   et `charge` est un champ facultatif de plus dans la sauvegarde.
+
+   CE QUI NE S'OUVRE PAS : LA RÉCOLTE. Une trémie ne mélange pas deux cultures — un andain
+   qui mord sur une autre culture est refusé, c'est la règle de `work()` et elle est juste.
+   `reservoirRecolte` garde donc son propre verrou ; ce qui s'ouvre, c'est le TRANSPORT. */
+const chargeDe = (T, cle)=> !T ? 0
+  : (T.charge ? (T.charge[cle] || 0) : (T.type === cle ? (T.load || 0) : 0));
+const naturesDe = (T)=> !T ? []
+  : (T.charge ? Object.keys(T.charge).filter((k)=> T.charge[k] > 0.01)
+              : ((T.type && T.load > 0.01) ? [T.type] : []));
+function baseCharge(T){
+  if(!T.charge) T.charge = (T.type && T.load > 0.01) ? {[T.type]: T.load} : {};
+  return T.charge;
+}
+function recompterCharge(T){
+  const C = baseCharge(T);
+  let t = 0;
+  for(const k in C){ if(C[k] < 0.005) delete C[k]; else t += C[k]; }
+  T.load = t < 0.005 ? 0 : t;
+  const n = naturesDe(T);
+  if(n.indexOf(T.type) < 0) T.type = n.length ? n[0] : null;
+}
+/* ET L'ON REMET LA CHARGE DANS LA CAISSE APRÈS UNE RELECTURE. Deux façons de rendre la
+   somme des lots fausse : une capacité qui a BAISSÉ — le barème d'un palier revu, une
+   sauvegarde faite avec une benne améliorée puis relue sans l'amélioration — et la remise
+   à l'échelle des vieilles parties. Dans les deux cas `load` est rogné et les lots ne le
+   sont pas : la place calculée dérive, sans qu'aucune erreur ne se lève. On rogne donc les
+   lots au prorata, et `load` se redéduit d'eux — l'ordre inverse de partout ailleurs, mais
+   c'est ici la capacité qui commande. */
+function remettreDansLaCaisse(T){
+  if(!T || !T.charge) return;
+  recompterCharge(T);
+  const cap = T.capacite || Infinity;
+  if(!(T.load > cap + 0.01)) return;
+  const f = cap/T.load;
+  for(const k in T.charge) T.charge[k] *= f;
+  recompterCharge(T);
+}
+function ajouterCharge(T, cle, q){
+  const C = baseCharge(T);
+  C[cle] = (C[cle] || 0) + q;
+  T.type = cle;
+  recompterCharge(T);
+}
+function retirerCharge(T, cle, q){
+  const C = baseCharge(T);
+  C[cle] = Math.max(0, (C[cle] || 0) - q);
+  recompterCharge(T);
+}
+// Charger : il ne faut plus que de la PLACE. La nature n'entre plus en compte.
+const peutCharger = (T, type)=> !!T && T.load < (T.capacite || Infinity) - 0.01;
 function poserType(T, type){ T.type = type; }
-function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; } }
+function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; T.charge = null; } }
 // Remplace la version d'origine : même mécanique de proximité, mais la nature du
 // chargement décide de ce qui peut être pris et de qui l'achète.
 /* ---------- CE QU'ON PEUT FAIRE ICI, ET QUI CHOISIT ---------- */
@@ -17287,8 +17571,11 @@ function actionsAuSilo(m){
   if(tremiePleine(m) && siloStock[CROPS[hopCrop].cle] !== undefined && dePlace)
     out.push({sens:'tremie', lieu:'silo', cle:CROPS[hopCrop].cle,
               txt:'RENTRER LA TRÉMIE — ' + nomHaut(CROPS[hopCrop].cle)});
-  if(porte && siloStock[T.type] !== undefined && dePlace)
-    out.push({sens:'ranger', lieu:'silo', cle:T.type, txt:'RENTRER ' + nomHaut(T.type)});
+  // une ligne par nature portée : une benne peut arriver avec du blé ET de l'orge
+  if(porte && dePlace) for(const k of naturesDe(T))
+    if(siloStock[k] !== undefined)
+      out.push({sens:'ranger', lieu:'silo', cle:k,
+                txt:'RENTRER ' + qteNomHaut(k, chargeDe(T, k))});
   if(place) for(const k of SILO_CLES)
     if(siloStock[k] > 0.01 && peutCharger(T, k))
       out.push({sens:'prendre', lieu:'silo', cle:k, txt:'CHARGER ' + qteNomHaut(k, siloStock[k])});
@@ -17300,9 +17587,10 @@ function actionsEntrepot(m){
   const T = caisseDe(m), out = [];
   if(!ENTREPOT.quai) return out;
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
-  if(porte && entrepotAccepte(T.type) && entrepotPlace() > 0.01)
-    out.push({sens:'rangerEntrepot', lieu:'entrepot', cle:T.type,
-              txt:'RENTRER ' + nomHaut(T.type)});
+  if(porte && entrepotPlace() > 0.01) for(const k of naturesDe(T))
+    if(entrepotAccepte(k))
+      out.push({sens:'rangerEntrepot', lieu:'entrepot', cle:k,
+                txt:'RENTRER ' + qteNomHaut(k, chargeDe(T, k))});
   if(place){
     // Les plus gros tas d'abord : la colonne ne montre que les premiers, et ce qu'on
     // vient chercher dans un entrepôt, c'est presque toujours ce qu'il y a le plus.
@@ -17320,9 +17608,11 @@ function actionsPature(m, pat){
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
   const E = ESPECES[pat.P.espece] || ESPECES.vache;
   const lieu = 'pature' + PATURES.indexOf(pat.P);
-  if(porte && RATION[T.type] && pat.P.grain < pat.P.grainMax)
-    out.push({sens:'auge', lieu:lieu, P:pat.P, cle:T.type,
-              txt:(E.statique ? 'REMPLIR LE NOURRISSEUR' : 'REMPLIR L\'AUGE')});
+  if(porte && pat.P.grain < pat.P.grainMax) for(const k of naturesDe(T))
+    if(RATION[k])
+      out.push({sens:'auge', lieu:lieu, P:pat.P, cle:k,
+                txt:(E.statique ? 'REMPLIR LE NOURRISSEUR' : 'REMPLIR L\'AUGE')
+                    + ' — ' + nomHaut(k)});
   if(E.produit && pat.P.produit > 0.01
      && place && peutCharger(T, E.produit))
     out.push({sens:'traire', lieu:lieu, P:pat.P, cle:E.produit,
@@ -17351,31 +17641,36 @@ function actionsAuSite(m, S){
      mission. Les deux la faisaient avancer, mais l'un vidait toute la benne. Tant que la
      mission attend CETTE marchandise ICI, elle est donc seule à s'afficher ; la vente
      libre revient d'elle-même dès la commande comblée. */
-  const misAttend = (()=>{
+  /* ET LA QUESTION SE POSE NATURE PAR NATURE. Une benne peut arriver avec de la farine
+     ET des œufs : chacune a sa commande, son prix et sa place chez le commerce, donc
+     chacune a sa ligne. C'est le seul endroit où le passage à la charge multiple se voit
+     vraiment — trois lignes au lieu d'une, et l'on choisit ce qu'on dépose. */
+  const misAttendCle = (cle)=>{
     const M = missionVisible();
-    if(!M || M.faire || !T || M.lieu !== S.nom) return false;
-    return M.lignes.some((l, i)=> l.cle === T.type
+    if(!M || M.faire || M.lieu !== S.nom) return false;
+    return M.lignes.some((l, i)=> l.cle === cle
       && l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01);
-  })();
-  if(porte){
-    const reste = resteCommande(S.nom, T.type);
-    if(reste > 0.01 && (acheteMaintenant(S, T.type) || accepteMaintenant(S, T.type)))
-      out.push({sens: acheteMaintenant(S, T.type) ? 'vendre' : 'verser',
-                commande:true, lieu:S.nom, S:S, cle:T.type,
-                txt:'LIVRER LA COMMANDE — ' + qteNomHaut(T.type, Math.min(reste, T.load))
-                    + (T.load < reste - 0.01 ? ' SUR ' + qteHaut(T.type, reste) : '')});
+  };
+  if(porte) for(const k of naturesDe(T)){
+    const qk = chargeDe(T, k), misAttend = misAttendCle(k);
+    const reste = resteCommande(S.nom, k);
+    if(reste > 0.01 && (acheteMaintenant(S, k) || accepteMaintenant(S, k)))
+      out.push({sens: acheteMaintenant(S, k) ? 'vendre' : 'verser',
+                commande:true, lieu:S.nom, S:S, cle:k,
+                txt:'LIVRER LA COMMANDE — ' + qteNomHaut(k, Math.min(reste, qk))
+                    + (qk < reste - 0.01 ? ' SUR ' + qteHaut(k, reste) : '')});
+    if(!misAttend && acheteMaintenant(S, k)){
+      // La place restante figure dans le libellé : sans elle, on vide sa benne en
+      // croyant tout vendre et l'on repart avec les trois quarts.
+      const pl = placeChez(S, k);
+      out.push({sens:'vendre', lieu:S.nom, S:S, cle:k,
+                txt:'VENDRE ' + nomHaut(k) + ' · ' + dec(prixChez(S, k)/parKgDe(k)) +
+                    ' ' + parUniteTxt(k).toUpperCase() +
+                    (pl < Infinity ? ' · ' + qteHaut(k, Math.min(pl, qk)) : '')});
+    }
+    if(!misAttend && accepteMaintenant(S, k))
+      out.push({sens:'verser', lieu:S.nom, S:S, cle:k, txt:'LIVRER ' + nomHaut(k)});
   }
-  if(porte && !misAttend && acheteMaintenant(S, T.type)){
-    // La place restante figure dans le libellé : sans elle, on vide sa benne en
-    // croyant tout vendre et l'on repart avec les trois quarts.
-    const pl = placeChez(S, T.type);
-    out.push({sens:'vendre', lieu:S.nom, S:S, cle:T.type,
-              txt:'VENDRE ' + nomHaut(T.type) + ' · ' + dec(prixChez(S, T.type)/parKgDe(T.type)) +
-                  ' ' + parUniteTxt(T.type).toUpperCase() +
-                  (pl < Infinity ? ' · ' + qteHaut(T.type, Math.min(pl, T.load)) : '')});
-  }
-  if(porte && !misAttend && accepteMaintenant(S, T.type))
-    out.push({sens:'verser', lieu:S.nom, S:S, cle:T.type, txt:'LIVRER ' + nomHaut(T.type)});
   if(place && !S.caisse) for(const k in S.stock)
     if(S.stock[k] > 0.01 && peutCharger(T, k))
       out.push({sens:'reprendre', lieu:S.nom, S:S, cle:k,
@@ -17419,8 +17714,7 @@ function empechementsIci(m){
       const nom = 'CHARGER ' + nomHaut(q.cle);
       if(!T) dit(nom, 'IL FAUT UNE BENNE OU UN UTILITAIRE');
       else if(T.load >= T.capacite - 0.01) dit(nom, 'LA BENNE EST PLEINE');
-      else if(!peutCharger(T, q.cle))
-        dit(nom, 'VIDER LA BENNE D\'ABORD (' + nomHaut(T.type) + ')');
+
     }
     // l'auge
     if(P.grain < P.grainMax){
@@ -17428,8 +17722,9 @@ function empechementsIci(m){
                  'IL FAUT APPORTER DE QUOI NOURRIR');
       else if(T.load <= 0.01) dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
                                   'LA BENNE EST VIDE');
-      else if(!RATION[T.type]) dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
-                                   nomHaut(T.type) + ' NE SE MANGE PAS');
+      else if(!naturesDe(T).some((k)=> RATION[k]))
+        dit('REMPLIR ' + (E.statique ? 'LE NOURRISSEUR' : 'L\'AUGE'),
+            naturesDe(T).map(nomHaut).join(' ET ') + ' NE SE MANGE PAS');
     }
     // embarquer des bêtes
     if(E.prixBete > 0){
@@ -17640,18 +17935,19 @@ function executer(m, A, dt){
       return;
     }
     case 'ranger': {
-      const q = Math.min(debit, T.load, siloMax() - siloTotal());
+      const q = Math.min(debit, chargeDe(T, A.cle), siloMax() - siloTotal());
       if(q <= 0.0001) return;
-      T.load -= q; siloStock[A.cle] += q;
+      retirerCharge(T, A.cle, q); siloStock[A.cle] += q;
       livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
-      if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ'); }
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01) showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ');
       return;
     }
     case 'prendre': {
       const q = Math.min(debit, T.capacite - T.load, siloStock[A.cle]);
       if(q <= 0.0001) return;
-      T.load += q; siloStock[A.cle] -= q; poserType(T, A.cle);
+      ajouterCharge(T, A.cle, q); siloStock[A.cle] -= q;
       if(Math.random() < 0.4)
         puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
@@ -17661,9 +17957,8 @@ function executer(m, A, dt){
       const P = A.P, deux = A.sens === 'traire2';
       const q = Math.min(debit, T.capacite - T.load, deux ? P.produit2 : P.produit);
       if(q <= 0.0001) return;
-      T.load += q;
+      ajouterCharge(T, A.cle, q);
       if(deux) P.produit2 -= q; else P.produit -= q;
-      poserType(T, A.cle);
       if(Math.random() < 0.3) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -17672,26 +17967,28 @@ function executer(m, A, dt){
       // L'aliment de l'atelier vaut mieux que la céréale brute, et le premium mieux
       // encore : la même benne remplit la mangeoire une fois et demie, puis deux fois.
       const P = A.P, rend = RATION[A.cle];
-      const q = Math.min(lent, T.load, (P.grainMax - P.grain)/rend);
+      const q = Math.min(lent, chargeDe(T, A.cle), (P.grainMax - P.grain)/rend);
       if(q <= 0.0001) return;
-      T.load -= q; P.grain += q*rend;
+      retirerCharge(T, A.cle, q); P.grain += q*rend;
       if(Math.random() < 0.4) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
-      if(T.load <= 0.01){ viderType(T); showHint('AUGE REMPLIE'); }
+      viderType(T);
+      if(P.grain >= P.grainMax - 0.01) showHint('AUGE REMPLIE');
       return;
     }
     case 'rangerEntrepot': {
-      const q = Math.min(debit, T.load, entrepotPlace());
+      const q = Math.min(debit, chargeDe(T, A.cle), entrepotPlace());
       if(q <= 0.0001) return;
-      T.load -= q; entrepotRange(A.cle, q); livraison('entrepot', A.cle, q);
+      retirerCharge(T, A.cle, q); entrepotRange(A.cle, q); livraison('entrepot', A.cle, q);
       if(Math.random() < 0.3)
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.28);
-      if(T.load <= 0.01){ viderType(T); showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ À L\'ENTREPÔT'); }
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01) showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ À L\'ENTREPÔT');
       return;
     }
     case 'prendreEntrepot': {
       const q = Math.min(debit, T.capacite - T.load, entrepotStock(A.cle));
       if(q <= 0.0001) return;
-      T.load += q; entrepotRetire(A.cle, q); poserType(T, A.cle);
+      ajouterCharge(T, A.cle, q); entrepotRetire(A.cle, q);
       if(Math.random() < 0.3)
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
@@ -17700,33 +17997,35 @@ function executer(m, A, dt){
     case 'vendre': {
       // `resteCommande` est relu à CHAQUE image : `livraison()` vient d'en retirer ce
       // qu'on a versé, donc la borne fond au même rythme et le transfert s'arrête pile.
-      const q = Math.min(lent, T.load, placeChez(A.S, A.cle),
+      const q = Math.min(lent, chargeDe(T, A.cle), placeChez(A.S, A.cle),
                          A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
-      T.load -= q; encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
+      retirerCharge(T, A.cle, q); encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
       entamerEtal(A.S, A.cle, q);
       livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
       if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
-      if(T.load <= 0.01){ viderType(T);
-        showHint(nomDe(A.cle).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €'); }
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01)
+        showHint(nomDe(A.cle).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €');
       return;
     }
     case 'verser': {
-      const q = Math.min(debit, T.load, TREMIE_SITE_MAX - totalTremieSite(A.S),
+      const q = Math.min(debit, chargeDe(T, A.cle), TREMIE_SITE_MAX - totalTremieSite(A.S),
                          A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
-      T.load -= q; A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
+      retirerCharge(T, A.cle, q); A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       livraison(A.S.nom, A.cle, q); compter(A.cle, q);
       if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
-      if(T.load <= 0.01){ showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
-                          viderType(T); }
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01)
+        showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
       return;
     }
     case 'reprendre': {
       const q = Math.min(debit, T.capacite - T.load, A.S.stock[A.cle]);
       if(q <= 0.0001) return;
-      T.load += q; A.S.stock[A.cle] -= q; poserType(T, A.cle);
+      ajouterCharge(T, A.cle, q); A.S.stock[A.cle] -= q;
       if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -20718,7 +21017,8 @@ function etatJeu(){
       return {verrou:!!m.verrou, level:v.level, x:v.pos.x, z:v.pos.z, cap:v.cap,
               fuel:v.fuel, vmax:v.vmax, accel:v.accel, turn:v.turn,
               betail:v.betail||0, auto:!!v.auto,
-              cargo: v.cargo ? {load:v.cargo.load, capacite:v.cargo.capacite, type:v.cargo.type||null} : null};
+              cargo: v.cargo ? {load:v.cargo.load, capacite:v.cargo.capacite, type:v.cargo.type||null,
+                                 charge:v.cargo.charge || null} : null};
     }),
     /* `cuves` EST LE CHAMP QUI COMPTE ; `cuveQ` et `cuveCle` restent écrits pour une
        version plus ancienne du jeu, qui ne sait lire qu'eux — ils portent le casier
@@ -20726,7 +21026,7 @@ function etatJeu(){
        version de la sauvegarde ne bouge pas : la garde de relecture est une égalité
        stricte, et l'incrémenter rejetterait toutes les parties en cours. */
     outils: TOOLS.map(T=>({level:T.level, width:T.width, capacite:T.capacite,
-                           load:T.load||0, type:T.type||null, crop:T.crop||0,
+                           load:T.load||0, type:T.type||null, charge:T.charge||null, crop:T.crop||0,
                            cuves: Object.assign({}, T.cuves),
                            cuveQ:cuveCourante(T), cuveCle:cuveCleDe(T),
                            x:T.group.position.x, z:T.group.position.z, cap:T.group.rotation.y,
@@ -20855,7 +21155,10 @@ function remettreAEchelle(S){
   }
   if(S.moisson) S.moisson.hopMax = c(S.moisson.hopMax);
   if(Array.isArray(S.machines)) for(const m of S.machines)
-    if(m && m.cargo){ m.cargo.load = q(m.cargo.load); m.cargo.capacite = c(m.cargo.capacite); }
+    if(m && m.cargo){ m.cargo.load = q(m.cargo.load); m.cargo.capacite = c(m.cargo.capacite);
+                      // et le détail des lots avec, sinon la somme ne vaut plus la charge
+                      if(m.cargo.charge) for(const k in m.cargo.charge)
+                        m.cargo.charge[k] = q(m.cargo.charge[k]); }
   if(Array.isArray(S.outils)) for(const T of S.outils)
     if(T){
       T.load = q(T.load); T.capacite = c(T.capacite);
@@ -20865,6 +21168,7 @@ function remettreAEchelle(S){
          partie qui les aurait tous les deux, et il coûte une ligne à ne pas laisser. */
       T.cuveQ = q(T.cuveQ);
       if(T.cuves) for(const k in T.cuves) T.cuves[k] = q(T.cuves[k]);
+      if(T.charge) for(const k in T.charge) T.charge[k] = q(T.charge[k]);
     }
   if(Array.isArray(S.patures)) for(const P of S.patures)
     if(P){ P.lait = q(P.lait); P.lait2 = q(P.lait2); P.grain = q(P.grain); }
@@ -21124,10 +21428,16 @@ function chargerPartie(S){
          garde ce que la sauvegarde dit : sa capacité vient d'une formule, pas de la table. */
       if(v.cargo && q.cargo){
         v.cargo.load = q.cargo.load; v.cargo.type = q.cargo.type;
+        /* ET LE DÉTAIL DE LA CHARGE, S'IL Y EN A UN. Une partie d'avant la charge
+           multiple n'a que `type` et `load` : `baseCharge` reconstruit alors le
+           dictionnaire à la première écriture, et la benne se retrouve avec tout son
+           poids dans sa seule nature. Rien à convertir, rien à migrer. */
+        v.cargo.charge = q.cargo.charge || null;
         // La capacité vient du barème pour tout ce qui y figure ; pour le reste, de la
         // sauvegarde, et seulement au-delà du niveau 1 — au niveau 1, c'est la table.
         if(!PALIERS[m.key] && (q.level || 1) > 1) v.cargo.capacite = q.cargo.capacite;
         v.cargo.load = Math.min(v.cargo.load, v.cargo.capacite);
+        remettreDansLaCaisse(v.cargo);
       }
     });
     S.outils.forEach((q, i)=>{
@@ -21144,6 +21454,8 @@ function chargerPartie(S){
       if(PALIERS[T.key]) appliquerPalier(T.key, T.level);
       else { T.width = q.width; if(q.capacite && T.level > 1) T.capacite = q.capacite; }
       T.load = Math.min(q.load, T.capacite || Infinity); T.type = q.type;
+      T.charge = q.charge || null;
+      remettreDansLaCaisse(T);
       T.group.scale.x = T.width / T.width0;
       T.group.position.set(q.x, 0, q.z); T.group.rotation.y = q.cap;
       T.x = q.x; T.z = q.z; T.cap = q.cap; T.axle.x = q.x; T.axle.z = q.z;
@@ -21413,6 +21725,7 @@ function loop(now){
     }
     work(m, dt);
     grow(dt);
+    nettoyerReliquats(dt);
     flushTint();
     updateCargo(dt);
     updateCommandes(dt);

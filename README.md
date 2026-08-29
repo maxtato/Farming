@@ -4540,6 +4540,106 @@ voie. Les deux choix se valent de toute façon en distance — toutes les voies 
 les deux donnent la même longueur —, et l'écart de dessin ne vaut que deux fois le décalage
 de conduite à droite, cinq mètres.
 
+## Cinq demandes d'un coup
+
+### Le pas de la spirale s'élargit
+
+« Fais un espacement un petit peu plus large entre chaque passe, là tu remords trop sur tes
+traces et du coup le temps de la passe complète est trop long. » Il a valu deux tiers, puis
+la moitié ; il vaut 0,70 — un tiers de recouvrement. Douze cas, deux tailles de parcelle,
+trois outils, deux crans de vitesse :
+
+| pas | couverture moyenne | pire cas | temps par parcelle |
+|---|---|---|---|
+| 0,50 | 98,5 % | 95,6 % | 69 s |
+| **0,70** | **97,6 %** | **95,6 %** | **57 s** |
+| 0,80 | 95,1 % | 86,7 % | 52 s |
+
+Dix-sept pour cent de temps rendus pour neuf dixièmes de point, et le pire cas ne bouge pas
+d'un dixième. 0,80 s'effondre : l'épandeur de douze mètres sur une petite parcelle tombe à
+86,7 %, un outil traîné qui coupe les virages ne rattrapant plus un recouvrement d'un
+cinquième. La constante s'appelle `PAS_PASSE`, et le banc la LIT au lieu de la recopier —
+un chiffre écrit deux fois est un banc qui échoue au premier réglage sans rien dire d'utile.
+
+### La moissonneuse finit toujours par vider, et revient où elle s'est arrêtée
+
+Elle partait déjà au silo trémie pleine. Il manquait l'autre bout : **la fin du champ**. Le
+plan terminé, elle rendait la main là où elle était, quatre-vingt-dix kilos dans le ventre,
+et il fallait aller la chercher à la main. Elle va verser, puis s'arrête — dans les deux
+pilotes, celui du joueur et celui de la campagne.
+
+**Et le retour est maintenant exact.** La passe reprenait au point courant du plan,
+c'est-à-dire à la FIN du tronçon interrompu : tout ce qui restait de cette ligne — jusqu'à
+trente mètres — était sauté. `quitterLieu` note l'endroit précis où la trémie s'est remplie,
+et c'est là qu'on redescend.
+
+### Ce qui reste debout après une moisson finit par tomber
+
+« S'il reste 5 % du terrain qui n'a pas été moissonné correctement, au bout d'une dizaine de
+secondes je veux que le reste de la culture disparaisse. » C'est le pendant de « n'essaie pas
+de remplir le champ » : l'escargot laisse ce que tout escargot laisse, on a retiré le
+rattrapage qui coûtait sept traversées pour trois coins, mais ces pieds restaient DEBOUT — la
+parcelle ressortait dans la liste de ce qu'il y a à faire et la passe suivante repartait pour
+rien. Cinq pour cent, dix secondes ; au-delà ce n'est plus un reliquat mais du travail qui ne
+s'est pas fait, et l'effacer masquerait le vrai problème. **La vigne est épargnée** : un pied
+pérenne qu'on n'a pas vendangé reste un pied.
+
+### Un andain qui mord sur une autre culture n'est plus refusé en entier
+
+« Si on commence à mettre des grains sur un terrain par erreur mais qu'on n'a pas continué,
+et qu'on demande une automatisation sur ce terrain, il faut pas qu'on soit bloqué par le peu
+de grains qui ne serait pas de la même semence. » Une poignée de cellules d'une autre semence
+suffisait à faire refuser TOUT andain qui les touchait : la machine repassait dessus sans rien
+couper, le garde-fou des huit secondes abandonnait le point, et la passe s'arrêtait là. On
+garde maintenant les cellules de la bonne nature et les autres restent debout, ni coupées ni
+peintes — exactement ce que le code faisait déjà pour la vigne qu'une moissonneuse traverse.
+La trémie, elle, ne mélange toujours pas : c'est une règle de contenant, et elle est juste.
+
+### Une caisse porte plusieurs natures
+
+« Je veux qu'on puisse transporter plusieurs produits différents tant que la capacité de
+charge n'est pas atteinte. » `T.charge` est un dictionnaire {nature: kilos} et `T.load` en
+reste la SOMME : les cent lectures qui affichent une jauge, bornent un chargement ou lisent un
+poids continuent de marcher sans rien savoir du reste. La seule limite est la capacité.
+
+Ce qui a demandé du soin n'est pas le dictionnaire, ce sont les endroits qui supposaient une
+nature unique. **Les bornes de transfert** prenaient `T.load` pour « ce que je porte de CETTE
+nature » : non corrigées, elles auraient vendu à la Coopérative du blé prélevé sur la réserve
+de lait, le compte global tombant juste et la nature partant au hasard. **Le juge d'objectif**
+écartait toute caisse dont la nature ne collait pas : la campagne se serait arrêtée d'avancer
+sans un mot. **La remise à l'échelle** des vieilles parties divise `load` par trois et aurait
+laissé les lots trois fois trop lourds. Et **la relecture** rogne `load` quand la capacité a
+baissé : les lots sont maintenant rognés au prorata et `load` se redéduit d'eux.
+
+La sauvegarde ne change pas de version : `charge` est un champ facultatif de plus, écrit à
+côté de `load` et `type`, et `type` continue d'être écrit. Une partie d'avant n'a que `type`
+et `load` : le dictionnaire se fabrique à la première écriture, et une benne de trois cents
+kilos de blé se retrouve avec `{ble: 300}`. Rien à convertir, rien à migrer.
+
+### La navette se compose en trois questions, dans l'ordre
+
+« Je prends le fourgon, je choisis l'entrepôt, il y a dans l'entrepôt de la farine et des
+œufs ; si je choisis œufs je peux livrer à la boulangerie, supermarché, marché — à condition
+que ces lieux aient une demande en cours pour ces produits. »
+
+C'était deux touches — le départ, l'arrivée — et la marchandise se demandait après coup. C'est
+maintenant trois : **le départ**, puis **ce qu'on emporte** parmi ce qu'il y a vraiment là
+(avec la quantité écrite à côté du nom), puis **où le livrer** — et seuls les preneurs sont
+allumés, les autres restent dessinés à un quart d'opacité. Toucher un lieu qui n'en veut pas
+ne fait rien, ce qui vaut mieux qu'un trajet qui ne livrera rien.
+
+**Une demande en cours, et pas seulement une porte ouverte.** Un commerce fermé par le palier,
+un étal déjà plein, une usine dont la trémie déborde : la marchandise y arriverait pour rester
+sur le quai. On pose donc exactement les questions que se pose le transfert lui-même —
+`acheteMaintenant` pour la revente, `accepteMaintenant` pour l'entrée d'une recette — et pour
+les trois lieux de la ferme, la place qui reste. Relevé sur l'exemple du joueur : entrepôt →
+farine 120 kg et œufs 667 ; œufs → **Marché, Supermarché, Boulangerie, Restaurant** ; le
+garage reste éteint.
+
+Et si le lieu de départ est vide, la rangée montre quand même tout ce qu'il sait donner : on
+prépare une navette en boucle avant que le silo ne se remplisse, et une liste vide n'aurait
+rien laissé choisir.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
