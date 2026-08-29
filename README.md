@@ -1188,6 +1188,69 @@ fenêtre qu'elle vise, un objectif ordinaire par ce qu'il cherche. L'achat de pa
 n'a pas de cercle — c'est un bord de champ, pas un quai — est bleu par la même règle : ce
 n'est jamais une étape de mission.
 
+### On travaille le champ tant que la ferme n'a pas le compte
+
+*« Je veux vraiment que tu l'aies compris : on travaille le champ tant qu'on n'a pas assez
+de blé dans le silo ; dès le moment qu'on a assez de blé dans le silo, on doit livrer. Si on
+a récolté suffisamment pour que, ajouté à ce qu'il y a dans le silo, ça équivaille à ce dont
+on a besoin, il faut que ça nous demande d'aller emmener le blé déjà récolté dans le silo,
+même si le champ n'est pas fini de récolter. »*
+
+Le jeu faisait le contraire, et cela tenait à un seuil : `auSilo > 0.5`. Un demi-kilo au fond
+du silo suffisait à faire dire CHARGER. Mesuré sur la première mission — trente kilos de blé
+à la Coopérative — un silo à **un kilo** faisait afficher *CHARGER BLÉ 1 KG* : l'aller-retour
+pour un trentième de la commande, alors que le champ n'était pas coupé.
+
+La règle est maintenant celle-là, dans cet ordre :
+
+| l'état de la ferme | ce que dit le jeu |
+|---|---|
+| ce qu'on porte, tous engins confondus, suffit | **LIVRER** au commerce |
+| silo + entrepôt + ce qu'on porte soldent la ligne | **CHARGER** au silo, puis livrer |
+| + la trémie de la moissonneuse soldent la ligne | **VIDER AU SILO**, champ non fini |
+| rien de tout cela | **AU CHAMP** |
+| et la ferme ne peut plus rien produire | livrer ce qu'on a, plutôt qu'attendre en vain |
+
+Le seuil se mesure : silo 29 → au champ, silo 29,99 → au champ, silo 30 → charger. Silo 4 et
+trémie 25 → au champ ; silo 4 et trémie 26 → *VIDER AU SILO — BLÉ 26 KG*, et la chaîne du
+bandeau tombe de « champ ▸ silo ▸ Coopérative » à « silo ▸ Coopérative » : le champ perd son
+cercle jaune au milieu d'une moisson, ce qui est exactement ce qui était demandé.
+
+Deux trous ont été trouvés après coup, et corrigés :
+
+- **le juge ne comptait que l'engin piloté.** Trente kilos de blé dans le pick-up garé, on
+  remonte dans la moissonneuse, et il redemandait d'aller récolter du blé déjà rentré. Le
+  compte se fait sur toute la cour ; sept `caisseDe` de plus par appel, et le juge coûte
+  pourtant 1,23 µs contre 1,45 avant — la porte du compte court-circuite plus qu'elle
+  n'ajoute ;
+- **la règle ne valait que pour le chemin du silo.** Hors céréales, un tank momentanément
+  vide faisait tomber dans le filet de fin : pour une commande de deux cents litres de lait,
+  cinq litres oubliés à l'entrepôt donnaient *CHARGER LAIT 5 L* — le même défaut, vivant dans
+  une autre filière. Un enclos qui sait produire la marchandise reste l'objectif, tank vide
+  compris : il se remplit tout seul.
+
+**Et deux missions n'avaient aucun objectif du tout.** « Produire 184 kg d'aliment premium »
+et « Livrer quatre porcs » n'ont pas de lieu ; le juge cherchait un commerce de ce nom, n'en
+trouvait pas, et rendait null sur toute leur durée — pas un cercle au sol, pas une flèche,
+pas une ligne au bandeau. L'aliment premium se lit maintenant comme n'importe quelle
+marchandise, par la même chaîne : la semence qui manque, puis le mélangeur, puis la
+production. Les porcs, qui n'ont pas de clé de produit, désignent l'enclos quand il y a des
+bêtes à charger et la boucherie sinon.
+
+### Une seule étiquette au quai
+
+À la livraison, **trois** choses disaient le même poids de blé dans le même coin de l'écran :
+l'enseigne du commerce, qui annonce ce que la mission attend ; la jauge du bandeau, qui porte
+le chargement en permanence ; et une jauge flottante posée au-dessus de l'engin, qui répétait
+la seconde à côté de la première — 126 pixels d'écart sur un écran de 1 200, même famille de
+plaque, mot pour mot le même texte.
+
+La troisième est **supprimée**, et non éteinte : un objet qu'on garde invisible coûte encore
+son parcours de scène et revient au premier réglage distrait. Rien n'est perdu — le bandeau
+porte le poids, la nature et la couleur, et il reste lisible quand la caméra ne cadre pas la
+machine. Les étiquettes de **lieu** restent toutes : le silo, l'atelier, l'entrepôt, la cuve,
+les enclos et les parcelles nomment ce qu'on ne peut pas lire autrement.
+
 ### Là où la mission t'envoie, il n'y a que la mission
 
 On arrivait à la Coopérative avec les trente kilos du tutoriel et l'on y trouvait **deux
@@ -1205,6 +1268,55 @@ Pendant le tutoriel, le bouton dit **le geste, pas le mot « mission »** : *VEN
 BLÉ*. On n'a pas encore appris qu'il existe des missions — on est venu vendre son blé, et
 c'est en le vendant que le marchand se présente et propose la première commande. La fenêtre
 qui s'ouvre derrière est la même.
+
+### Le chemin bat jusqu'à la ligne qu'il faut toucher
+
+*« Quand il faut faire évoluer l'atelier pour acheter le moulin à farine, je veux que le
+bouton pour la production pulse en jaune, et à l'intérieur l'onglet pour acheter le moulin
+pulse en jaune aussi. Fais des pulsations vraiment visibles, pareil à chaque fois pour
+toutes les actions. »*
+
+Le battement des menus existait déjà — le bouton du parc bat, on l'ouvre, la ligne de la
+machine bat à son tour — mais **seulement pendant le tutoriel**, qui écrit lui-même sa cible
+dans sa table : la fenêtre, l'onglet, la ligne. Passé le premier quart d'heure, plus rien ne
+battait.
+
+**Une mission ne peut pas écrire sa cible.** Il y en a trente, et l'objectif change tout
+seul avec l'état de la ferme. On la **déduit** donc du juge, qui porte déjà ce qu'il cherche
+et sur quoi :
+
+| ce que l'objectif cherche | ce qui bat |
+|---|---|
+| un métier d'atelier qui manque | Production · Métiers · la ligne du moulin |
+| un lot à lancer | Stockage · production possible · la ligne du produit |
+| une semence | Comptoir · Semences · la ligne de la culture |
+| un engin qui manque | Acheter · Véhicules · la ligne de la machine |
+
+Le bouton de régie, le bouton du garage, l'onglet et la ligne lisent tous la **même**
+fonction : s'ils divergeaient, ce serait exactement le défaut qu'on corrige. Et chacun
+s'éteint dès qu'on y est — le bouton quand la fenêtre est ouverte, l'onglet quand c'est
+celui qu'on regarde — sans quoi deux appels battraient l'un sur l'autre.
+
+**Le moulin à farine était le cas type, et il était pire que discret.** La quatrième mission
+demande 72 kg de farine ; sans moulin, le juge remontait la recette d'un cran jusqu'au blé
+et renvoyait **au champ** — moissonner un silo déjà plein — sans que le moulin soit désigné
+nulle part. Il l'est maintenant, et seulement une fois la matière là : tant qu'il n'y a pas
+de blé, l'objectif reste le champ ; dès qu'il y en a, c'est le moulin.
+
+**Et le battement se voit enfin.** Le cadre qui grandit partait de 0,7 d'opacité et
+s'écartait de 42 % en 1,4 s ; il part maintenant **plein**, s'écarte de 62 % et recommence
+toutes les 1,05 s. Le cadre plat des rangées de menu — qu'on ne peut pas mettre à l'échelle,
+les trois conteneurs coupant ce qui dépasse — passe de deux à trois pixels et reçoit un
+**lavis jaune à treize pour cent**, si bien que c'est la rangée entière qui respire et non
+son contour. Tout cela reste `transform` et `opacity`, les deux seules propriétés que le
+compositeur traite sans repasser par la peinture : une `box-shadow` animée avait coûté un
+dixième des images du jeu.
+
+**Et l'on écrit ACHETER.** *« Au lieu de marquer monter pour le moulin, et pour tout le
+reste, écris acheter. »* Les huit métiers de l'atelier étaient les seuls du jeu à se
+« monter » — le garage, le comptoir et l'agence disaient déjà acheter. Un verbe par geste,
+et le même partout : le bouton, l'état une fois payé, et les deux phrases qui renvoyaient à
+l'écran des métiers.
 
 ## La chaîne
 
@@ -2395,6 +2507,47 @@ Deux économies, parce qu'il y a vingt-deux véhicules et non sept :
   engins du joueur : 224 triangles économisés par phare. La finesse est un argument par
   défaut de `faisceauPhare()`, les engins gardent la leur.
 
+### Puis le trafic a cessé d'éclairer
+
+*« Pour les véhicules du trafic, ne mets pas l'effet d'éclairage ; fais juste allumer les
+phares en jaune, mais ne mets pas l'effet d'éclairage au sol. »*
+
+Les deux économies ci-dessus rendaient le cône **moins cher**. Elles ne répondaient pas à la
+question de savoir s'il avait sa place. Il ne l'avait pas : on ne conduit pas ces
+voitures-là, et un phare qui repeint la chaussée devant une voiture qu'on ne pilote pas est
+un effet pour personne. Les trente-six cônes du vivier sont donc **supprimés**, et non
+éteints — un objet qu'on garde invisible coûte encore son parcours de scène, et revient au
+premier réglage distrait.
+
+| mesuré, la nuit | avec | sans |
+|---|---|---|
+| maillages de faisceau dans la scène | 50 | **14** (ceux du joueur) |
+| triangles de géométrie | 5 440 | 3 136 |
+| objets de scène | 2 329 | 2 293 |
+| triangles rendus, plein écran de nuit | 39 468 | 38 436 |
+| appels de rendu | 567 | 564 |
+| `majEclairagesNuit`, par appel | 2,05 µs | **1,65 µs** |
+
+Le vrai gain ne se lit dans aucune de ces lignes. Échantillonné cent cinquante fois sur
+trente secondes de nuit tenue : **6,37 cônes allumés en moyenne**, couvrant 10,7 % de
+l'écran, 13,0 % au pire. Un cône est additif et peint des **deux côtés** — le regard le
+traverse deux fois — si bien que c'est un cinquième de l'écran qui était repeint à chaque
+image pour un éclairage que personne ne regardait.
+
+Ce qui reste : **l'optique s'allume**. Elle brillait d'un crème 0xFFEFC0, qui est la couleur
+du VERRE et non celle de la lumière — de loin, ça se lit comme un phare éteint qu'on
+éclaire. Elle passe au **jaune 0xFFD24A**, une nuance en deçà du jaune du guidage pour qu'un
+phare qui passe ne se confonde pas une seconde avec un cercle d'objectif, et elle monte d'un
+tiers en opacité et en taille — 0,62 à 0,74, 0,85 + 0,30 k à 0,85 + 0,35 k — parce qu'elle
+porte désormais seule ce que le cône disait.
+
+Les **engins du joueur gardent leurs deux faisceaux chacun**, et c'est la moitié de la
+demande : lui conduit, il a besoin de voir devant. Les vingt et un lampadaires gardent leur
+flaque au sol. Le contrôle du banc porte sur la **géométrie** et non sur la visibilité —
+`t.m.traverse(o => o.name === 'faisceauPhare')` doit rendre zéro pour le trafic et
+quatorze pour la ferme — parce qu'un cône rendu invisible passerait un contrôle d'opacité
+sans rien économiser.
+
 Où sont les optiques de chaque modèle ? **On le note en les posant**, au lieu d'aller le
 redécouvrir sur la boîte englobante : un monospace au museau court et une bétaillère à long
 capot ne les portent pas au même endroit, et une lueur posée à côté de son verre se voit
@@ -2571,6 +2724,47 @@ d'attributs, les quarante-quatre géométries **2 062** — 760 Kio pour vingt-h
 les recopier entièrement en aurait coûté 1 520 de plus. À comparer aux cinquante-sept
 mégaoctets de textures que le jeu porte déjà. Le temps de calcul par image ne bouge pas : on
 ne fabrique rien à la naissance, on désigne une géométrie déjà construite.
+
+### Et plus un seul rouge sur la rocade
+
+*« Je veux plus de rouge, puisque moi je l'ai en tant que véhicule perso, je veux pas qu'on
+confonde. »* Le joueur pilote un **tracteur rouge** — 0xD44435, la deuxième des trois robes
+du parc.
+
+La part du problème se mesure. En tirant deux cent mille véhicules avec le vrai tirage de
+modèle et le vrai tirage de robe : **21,3 % du trafic portait une carrosserie rouge ou
+brique**, dont 14,6 % de rouge franc. Un véhicule sur cinq. Et ce n'était pas une affaire de
+nuance : les rouges de la rocade tombaient à un à cinq degrés de teinte de celui du
+tracteur, seulement plus sombres — 0xC0392B pour 6,95 % des passages, 0x9C3B33 pour 5,63,
+0x8E4436 pour 5,39, 0xB8342A pour 2,01, 0xA8443A pour 1,32.
+
+Sept teintes changent donc de main, et l'une d'elles était une **carrosserie d'origine** :
+
+| modèle | ce qui était rouge | ce qui le remplace |
+|---|---|---|
+| berline | bordeaux 0x9C3B33 | kaki 0x6B7040 |
+| break | brun-rouge 0x8E4436 *(sa robe d'origine)* | brun-taupe 0x7A6A52 |
+| citadine | rouge 0xC0392B | sarcelle 0x357F72 |
+| plateau à bottes | brique 0xA8443A | moutarde 0xB08A2E |
+| benne | brique 0x8E4436 | brun-taupe 0x7A6A52 |
+| camion à caisse | rouge 0xC0392B *(sa robe d'origine)* | bleu 0x2F6B8E |
+| dépanneuse | rouge 0xC0392B | ardoise 0x4A5560 |
+
+Mesuré sur la même simulation de deux cent mille véhicules : **1,02 %**, et c'est le camion
+de pompiers, seul. On le garde rouge, et l'argument tient en une phrase : personne ne prend
+un fourgon d'incendie à échelle et gyrophares pour un tracteur.
+
+**Le car du village n'a plus qu'une robe, et elle est jaune.** *« Le bus, tu le laisseras
+qu'en jaune. »* C'est le bon instinct : un car repeint chaque semaine ne serait plus LE car
+du village, celui qu'on reconnaît de loin. Il rejoint donc les pompiers et la postale au
+rang des **livrées** — une couleur qui fait partie du modèle, pas un habillage.
+
+**Et le camion à caisse en reçoit une de plus que tout le monde.** *« Le fourgon avec la
+caisse, tu lui fais toutes les couleurs, sauf en rouge, qui était la couleur originale. »*
+Il en a **quatre** — bleu, ardoise, kaki, crème — là où les autres en ont trois : c'est lui
+qui était le rouge, on lui devait bien ça. Le compte final tombe de quarante-quatre
+géométries à **quarante-trois**, l'autocar en perdant deux et le camion à caisse en gagnant
+une.
 
 ## Le son du moteur
 
@@ -3054,9 +3248,11 @@ quoi on ne peut pas la coller à son voisin, et la rue a deux lignes de façades
 d'une. Son mur se retrouve en avant de celui du commerce, ce qui est juste : le commerce
 met dix mètres de parvis derrière sa clôture, la maison son jardin de devant.
 
-Un **objet de village ne se pose que dans un creux**, avec les arbres, et il se CHOISIT à
-la taille du creux : on prend le plus gros des dix modèles qui y tienne, un mètre de jeu
-compris, et l'on ne réserve que son encombrement déclaré. Il fallait sept mètres pour
+Un **objet de village se pose dans un creux** — ou, depuis peu, dans un des quatre coins du
+monde, voir plus bas — et il se CHOISIT à la taille du creux : on prend le plus gros des
+**sept** modèles candidats qui y tienne, un mètre de jeu compris, et l'on ne réserve que
+son encombrement déclaré. Sept et non dix : le lavoir, le calvaire et le panneau d'entrée
+sont partis aux coins. Il fallait sept mètres pour
 recevoir quoi que ce soit et l'objet réservait ensuite huit mètres quelle que soit sa
 taille — un banc de 4,65 m comme un lavoir de 5,60 : les creux ayant rétréci, deux sur
 quatre auraient perdu leur objet en silence. Chaque modèle est rayé de la liste une fois
@@ -3083,8 +3279,8 @@ dalle à l'ouest, 20,13 à l'est, 31,76 au nord — la même valeur répétée d
 l'autre, quinze bâtiments à la parade. `BANDES` écrit maintenant l'ORDRE et la NATURE
 de chaque bloc : deux ou trois usines **collées bord à bord**, clôture commune ; un vrai
 creux planté d'arbres, de buissons et de rochers ; les commerces de bouche encadrés de
-maisons ; et de loin en loin un creux plus court où un abri de bus ou un lavoir se pose
-sur l'herbe, à cinq mètres du bitume. Les largeurs ne sont pas écrites — ce sont les
+maisons ; et de loin en loin un creux plus court où un abri de bus ou une tonnelle se pose
+sur l'herbe, à 5,9 m du bitume. Les largeurs ne sont pas écrites — ce sont les
 cotes mesurées des bâtiments et des lots — et le jeu restant se partage entre les creux
 seuls, au prorata. Relevé : **huit dalles jointives** à zéro centimètre.
 
@@ -3174,10 +3370,14 @@ au rayon de l'obstacle. La mitoyenne coupée est celle dont l'écart tombe le pl
 milieu, à l'exclusion de celle qui mettrait deux fois le même modèle en vis-à-vis. Le rang
 n'est alors plus d'un seul tenant : sa clôture ferme chaque tronçon par son propre pignon
 est, et son rectangle d'obstacle devient DEUX rectangles — un seul reboucherait l'écart
-pour les engins et en ferait un mur invisible de dix mètres. Relevé : 1,80 m de couloir
-franchissable, 432 sommets de clôture sur chacun des deux jambages. Dedans : un calvaire,
-un banc et un puits, trois des dix modèles de mobilier que le village ne montrait nulle
-part.
+pour les engins et en ferait un mur invisible de dix mètres. Relevé : 2,05 m de couloir
+franchissable, 432 sommets de clôture sur chacun des deux jambages. Dedans : un **poteau
+télégraphique**, un banc et un arbre. Le poteau y a remplacé le calvaire, parti aux quatre
+coins : il monte à 7,55 m — plus haut qu'un mât de lampadaire —, il tient donc le même rôle
+de silhouette qu'on voit du bitume par-dessus la clôture, il est bien plus étroit, et il
+n'était dans aucune partie. L'axe des objets a reculé de quarante centimètres au passage :
+le mobilier ayant grandi de dix-huit pour cent, le banc élargi ramenait sinon le couloir à
+1,64 m.
 
 **Mitoyennes, et clôturées en commun.** Chaque maison avait sa clôture, et deux voisines
 en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'était le
@@ -3252,6 +3452,94 @@ soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est 
 permet d'en poser cinquante sans que la carte s'alourdisse — 31 700 triangles pour
 l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rien : une
 échelle ne crée pas de géométrie.
+
+### Le mobilier était à l'échelle 1, dans un monde qui ne l'est pas
+
+Les commerces sont posés à `BAT_ECHELLE` = 1,18 et les maisons à 1,30 fois cela ; l'abri de
+bus, le lavoir, le calvaire et les sept autres sortaient de leur fabrique **à l'échelle
+1,00**, c'est-à-dire aux cotes réelles, au milieu d'un monde agrandi. Le joueur l'a vu :
+*« augmente la taille des éléments de décor du village. »*
+
+Le relevé, fait à la manière du fichier — cote du jeu ÷ cote réelle, ramené au 1,383 du
+monde roulant — dirait 1,295 : assise de banc 1,353, plateau de table 1,383, sous-toit
+d'abri 1,252, margelle de puits 1,250, panneau d'entrée 1,277, croix 1,410. **Et 1,30
+casse la pose.** Le mobilier doit entrer dans les creux entre commerces, et le plus large
+de tous, l'abri de bus, ne tient dans le plus grand creux — 8,22 m — que jusqu'à 1,2236 ;
+au-delà, les quatre creux retombent sur les quatre plus petits modèles et le village perd
+d'un coup son abri, son lavoir, sa tonnelle et son bûcher.
+
+On prend donc **`BAT_ECHELLE`**, et on l'écrit comme telle plutôt qu'en clair : le mobilier
+est dessiné aux cotes réelles exactement comme l'étaient les bâtiments, il mérite la même
+correction, et une constante partagée interdit aux deux de se désaccorder. Il reste 26 cm
+de marge sous le plafond mesuré.
+
+Deux corrections suivent l'échelle, et toutes deux sont mesurées :
+
+- **Le choix d'un creux porte sur l'emprise, plus sur le rayon.** Le test comparait `2r`,
+  un rayon CIRCONSCRIT qui surestime la place prise le long de la bande — de 15 cm pour le
+  lavoir, de **1,15 m** pour l'abri de bus. Résultat : l'abri ratait le grand creux du nord
+  de **deux millimètres et neuf**, et c'est pour cela qu'on n'en voyait jamais. Chaque
+  fabrique déclare maintenant sa largeur réelle en plus de son rayon, et la marge passe de
+  3 mm à 57 cm. Elle est déclarée et non mesurée à l'exécution : la tonnelle tire son
+  feuillage au sort, sa boîte englobante change d'un appel à l'autre, et le choix du creux
+  se mettrait à dépendre d'un tirage de feuilles.
+- **Le mobilier recule de 5,0 à 5,9 m du bitume.** À cinq mètres, un abri de bus agrandi
+  laisse son disque de collision mordre la chaussée de 68 cm au sens de `voieLibre` et de
+  13 au sens de `Vehicle.update` : le pilote automatique s'écarterait d'une route libre. Il
+  reste maintenant 77 cm de bitume franc.
+
+### Les quatre coins du monde
+
+Les quatre rocades traversent la carte de bord à bord. Au-delà de leurs croisements, elles
+découpent quatre morceaux d'herbe que **rien** n'occupait : pas un lot, pas une clôture, pas
+un lampadaire — les vingt et un mâts sont tous à l'intérieur de l'anneau —, pas une
+parcelle, pas une destination du pilote. Mesurés : 36,2 × 36,2 m au nord-ouest, 40,8 × 36,2
+au nord-est, 36,2 × 40,5 au sud-ouest, 40,8 × 40,5 au sud-est, dont un rectangle vraiment
+utilisable de 26 × 26 à 30 × 30 une fois qu'on s'écarte de six mètres du bitume et de quatre
+du bord du monde. Le semis général y déposait deux à trois arbres et quelques buissons, et
+c'était tout — alors que ce sont les quatre entrées du village.
+
+Chacun reçoit son objet, et c'est lui qui lui donne son nom :
+
+| coin | ce qu'on y trouve |
+|---|---|
+| nord-ouest | le **calvaire**, déplacé de l'écart du rang |
+| nord-est | un **abri de bus**, qui n'était nulle part |
+| sud-ouest | le **lavoir**, déplacé du grand creux du nord |
+| sud-est | le **panneau d'entrée du village**, qui n'était nulle part |
+
+Chacun est tourné vers la chaussée qui passe devant, et l'orientation est vérifiée sur la
+géométrie et non devinée : l'abri de bus s'ouvre vers son +z local — dossier plein d'un
+côté, banc tourné de l'autre —, le panneau se lit depuis son +z, le lavoir montre ses trois
+battoirs en +z.
+
+**Quatre arbres, quatre buissons et deux rochers** les habillent, et tous dans le seul
+quadrant qui tourne le dos aux deux routes. Ce n'est pas une préférence de composition :
+`addTree` refuse tout tronc à moins de 4,50 m d'une chaussée, pour que le houppier ne
+surplombe jamais la route, et un secteur plus large ne plantait rien de plus — il faisait
+disparaître deux à quatre arbres sur seize, en silence. Les arbres se posent entre 11 et
+16 m de l'objet, et non entre 8 et 11 : relevé à l'écran, à huit mètres ils enterrent
+l'objet et l'on ne voit plus ni le panneau ni l'abri depuis la route.
+
+Un coin passe ainsi de **5-11 maillages à 13-18** dans un rayon de dix-huit mètres.
+
+**Ils se posent en dernier, et sur leur propre flux de hasard.** `addTree` consomme
+trente-six tirages du flux général pour ses feuilles tombées et peint une tache d'ombre sur
+la tuile de sol : le glisser plus haut décalerait tout le décor et toute la peinture qui
+suivent — mesuré sur un prototype posé avant `marquageParking()`, l'empreinte du sol peint
+avait changé. Et leur verdure est semée sur un troisième flux à graine fixe, sur le modèle
+de ceux qui sèment déjà la vallée : le décor reste identique d'une partie à l'autre, sans
+qu'aucun `Math.random` n'entre en jeu.
+
+**Le compte y retombe juste.** Quatre coins, quatre creux et deux places dans l'écart du
+rang : dix emplacements pour dix modèles. Trois d'entre eux — l'abri de bus, le panneau
+d'entrée et le poteau télégraphique — n'étaient dans **aucune** partie. Le lavoir libérant
+le grand creux du nord, l'abri de bus y entre enfin : c'est l'« autre arrêt de bus » que le
+joueur demandait, à la place même du lavoir. Seul le bûcher reste sans emploi.
+
+Le coût, mesuré : maillages de scène 1 793 → **1 804**, triangles de géométrie 95 300 →
+96 968, appels de rendu à la caméra de départ 265 → 271, obstacles et emprises de collision
+inchangés à 441 et 27.
 
 ## Le pilote automatique
 
