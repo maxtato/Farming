@@ -10019,63 +10019,44 @@ const CAMIONS_GEOS = (function(){
   };
 })();
 const traficMat = new THREE.MeshPhongMaterial({vertexColors:true, flatShading:true, shininess:0, specular:0x000000});
-// Tracé de la rocade : quatre lignes droites et quatre virages arrondis, parcourus
-// dans le sens des aiguilles d'une montre vu de dessus. On renvoie la position ET la
-// tangente ; le cap se déduit de la tangente, ce qui garantit qu'un véhicule regarde
-// toujours là où il va, quel que soit son sens de circulation.
-// `e` est l'écart à l'axe de la rocade : positif vers l'extérieur. Le tracé n'étant
-// plus carré, on part du rectangle ROC élargi de `e` plutôt que d'un rayon unique.
-function surRocade(e, CR, s){
-  const x0 = ROC.x0 - e, x1 = ROC.x1 + e, z0 = ROC.z0 - e, z1 = ROC.z1 + e;
-  const LX = (x1 - x0) - 2*CR, LZ = (z1 - z0) - 2*CR;
-  const A = Math.PI*CR/2, P = 2*(LX + LZ) + 4*A;
-  s = ((s % P) + P) % P;
-  // droites : (dx,dz) sens de marche ; arcs : centre et angle de départ
-  const droites = [
-    {x0:x0+CR, z0:z0,    dx: 1, dz: 0, L:LX},
-    {x0:x1,    z0:z0+CR, dx: 0, dz: 1, L:LZ},
-    {x0:x1-CR, z0:z1,    dx:-1, dz: 0, L:LX},
-    {x0:x0,    z0:z1-CR, dx: 0, dz:-1, L:LZ}
-  ];
-  const arcs = [
-    {cx:x1-CR, cz:z0+CR, a0:-Math.PI/2},
-    {cx:x1-CR, cz:z1-CR, a0: 0},
-    {cx:x0+CR, cz:z1-CR, a0: Math.PI/2},
-    {cx:x0+CR, cz:z0+CR, a0: Math.PI}
-  ];
-  for(let k=0;k<4;k++){
-    const d = droites[k];
-    if(s < d.L) return {x:d.x0 + d.dx*s, z:d.z0 + d.dz*s, tx:d.dx, tz:d.dz};
-    s -= d.L;
-    if(s < A){
-      const a = arcs[k], ang = a.a0 + s/CR;
-      return {x:a.cx + Math.cos(ang)*CR, z:a.cz + Math.sin(ang)*CR,
-              tx:-Math.sin(ang), tz:Math.cos(ang)};
-    }
-    s -= A;
-  }
-  const d = droites[0];
-  return {x:d.x0, z:d.z0, tx:d.dx, tz:d.dz};
-}
-/* LE PÉRIMÈTRE D'UNE FILE, PARCE QU'IL FAUT L'ÉTALER DESSUS. `surRocade` le calcule pour
-   elle-même et ne le rend pas ; poser douze véhicules « tous les 38 mètres » laissait un
-   trou de trois cents mètres où l'on ne croisait personne pendant une demi-minute. */
-const perimetreRocade = (e, CR)=>
-  2*((ROC.x1 - ROC.x0 + 2*e - 2*CR) + (ROC.z1 - ROC.z0 + 2*e - 2*CR)) + 2*Math.PI*CR;
-/* ET LE RAYON DE VIRAGE N'EST PAS LE MÊME DANS LES DEUX FILES.
-   La file intérieure coupe au plus court : à neuf mètres de rayon, son axe passait
-   trente-trois centimètres DANS L'HERBE au sommet de chaque virage. Le coin intérieur du
-   bitume est à √2·(CR − 5 − e) du centre de l'arc, et il faut CR ≤ 3,41·(5 + e) pour
-   rester dessus — soit 8,19 m pour la file intérieure (e = −2,6). Huit mètres tiennent,
-   avec huit centimètres de marge ; la file extérieure, elle, a de la place pour neuf. */
-const RAYON_FILE = (sens)=> sens > 0 ? 8 : 9;
+/* ---------- LE TRAFIC NE TOURNE PLUS EN ROND ----------
+   La rocade était un anneau fermé, et les voitures y tournaient indéfiniment : on
+   reconnaissait la même berline tous les trois quarts de minute, et l'on comprenait vite
+   qu'il n'y en avait qu'une poignée. Or le bitume, lui, n'a jamais été un circuit : les
+   quatre chaussées traversent la carte de bord à bord et se perdent hors champ — le
+   commentaire du sol le dit depuis toujours, « ce qui donne à la rocade l'air d'une vraie
+   route de passage plutôt que d'un circuit fermé ».
+   Chaque véhicule a donc maintenant un ITINÉRAIRE : il entre par un bord de carte, roule
+   tout droit, tourne au plus UNE fois à un croisement, et ressort par un autre bord. Une
+   fois dehors il disparaît, et l'on en fait entrer un autre ailleurs. On ne repasse jamais
+   deux fois devant le joueur. */
+const VOIE_TRAFIC = 2.6;                      // la file de droite, à un quart de chaussée
+const MARGE_TRAFIC = 34;                      // de combien on naît et on meurt hors carte
+/* LES QUATRE CHAUSSÉES. Deux horizontales — z fixé, traversant toute la largeur — et deux
+   verticales. Un croisement est l'intersection d'une de chaque : il y en a quatre. */
+const CHAUSSEES = [
+  {h:true,  c:ROC.z0}, {h:true,  c:ROC.z1},
+  {h:false, c:ROC.x0}, {h:false, c:ROC.x1}
+];
+const BORD_TRAFIC = {x0:X0 - MARGE_TRAFIC, x1:X1 + MARGE_TRAFIC,
+                     z0:Z0 - MARGE_TRAFIC, z1:Z1 + MARGE_TRAFIC};
 /* ET LES VÉHICULES DU TRAFIC SONT À L'ÉCHELLE UNE ET DEMIE. Ils avaient été dessinés
    plus petits que les engins de la ferme — une berline de 4,40 m à côté d'un tracteur de
-   4,80 — et la rocade, vue de la cour, avait l'air d'un circuit de voitures miniatures.
+   4,80 — et la route, vue de la cour, avait l'air d'un circuit de voitures miniatures.
    Le facteur porte sur TOUT : la caisse, mais aussi la sellette, le timon de la remorque
    et les distances de sécurité, sans quoi un attelage d'un quart plus long se replierait
    sur lui-même dans les virages. */
 const ECH_TRAFIC = 1.5;
+/* SAUF EN LARGEUR, POUR LES POIDS LOURDS. Les camions du modèle sont taillés large : cinq
+   mètres soixante-treize de carrosserie une fois grandis d'une moitié, sur une chaussée
+   de dix. Deux files de deux mètres soixante de part et d'autre de l'axe laissent cinq
+   mètres vingt entre les deux essieux de file — un demi-mètre de moins qu'il n'en faut :
+   deux semis qui se croisaient se traversaient l'un l'autre d'un demi-mètre (mesuré). On
+   ne peut ni élargir la rocade, dont le bord dessine la cour de ferme, ni écarter les
+   files sans sortir du bitume. On affine donc le camion de treize pour cent EN LARGEUR
+   SEULEMENT : sa longueur et sa hauteur restent à une fois et demie — c'est là que se lit
+   la taille —, et deux camions se croisent enfin sans se pénétrer. */
+const LARG_LOURD = 0.87;
 /* LEUR SUSPENSION EST CELLE DES ENGINS DU JOUEUR, à la mollesse près : une voiture est
    plus ferme qu'un tracteur, un camion plus mou et plus lent à répondre. Les réglages ont
    exactement la forme de ceux des machines (voir la table MACHINES). */
@@ -10083,61 +10064,220 @@ const SUSP_TRAFIC = {
   leger: {k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.55},
   lourd: {k:22, d:4.6, roll:0.052, pitch:0.032, rough:0.70}
 };
-const TRAFIC = [], FILES = [[], []];
+
+/* UN ITINÉRAIRE : une suite de tronçons droits et d'au plus un arc.
+   `t` vaut 'd' pour un droit (origine et vecteur unité) ou 'a' pour un arc (centre, rayon,
+   angle de départ et sens de parcours). Chaque tronçon porte sa longueur, si bien qu'une
+   abscisse curviligne suffit à placer le véhicule — et à placer sa remorque un timon en
+   arrière, sur le même tracé. */
+function surItineraire(R2, s){
+  const n = R2.legs.length;
+  for(let k = 0; k < n; k++){
+    const g = R2.legs[k];
+    // Le premier tronçon se prolonge EN ARRIÈRE : la remorque est en amont du tracteur,
+    // et à l'entrée en carte son abscisse est négative.
+    if(s < g.L || k === n - 1 || (k === 0 && s < 0)){
+      if(g.t === 'd') return {x:g.x + g.dx*s, z:g.z + g.dz*s, tx:g.dx, tz:g.dz};
+      const a = g.a0 + g.sg*(s/g.R);
+      return {x:g.cx + Math.cos(a)*g.R, z:g.cz + Math.sin(a)*g.R,
+              tx:-g.sg*Math.sin(a), tz:g.sg*Math.cos(a)};
+    }
+    s -= g.L;
+  }
+  return {x:0, z:0, tx:1, tz:0};
+}
+/* ON TIRE UN ITINÉRAIRE AU SORT. Un sur trois va tout droit d'un bout à l'autre de la
+   carte ; les autres tournent une fois. Les ATTELAGES vont tout droit trois fois sur
+   quatre : onze mètres de tracteur routier sur un virage de huit mètres de rayon, ça
+   coupe l'angle quoi qu'on fasse — un camion de transit préfère de toute façon la
+   nationale au carrefour. */
+function tirerRoute(lourd){
+  const A = CHAUSSEES[(Math.random()*4)|0];
+  const d = Math.random() < 0.5 ? 1 : -1;
+  const legs = [];
+  // La file de droite : vers +x la droite est en +z, vers +z elle est en -x.
+  const laneA = A.h ? A.c + d*VOIE_TRAFIC : A.c - d*VOIE_TRAFIC;
+  const uEnt = A.h ? (d > 0 ? BORD_TRAFIC.x0 : BORD_TRAFIC.x1)
+                   : (d > 0 ? BORD_TRAFIC.z0 : BORD_TRAFIC.z1);
+  const tourne = lourd ? false : Math.random() < 0.62;
+  if(!tourne){
+    const uSor = A.h ? (d > 0 ? BORD_TRAFIC.x1 : BORD_TRAFIC.x0)
+                     : (d > 0 ? BORD_TRAFIC.z1 : BORD_TRAFIC.z0);
+    legs.push(A.h ? {t:'d', x:uEnt, z:laneA, dx:d, dz:0, L:Math.abs(uSor - uEnt)}
+                  : {t:'d', x:laneA, z:uEnt, dx:0, dz:d, L:Math.abs(uSor - uEnt)});
+    return {legs, L:legs[0].L, tourne:false, gauche:false, cro:null,
+            pE:A.h, pS:A.h, sArc:0};
+  }
+  // Le croisement : l'une des deux chaussées perpendiculaires, et un sens de sortie.
+  const perp = CHAUSSEES.filter((B)=> B.h !== A.h);
+  const B = perp[(Math.random()*perp.length)|0];
+  /* LE RAYON DÉPEND DU CÔTÉ, ET LE CÔTÉ SE TIRE AVANT LE SENS DE SORTIE.
+     À droite on coupe au plus court, et le coin intérieur du bitume est un angle droit :
+     l'axe du virage s'écarte de la file de 0,293 rayon, si bien qu'au-delà de huit
+     mètres cinquante il sort dans l'herbe (mesuré : trente-trois centimètres à neuf,
+     cinquante-trois à dix). Le rayon à droite est donc plafonné à huit pour tout le
+     monde — c'est la place qu'il y a, pas celle qu'on voudrait. À gauche on décrit une
+     courbe large, où la place ne manque pas, et là un attelage peut prendre ses deux
+     mètres de plus. LES SEMI-REMORQUES NE TOURNENT QU'À GAUCHE : vingt mètres d'attelage
+     sur un virage à huit, la caisse balaie deux mètres et demi de bas-côté quoi qu'on
+     fasse, et un camion qui déboule sur le trottoir se voit de loin. */
+  const aDroite = lourd ? false : Math.random() < 0.5;
+  // le sens de sortie DÉCOULE du côté : à droite on part du même bord qu'on longeait.
+  const e = (A.h ? (aDroite ? d : -d) : (aDroite ? -d : d));
+  const R = aDroite ? 8 : 9 + (lourd ? 4 : 0);
+  const sg2 = aDroite ? -1 : 1;                 // -1 : le centre est à droite de la marche
+  let cx, cz, laneB, p0, p1;
+  if(A.h){
+    laneB = B.c - e*VOIE_TRAFIC;                // chaussée verticale : x fixé
+    cx = laneB + sg2*e*R;  cz = laneA - sg2*d*R;
+    p0 = {x:cx, z:laneA};  p1 = {x:laneB, z:cz};
+    legs.push({t:'d', x:uEnt, z:laneA, dx:d, dz:0, L:Math.abs(cx - uEnt)});
+  } else {
+    laneB = B.c + e*VOIE_TRAFIC;                // chaussée horizontale : z fixé
+    cx = laneA + sg2*d*R;  cz = laneB - sg2*e*R;
+    p0 = {x:laneA, z:cz};  p1 = {x:cx, z:laneB};
+    legs.push({t:'d', x:laneA, z:uEnt, dx:0, dz:d, L:Math.abs(cz - uEnt)});
+  }
+  // Le sens de parcours de l'arc se DÉDUIT du cap d'entrée, au lieu de se raisonner :
+  // la tangente au point de départ doit valoir le cap qu'on avait.
+  const a0 = Math.atan2(p0.z - cz, p0.x - cx);
+  const h = legs[0];
+  const sg = (h.dx*(-Math.sin(a0)) + h.dz*Math.cos(a0)) >= 0 ? 1 : -1;
+  legs.push({t:'a', cx, cz, R, a0, sg, L:R*Math.PI/2});
+  const uSor = A.h ? (e > 0 ? BORD_TRAFIC.z1 : BORD_TRAFIC.z0)
+                   : (e > 0 ? BORD_TRAFIC.x1 : BORD_TRAFIC.x0);
+  legs.push(A.h ? {t:'d', x:laneB, z:p1.z, dx:0, dz:e, L:Math.abs(uSor - p1.z)}
+                : {t:'d', x:p1.x, z:laneB, dx:e, dz:0, L:Math.abs(uSor - p1.x)});
+  /* `pE`, `pS`, `sArc` : DE QUELLE ROUTE ON TIENT SA PRIORITÉ. Les deux chaussées
+     est-ouest passent avant les deux nord-sud (voir la règle des croisements). Un
+     véhicule qui tourne garde la priorité de la route par laquelle il est ENTRÉ jusqu'au
+     bout de son arc : sans quoi il en changerait au milieu du carrefour, s'arrêterait
+     en travers, et bloquerait ceux qu'il devait justement laisser passer. */
+  return {legs, L:legs.reduce((n2, g)=> n2 + g.L, 0), tourne:true,
+          gauche:!aDroite, cro:{x:(A.h ? B.c : A.c), z:(A.h ? A.c : B.c)},
+          pE:A.h, pS:!A.h, sArc:legs[0].L + legs[1].L};
+}
+/* SE CALER DERRIÈRE CE QUI EST DÉJÀ LÀ. Un véhicule qui ressort de la carte revient
+   aussitôt par un autre bord — et l'entrée qu'on lui tire au sort peut être occupée : un
+   semi de vingt-cinq mètres était réapparu dix-sept mètres derrière un autre semi, donc
+   dedans. Plutôt que de retirer au sort jusqu'à ce que ça tombe bien, on RECULE le long
+   de son propre tracé jusqu'à ce que la place soit faite : l'abscisse devient négative,
+   le véhicule attend simplement quelques secondes de plus hors champ, et il entre
+   proprement derrière celui qui le précède. On repasse quelques fois, car reculer peut
+   à son tour venir sur les talons d'un troisième. */
+function calerEntree(t, route, s0){
+  let s = s0;
+  for(let passe = 0; passe < 8; passe++){
+    const p0 = surItineraire(route, s);
+    let recul = 0;
+    for(const u of TRAFIC){
+      if(u === t) continue;
+      /* ET L'ON REGARDE LES CARROSSERIES, PAS LES ORIGINES. Deux semis posés au hasard,
+         l'un sur la file nord-sud et l'autre sur la file est-ouest, se retrouvaient
+         emboîtés en travers d'un carrefour dès la toute première image — leurs origines
+         étaient à vingt mètres l'une de l'autre, mais ils font vingt-sept mètres de
+         long. On échantillonne donc notre propre longueur, et l'on recule si un point
+         de notre carrosserie tombe sur la sienne. */
+      const ux0 = u.m.position.x - u.fx*u.arriere, uz0 = u.m.position.z - u.fz*u.arriere;
+      const ux1 = u.m.position.x + u.fx*u.avant, uz1 = u.m.position.z + u.fz*u.avant;
+      for(let m2 = -t.arriere; m2 <= t.avant; m2 += 3.5){
+        if(segCoupeBoite(ux0, uz0, ux1, uz1, p0.x + p0.tx*m2, p0.z + p0.tz*m2, 4)){
+          recul = Math.max(recul, 16); break;
+        }
+      }
+      if(p0.tx*u.fx + p0.tz*u.fz < 0.85) continue;           // pas la même file
+      const dx = u.m.position.x - p0.x, dz = u.m.position.z - p0.z;
+      if(Math.abs(dx*(-p0.tz) + dz*p0.tx) > 3.5) continue;
+      const lon = dx*p0.tx + dz*p0.tz;
+      const besoin = (lon >= 0 ? u.arriere : t.arriere) + 12;
+      if(Math.abs(lon) < besoin) recul = Math.max(recul, besoin - lon);
+    }
+    if(recul <= 0) break;
+    s -= recul;
+  }
+  return s;
+}
+/* LES QUATRE CARREFOURS, ET LA BOÎTE DE CHACUN. Une chaussée fait dix mètres de large :
+   la boîte prend deux mètres cinquante de marge de chaque côté, si bien qu'un véhicule
+   arrêté devant elle laisse le bitume perpendiculaire entièrement libre. */
+const DEMI_CROIX = 7.5;
+/* CE QUI BARRE LE CARREFOUR SE JUGE SUR LA CARROSSERIE, PAS SUR LE CAP. On projetait la
+   position de l'autre sur SON propre cap pour savoir s'il était dans la boîte — et un
+   véhicule en plein virage, dont le cap ne montre plus le carrefour, devenait invisible
+   au beau milieu de celui-ci. On découpe donc franchement le segment de sa carrosserie
+   par le carré de la boîte : s'il en reste quelque chose, il barre. */
+/* LA DÉCÉLÉRATION QU'ON S'AUTORISE POUR UN CARREFOUR — un freinage franc, pas un coup de
+   frein. Elle sert deux fois, et il faut que ce soit la même : à décider si l'on peut
+   encore s'arrêter, et à s'arrêter pour de bon. */
+const FREIN_CROIX = 5.0;
+function segCoupeBoite(x0, z0, x1, z1, cx, cz, h){
+  let t0 = 0, t1 = 1;
+  const d = [x1 - x0, z1 - z0], q = [x0 - cx, z0 - cz];
+  for(let k = 0; k < 2; k++){
+    if(Math.abs(d[k]) < 1e-6){ if(Math.abs(q[k]) > h) return false; continue; }
+    let a = (-h - q[k])/d[k], b = (h - q[k])/d[k];
+    if(a > b){ const c = a; a = b; b = c; }
+    if(a > t0) t0 = a;
+    if(b < t1) t1 = b;
+    if(t0 > t1) return false;
+  }
+  return true;
+}
+const CROISEMENTS = [];
+for(const A of CHAUSSEES) if(A.h) for(const B of CHAUSSEES) if(!B.h)
+  CROISEMENTS.push({x:B.c, z:A.c, occ:[]});
+/* DEUX VÉHICULES PEUVENT PARTAGER UN CARREFOUR À CONDITION DE NE PAS SE CROISER. Une
+   place unique par carrefour met à la file tout ce qui arrive — y compris les deux voies
+   d'une même route, qui ne se rencontrent jamais, et les véhicules qui se suivent, dont
+   la distance de sécurité s'occupe déjà. On sérialisait ainsi une circulation qui n'en
+   avait nul besoin, et un véhicule sur cinq passait son temps à l'arrêt. Sont donc
+   compatibles ceux dont les caps sont parallèles — même sens ou sens contraire —, sauf
+   si l'un des deux s'apprête à tourner à gauche en travers de l'autre. */
+const gaucheProche = (v)=> !!(v.route.tourne && v.route.gauche && v.s < v.route.sArc);
+function tourneGaucheEn(v, C){
+  return !!(gaucheProche(v) && v.route.cro &&
+            Math.abs(C.x - v.route.cro.x) < 1 && Math.abs(C.z - v.route.cro.z) < 1);
+}
+/* ET LA COMPATIBILITÉ SE LIT SUR L'ITINÉRAIRE, PAS SUR LE CAP DU MOMENT. Comparer deux
+   caps marche tant que tout le monde roule droit ; au milieu d'un virage, le cap est en
+   biais et ne dit plus de quelle route on vient ni où l'on va — deux véhicules déclarés
+   parallèles à l'entrée du carrefour cessaient de l'être en cours de route. `prio` dit
+   l'orientation de la chaussée qu'on suit, arc compris, et elle, elle ne bouge pas. */
+function compatibleCroix(a, b, C){
+  if(a.prio !== b.prio) return false;                   // chaussées perpendiculaires
+  if(tourneGaucheEn(a, C) || tourneGaucheEn(b, C)) return false;
+  return true;
+}
+const TRAFIC = [];
 (function(){
-  /* LA CIRCULATION DE LA ROCADE. « Une voiture qui passe sur chaque route toutes les
-     quatre à dix secondes, et pas d'embouteillages. »
-     L'anneau est FERMÉ, et c'est ce qui rend le calcul simple : un véhicule parcourt les
-     quatre brins, donc le débit vu depuis n'importe quel point de n'importe quelle route
-     vaut N divisé par le tour de piste. Le parc roule à 9,8 m/s en moyenne sur 716 à
-     758 mètres de file, soit soixante-quinze secondes de tour : DOUZE véhicules donnent
-     une voiture toutes les 6,2 secondes sur chaque route, au milieu de la fourchette
-     demandée. Encombrement : 3,1 véhicules à la fois sur un brin de 188 m, un tous les
-     cent vingt-trois mètres — une route de campagne fréquentée, pas une file d'attente.
-     Le compte se règle ici et nulle part ailleurs : dix donnent 7,5 s, quatorze 5,4 s. */
-  const NB_VEHICULES = 12;
+  /* LA CIRCULATION. « Une voiture qui passe sur chaque route toutes les quatre à dix
+     secondes, et pas d'embouteillages. » Chaque véhicule traverse la carte en une
+     trentaine de secondes, puis sort et revient ailleurs : le compte se règle ici. */
+  const NB_VEHICULES = 24;
   const NB_LEGERS = TRAFIC_GEOS.length;
   const NB = NB_LEGERS + CAMIONS_GEOS.remorques.length;
-  /* LES ATTELAGES PRENNENT TOUS LA FILE EXTÉRIEURE, et ce n'est pas un détail de style.
-     Un tracteur routier fait onze mètres de long à l'échelle une et demie, et le virage
-     de la rocade huit mètres de rayon : il coupe l'angle de près de trois mètres, quoi
-     qu'on fasse. Dans la file INTÉRIEURE ces trois mètres tombent dans l'herbe ; dans
-     l'EXTÉRIEURE ils tombent sur l'autre moitié de la chaussée, qui est encore de la
-     route. On répartit donc d'abord les camions, puis les voitures pour équilibrer. */
-  const plan = [];
   for(let k = 0; k < NB_VEHICULES; k++){
     const type = k % NB;
-    plan.push({type, lourd:type >= NB_LEGERS});
-  }
-  const nLourds = plan.filter((o)=> o.lourd).length;
-  let dehors = 0;                              // combien de places déjà prises à l'extérieur
-  for(const o of plan) if(o.lourd){ o.f = 0; dehors++; }
-  const cible = Math.max(dehors, Math.round(NB_VEHICULES/2));
-  for(const o of plan) if(!o.lourd){ o.f = dehors < cible ? (dehors++, 0) : 1; }
-  void nLourds;
-  const rangs = [0, 0];                       // combien de véhicules déjà posés par file
-  const parFile = [0, 0];
-  for(const o of plan) parFile[o.f]++;
-  for(let k = 0; k < NB_VEHICULES; k++){
-    const type = plan[k].type;
-    const lourd0 = plan[k].lourd;
+    const lourd0 = type >= NB_LEGERS;
     const m = new THREE.Mesh(lourd0 ? CAMIONS_GEOS.tracteur : TRAFIC_GEOS[type], traficMat);
-    m.castShadow = true; m.scale.setScalar(ECH_TRAFIC); scene.add(m);
+    m.castShadow = true;
+    m.scale.set(ECH_TRAFIC*(lourd0 ? LARG_LOURD : 1), ECH_TRAFIC, ECH_TRAFIC);
+    scene.add(m);
     let rem = null;
     if(lourd0){
       rem = new THREE.Mesh(CAMIONS_GEOS.remorques[type - NB_LEGERS], traficMat);
-      rem.castShadow = true; rem.scale.setScalar(ECH_TRAFIC); scene.add(rem);
+      rem.castShadow = true;
+      rem.scale.set(ECH_TRAFIC*LARG_LOURD, ECH_TRAFIC, ECH_TRAFIC);
+      scene.add(rem);
     }
-    // On roule à droite : dans le sens du tracé, l'intérieur du circuit est à droite,
-    // donc ce sens prend la file intérieure et le sens inverse la file extérieure.
-    const f = plan[k].f;
-    const sens = f ? 1 : -1;
-    const R = -sens*2.6, cr = RAYON_FILE(sens);
-    const P = perimetreRocade(R, cr);
-    // ÉTALÉS SUR LEUR PROPRE FILE, et non « tous les 38 mètres » : les deux files n'ont
-    // pas le même périmètre — quarante et un mètres d'écart, six pour cent.
-    const s = (rangs[f]++)*(P/parFile[f]) + Math.random()*8 - 4;
-    const t = {m, rem, sens, R, cr, P, s, lourd:lourd0,
+    /* CE QUE LA CARROSSERIE DÉPASSE DEVANT SON ORIGINE. On l'ignorait, et la ligne
+       d'arrêt d'un carrefour se mesurait au NOMBRIL du véhicule : arrêté pile dessus,
+       il avait déjà trois mètres et demi de capot en travers du bitume perpendiculaire —
+       et se signalait donc lui-même comme « occupant le carrefour », pour toujours, au
+       nez de ceux d'en face qui l'attendaient. */
+    if(!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    const t = {m, rem, lourd:lourd0,
+               avant: m.geometry.boundingBox.max.z*ECH_TRAFIC,
                // ce que la carrosserie traîne DERRIÈRE son origine : c'est là que le
                // suivant doit s'arrêter
                arriere: (lourd0 ? 13 : 3)*ECH_TRAFIC,
@@ -10145,60 +10285,183 @@ const TRAFIC = [], FILES = [[], []];
                // le moteur : un camion reprend deux fois moins vite qu'une voiture
                accel: lourd0 ? 3.2 : 7.0,
                susp: lourd0 ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger,
-               vEff:0, vit:0, tcap:0,
+               route:null, s:0, vEff:0, vit:0, cap:0, tcap:0, prio:false,
+               res:null, croix:null, dCroix:0, veutCroix:false, attend:0,
+               fx:0, fz:1,
                // l'état de suspension, exactement celui d'un engin du joueur
                roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0,
                rRoll:0, rRollV:0, rPitch:0, rPitchV:0, rHeave:0, rHeaveV:0, rBump:0};
+    /* ÉTALÉS SUR LEUR TRAJET, et non tous massés à l'entrée : sans quoi les vingt-deux
+       arrivent ensemble à la première seconde et l'on ne croise plus personne ensuite.
+       MAIS PAS L'UN DANS L'AUTRE : un tirage libre posait une berline à huit mètres
+       derrière un semi qui en traîne vingt, et la première image du jeu montrait une
+       voiture au milieu d'une citerne. On retire jusqu'à ce que la place soit libre —
+       la loi de poursuite n'a pas à rattraper une faute de placement. */
+    t.route = tirerRoute(lourd0);
+    t.s = calerEntree(t, t.route, Math.random()*t.route.L);
+    const pI = surItineraire(t.route, t.s);
+    t.prio = t.s < t.route.sArc ? t.route.pE : t.route.pS;
+    t.m.position.set(pI.x, 0, pI.z);
+    t.fx = pI.tx; t.fz = pI.tz; t.cap = Math.atan2(pI.tx, pI.tz); t.tcap = t.cap;
     t.vit = t.v;
-    TRAFIC.push(t); FILES[f].push(t);
+    TRAFIC.push(t);
   }
 })();
-/* ON NE SE TRAVERSE PLUS. Chaque véhicule avançait à sa vitesse propre sans jamais
-   regarder devant : une citadine à quatorze mètres par seconde rattrapait un camion à
-   six, et lui passait au travers. On cherche donc, une fois par image, qui est devant
-   dans sa PROPRE file — modulo le périmètre de cette file-là, les deux diffèrent — et
-   l'on se cale sur lui en dessous de la distance de sécurité. Six véhicules par file :
-   trente comparaisons par image, rien du tout. */
 /* LA DISTANCE DE SÉCURITÉ SE COMPTE SUR CELUI DE DEVANT. Un attelage complet traîne
    treize mètres de remorque derrière son origine — vingt à l'échelle une et demie —, une
    voiture trois : suivre un camion d'aussi près qu'une citadine, c'est lui rentrer dans
-   le hayon. Et l'écart en mètres de route se resserre encore dans les virages, où la
-   corde est plus courte que l'axe. */
+   le hayon. */
 const suiviPres = (dev)=> dev.arriere + 7*ECH_TRAFIC;
-/* LA SELLETTE ET LE TIMON, HORS DE LA BOUCLE POUR POUVOIR LES MESURER.
-   `TIMON` est la distance de la sellette à l'essieu de la remorque : c'est LUI qui décide
-   de combien elle coupe le virage. La géométrie exacte d'un semi-remorque — huit mètres,
-   douze une fois mis à l'échelle — est plus longue que le rayon des virages de la rocade,
-   et une remorque dont le timon dépasse le rayon ne peut pas suivre du tout : elle
-   traverse le coin en ligne droite, cinq mètres et demi dans l'herbe. On raccourcit donc
-   l'articulation — le dessin, lui, ne bouge pas d'un centimètre, la remorque est toujours
-   posée sur la sellette : elle pivote seulement plus près. */
+/* UN CARREFOUR NE TIENT QU'UN VÉHICULE À LA FOIS, ET C'EST TOUT LE SECRET.
+   On a essayé, dans l'ordre : « le dernier arrivé cède » — cent quatre secondes
+   d'embouteillage, parce que le bon sens entre DEUX véhicules ne voit pas la boucle A
+   attend B, B est coincé derrière C, C attend D, D est coincé derrière A ; puis une
+   priorité de chaussée — qui rend l'attente acyclique, mais laisse deux véhicules dans
+   le carrefour en même temps dès que l'un d'eux a mal jugé son créneau ; puis un
+   classement total à quatre rangs — qui n'a fait que déplacer les cas limites, parce
+   qu'un créneau, ça s'estime, et qu'une estimation se trompe.
+   Le remède est de ne plus rien estimer. CHAQUE CARREFOUR EST UNE PLACE, et il n'y en a
+   qu'une : on la prend en arrivant si elle est libre, on la rend quand la remorque en est
+   sortie, et celui qui ne l'a pas s'arrête sur sa ligne. Deux véhicules ne peuvent alors
+   pas s'y rencontrer — non pas « rarement », mais jamais, et sans qu'aucun réglage n'ait
+   à être juste. Le blocage, lui, est impossible tant que celui qui tient la place avance
+   toujours : on ne la lui donne donc que si la sortie est dégagée, ce qui est la vieille
+   règle du carrefour qu'on n'encombre pas. */
+const PORTEE_CROIX = 24;                       // à partir d'où l'on demande la place
+/* LA SELLETTE ET LE TIMON. `TIMON_TRAFIC` est la distance de la sellette à l'essieu de la
+   remorque : c'est lui qui décide de combien elle coupe le virage. */
 const SELLETTE_TRAFIC = 1.6*ECH_TRAFIC;
 let TIMON_TRAFIC = 8.0*ECH_TRAFIC;
 // Un objet de travail pour la remorque : la suspension lit et écrit `roll`, `pitch`…
 const _susRem = {roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0};
 function updateTrafic(dt){
-  for(const F of FILES) for(const t of F){
+  /* QUI EST DEVANT ? ÇA SE JUGE SUR LE MONDE, PLUS SUR UNE ABSCISSE PARTAGÉE.
+     Les véhicules ne suivent plus tous le même anneau : deux voitures peuvent rouler sur
+     la même chaussée à des points très différents de leur propre trajet, et une abscisse
+     commune n'existe plus. On regarde donc simplement qui est devant, dans le même sens,
+     sur la même file — trois mètres de tolérance latérale, la largeur d'une voie. Quatorze
+     véhicules : moins de deux cents comparaisons par image, rien du tout. */
+  for(let i = 0; i < TRAFIC.length; i++){
+    const t = TRAFIC[i];
     let d = Infinity, dev = null;
-    for(const u of F){
+    for(const u of TRAFIC){
       if(u === t) continue;
-      let e = (u.s - t.s)*t.sens;
-      e = ((e % t.P) + t.P) % t.P;
-      if(e < d){ d = e; dev = u; }
+      /* LE SEUIL DE CAP EST LARGE, POUR VOIR CELUI QUI SE RABAT. À 0,85 — trente et un
+         degrés — un véhicule en plein virage n'était le « même cap » de personne : il
+         sortait du carrefour en biais sur une file déjà occupée sans jamais voir celui
+         qu'il rejoignait. À un demi — soixante degrés — on se voit dès le milieu de
+         l'arc. Il n'y a pas de faux positif à craindre : une file par sens, donc deux
+         véhicules de même cap sont forcément sur la même. ET LA RELATION RESTE
+         ANTISYMÉTRIQUE — il faut être devant NOUS et nous derrière LUI —, sans quoi deux
+         véhicules en biais pourraient chacun se croire suiveur de l'autre et s'arrêter
+         tous les deux pour toujours. */
+      if(t.fx*u.fx + t.fz*u.fz < 0.5) continue;           // pas le même cap
+      const ax = u.m.position.x - t.m.position.x, az = u.m.position.z - t.m.position.z;
+      const avant = ax*t.fx + az*t.fz;
+      if(avant <= 0) continue;                            // il est derrière
+      if(ax*u.fx + az*u.fz <= 0) continue;                // et nous derrière lui
+      if(Math.abs(ax*(-t.fz) + az*t.fx) > 6) continue;    // pas sur la même file
+      if(avant < d){ d = avant; dev = u; }
     }
     /* SOUS LA DISTANCE DE SÉCURITÉ, ON ROULE MOINS VITE QUE CELUI DE DEVANT — et non
-       exactement à sa vitesse. La première version se calait dessus : l'écart cessait de
-       se réduire, mais ne se rouvrait jamais, et une file de six où chacun freine pour
-       le précédent finissait par se tasser jusqu'à ce que deux carrosseries se
-       superposent. Mesuré : écart minimal nul au bout de deux tours de piste. Une part
-       de la vitesse du précédent, proportionnelle à l'écart, rouvre la distance
-       d'elle-même — c'est la loi de poursuite habituelle, et elle ne peut pas s'effondrer. */
+       exactement à sa vitesse. Se caler dessus fige l'écart sans jamais le rouvrir, et
+       une file où chacun freine pour le précédent finit par se tasser jusqu'à superposer
+       deux carrosseries. Une part de sa vitesse, proportionnelle à l'écart, rouvre la
+       distance d'elle-même : c'est la loi de poursuite habituelle. */
+    /* ET C'EST SA VITESSE RÉELLE QU'ON REGARDE, PAS CELLE QU'IL VOUDRAIT TENIR. La loi
+       se réglait sur `dev.v`, la vitesse de croisière du véhicule de devant — celle qu'il
+       reprendra un jour. Tant qu'il roulait, cela ne se voyait pas ; le jour où il s'est
+       arrêté à un carrefour, son suiveur a continué de viser dix mètres par seconde à
+       moitié distance, et lui est entré dedans jusqu'à se superposer exactement. Deux
+       carrosseries au même point ne se voient d'ailleurs plus l'une l'autre — l'écart
+       longitudinal est nul, donc « derrière » — et le tas ne se défaisait jamais. */
     const pres = dev ? suiviPres(dev) : 0, loin = pres + 16*ECH_TRAFIC;
     if(!dev || d >= loin) t.vEff = t.v;
-    else if(d <= pres) t.vEff = Math.min(t.v, dev.v*Math.max(0, d/pres));
+    else if(d <= pres) t.vEff = Math.min(t.v, dev.vit*Math.max(0, d/pres));
     else {
       const k = (d - pres)/(loin - pres);
-      t.vEff = Math.min(t.v, dev.v + (t.v - dev.v)*k);
+      t.vEff = Math.min(t.v, dev.vit + (t.v - dev.vit)*k);
+    }
+    /* ET AUX CROISEMENTS, ON PREND LA PLACE OU L'ON ATTEND SON TOUR. */
+    let dEntree = Infinity, croix = null;
+    for(const C of CROISEMENTS){
+      const rx = C.x - t.m.position.x, rz = C.z - t.m.position.z;
+      if(Math.abs(rx*(-t.fz) + rz*t.fx) > 8) continue;      // ce n'est pas sur notre route
+      // du CAPOT jusqu'à l'entrée de la boîte, et non du nombril : arrêté sur sa ligne,
+      // un véhicule doit laisser le bitume perpendiculaire entièrement libre.
+      const le = rx*t.fx + rz*t.fz - DEMI_CROIX - t.avant;
+      const derriere = rx*t.fx + rz*t.fz + DEMI_CROIX + t.arriere;
+      if(derriere > 0 && le < PORTEE_CROIX && le < dEntree){ dEntree = le; croix = C; }
+    }
+    // On rend la place dès qu'on ne vise plus le même carrefour — c'est-à-dire dès que
+    // la queue de l'attelage en est sortie, `derriere` étant devenu négatif.
+    if(t.res && t.res !== croix){
+      const k2 = t.res.occ.indexOf(t);
+      if(k2 >= 0) t.res.occ.splice(k2, 1);
+      t.res = null;
+    }
+    t.croix = croix; t.dCroix = dEntree;
+    /* LA SORTIE DOIT ÊTRE DÉGAGÉE : prendre la place sans pouvoir en ressortir, c'est
+       s'arrêter au milieu et bloquer les trois autres branches. On regarde donc si celui
+       de devant laisse, AU-DELÀ du carrefour, de quoi se ranger. */
+    // La portée suit la vitesse : il faut demander la place d'assez loin pour pouvoir
+    // encore s'arrêter si on la refuse.
+    const portee = Math.max(PORTEE_CROIX, t.vit*t.vit/(2*FREIN_CROIX) + 10);
+    t.veutCroix = !!(croix && !t.res && dEntree < portee &&
+                     !(dev && d - dEntree - 2*DEMI_CROIX < suiviPres(dev)));
+    t.attend = (croix && !t.res) ? t.attend + dt : 0;
+  }
+  /* ON DISTRIBUE LES PLACES AU PLUS PATIENT, puis au plus proche. L'ancienneté d'attente
+     compte d'abord, et il le faut : au seul critère de la distance, une file qui a
+     toujours quelqu'un sur sa ligne rafle le carrefour à chaque fois, et la route
+     perpendiculaire n'y passe jamais. */
+  for(const C of CROISEMENTS){
+    for(let n = 0; n < 3; n++){
+      let elu = null;
+      for(const t of TRAFIC){
+        if(!t.veutCroix || t.croix !== C || t.res) continue;
+        let ok = true;
+        for(const u of C.occ) if(!compatibleCroix(t, u, C)){ ok = false; break; }
+        if(!ok) continue;
+        if(!elu || t.attend > elu.attend + 0.05 ||
+           (Math.abs(t.attend - elu.attend) <= 0.05 && t.dCroix < elu.dCroix)) elu = t;
+      }
+      if(!elu) break;
+      C.occ.push(elu); elu.res = C; elu.attend = 0;
+    }
+  }
+  for(let i = 0; i < TRAFIC.length; i++){
+    const t = TRAFIC[i];
+    /* SANS LA PLACE, ON S'ARRÊTE SUR SA LIGNE. Et si l'on n'a pas pu s'arrêter à temps,
+       on s'arrête où l'on est, fût-ce dans le carrefour : c'est laid, mais c'est sûr, et
+       l'attente n'est jamais longue puisqu'on devient aussitôt le plus patient des
+       demandeurs, donc le prochain servi. Laisser passer l'intrus, au contraire, remet
+       deux carrosseries en même temps dans le même carrefour — la seule chose que ce
+       système est fait pour interdire. */
+    if(t.croix && !t.res)
+      t.vEff = Math.min(t.vEff, Math.sqrt(2*FREIN_CROIX*Math.max(0, t.dCroix)));
+    /* ET LE DERNIER FILET : ON NE ROULE PAS DANS QUELQU'UN. Hors carrefour — un véhicule
+       qui se rabat après un virage, une entrée de carte mal tombée —, on freine sur la
+       carrosserie qui barre le couloir. Jamais jusqu'à l'arrêt complet devant quelqu'un
+       qui nous suit dans la liste : au pas, ça se démêle toujours ; à l'arrêt, deux
+       véhicules peuvent s'attendre indéfiniment. */
+    for(let j = 0; j < TRAFIC.length; j++){
+      const u = TRAFIC[j];
+      if(u === t) continue;
+      const rx = u.m.position.x - t.m.position.x, rz = u.m.position.z - t.m.position.z;
+      const devant = rx*t.fx + rz*t.fz;
+      if(devant < -4 || devant > 34) continue;
+      if(Math.abs(rx*(-t.fz) + rz*t.fx) > 22) continue;
+      let bloc = -1;
+      for(let m2 = 4; m2 <= 26; m2 += 3){
+        const px = t.m.position.x + t.fx*m2, pz = t.m.position.z + t.fz*m2;
+        if(segCoupeBoite(u.m.position.x - u.fx*u.arriere, u.m.position.z - u.fz*u.arriere,
+                         u.m.position.x + u.fx*u.avant, u.m.position.z + u.fz*u.avant,
+                         px, pz, 3.2)){ bloc = m2; break; }
+      }
+      if(bloc < 0) continue;
+      const v2 = Math.sqrt(2*4.5*Math.max(0, bloc - 5));
+      t.vEff = Math.min(t.vEff, j < i ? v2 : Math.max(1.0, v2));
     }
   }
   for(const t of TRAFIC){
@@ -10213,21 +10476,36 @@ function updateTrafic(dt){
     t.vit -= t.vit*0.16*dt;
     const vAvant = t.vAvant === undefined ? t.vit : t.vAvant;
     t.vAvant = t.vit;
-    t.s += t.vit*dt*t.sens;
-    const p = surRocade(t.R, t.cr, t.s);
+    t.s += t.vit*dt;
+    /* SORTI DE LA CARTE : ON EN FAIT ENTRER UN AUTRE AILLEURS. C'est tout l'intérêt du
+       trajet ouvert — le joueur ne revoit jamais deux fois la même voiture, et la route
+       a l'air de mener quelque part. Le tirage recommence à zéro : autre chaussée, autre
+       sens, autre croisement. */
+    if(t.s > t.route.L){
+      if(t.res){
+        const k3 = t.res.occ.indexOf(t);
+        if(k3 >= 0) t.res.occ.splice(k3, 1);
+        t.res = null;
+      }
+      t.route = tirerRoute(t.lourd);
+      t.s = calerEntree(t, t.route, 0);
+      t.v = t.lourd ? 6 + Math.random()*3 : 8 + Math.random()*6;
+      t.vit = t.v; t.vAvant = t.v;
+    }
+    // De quelle route tient-on sa priorité ? De celle d'entrée jusqu'au bout de l'arc,
+    // de celle de sortie ensuite.
+    t.prio = t.s < t.route.sArc ? t.route.pE : t.route.pS;
+    const p = surItineraire(t.route, t.s);
     t.m.position.set(p.x, 0, p.z);
-    // la carrosserie est modelée nez vers +Z : le cap suit la tangente,
-    // retournée quand le véhicule remonte le tracé
-    const dx = p.tx*t.sens, dz = p.tz*t.sens;
-    const cap = Math.atan2(dx, dz);
-    let dcap = cap - (t.cap !== undefined ? t.cap : cap);
+    // la carrosserie est modelée nez vers +Z : le cap suit la tangente
+    const cap = Math.atan2(p.tx, p.tz);
+    let dcap = cap - t.cap;
     while(dcap >  Math.PI) dcap -= Math.PI*2;
     while(dcap < -Math.PI) dcap += Math.PI*2;
-    t.cap = cap;
+    t.cap = cap; t.fx = p.tx; t.fz = p.tz;
     /* ET LA SUSPENSION EST LA MÊME FONCTION QUE POUR LES ENGINS DU JOUEUR : la caisse
        s'incline vers l'extérieur du virage (accélération latérale = vitesse × lacet),
-       plonge du nez au freinage, se soulève à la reprise, et tressaute sur la route.
-       Le roulis était auparavant une formule à part, sans ressort ni tangage. */
+       plonge du nez au freinage, se soulève à la reprise, et tressaute sur la route. */
     suspension(t, t.susp, dt, t.vit*(-dcap/Math.max(0.001, dt)),
                (t.vit - vAvant)/Math.max(0.001, dt), t.vit);
     t.m.rotation.set(0, cap, 0);
@@ -10236,19 +10514,17 @@ function updateTrafic(dt){
     t.m.position.y = Math.max(-0.16, Math.min(0.16, t.heave))*ECH_TRAFIC;
 
     if(t.rem){
-      /* LA REMORQUE SUIT LA MÊME VOIE, UN TIMON EN ARRIÈRE — et non un essieu traîné.
+      /* LA REMORQUE SUIT LE MÊME TRACÉ, UN TIMON EN ARRIÈRE — et non un essieu traîné.
          Le modèle traîné est celui des outils de la ferme, et il est juste tant que le
          timon est plus COURT que le rayon du virage. À l'échelle une et demie, le timon
-         d'un semi fait douze mètres et les virages de la rocade huit : la remorque ne
-         peut alors plus suivre du tout, elle coupe le coin en ligne droite. Mesuré :
-         cinq mètres soixante dans l'herbe, essieux au ras de la clôture.
-         On la pose donc sur le RAIL, à un timon d'abscisse curviligne derrière le
-         tracteur : elle reste dans sa file au centimètre, et son cap — celui de la corde
-         qui joint son essieu à la sellette — diffère naturellement de celui du tracteur
-         dans les virages. C'est exactement ce que l'œil lit d'un attelage. */
+         d'un semi fait douze mètres et les virages huit à onze : la remorque ne pouvait
+         plus suivre du tout, elle coupait le coin en ligne droite — cinq mètres soixante
+         dans l'herbe, essieux au ras de la clôture. Posée sur le tracé, elle reste dans
+         sa file au centimètre, et son cap — celui de la corde qui joint son essieu à la
+         sellette — diffère naturellement de celui du tracteur dans les virages. */
       const fx = Math.sin(cap), fz = Math.cos(cap);
       const hx = p.x - fx*SELLETTE_TRAFIC, hz = p.z - fz*SELLETTE_TRAFIC;
-      const pa = surRocade(t.R, t.cr, t.s - t.sens*(SELLETTE_TRAFIC + TIMON_TRAFIC));
+      const pa = surItineraire(t.route, t.s - SELLETTE_TRAFIC - TIMON_TRAFIC);
       let dx2 = hx - pa.x, dz2 = hz - pa.z;
       const dd = Math.hypot(dx2, dz2) || 1; dx2 /= dd; dz2 /= dd;
       const tcap = Math.atan2(dx2, dz2);
