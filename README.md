@@ -4343,6 +4343,9 @@ plus étroite des charrues — et le rond du centre repasse dessus.
 | couverture moyenne | 98,7 % → 98,6 % | 98,9 % → 98,5 % |
 | temps par parcelle | 58,1 s → 68,9 s | 57,0 s → 67,8 s |
 
+Et sur la parcelle du dessin — charrue en 30,4 × 19,6 — l'axe du tracteur ne sort plus que
+de **0,43 m** de sa terre contre 1,36, et il reste **une cellule sur 345** au lieu de deux.
+
 L'écart est divisé par quatre à six ; la couverture ne bouge pas ; le temps monte de dix-neuf
 pour cent, et c'est le prix assumé de la règle 3 — la machine passe une demi-seconde de plus
 au pas dans chaque virage, vingt-cinq fois par parcelle.
