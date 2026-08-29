@@ -699,9 +699,21 @@
     flex-direction:column;align-items:center;gap:5px;
     max-height:calc(100% - 210px - env(safe-area-inset-bottom));overflow-y:auto;
     padding:2px 0}
+  /* LA COULEUR D'UN BOUTON DIT SON RÔLE, ET RIEN D'AUTRE.
+     Elle disait le LIEU — la colonne prenait la teinte du cercle sous les roues, et tous
+     ses boutons avec. À la Coopérative du tutoriel, le cercle est vert : on y trouvait
+     donc « VENDRE 30 KG DE BLÉ » en vert, et juste dessous « VENDRE BLÉ · 0,50 € / KG »
+     en vert aussi. Deux boutons de la même couleur pour deux gestes opposés, dont l'un
+     bradait à moitié prix la marchandise que l'autre attendait.
+     Trois couleurs, trois rôles, et l'on ne s'y trompe plus :
+       VERT   — prendre une nouvelle mission. Il n'y en a jamais qu'un.
+       JAUNE  — une action de la mission EN COURS. C'est ce qu'on est venu faire.
+       BLEU   — le jeu continu : acheter, améliorer, vendre librement, charger, ranger.
+     Le gris de l'empêché et le plein de ce qui est en cours restent des ÉTATS. */
   #choix .ch{padding:7px 15px;border-radius:11px;background:rgba(20,28,33,.86);
-    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid #E8B44A;
-    color:#E8B44A;white-space:nowrap;flex:none}
+    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid #4AA8E0;
+    color:#8FD3F5;white-space:nowrap;flex:none}
+  #choix .ch.jaune{border-color:#FFD21E;color:#FFD21E}
   #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   /* Le transfert en cours : plein, pour qu'on voie d'un coup d'œil ce qui tourne.
      Cliquer dessus l'arrête. Le retour, lui, s'efface : c'est une sortie, pas un choix. */
@@ -724,9 +736,6 @@
      la voit du cercle, on la retrouve sur le bouton.
      Les trois états qui ne parlent pas du LIEU gardent leur couleur : le gris de ce qui
      est empêché, le plein de ce qui est en cours, l'effacé du retour. */
-  #choix.jaune .ch:not(.no):not(.on):not(.retour){border-color:#FFD21E;color:#FFD21E}
-  #choix.vert  .ch:not(.no):not(.on):not(.retour){border-color:#62D84E;color:#8BE07A}
-  #choix.bleu  .ch:not(.no):not(.on):not(.retour){border-color:#4AA8E0;color:#8FD3F5}
   #choix.jaune .titre{color:#FFD21E}
   #choix.vert  .titre{color:#8BE07A}
   #choix.bleu  .titre{color:#8FD3F5}
@@ -2259,6 +2268,14 @@ function entamerEtal(S, cle, q){
    jamais fermés : sans eux on ne pourrait rien acheter du tout. */
 const siteOuvert = (S)=> !!S && ouvert('sites', S.nom);
 const acheteMaintenant = (S, cle)=> siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
+/* ET LA VENTE LIBRE N'EXISTE PAS AVANT D'AVOIR ÉTÉ DÉBLOQUÉE. Le jeu l'annonce en toutes
+   lettres à la fin de la première mission — « VENTE LIBRE DÉBLOQUÉE · la Coopérative achète
+   votre production à tout moment » — et pourtant elle était proposée AVANT, à côté du
+   bouton de cette même mission. Le joueur : « je veux pas qu'au moment de choisir la
+   mission on ait une autre alternative, à part plus tard à la coopérative quand on aura
+   débloqué la vente libre. » C'est donc la fin de la mission zéro qui l'ouvre, et le mode
+   libre qui l'ouvre d'office. */
+const venteLibreOuverte = ()=> MODE_LIBRE || CAMPAGNE.mission >= 1;
 // Une usine accepte une matière tant que sa trémie n'est pas pleine…
 const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
 const TREMIE_SITE_MAX = 335;
@@ -16287,8 +16304,13 @@ function teindre(el, cl){
    qu'elle vise (`fen`), un objectif ordinaire par ce qu'il cherche (`quoi`). Pendant le
    préambule de l'épandeur, le juge répond 'tuto' et ne dirait rien sans la première. */
 function classeGarage(){
+  /* ET LE VERT NE VIENT JAMAIS ICI. Acheter ou améliorer un engin n'est pas prendre une
+     mission : le vert est réservé à ce seul geste, et un bouton d'achat qui verdissait
+     parce qu'une mission se propose au même endroit disait le lieu, pas ce qu'il fait.
+     Il ne reste donc que deux réponses possibles — jaune si l'objectif désigne CE
+     bouton-là, bleu le reste du temps. */
   const cl = classeAnneau(MACHINES[cur].v);
-  if(cl !== 'jaune') return cl || 'bleu';
+  if(cl !== 'jaune') return 'bleu';
   const E = etapeTuto();
   if(E) return E.fen === 'achat' ? 'jaune' : 'bleu';
   const O = objectifMission();
@@ -18624,7 +18646,8 @@ function refreshService(){
      bouton du parc : l'anneau qui s'écarte, et la secousse.
      `a.ok` en garde : un bouton grisé qui trépignerait promettrait une action qu'il
      refuse d'exécuter. */
-  const clSrv = classeAnneau(MACHINES[cur].v);
+  // Un service est du jeu continu : bleu, sauf quand c'est là que la mission envoie.
+  const clSrv = classeAnneau(MACHINES[cur].v) === 'jaune' ? 'jaune' : 'bleu';
   teindre(servEl, clSrv);
   servEl.classList.toggle('appel', clSrv === 'jaune' && !!a.ok);
   servEl.classList.toggle('no', !a.ok);
@@ -18664,11 +18687,54 @@ function refreshChoix(){
      Une LIVRAISON de contrat (`A.commande`) n'est pas une vente libre : c'est le geste
      que la mission attend, et c'est justement celui qu'on garde. */
   const Sic = siteIci(m.v);
+  /* ---------- ON NE DEMANDE PAS DE PRENDRE UNE MISSION QU'ON EST DÉJÀ EN TRAIN DE FAIRE
+     Le joueur : « comme on est déjà dans une phase de jeu et qu'on va livrer les 30 kg, il
+     faut qu'on passe direct, il faut pas qu'on voie le bouton prendre la mission, il faut
+     qu'on passe direct au bouton jaune pour vendre nos 30 kg. »
+     Il a raison, et le tutoriel le dit lui-même : il a envoyé labourer, semer, moissonner
+     et charger trente kilos de blé POUR cette mission. Arriver à la Coopérative et se voir
+     demander si l'on veut bien la prendre, c'est demander une signature au bout du travail.
+     Quand la marchandise attendue est DÉJÀ À BORD, la mission se prend donc toute seule et
+     le bouton jaune de livraison apparaît directement. Le récit du marchand n'est pas perdu
+     : il se lit dans la fenêtre de fin, celle qui paie. Et si l'on arrive les mains vides,
+     rien ne change — le bouton vert est là, avec son texte. */
+  {
+    const M0 = missionAPrendre();
+    if(M0 && M0.lignes && Sic && M0.lieu === Sic.nom){
+      const Tc = caisseDe(m);
+      const aBord = M0.lignes.some((l)=> chargeDe(Tc, l.cle) > 0.01
+        || (hopper > 0.01 && CROPS[hopCrop] && CROPS[hopCrop].cle === l.cle));
+      if(aBord) CAMPAGNE.prise = true;
+    }
+  }
   const E0 = etapesMission()[0] || null;
   const etapeIci = !!(E0 && Sic && E0.lieu === Sic.nom);
+  /* ---------- CE QUI RELÈVE DE LA MISSION EN COURS, ET CE QUI N'EN RELÈVE PAS ----------
+     Une livraison de contrat en est, par construction. Et sur le lieu de l'étape, tout ce
+     que la mission attend encore en est aussi : c'est ce qui décide de la couleur, de
+     l'ordre, et de ce qui reste affiché. */
+  const Mv = missionVisible();
+  const estMission = (A)=>{
+    if(A.commande) return true;
+    if(!Mv || !Mv.lignes || !Sic || Mv.lieu !== Sic.nom) return false;
+    return Mv.lignes.some((l, i)=> l.cle === A.cle
+      && l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01);
+  };
+  /* ET TROIS LIEUX GARDENT LEUR JEU CONTINU, MÊME QUAND LA MISSION Y ENVOIE.
+     « À part sur le garage, où l'achat et l'amélioration seront des boutons bleus ; s'il y
+     a une mission liée au garage, le bouton devrait être jaune. Et pareil pour le comptoir
+     agricole et la coopérative. » Ce sont les trois fournisseurs : on n'y va pas seulement
+     quand la campagne le demande, on y va parce qu'on a besoin de quelque chose. Ailleurs,
+     là où la mission envoie, il n'y a que la mission. */
+  const LIEUX_SERVICE = ['Garage', 'Comptoir agricole', 'Coopérative'];
+  const gardeTout = !Sic || LIEUX_SERVICE.indexOf(Sic.nom) >= 0;
   const L = actionsIci(m)
     .filter((A)=> !memeAction(A, dOffice))
-    .filter((A)=> !(etapeIci && A.sens === 'vendre' && !A.commande));
+    // la vente libre n'existe pas avant d'avoir été débloquée
+    .filter((A)=> !(A.sens === 'vendre' && !A.commande && !venteLibreOuverte()))
+    .filter((A)=> !(etapeIci && A.sens === 'vendre' && !A.commande))
+    // là où la mission envoie, il n'y a que la mission — sauf chez les trois fournisseurs
+    .filter((A)=> !(etapeIci && !gardeTout && !estMission(A)));
   // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
   const serv = [].concat(actionService() || []);
   // Les empêchements comptent comme du contenu : un lieu où l'on ne peut rien faire
@@ -18698,7 +18764,7 @@ function refreshChoix(){
   // on y pense en arrivant, et la ligne du dessous reste là pour qui veut tout écouler.
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
                 auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2, traire:2};
-  const rangDe = (A)=> (A.commande ? -1 : rang[A.sens]);
+  const rangDe = (A)=> (estMission(A) ? -1 : rang[A.sens]);
   const tri = L.slice().sort((A, B)=> (rangDe(A) - rangDe(B)) || A.txt.localeCompare(B.txt));
   const lignes = [];
   let titreTxt;
@@ -18725,7 +18791,7 @@ function refreshChoix(){
          n'en déposer qu'une partie : le bouton ⏹ de la ligne « En cours » arrête le
          transfert où il en est. */
       const max = quantiteMax(m, A);
-      lignes.push({txt:A.txt, cls:'ch', f:()=>{
+      lignes.push({txt:A.txt, cls:'ch' + (estMission(A) ? ' jaune' : ''), f:()=>{
         // Une COMMANDE ne se dose pas : sa quantité est celle qu'on lui doit, ni plus
         // ni moins. Ouvrir un curseur dessus serait demander au joueur de retrouver un
         // chiffre que le client vient de lui donner.

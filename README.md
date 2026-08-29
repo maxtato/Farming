@@ -4640,6 +4640,52 @@ Et si le lieu de départ est vide, la rangée montre quand même tout ce qu'il s
 prépare une navette en boucle avant que le silo ne se remplisse, et une liste vide n'aurait
 rien laissé choisir.
 
+## Trois couleurs, trois rôles, et la mission qu'on ne signe plus au bout du travail
+
+Le joueur, arrivant à la Coopérative avec les trente kilos du tutoriel : « on a un bouton vert
+marqué commencer la mission, et un autre bouton vert en dessous pour vendre du blé en vrac. Je
+veux pas qu'au moment de choisir la mission on ait une autre alternative — à part plus tard à
+la coopérative quand on aura débloqué la vente libre — et le bouton pour vendre, je veux qu'il
+soit bleu, pas vert, ça crée une incompréhension par rapport à la mission. »
+
+**La couleur disait le LIEU.** La colonne prenait la teinte du cercle sous les roues et tous
+ses boutons avec : à la Coopérative du tutoriel le cercle est vert, donc « VENDRE 30 KG DE
+BLÉ » était vert, et « VENDRE BLÉ · 0,50 € / KG » juste dessous aussi — deux boutons de la même
+couleur pour deux gestes opposés, dont l'un bradait à moitié prix la marchandise que l'autre
+attendait. Elle dit maintenant le **rôle** :
+
+| | |
+|---|---|
+| **vert** | prendre une nouvelle mission — il n'y en a jamais qu'un |
+| **jaune** | une action de la mission EN COURS |
+| **bleu** | le jeu continu : acheter, améliorer, vendre librement, charger, ranger |
+
+Le gris de l'empêché et le plein de ce qui est en cours restent des ÉTATS, et ne changent pas.
+Les boutons flottants suivent la même règle : au garage, ACHETER et AMÉLIORER sont bleus, et
+seul celui que l'objectif désigne vraiment passe au jaune — le vert n'y vient jamais, puisque
+acheter un engin n'est pas prendre une mission.
+
+**La vente libre n'existe plus avant d'avoir été débloquée.** Le jeu l'annonce en toutes
+lettres à la fin de la première mission — « VENTE LIBRE DÉBLOQUÉE · la Coopérative achète votre
+production à tout moment » — et la proposait pourtant AVANT, à côté du bouton de cette même
+mission. C'est donc la fin de la mission zéro qui l'ouvre.
+
+**Et l'on ne signe plus une mission qu'on vient de faire.** « Comme on est déjà dans une phase
+de jeu et qu'on va livrer les 30 kg, il faut pas qu'on voie le bouton prendre la mission, il
+faut qu'on passe direct au bouton jaune. » Le tutoriel a envoyé labourer, semer, moissonner et
+charger trente kilos POUR cette mission : arriver au bout et se voir demander si l'on veut bien
+la prendre, c'est demander une signature après le travail. Quand la marchandise attendue est
+DÉJÀ À BORD, la mission se prend donc toute seule et le bouton jaune de livraison apparaît
+directement. Si l'on arrive les mains vides, rien ne change : le bouton vert est là, avec son
+texte. Relevé au banc, à la Coopérative du tutoriel — un seul bouton, et c'est
+`ch jaune | LIVRER LA COMMANDE — BLÉ 30 KG`.
+
+**Là où la mission envoie, il n'y a que la mission** — sauf chez les trois fournisseurs. Le
+garage, le comptoir agricole et la Coopérative gardent leur jeu continu en bleu, sous les
+jaunes : on n'y va pas seulement quand la campagne le demande, on y va parce qu'on a besoin de
+quelque chose. Partout ailleurs, sur le lieu de l'étape en cours, les actions qui ne servent
+pas la mission sont retirées.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
