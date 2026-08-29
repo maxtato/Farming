@@ -7503,6 +7503,30 @@ function paintFert(x,z,l,w,cap){
   });
 }
 
+/* ---------- LA SUSPENSION, POUR TOUT CE QUI ROULE ----------
+   Un ressort-amortisseur mou sur trois axes : le ROULIS en virage, le TANGAGE à
+   l'accélération et au freinage, le POMPAGE sur les bosses. Elle vivait à l'intérieur de
+   `Vehicle.update`, où seuls les engins du joueur en profitaient ; les voitures de la
+   rocade avaient un roulis à elles, bricolé, sans ressort ni tangage — elles glissaient
+   sur leur rail comme des jouets tirés au fil.
+   C'est maintenant la MÊME fonction et les MÊMES constantes qui les animent. L'objet
+   porte son état (roll, rollV, pitch, pitchV, heave, heaveV, bump), le réglage `S` dit
+   sa mollesse, et l'appelant fournit les deux accélérations et la vitesse. */
+function suspension(o, S, dt, aLat, aLon, vf){
+  // secousses du terrain, plus fortes vite et sur la terre travaillée
+  o.bump -= o.bump*3.0*dt;
+  if(Math.random() < Math.min(0.9, Math.abs(vf)*0.09)) o.bump = (Math.random()-0.5)*0.9*S.rough;
+  const rollT  = Math.max(-0.17, Math.min(0.17,  aLat*S.roll)) + o.bump*0.030;
+  const pitchT = Math.max(-0.10, Math.min(0.10, -aLon*S.pitch));
+  const heaveT = Math.min(0, -Math.abs(aLon)*0.008) + o.bump*0.045;
+  o.rollV  += ((rollT  - o.roll )*S.k - o.rollV *S.d)*dt;
+  o.pitchV += ((pitchT - o.pitch)*S.k - o.pitchV*S.d)*dt;
+  o.heaveV += ((heaveT - o.heave)*S.k*1.4 - o.heaveV*S.d*1.1)*dt;
+  o.roll  += o.rollV *dt;
+  o.pitch += o.pitchV*dt;
+  o.heave += o.heaveV*dt;
+}
+
 /* ---------- 11. VÉHICULE (physique arcade avec dérive) ---------- */
 class Vehicle {
   constructor(cfg){
@@ -7635,23 +7659,11 @@ class Vehicle {
     this.speed = Math.hypot(this.vel.x, this.vel.y);
 
     // --- suspension molle : roulis (virage), tangage (accél/frein), pompage (bosses)
-    const S = this.susp;
     const yawRate = (this.cap - cap0)/dt;
     const aLat = vf*yawRate + (vr - vr0)/dt*0.35;   // centrifuge + glissement latéral
     const aLon = (vf - this.prevVf)/dt;
     this.prevVf = vf;
-    // secousses du terrain, plus fortes vite et sur la terre travaillée
-    this.bump -= this.bump*3.0*dt;
-    if(Math.random() < Math.min(0.9, Math.abs(vf)*0.09)) this.bump = (Math.random()-0.5)*0.9*S.rough;
-    const rollT  = Math.max(-0.17, Math.min(0.17,  aLat*S.roll)) + this.bump*0.030;
-    const pitchT = Math.max(-0.10, Math.min(0.10, -aLon*S.pitch));
-    const heaveT = Math.min(0, -Math.abs(aLon)*0.008) + this.bump*0.045;
-    this.rollV  += ((rollT  - this.roll )*S.k - this.rollV *S.d)*dt;
-    this.pitchV += ((pitchT - this.pitch)*S.k - this.pitchV*S.d)*dt;
-    this.heaveV += ((heaveT - this.heave)*S.k*1.4 - this.heaveV*S.d*1.1)*dt;
-    this.roll  += this.rollV *dt;
-    this.pitch += this.pitchV*dt;
-    this.heave += this.heaveV*dt;
+    suspension(this, this.susp, dt, aLat, aLon, vf);
     this.body.rotation.z = this.roll;
     this.body.rotation.x = this.pitch;
     this.body.position.y = Math.max(-0.16, Math.min(0.16, this.heave));
@@ -10057,6 +10069,20 @@ const perimetreRocade = (e, CR)=>
    rester dessus — soit 8,19 m pour la file intérieure (e = −2,6). Huit mètres tiennent,
    avec huit centimètres de marge ; la file extérieure, elle, a de la place pour neuf. */
 const RAYON_FILE = (sens)=> sens > 0 ? 8 : 9;
+/* ET LES VÉHICULES DU TRAFIC SONT À L'ÉCHELLE UNE ET DEMIE. Ils avaient été dessinés
+   plus petits que les engins de la ferme — une berline de 4,40 m à côté d'un tracteur de
+   4,80 — et la rocade, vue de la cour, avait l'air d'un circuit de voitures miniatures.
+   Le facteur porte sur TOUT : la caisse, mais aussi la sellette, le timon de la remorque
+   et les distances de sécurité, sans quoi un attelage d'un quart plus long se replierait
+   sur lui-même dans les virages. */
+const ECH_TRAFIC = 1.5;
+/* LEUR SUSPENSION EST CELLE DES ENGINS DU JOUEUR, à la mollesse près : une voiture est
+   plus ferme qu'un tracteur, un camion plus mou et plus lent à répondre. Les réglages ont
+   exactement la forme de ceux des machines (voir la table MACHINES). */
+const SUSP_TRAFIC = {
+  leger: {k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.55},
+  lourd: {k:22, d:4.6, roll:0.052, pitch:0.032, rough:0.70}
+};
 const TRAFIC = [], FILES = [[], []];
 (function(){
   /* LA CIRCULATION DE LA ROCADE. « Une voiture qui passe sur chaque route toutes les
@@ -10072,34 +10098,58 @@ const TRAFIC = [], FILES = [[], []];
   const NB_VEHICULES = 12;
   const NB_LEGERS = TRAFIC_GEOS.length;
   const NB = NB_LEGERS + CAMIONS_GEOS.remorques.length;
-  const rangs = [0, 0];                       // combien de véhicules déjà posés par file
-  const parFile = [0, 0];
-  for(let k = 0; k < NB_VEHICULES; k++) parFile[(k % 2) ? 1 : 0]++;
+  /* LES ATTELAGES PRENNENT TOUS LA FILE EXTÉRIEURE, et ce n'est pas un détail de style.
+     Un tracteur routier fait onze mètres de long à l'échelle une et demie, et le virage
+     de la rocade huit mètres de rayon : il coupe l'angle de près de trois mètres, quoi
+     qu'on fasse. Dans la file INTÉRIEURE ces trois mètres tombent dans l'herbe ; dans
+     l'EXTÉRIEURE ils tombent sur l'autre moitié de la chaussée, qui est encore de la
+     route. On répartit donc d'abord les camions, puis les voitures pour équilibrer. */
+  const plan = [];
   for(let k = 0; k < NB_VEHICULES; k++){
     const type = k % NB;
-    const lourd0 = type >= NB_LEGERS;
+    plan.push({type, lourd:type >= NB_LEGERS});
+  }
+  const nLourds = plan.filter((o)=> o.lourd).length;
+  let dehors = 0;                              // combien de places déjà prises à l'extérieur
+  for(const o of plan) if(o.lourd){ o.f = 0; dehors++; }
+  const cible = Math.max(dehors, Math.round(NB_VEHICULES/2));
+  for(const o of plan) if(!o.lourd){ o.f = dehors < cible ? (dehors++, 0) : 1; }
+  void nLourds;
+  const rangs = [0, 0];                       // combien de véhicules déjà posés par file
+  const parFile = [0, 0];
+  for(const o of plan) parFile[o.f]++;
+  for(let k = 0; k < NB_VEHICULES; k++){
+    const type = plan[k].type;
+    const lourd0 = plan[k].lourd;
     const m = new THREE.Mesh(lourd0 ? CAMIONS_GEOS.tracteur : TRAFIC_GEOS[type], traficMat);
-    m.castShadow = true; scene.add(m);
+    m.castShadow = true; m.scale.setScalar(ECH_TRAFIC); scene.add(m);
     let rem = null;
     if(lourd0){
       rem = new THREE.Mesh(CAMIONS_GEOS.remorques[type - NB_LEGERS], traficMat);
-      rem.castShadow = true; scene.add(rem);
+      rem.castShadow = true; rem.scale.setScalar(ECH_TRAFIC); scene.add(rem);
     }
     // On roule à droite : dans le sens du tracé, l'intérieur du circuit est à droite,
     // donc ce sens prend la file intérieure et le sens inverse la file extérieure.
-    const sens = k % 2 ? 1 : -1;
+    const f = plan[k].f;
+    const sens = f ? 1 : -1;
     const R = -sens*2.6, cr = RAYON_FILE(sens);
     const P = perimetreRocade(R, cr);
-    const f = sens > 0 ? 1 : 0;
     // ÉTALÉS SUR LEUR PROPRE FILE, et non « tous les 38 mètres » : les deux files n'ont
     // pas le même périmètre — quarante et un mètres d'écart, six pour cent.
     const s = (rangs[f]++)*(P/parFile[f]) + Math.random()*8 - 4;
     const t = {m, rem, sens, R, cr, P, s, lourd:lourd0,
                // ce que la carrosserie traîne DERRIÈRE son origine : c'est là que le
                // suivant doit s'arrêter
-               arriere: lourd0 ? 13 : 3,
+               arriere: (lourd0 ? 13 : 3)*ECH_TRAFIC,
                v: lourd0 ? 6 + Math.random()*3 : 8 + Math.random()*6,
-               vEff:0, axe:null, tcap:0, troll:0};
+               // le moteur : un camion reprend deux fois moins vite qu'une voiture
+               accel: lourd0 ? 3.2 : 7.0,
+               susp: lourd0 ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger,
+               vEff:0, vit:0, tcap:0,
+               // l'état de suspension, exactement celui d'un engin du joueur
+               roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0,
+               rRoll:0, rRollV:0, rPitch:0, rPitchV:0, rHeave:0, rHeaveV:0, rBump:0};
+    t.vit = t.v;
     TRAFIC.push(t); FILES[f].push(t);
   }
 })();
@@ -10107,13 +10157,26 @@ const TRAFIC = [], FILES = [[], []];
    regarder devant : une citadine à quatorze mètres par seconde rattrapait un camion à
    six, et lui passait au travers. On cherche donc, une fois par image, qui est devant
    dans sa PROPRE file — modulo le périmètre de cette file-là, les deux diffèrent — et
-   l'on se cale sur lui en dessous de vingt-six mètres. Six véhicules par file : trente
-   comparaisons par image, rien du tout. */
+   l'on se cale sur lui en dessous de la distance de sécurité. Six véhicules par file :
+   trente comparaisons par image, rien du tout. */
 /* LA DISTANCE DE SÉCURITÉ SE COMPTE SUR CELUI DE DEVANT. Un attelage complet traîne
-   treize mètres de remorque derrière son origine, une voiture trois : suivre un camion
-   d'aussi près qu'une citadine, c'est lui rentrer dans le hayon. Et l'écart en mètres de
-   route se resserre encore dans les virages, où la corde est plus courte que l'axe. */
-const suiviPres = (dev)=> dev.arriere + 7;
+   treize mètres de remorque derrière son origine — vingt à l'échelle une et demie —, une
+   voiture trois : suivre un camion d'aussi près qu'une citadine, c'est lui rentrer dans
+   le hayon. Et l'écart en mètres de route se resserre encore dans les virages, où la
+   corde est plus courte que l'axe. */
+const suiviPres = (dev)=> dev.arriere + 7*ECH_TRAFIC;
+/* LA SELLETTE ET LE TIMON, HORS DE LA BOUCLE POUR POUVOIR LES MESURER.
+   `TIMON` est la distance de la sellette à l'essieu de la remorque : c'est LUI qui décide
+   de combien elle coupe le virage. La géométrie exacte d'un semi-remorque — huit mètres,
+   douze une fois mis à l'échelle — est plus longue que le rayon des virages de la rocade,
+   et une remorque dont le timon dépasse le rayon ne peut pas suivre du tout : elle
+   traverse le coin en ligne droite, cinq mètres et demi dans l'herbe. On raccourcit donc
+   l'articulation — le dessin, lui, ne bouge pas d'un centimètre, la remorque est toujours
+   posée sur la sellette : elle pivote seulement plus près. */
+const SELLETTE_TRAFIC = 1.6*ECH_TRAFIC;
+let TIMON_TRAFIC = 8.0*ECH_TRAFIC;
+// Un objet de travail pour la remorque : la suspension lit et écrit `roll`, `pitch`…
+const _susRem = {roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0};
 function updateTrafic(dt){
   for(const F of FILES) for(const t of F){
     let d = Infinity, dev = null;
@@ -10130,7 +10193,7 @@ function updateTrafic(dt){
        superposent. Mesuré : écart minimal nul au bout de deux tours de piste. Une part
        de la vitesse du précédent, proportionnelle à l'écart, rouvre la distance
        d'elle-même — c'est la loi de poursuite habituelle, et elle ne peut pas s'effondrer. */
-    const pres = dev ? suiviPres(dev) : 0, loin = pres + 16;
+    const pres = dev ? suiviPres(dev) : 0, loin = pres + 16*ECH_TRAFIC;
     if(!dev || d >= loin) t.vEff = t.v;
     else if(d <= pres) t.vEff = Math.min(t.v, dev.v*Math.max(0, d/pres));
     else {
@@ -10139,42 +10202,75 @@ function updateTrafic(dt){
     }
   }
   for(const t of TRAFIC){
-    t.s += t.vEff*dt*t.sens;
+    /* LE MOTEUR EST CELUI DES ENGINS DU JOUEUR : la vitesse TEND vers sa consigne au
+       lieu d'y sauter, avec le frein moteur deux fois plus fort que la reprise, et la
+       même traînée de 0,16 par seconde. C'est ce qui fait qu'un camion qui tombe
+       derrière une voiture lente met du temps à ralentir — et que le ralentissement se
+       voit, puisqu'il fait plonger le nez. */
+    const cible = t.vEff;
+    const a = (cible > t.vit ? t.accel : t.accel*2.2);
+    t.vit += Math.sign(cible - t.vit)*Math.min(Math.abs(cible - t.vit), a*dt);
+    t.vit -= t.vit*0.16*dt;
+    const vAvant = t.vAvant === undefined ? t.vit : t.vAvant;
+    t.vAvant = t.vit;
+    t.s += t.vit*dt*t.sens;
     const p = surRocade(t.R, t.cr, t.s);
     t.m.position.set(p.x, 0, p.z);
     // la carrosserie est modelée nez vers +Z : le cap suit la tangente,
     // retournée quand le véhicule remonte le tracé
     const dx = p.tx*t.sens, dz = p.tz*t.sens;
     const cap = Math.atan2(dx, dz);
-    // roulis : la caisse s'incline vers l'extérieur du virage, comme les engins pilotés
-    let d = cap - (t.cap !== undefined ? t.cap : cap);
-    while(d >  Math.PI) d -= Math.PI*2;
-    while(d < -Math.PI) d += Math.PI*2;
-    const vise = Math.max(-0.26, Math.min(0.26, -d/Math.max(0.001,dt) * t.vEff * 0.022));
-    t.roll = (t.roll || 0) + (vise - (t.roll || 0)) * Math.min(1, dt*5);
+    let dcap = cap - (t.cap !== undefined ? t.cap : cap);
+    while(dcap >  Math.PI) dcap -= Math.PI*2;
+    while(dcap < -Math.PI) dcap += Math.PI*2;
     t.cap = cap;
+    /* ET LA SUSPENSION EST LA MÊME FONCTION QUE POUR LES ENGINS DU JOUEUR : la caisse
+       s'incline vers l'extérieur du virage (accélération latérale = vitesse × lacet),
+       plonge du nez au freinage, se soulève à la reprise, et tressaute sur la route.
+       Le roulis était auparavant une formule à part, sans ressort ni tangage. */
+    suspension(t, t.susp, dt, t.vit*(-dcap/Math.max(0.001, dt)),
+               (t.vit - vAvant)/Math.max(0.001, dt), t.vit);
     t.m.rotation.set(0, cap, 0);
+    t.m.rotateX(t.pitch);
     t.m.rotateZ(t.roll);
+    t.m.position.y = Math.max(-0.16, Math.min(0.16, t.heave))*ECH_TRAFIC;
 
     if(t.rem){
-      // Attelage articulé : le timon tire l'essieu de la remorque, qui s'aligne seule
-      // sur la trajectoire — exactement le principe des outils de la ferme.
+      /* LA REMORQUE SUIT LA MÊME VOIE, UN TIMON EN ARRIÈRE — et non un essieu traîné.
+         Le modèle traîné est celui des outils de la ferme, et il est juste tant que le
+         timon est plus COURT que le rayon du virage. À l'échelle une et demie, le timon
+         d'un semi fait douze mètres et les virages de la rocade huit : la remorque ne
+         peut alors plus suivre du tout, elle coupe le coin en ligne droite. Mesuré :
+         cinq mètres soixante dans l'herbe, essieux au ras de la clôture.
+         On la pose donc sur le RAIL, à un timon d'abscisse curviligne derrière le
+         tracteur : elle reste dans sa file au centimètre, et son cap — celui de la corde
+         qui joint son essieu à la sellette — diffère naturellement de celui du tracteur
+         dans les virages. C'est exactement ce que l'œil lit d'un attelage. */
       const fx = Math.sin(cap), fz = Math.cos(cap);
-      const hx = p.x - fx*1.6, hz = p.z - fz*1.6;          // sellette
-      if(!t.axe) t.axe = {x: hx - fx*8.0, z: hz - fz*8.0};
-      let dx2 = hx - t.axe.x, dz2 = hz - t.axe.z;
-      const dd = Math.hypot(dx2,dz2) || 1; dx2 /= dd; dz2 /= dd;
+      const hx = p.x - fx*SELLETTE_TRAFIC, hz = p.z - fz*SELLETTE_TRAFIC;
+      const pa = surRocade(t.R, t.cr, t.s - t.sens*(SELLETTE_TRAFIC + TIMON_TRAFIC));
+      let dx2 = hx - pa.x, dz2 = hz - pa.z;
+      const dd = Math.hypot(dx2, dz2) || 1; dx2 /= dd; dz2 /= dd;
       const tcap = Math.atan2(dx2, dz2);
-      t.axe.x = hx - dx2*8.0; t.axe.z = hz - dz2*8.0;
       let e = tcap - t.tcap;
       while(e >  Math.PI) e -= Math.PI*2;
       while(e < -Math.PI) e += Math.PI*2;
-      const viseR = Math.max(-0.2, Math.min(0.2, -e/Math.max(0.001,dt) * t.vEff * 0.018));
-      t.troll += (viseR - t.troll) * Math.min(1, dt*5);
       t.tcap = tcap;
+      // La remorque a sa propre suspension, sur le même ressort : elle ne penche pas
+      // en même temps que le tracteur, et c'est ce qui fait un attelage vivant.
+      _susRem.roll = t.rRoll; _susRem.rollV = t.rRollV;
+      _susRem.pitch = t.rPitch; _susRem.pitchV = t.rPitchV;
+      _susRem.heave = t.rHeave; _susRem.heaveV = t.rHeaveV; _susRem.bump = t.rBump;
+      suspension(_susRem, t.susp, dt, t.vit*(-e/Math.max(0.001, dt)),
+                 (t.vit - vAvant)/Math.max(0.001, dt)*0.4, t.vit);
+      t.rRoll = _susRem.roll; t.rRollV = _susRem.rollV;
+      t.rPitch = _susRem.pitch; t.rPitchV = _susRem.pitchV;
+      t.rHeave = _susRem.heave; t.rHeaveV = _susRem.heaveV; t.rBump = _susRem.bump;
       t.rem.position.set(hx, 0, hz);
       t.rem.rotation.set(0, tcap, 0);
-      t.rem.rotateZ(t.troll);
+      t.rem.rotateX(t.rPitch);
+      t.rem.rotateZ(t.rRoll);
+      t.rem.position.y = Math.max(-0.16, Math.min(0.16, t.rHeave))*ECH_TRAFIC;
     }
   }
 }
@@ -13134,6 +13230,29 @@ function remplirCuve(T, cle){
   T.cuveCle = cle; T.cuveQ = (T.cuveQ || 0) + q;
   return q;
 }
+/* ACHETER AU COMPTOIR, C'EST REMPLIR LA CUVE — ET DE LOIN.
+   « L'achat se fait au comptoir, mais les cuves sont remplies immédiatement à distance,
+   pas besoin de venir avec au comptoir. » C'était deux trajets pour un sac : on venait
+   acheter vingt-cinq kilos d'engrais, on repartait, et il fallait revenir avec l'épandeur
+   ATTELÉ pour les transvaser — alors même que l'outil dort au parc à outils de la ferme,
+   à deux cents mètres de là. Il se remplit donc là où il est, attelé ou non, et ce qui ne
+   tient pas dans la cuve reste au hangar comme avant.
+   Le semoir se RÈGLE au passage sur la graine achetée : sans ça la cuve porte de l'orge
+   et la machine sème encore du blé, c'est-à-dire rien. Une cuve entamée d'une autre
+   graine se vide d'abord au hangar — rien ne se perd, c'est `remplirCuve` qui le fait
+   déjà — et si le hangar est plein elle refuse le transvasement plutôt que de jeter. */
+let cuveServie = 0;                       // ce que le dernier achat a mis dans la cuve
+function servirCuve(clef){
+  const eng = clef === 'engrais';
+  const T = TOOLS.find((t)=> t.key === (eng ? 'engrais' : 'semis'));
+  if(!T || !T.cuveMax || T.verrou) return 0;
+  if(eng) return remplirCuve(T, null);
+  const i = CROP_DE[clef], c = CROPS[i];
+  if(!c || c.perenne) return 0;           // une pérenne se plante au champ, rien à charger
+  const pris = remplirCuve(T, clef);
+  if(pris > 0){ T.crop = i; refreshCropButton(); }
+  return pris;
+}
 // L'achat au comptoir : `clef` est 'engrais', ou la clé d'une culture.
 function acheterIntrant(clef, kg){
   const eng = clef === 'engrais';
@@ -13146,6 +13265,9 @@ function acheterIntrant(clef, kg){
   money -= q*prix;
   if(eng) STOCK.engrais += q;
   else STOCK.graines[clef] = (STOCK.graines[clef] || 0) + q;
+  // La cuve se sert dans la foulée, où qu'elle soit. `cuveServie` dit combien y est allé,
+  // pour que le message d'achat le dise sans que l'achat ait à rendre deux nombres.
+  cuveServie = servirCuve(clef);
   return q;
 }
 
@@ -16572,7 +16694,8 @@ function ligneGraine(c){
                     ' parcelle' + (q >= 2*c.graineKg ? 's' : '') +
                     '<br>Il restera ' + eur(money - q*c.grainePrix) + ' en caisse',
       valider: (q)=>{ const pris = acheterIntrant(c.cle, q);
-                      if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()); }
+                      if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()
+                        + (cuveServie > 0.5 ? ' — SEMOIR REMPLI' : '')); }
     }) : null);
 }
 function vueComptoirSemences(){
@@ -16630,7 +16753,8 @@ function vueComptoirConsos(){
                       ' parcelle' + (q >= 2*PARC_REF*STOCK.parCellEngrais ? 's' : '') +
                       '<br>Il restera ' + eur(money - q*prix) + ' en caisse',
         valider: (q)=>{ const pris = acheterIntrant('engrais', q);
-                        if(pris) showHint('+ ' + kg(pris) + ' D’ENGRAIS'); }
+                        if(pris) showHint('+ ' + kg(pris) + ' D’ENGRAIS'
+                          + (cuveServie > 0.5 ? ' — ÉPANDEUR REMPLI' : '')); }
       }) : null, 'engrais');
   }
 
@@ -16658,56 +16782,67 @@ function vueComptoirConsos(){
    voir combien il restait au hangar, ni décider de la quantité. C'est pourtant le geste
    qui suit l'achat : on vient acheter vingt-cinq kilos, et l'on veut repartir avec. */
 function vueComptoirCuves(){
-  const m = MACHINES[cur], T = toolOf(m);
-  titre('La cuve de l\'outil attelé');
-  if(!T || !T.cuveMax){
+  /* TOUTES LES CUVES, ET NON CELLE DE L'OUTIL ATTELÉ.
+     Cet onglet ne parlait qu'à qui arrivait au comptoir en TRAÎNANT son semoir : les
+     deux autres outils, restés au parc à outils de la ferme, étaient invisibles ici et
+     l'on repartait les chercher. Depuis que l'achat sert la cuve à distance, il n'y a
+     plus de raison d'exiger l'attelage pour le transvasement non plus. On liste donc
+     tous les outils à cuve que l'on possède, et l'on dit lequel est attelé. */
+  const cuves = TOOLS.filter((T)=> T.cuveMax && !T.verrou);
+  titre('Les cuves de la ferme');
+  if(!cuves.length){
     const d = document.createElement('div'); d.className = 'art';
-    d.innerHTML = '<div class="txt"><div class="det">' +
-      (T ? lHaut(T.nom).charAt(0) + lHaut(T.nom).slice(1).toLowerCase() +
-           ' n\'a pas de cuve : la charrue travaille la terre, la benne transporte.'
-         : 'Aucun outil à cuve attelé. Le semoir et l\'épandeur se prennent au parc à ' +
-           'outils de la ferme, et c\'est ici — et seulement ici — qu\'ils se remplissent.') +
-      '</div></div>';
+    d.innerHTML = '<div class="txt"><div class="det">Ni semoir ni épandeur pour ' +
+      'l\'instant. Ils s\'achètent au garage du village.</div></div>';
     hote.appendChild(d);
     return;
   }
-  const eng = T.key === 'engrais';
-  const c = eng ? null : CROPS[T.crop || 0];
-  const cle = eng ? null : c.cle;
-  const nom = eng ? 'engrais' : c.nom.toLowerCase();
-  const place = placeCuve(T);
-  const dispo = eng ? STOCK.engrais : (STOCK.graines[cle] || 0);
-  const perenne = !eng && c.perenne;
-  article(0xF0C24A, T.nom + ' — ' + kg(T.cuveQ || 0) + ' sur ' + kg(T.cuveMax),
-    (eng ? 'Il épand l\'engrais du bac.'
-         : 'Il est réglé sur ' + lNom(nom) + ' — le bouton de l\'écran de conduite en ' +
-           'change.') +
-    '<br>Au hangar : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
-    kg(dispo) + ' ' + dNom(nom) + '</span>',
-    'Cuve', 'no', null);
-  if(perenne)
-    article(0x8A9298, c.nom + ' ne se sème pas',
-      'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
-      'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null);
-  else {
-    const q = Math.min(place, dispo);
-    const ok = q >= 0.5;
-    article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase(),
-      place < 0.5 ? 'La cuve est pleine.'
-                  : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' au hangar — le rayon ' +
-                                   'des semences est à l\'onglet précédent.'
-                                 : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' au hangar.'),
-      ok ? '+ ' + kg(q) : (place < 0.5 ? 'Pleine' : 'Hangar vide'), ok ? 'vert' : 'no',
-      ok ? ()=>{ const pris = remplirCuve(T, cle);
-                 if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null);
+  const attele = toolOf(MACHINES[cur]);
+  for(const T of cuves){
+    const eng = T.key === 'engrais';
+    const c = eng ? null : CROPS[T.crop || 0];
+    const cle = eng ? null : c.cle;
+    const nom = eng ? 'engrais' : c.nom.toLowerCase();
+    const place = placeCuve(T);
+    const dispo = eng ? STOCK.engrais : (STOCK.graines[cle] || 0);
+    const perenne = !eng && c.perenne;
+    article(0xF0C24A, T.nom + ' — ' + kg(T.cuveQ || 0) + ' sur ' + kg(T.cuveMax),
+      (eng ? 'Il épand l\'engrais du bac.'
+           : 'Il est réglé sur ' + lNom(nom) + ' — le bouton de l\'écran de conduite en ' +
+             'change.') +
+      '<br>Au hangar : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
+      kg(dispo) + ' ' + dNom(nom) + '</span>',
+      T === attele ? 'Attelé' : 'À la ferme', 'no', null);
+    if(perenne)
+      article(0x8A9298, c.nom + ' ne se sème pas',
+        'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
+        'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null);
+    else {
+      const q = Math.min(place, dispo);
+      const ok = q >= 0.5;
+      article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase(),
+        place < 0.5 ? 'La cuve est pleine.'
+                    : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' au hangar — le rayon ' +
+                                     'des semences est à l\'onglet précédent.'
+                                   : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' au hangar, où ' +
+                                     'que soit l\'outil.'),
+        ok ? '+ ' + kg(q) : (place < 0.5 ? 'Pleine' : 'Hangar vide'), ok ? 'vert' : 'no',
+        ok ? ()=>{ const pris = remplirCuve(T, cle);
+                   if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null);
+    }
+    if((T.cuveQ || 0) > 0.5)
+      article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
+        'Rend ' + kg(T.cuveQ) + ' au hangar. Une cuve entamée d\'une autre graine se vide ' +
+        'toute seule avant de se remplir : rien ne se perd.',
+        'Rendre', 'vert', ()=>{ const q = viderCuve(T);
+                                showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
+                                           : 'LE HANGAR EST PLEIN'); });
   }
-  if((T.cuveQ || 0) > 0.5)
-    article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
-      'Rend ' + kg(T.cuveQ) + ' au hangar. Une cuve entamée d\'une autre graine se vide ' +
-      'toute seule avant de se remplir : rien ne se perd.',
-      'Rendre', 'vert', ()=>{ const q = viderCuve(T);
-                              showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
-                                         : 'LE HANGAR EST PLEIN'); });
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">Acheter aux deux onglets précédents ' +
+    'remplit la cuve DANS LA FOULÉE, où que soit l\'outil : il n\'y a jamais besoin de ' +
+    'venir avec au comptoir.</div></div>';
+  hote.appendChild(d);
 }
 // Le menu garde son onglet : son aiguillage n'a pas de repli, et trois bancs lisent
 // encore le comptoir dans #pliste.

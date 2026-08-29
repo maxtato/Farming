@@ -1679,6 +1679,19 @@ bandeau demandait de le remplir alors que rien ne disait ce qu'il restait au han
 geste appartient au comptoir — on y voit le bac, on y achète, on repart chargé. Ce qui reste
 dans la cuve, lui, se lit en haut à droite pendant tout le travail.
 
+**Acheter, c'est remplir — et de loin.** C'était deux trajets pour un sac : on venait
+acheter vingt-cinq kilos d'engrais, on repartait, et il fallait *revenir avec l'épandeur
+attelé* pour les transvaser — alors que l'outil dort au parc à outils, à deux cents mètres
+de là. L'achat sert donc la cuve **dans la foulée, où que soit l'outil**, attelé ou non, et
+ce qui ne tient pas dedans reste au hangar comme avant. Le semoir se *règle* au passage sur
+la graine achetée : sans quoi la cuve porte de l'orge et la machine sème encore du blé,
+c'est-à-dire rien. Une cuve entamée d'une autre graine se vide d'abord au hangar — rien ne
+se perd — et si le hangar est plein, elle refuse le transvasement plutôt que de jeter.
+
+Le troisième onglet liste du même coup **toutes les cuves de la ferme**, et non plus la
+seule de l'outil attelé : les deux autres restaient invisibles ici, et l'on repartait les
+chercher.
+
 `ongletComptoir()` déroule toujours les trois vues à la suite : l'aiguillage du menu n'a pas
 de repli, et trois bancs lisent encore le comptoir dans `#pliste`.
 
@@ -1920,6 +1933,39 @@ version se calait exactement sur sa vitesse : l'écart cessait de se réduire ma
 rouvrait jamais, et une file de six où chacun freine pour le précédent finissait par se
 tasser jusqu'à ce que deux carrosseries se superposent. Dégagement minimal mesuré
 aujourd'hui : **0,8 m**, jamais un contact.
+
+**À l'échelle une et demie.** Ils avaient été dessinés plus petits que les engins de la
+ferme — une berline de 4,40 m à côté d'un tracteur de 4,80 — et la rocade, vue de la cour,
+avait l'air d'un circuit de voitures miniatures. Le facteur porte sur *tout* : la caisse,
+mais aussi la sellette, le timon de la remorque et les distances de sécurité.
+
+Deux conséquences mesurées. La bonne : les voitures **tiennent mieux la route** qu'avant —
+0,54 m de débord en virage contre 0,44 au format d'origine, alors qu'elles ont grandi de
+moitié — parce que les attelages ont libéré la file intérieure. La moins bonne : un tracteur
+routier fait maintenant onze mètres de long pour un virage de huit mètres de rayon, et son
+nez balaie **2,8 m au-delà du bitume** dans les courbes (0,8 m auparavant). Aucune géométrie
+de virage ne le rattrape — c'est la longueur du camion contre le rayon de la route ; les
+rigs prennent donc tous la file **extérieure**, où ce qu'ils coupent tombe sur l'autre moitié
+de la chaussée plutôt que dans l'herbe.
+
+**La remorque suit le rail, elle n'est plus traînée.** Le modèle traîné est celui des outils
+de la ferme, et il est juste tant que le timon est plus *court* que le rayon du virage. À
+cette échelle le timon d'un semi fait douze mètres et les virages huit : la remorque ne
+pouvait plus suivre du tout, elle coupait le coin en ligne droite — cinq mètres soixante
+dans l'herbe, essieux au ras de la clôture. Posée sur le rail, un timon d'abscisse curviligne
+derrière le tracteur, elle reste dans sa file au centimètre, et son cap diffère naturellement
+de celui du tracteur dans les courbes : c'est exactement ce que l'œil lit d'un attelage.
+Débord ramené de 5,60 m à 2,17.
+
+**Et la physique est celle des engins du joueur.** La suspension — ressort-amortisseur mou
+sur trois axes, roulis en virage, tangage à l'accélération et au freinage, pompage sur les
+bosses — vivait à l'intérieur de `Vehicle.update`, où seules les machines de la ferme en
+profitaient ; les voitures avaient un roulis à elles, bricolé, sans ressort ni tangage. C'est
+la **même fonction et les mêmes constantes** qui les animent, à la mollesse près : une
+voiture est plus ferme qu'un tracteur, un camion plus mou. Le moteur aussi : la vitesse
+*tend* vers sa consigne au lieu d'y sauter, avec le frein moteur deux fois plus fort que la
+reprise — ce qui fait qu'un camion pris derrière une voiture lente met du temps à ralentir,
+et que le ralentissement se voit, puisqu'il fait plonger le nez.
 
 Les six modèles viennent de la planche du joueur — berline, break à galerie, citadine,
 bétaillère à claire-voie, plateau à bottes, monospace — et le camion orange garde ses trois
