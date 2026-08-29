@@ -348,13 +348,27 @@
      ombre portée est une propriété de PEINTURE : le bouton se repeignait à chaque image,
      et cela seul coûtait un dixième des images du jeu — mesuré, 8,7 contre 9,6. Un
      pseudo-élément qu'on met à l'échelle et qu'on efface ne touche que le compositeur. */
-  #engins{position:relative}
-  #engins.appel{border-color:#FAD201;color:#FAD201}
-  #engins.appel::after{content:'';position:absolute;inset:-2px;border-radius:14px;
-    border:2px solid #FAD201;pointer-events:none;
-    animation:appel 1.4s ease-out infinite}
-  @keyframes appel{0%{transform:scale(1);opacity:.7}
-                   70%,100%{transform:scale(1.42);opacity:0}}
+  /* LES BOUTONS FLOTTANTS QUI APPELLENT, ET C'EST LA MÊME MARQUE POUR TOUS. Le bouton du
+     parc n'était pas seul à devoir appeler : la régie mène à la Production, où s'achète
+     le moulin, et le joueur cherchait la fenêtre sans que rien la désigne. Aucun de ces
+     quatre-là n'est coupé par un conteneur : ils peuvent porter le cadre qui GRANDIT,
+     qui est le plus visible des deux appels. */
+  #engins,#regie .rgb{position:relative}
+  #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel{
+    border-color:#FAD201;color:#FAD201}
+  #engins.appel::after,#regie .rgb.appel::after,#service.appel::after,
+  #atelier.appel::after,#veh.appel::after{content:'';position:absolute;inset:-3px;
+    border-radius:15px;border:3px solid #FAD201;pointer-events:none;
+    animation:appel 1.05s ease-out infinite}
+  /* PLUS FRANC, ET PLUS SERRÉ. « Fais des pulsations vraiment visibles. » Le cadre
+     partait de 0,7 d'opacité et s'écartait de 42 % en 1,4 s : sur un téléphone, au
+     soleil, il passait inaperçu. Il part maintenant PLEIN, s'écarte de 62 % et
+     recommence toutes les 1,05 s. Rien d'autre n'a changé : ce sont toujours une
+     `transform` et une `opacity`, les deux seules propriétés que le compositeur traite
+     sans repasser par la peinture — une `box-shadow` animée avait coûté un dixième des
+     images du jeu. */
+  @keyframes appel{0%{transform:scale(1);opacity:1}
+                   70%,100%{transform:scale(1.62);opacity:0}}
   /* ET LE MÊME APPEL SE POURSUIT DANS LES MENUS. Le bouton du parc bat, on l'ouvre, et
      la LIGNE de la machine à prendre bat à son tour ; au garage, l'onglet des outils bat,
      puis la ligne de l'épandeur. Le guidage suit le chemin qu'on prendrait de toute
@@ -368,10 +382,16 @@
      `box-shadow` animée, qui coûtait un dixième des images du jeu. */
   .pe,.ong,.art{position:relative}
   .pe.appel,.ong.appel,.art.appel{border-color:#FAD201}
+  /* ET LE CADRE PLAT PORTE UN LAVIS. Un filet de deux pixels qui bat de 0,18 à 1 se
+     voyait à peine sur une rangée large et basse : il porte maintenant TROIS pixels et
+     un voile jaune à treize pour cent, si bien que c'est la rangée entière qui respire
+     et non son contour. Le voile est dans le même pseudo-élément, donc dans la même
+     opacité animée : une seule couche, une seule propriété de compositeur. */
   .pe.appel::after,.ong.appel::after,.art.appel::after{content:'';position:absolute;
-    inset:0;border:2px solid #FAD201;border-radius:inherit;pointer-events:none;
-    animation:appelPlat 1.4s ease-in-out infinite}
-  @keyframes appelPlat{0%,100%{opacity:.18}50%{opacity:1}}
+    inset:0;border:3px solid #FAD201;border-radius:inherit;pointer-events:none;
+    background:rgba(250,210,1,.13);
+    animation:appelPlat .95s ease-in-out infinite}
+  @keyframes appelPlat{0%,100%{opacity:.10}50%{opacity:1}}
   /* Le semoir monte EN HAUT. En bas il occupait une rangée à lui seul pour un réglage
      qu'on change une fois par parcelle. Il se pose SOUS le menu et la pause, contre le
      bord droit, et non à côté d'eux : la barre de progression est centrée et large de
@@ -6085,24 +6105,28 @@ function buildFarm(){
     boxObs.push({x:(T.x0 + T.x1)/2, z:(RANG.z0 + RANG.z1)/2,
                  hw:(T.x1 - T.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
 
-  /* CE QU'IL Y A DANS L'ÉCART. Trois objets que le village ne montrait NULLE PART : les
-     creux entre commerces n'en posent que quatre, quand VIL_MODELES en déclare dix. Le
-     calvaire donne au creux sa silhouette haute, celle qu'on voit du bitume par-dessus la
-     clôture ; le banc et la table meublent le fond.
+  /* CE QU'IL Y A DANS L'ÉCART. Le calvaire y donnait sa silhouette haute, celle qu'on
+     voit du bitume par-dessus la clôture ; il est parti garnir un des quatre coins du
+     monde, à la demande du joueur. Le POTEAU TÉLÉGRAPHIQUE le remplace, et c'est un
+     meilleur choix qu'il n'y paraît : il monte à 7,55 m — plus haut que le mât d'un
+     lampadaire — donc il tient exactement le même rôle, il est bien plus étroit, et il
+     n'était dans AUCUNE partie faute d'être cité nulle part.
      ILS SONT RANGÉS EN PROFONDEUR ET DÉCALÉS VERS L'EST. En profondeur, parce que l'écart
      fait dix mètres de large mais dix-sept de fond : c'est la seule direction où il y a de
      la place. Vers l'est, parce que le mât de la verge tombe déjà de ce côté de la bouche
-     du trou — mieux vaut un lampadaire au-dessus du calvaire qu'un lampadaire planté au
-     milieu du seul passage — et que la moitié ouest reste ainsi franchissable. */
+     du trou, et que la moitié ouest reste ainsi franchissable.
+     ET L'AXE RECULE DE QUARANTE CENTIMÈTRES, parce que le mobilier a grandi de dix-huit
+     pour cent : à `x1 - 3,2`, le banc élargi ramenait le couloir libre de 2,00 m à 1,64.
+     À `x1 - 2,8` il vaut 2,05 m, mesuré — plus qu'avant. Aucun objet de rayon supérieur à
+     2,40 ne doit entrer ici : le bûcher ou la tonnelle refermeraient le passage. */
   if(RANG.trou){
-    const tx = RANG.trou.x1 - 3.2;            // l'axe des objets, côté est de l'écart
-    poserBloc(vilCalvaire, tx, RANG.z0 + 2.9,  RY_BANDE.S);
+    const tx = RANG.trou.x1 - 2.8;            // l'axe des objets, côté est de l'écart
+    poserBloc(vilPoteau,   tx, RANG.z0 + 2.9,  RY_BANDE.S);
     poserBloc(vilBanc,     tx, RANG.z0 + 7.6,  RY_BANDE.S);
-    // Le puits et non la table : les creux des bandes prennent le plus gros objet qui
-    // leur tienne, et la table de pique-nique y passe déjà. Deux fois le même meuble à
-    // deux cents mètres l'un de l'autre, cela se remarque ; le puits, lui, n'était nulle
-    // part alors qu'il est ce qu'un village a de plus reconnaissable.
-    poserBloc(vilPuits,    tx, RANG.z0 + 11.4, RY_BANDE.S);
+    // Et un arbre plutôt qu'un troisième meuble : le puits part au creux de la bande
+    // ouest, et trois objets bâtis à la file dans un écart de dix mètres se lisent
+    // comme un dépôt, pas comme un bout de village.
+    addTree(tx, RANG.z0 + 12.4, 0.9, 2);
   }
 
   /* LA VERGE EST UNE RUE, PAS UNE PELOUSE. Neuf mètres entre le bitume et la clôture,
@@ -6139,7 +6163,8 @@ function buildFarm(){
      le long des quatre bords, au hasard du flux à graine fixe : ils finissaient
      DERRIÈRE les bâtiments, là où personne ne roule, et n'appartenaient à rien. Ils
      n'apparaissent plus que là où on les attend — dans les creux ménagés exprès entre
-     deux paquets, avec les arbres. C'est garnirBandes() qui les y pose. */
+     deux paquets, avec les arbres. C'est garnirBandes() qui les y pose — et, pour les
+     quatre coins du monde, la boucle sur COINS_VILLAGE en fin de buildFarm. */
   const POSES = [];
 
   for(let gx=X0+8; gx<=X1-8; gx+=7) for(let gz=Z0+8; gz<=Z1-8; gz+=7){
@@ -6160,15 +6185,52 @@ function buildFarm(){
 
   marquageParking();     // en dernier : les deux dalles doivent être posées
   poserAtelier();
+
+  /* LES QUATRE COINS, ET ILS SE POSENT EN DERNIER — DEUX RAISONS.
+     `addTree` consomme trente-six tirages du flux général pour ses feuilles tombées, et
+     PEINT une tache d'ombre sur la tuile de sol : le glisser plus haut décalerait tout
+     le décor et toute la peinture qui suivent. Mesuré sur un prototype posé avant
+     `marquageParking()` : l'empreinte du sol peint avait changé.
+     ET LE HASARD DES COINS EST LE SIEN. Un troisième flux à graine fixe, sur le modèle
+     de ceux qui sèment déjà la vallée : le décor reste identique d'une partie à l'autre
+     — c'est la règle du fichier — sans qu'aucun `Math.random` n'entre en jeu, et sans
+     que la verdure des coins ne déplace d'un centimètre celle du reste du monde.
+     ONZE À SEIZE MÈTRES POUR LES ARBRES, ET NON HUIT. Relevé à l'écran : à huit mètres,
+     quatre arbres enterrent l'objet et l'on ne voit plus ni le panneau ni l'abri depuis
+     la route. Quatre arbres, quatre buissons et deux rochers portent chaque coin de
+     5-11 maillages à 13-18, mesuré dans un rayon de dix-huit mètres — habillé, pas
+     boisé. */
+  let sC = 20260829;
+  const rC = ()=>{ sC = (sC*1664525 + 1013904223) >>> 0; return sC/4294967296; };
+  for(const K of COINS_VILLAGE){
+    poserBloc(K.fab, K.x, K.z, K.ry);
+    for(let k = 0; k < 4; k++){
+      const a = K.a0 + (k + 0.5)/4*K.aA, d = 11 + rC()*5;
+      addTree(K.x + Math.cos(a)*d, K.z + Math.sin(a)*d, 0.9 + rC()*0.45, (rC()*5)|0);
+    }
+    for(let k = 0; k < 4; k++){
+      const a = K.a0 + rC()*K.aA, d = 5 + rC()*4;
+      putBush(K.x + Math.cos(a)*d, K.z + Math.sin(a)*d, rC);
+    }
+    for(let k = 0; k < 2; k++){
+      const a = K.a0 + rC()*K.aA, d = 3.2 + rC()*2.6;
+      putRock(K.x + Math.cos(a)*d, K.z + Math.sin(a)*d, rC);
+    }
+  }
 }
 
 /* ==========================================================================
    LE VILLAGE : SIX MODÈLES DE MAISON ET DIX PETITS OBJETS.
    La vallée n'avait que trois silhouettes de maison, posées en enfilade le long de la
    façade sud. Six blocs autonomes les remplacent — chacun avec sa clôture, son
-   portillon, son allée et ses abords — et dix petits objets se sèment entre eux. Les
+   portillon, son allée et ses abords — et dix petits objets se posent autour d'eux. Les
    six modèles sont tirés dix fois le long du brin sud de la rocade, à MAI_ECHELLE,
-   qui les met au pas des commerces d'en face.
+   qui les met au pas des commerces d'en face ; les dix petits objets, eux, sont à
+   VIL_ECHELLE, qui vaut celle des commerces.
+   ET LES DIX SONT TOUS DE LA PARTIE, ce qui n'a pas toujours été le cas. Quatre creux
+   entre commerces, deux places dans l'écart du rang, et QUATRE COINS du monde : dix
+   emplacements pour dix modèles. L'abri de bus est le seul posé deux fois — dans un
+   creux et dans un coin — parce que le joueur en voulait deux.
 
    Chaque bloc est FUSIONNÉ en une seule géométrie avant d'entrer dans la scène :
    soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est la
@@ -6428,7 +6490,7 @@ function vilAbriBus(){
   g.add(cyl(0.07, 0.07, 2.6, 8, D_METAL, W/2 + 0.9, 1.3, 0.2));
   g.add(box(0.7, 0.5, 0.1, D_CREME, W/2 + 0.9, 2.4, 0.2));
   g.add(box(0.5, 0.3, 0.13, 0xC0392B, W/2 + 0.9, 2.4, 0.22));
-  return {g, r:3.2};
+  return {g, r:3.2, w:5.9};
 }
 function vilTonnelle(){
   const g = new THREE.Group();
@@ -6453,7 +6515,7 @@ function vilTonnelle(){
   g.add(box(2.2, 0.12, 0.9, D_BOIS3, 0, 0.78, 0));
   for(const sx of [-0.9, 0.9]) g.add(box(0.14, 0.72, 0.7, D_BOIS2, sx, 0.4, 0));
   for(const sz of [-0.85, 0.85]) dBanc(g, 0, sz, 2.2, sz > 0 ? Math.PI : 0);
-  return {g, r:3.0};
+  return {g, r:3.0, w:5.3};
 }
 function vilLavoir(){
   const g = new THREE.Group();
@@ -6469,7 +6531,7 @@ function vilLavoir(){
   g.add(cyl(0.1, 0.1, 0.5, 8, 0x8E8172, 0, 1.5, -D/2 + 0.2, Math.PI/2));
   for(let k = 0; k < 3; k++)
     g.add(box(0.7, 0.12, 0.5, D_PIERRE2, -1.2 + k*1.2, 1.06, D/2 - 0.35));
-  return {g, r:3.4};
+  return {g, r:3.4, w:5.6};
 }
 function vilPiqueNique(){
   const g = new THREE.Group();
@@ -6484,7 +6546,7 @@ function vilPiqueNique(){
   }
   g.add(cyl(0.28, 0.24, 0.8, 8, D_VERT, 1.9, 0.4, -0.9));
   g.add(cyl(0.3, 0.3, 0.08, 8, 0x2F5238, 1.9, 0.84, -0.9));
-  return {g, r:2.2};
+  return {g, r:2.2, w:4.4};
 }
 function vilBucher(){
   const g = new THREE.Group();
@@ -6499,7 +6561,7 @@ function vilBucher(){
   g.add(cyl(0.34, 0.34, 0.5, 9, D_BOIS2, W/2 + 0.9, 0.25, 0));
   g.add(box(0.1, 0.5, 0.06, 0x6E767C, W/2 + 0.9, 0.7, 0.02));
   g.add(box(0.26, 0.2, 0.1, 0x2E3438, W/2 + 0.9, 0.92, 0.02));
-  return {g, r:2.8};
+  return {g, r:2.8, w:6.1};
 }
 function vilPuits(){
   const g = new THREE.Group();
@@ -6512,7 +6574,7 @@ function vilPuits(){
   g.add(box(0.14, 0.5, 0.14, D_BOIS2, 0.85, 2.42, 0));
   g.add(cyl(0.03, 0.03, 1.1, 4, 0x9AA2A7, 0, 2.05, 0));
   g.add(cyl(0.24, 0.2, 0.34, 8, D_BOIS3, 0, 1.4, 0));
-  return {g, r:1.4};
+  return {g, r:1.4, w:2.4};
 }
 function vilCalvaire(){
   const g = new THREE.Group();
@@ -6523,7 +6585,7 @@ function vilCalvaire(){
   g.add(box(1.3, 0.32, 0.3, D_PIERRE, 0, 3.25, 0));
   g.add(box(0.42, 0.42, 0.36, D_PIERRE2, 0, 3.72, 0));
   dBuissonPetit(g, -1.6, 0.8); dBuissonPetit(g, 1.5, -0.9);
-  return {g, r:1.8};
+  return {g, r:1.8, w:4.2};
 }
 function vilEntree(){
   const g = new THREE.Group();
@@ -6537,7 +6599,7 @@ function vilEntree(){
     g.add(box(0.5, 0.36, 0.42, [0xC0392B, 0x3E7CB8, 0x3E6B4E][k], x, 1.28, 0));
     g.add(box(0.52, 0.1, 0.44, 0x9AA2A7, x, 1.5, 0));
   }
-  return {g, r:2.6};
+  return {g, r:2.6, w:7.8};
 }
 function vilBanc(){
   const g = new THREE.Group();
@@ -6545,7 +6607,7 @@ function vilBanc(){
   g.add(cyl(0.3, 0.26, 0.85, 8, 0x4A5359, 1.9, 0.42, -0.2));
   g.add(cyl(0.32, 0.32, 0.08, 8, 0x2E3438, 1.9, 0.88, -0.2));
   dBuissonPetit(g, -2.0, -0.5);
-  return {g, r:2.0};
+  return {g, r:2.0, w:5.0};
 }
 function vilPoteau(){
   const g = new THREE.Group();
@@ -6556,7 +6618,7 @@ function vilPoteau(){
       g.add(cyl(0.09, 0.09, 0.22, 6, 0x8FB4C4, sx, y + 0.19, 0));
   }
   g.add(box(0.5, 0.36, 0.06, D_CREME, 0.2, 1.8, 0.14));
-  return {g, r:0.6};
+  return {g, r:0.6, w:1.9};
 }
 
 /* L'ÉCHELLE DES MAISONS. Les six modèles viennent d'une planche dessinée pour
@@ -6576,6 +6638,23 @@ function vilPoteau(){
    pour que les deux ne puissent plus se désaccorder. Le produit vaut 1,53, et le faîtage
    moyen d'une maison passe de 9,12 m à 10,76 contre 7,58 pour la boutique : le rapport,
    lui, ne bouge pas d'un centième. */
+/* L'ÉCHELLE DU MOBILIER DE VILLAGE. Il n'en avait aucune : les commerces sont posés à
+   BAT_ECHELLE et les maisons à 1,30 fois cela, mais un abri de bus, un lavoir ou un
+   calvaire sortaient de leur fabrique à l'échelle 1,00 — c'est-à-dire aux cotes réelles,
+   dans un monde qui, lui, est agrandi. Le joueur l'a vu : « augmente la taille des
+   éléments de décor du village ».
+   LE RELEVÉ DIRAIT 1,30, ET C'EST TROP. Cote du jeu ÷ cote réelle, ramené au 1,383 du
+   monde roulant : assise de banc 1,353, plateau de table 1,383, sous-toit d'abri 1,252,
+   margelle de puits 1,250, panneau d'entrée 1,277, croix 1,410 — moyenne 1,295. Mais le
+   mobilier doit ENTRER dans les creux entre commerces, et le plus large de tous, l'abri
+   de bus, ne tient dans le plus grand creux (8,22 m) que jusqu'à 1,2236. Au-delà, les
+   quatre creux retombent sur les quatre plus petits modèles et le village perd d'un coup
+   son abri, son lavoir, sa tonnelle et son bûcher.
+   ON PREND DONC BAT_ECHELLE, et on l'écrit comme telle plutôt qu'en clair : le mobilier
+   est dessiné aux cotes réelles exactement comme l'étaient les bâtiments, il mérite la
+   même correction, et une constante partagée interdit aux deux de se désaccorder. Il
+   reste 26 cm de marge sous le plafond mesuré. */
+const VIL_ECHELLE = BAT_ECHELLE;
 const MAI_ECHELLE = 1.30 * BAT_ECHELLE;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
 /* L'ORDRE DES MAISONS DANS LE RANG. Pris à la file — 0,1,2,3,4,5,0,1,2,3 — la moitié
@@ -6692,6 +6771,36 @@ function panCloture(g, x0, z0, x1, z1, coupes, sansA, sansB){
 const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBucher,
                      vilPuits, vilCalvaire, vilEntree, vilBanc, vilPoteau];
 
+/* ---------- LES QUATRE COINS DU MONDE ----------
+   Les quatre rocades traversent la carte de bord à bord et découpent, au-delà de leurs
+   croisements, quatre morceaux d'herbe que RIEN n'occupait : ni lot, ni clôture, ni
+   lampadaire, ni parcelle, ni destination du pilote. Mesurés, ils font de 36 × 36 m à
+   41 × 41, dont un rectangle vraiment utilisable de 26 × 26 à 30 × 30 une fois qu'on
+   s'écarte de six mètres du bitume et de quatre du bord du monde. Le semis général y
+   déposait trois à six arbres et quelques buissons, et c'était tout : le joueur les a
+   vus vides, et ce sont pourtant les quatre entrées du village.
+   CHACUN REÇOIT UN OBJET, ET C'EST LUI QUI LUI DONNE SON NOM. Le panneau d'entrée, le
+   calvaire, le lavoir et un abri de bus — trois d'entre eux ne se posaient nulle part
+   ou étaient à l'étroit dans un creux entre deux commerces. Avec les quatre creux et
+   les deux objets de l'écart du rang, cela fait DIX emplacements pour dix modèles :
+   l'abri de bus est le seul posé deux fois, et c'est ce que le joueur a demandé.
+   L'ORIENTATION EST VÉRIFIÉE SUR LA GÉOMÉTRIE, pas devinée. L'abri de bus s'ouvre vers
+   son +z local — dossier plein en -D/2, banc tourné vers +z —, le panneau d'entrée se lit
+   depuis son +z, le lavoir montre ses trois battoirs en +z. `ry` les tourne donc vers la
+   chaussée qui passe devant, et le secteur `a0`/`aA` envoie la verdure du côté OPPOSÉ :
+   on habille le fond du coin, on ne cache pas l'objet depuis la route. */
+/* LE SECTEUR EST LE QUART LIBRE, ET C'EST MESURÉ. Un coin est pincé entre DEUX chaussées :
+   la verdure n'a droit qu'au quadrant qui leur tourne le dos. Un secteur plus large ne
+   plante rien de plus — `addTree` refuse tout tronc à moins de 4,50 m d'une chaussée,
+   pour que le houppier ne surplombe jamais la route — il fait seulement disparaître des
+   arbres en silence : relevé, deux à quatre sur seize avec un secteur de 162°. */
+const COINS_VILLAGE = [
+  {nom:'NO', fab:vilCalvaire, x:-93, z:-126, ry:0,       a0:Math.PI,     aA:Math.PI/2},
+  {nom:'NE', fab:vilAbriBus,  x:127, z:-126, ry:0,       a0:Math.PI*1.5, aA:Math.PI/2},
+  {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ry:Math.PI, a0:Math.PI/2,   aA:Math.PI/2},
+  {nom:'SE', fab:vilEntree,   x:127, z:85,   ry:Math.PI, a0:0,           aA:Math.PI/2}
+];
+
 /* CE QUI REMPLIT LES BANDES ENTRE LES COMMERCES.
    `repartirBandes()` a réservé la place : les maisons qui encadrent les commerces de
    bouche, et les creux entre deux paquets. Reste à les poser.
@@ -6778,10 +6887,31 @@ function garnirBandes(putBush, putRock){
      ramèneraient les petits objets, et l'abri de bus comme le lavoir — ceux qui font le
      plus un village — ne seraient jamais posés. Chaque modèle est retiré de la liste une
      fois posé : quatre creux, quatre objets différents, sans compteur de rotation.
-     La liste est celle de VIL_MODELES au complet : quatre fabriques sur dix n'étaient
-     dans aucune partie, faute d'être citées ici. */
-  const MOB = [vilAbriBus, vilLavoir, vilTonnelle, vilBucher, vilEntree, vilPiqueNique,
-               vilBanc, vilCalvaire, vilPuits, vilPoteau];
+
+     ET CE QUI DÉCIDE EST L'EMPRISE, PAS LE RAYON. Le test portait sur `2r`, un rayon
+     CIRCONSCRIT qui surestime la place prise LE LONG de la bande — de 15 cm pour le
+     lavoir, de 1,15 m pour l'abri de bus. Mesuré : l'abri ratait le creux nord de DEUX
+     MILLIMÈTRES ET NEUF, et c'est pour cela qu'on n'en voyait jamais. Chaque fabrique
+     déclare donc sa largeur réelle `w` en plus de son rayon, et c'est elle qu'on compare
+     — la marge passe de 3 mm à 57 cm. Elle est déclarée et non mesurée à l'exécution : la
+     tonnelle tire son feuillage au sort, sa boîte englobante change d'un appel à l'autre,
+     et le choix du creux se mettrait à dépendre d'un tirage de feuilles.
+
+     TROIS MODÈLES N'Y SONT PLUS CANDIDATS : le lavoir, le calvaire et le panneau
+     d'entrée sont partis garnir les QUATRE COINS du monde, à la demande du joueur. Le
+     lavoir libère ainsi le grand creux du nord, où l'abri de bus entre enfin — c'est
+     l'« autre arrêt de bus » demandé, à la place même du lavoir. Restent sans emploi le
+     bûcher et, selon les largeurs, le banc ou le poteau : c'est l'état d'avant à
+     l'envers, où l'abri, le panneau et le poteau n'étaient nulle part. */
+  const MOB = [vilAbriBus, vilTonnelle, vilBucher, vilPiqueNique,
+               vilBanc, vilPuits, vilPoteau];
+  /* LA PLACE DES COINS SE RÉSERVE ICI, ET SANS UN SEUL TIRAGE. `garnirBandes` est appelée
+     AVANT le semis général, exprès pour que `libreDehors` sache ce qui est occupé ; les
+     objets de coin, eux, se posent tout à la fin, pour ne pas décaler le flux du hasard.
+     On déclare donc leur emprise maintenant et on les bâtit plus tard. Onze mètres, plus
+     les trois que `libreDehors` ajoute : une clairière de vingt-huit mètres de côté. */
+  for(const K of COINS_VILLAGE)
+    BANDE_LOTS.push({x0:K.x - 11, x1:K.x + 11, z0:K.z - 11, z1:K.z + 11});
   for(const C of BANDE_CREUX){
     const surZ = SUR_Z[C.dir], sortant = SORTANT[C.dir], bord = BORD_BANDE[C.dir];
     const centre = (C.a + C.b)/2, l = C.b - C.a;
@@ -6797,15 +6927,19 @@ function garnirBandes(putBush, putRock){
       let objet = null, iChoix = -1;
       for(let k = 0; k < MOB.length; k++){
         const cand = MOB[k]();
-        if(2*cand.r + 1.0 <= l && (!objet || cand.r > objet.r)){ objet = cand; iChoix = k; }
+        if(cand.w*VIL_ECHELLE + 1.0 <= l && (!objet || cand.r > objet.r)){ objet = cand; iChoix = k; }
       }
       if(objet){
         MOB.splice(iChoix, 1);
-        const q = pose(5.0, centre, objet, RY_BANDE[C.dir]);
+        /* ET ON RECULE D'AUTANT QU'ON A GRANDI. À cinq mètres du bord, un abri de bus
+           agrandi laisse son disque de collision mordre le bitume de 68 cm au sens de
+           `voieLibre` : le pilote automatique s'écarterait d'une chaussée libre. Le recul
+           suit donc l'échelle, et il reste 77 cm de bitume franc. */
+        const q = pose(5.0*VIL_ECHELLE, centre, objet, RY_BANDE[C.dir]);
         poserBloc(objet, q.x, q.z, q.ry);
         // L'emprise réservée est celle de l'objet, et non plus huit mètres pour tout le
         // monde : c'est elle qui écarte la verdure et les lots voisins.
-        const e = objet.r + 0.6;
+        const e = objet.r*VIL_ECHELLE + 0.6;
         BANDE_LOTS.push({x0:q.x - e, x1:q.x + e, z0:q.z - e, z1:q.z + e});
       }
     }
@@ -6833,11 +6967,17 @@ function poserBloc(quoi, x, z, ry){
   // plusieurs modèles pour trouver celui qui tient, et il serait absurde de reconstruire
   // celui qu'il vient de mesurer.
   const {g, r} = (typeof quoi === 'function') ? quoi() : quoi;
+  /* L'ÉCHELLE SE POSE ICI, ET NULLE PART AILLEURS. `fusionnerGroupe` cuit les primitives
+     dans le repère local du groupe — il multiplie par l'inverse de sa matrice monde —,
+     l'échelle du groupe survit donc à la fusion. Et le disque de collision suit : sans
+     cette multiplication, un abri de bus grandi de dix-huit pour cent garderait le rayon
+     de l'ancien et l'on entrerait dedans par le pignon. */
+  g.scale.setScalar(VIL_ECHELLE);
   g.position.set(x, 0, z);
   if(ry) g.rotation.y = ry;
   scene.add(g);
   fusionnerGroupe(g);
-  obstacles.push({x, z, r});
+  obstacles.push({x, z, r:r*VIL_ECHELLE});
   return g;
 }
 
@@ -13376,6 +13516,18 @@ autoEl.addEventListener('pointerdown', ouvrirPlan);
 // bon onglet — le menu reste accessible, mais on n'a plus à le traverser.
 for(const b of document.querySelectorAll('#regie .rgb'))
   b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); ouvrirFenetre(b.dataset.p); });
+/* ET CELUI QUE L'ÉTAPE ATTEND BAT. C'est le premier maillon de la chaîne demandée :
+   « je veux que le bouton pour la production pulse en jaune, et à l'intérieur l'onglet
+   pour acheter le moulin pulse en jaune aussi ». Le bouton mène à la fenêtre, la fenêtre
+   à l'onglet, l'onglet à la ligne — et les quatre lisent la MÊME fonction, de sorte
+   qu'aucun ne peut désigner autre chose que les trois autres. Le bouton s'éteint dès
+   que la fenêtre est ouverte : on y est, c'est à l'onglet de prendre le relais. */
+const regieBtns = Array.from(document.querySelectorAll('#regie .rgb'));
+function refreshRegie(){
+  const A = appelMenu();
+  for(const b of regieBtns)
+    b.classList.toggle('appel', !!(A && A.fen === b.dataset.p && fenActive !== A.fen));
+}
 document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenetre);
 document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
 function refreshAutoButton(){
@@ -13424,6 +13576,11 @@ function refreshVehButton(){
   vehEl.style.display = 'block';
   teindre(vehEl, classeGarage());
   vehEl.classList.toggle('no', !reste);
+  /* ET IL BAT QUAND C'EST LUI QU'ON ATTEND. Le même appel que le bouton de régie : la
+     mission désigne un engin qui manque, le bouton ACHETER bat, on l'ouvre, l'onglet
+     bat, puis la ligne. Le battement s'éteint dès que la fenêtre est ouverte. */
+  const A = appelMenu();
+  vehEl.classList.toggle('appel', !!(A && A.fen === 'achat' && fenActive !== 'achat' && reste));
   vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
                         : (reste ? 'RIEN À VENDRE À CE PALIER'
                                  : 'TOUT LE MATÉRIEL EST À LA FERME');
@@ -14359,10 +14516,30 @@ function enginTuto(){
    La garde sur `fen` est indispensable : les deux étapes de l'épandeur visent toutes
    deux un article nommé `engrais`, mais l'une au garage et l'autre au comptoir. Sans
    elle, les deux lignes battraient en même temps. */
-function menuTuto(){
+/* CE QUE L'ÉTAPE ATTEND DANS LES MENUS — TUTORIEL OU MISSION, ET C'ÉTAIT LA MOITIÉ
+   MANQUANTE. Le battement des menus n'existait que pour le TUTORIEL, qui écrit lui-même
+   sa cible dans la table : `fen` la fenêtre, `onglet` la vue, `art` la ligne. Passé le
+   premier quart d'heure, plus rien ne battait — et le joueur cherchait le moulin à farine
+   dans une fenêtre Production qui ne disait pas qu'elle le contenait.
+   Une mission ne peut pas écrire sa cible : elle en a trente, et l'objectif change tout
+   seul avec l'état de la ferme. On la DÉDUIT donc du juge — un objectif porte déjà ce
+   qu'il cherche (`quoi`) et sur quoi (`cle`) —, et le reste du fichier ne voit qu'une
+   fonction. Le bouton de régie, l'onglet et la ligne la lisent tous les trois : s'ils
+   divergeaient, ce serait exactement le défaut qu'on corrige. */
+function appelMenu(){
   const E = etapeTuto();
-  return (E && E.fen) ? E : null;
+  if(E) return E.fen ? E : null;        // pendant le tutoriel, lui seul décide
+  const O = objectifMission();
+  if(!O) return null;
+  if(O.quoi === 'module')   return {fen:'production', onglet:'metiers',  art:O.cle};
+  if(O.quoi === 'produire') return {fen:'stockage',   onglet:'possible', art:O.cle};
+  if(O.quoi === 'acheter')  return {fen:'comptoir',   onglet:'semences', art:O.cle};
+  if(O.quoi === 'materiel' && O.art)
+    return {fen:'achat', onglet:O.onglet || 'engins', art:O.art};
+  return null;
 }
+// L'ancien nom, gardé pour ce qui ne regarde que le tutoriel.
+function menuTuto(){ return appelMenu(); }
 /* LES TROIS QUARTS DU TRAVAIL, ET NON LE PREMIER SILLON.
    Le tutoriel se soldait au premier geste : deux mètres de labour et la fenêtre s'ouvrait
    déjà pour dire d'aller chercher le semoir, sur un champ qu'on venait à peine d'entamer.
@@ -14541,6 +14718,19 @@ function objectifMission(){
       return ici('atelier', 'atelier', 'ATELIER — ' + nomHaut(cle), {x:HALLE.x, z:HALLE.z});
     if(atelierA(cle) && potentiel(cle).sortie >= 1)
       return ici('atelier', 'produire', 'PRODUIRE ' + nomHaut(cle), {x:HALLE.x, z:HALLE.z});
+    /* ET LE MÉTIER QUI MANQUE EST UN OBJECTIF COMME UN AUTRE. Il ne l'était pas : une
+       mission qui demandait de la farine sans qu'on ait le moulin renvoyait au CHAMP,
+       parce que la recette remontait d'un cran jusqu'au blé — et l'on moissonnait un
+       silo déjà plein sans que rien ne dise qu'il manquait le moulin. On ne le montre
+       qu'une fois la MATIÈRE LÀ, comme pour « produire » : `potentiel` compte ce que la
+       recette tirerait du magasin, sans regarder si le métier existe. Tant qu'il n'y a
+       pas de blé, l'objectif reste le champ ; dès qu'il y en a, c'est le moulin. */
+    if(!atelierA(cle) && potentiel(cle).sortie >= 1){
+      const MOD = ATELIER_MODULES.find((x)=> x.cle === cle);
+      if(MOD && auNiveau(niveauDe('modules', cle)))
+        return ici('atelier', 'module', 'ACHETER ' + MOD.module.toUpperCase(),
+                   {x:HALLE.x, z:HALLE.z});
+    }
   }
 
   /* 5. LA FERME, ET S'IL LE FAUT CELLE DE LA MATIÈRE PREMIÈRE. Pour une farine dont on
@@ -14604,9 +14794,13 @@ function origineFerme(cle, ici, prof){
      pour des olives ; une enjambeuse plus rapide est un confort, et une mission ne
      demande jamais un confort. */
   const outil = outilManquant(cle);
-  if(outil && GARAGE)
-    return ici(GARAGE.nom, 'materiel', 'IL FAUT ' + outil.toUpperCase(),
-               {x:GARAGE.dropX, z:GARAGE.dropZ});
+  if(outil && GARAGE){
+    // La ligne du garage porte la clé de l'engin : c'est elle qui bat dans la liste.
+    const O2 = ici(GARAGE.nom, 'materiel', 'IL FAUT ' + outil.txt.toUpperCase(),
+                   {x:GARAGE.dropX, z:GARAGE.dropZ});
+    O2.art = outil.key; O2.onglet = 'engins';
+    return O2;
+  }
   if(champ){
     const VERBE = {recolter:'RÉCOLTER ', pousse:'ÇA POUSSE — ', semer:'AU CHAMP — '};
     return ici('champ', champ.quoi, VERBE[champ.quoi] + nomHaut(cle),
@@ -14652,9 +14846,9 @@ function outilManquant(cle){
   const c = CROPS[CROP_DE[cle]];
   if(!c) return null;
   const enj = MACHINES.find((m)=> m.key === 'enjambeuse');
-  if(c.perenne && enj && enj.verrou) return 'l\'enjambeuse';
+  if(c.perenne && enj && enj.verrou) return {txt:'l\'enjambeuse', key:'enjambeuse'};
   const moi = MACHINES.find((m)=> m.key === 'moisson');
-  if(!c.perenne && moi && moi.verrou) return 'la moissonneuse';
+  if(!c.perenne && moi && moi.verrou) return {txt:'la moissonneuse', key:'moisson'};
   return null;
 }
 /* La couleur d'un lieu, tranchée une fois pour tout l'écran. */
@@ -17736,7 +17930,7 @@ function ligneGraine(c){
       valider: (q)=>{ const pris = acheterIntrant(c.cle, q);
                       if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()
                         + (cuveServie > 0.5 ? ' — SEMOIR REMPLI' : '')); }
-    }) : null);
+    }) : null, c.cle);
 }
 function vueComptoirSemences(){
   titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(STOCK.max) + ' au hangar');
@@ -18207,10 +18401,11 @@ function lignePossible(R){
       (assez ? ' \u2014 ' + eur(pot.sortie*prixDe(R.cle)) : manque);
     const peut = monte && assez && place;
     article(parseInt(P.couleur.slice(1), 16), R.module + ' \u2014 ' + P.nom, det,
-      !monte ? (auNiveau(niv) ? '\u00c0 monter' : 'Niveau ' + niv + ' requis')
+      !monte ? (auNiveau(niv) ? '\u00c0 acheter' : 'Niveau ' + niv + ' requis')
              : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
       peut ? 'vert' : 'no',
-      peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null);
+      peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null,
+      R.cle);
   }
 }
 /* L'AIGUILLAGE DU PANNEAU N'A AUCUN REPLI : ces deux noms doivent continuer d'exister
@@ -18376,7 +18571,9 @@ function vueProdMetiers(){
          l'agence. Un verbe par geste, et le même partout. */
       !libre ? 'Niveau ' + niv : (ok ? 'Acheter' : 'Trop cher'),
       ok ? 'vert' : 'no',
-      ok ? ()=>{ ameliorerAtelier(M.cle); rafraichirEcran(); } : null);
+      ok ? ()=>{ ameliorerAtelier(M.cle); rafraichirEcran(); } : null,
+      // La clé, pour que la ligne du moulin batte quand la mission l'attend.
+      M.cle);
   }
 }
 
@@ -19902,6 +20099,7 @@ function loop(now){
     veillerBulles();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
     enginsEl.classList.toggle('appel', !!enginTuto());
+    refreshRegie();
     refreshChoix(); refreshService(); refreshJauges();
   }
   /* LES FLÈCHES SUIVENT LA CAMÉRA, PAS L'INTERFACE. Elles étaient rafraîchies avec le
