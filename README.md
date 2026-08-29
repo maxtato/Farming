@@ -4924,6 +4924,43 @@ Les deux cercles sont **bleus et restent allumés**, comme celui de la cuve à g
 la même raison : on ne va pas chercher de la graine parce qu'une lumière s'allume, on y va
 parce qu'on en manque — et la jauge du bandeau le dit déjà.
 
+## Plus de dalles, et du fourbi autour du silo
+
+**« Supprime les dalles des nouvelles citernes de ressources, et aussi de l'atelier et de ses
+évolutions. »** La cour de transformation est déjà une dalle de bitume d'un seul tenant, du
+chemin de sable jusqu'au bord est — c'était le premier arbitrage de sa refonte. Poser une
+seconde dalle dessus, c'était peindre du gris sur du gris et découper le sol en petits carrés
+là où il doit se lire d'un tenant. Trois disparaissent :
+
+- le socle des deux cuves à graines et à engrais ;
+- le **quai de béton** de l'atelier, qui grandissait en plus avec les paliers — sept mètres
+  sur quatre au premier, douze sur six au dernier — si bien que le découpage changeait de
+  forme à chaque métier acheté ;
+- le socle sous chacun des tanks de la fromagerie et du pressoir.
+
+Les cuves et les tanks descendent de l'épaisseur qu'ils n'ont plus : ils étaient dessinés
+*posés sur* leur socle et flottaient de dix-huit à trente centimètres une fois celui-ci
+retiré. Ce qui reste au sol devant l'atelier, ce sont les sacs, les palettes et les caisses :
+du travail posé, et non un dessin de sol.
+
+**« Mets des caisses et des objets à côté du silo pour donner des petits détails à cet
+espace. »** La tour se dressait sur vingt mètres de bitume vide : rien au sol, rien contre ses
+tôles. Elle a maintenant ses palettes de sacs, ses fûts, ses jerricans, ses caisses de bois,
+sa pile de pneus, sa brouette et son diable appuyé contre la tôle — plus un tas entre les deux
+réserves, qui sont deux magasins et devant lesquels ce qu'on range finit toujours par traîner.
+
+**Où, et pourquoi pas ailleurs.** Trois choses interdisent le reste de l'espace, et elles sont
+mesurées : la **voie d'accès** du silo, large de neuf mètres, court en x = 59 du nord au sud —
+c'est par là que tout arrive et repart ; l'**emprise** de la tour vaut 3,30 m de rayon ; et le
+bitume s'arrête à x = 43,2. Tout tient donc à l'ouest, au nord et au sud de la tour, entre son
+emprise et le bord de la dalle, plus le creux entre les deux cuves — le seul endroit du milieu
+de cour où rien ne roule, la voie s'arrêtant à 63,5 et les cercles d'approvisionnement
+commençant à 68,4.
+
+**Et rien de tout cela n'arrête un engin.** Aucun de ces objets ne pousse d'obstacle : c'est la
+règle que suit déjà le fourbi de l'atelier, et c'est la bonne, parce qu'un décor qui bloque un
+épandeur de douze mètres dans sa propre cour est un piège et non un détail.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

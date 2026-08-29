@@ -5825,14 +5825,17 @@ function buildCommerce(S){
    bout et qui obligeait à ressortir en marche arrière.
 
    Elles ne bougent jamais : on les cuit toutes les deux. */
-const BETON_R = 0x9BA3A8, BETON2_R = 0x848C91, INOX_R = 0xC9CFD3,
+// Le béton a disparu de cette palette en même temps que les dalles des deux cuves.
+const INOX_R = 0xC9CFD3,
       GRIS_R = 0x8A9298, GRIS2_R = 0x6E767C, VERT_R = 0x3E6B4E, VERT2_R = 0x2C5C3C,
       BLANC_R = 0xF0EDE4, NOIR_R = 0x2E3438, BLEU_R = 0x3E7CB8, ORANGE_R = 0xE07B24;
-// La dalle de propreté : un socle et son ombre portée, sous chaque cuve.
-function dalleRes(g, w, d){
-  g.add(box(w, 0.18, d, BETON_R, 0, 0.09, 0));
-  g.add(box(w + 0.3, 0.1, d + 0.3, BETON2_R, 0, 0.03, 0));
-}
+/* PAS DE DALLE SOUS LES CUVES. Elles en avaient une, comme le quai de l'atelier : un socle
+   de béton et son ombre portée. Le joueur : « supprime les dalles des nouvelles citernes de
+   ressources, et aussi de l'atelier et de ses évolutions. » Il a raison, et cela se voit
+   mieux qu'il ne le dit : la cour est DÉJÀ une dalle de bitume d'un seul tenant, du chemin
+   de sable jusqu'au bord est. Poser une deuxième dalle dessus, c'est peindre du gris sur du
+   gris et découper le sol en petits carrés là où il devrait se lire d'un tenant. Les cuves
+   se posent donc à même le bitume, comme les engins qui viennent s'y ranger. */
 // L'échelle à crinoline : la signature d'une cuve où l'on monte.
 function echelleRes(g, x, z, h){
   for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, GRIS_R, x + sx, h/2, z));
@@ -5855,7 +5858,6 @@ function jaugeRes(g, x, z, y0, h){
 function poserReserves(){
   // LA CUVE À GRAINES — verte, trapue, goulotte basse : le semoir se range à sa droite.
   const gr = new THREE.Group();
-  dalleRes(gr, 3.4, 3.4);
   gr.add(cyl(1.12, 1.12, 3.6, 12, VERT_R, 0, 1.98, 0));
   gr.add(cyl(1.12, 0.5, 0.55, 12, VERT_R, 0, 4.05, 0));                 // dôme
   for(let k = 0; k < 4; k++) gr.add(cyl(1.18, 1.18, 0.1, 12, VERT2_R, 0, 0.7 + k*1.0, 0));
@@ -5875,13 +5877,16 @@ function poserReserves(){
      7,36 m de haut — plus hautes qu'un engin, plus basses que le silo (12 m avec son dôme),
      ce qui est la place qu'elles occupent vraiment dans la cour. */
   gr.scale.setScalar(1.6);
-  gr.position.set(RES_GRAINE.x, 0, RES_GRAINE.z);
+  /* ET ELLE DESCEND DE L'ÉPAISSEUR DE LA DALLE QU'ELLE N'A PLUS. Le modèle était dessiné
+     POSÉ SUR son socle : le fond de la cuve, ses cercles et son armature commencent tous à
+     dix-huit centimètres. La dalle retirée, ils flottaient d'autant au-dessus du bitume. On
+     baisse donc le groupe entier de ces dix-huit centimètres, à l'échelle où il est posé. */
+  gr.position.set(RES_GRAINE.x, -0.18*1.6, RES_GRAINE.z);
   scene.add(gr); fusionnerGroupe(gr);
   obstacles.push({x:RES_GRAINE.x, z:RES_GRAINE.z, r:1.16*1.6 + 0.4});
 
   // LA CUVE À ENGRAIS — haute, blanche, perchée : elle se vide par gravité.
   const en = new THREE.Group();
-  dalleRes(en, 3.0, 3.0);
   for(const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
     en.add(box(0.2, 2.2, 0.2, GRIS2_R, sx*0.8, 1.28, sz*0.8));
     const d = box(0.14, 2.4, 0.14, GRIS2_R, sx*0.8, 1.3, 0);
@@ -5902,7 +5907,9 @@ function poserReserves(){
      repère de la cour. À 1,35 elle monte à 8,50 m : plus haute que sa voisine, ce qui est
      juste puisqu'elle se vide par gravité, et nettement sous la tour. */
   en.scale.setScalar(1.35);
-  en.position.set(RES_ENGRAIS.x, 0, RES_ENGRAIS.z);
+  // Même descente que la verte : les quatre pieds de sa charpente partaient du dessus de la
+  // dalle, et se retrouvaient en l'air sans elle.
+  en.position.set(RES_ENGRAIS.x, -0.18*1.35, RES_ENGRAIS.z);
   scene.add(en); fusionnerGroupe(en);
   obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.35 + 0.4});
 
@@ -5912,6 +5919,131 @@ function poserReserves(){
      ferme, du jeu continu, et le bleu est la couleur du jeu continu. */
   anneauAction(RES_GRAINE.quai.x,  RES_GRAINE.quai.z,  1.9, null, {coul:GUIDE.BLEU});
   anneauAction(RES_ENGRAIS.quai.x, RES_ENGRAIS.quai.z, 2.6, null, {coul:GUIDE.BLEU});
+}
+
+/* ---------- CE QUI TRAÎNE AUTOUR DU SILO ----------
+   « Mets des caisses et des objets à côté du silo pour donner des petits détails à cet
+   espace. » La tour se dressait sur une dalle vide de vingt mètres : rien au sol, rien
+   contre ses tôles, et la cour de transformation commençait pour de bon dix mètres plus
+   loin, devant l'atelier, qui a ses sacs et ses palettes depuis toujours.
+
+   OÙ, ET POURQUOI PAS AILLEURS. Trois choses interdisent le reste de l'espace, et elles
+   sont mesurées, pas devinées : la VOIE D'ACCÈS du silo, large de neuf mètres, court en
+   x = 59 du nord au sud — c'est par là que tout arrive et repart, et `voiesAcces` le dit ;
+   l'EMPRISE de la tour vaut 3,30 m de rayon ; et le bitume s'arrête à x = 43,2. Tout ce qui
+   suit tient donc à l'ouest et au nord de la tour, entre son emprise et le bord de la
+   dalle, là où rien ne roule jamais.
+
+   ET RIEN DE TOUT CELA N'ARRÊTE UN ENGIN. Aucun de ces objets ne pousse d'obstacle : c'est
+   la règle que suit déjà le fourbi de l'atelier — sacs, palettes, caisses — et c'est la
+   bonne, parce qu'un décor qui bloque un épandeur de douze mètres dans sa propre cour est
+   un piège et non un détail. Tout est sous un mètre vingt, sauf la pile de caisses, qui est
+   dans l'angle mort le plus lointain. */
+function caisseBois(g, x, y, z, w, h, d, ry){
+  const c = new THREE.Group();
+  c.add(box(w, h, d, ATL.BOIS, 0, 0, 0));
+  // deux lattes claires par face longue : c'est ce qui fait lire une CAISSE et non un bloc
+  for(const dy of [-h*0.26, h*0.26]){
+    c.add(box(w + 0.03, h*0.16, 0.04, ATL.BOIS2, 0, dy, d/2));
+    c.add(box(w + 0.03, h*0.16, 0.04, ATL.BOIS2, 0, dy, -d/2));
+  }
+  for(const sx of [-w/2, w/2]) c.add(box(0.06, h, d + 0.03, ATL.BOIS2, sx, 0, 0));
+  c.position.set(x, y, z); if(ry) c.rotation.y = ry;
+  g.add(c);
+}
+function futMetal(g, x, z, c, ry){
+  const f = new THREE.Group();
+  f.add(cyl(0.29, 0.29, 0.88, 10, c, 0, 0.44, 0));
+  for(const dy of [0.28, 0.60]) f.add(cyl(0.31, 0.31, 0.07, 10, 0x6E767C, 0, dy, 0));
+  f.add(cyl(0.1, 0.1, 0.05, 8, 0x8A9298, 0.12, 0.90, 0));
+  f.position.set(x, 0, z); if(ry) f.rotation.y = ry;
+  g.add(f);
+}
+function pneuTas(g, x, z, n){
+  for(let k = 0; k < n; k++)
+    g.add(cyl(0.46, 0.46, 0.19, 12, 0x2A2622,
+              x + (k % 2)*0.06, 0.10 + k*0.19, z + (k % 3)*0.05));
+}
+function jerrican(g, x, z, c, ry){
+  const j = new THREE.Group();
+  j.add(box(0.34, 0.46, 0.2, c, 0, 0.23, 0));
+  j.add(box(0.12, 0.07, 0.16, 0x2E3438, 0.08, 0.49, 0));       // bouchon
+  j.add(box(0.28, 0.05, 0.06, 0x2E3438, -0.02, 0.48, 0));      // poignée
+  j.position.set(x, 0, z); if(ry) j.rotation.y = ry;
+  g.add(j);
+}
+function brouette(g, x, z, ry){
+  const b = new THREE.Group();
+  b.add(box(0.66, 0.3, 0.9, 0x4A5359, 0, 0.52, 0));            // caisson
+  b.add(box(0.7, 0.06, 0.94, 0x39424A, 0, 0.68, 0));
+  b.add(cyl(0.22, 0.22, 0.09, 10, 0x2A2622, 0, 0.22, 0.66, 0, 0, Math.PI/2));
+  for(const sx of [-0.26, 0.26]){
+    b.add(box(0.06, 0.06, 1.5, 0x8A6A3A, sx, 0.42, -0.2));     // brancards
+    b.add(box(0.06, 0.34, 0.06, 0x6E767C, sx, 0.17, -0.62));   // pieds
+  }
+  b.position.set(x, 0, z); if(ry) b.rotation.y = ry;
+  g.add(b);
+}
+function diable(g, x, z, ry){
+  const d = new THREE.Group();
+  for(const sx of [-0.19, 0.19]) d.add(box(0.05, 1.15, 0.05, 0x8A9298, sx, 0.62, 0));
+  d.add(box(0.44, 0.05, 0.05, 0x8A9298, 0, 1.18, 0));
+  d.add(box(0.46, 0.05, 0.24, 0x6E767C, 0, 0.07, 0.12));       // bec
+  for(const sx of [-0.24, 0.24])
+    d.add(cyl(0.16, 0.16, 0.06, 10, 0x2A2622, sx, 0.16, -0.04, 0, 0, Math.PI/2));
+  d.position.set(x, 0, z);
+  d.rotation.x = -0.24;                                        // appuyé contre la tôle
+  if(ry) d.rotation.y = ry;
+  g.add(d);
+}
+function poserCourSilo(){
+  const g = new THREE.Group();
+  const T = SILO_TOUR;
+  // au nord-ouest : deux palettes chargées et leurs sacs, comme devant l'atelier
+  palettes(g, T.x - 5.5, T.z - 4.0, 2, ATL.BLE);
+  sacsEmpiles(g, T.x - 4.4, T.z - 4.4, 6);
+  // plein nord : des fûts et deux jerricans, contre le bord de la dalle
+  futMetal(g, T.x - 2.4, T.z - 5.1, 0xC0392B, 0.3);
+  futMetal(g, T.x - 1.6, T.z - 5.5, 0x3E6B4E, -0.2);
+  futMetal(g, T.x - 2.9, T.z - 5.9, 0x9BA3A8, 0.8);
+  jerrican(g, T.x - 3.7, T.z - 5.2, 0xE07B24, 0.4);
+  jerrican(g, T.x - 4.1, T.z - 5.5, 0xE8C24A, -0.3);
+  // plein ouest : des bidons vides et une caisse ouverte
+  futMetal(g, T.x - 7.4, T.z - 0.8, 0x6E767C, 0.15);
+  futMetal(g, T.x - 7.2, T.z + 0.2, 0x8A6A3A, -0.5);
+  caisseBois(g, T.x - 6.3, 0.35, T.z + 0.9, 1.0, 0.7, 0.78, 0.22);
+  // au sud-ouest : la pile de caisses, dans l'angle le plus lointain
+  caisseBois(g, T.x - 6.4, 0.4, T.z + 2.8, 1.1, 0.8, 0.85, 0.1);
+  caisseBois(g, T.x - 5.3, 0.4, T.z + 3.1, 1.1, 0.8, 0.85, -0.14);
+  caisseBois(g, T.x - 5.9, 1.2, T.z + 2.95, 1.05, 0.78, 0.8, 0.35);
+  caisseBois(g, T.x - 7.3, 0.36, T.z + 3.6, 0.9, 0.72, 0.7, 0.5);
+  // plein sud : des pneus et la brouette
+  pneuTas(g, T.x - 4.8, T.z + 5.6, 4);
+  pneuTas(g, T.x - 5.7, T.z + 5.2, 2);
+  brouette(g, T.x - 3.4, T.z + 4.8, 1.9);
+  // et le diable, appuyé contre la tôle de la tour
+  diable(g, T.x - 3.9, T.z + 1.3, -Math.PI/2);
+  /* AU SUD, DU CÔTÉ D'OÙ ON REGARDE. Les quatre tas ci-dessus sont derrière la tour pour la
+     caméra par défaut : posés seuls, ils ne se voyaient qu'en tournant autour. On en met
+     donc aussi sur le devant, en restant sous la limite de la voie d'accès — elle commence
+     à x = 54,5, et rien ici ne dépasse 53,2. */
+  palettes(g, T.x + 1.0, T.z + 5.8, 1, ATL.BOIS2);
+  sacsEmpiles(g, T.x + 0.4, T.z + 6.2, 4);
+  caisseBois(g, T.x + 0.4, 0.38, T.z + 7.2, 0.95, 0.76, 0.72, -0.28);
+  pneuTas(g, T.x + 1.2, T.z - 5.4, 3);
+  /* ET ENTRE LES DEUX RÉSERVES, qui sont deux magasins : ce qu'on y range finit toujours
+     par traîner devant. Le creux entre elles est le seul endroit du milieu de cour où rien
+     ne roule — la voie d'accès du silo s'arrête à x = 63,5, les cercles d'approvisionnement
+     commencent à 68,4. */
+  palettes(g, RES_GRAINE.x - 0.6, (RES_GRAINE.z + RES_ENGRAIS.z)/2 - 0.6, 2, ATL.BLE);
+  sacsEmpiles(g, RES_GRAINE.x + 0.5, (RES_GRAINE.z + RES_ENGRAIS.z)/2 - 0.9, 6);
+  caisseBois(g, RES_GRAINE.x + 0.2, 0.4, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 0.9,
+             1.05, 0.8, 0.8, 0.18);
+  jerrican(g, RES_GRAINE.x - 1.3, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 1.0, 0xE07B24, 0.5);
+  jerrican(g, RES_GRAINE.x - 1.7, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 0.6, 0x3E6B4E, -0.2);
+  scene.add(g);
+  // Rien de tout cela ne bouge : on le cuit, comme le silo et la maison de ferme.
+  fusionnerGroupe(g);
 }
 
 function buildFarm(){
@@ -5984,6 +6116,8 @@ function buildFarm(){
      l'appel est donc sûr même si l'un d'eux maigrit un jour. */
   fusionnerGroupe(silo);
   obstacles.push({x:SILO_TOUR.x,z:SILO_TOUR.z,r:3.3});
+
+  poserCourSilo();
 
   // tuyau de chargement, du silo jusqu'au-dessus du chemin
   const tuyau = new THREE.Group();
@@ -7417,13 +7551,12 @@ const ATL = {
    il n'a même plus d'anneau. Elles grandissaient en plus avec les paliers, si bien que
    trois places au premier cran devenaient trois places bien plus larges au huitième — un
    marquage qui s'étire n'est plus un marquage. Reste la dalle et son liseré. */
-function quaiBeton(x, z, w, d){
-  const g = new THREE.Group();
-  g.add(box(w, 0.16, d, ATL.BETON, 0, 0.08, 0));
-  g.add(box(w + 0.3, 0.1, d + 0.3, ATL.BETON2, 0, 0.03, 0));
-  g.position.set(x, 0, z);
-  return g;
-}
+/* LE QUAI DE BÉTON DE L'ATELIER A ÉTÉ RETIRÉ, pour la même raison que les dalles des deux
+   cuves : la cour de transformation est déjà une dalle de bitume d'un seul tenant, et un
+   second sol posé dessus la découpait en morceaux. Il grandissait en plus avec les paliers —
+   sept mètres sur quatre au premier, douze sur six au dernier —, si bien que le découpage
+   changeait de forme à chaque métier acheté. Ce qui reste au sol devant l'atelier, ce sont
+   les sacs, les palettes et les caisses : du travail posé, et non un dessin de sol. */
 function palettes(g, x, z, n, c){
   for(let k = 0; k < n; k++){
     g.add(box(1.2, 0.12, 0.9, ATL.BOIS, x, 0.24 + k*0.42, z));
@@ -7442,11 +7575,13 @@ function tremieAtl(g, x, z, r, h, c){
   for(const a of [0.7, 2.1, 3.5, 4.9])
     g.add(box(0.14, 1.2, 0.14, 0x8A9298, x + Math.cos(a)*r, 0.6, z + Math.sin(a)*r));
 }
+/* Les tanks de la fromagerie et du pressoir posaient chacun leur socle de béton — c'est une
+   dalle d'atelier de plus, et elle s'en va avec les autres. Le tank descend d'autant : il
+   était perché de trente centimètres SUR son socle, il repose maintenant sur le bitume. */
 function cuveAtl(g, x, z, r, h){
-  g.add(cyl(r, r, h, 12, ATL.METAL, x, h/2 + 0.3, z));
-  g.add(cyl(r*1.06, r*1.06, 0.16, 12, 0x8A9298, x, h + 0.3, z));
-  g.add(cyl(r*0.3, r*0.3, 0.5, 8, 0x8A9298, x, h + 0.6, z));
-  g.add(box(r*2.2, 0.3, r*2.2, ATL.BETON2, x, 0.15, z));
+  g.add(cyl(r, r, h, 12, ATL.METAL, x, h/2, z));
+  g.add(cyl(r*1.06, r*1.06, 0.16, 12, 0x8A9298, x, h, z));
+  g.add(cyl(r*0.3, r*0.3, 0.5, 8, 0x8A9298, x, h + 0.3, z));
 }
 function enseigneAtl(g, x, z, c, ry){
   const e = new THREE.Group();
@@ -7476,7 +7611,6 @@ function modeleAtelier(niveau){
     g.add(box(W*0.26, 0.12, 0.1, 0x8A9298, -W*0.24, H*0.17 + k*0.16, D/2 + 0.18));
   g.add(box(1.6, 1.2, 0.16, 0xCBD2D6, W*0.22, H*0.62, D/2 + 0.03));
   g.add(box(1.35, 1.0, 0.2, 0x44647A, W*0.22, H*0.62, D/2 + 0.07));
-  g.add(quaiBeton(0, D/2 + 4.0, 7 + niveau*0.56, 4.6 + niveau*0.13));
   sacsEmpiles(g, -W*0.24, D/2 + 1.6, 4);
   palettes(g, W*0.1, D/2 + 3.2, Math.min(3, Math.ceil(niveau/2)), 0xEDE3CC);
   tremieAtl(g, -W/2 - 1.6, -1.0, 1.0, 3.0 + niveau*0.16);            // trémie à céréales
