@@ -702,6 +702,12 @@ pas un sou. Elle est livrée pleine, et porte au-dessus d'elle la même étiquet
 que le silo et l'entrepôt : « Cuve 840 L / 3 000 L », qui vire à l'orange puis au rouge.
 Ce qui s'achète, c'est ce qu'on met dedans.
 
+**Le bac à engrais, lui, est vide.** Il contenait vingt-sept kilos, et c'était un cadeau
+sans usage : l'épandeur est sous verrou et coûte 250 €, on ne peut donc ni les épandre ni
+les revendre. Ils avaient en revanche un effet, et il était fâcheux — ils rendaient
+*vraie d'avance* l'étape « acheter de l'engrais » du préambule de la troisième mission, qui
+se testait par `STOCK.engrais > 0.5`. Voir [Un préambule, et un seul](#un-préambule-et-un-seul).
+
 **La tour du silo suit la terre.** Elle tenait 2 700 kg quel que soit l'état de la ferme :
 au palier 1, avec une seule parcelle qui rend 248 kg de blé, c'était onze récoltes d'avance
 — elle ne se remplissait jamais et ne décidait rien. Elle vaut maintenant **deux récoltes
@@ -1139,6 +1145,67 @@ sauté. La seconde : la ligne d'objectif ajoute **dix-neuf pixels** au bandeau, 
 à 6,1 % de l'écran dans le pire cas — quatre contrats et une mission ensemble. C'est ce que vaut
 le fait de savoir où aller, et l'on reste loin des 10,6 % dont ce banc est né.
 
+### Le bouton prend la couleur de son cercle
+
+Les cercles au sol disaient déjà trois choses — jaune la chaîne de la mission, vert quelque
+chose à prendre ici, bleu un service permanent — et **les boutons qui s'ouvraient dessus
+étaient ambre quoi qu'il arrive**. On arrivait au garage sans pouvoir dire, sans lire, si
+l'achat qu'on venait faire était l'étape jaune d'une mission — le pulvérisateur — ou une
+emplette ordinaire. Le vert était pire : il ne servait qu'à la ligne du contrat, mais le
+bouton *ACHETER* du garage était vert lui aussi, alors que vert veut dire « une mission à
+prendre » partout ailleurs.
+
+La couleur du bouton est maintenant **celle du cercle sous les roues**. On la voit du
+cercle, on la retrouve sur le bouton, et il n'y a rien de plus à apprendre.
+
+| ce qu'on lit | ce que ça veut dire |
+|---|---|
+| **jaune** | la mission t'envoie ici, et c'est ce bouton qu'elle attend |
+| **vert** | il y a quelque chose à prendre : un contrat, une mission |
+| **bleu** | un service ordinaire — tu es venu de toi-même |
+
+On lit **le cercle le plus proche**, et non le lieu : la colonne de choix s'ouvre aussi bien
+sur un commerce que sur le silo, l'entrepôt, une pâture ou l'atelier, et il aurait fallu
+savoir sur lequel on se tient. Ce savoir est déjà posé au sol — chaque cercle connaît sa
+position, sa condition d'allumage et sa couleur du moment — et le lire là a l'avantage de ne
+pouvoir **jamais mentir** : si le bouton et le cercle divergeaient, ce serait exactement le
+défaut qu'on cherche à corriger.
+
+Trois états gardent leur couleur, parce qu'ils ne parlent pas du *lieu* : le **gris** de ce
+qui est empêché ou impayable — c'est un état, « je ne peux pas », et c'est la seule
+distinction qui compte au moment d'appuyer — l'**aplat plein** d'un transfert en cours, et
+l'**effacé** du bouton retour. La teinte entre dans la signature qui décide de repeindre la
+colonne : sans elle, un panneau déjà peint resterait figé au moment où le cercle passe du
+bleu au jaune.
+
+**Le garage a deux boutons et un seul cercle.** Quand la mission y envoie chercher
+l'épandeur, le cercle passe au jaune — mais c'est *ACHETER* qu'elle attend, pas *AMÉLIORER*.
+Les teindre tous deux les rendrait indiscernables. Aucune mission de la campagne ne demande
+une amélioration — « une mission ne demande jamais un confort » — donc *AMÉLIORER* est
+**toujours bleu**, et *ACHETER* ne prend le jaune que si l'objectif du moment vise vraiment
+le matériel. Deux façons de le savoir, et il faut les deux : une étape guidée le dit par la
+fenêtre qu'elle vise, un objectif ordinaire par ce qu'il cherche. L'achat de parcelle, qui
+n'a pas de cercle — c'est un bord de champ, pas un quai — est bleu par la même règle : ce
+n'est jamais une étape de mission.
+
+### Là où la mission t'envoie, il n'y a que la mission
+
+On arrivait à la Coopérative avec les trente kilos du tutoriel et l'on y trouvait **deux
+boutons** : *VOIR LA MISSION* en vert, et *VENDRE BLÉ · 0,50 € / kg · 30 kg* juste dessous —
+le second bradant à moitié prix, en un geste, précisément la marchandise que le premier
+attendait. Le joueur guidé n'a pas à arbitrer entre les deux.
+
+La vente en vrac est donc retirée **au lieu de l'étape en cours**, et là seulement. Ailleurs,
+rien ne change : c'est même pour elle qu'on repasse à la Coopérative entre deux livraisons,
+et le marchand l'a promis en payant la première — *« je prends ce que vous avez »*. Une
+**livraison de contrat** n'est pas une vente en vrac : c'est le geste que la mission attend,
+et c'est justement celui qu'on garde.
+
+Pendant le tutoriel, le bouton dit **le geste, pas le mot « mission »** : *VENDRE 30 KG DE
+BLÉ*. On n'a pas encore appris qu'il existe des missions — on est venu vendre son blé, et
+c'est en le vendant que le marchand se présente et propose la première commande. La fenêtre
+qui s'ouvre derrière est la même.
+
 ## La chaîne
 
 Rien ne se vend deux fois de la même façon. Chaque matière a **au moins une vente
@@ -1497,20 +1564,54 @@ Sept étapes, sept phrases, dans l'ordre où on les fait :
 
 | | ce qu'il dit | franchi quand |
 |---|---|---|
-| **PRÉPARER LA PARCELLE** | attelle la charrue et travaille le sol | la parcelle porte un sillon |
-| **SEMER DU BLÉ** | attelle le semoir et sème ta première parcelle | quelque chose pousse |
-| **LAISSER POUSSER** | le blé mûrit, la moisson vient | le blé est mûr |
-| **PREMIÈRE RÉCOLTE** | moissonne au moins 30 kg de blé | 30 kg rentrés, où qu'ils soient |
+| **PRÉPARER LA PARCELLE** | attelle la charrue et travaille le sol | **les trois quarts** de la parcelle sont travaillés |
+| **SEMER DU BLÉ** | attelle le semoir et sème ta première parcelle | **les trois quarts** de ce qui est travaillé sont semés |
+| **LAISSER POUSSER** | le blé mûrit, la moisson vient | **les trois quarts** de ce qui est semé sont mûrs |
+| **PREMIÈRE RÉCOLTE** | moissonne au moins 30 kg de blé | 30 kg rentrés **et** les trois quarts coupés, ou la trémie pleine |
 | **STOCKER LA RÉCOLTE** | décharge ton blé dans le silo | 30 kg au silo |
 | **PRÉPARER LA LIVRAISON** | charge 30 kg de blé dans le pick-up | 30 kg à bord |
 | **PREMIÈRE VENTE** | rends-toi à la Coopérative agricole | on y prend la mission |
 
-Trois choses à comprendre sur ce mécanisme.
+Quatre choses à comprendre sur ce mécanisme.
 
 **Il ne déplace rien.** Chaque étape désigne un lieu que le guidage sait déjà éclairer — le
 champ, le silo, la Coopérative — et passe par `objectifMission()`, donc par le cercle mobile
 au sol, la flèche du bord et la ligne du bandeau. Pas une deuxième machinerie d'affichage :
 la même, avec d'autres mots. La greffe tient en cinq lignes.
+
+**Les trois quarts, et non le premier sillon.** Chaque étape de travail se soldait au
+premier geste : deux mètres de labour, et la fenêtre s'ouvrait déjà pour dire d'aller
+chercher le semoir, sur un champ qu'on venait à peine d'entamer. On croyait avoir *fini*
+quelque chose qu'on n'avait pas *commencé*, et l'on repartait au parc à outils en laissant
+les trois quarts de la parcelle en jachère. Le seuil est donc à 75 % : assez pour que le
+geste soit compris et que la fin ne soit plus qu'une formalité, pas assez pour qu'un angle
+oublié retienne tout le tutoriel.
+
+Et **chaque étape se mesure sur ce que la précédente a laissé**, non sur la parcelle
+entière. Semer les trois quarts d'un champ labouré aux trois quarts, c'est avoir semé tout
+ce qu'on pouvait semer : rapporté à la surface totale, cela ferait 56 % et l'étape ne
+passerait jamais. Le labour se compte donc sur la parcelle, le semis sur ce qui est
+travaillé, la pousse sur ce qui est semé, la moisson sur ce qui était mûr.
+
+La moisson a une seconde porte : **la trémie pleine**. Trente kilos coupés ne suffisent plus
+seuls, mais un champ qui rend plus que la trémie enfermerait le joueur — il devrait aller
+vider sans que rien le lui ait dit. Trémie pleine, l'étape passe : c'est exactement ce que
+la suivante demande.
+
+**Et le premier cercle jaune est sous la charrue.** *« Quand on commence avec la charrue, on
+ne sait pas où est la charrue. »* Le cercle se posait sur la parcelle, à cent mètres du parc
+à outils où la charrue attend, dételée, avec les trois autres : on envoyait labourer
+quelqu'un qui n'avait rien pour labourer. Tant que l'outil de l'étape n'est pas au crochet,
+l'étape **désigne l'outil** — un champ `outil` de plus dans la table, résolu par `lieuTuto`
+— et rien d'autre ne change, puisque c'est le même objectif : même cercle mobile, même
+flèche au bord, même ligne de bandeau. Attelée, le cercle repart au champ tout seul. Le
+semoir a le même traitement à l'étape d'après.
+
+Cela revient en partie sur une décision plus ancienne — *« le guidage vers une machine se
+dit dans les menus, et non dans le paysage »*, écrite quand une flèche jaune descendait sur
+la machine à prendre. La distinction tient : une **machine** se choisit dans le parc, où
+l'on va de toute façon, et le bouton du parc bat ; un **outil dételé** n'a pas de menu — il
+est posé dans l'herbe, et il n'y a que le paysage pour le montrer.
 
 **Il se cliquette, il ne se devine pas.** `CAMPAGNE.tuto` est un index qui n'avance jamais à
 reculons, et c'est indispensable : les étapes sont des **événements**, pas des états. On
@@ -1543,6 +1644,16 @@ missions, au jaune près, qui est la couleur du guidage. Le titre d'une étape p
 pixels et quatre d'interlettrage : « PRÉPARER LA PARCELLE » à vingt-six et onze déborde d'un
 écran de téléphone en paysage. La boîte n'attrape pas le doigt ailleurs que sur elle-même —
 on continue de conduire.
+
+**Mais une étape ne se met pas au milieu de l'écran, ni dans le noir.** La fin de mission,
+oui : c'est un temps d'arrêt, on a fini quelque chose, et l'on accepte volontiers que la
+vallée s'efface derrière. Une étape de tutoriel, non — elle arrive *pendant* qu'on conduit
+et elle explique ce qu'on doit faire *à l'écran* : poser le regard au milieu, sur un fond
+presque opaque, c'est cacher précisément la chose dont on parle. Elle remonte donc sous le
+bandeau du haut (`min(15vh, 104px)`) et sa boîte laisse voir au travers — de `#1B2429` plein
+à `rgba(27,36,41,.80)`. Le voile radial s'éclaircit d'autant : de 0,72 au centre à 0,30, et
+de 0,18 sur les bords à 0,06. Une classe suffit à séparer les deux cas — `#bravo.etape` — et
+la fin de mission garde son costume.
 
 **Le guidage jaune se poursuit dans les menus.** Le tutoriel disait « moissonne au moins
 30 kg » à qui pilotait encore son tracteur, sans dire laquelle des six machines de la cour
@@ -1588,6 +1699,24 @@ franchit aussi. Deux étapes qui **indiquent et
 ne bloquent rien** — livrer les cent cinquante kilos sans avoir acheté l'épandeur solde
 quand même la mission, et l'engrais redevient facultatif dès la suivante, comme le cahier
 des charges le demande.
+
+**Et l'étape de l'engrais ne s'affichait jamais.** *« La flèche va directement au champ. »*
+La ferme démarrait avec **vingt-sept kilos d'engrais au bac** — invendables, inépandables,
+puisque l'épandeur est sous verrou et coûte 250 €. Ils ne servaient qu'à une chose : rendre
+la seconde étape *vraie d'avance*, puisqu'elle se teste par `STOCK.engrais > 0.5`. On
+achetait l'épandeur, le cliquet franchissait les deux étapes **dans le même tour**, et la
+chaîne reprenait au champ sans qu'on soit jamais passé au comptoir.
+
+Le stock de départ est donc nul. C'est le correctif le plus petit qui soit vrai : le premier
+engrais du jeu s'achète, et c'est précisément ce que le préambule demande. L'autre forme
+possible — *« la quantité possédée a augmenté depuis l'ouverture de l'étape »* — obligerait à
+mémoriser un jalon de plus dans la sauvegarde pour la seule mission qui en a besoin.
+
+Le guidage de cette étape, lui, existait déjà et n'attendait qu'elle : l'anneau du comptoir
+passe au **jaune vif**, la flèche du bord y mène, l'onglet *Engrais & gazole* bat, puis la
+ligne de l'engrais. Un banc le vérifie maintenant de bout en bout — épandeur verrouillé,
+épandeur acheté, engrais acheté — au lieu de mesurer les trois seuls états d'une liste que
+le joueur ne voyait pas.
 
 Une sauvegarde d'avant le tutoriel le considère comme déjà vu : sans ce défaut, toute partie
 en cours se réveillerait à la première étape et s'entendrait expliquer comment labourer. Le
@@ -2436,6 +2565,12 @@ le joueur trouvait deux boutons jumeaux — « LIVRER LA COMMANDE — BLÉ 30 KG
 BLÉ » — sans rien qui dise lequel fait avancer la mission. Les deux la faisaient avancer,
 mais l'un vidait toute la benne. Tant que la mission attend *cette* marchandise *ici*, elle
 est donc seule à s'afficher ; la vente libre revient d'elle-même dès la commande comblée.
+
+La règle s'est élargie à tout le lieu, et pas seulement à la marchandise. Voir
+[Là où la mission t'envoie, il n'y a que la mission](#là-où-la-mission-tenvoie-il-ny-a-que-la-mission) :
+au **lieu de l'étape en cours**, aucune vente en vrac ne s'affiche — même quand il n'y a
+encore rien à livrer, ce qui est précisément le cas du tutoriel, où l'on arrivait à la
+Coopérative avec ses trente kilos et deux boutons pour les écouler.
 
 **Un curseur de quantité, mais pas pour un dépôt.** Il s'ouvrait sur TOUT transfert de
 plus de deux kilos : rentrer une benne au silo demandait deux appuis — l'action, puis

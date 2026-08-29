@@ -399,10 +399,14 @@
   #crop i b{display:block;height:100%;width:0;border-radius:4px;background:#F0C24A;
     transition:width .2s linear}
   #crop.no i b{background:#E8563F}
+  /* Le panneau « à vendre » n'a pas de cercle au sol — c'est un bord de champ, pas un
+     quai — mais il obéit à la même règle que les autres : acheter une parcelle est une
+     emplette ordinaire, jamais une étape de mission. Donc bleu, comme le garage hors
+     mission et comme le comptoir quand on y va de soi-même. */
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid #FAD201;color:#FAD201;white-space:nowrap;display:none}
+    border:2px solid #4AA8E0;color:#8FD3F5;white-space:nowrap;display:none}
   #buy.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
   #atelier{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
@@ -536,6 +540,18 @@
      vingt-six pixels et onze d'interlettrage déborde d'un écran de téléphone en
      paysage : les pages d'étape passent à quinze, et l'interlettrage à quatre. */
   #bravo.etape #brtitre{font-size:15px;letter-spacing:4px;margin-right:-4px}
+  /* ET UNE ÉTAPE DE TUTORIEL NE SE MET PAS AU MILIEU DE L'ÉCRAN, NI DANS LE NOIR.
+     La fin de mission, oui : c'est un temps d'arrêt, on a fini quelque chose, et l'on
+     accepte volontiers que la vallée s'efface derrière. Une étape de tutoriel, non :
+     elle arrive PENDANT qu'on conduit, et elle explique ce qu'on doit faire À L'ÉCRAN —
+     poser le regard au milieu, sur un fond presque opaque, c'est cacher précisément la
+     chose dont on parle. Elle remonte donc sous le bandeau du haut, et sa boîte laisse
+     voir au travers. Le voile radial s'éclaircit d'autant : de 0,72 au centre à 0,30, et
+     de 0,18 sur les bords à 0,06. */
+  #bravo.etape{justify-content:flex-start;padding-top:min(15vh,104px);
+    background:radial-gradient(ellipse at center, rgba(12,18,22,.30), rgba(12,18,22,.06) 70%)}
+  #bravo.etape #brboite{background:rgba(27,36,41,.80);
+    box-shadow:0 8px 22px rgba(0,0,0,.42)}
   #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;line-height:1.6}
   /* Ce que le client répond en payant : plus clair que le titre de la mission, pour
      qu'on voie d'un coup d'œil que c'est quelqu'un qui parle. */
@@ -588,11 +604,39 @@
     font-size:10px;letter-spacing:1.1px;padding:6px 16px}
   #choix .titre{font-size:9px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
     padding-bottom:2px}
+  /* LA COULEUR D'UN BOUTON EST CELLE DU CERCLE SOUS LES ROUES, ET C'EST TOUT.
+     Les cercles au sol disent déjà trois choses différentes — jaune, la chaîne de la
+     mission en cours ; vert, il y a quelque chose à prendre ici ; bleu, un service
+     permanent où l'on va quand on veut. Mais les boutons qui s'ouvraient dessus étaient
+     ambre quoi qu'il arrive, et le vert n'était réservé qu'à la ligne du contrat. On
+     arrivait donc au garage sans pouvoir dire, sans lire, si l'achat qu'on venait faire
+     était l'étape jaune d'une mission — le pulvérisateur — ou une emplette ordinaire.
+     Depuis que la couleur est la même des deux côtés, la question ne se pose plus : on
+     la voit du cercle, on la retrouve sur le bouton.
+     Les trois états qui ne parlent pas du LIEU gardent leur couleur : le gris de ce qui
+     est empêché, le plein de ce qui est en cours, l'effacé du retour. */
+  #choix.jaune .ch:not(.no):not(.on):not(.retour){border-color:#FFD21E;color:#FFD21E}
+  #choix.vert  .ch:not(.no):not(.on):not(.retour){border-color:#62D84E;color:#8BE07A}
+  #choix.bleu  .ch:not(.no):not(.on):not(.retour){border-color:#4AA8E0;color:#8FD3F5}
+  #choix.jaune .titre{color:#FFD21E}
+  #choix.vert  .titre{color:#8BE07A}
+  #choix.bleu  .titre{color:#8FD3F5}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
     border:2px solid #E8B44A;color:#E8B44A;white-space:nowrap;display:none}
   #service.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+  /* Le bandeau de service, l'achat et l'amélioration du garage suivent la même règle
+     que la colonne. `:not(.no)` parce que le grisé est un ÉTAT — « je ne peux pas » —
+     et non la couleur d'un lieu : il doit rester gris sur un cercle jaune comme sur un
+     bleu, sinon on perd la seule distinction qui compte au moment d'appuyer. */
+  #service.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
+  #service.vert:not(.no){border-color:#62D84E;color:#8BE07A}
+  #service.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
+  #veh.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
+  #veh.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
+  #atelier.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
+  #atelier.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
   /* écran d'accueil : il recueille aussi le premier geste, sans lequel aucun
      navigateur n'autorise le son */
   #accueil{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
@@ -12932,6 +12976,7 @@ function refreshVehButton(){
   const n = articlesAVendre().length;
   const reste = MACHINES.some((m)=> m.verrou) || TOOLS.some((T)=> T.verrou);
   vehEl.style.display = 'block';
+  teindre(vehEl, classeGarage());
   vehEl.classList.toggle('no', !reste);
   vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
                         : (reste ? 'RIEN À VENDRE À CE PALIER'
@@ -12953,6 +12998,13 @@ function refreshAtelier(){
      moissonneuse. Il compte maintenant TOUT ce qu'on possède, et ouvre la liste. */
   const n = ameliorationsPossibles().length;
   atelEl.style.display = 'block';
+  /* AMÉLIORER NE PEUT PAS ÊTRE JAUNE. Aucune mission de la campagne ne demande une
+     amélioration — « une mission ne demande jamais un confort », c'est écrit à l'endroit
+     où l'on choisit l'outil manquant. Ce bouton est donc TOUJOURS un achat ordinaire, et
+     c'est exactement ce que le bleu veut dire. Le laisser prendre le jaune du garage
+     ferait battre deux boutons de la même couleur pour deux choses différentes : celle
+     que la mission attend, et celle qu'on se paie. */
+  teindre(atelEl, 'bleu');
   atelEl.classList.toggle('no', !n);
   atelEl.textContent = n ? 'AMÉLIORER  ·  ' + n + ' CRAN' + (n > 1 ? 'S' : '')
                          : 'MATÉRIEL AU MAXIMUM';
@@ -13483,7 +13535,15 @@ function remplir(v, dt, source){
    unique — 450 kg toutes graines confondues, plus l'engrais à part — de sorte qu'on
    choisit encore ce qu'on stocke, ce qu'un bac par culture aurait supprimé. */
 const STOCK = {
-  graines: {ble: 68}, engrais: 27, max: 450,
+  /* PAS UN GRAMME D'ENGRAIS AU DÉPART, ET C'ÉTAIT UN BUG. La ferme en recevait
+     vingt-sept kilos — invendables, inépandables, puisque l'épandeur est sous verrou et
+     coûte 250 €. Ils ne servaient qu'à une chose : rendre VIDE le préambule de la
+     troisième mission. « Acheter de l'engrais » se testait par `STOCK.engrais > 0.5`,
+     déjà vrai depuis la première seconde de jeu — on achetait l'épandeur, le cliquet
+     franchissait les deux étapes d'un coup, et la flèche filait au champ sans qu'on soit
+     jamais passé au comptoir. Le stock de départ est donc nul : le premier engrais du
+     jeu s'achète, et c'est précisément ce que le préambule demande. */
+  graines: {ble: 68}, engrais: 0, max: 450,
   prixEngrais: PRIX_INTRANT.engrais,
   // 15 kg pour une parcelle standard, dit le barème : l'épandeur en puise donc 27 g
   // par cellule. C'est le seul intrant que le jeu compte encore d'une seule façon,
@@ -13769,18 +13829,23 @@ const SERVICES = {
       marchand parle. `CAMPAGNE.prise` reste donc faux tout du long, la Coopérative garde
       sa pastille verte de mission à prendre, et rien du reste du guidage ne bouge. */
 const TUTO = [
-  {cle:'labour', ou:'champ', engin:'t1', titre:'PRÉPARER LA PARCELLE',
+  {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA PARCELLE',
    txt:'PRÉPARER LA PARCELLE — attelle la charrue et travaille le sol',
-   fait:()=> parcelleTravaillee()},
-  {cle:'semis', ou:'champ', engin:'t1', titre:'SEMER DU BLÉ',
+   fait:()=> partParcelle('labour') >= PART_ETAPE},
+  {cle:'semis', ou:'champ', engin:'t1', outil:'semis', titre:'SEMER DU BLÉ',
    txt:'SEMER DU BLÉ — attelle le semoir et sème ta première parcelle',
-   fait:()=> PARCELS.some((p)=> p.owned && (p.pousseN || 0) > 0)},
+   fait:()=> partParcelle('semis') >= PART_ETAPE},
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
    txt:'LAISSER POUSSER — le blé mûrit, la moisson vient',
-   fait:()=> PARCELS.some((p)=> p.owned && (p.murN || 0) > 0)},
+   fait:()=> partParcelle('pousse') >= PART_ETAPE},
   {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
    txt:'PREMIÈRE RÉCOLTE — moissonne au moins 30 kg de blé',
-   fait:()=> bleRentre() >= 30},
+   /* Les trois quarts de ce qui était mûr, OU une trémie pleine : dans les deux cas il
+      est temps d'aller au silo, et c'est justement ce que dit l'étape suivante. Sans la
+      seconde porte, un champ qui rend plus que la trémie enfermerait le joueur — il
+      devrait aller vider sans que rien le lui ait dit. */
+   fait:()=> bleRentre() >= 30
+             && (partParcelle('moisson') >= PART_ETAPE || hopper >= HOP_MAX - 0.5)},
   {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
    txt:'STOCKER LA RÉCOLTE — décharge ton blé dans le silo',
    fait:()=> siloStock.ble >= 29.9},
@@ -13840,18 +13905,41 @@ function menuTuto(){
   const E = etapeTuto();
   return (E && E.fen) ? E : null;
 }
-/* CE QUI SE MESURE, ET CE QUE ÇA COÛTE. `resumeParcelle` rebalaie la grille d'une
-   parcelle — neuf cents cellules — et c'est le SEUL moyen du fichier de distinguer une
-   terre labourée d'une jachère : `parcelleDe()` ne rend jamais 'labourer'. On ne le paie
-   qu'à la toute première étape, et seulement tant qu'elle n'est pas franchie : le cliquet
-   la referme pour de bon dès le premier sillon. */
-function parcelleTravaillee(){
+/* LES TROIS QUARTS DU TRAVAIL, ET NON LE PREMIER SILLON.
+   Le tutoriel se soldait au premier geste : deux mètres de labour et la fenêtre s'ouvrait
+   déjà pour dire d'aller chercher le semoir, sur un champ qu'on venait à peine d'entamer.
+   On croyait avoir fini quelque chose qu'on n'avait pas commencé, et l'on repartait au
+   parc à outils en laissant les trois quarts de la parcelle en jachère.
+   Une étape de travail se solde donc aux TROIS QUARTS : assez pour que le geste soit
+   compris et que la fin ne soit plus qu'une formalité, pas assez pour qu'on attende le
+   dernier coin — un angle oublié ne doit pas retenir tout le tutoriel.
+
+   CHACUNE SE MESURE SUR CE QUE LA PRÉCÉDENTE A LAISSÉ, et non sur la parcelle entière.
+   Semer les trois quarts d'un champ labouré aux trois quarts, c'est avoir semé tout ce
+   qu'on pouvait semer : rapporter ce semis à la surface totale donnerait 56 % et l'étape
+   ne passerait jamais. Le labour se compte donc sur la parcelle, le semis sur ce qui est
+   travaillé, la pousse sur ce qui est semé, la moisson sur ce qui était mûr.
+
+   CE QUE ÇA COÛTE. `resumeParcelle` rebalaie la grille d'une parcelle — neuf cents
+   cellules — et c'est le SEUL moyen du fichier de distinguer une terre labourée d'une
+   jachère : `parcelleDe()` ne rend jamais 'labourer'. Le cliquet n'appelle QUE l'étape
+   courante, vingt fois par seconde, et seulement tant que le tutoriel tourne : une seule
+   parcelle est possédée à ce moment-là. */
+const PART_ETAPE = 0.75;
+function partParcelle(quoi){
+  let best = 0;
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     const R = resumeParcelle(p);
-    if(R && (R.laboure > 0 || R.seme > 0 || R.mur > 0)) return true;
+    const travaille = R.laboure + R.seme + R.mur;
+    let fait = 0, tout = 0;
+    if(quoi === 'labour'){      fait = travaille;      tout = R.n; }
+    else if(quoi === 'semis'){  fait = R.seme + R.mur; tout = travaille; }
+    else if(quoi === 'pousse'){ fait = R.mur;          tout = R.seme + R.mur; }
+    else {                      fait = R.chaume;       tout = R.chaume + R.mur; }
+    if(tout > 0) best = Math.max(best, fait/tout);
   }
-  return false;
+  return best;
 }
 // Le blé rentré, où qu'il soit : trémie, benne, silo. C'est ce que « récolter » veut dire.
 function bleRentre(){
@@ -13870,6 +13958,19 @@ function bleABord(){
   return t;
 }
 function lieuTuto(E){
+  /* L'OUTIL AVANT LE CHAMP. « Quand on commence avec la charrue, on ne sait pas où est
+     la charrue » : le premier cercle jaune du jeu se posait sur la parcelle, à cent
+     mètres du parc à outils où la charrue attend, dételée, avec les trois autres. On
+     envoyait donc labourer quelqu'un qui n'avait rien pour labourer.
+     Tant que l'outil de l'étape n'est pas au crochet, l'étape DÉSIGNE L'OUTIL — et rien
+     d'autre ne change : c'est le même objectif, donc le même cercle mobile, la même
+     flèche au bord et la même ligne de bandeau. Dès qu'il est attelé, le cercle repart
+     au champ tout seul. */
+  if(E.outil){
+    const T = TOOLS.find((x)=> x.key === E.outil);
+    if(T && !T.verrou && T.attached !== MACHINES[cur].v)
+      return {lieu:'outil', x:T.x, z:T.z};
+  }
   if(E.ou === 'champ'){
     const p = PARCELS.find((q)=> q.owned && !q.pature);
     return p ? {lieu:'champ', x:p.x, z:p.z} : null;
@@ -13889,10 +13990,14 @@ function lieuTuto(E){
    pour quand on l'a fermée. Le titre du texte est retiré : il est déjà au-dessus. */
 function annoncerEtape(E){
   const detail = (E.txt || '').split(' — ').slice(1).join(' — ');
+  // La phrase du bas dit où va le cercle, et le cercle peut être sur l'outil.
+  const L0 = lieuTuto(E);
+  const suite = (L0 && L0.lieu === 'outil')
+    ? 'Le cercle jaune est sur l\'outil, au parc de la ferme'
+    : (E.ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
+                        : 'Suis le cercle jaune — ' + E.ou);
   annoncerFenetre({titre:E.titre, sous:detail || E.txt || '', gains:[], etape:true,
-                   duree:5.0,
-                   suite:E.ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
-                                          : 'Suis le cercle jaune — ' + E.ou});
+                   duree:5.0, suite:suite});
 }
 function veillerTuto(){
   const L = listeEtapes();
@@ -14168,6 +14273,52 @@ function couleurPoste(cle, agir){
   return (!enMission() && agir && agir()) ? GUIDE.JAUNE : GUIDE.GRIS;
 }
 function couleurAnneau(S){ return couleurPoste(S.nom, ()=> quelqueChoseAFaire(S)); }
+/* LA COULEUR DU CERCLE SOUS LES ROUES, POUR QUE LES BOUTONS LA REPRENNENT.
+   On aurait pu redemander la couleur au LIEU — `couleurLieu('Garage')` — mais il aurait
+   fallu savoir, dans la colonne de choix, sur quel poste on se tient : un commerce, le
+   silo, l'entrepôt, une pâture, l'atelier, un champ. Ce savoir existe déjà, et il est
+   posé au sol : chaque cercle connaît sa position, sa condition d'allumage et sa couleur
+   du moment. On lit donc le cercle le plus proche, ce qui a l'avantage de ne pouvoir
+   jamais mentir — si le bouton et le cercle divergeaient, ce serait précisément le
+   défaut qu'on cherche à corriger. */
+const RAYON_LECTURE_ANNEAU = 9;
+function couleurAnneauProche(v){
+  let coul = null, best = RAYON_LECTURE_ANNEAU;
+  for(const A of ANNEAUX){
+    const d = Math.hypot(A.x - v.pos.x, A.z - v.pos.z);
+    if(d > best) continue;
+    if(A.actif && !A.actif()) continue;
+    best = d; coul = A.coulDyn ? A.coulDyn() : A.cA.getHex();
+  }
+  return coul;
+}
+function classeAnneau(v){
+  const c = couleurAnneauProche(v);
+  if(c === GUIDE.VERT) return 'vert';
+  if(c === GUIDE.BLEU) return 'bleu';
+  if(c === GUIDE.JAUNE || c === GUIDE.JAUNE_DOUX || c === JAUNE_ACTION) return 'jaune';
+  return '';
+}
+// Poser une teinte sur un bouton flottant, en retirant celle d'avant.
+function teindre(el, cl){
+  el.classList.remove('jaune', 'vert', 'bleu');
+  if(cl) el.classList.add(cl);
+}
+/* LE GARAGE A DEUX BOUTONS ET UN SEUL CERCLE. Quand la mission y envoie chercher
+   l'épandeur, le cercle passe au jaune — mais c'est ACHETER qu'elle attend, pas
+   AMÉLIORER. On ne recopie donc le jaune du lieu que sur le bouton que l'objectif
+   désigne vraiment ; l'autre reste bleu, c'est-à-dire « quand tu veux ».
+   Deux façons de le savoir, et il faut les deux : une étape guidée le dit par la fenêtre
+   qu'elle vise (`fen`), un objectif ordinaire par ce qu'il cherche (`quoi`). Pendant le
+   préambule de l'épandeur, le juge répond 'tuto' et ne dirait rien sans la première. */
+function classeGarage(){
+  const cl = classeAnneau(MACHINES[cur].v);
+  if(cl !== 'jaune') return cl || 'bleu';
+  const E = etapeTuto();
+  if(E) return E.fen === 'achat' ? 'jaune' : 'bleu';
+  const O = objectifMission();
+  return (O && O.quoi === 'materiel') ? 'jaune' : 'bleu';
+}
 (function poserAnneauxCommerces(){
   for(const S of SITES){
     S.dropX = S.quaiX; S.dropZ = S.quaiZ;
@@ -16338,6 +16489,7 @@ function refreshService(){
   hintEl2.style.opacity = (choixEl.style.display === 'flex') ? 0 : '';
   if(!a){ servEl.style.display = 'none'; servEl._f = null; return false; }
   servEl.style.display = 'block';
+  teindre(servEl, classeAnneau(MACHINES[cur].v));
   servEl.classList.toggle('no', !a.ok);
   servEl.textContent = a.txt;
   servEl._f = a.ok ? a.f : null;
@@ -16362,7 +16514,24 @@ function refreshChoix(){
      confirmer ce qui est déjà en train de se faire, et la montrer en « En cours »
      rouvrirait une colonne pour un geste sur lequel il n'y a rien à décider. */
   const dOffice = depotDOffice(m, actionsIci(m));
-  const L = actionsIci(m).filter((A)=> !memeAction(A, dOffice));
+  /* UNE ÉTAPE DE MISSION NE PARTAGE PAS L'AFFICHE. On arrivait à la Coopérative avec les
+     trente kilos du tutoriel et l'on y trouvait DEUX boutons : « voir la mission » en
+     vert, et « vendre blé · 0,50 € / kg · 30 kg » juste dessous — le second bradant
+     précisément la marchandise que le premier attendait, et à moitié prix. Le joueur
+     guidé n'a pas à arbitrer entre les deux : LÀ OÙ LA MISSION L'ENVOIE, IL N'Y A QUE LA
+     MISSION.
+     Ailleurs, rien ne change. La vente libre reste ce qu'elle est — c'est même pour elle
+     qu'on repasse à la Coopérative entre deux livraisons, et le marchand l'a promis en
+     payant la première : « je prends ce que vous avez ». Elle n'est retirée QU'AU LIEU
+     de l'étape en cours, et elle y revient dès que la mission est soldée.
+     Une LIVRAISON de contrat (`A.commande`) n'est pas une vente libre : c'est le geste
+     que la mission attend, et c'est justement celui qu'on garde. */
+  const Sic = siteIci(m.v);
+  const E0 = etapesMission()[0] || null;
+  const etapeIci = !!(E0 && Sic && E0.lieu === Sic.nom);
+  const L = actionsIci(m)
+    .filter((A)=> !memeAction(A, dOffice))
+    .filter((A)=> !(etapeIci && A.sens === 'vendre' && !A.commande));
   // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
   const serv = [].concat(actionService() || []);
   // Les empêchements comptent comme du contenu : un lieu où l'on ne peut rien faire
@@ -16372,13 +16541,13 @@ function refreshChoix(){
      propose quelque chose ne doit pas avoir l'air muet parce qu'on n'a rien dans la
      benne. C'est même le cas le plus fréquent — on passe devant, l'anneau vert est
      allumé, et l'on n'a rien à y livrer encore. */
-  const Sic = siteIci(m.v);
   const offreIci = (Sic && Sic.offre) ? Sic : null;
   const encoursIci = Sic ? contratChez(Sic.nom) : null;
   const misIci = (()=>{ const M0 = missionAPrendre();
                         return (Sic && M0 && M0.lieu === Sic.nom) ? M0 : null; })();
   if(!L.length && !serv.length && !emp.length && !offreIci && !encoursIci && !misIci){
-    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
+    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = '';
+                        choixEl.className = ''; choixSignature = ''; }
     return false;
   }
   /* TOUT CE QU'ON PEUT FAIRE ICI, D'UN SEUL COUP D'ŒIL.
@@ -16441,19 +16610,33 @@ function refreshChoix(){
   // La proposition passe AVANT tout le reste, y compris pendant un transfert : c'est la
   // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
   // mission de campagne passe avant elle, parce qu'elle mène le jeu.
-  if(misIci) lignes.unshift({txt:'VOIR LA MISSION', cls:'ch vert',
-                             f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, misIci)});
+  if(misIci){
+    /* PENDANT LE TUTORIEL, LE BOUTON DIT LE GESTE, PAS LE MOT « MISSION ». On ne sait pas
+       encore qu'il existe des missions : on est venu vendre trente kilos de blé, et c'est
+       en les vendant que le marchand se présente et propose la première commande. Le
+       libellé annonce donc la vente ; la fenêtre qui s'ouvre derrière est la même. */
+    const l0 = tutoActif() && misIci.lignes ? misIci.lignes[0] : null;
+    lignes.unshift({txt: l0 ? 'VENDRE ' + qteHaut(l0.cle, l0.need) + ' DE ' + nomHaut(l0.cle)
+                            : 'VOIR LA MISSION',
+                    cls:'ch vert',
+                    f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, misIci)});
+  }
   else if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch vert',
                                f:()=> ouvrirContrat(offreIci.offre, offreIci, true)});
   else if(encoursIci) lignes.push({txt:'CONTRAT EN COURS', cls:'ch vert',
                                    f:()=> ouvrirContrat(encoursIci, Sic, false)});
   if(!lignes.length){
-    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = ''; choixSignature = ''; }
+    if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = '';
+                        choixEl.className = ''; choixSignature = ''; }
     return false;
   }
-  const sig = titreTxt + '|' + lignes.map((x)=> x.cls + x.txt).join('|');
+  // La couleur du lieu entre dans la signature : sans elle, une colonne déjà peinte ne
+  // se repeindrait pas au moment où l'anneau passe du bleu au jaune.
+  const clLieu = classeAnneau(m.v);
+  const sig = clLieu + '|' + titreTxt + '|' + lignes.map((x)=> x.cls + x.txt).join('|');
   if(sig === choixSignature) return true;      // rien n'a changé : on ne repeint pas
   choixSignature = sig;
+  choixEl.className = clLieu;
   choixEl.innerHTML = '';
   const t = document.createElement('div'); t.className = 'titre'; t.textContent = titreTxt;
   choixEl.appendChild(t);
