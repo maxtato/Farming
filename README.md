@@ -1022,7 +1022,24 @@ comprendre au reste, et une partie d'avant les casiers se relit en reconstituant
 version de sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
 l'incrémenter rejetterait d'un coup toutes les parties en cours.
 
-Le banc `cuves.js` compte **39 contrôles** depuis ce chantier, contre 25, et sept d'entre eux
+**Et la place d'achat, c'est le hangar PLUS le casier.** Elle ne comptait que le hangar — or
+le hangar est un plafond *commun* à toutes les graines. Hangar plein de blé, le guidage disait
+« ACHETER LA SEMENCE — MAÏS », on allait au comptoir, et le rayon répondait « Hangar plein » :
+un ordre inexécutable, et la mission bloquée. L'achat sert pourtant la cuve dans la foulée, ce
+qui passe par le hangar n'y reste qu'un instant. On compte donc aussi le casier que l'outil
+peut recevoir — et seulement s'il y a un outil pour le recevoir, sans quoi le hangar
+déborderait pour de bon. Hangar plein **et** casier plein, l'achat est toujours refusé : le
+plafond veut encore dire quelque chose.
+
+**Et un cran d'amélioration ne détruit plus de graine.** Le code disait « le trop-plein
+retourne quand même au hangar plutôt que de s'évaporer » et faisait
+`Math.min(trop, grainesPlace())` : ce qui dépassait la place **disparaissait**. Mesuré sur une
+sauvegarde abîmée portant 1 200 kg dans un casier de 50 : **1 150 kg évaporés**. Ce qui ne
+tient nulle part reste maintenant dans le casier — il se videra au premier transvasement, là
+où une graine détruite ne revient pas — et `grainesPlace()` est relu à chaque casier, sans quoi
+deux casiers se partageraient deux fois la même place.
+
+Le banc `cuves.js` compte **40 contrôles** depuis ce chantier, contre 25, et huit d'entre eux
 énoncent ce que l'ancien contrat interdisait.
 
 On remplit sur la **cour de la ferme** — c'est là que sont le hangar et le parc à outils, donc
@@ -1362,6 +1379,20 @@ livraison de rien du tout n'est pas une livraison partielle, c'est un mensonge :
 ferme détient zéro kilo partout, silo, entrepôt et bennes comprises, il ne dit **rien**. La
 flèche s'éteint et le bandeau se tait. C'est désagréable, et c'est vrai.
 
+#### Et dix missions sur trente n'avaient aucun objectif
+
+Une contre-lecture adverse a parcouru les trente missions sur une ferme neuve, et en a
+trouvé **dix** qui rendaient `null` : les œufs du quatrième palier, le lait du huitième, les
+fromages, la laine, le miel. Pas un cercle au sol, pas une flèche, pas une ligne au bandeau,
+pour un tiers de la campagne — et la deuxième mission après le maïs.
+
+La cause tient en une ligne : `origineFerme` cherchait `CROPS[CROP_DE[cle]]`, qui n'existe ni
+pour un œuf ni pour du lait, et rendait `null`. Les deux passes qui précèdent ne parlaient
+qu'aux enclos **déjà posés**. Un produit d'élevage suit maintenant le même ordre qu'une
+culture : le palier, puis l'enclos à aménager sur une terre à soi — le bouton du bandeau y
+fait défiler les espèces — puis la bête à acheter à son quai. Mesuré après : **zéro mission
+sans objectif sur trente**.
+
 Le banc `guidage.js` compte **76 contrôles** depuis ce chantier, contre 69, et l'un des sept
 nouveaux parcourt la chaîne du maïs de bout en bout : culture non acquise → *ACQUÉRIR*,
 acquise et sans graine → *ACHETER LA SEMENCE*, semoir verrouillé → *IL FAUT LE SEMOIR* (onglet
@@ -1616,6 +1647,29 @@ jauge — et l'enseigne était peinte *par-dessus* (renderOrder 6 contre 4). Le 
 a une étiquette avec marqué entrepôt, et quand on livre à l'entrepôt il y a une étiquette
 qui se met en arrière-plan, ça fait doublon. » L'enseigne a été retirée ; l'étiquette de
 stock porte le nom.
+
+**Puis une contre-lecture adverse a mesuré ce que ça coûtait, et trois choses ont bougé.**
+
+- **Le canevas était deux fois et demie trop gros pour rien.** 560 × 206 = 461 Kio par
+  étiquette, contre 175 pour l'ancienne jauge — et la hauteur d'une lettre *en mètres* ne
+  dépend pas du canevas, seulement de sa taille en pixels et du rapport `PAN_LARGE / PAN_W`.
+  On payait donc 2,6 fois la mémoire pour une ligne de chiffres qui avait **rétréci de
+  32 %**, et pour 4,09 texels par pixel d'écran sans pyramide de mipmaps — c'est-à-dire un
+  texte *haché*, pas affiné. Le canevas descend à **470 × 200 (376 Kio, 3,4 texels par
+  pixel)** et les deux lignes grossissent : le nom à **1,22 m** d'em, la ligne de chiffres à
+  **1,08**, contre 1,04 pour la ligne unique d'avant. Plus lisible et moins lourd.
+- **Le rattrapage s'arrête plus tôt.** Le plancher à 0,55 autorisait un étirement de
+  **1,82**, et à ce régime la pile d'un enclos se recouvrait de 20 % de son aire, tandis que
+  l'étiquette de la cuve entrait de **58 cm** dans le fût qu'elle nomme. Le cosinus
+  réellement rencontré par les seize enseignes va de 0,74 à 0,97 : un plancher à **0,72** ne
+  les touche jamais et ne coupe que l'excès. Étirement maximum : 1,39. Les cotes suivent —
+  cuve 6,6 → 7,4 ; entrepôt 12,0 → 12,4 × l'échelle ; mangeoire 11,0 → 12,4 ; tank 5,6 →
+  5,2 ; parcelle 6,0 → **8,0**, parce qu'un olivier mûr monte à 4,59 m et que l'étiquette
+  descendait dans son houppier.
+- **Le rayon de réserve suivait la portée de douze mètres trop loin.** Entre 62 et 74 m,
+  une étiquette était *réservée* — donc un canevas et sa texture — pour n'être jamais peinte,
+  `montrerJauge` s'arrêtant avant. Mesuré au pire trajet : six panneaux retenus pour rien, et
+  le vivier poussé à dix-neuf. Deux mètres de battement suffisent.
 
 **Et les quatre étiquettes de la cour restent allumées.** Elles ne s'affichaient qu'en
 travaillant : l'atelier seulement pendant un lot, l'entrepôt seulement s'il contenait
@@ -2223,11 +2277,33 @@ bouton du monde peut encore y déposer d'un coup — le quai d'un enclos plein o
 l'élevage. Un rayon caché où l'on se trouve **réapparaît dans la barre**, sinon on ne
 saurait pas où l'on est.
 
-Une chose ne passait par aucun bouton du monde, et il a fallu la déménager : **le choix de
-l'espèce du prochain enclos**. Le message le disait lui-même — « appuie encore pour
+Trois choses ne passaient par aucun bouton du monde, et la contre-lecture les a comptées une
+par une : sur quinze achats et réglages, **treize** avaient leur porte, deux ne l'avaient pas.
+
+D'abord **le choix de l'espèce du prochain enclos**. Le message le disait lui-même — « appuie encore pour
 confirmer · MENU ÉLEVAGE POUR CHANGER D'ESPÈCE ». Une fois l'achat armé, un second bouton
 fait maintenant défiler les espèces ouvertes, et remet le compteur d'armement à quatre
 secondes à chaque passage : parcourir la liste ne désarme plus.
+
+Sauf que le premier jet posait ce bouton **après** le test du prix, et c'était un cul-de-sac
+mesuré : on désignait les cochons avec neuf cents euros en poche, le bandeau répondait
+« ENCLOS : IL MANQUE 1 900 € » en gris, et plus rien ne ramenait au choix — on pouvait payer
+un poulailler et ne plus jamais en poser un. Pire, `especeChoisie` n'est pas dans la
+sauvegarde : un rechargement le remettait sur les **vaches**, à trois mille cinq cents euros.
+Le défilement sort donc **toujours**, quel que soit l'argent et quel que soit le palier, et il
+sort en premier.
+
+Ensuite **agrandir l'enclos et rallonger la mangeoire**. Leurs deux boutons vivent dans le
+rayon Élevage, et la seule porte du monde qui y menait était la ligne « … · COMPLET » du
+bandeau — conditionnée à un enclos **plein**. Or la mangeoire est justement ce qu'on veut
+rallonger *avant* de partir en tournée ; il fallait d'abord acheter toutes les bêtes, et une
+seule bête embarquée pour la boucherie refermait la porte. Le quai d'un enclos porte
+maintenant cette ligne en permanence.
+
+Et enfin un détail qui n'était pas une porte manquante mais un mensonge : aux paliers 1 à 3,
+aucune espèce n'étant ouverte, le bouton de la parcelle annonçait « **VACHES — NIVEAU 8
+REQUIS** » — quatre paliers d'attente de trop, alors que le poulailler ouvre au quatrième. Il
+nomme désormais l'espèce la plus proche d'ouvrir.
 
 ## Un onglet, une question
 
@@ -4319,6 +4395,17 @@ englobante d'un objet fondu est celle de l'ensemble, donc quelques centaines de 
 partent au GPU quand un seul volume serait visible — relevé à **+4 %** sur la vue de la
 cour. C'est le compromis que la clôture du rang avait déjà appris à doser : on fond par
 objet, jamais d'un tenant.
+
+**Et la fusion a cassé une chose, exactement celle que son propre commentaire annonçait.**
+`fusionnerGroupe` retire les volumes qu'il avale et appelle `dispose()` sur leur géométrie ;
+tout ce qui bouge doit donc porter `userData.anime`. Le **tas de grain de la mangeoire** ne le
+portait pas — il est construit, ajouté au groupe, et le groupe est fusionné dans la foulée. Le
+jeu gardait son handle et continuait de l'étirer à chaque ration mangée, sur un maillage qui
+n'était plus dans la scène : le tas était **cuit à taille pleine** dans la géométrie, et
+l'auge paraissait pleine en permanence, pour les six espèces. Mesuré : boîte englobante de la
+mangeoire **vide** à 0,95 m avant, 1,10 après — les quinze centimètres sont le tas. Une
+contre-lecture adverse l'a trouvé, avec les deux captures côte à côte. Un drapeau, et c'est
+réglé.
 
 **Et sept matériaux n'en font plus qu'un.** `MAT_FUSION`, `treeMat`, `fenceMat`, `lampMat`,
 `bushMat`, `birdMat` et `traficMat` étaient **identiques ligne pour ligne** — même classe,

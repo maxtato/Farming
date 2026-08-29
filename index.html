@@ -4923,7 +4923,13 @@ function rattraperRaccourci(m){
   const ey = camera.position.y - m.position.y;
   const ez = camera.position.z - m.position.z;
   const pl = Math.sqrt(ex*ex + ez*ez);
-  m.scale.y = 1/Math.max(0.55, pl/Math.max(0.001, Math.sqrt(pl*pl + ey*ey)));
+  /* LE PLANCHER EST À 0,72, ET NON À 0,55. Il ne sert qu'à borner les cas pathologiques —
+     une étiquette haute presque à l'aplomb de la caméra —, et à 0,55 il autorisait un
+     étirement de 1,82 : mesuré, la pile d'un enclos se recouvrait alors de 20 % et
+     l'étiquette de la cuve entrait de 58 cm dans la cuve. Le cosinus VRAIMENT rencontré
+     par les seize enseignes du village va de 0,74 à 0,97 : le plancher à 0,72 ne les
+     touche donc jamais, il ne coupe que l'excès. Étirement maximum : 1,39. */
+  m.scale.y = 1/Math.max(0.72, pl/Math.max(0.001, Math.sqrt(pl*pl + ey*ey)));
 }
 function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
@@ -13188,13 +13194,23 @@ function appliquerPalier(cle, niv){
       /* UNE GRAINE NE SE PERD JAMAIS, même ici. Les crans ne font que grandir en jeu, et
          ce cas ne se présente qu'en relisant une sauvegarde abîmée ; le trop-plein
          retourne quand même au hangar plutôt que de s'évaporer. */
-      // Chaque casier est plafonné à part, puisque chacun l'est en jeu.
+      /* Chaque casier est plafonné à part, puisque chacun l'est en jeu — ET CE QUI NE
+         TIENT NULLE PART RESTE DANS LE CASIER. La version d'avant écrivait
+         `Math.min(trop, grainesPlace())` et jetait le reste : sur une sauvegarde abîmée
+         portant 1 200 kg dans un casier de 50, elle évaporait 1 150 kg. C'est le contraire
+         de ce que la ligne d'à côté promet — « une graine ne se perd jamais ». Un casier
+         qui reste au-dessus de son plafond se videra au premier transvasement ; une graine
+         détruite ne revient pas. `grainesPlace()` est relu à chaque casier, sans quoi deux
+         casiers se partageraient deux fois la même place. */
       for(const k of Object.keys(T.cuves || {})){
         const trop = T.cuves[k] - T.cuveMax;
         if(trop <= 0) continue;
-        T.cuves[k] = T.cuveMax;
-        if(k === 'engrais') STOCK.engrais = Math.min(STOCK.max, STOCK.engrais + trop);
-        else STOCK.graines[k] = (STOCK.graines[k] || 0) + Math.min(trop, grainesPlace());
+        const recu = (k === 'engrais')
+          ? Math.min(trop, Math.max(0, STOCK.max - STOCK.engrais))
+          : Math.min(trop, grainesPlace());
+        if(k === 'engrais') STOCK.engrais += recu;
+        else STOCK.graines[k] = (STOCK.graines[k] || 0) + recu;
+        T.cuves[k] -= recu;
       }
     }
   }
@@ -14582,7 +14598,19 @@ function acheterIntrant(clef, kg){
   const c = eng ? null : CROPS[CROP_DE[clef]];
   const prix = eng ? STOCK.prixEngrais : (c ? c.grainePrix : 0);
   if(!prix) return 0;
-  const place = eng ? Math.max(0, STOCK.max - STOCK.engrais) : grainesPlace();
+  /* LA PLACE, C'EST LE HANGAR *PLUS* LA CUVE. Elle ne comptait que le hangar — et comme
+     le hangar est un plafond COMMUN à toutes les graines, un hangar plein de blé rendait
+     l'achat de maïs impossible. Le guidage disait alors « ACHETER LA SEMENCE — MAÏS », on
+     allait au comptoir, et le rayon répondait « Hangar plein » : un ordre inexécutable, et
+     la mission bloquée. Or l'achat sert la cuve DANS LA FOULÉE, deux lignes plus bas :
+     ce qui passe par le hangar n'y reste qu'un instant. On compte donc aussi le casier
+     que l'outil peut recevoir — et seulement s'il y a un outil pour le recevoir, sans
+     quoi le hangar déborderait pour de bon. */
+  const outilCible = TOOLS.find((t)=> t.key === (eng ? 'engrais' : 'semis'));
+  const dansOutil = (outilCible && outilCible.cuveMax && !outilCible.verrou
+                     && !(c && c.perenne))
+    ? placeCuve(outilCible, eng ? 'engrais' : clef) : 0;
+  const place = (eng ? Math.max(0, STOCK.max - STOCK.engrais) : grainesPlace()) + dansOutil;
   const q = Math.min(kg, place, Math.floor(money/prix));
   if(q <= 0) return 0;
   money -= q*prix;
@@ -15136,6 +15164,42 @@ function origineFerme(cle, ici, prof){
   });
   if(P2) return ici('pature' + PATURES.indexOf(P2), 'collecter',
                     'LE TANK SE REMPLIT — ' + nomHaut(cle), {x:P2.quai.x, z:P2.quai.z});
+  /* ET SI CE PRODUIT VIENT D'UNE BÊTE QU'ON N'A PAS ENCORE.
+     Les deux passes ci-dessus ne parlent qu'aux enclos DÉJÀ posés. Quand il n'y en a
+     aucun, la chaîne tombait sur `CROPS[CROP_DE[cle]]` — qui n'existe pas pour un œuf ni
+     pour du lait — et rendait null : plus un cercle au sol, plus une flèche, plus une
+     ligne au bandeau. Mesuré : DIX missions sur trente, du quatrième au treizième palier,
+     restaient sans le moindre guidage — œufs, lait, fromage, laine, miel. C'est le tiers
+     de la campagne, et c'est exactement le défaut que le juge venait de corriger pour le
+     maïs, resté vivant dans l'autre filière.
+     On nomme donc l'étape qui manque, dans le même ordre que pour une culture : le
+     palier, l'enclos, la bête. */
+  const ESP = ESP_CLES.find((k)=>{
+    const E = ESPECES[k];
+    return E && (E.produit === cle || (E.second && E.second.cle === cle));
+  });
+  if(ESP){
+    const E3 = ESPECES[ESP];
+    if(!auNiveau(niveauDe('especes', ESP))) return null;   // rien à faire avant le palier
+    // Un enclos de cette espèce, mais vide : c'est une bête qu'il faut, et elle s'achète
+    // à son quai.
+    const P3 = PATURES.find((q)=> q.espece === ESP);
+    if(P3) return ici('pature' + PATURES.indexOf(P3), 'betail',
+                      'ACHETER ' + E3.un.toUpperCase(), {x:P3.quai.x, z:P3.quai.z});
+    // Aucun enclos : il s'aménage sur une parcelle à soi, et le bouton du bandeau y fait
+    // défiler les espèces.
+    const terre = PARCELS.find((p)=> p.owned && !p.pature);
+    if(terre) return ici('champ', 'enclos',
+                         'AMÉNAGER UN ENCLOS — ' + E3.pluriel.toUpperCase(),
+                         {x:terre.x, z:terre.z});
+    if(peutAcheterParcelle()){
+      const F3 = PARCELS.find((p)=> !p.owned);
+      if(F3) return ici('champ', 'parcelle',
+                        'IL FAUT UNE PARCELLE POUR LES ' + E3.pluriel.toUpperCase(),
+                        {x:F3.x, z:F3.z});
+    }
+    return null;
+  }
   const c0 = CROPS[CROP_DE[cle]];
   if(!c0) return null;
   const CO = SITES.find((x)=> x.fournisseur);
@@ -16168,6 +16232,14 @@ function posteMangeoire(E, x, z, cap){
     for(const sz of [-2.6, 2.6]) g.add(box(1.6, 0.9, 0.4, 0x6B5335, 0, 0.45, sz));
     tas = box(0.95, 0.5, 5.2, 0xE0C07A, 0, 0.85, 0);
   }
+  /* LE TAS NE SE FOND PAS : IL BOUGE. `majTasAuge` l'étire et le monte à chaque ration
+     mangée, et il s'efface quand l'auge est vide. Sans ce drapeau, la fusion de
+     l'aménagement l'avalait dans la géométrie cuite, appelait `dispose()` sur sa
+     géométrie et rendait quand même son handle : le jeu continuait de piloter un
+     maillage qui n'était plus dans la scène, et la mangeoire restait pleine à jamais —
+     pour les six espèces. C'est exactement le piège que `fusionnable()` documente, et
+     c'est ce drapeau qui l'évite. */
+  tas.userData.anime = true;
   g.add(tas);
   poserEquipement(g, x, z, cap || 0, 0.9, 3.0);
   return {groupe:g, tas};
@@ -17370,7 +17442,17 @@ let especeChoisie = 0;
 const caleEspece = ()=>{
   if(ouvert('especes', ESP_CLES[especeChoisie])) return;
   const k = ESP_CLES.findIndex((c)=> ouvert('especes', c));
-  especeChoisie = k >= 0 ? k : especeChoisie;
+  /* ET QUAND AUCUNE N'EST OUVERTE, ON DÉSIGNE LA PLUS PROCHE DE L'ÊTRE. Il rendait la
+     main sans rien changer : `especeChoisie` restait à zéro, c'est-à-dire les VACHES, et
+     le bouton de la parcelle annonçait « VACHES — NIVEAU 8 REQUIS » du premier au
+     troisième palier — quatre paliers d'attente de trop, alors que le premier enclos, le
+     poulailler, ouvre au quatrième. */
+  if(k >= 0){ especeChoisie = k; return; }
+  let bas = -1;
+  ESP_CLES.forEach((c, i)=>{
+    if(bas < 0 || niveauDe('especes', c) < niveauDe('especes', ESP_CLES[bas])) bas = i;
+  });
+  if(bas >= 0) especeChoisie = bas;
 };
 /* CE QU'ON PEUT FAIRE ICI NE SE LIT QU'À L'ARRÊT. Le bandeau s'allumait dès qu'on
    entrait dans le rayon d'un lieu, donc en roulant : on traversait sa propre parcelle
@@ -17435,6 +17517,13 @@ function actionService(){
   const pat = patureProche(v);
   if(pat){
     const P = pat.P, E2 = ESPECES[P.espece] || ESPECES.vache, out = [];
+    /* L'ÉCRAN DE L'ENCLOS S'OUVRE DE TOUTE FAÇON. Il ne s'ouvrait que par la ligne
+       « COMPLET », donc uniquement quand l'enclos était PLEIN : agrandir l'enclos et
+       rallonger la mangeoire — les deux réglages qu'on veut faire AVANT de partir en
+       tournée — n'étaient atteignables qu'après avoir acheté toutes les bêtes, et une
+       seule bête embarquée pour la boucherie refermait la porte. Depuis que le rayon
+       Élevage a quitté la barre du menu, c'était la seule porte, et elle était à sens
+       unique. Elle est maintenant toujours là, en queue de liste. */
     if(P.betes.length >= P.places)
       out.push({txt:E2.pluriel.toUpperCase() + ' — ' + P.betes.length + ' / ' + P.places +
                     ' · COMPLET', ok:true, f:()=> ouvrirPanneau('elevage')});
@@ -17446,6 +17535,10 @@ function actionService(){
     else
       out.push({txt:E2.un.toUpperCase() + ' : IL MANQUE ' +
                     Math.ceil(E2.prix - money).toLocaleString('fr-FR') + ' €', ok:false});
+    if(P.betes.length < P.places)
+      out.push({txt:'ENCLOS ' + E2.pluriel.toUpperCase() + ' — ' + P.betes.length + ' / ' +
+                    P.places + '  ·  AGRANDIR, MANGEOIRE', ok:true,
+                f:()=> ouvrirPanneau('elevage')});
     const cap = capaciteBetail(m), prets = betesAdultes(P);
     if(E2.prixBete > 0 && cap > 0 && prets > 0 && (v.betail || 0) < cap){
       const n = Math.min(cap - (v.betail||0), prets);
@@ -17471,12 +17564,34 @@ function actionService(){
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
     const E = ESPECES[ESP_CLES[especeChoisie]];
     const niv = niveauDe('especes', E.cle);
-    if(!auNiveau(niv))
-      return {txt:E.pluriel.toUpperCase() + ' — NIVEAU ' + niv + ' REQUIS', ok:false};
     const prixE = prixPature(E.cle);
+    /* CHANGER D'ESPÈCE PASSE AVANT TOUT LE RESTE, ET C'ÉTAIT UN CUL-DE-SAC.
+       Le prix et le palier étaient testés AVANT le bouton de défilement : on désignait
+       les cochons avec neuf cents euros en poche, le bandeau répondait « ENCLOS : IL
+       MANQUE 1 900 € » en gris — et plus rien ne ramenait au choix, puisque le rayon
+       Élevage a quitté la barre du menu. On pouvait payer un poulailler et ne plus jamais
+       en poser un. Pire : `especeChoisie` n'est pas dans la sauvegarde, si bien qu'un
+       rechargement le remettait sur les vaches, à trois mille cinq cents euros.
+       Le défilement sort donc TOUJOURS, quel que soit l'argent et quel que soit le
+       palier, et il sort en premier. */
+    const ouvertes = ESP_CLES.map((c, k)=> k).filter((k)=> ouvert('especes', ESP_CLES[k]));
+    const autreEspece = ()=>{
+      if(ouvertes.length < 2) return null;
+      const suiv = ouvertes[(ouvertes.indexOf(especeChoisie) + 1) % ouvertes.length];
+      const S3 = ESPECES[ESP_CLES[suiv]];
+      return {txt:'PLUTÔT ' + S3.pluriel.toUpperCase() + '  ·  ' +
+                  prixPature(S3.cle).toLocaleString('fr-FR') + ' €', ok:true,
+              f:()=>{ especeChoisie = suiv; if(armePature > 0) armePature = 4;
+                      showHint('ENCLOS RÉGLÉ SUR ' + S3.pluriel.toUpperCase()); }};
+    };
+    const A3 = autreEspece();
+    if(!auNiveau(niv))
+      return [{txt:E.pluriel.toUpperCase() + ' — NIVEAU ' + niv + ' REQUIS', ok:false}]
+             .concat(A3 ? [A3] : []);
     const ok = money >= prixE;
-    if(!ok) return {txt:'ENCLOS : IL MANQUE ' + Math.ceil(prixE-money).toLocaleString('fr-FR') + ' €',
-                    ok:false};
+    if(!ok) return [{txt:'ENCLOS : IL MANQUE ' +
+                         Math.ceil(prixE-money).toLocaleString('fr-FR') + ' €', ok:false}]
+                   .concat(A3 ? [A3] : []);
     // Deux temps, comme avant, mais le premier sert aussi à choisir l'espèce : chaque
     // appui fait défiler les quatre, le deuxième appui sur la même confirme.
     /* ET L'ESPÈCE SE CHOISIT ICI, PLUS AU MENU. Le message disait « MENU ÉLEVAGE POUR
@@ -17484,16 +17599,10 @@ function actionService(){
        savait faire, et le rayon Élevage n'est plus dans la barre du menu. Une fois armé,
        un second bouton fait défiler les espèces OUVERTES — et le compteur d'armement se
        remet à quatre secondes à chaque passage, sinon parcourir la liste désarmerait. */
-    const ouvertes = ESP_CLES.map((c, k)=> k).filter((k)=> ouvert('especes', ESP_CLES[k]));
     if(armePature > 0){
       const out2 = [{txt:'CONFIRMER ' + E.pluriel.toUpperCase() + ' — LA CULTURE SERA PERDUE',
                      ok:true, f:()=>{ armePature = 0; acheterPature(p, E.cle); }}];
-      if(ouvertes.length > 1){
-        const suiv = ouvertes[(ouvertes.indexOf(especeChoisie) + 1) % ouvertes.length];
-        out2.push({txt:'PLUTÔT ' + ESPECES[ESP_CLES[suiv]].pluriel.toUpperCase(), ok:true,
-                   f:()=>{ especeChoisie = suiv; armePature = 4;
-                           showHint('ENCLOS RÉGLÉ SUR ' + ESPECES[ESP_CLES[suiv]].pluriel.toUpperCase()); }});
-      }
+      if(A3) out2.push(A3);
       return out2;
     }
     return {txt:E.pluriel.toUpperCase() + ' ' + prixE.toLocaleString('fr-FR') + ' € — TOUCHER POUR ARMER',
@@ -18027,12 +18136,23 @@ function refreshJauges(){
         quatre lieux de la cour se nomment en permanence, dans le rayon d'affichage. */
 // La largeur du panneau, et sa mise en page. Le tracé se fait dans l'espace PAN_W × LH,
 // et la géométrie reprend le rapport : changer PAN_LARGE ne déforme rien.
+/* LA TAILLE DU CANEVAS EST UNE TAILLE DE TEXELS, PAS UNE TAILLE DE LETTRES.
+   La hauteur d'une lettre EN MÈTRES ne dépend que de deux nombres : sa taille en pixels
+   et le rapport `PAN_LARGE / PAN_W`. Le canevas, lui, ne décide que du sur-échantillonnage
+   — et il n'y a pas de pyramide de mipmaps (elle se reconstruirait à chaque kilo chargé),
+   donc trop de texels par pixel HACHE le texte au lieu de l'affiner.
+   Première version : 560 × 206, soit 4,09 texels par pixel d'écran et 461 Kio par
+   étiquette — 2,6 fois l'ancienne jauge, pour une ligne de chiffres qui avait RÉTRÉCI de
+   32 %. Mesurée sur une capture agrandie, elle était hachée. On resserre le canevas à
+   470 × 200 — 3,4 texels par pixel, 376 Kio — et l'on grossit les deux lignes : le nom
+   passe à 1,22 m d'em et la ligne de chiffres à 1,08, contre 1,04 pour la ligne unique de
+   l'ancienne jauge. Plus lisible ET moins lourd, les deux à la fois. */
 const PAN_LARGE = 11.0;
-const PAN_W = 560, PAN_NOM = 52, PAN_SOUS = 36;
+const PAN_W = 470, PAN_NOM = 52, PAN_SOUS = 46;
 // Trois étages, toujours dessinés au même endroit : c'est ce qui permet de REPEINDRE le
 // canevas d'une étiquette au lieu de la reconstruire, vingt fois par seconde s'il le faut.
-const PAN_YNOM = 30, PAN_YACC = 92, PAN_YSOUS = 110, PAN_YBAR = 160, PAN_HBAR = 22;
-const PAN_H = PAN_YBAR + PAN_HBAR + 24;               // 206
+const PAN_YNOM = 24, PAN_YACC = 84, PAN_YSOUS = 96, PAN_YBAR = 158, PAN_HBAR = 22;
+const PAN_H = PAN_YBAR + PAN_HBAR + 20;               // 200
 const PAN_RATIO = PAN_H/PAN_W;
 function peindrePanneauCv(c, nom, accent, sous, barre, k, coul){
   c.clearRect(0, 0, PAN_W, PAN_H);
@@ -18053,7 +18173,7 @@ function peindrePanneauCv(c, nom, accent, sous, barre, k, coul){
     t -= 2; c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
   }
   c.fillText(nom, PAN_W/2, PAN_YNOM + PAN_NOM/2);
-  c.fillStyle = accent; c.fillRect(PAN_W/2 - 155, PAN_YACC, 310, 5);
+  c.fillStyle = accent; c.fillRect(PAN_W/2 - 130, PAN_YACC, 260, 5);
   if(sous){
     c.fillStyle = 'rgba(255,255,255,.82)';
     let t2 = PAN_SOUS;
@@ -18064,7 +18184,7 @@ function peindrePanneauCv(c, nom, accent, sous, barre, k, coul){
     c.fillText(sous, PAN_W/2, PAN_YSOUS + PAN_SOUS/2);
   }
   if(barre){
-    const bx = 40, bw = PAN_W - 80;
+    const bx = 34, bw = PAN_W - 68;
     c.fillStyle = 'rgba(255,255,255,.16)';
     c.fillRect(bx, PAN_YBAR, bw, PAN_HBAR);
     c.fillStyle = coul;
@@ -18274,7 +18394,11 @@ function majJauges(dt){
            qte(CJ.cle, CJ.total)
          : (bati ? 'à l\'arrêt  ·  ' + bati + ' métier' + (bati > 1 ? 's' : '')
                  : 'halle nue  ·  aucun métier'),
-      CJ ? (CJ.total > 0 ? (CJ.total - CJ.reste)/CJ.total : 0) : 0,
+      // `null` et non zéro : un atelier à l'arrêt n'a pas d'avancement à montrer, et une
+      // glissière vide en permanence sous « halle nue » ne mesure rien. C'est le cas que
+      // le peintre annonçait — « un lieu sans barre n'en dessine pas » — et qu'aucun
+      // appelant n'utilisait.
+      CJ ? (CJ.total > 0 ? (CJ.total - CJ.reste)/CJ.total : 0) : null,
       CJ ? RJ.couleur : '#8A9298', dt);
   }
 
@@ -18292,7 +18416,9 @@ function majJauges(dt){
        recouvrement, 83 % de la hauteur de l'enseigne, et l'enseigne peinte par-dessus.
        « Ça fait doublon ; je veux que tout apparaisse sur la même étiquette, comme pour
        le silo. » L'enseigne a été retirée de buildFarm, celle-ci porte le nom. */
-    montrerJauge(jaugeEntrepot, HANGAR.x, 12.0*BAT_ECHELLE, HANGAR.z, 'Entrepôt',
+    // 12,4 et non 12,0 : au pire étirement, le bas de la plaque descendait de dix-huit
+    // centimètres dans le faîtage (11,09 m) qu'elle surplombe.
+    montrerJauge(jaugeEntrepot, HANGAR.x, 12.4*BAT_ECHELLE, HANGAR.z, 'Entrepôt',
       et > 0.5 ? Math.round(et) + ' kg sur ' + Math.round(ENTREPOT.stockMax()) +
                  (gros ? '  ·  ' + nomDe(gros) : '')
                : 'vide  ·  ' + Math.round(ENTREPOT.stockMax()) + ' kg de place',
@@ -18306,7 +18432,10 @@ function majJauges(dt){
        moment de commander du gros au comptoir, à 1,48 € au lieu de 1,85 à la pompe. */
   if(CARBU.cuveMax > 0){
     const kc = CARBU.cuve/CARBU.cuveMax;
-    montrerJauge(jaugeCuve, CUVE_POS.x, 6.6, CUVE_POS.z, 'Cuve à gazole',
+    /* 7,4 ET NON 6,6. Le sommet de la cuve est à 4,00 m ; au pire étirement, le bas de la
+       plaque tombait à 3,42 — cinquante-huit centimètres DANS le fût qu'elle nomme, et
+       peinte par-dessus puisqu'une étiquette de lieu ignore le test de profondeur. */
+    montrerJauge(jaugeCuve, CUVE_POS.x, 7.4, CUVE_POS.z, 'Cuve à gazole',
       litres(CARBU.cuve) + ' sur ' + litres(CARBU.cuveMax),
       kc, kc < 0.15 ? '#E8563F' : (kc < 0.35 ? '#F0A030' : '#8BE07A'), dt);
   } else cacherJauge(jaugeCuve, dt);
@@ -18318,7 +18447,13 @@ function majJauges(dt){
   for(const P of PATURES){
     const E2 = ESPECES[P.espece] || ESPECES.vache;
     const cx = P.p.x, cz = P.p.z;
-    const proche = Math.hypot(v.pos.x - cx, v.pos.z - cz) < JAUGE_PORTEE + 12;
+    /* LE RAYON DE RÉSERVE SUIT LA PORTÉE. Il était douze mètres plus large que la portée
+       d'affichage : dans l'anneau 62–74 m, une étiquette était RÉSERVÉE — donc un canevas
+       de 376 Kio et sa texture — pour n'être jamais peinte, `montrerJauge` sortant avant.
+       Mesuré au pire trajet : six panneaux retenus pour rien, et le vivier forcé de monter
+       à dix-neuf. Deux mètres de battement suffisent à ne pas rendre et reprendre une
+       étiquette à chaque oscillation du bord. */
+    const proche = Math.hypot(v.pos.x - cx, v.pos.z - cz) < JAUGE_PORTEE + 2;
     if(!P.j2) P.j2 = {};
     if(!proche){
       if(P.jauge){ cacherJauge(P.jauge, dt); if(P.jauge.sp.material.opacity < 0.03) rendreJauge(P); }
@@ -18336,7 +18471,13 @@ function majJauges(dt){
       const reste = (rations > 0.0001 && P.grain > 0.5)
         ? ' · ' + Math.max(1, Math.round(P.grain/rations/60)) + ' min'
         : (P.grain <= 0.5 ? ' — À REMPLIR' : '');
-      montrerJauge(prendreJauge(P), cx, 11.0, cz, 'Mangeoire',
+      /* LA PILE D'UN ENCLOS SE DESSERRE. La mangeoire était à 11,0 et le tank à 5,6 :
+         5,40 m d'écart pour des plaques de 4,68 m qui s'étirent. Elles se recouvraient de
+         20 % de leur aire à distance d'approche, et la barre de la mangeoire tombait
+         entièrement dans le fond du tank. Il faut 6,50 m au plus fort étirement : on en
+         met 7,40, de quoi laisser un filet de ciel entre les deux plaques au lieu de les
+         faire se toucher. */
+      montrerJauge(prendreJauge(P), cx, 12.4, cz, 'Mangeoire',
         Math.round(P.grain) + ' kg' + reste,
         kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
     } else if(P.jauge) cacherJauge(P.jauge, dt);
@@ -18355,7 +18496,7 @@ function majJauges(dt){
       const txt = B2
         ? qteNom(A2.cle, A2.v) + '  ·  ' + qteNom(B2.cle, B2.v)
         : nomQte(gros.cle, gros.v);
-      montrerJauge(prendreJauge(P.j2), cx, 5.6, cz, E2.pluriel,
+      montrerJauge(prendreJauge(P.j2), cx, 5.2, cz, E2.pluriel,
         txt + (kp > 0.995 ? ' — CUVE PLEINE' : (nourries ? '' : ' — À L\'ARRÊT')),
         kp, kp > 0.995 ? '#E8563F' : (nourries ? R2.couleur : '#8A9298'), dt);
     } else if(P.j2.jauge){
@@ -18366,14 +18507,15 @@ function majJauges(dt){
 
   // — les parcelles semées : où en est la pousse, et quand tout est mûr
   for(const p of PARCELS){
-    const proche = Math.hypot(v.pos.x - p.x, v.pos.z - p.z) < JAUGE_PORTEE + 12;
+    const proche = Math.hypot(v.pos.x - p.x, v.pos.z - p.z) < JAUGE_PORTEE + 2;
     if(!p.owned || p.pature || !p.pousseN || !proche){
       if(p.jauge){ cacherJauge(p.jauge, dt); if(p.jauge.sp.material.opacity < 0.03) rendreJauge(p); }
       continue;
     }
     const C2 = CROPS[p.pousseCrop] || CROPS[0];
     const mur = p.murN >= p.pousseN;
-    montrerJauge(prendreJauge(p), p.x, 6.0, p.z, C2.nom,
+    // 8,0 : un olivier mûr monte à 4,59 m, et l'étiquette descendait dans son houppier.
+    montrerJauge(prendreJauge(p), p.x, 8.0, p.z, C2.nom,
       mur ? 'à moissonner' : Math.round(p.pousse*100) + ' % de pousse',
       p.pousse, mur ? '#FFD21E' : '#8BE07A', dt);
   }
@@ -18460,7 +18602,11 @@ function ligneGraine(c){
       ok ? ()=> acquerirCulture(c) : null, c.cle);
     return;
   }
-  const place = grainesPlace();
+  // La place que le comptoir annonce est celle que l'achat utilisera : le hangar PLUS le
+  // casier du semoir, qui se sert dans la foulée.
+  const sem0 = TOOLS.find((t)=> t.key === 'semis');
+  const place = grainesPlace() +
+    ((sem0 && sem0.cuveMax && !sem0.verrou && !c.perenne) ? placeCuve(sem0, c.cle) : 0);
   const max = Math.min(place, Math.floor(money/Math.max(0.01, c.grainePrix)));
   const ok = max >= 1;
   article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
@@ -20066,7 +20212,15 @@ function remettreAEchelle(S){
   if(Array.isArray(S.machines)) for(const m of S.machines)
     if(m && m.cargo){ m.cargo.load = q(m.cargo.load); m.cargo.capacite = c(m.cargo.capacite); }
   if(Array.isArray(S.outils)) for(const T of S.outils)
-    if(T){ T.load = q(T.load); T.capacite = c(T.capacite); }
+    if(T){
+      T.load = q(T.load); T.capacite = c(T.capacite);
+      /* ET LES CASIERS AUSSI. Sans effet aujourd'hui — aucune sauvegarde en circulation ne
+         porte à la fois l'ancienne échelle et les cuves, celles-ci étant arrivées douze
+         commits après la remise à l'échelle — mais le trou serait rouvert par la première
+         partie qui les aurait tous les deux, et il coûte une ligne à ne pas laisser. */
+      T.cuveQ = q(T.cuveQ);
+      if(T.cuves) for(const k in T.cuves) T.cuves[k] = q(T.cuves[k]);
+    }
   if(Array.isArray(S.patures)) for(const P of S.patures)
     if(P){ P.lait = q(P.lait); P.lait2 = q(P.lait2); P.grain = q(P.grain); }
   if(S.campagne){
