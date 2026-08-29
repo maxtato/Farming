@@ -4048,6 +4048,82 @@ en ligne droite passe de 18 m à 8 — la longueur d'un attelage, de quoi finir 
 ranger, pas de quoi couper. Relevé sur 45 trajets : **0 oblique, 0 abordé de travers,
 12,6 m pour le plus long des derniers trajets**.
 
+### Le trajet refait : parallèle, à cheval, à demi-recouvrement, un rond, dehors
+
+Le cahier des charges a été redonné mot pour mot, et il change quatre choses.
+
+**On entrait en queue de billard.** Le plan commençait AU COIN de la parcelle. Le pilote
+y menait la machine par la grille des chemins, donc en travers, et le premier point
+qu'elle visait ensuite était le coin d'EN FACE, à trente mètres : elle franchissait la
+limite de biais et se redressait tout le long du premier côté. Mesuré au moment exact où
+l'axe passe le bord, sur neuf cas — trois parcelles, trois outils : **26°, 38°, 69°, 71°
+de travers**, et jusqu'à **1,81 m** de décalage à la ligne du bord. On pose donc un point
+d'ALIGNEMENT en amont du coin, sur la ligne du premier côté : les trois premiers points du
+plan sont alors colinéaires, il n'y a plus de virage à l'entrée du champ, et le dernier se
+fait dehors, sur le chemin. Avec le pied au plancher cela ne suffisait pas — le rayon de
+braquage est proportionnel à la vitesse, et il restait dix degrés — alors le point
+d'alignement ET le coin de départ portent `lent` : on entre au pas, comme un conducteur.
+Après : **1,1° au pire des neuf cas, 0,12 m d'écart maximal, 0,02 m en moyenne**.
+
+La longueur de l'alignement n'est pas choisie, elle est bornée par le couloir : 9,60 m
+entre deux parcelles, et ce n'est pas la machine qu'il faut y faire tenir mais l'OUTIL,
+traîné quatre à six mètres derrière. À neuf mètres du coin, la charrue est à treize —
+trois mètres et demi dans le champ d'en face, et `work()` ne demande jamais à qui
+appartient la cellule qu'il peint. L'échelle descend donc de neuf mètres à 2,20 ; avec
+quatre échelons seulement, l'épandeur de douze mètres n'en trouvait aucun sur deux
+parcelles et entrait de biais là où cela se voit le plus.
+
+**Le premier tour se fait à cheval sur le bord.** « Une roue sur la terre et une roue dans
+l'herbe, bien au milieu » : le retrait de base tombe à zéro, l'axe de la machine roule SUR
+la limite, et l'outil travaille exactement la moitié de sa largeur. Deux planchers
+subsistent, et aucun n'est un confort. La clôture de la ferme longe trois colonnes de
+parcelles : son mur de collision est à vingt centimètres DEHORS et le dépassement de
+virage mesure 2,20 m, donc sur ces bords-là seulement la machine s'écarte de
+`VIRAGE_BORD − jeu`, soit **2,00 m**. Et le voisin : l'épandeur au dernier cran fait
+vingt-quatre mètres, sa demi-largeur dépasserait le couloir, donc le débord est borné à
+huit mètres — ce qui ne rentre aucun outil de seize mètres ou moins. Mesuré : **48 bords
+libres à zéro exactement, 16 bords adossés à 2,00 m, zéro clôture couchée**.
+
+**Chaque tour reprend la MOITIÉ du précédent**, et non plus le tiers. Le pas vaut une
+demi-largeur d'outil : le premier passage est à cheval sur le bord, donc à moitié sur
+l'herbe ; le deuxième est à cheval sur la trace du premier, donc à moitié sur la terre
+brute ; et ainsi jusqu'au centre. Ce qu'on paie est un tour de plus par parcelle et le
+tiers du temps de passe — la charrue met 73,7 s au lieu de 55,9 sur une parcelle de
+30,4 × 19,6. Ce qu'on achète est une couverture qui ne dépend plus de la finesse du
+virage : sur les neuf cas, le pire passe de **84,9 % à 98,0 %**, et sur les douze passes du
+banc de clôture, de **84,3 % à 96,9 %**.
+
+**Et la spirale s'arrêtait mal.** Son test de fin portait sur les DEUX dimensions à la
+fois. Une parcelle n'est presque jamais carrée : le petit côté se referme le premier, et
+la spirale continuait à glisser le long du grand — un aller de onze mètres, un retour de
+huit, un aller de six, un retour de quatre, TOUS SUR LA MÊME LIGNE. Cinq points pour
+quatre passages superposés au milieu du champ, et les deux derniers confondus, ce qui
+donnait un cap d'arrivée nul et retournait le rond du centre sur lui-même. Elle s'arrête
+maintenant dès qu'UN côté descend sous la moitié du pas : la bande qui reste est plus
+mince que ce qu'un seul passage couvre, donc elle est déjà faite.
+
+**Au centre, un rond, une fois.** C'était un rectangle de quatre points — quatre angles
+droits pris au pas, ce qui se voit et ne ressemble à rien. C'est un octogone de 3,20 m de
+rayon, tangent à la dernière passe et pris dans le sens où la spirale tournait déjà.
+Puis on part un tout petit peu, on revient au centre, et sur cette lancée on sort du
+champ : deux points, pas un de plus, et le sens de l'écart se déduit du sens de la sortie
+— on le demande à `pointSortie` elle-même, faute de quoi la machine faisait son écart vers
+l'ouest pour sortir à l'est, puis ressortait à l'ouest en retraversant tout le champ
+qu'elle venait de faire. Le point de retour se valide sur la MACHINE et non sur l'outil :
+l'outil étant traîné, il était déjà de l'autre côté du centre au moment où la machine
+arrivait au bout de l'écart, le point se consommait en une image, et le demi-tour n'avait
+pas lieu.
+
+**Et une machine en automatique ne travaille que la parcelle de son plan.** `work()` ne
+demandait jamais à qui appartient la cellule qu'il peint : il suffisait que son état
+figure dans `from`. Un tracteur qui rejoint son chantier traîne son outil derrière lui, et
+l'outil rasait le coin du champ d'à côté en passant — relevé au banc de clôture, quatre
+cellules de la terre du voisin retournées à l'image soixante-huit, avant même que la passe
+ait commencé. Cela ne coûte aucune couverture : ce qui déborde de la parcelle visée, c'est
+du chemin, et un chemin est déjà ignoré. La conduite à la main n'est pas concernée — au
+volant on travaille où l'on veut, et le banc le vérifie dans les deux sens : **0 cellule
+en automatique, 51 au volant**, sur la même traversée.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
