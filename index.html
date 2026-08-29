@@ -1065,13 +1065,6 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 1, 400);
    rapport. La carte d'ombre, elle, ne bouge pas : elle est centrée sur la cible, pas
    sur la caméra. */
 const CAM_BASE = new THREE.Vector3(38, 62, 38);
-/* LE CAP DE TOUS LES PANNEAUX. La caméra regarde toujours du même côté : son décalage
-   n'est jamais tourné, seulement divisé par le zoom. L'azimut du regard vaut donc
-   atan2(38, 38) = π/4, une fois pour toutes, et c'est le cap auquel on plante les
-   étiquettes — celles des commerces comme celles des lieux de la ferme.
-   IL EST DÉCLARÉ ICI, ET PAS PLUS BAS AVEC LE RESTE DES ÉTIQUETTES : `poseBulle` s'en
-   sert dès la construction du village, cinq mille lignes avant. */
-const CAP_PANNEAU = Math.atan2(CAM_BASE.x, CAM_BASE.z);
 const FOG_BASE = {pres:150, loin:260, far:400};
 const ZOOM = {pc:75, min:55, max:160};   // 75 % au départ : on voit venir de plus loin
 const CAM_OFF = CAM_BASE.clone();
@@ -4901,55 +4894,55 @@ function bulleTex(nom, toit, sous){
   tex.generateMipmaps = false;
   return {tex, ratio: LH/LW};
 }
-/* L'ÉTIQUETTE RESTE DEBOUT, ET ELLE PIVOTE VERS LE REGARD.
-   Trois états successifs, et le troisième est le bon :
+/* UNE ÉTIQUETTE EST PLATE, ET C'EST LE JOUEUR QUI A TRANCHÉ.
+   Quatre états successifs, et l'on est revenu au deuxième :
      1. un PLAN ORIENTÉ COMME LA FAÇADE — les commerces des bandes est et ouest le
         présentaient de trois quarts, et l'on lisait leur nom en oblique, écrasé ;
-     2. un SPRITE — il fait face à la caméra quoi qu'on fasse, mais un sprite fait face
-        ENTIÈREMENT, tangage compris : la caméra du jeu regarde d'en haut, le panneau se
-        couchait donc en arrière pour se mettre perpendiculaire à l'axe de vue, et il se
-        lisait de biais dans l'autre sens ;
-     3. un PLAN QUI NE TOURNE QU'AUTOUR DE Y. Il reste vertical dans le monde — planté
-        comme un panneau de rue, ce qu'il est — et il ne pivote que du lacet, pour
-        présenter sa face au joueur d'où qu'il vienne. Une ligne de trigonométrie.
-   L'orientation se pose à chaque image, avec le flottement, et non ici : `rot` ne sert
-   donc plus, mais la signature reste — quinze appelants la passent encore. */
-/* LE RATTRAPAGE DE RACCOURCI, POUR TOUT PANNEAU DEBOUT. Une seule fonction, appelée une
-   fois par image sur les quinze enseignes et sur les étiquettes de lieu visibles : elles
-   ont la même pose et doivent donc se tasser de la même façon. Quatre racines carrées
-   par panneau, une vingtaine de panneaux : rien du tout. */
-function rattraperRaccourci(m){
-  const ex = camera.position.x - m.position.x;
-  const ey = camera.position.y - m.position.y;
-  const ez = camera.position.z - m.position.z;
-  const pl = Math.sqrt(ex*ex + ez*ez);
-  /* LE PLANCHER EST À 0,72, ET NON À 0,55. Il ne sert qu'à borner les cas pathologiques —
-     une étiquette haute presque à l'aplomb de la caméra —, et à 0,55 il autorisait un
-     étirement de 1,82 : mesuré, la pile d'un enclos se recouvrait alors de 20 % et
-     l'étiquette de la cuve entrait de 58 cm dans la cuve. Le cosinus VRAIMENT rencontré
-     par les seize enseignes du village va de 0,74 à 0,97 : le plancher à 0,72 ne les
-     touche donc jamais, il ne coupe que l'excès. Étirement maximum : 1,39. */
-  m.scale.y = 1/Math.max(0.72, pl/Math.max(0.001, Math.sqrt(pl*pl + ey*ey)));
-}
+     2. un SPRITE, aligné sur l'écran ;
+     3. un PLAN QUI NE TOURNE QU'AUTOUR DE Y, pivotant vers le regard à chaque image ;
+     4. le même plan, posé UNE FOIS au cap de la caméra — qui ne tourne jamais —, avec un
+        rattrapage de raccourci pour lui rendre ses proportions.
+   Le quatrième état s'est vu, et le joueur l'a refusé : « vos étiquettes, elles ne font
+   plus en 3D, on refait à plat comme l'ancienne du silo. »
+
+   ET IL A RAISON, LA MESURE LE DIT. Un plan vertical vu d'un azimut de 45° et d'une
+   élévation de 49° ne se projette pas en rectangle : il se projette en PARALLÉLOGRAMME.
+   Relevé à l'écran sur les quatre étiquettes de la cour et quatre enseignes du village,
+   l'angle entre les deux bords de la plaque allait de 50,8° à 100,2° au lieu de 90 — près
+   de QUARANTE DEGRÉS d'écart sur l'atelier — et le rapport des proportions de 0,825 à
+   1,206. Le rattrapage de raccourci ne pouvait rien contre cela : il corrigeait la
+   HAUTEUR, pas le CISAILLEMENT, et c'est le cisaillement qui met le texte en italique.
+   Un sprite, lui, mesure 90,00° et 1,000 partout, à toute distance et sans une seule
+   opération par image.
+   Ce qu'on perd, et il faut le dire : un sprite ne paraît plus PLANTÉ dans le sol. C'est
+   une étiquette posée sur l'image, pas un panneau de rue. C'est exactement ce qui est
+   demandé, et c'est ce qu'était l'ancienne jauge du silo.
+   `rot` ne sert plus depuis le troisième état, mais la signature reste — quinze appelants
+   la passent encore. */
 function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
   // Douze mètres : assez pour se lire de la route sans qu'on plisse les yeux, pas assez
   // pour manger le bâtiment qu'elle nomme — la façade d'une brasserie en fait treize.
   const LARGE = 12.0;
-  /* `fog:false` — le brouillard commence à cent cinquante mètres, et c'est exactement la
-     distance à laquelle on cherche à lire une enseigne pour décider où aller. Un sprite
-     l'ignorait ; un maillage y serait soumis, et le nom se serait délavé au moment où il
-     sert le plus. DoubleSide parce qu'un panneau qui pivote passe par tous les angles :
-     à un demi-degré près, il montrerait son dos et disparaîtrait. */
-  const m = new THREE.Mesh(
-    new THREE.PlaneGeometry(LARGE, LARGE*B.ratio),
-    new THREE.MeshBasicMaterial({map:B.tex, transparent:true, depthWrite:false,
-                                 depthTest:true, side:THREE.DoubleSide, fog:false}));
+  /* ET C'EST UN SPRITE, COMME LES ÉTIQUETTES DE LIEU.
+     L'enseigne a été un SPRITE, puis un plan qui pivotait vers la caméra à chaque image,
+     puis un plan posé une fois pour toutes au cap de la caméra. Le joueur, en voyant le
+     résultat : « on refait à plat comme l'ancienne du silo. »
+     Le défaut se mesure, et il n'est pas une affaire de goût : un plan vertical vu d'un
+     azimut de 45° et d'une élévation de 49° ne se projette pas en rectangle mais en
+     PARALLÉLOGRAMME. Relevé sur les quatre enseignes en vue, les deux bords de la plaque
+     font entre 90,2° et 97,5° au lieu de 90 — le lettrage penche —, et ses proportions
+     sont fausses de 18 à 21 %. Un sprite est aligné sur l'écran : 90,00° et 1,000
+     partout, à toute distance, sans une seule opération par image.
+     `fog:false` — le brouillard commence à cent cinquante mètres, et c'est exactement la
+     distance à laquelle on cherche à lire une enseigne pour décider où aller.
+     `depthTest:true` — une enseigne est PLANTÉE devant sa façade : elle se laisse cacher
+     par ce qui passe devant, contrairement à une étiquette de lieu qui surplombe le
+     bâtiment qu'elle nomme et doit se lire par-dessus lui. */
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({map:B.tex, transparent:true,
+    depthWrite:false, depthTest:true, fog:false}));
+  m.scale.set(LARGE, LARGE*B.ratio, 1);
   m.position.set(x, y + LARGE*B.ratio*0.5, z);
-  /* LE CAP EST POSÉ ICI, ET IL NE BOUGERA PLUS. Il se recalculait à chaque image pour
-     viser la caméra ; celle-ci ne tourne jamais, et le pivotement se voyait. Voir la
-     boucle de fin de trame et `CAP_PANNEAU`. */
-  m.rotation.y = CAP_PANNEAU;
   /* AU-DESSUS DES CERCLES AU SOL. Un cercle jaune posé devant un commerce passait PAR
      DESSUS son enseigne, et l'on ne lisait plus le nom de celui chez qui on allait.
      Six, et non trois : les anneaux et les cercles mobiles sont à trois, et deux
@@ -18434,21 +18427,30 @@ function creerJauge(){
   tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
   tex.anisotropy = 8;
-  /* `depthTest:false` — une étiquette de lieu nomme le bâtiment qu'elle SURPLOMBE, et
-     doit se lire par-dessus lui : c'est la seule différence avec l'enseigne d'un
-     commerce, qui est plantée devant sa façade et n'a rien à traverser. `DoubleSide`
-     par précaution, comme les enseignes : un panneau au cap fixe ne montre jamais son
-     dos, mais rien ne coûte à s'en assurer. */
-  const m = new THREE.Mesh(
-    new THREE.PlaneGeometry(PAN_LARGE, PAN_LARGE*PAN_RATIO),
-    new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false,
-                                 depthTest:false, side:THREE.DoubleSide, fog:false,
-                                 opacity:0}));
-  m.rotation.y = CAP_PANNEAU;              // posé une fois : il ne pivotera plus jamais
+  /* ET C'EST UN SPRITE, DONC PARFAITEMENT PLAT. Il a été un PLAN VERTICAL le temps d'une
+     version — posé au cap de la caméra, avec un rattrapage de raccourci pour lui rendre
+     ses proportions. Le joueur, en voyant le résultat : « vos étiquettes, elles ne font
+     plus en 3D, on refait à plat comme l'ancienne du silo. »
+     Il a raison, et la capture le montre : un plan vertical vu d'un azimut de 45° et
+     d'une élévation de 49° ne se projette pas en rectangle mais en PARALLÉLOGRAMME. Le
+     rattrapage corrigeait la hauteur, il ne pouvait rien contre le CISAILLEMENT — le
+     lettrage penchait, et « Silo » se lisait en italique. Un sprite n'a pas ce défaut par
+     construction : il est aligné sur l'écran, ses pixels sont ceux du canevas, et la
+     ligne de chiffres reste droite d'un bout à l'autre de la vallée.
+     Ce qui a été gagné entre-temps RESTE : une seule étiquette par lieu au lieu de deux,
+     trois étages sur la même plaque (nom, détail, barre), et l'entrepôt comme l'atelier
+     allumés en permanence. Seul le porteur change.
+     `depthTest:false` — une étiquette de lieu nomme le bâtiment qu'elle SURPLOMBE et doit
+     se lire par-dessus lui. `sizeAttenuation` reste vraie, celle d'origine : une étiquette
+     appartient au paysage, elle rapetisse avec lui. */
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+    depthWrite:false, depthTest:false, fog:false, opacity:0}));
+  m.scale.set(PAN_LARGE, PAN_LARGE*PAN_RATIO, 1);
   m.renderOrder = 5;                       // au-dessus des cercles (3), sous les enseignes (6)
   m.visible = false;
-  // Le rattrapage de raccourci se pose à chaque image, avec celui des enseignes : c'est
-  // le drapeau qui lui dit de le faire.
+  /* Le drapeau `anime` reste, et il ne sert plus au rattrapage : il sert à la FUSION de
+     géométries, qui refuse d'absorber tout ce qui le porte. Un sprite n'est pas
+     fusionnable, mais le drapeau ne coûte rien et il dit la vérité. */
   m.userData.anime = true;
   scene.add(m);
   PANNEAUX.push(m);
@@ -21013,13 +21015,12 @@ function loop(now){
       chimT = 0.16 + Math.random()*0.14;
     }
     for(const S of SITES) if(S.logo) S.logo.rotation.y += dt*0.9;
-    /* LES BULLES SE TOURNENT VERS LE REGARD, ET FLOTTENT DOUCEMENT.
-       Le lacet seul : `atan2` du vecteur bulle → caméra, dans le plan du sol. Le panneau
-       reste donc droit quelle que soit la hauteur de la caméra — c'est ce qui le rend
-       lisible, un sprite se couchant en arrière pour se mettre perpendiculaire à l'axe
-       de vue. Quinze bulles, deux fonctions trigonométriques chacune : trente par image,
-       de quoi ne rien coûter du tout. */
-    /* ELLES NE FLOTTENT PLUS QU'À PEINE. Trente-deux centimètres de battement, c'était
+    /* LES BULLES NE SE TOURNENT PLUS : ELLES SONT PLATES.
+       Elles ont pivoté vers le regard à chaque image, puis été posées une fois au cap de
+       la caméra. Ce sont des sprites depuis que le joueur a demandé qu'on refasse tout
+       « à plat comme l'ancienne du silo » : elles sont alignées sur l'écran par
+       construction, et il ne reste ici que le flottement.
+       ELLES NE FLOTTENT QUE D'À PEINE. Trente-deux centimètres de battement, c'était
        un tiers de la hauteur du panneau : quinze enseignes qui montaient et descendaient
        chacune à son rythme faisaient bouger tout l'horizon, et l'on cherchait celle
        qu'on voulait lire. Cinq centimètres, et deux fois plus lentement : il reste juste
@@ -21124,11 +21125,10 @@ function loop(now){
      d'autant : il reste vertical dans le monde et retrouve à l'écran les proportions dans
      lesquelles le texte a été tracé. Le plancher à 0,55 évite qu'une vue quasi verticale
      ne l'étire sans fin.
-     ET IL VAUT MAINTENANT POUR TOUT LE MONDE : les étiquettes de lieu — silo, atelier,
-     entrepôt, cuve, enclos, parcelles — sont des panneaux de la même espèce depuis
-     qu'elles ont cessé d'être des sprites, et se tassent donc pareil. */
-  for(const B of BULLES) rattraperRaccourci(B.m);
-  for(const M3 of PANNEAUX) if(M3.visible) rattraperRaccourci(M3);
+     ET IL NE VAUT QUE POUR LES ENSEIGNES. Les étiquettes de lieu ont été des panneaux le
+     temps d'une version, et se tassaient donc pareil ; elles sont redevenues des SPRITES,
+     qui sont plats par construction et n'ont rien à rattraper. Les étirer les déformerait
+     — voir `creerJauge`. */
   // On quantifie le centre de la carte d'ombre sur une grille de 4 m : sans ça les
   // bords d'ombre grouillent en permanence pendant le déplacement, ce qui donne
   // l'impression que l'ombre bouge alors que sa direction est fixe.

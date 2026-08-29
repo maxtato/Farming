@@ -1705,6 +1705,32 @@ renderOrder**. Les cercles mobiles passaient donc devant tout, quel que soit l'o
 aux enseignes. L'ordre se pose maintenant sur les maillages — 3 pour les cercles, 6 pour
 les enseignes — et le nom se lit.
 
+### Puis tout est repassé à plat, et c'était le bon état depuis le début
+
+Le joueur, en voyant le résultat : **« vos étiquettes, elles ne font plus en 3D, on refait
+à plat comme l'ancienne du silo. »** Il a raison, et le défaut se mesure au lieu de se
+discuter : un plan vertical vu d'un azimut de 45° et d'une élévation de 49° **ne se projette
+pas en rectangle**, il se projette en parallélogramme. Relevé à l'écran sur les quatre
+étiquettes de la cour et quatre enseignes du village, l'angle entre les deux bords de la
+plaque allait de **50,8° à 100,2°** au lieu de 90 — près de quarante degrés d'écart sur
+l'atelier — et le rapport des proportions de **0,825 à 1,206**. Le rattrapage de raccourci ne
+pouvait rien contre ça : il corrigeait la *hauteur*, pas le *cisaillement*, et c'est le
+cisaillement qui met le texte en italique. Sur une capture, « Silo » et « Entrepôt »
+penchent visiblement.
+
+Les deux familles redeviennent donc des **sprites** — les étiquettes de lieu *et* les quinze
+enseignes de commerce, sans quoi l'incohérence que le joueur reprochait au tour d'avant
+reviendrait par l'autre bout. Mesuré après : **90,00° et 1,000 partout**, à toute distance,
+et la largeur à l'écran ne bouge pas (160 → 165 px sur le silo, 71 → 72 sur une enseigne).
+
+Ce qui a été gagné entre-temps **reste** : une seule étiquette par lieu au lieu de deux,
+trois étages sur la même plaque, l'entrepôt et l'atelier allumés en permanence, le canevas
+à 470 × 200. Seul le porteur change. Ce qui disparaît avec lui : `CAP_PANNEAU`, le
+rattrapage de raccourci, et la seule correction par image qui restait — un sprite a ses
+proportions par construction. Ce qu'on perd, et il faut le dire : un sprite ne paraît plus
+*planté* dans le sol ; c'est une étiquette posée sur l'image, pas un panneau de rue. C'est
+exactement ce qui est demandé, et c'est ce qu'était l'ancienne jauge du silo.
+
 ## Le garage : acheter, améliorer
 
 Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat
