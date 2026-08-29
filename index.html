@@ -14695,11 +14695,24 @@ function objectifMission(){
 function objectifProduit(cle, reste, S){
   const ici = (nom, quoi, txt, pt)=> ({lieu:nom, x:pt.x, z:pt.z, cle, reste, quoi, txt});
 
-  // 1. ce qu'on porte déjà : une benne pleine de la bonne matière n'a plus qu'à rouler
-  const T = caisseDe(MACHINES[cur]);
-  if(S && T && T.type === cle && T.load > 0.01
-     && (T.load >= reste - 0.01 || T.load >= T.capacite - 0.01))
-    return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, T.load)),
+  /* 1. CE QU'ON PORTE DÉJÀ — SUR TOUTE LA COUR, ET NON SUR LE SEUL ENGIN PILOTÉ.
+        Une benne pleine de la bonne matière n'a plus qu'à rouler. Mais le juge ne
+        regardait que la machine où l'on est assis : trente kilos de blé dans le pick-up
+        garé, on remonte dans la moissonneuse, et le jeu redemandait de RÉCOLTER du blé
+        qu'on avait déjà rentré. Le compte se fait donc sur tous les engins ; celui qui en
+        porte le plus décide, et l'objectif reste le commerce — il dit ce qu'il reste à
+        faire, à charge de reprendre le bon véhicule.
+        SEPT ENGINS, UN `caisseDe` CHACUN : mesuré, deux tiers de microseconde par appel du
+        juge, qui en fait 1,45. C'est le prix d'un objectif qui ne ment plus. */
+  let T = null, aBord = 0;
+  for(const m2 of MACHINES){
+    const C2 = caisseDe(m2);
+    if(!C2 || C2.type !== cle || C2.load <= 0.01) continue;
+    aBord += C2.load;
+    if(!T || C2.load > T.load) T = C2;
+  }
+  if(S && T && (aBord >= reste - 0.01 || T.load >= T.capacite - 0.01))
+    return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, aBord)),
                {x:S.dropX, z:S.dropZ});
 
   /* 2. LES DEUX MAGASINS DE LA FERME, ET SEULEMENT QUAND ILS SUFFISENT.
@@ -14713,7 +14726,6 @@ function objectifProduit(cle, reste, S){
         ferme, tout compris — le silo, l'entrepôt et ce qu'on porte déjà —, a de quoi
         SOLDER la ligne. */
   const auSilo = siloStock[cle] || 0, aLEntrepot = entrepotStock(cle);
-  const aBord = (T && T.type === cle) ? T.load : 0;
   const chargerSilo = ()=> ici('silo', 'charger',
     'CHARGER ' + qteNomHaut(cle, Math.min(reste, auSilo)), {x:SILO.x, z:SILO.z});
   const chargerEntrepot = ()=> ici('entrepot', 'charger',
@@ -14802,6 +14814,21 @@ function origineFerme(cle, ici, prof){
   });
   if(P) return ici('pature' + PATURES.indexOf(P), 'collecter',
                    'COLLECTER ' + nomHaut(cle), {x:P.quai.x, z:P.quai.z});
+  /* ET UN TANK MOMENTANÉMENT VIDE RESTE LE BON ENDROIT. Sans ces quatre lignes, la règle
+     « on attend d'avoir le compte » ne valait que pour le chemin du silo : pour une
+     commande de deux cents litres de lait, un tank vidé la minute d'avant faisait rendre
+     null ici, et le filet de fin envoyait CHARGER LES CINQ LITRES qui traînaient à
+     l'entrepôt. C'était mot pour mot le défaut que le joueur venait de faire corriger,
+     resté vivant dans une autre filière. Un enclos qui SAIT produire cette
+     marchandise-là reste l'objectif : le tank se remplit tout seul, il suffit d'attendre
+     — et l'on ne part pas faire un aller-retour pour un fond de cuve. */
+  const P2 = PATURES.find((q)=>{
+    const E = ESPECES[q.espece] || ESPECES.vache;
+    return q.betes.length > 0
+        && (E.produit === cle || (E.second && E.second.cle === cle));
+  });
+  if(P2) return ici('pature' + PATURES.indexOf(P2), 'collecter',
+                    'LE TANK SE REMPLIT — ' + nomHaut(cle), {x:P2.quai.x, z:P2.quai.z});
   const c0 = CROPS[CROP_DE[cle]];
   if(!c0) return null;
   // La graine manque : c'est au comptoir qu'on la trouve, et AVANT le champ — on ne va
