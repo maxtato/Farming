@@ -9628,7 +9628,22 @@ function planAuto(m, cible){
        Quand un côté descend sous la moitié du pas, la spirale EST au centre : la bande
        qui reste est plus mince que ce qu'un seul passage couvre — l'outil déborde d'un
        pas de part et d'autre de sa ligne — donc elle est déjà travaillée. */
-    if(a1 - a0 < pas*0.5 || c1 - c0 < pas*0.5) break;
+    /* ET ELLE NE TRACE JAMAIS UN CÔTÉ PLUS COURT QUE SON PROPRE DIAMÈTRE DE BRAQUAGE.
+       Un tronçon de 1,20 m entre deux virages à l'équerre, c'est un tracé « qui n'arrivera
+       pas à être suivi parfaitement » : la machine tourne sur 1,16 m de rayon au mieux, il
+       lui en faudrait 2,32 pour enchaîner les deux. Elle débordait, revenait, redébordait —
+       et c'est au centre, là où les côtés deviennent courts, que le dessin s'emmêlait.
+       On arrête donc la spirale au plus tard quand le rectangle restant descend sous deux
+       rayons. Ce qu'on laisse, l'outil le couvre : 2,32 m de large contre 4,80 pour la plus
+       étroite des charrues, et le rond du centre repasse dessus. */
+    /* ET CE PLANCHER NE LAISSE JAMAIS PLUS LARGE QU'UN PASSAGE. Deux rayons de braquage
+       font 3,26 m pour l'enjambeuse, dont le tunnel de vendange n'en couvre que 2,80 :
+       le plancher de braquage aurait laissé au centre une bande plus large que l'outil,
+       c'est-à-dire de la vigne jamais vendangée. On le borne donc à la largeur d'un
+       passage, et c'est le seul outil du jeu que cette borne concerne. */
+    const COURT = Math.min(Math.max(pas*0.5, 2*(VIT_PIVOT/Math.max(0.6, v.turn))),
+                           Math.max(pas*0.5, (T.width || 0) - 0.4));
+    if(a1 - a0 < COURT || c1 - c0 < COURT) break;
     const C = coinsCour();
     const suivant = C[(d + 1) % 4];
     pose(pts, suivant[0], suivant[1], COIN);
@@ -10282,12 +10297,9 @@ function missionDrive(m, dt){
       const r = suivreRoute(v, wp.x, wp.z, 'p' + t.p);
       if(r) return r;
       v.plan.entre = true;
+      v.plan.dep = {x:v.pos.x, z:v.pos.z};
     }
-    if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < ((wp.sortie || wp.bord) ? 1.0 : 2.0)
-       || pointPerdu(v, wp, dt)){
-      v.plan.i++; return [0, 0.5];
-    }
-    return viser(v, wp.x, wp.z, 2.0);
+    return piloteChamp(v, dt);
   }
   // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
   // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
@@ -10350,59 +10362,127 @@ function autoDrive(m, dt){
     const r = suivreRoute(v, wp.x, wp.z, 'a' + PARCELS.indexOf(v.plan.p));
     if(r) return r;
     v.plan.entre = true;
+    /* ET LE PREMIER TRONÇON A BESOIN D'UNE ORIGINE. Un tronçon va d'un point du plan au
+       suivant ; le tout premier, lui, part de LÀ OÙ LA ROUTE A LAISSÉ LA MACHINE. On note
+       donc cet endroit une fois pour toutes : sans lui, l'origine serait la position
+       courante, la projection vaudrait zéro à chaque image, et l'on n'avancerait jamais. */
+    v.plan.dep = {x:v.pos.x, z:v.pos.z};
   }
-  /* UN POINT SE VALIDE QUAND ON L'A DÉPASSÉ, PAS QUAND ON LE TOUCHE — et c'est l'OUTIL
-     qui doit l'avoir dépassé, pas le tracteur.
+  return piloteChamp(v, dt);
+}
+/* ---------- UN SEUL PILOTE DE CHAMP, POUR LES DEUX CONDUITES ----------
+   Il y en avait deux, et un seul avait été refait. `autoDrive` mène la machine quand le
+   joueur lance le travail lui-même ; `missionDrive` la mène pendant TOUTE la campagne et
+   tout le tutoriel — et celui-là visait encore le point au bout du tronçon, avec un rayon
+   de capture de deux mètres. C'est-à-dire que le défaut réparé restait entier là où le
+   joueur passe le plus clair de son temps.
+   Les deux rangent le plan sous les mêmes noms — `v.plan`, `v.plan.i`, `v.plan.entre` —
+   donc il n'y a rien à adapter : le bloc « au champ » est sorti d'`autoDrive` tel quel et
+   les deux l'appellent. Une règle écrite deux fois est une règle qui diverge. */
+function piloteChamp(v, dt){
+  /* ---------- ON SUIT UNE LIGNE, ON NE COURT PLUS APRÈS UN POINT ----------
+     LE JOUEUR A DIT CE QU'IL FALLAIT FAIRE, ET IL AVAIT RAISON : « tu vas tout droit, tu
+     tournes à quel endroit, puis tu vas tout droit, tu tournes à quel endroit, plutôt que
+     de lui faire suivre un tracé qui n'arrivera pas à suivre parfaitement. »
 
-     Deux défauts d'un coup. Le premier : un attelage tourne sur un rayon de trois
-     mètres et demi, et le point se validait à deux. La charrue arrivait sur un coin,
-     le manquait, tournait autour — et y tournait indéfiniment, sans jamais avancer d'un
-     point. Mesuré : bloquée au point 3 sur 17 pendant six mille images.
-     Le second : l'outil est traîné quatre à six mètres DERRIÈRE le tracteur. Valider le
-     coin sur la position du tracteur, c'est amorcer le virage alors que l'outil n'y est
-     pas encore arrivé — il coupe l'angle, et c'est là que passaient les trous.
-     On projette donc la position de l'OUTIL sur le trajet en cours : dès qu'elle a
-     franchi le point, on passe au suivant. Le tracteur déborde du coin de la longueur
-     de son attelage, ce que fait tout conducteur qui veut labourer jusqu'au bout. */
-  const pre = v.plan.pts[v.plan.i - 1];
-  const dx = pre ? wp.x - pre.x : 0, dz = pre ? wp.z - pre.z : 0;
-  const L = Math.hypot(dx, dz);
-  /* SAUF LE POINT DE SORTIE, QUI SE JUGE SUR LA MACHINE. Partout ailleurs c'est
-     l'OUTIL qui doit avoir dépassé le point — c'est lui qui travaille. Mais la moisson
-     porte sa coupe DEVANT : sur le dernier point, celui qui fait sortir de la parcelle,
-     la coupe franchissait la limite quatre mètres avant la cabine et la machine
-     s'arrêtait le nez encore dans le blé. Ce point-là, c'est l'engin qui le passe. */
-  /* ET LE POINT MARQUÉ `bord` AUSSI. C'est un coin de passe adossé à une clôture. Laisser
-     l'outil valider ce point-là, c'est faire déborder le tracteur de la longueur de son
-     attelage DANS la clôture : mesuré, cinquante-huit tronçons couchés sur douze passes.
-     L'outil, lui, la traverse sans la toucher et ne peint que de la terre arable. On rend
-     donc la décision au conducteur : il tourne quand LUI arrive au coin. */
-  const surMachine = wp.sortie || wp.bord;
-  const px = surMachine ? v.pos.x : v.toolX, pz = surMachine ? v.pos.z : v.toolZ;
-  const depasse = L > 0.1 && ((px - wp.x)*dx + (pz - wp.z)*dz)/L > -0.05;
-  /* ET L'ON NE VISE PAS PLUS SERRÉ QUE SON PROPRE RAYON DE BRAQUAGE.
-     Deux points de tournière sont distants d'un pas — trois mètres vingt pour une
-     charrue neuve — et la machine, en plein virage, décrit un cercle d'un à trois mètres
-     de rayon : elle ne peut PAS passer dessus. Elle tournait autour sans jamais
-     l'atteindre, jusqu'à ce que le garde-fou des huit secondes l'abandonne — et abandonne
-     du même coup le point suivant, qui est le bout de la ligne. Mesuré sur une charrue en
-     19,6 x 30,4 : trois lignes perdues sur cinq, vingt-six pour cent de la parcelle
-     jamais labourée, et la ligne suivante abordée de travers.
-     Le rayon de capture d'un point de VIRAGE suit donc le rayon de braquage du moment,
-     `v/turn`, plus une marge. C'est sans conséquence sur le travail : ces points-là
-     tombent tous sur la tournière, que le tour de périphérie a déjà faite. */
-  /* ET SEULEMENT QUAND ELLE TOURNE VRAIMENT. Ouvrir le rayon sur toute une ligne
-     reviendrait à couper trois mètres à chaque bout : mesuré, deux points de couverture
-     perdus sur une petite parcelle. On regarde donc l'écart de cap : abordé de face, un
-     point se prend à deux mètres comme avant ; abordé en travers, c'est qu'on tourne
-     autour, et le rayon suit le braquage. */
-  let dcap = Math.atan2(wp.x - v.pos.x, wp.z - v.pos.z) - v.cap;
-  while(dcap >  Math.PI) dcap -= Math.PI*2;
-  while(dcap < -Math.PI) dcap += Math.PI*2;
-  const rCapt = surMachine ? 1.0
-              : ((wp.virage && Math.abs(dcap) > 0.7)
-                 ? Math.max(2.0, v.speed/Math.max(0.3, v.turn) + 0.9) : 2.0);
-  if(depasse || Math.hypot(wp.x-v.pos.x, wp.z-v.pos.z) < rCapt || pointPerdu(v, wp, dt)){
+     CE QUE FAISAIT LE PILOTE. Il visait LE POINT au bout du tronçon, trente mètres devant.
+     Or viser un point, ce n'est pas suivre une ligne : quand la machine sort d'un virage
+     décalée de trois mètres, l'angle vers un point situé à trente mètres ne vaut que six
+     degrés — elle ne se redresse donc presque pas, et rejoint sa ligne EN DIAGONALE, tout
+     du long, pour n'être dessus qu'au tout dernier mètre. C'est la queue de billard, et
+     elle est mesurée : sur la charrue en 30,4 × 30,4, un côté commence 3,45 m à côté de sa
+     ligne et il faut 20,8 m sur 23,2 pour y revenir à trente centimètres. Sur la petite
+     parcelle, 9,3 m sur 10,4 : le côté ENTIER est une diagonale.
+     ET LE MÊME DÉFAUT FAIT TOURNER EN ROND. Un point qu'on vise et qui tombe DANS son
+     propre cercle de braquage ne s'atteint jamais : la machine tourne autour. Mesuré sur
+     six cas, quatre en avaient au moins un — jusqu'à 511 degrés de cap accumulés sur un
+     seul tronçon, soit un tour et demi sur place.
+
+     CE QU'IL FAIT MAINTENANT. Trois règles, et rien d'autre.
+     1. IL TIENT LE CAP DE SA LIGNE, corrigé d'un rappel proportionnel à son écart et divisé
+        par sa vitesse. Il ne vise plus aucun point : l'écart se corrige sur quelques mètres
+        au lieu de trente, et le reste du côté se fait droit.
+     2. IL TOURNE À UN ENDROIT, ET CET ENDROIT SE CALCULE. Un virage d'angle `a` pris au
+        rayon `R` commence exactement `R·tan(a/2)` avant le coin : c'est la tangente, la
+        seule façon d'enchaîner deux droites sans ni couper ni déborder. On ne demande donc
+        plus « l'outil a-t-il dépassé le point ? » — question à laquelle la réponse arrivait
+        quatre à six mètres trop tard, l'outil étant traîné — mais « suis-je arrivé au point
+        où l'on tourne ? ».
+     3. IL NE PEUT PLUS TOURNER EN ROND. On ne poursuit plus de but : un cap n'a pas de
+        position, il ne peut donc ni passer derrière l'épaule ni tomber dans le cercle de
+        braquage. Et par-dessus cette garantie, un compteur : si le cap accumule plus de
+        quatre cents degrés SANS QUE LA MACHINE AVANCE sur sa ligne, c'est un rond — on
+        passe au tronçon suivant, et l'on repart droit.
+
+     LE RAYON N'EST PAS CHOISI, IL EST MESURÉ. `VIT_PIVOT/turn` est le cercle le plus court
+     que la machine sache décrire — 1,16 m pour le tracteur de départ, 1,00 pour le dernier.
+     C'est lui qui fixe où commence le virage, et c'est pour l'atteindre qu'on freine. */
+  const wp = v.plan.pts[v.plan.i];
+  const A = v.plan.pts[v.plan.i - 1] || v.plan.dep || {x:v.pos.x, z:v.pos.z};
+  let ux = wp.x - A.x, uz = wp.z - A.z;
+  const L = Math.hypot(ux, uz);
+  if(L > 0.05){ ux /= L; uz /= L; }
+  else { ux = Math.sin(v.cap); uz = Math.cos(v.cap); }
+  // la projection de la MACHINE sur sa ligne : c'est elle qui dit où l'on en est
+  const s = Math.max(0, Math.min(L, (v.pos.x - A.x)*ux + (v.pos.z - A.z)*uz));
+  /* L'ANGLE DU VIRAGE QUI VIENT, ET DONC L'ENDROIT OÙ IL COMMENCE.
+     En deçà de vingt degrés il n'y a pas de virage : on va tout droit jusqu'au point.
+     Au-delà de cent cinquante, c'est un demi-tour — le petit écart de la fin — et la
+     tangente n'a plus de sens : on tourne au point, comme avant. */
+  const C = v.plan.pts[v.plan.i + 1];
+  let angle = 0;
+  if(C){
+    const wx = C.x - wp.x, wz = C.z - wp.z, Lw = Math.hypot(wx, wz);
+    if(Lw > 0.05) angle = Math.acos(Math.max(-1, Math.min(1, (ux*wx + uz*wz)/Lw)));
+  }
+  const RMIN = VIT_PIVOT/Math.max(0.6, v.turn);
+  const dEntree = (angle > 0.35 && angle < 2.62)
+                ? Math.min(RMIN*Math.tan(angle/2) + 0.10, L*0.40, 4.0) : 0;
+  /* LE COMPTEUR DE TOURS, ET C'EST LUI LE FILET. Les deux premières règles rendent le rond
+     impossible en théorie ; celle-ci le rend impossible tout court. Un tronçon sur lequel
+     la machine a tourné de plus de quatre cents degrés — un tour complet et une marge — est
+     un tronçon qu'elle ne prendra pas : on l'abandonne et l'on repart droit sur le suivant.
+     Quatre cents degrés laissent passer le demi-tour de l'écart (180) et les huit sommets
+     du rond (45 chacun) sans jamais les interrompre. */
+  if(v.plan.tourI !== v.plan.i){
+    v.plan.tourI = v.plan.i; v.plan.tour = 0; v.plan.tourCap = v.cap;
+    v.plan.s0 = s; v.plan.sVu = s;
+  }
+  let dTour = v.cap - v.plan.tourCap;
+  while(dTour >  Math.PI) dTour -= Math.PI*2;
+  while(dTour < -Math.PI) dTour += Math.PI*2;
+  v.plan.tourCap = v.cap;
+  /* ET LE COMPTEUR NE TOURNE QUE TANT QU'ON N'AVANCE PAS. Un demi-tour qui progresse le
+     long de sa ligne n'est pas un rond, c'est un demi-tour : le compteur se remet à zéro
+     dès que la projection gagne quinze centimètres, et ne s'accumule que sur place. Sans
+     cette remise à zéro, le garde-fou coupait au bout de 3,7 secondes contre 8 pour celui
+     de la distance — il aurait abandonné des tronçons que la machine faisait très bien. */
+  if(s > v.plan.sVu + 0.15){ v.plan.sVu = s; v.plan.tour = 0; }
+  else v.plan.tour += Math.abs(dTour);
+  /* ET L'ON NE CHANGE PAS DE TRONÇON SANS EN AVOIR PARCOURU UN BOUT.
+     Le seuil est géométrique, donc il peut être vrai DÈS LA PREMIÈRE IMAGE : après un
+     abandon, ou sur un virage de plus de quatre-vingt-dix degrés, la projection de départ
+     tombe déjà au-delà du seuil. Le plan se viderait alors de plusieurs points en autant
+     d'images, et la machine partirait droit sur le dernier. Trente centimètres de trajet
+     réel l'empêchent — sauf sur un tronçon plus court que cela, qui est toujours le
+     premier : la route a déjà déposé la machine sur son point de départ.
+     ET SAUF SI LA MACHINE ÉTAIT DÉJÀ AU-DELÀ DU SEUIL EN ARRIVANT SUR CE TRONÇON. C'est
+     le même cas, vu de l'autre côté, et l'exiger alors est un PIÈGE : la projection est
+     bornée au bout du tronçon, donc « trente centimètres de plus » devient impossible, et
+     rien ne libère plus la machine avant les huit secondes du garde-fou de distance. Elle
+     part droit devant pendant ce temps — relevé au banc de clôture : l'axe du tracteur
+     sortait de 23,97 m de sa terre et couchait trois courses. On laisse donc passer, et ce
+     qu'on risque en échange est borné : une image par point, un demi-tour de plan au pire,
+     et la machine reprend sa ligne sur le tronçon suivant.
+     ET LE POINT DE SORTIE FAIT EXCEPTION, PARCE QU'ON Y RECULE. `marcheArriere` rend la
+     main à un mètre du but ; sans capture de proximité, la machine repassait en marche
+     avant pour un point situé dans son dos, et tournait autour. Ce point-là est hors de la
+     parcelle : le prendre à un mètre vingt ne coûte aucun travail. */
+  const dejaPasse = (v.plan.s0 === undefined) || v.plan.s0 >= L - dEntree - 0.02;
+  const bout = (s >= L - dEntree - 0.02
+                && (dejaPasse || L < 0.40 || s > v.plan.s0 + 0.30))
+            || (wp.sortie && Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 1.2);
+  if(bout || v.plan.tour > 7.0 || pointPerdu(v, wp, dt)){
     v.plan.i++; return [0, 0.5];
   }
   /* ET L'ON RESSORT EN MARCHE ARRIÈRE QUAND LA SORTIE EST DERRIÈRE. Elle l'est chaque
@@ -10417,22 +10497,70 @@ function autoDrive(m, dt){
     const r = marcheArriere(v, wp.x, wp.z, 1.0);
     if(r) return r;
   }
-  const cmd = viser(v, wp.x, wp.z, 1.2, VIT_PIVOT);
+  /* L'ÉCART À LA LIGNE, COMPTÉ EN SIGNE. Positif d'un côté, négatif de l'autre : c'est la
+     seule mesure dont la conduite ait besoin, avec le cap de la ligne. On ne vise plus
+     aucun point — ni celui du bout, ni un point d'avance : on tient un CAP, et il ne peut
+     donc plus exister de but inatteignable autour duquel tourner. */
+  const e = (v.pos.x - A.x)*uz - (v.pos.z - A.z)*ux;
+  const capL = Math.atan2(ux, uz);
+  /* LE RAPPEL EST UN ANGLE, ET IL SE DIVISE PAR LA VITESSE. C'est ce qui rend la même
+     règle bonne pour le tracteur de départ et pour le même tracteur amélioré : à 2,2 m/s
+     un mètre d'écart demande soixante degrés de rappel, à 18,6 il en demande sept — parce
+     qu'un engin lancé met sept mètres à corriger ce qu'un engin au pas corrige en un.
+     Sans cette division, le tracteur au dernier cran de vitesse braquait autant que
+     l'autre, dépassait sa ligne, revenait, redépassait : c'est le zigzag qu'on voit.
+     ET LE RAPPEL EST BORNÉ À SOIXANTE-QUINZE DEGRÉS. Au-delà on viserait presque
+     perpendiculairement à sa propre ligne — bon pour rejoindre, mauvais pour rester
+     dessus, et c'est ainsi qu'un tracé se met à osciller. */
+  const RAPPEL = 2.0, CORR_MAX = 1.31;
+  const corr = Math.max(-CORR_MAX, Math.min(CORR_MAX,
+                 Math.atan2(RAPPEL*e, Math.max(VIT_PIVOT, Math.abs(v.speed)))));
+  /* ET LE CAP VOULU EST LA SOMME DES DEUX : celui de la ligne, moins le rappel.
+     Les deux termes se SOUSTRAIENT quand la machine traverse déjà vers sa ligne — c'est
+     tout l'intérêt, et c'est ce qui empêche de la dépasser. À la sortie d'un virage la
+     machine pointe à quatre-vingt-dix degrés de sa nouvelle ligne et se trouve un rayon à
+     côté : le rappel vaut cinquante degrés, il en reste quarante à braquer, la machine
+     tourne à fond et se pose sur la ligne au lieu de la franchir et de revenir.
+     `viser` ne lit qu'une DIRECTION : le point qu'on lui donne n'a pas d'existence, il
+     n'est là que pour porter ce cap-là. */
+  const capVoulu = capL - corr;
+  const cmd = viser(v, v.pos.x + 6*Math.sin(capVoulu), v.pos.z + 6*Math.cos(capVoulu),
+                    0.6, VIT_PIVOT);
   /* ON ARRIVE AU PAS DANS LA TOURNIÈRE, ET C'EST CE QUI RESSERRE LE DEMI-TOUR.
      `viser` roule plein gaz tant que le cap est bon et ne lève le pied qu'une fois le cap
      faussé — c'est-à-dire APRÈS avoir dépassé le bout de la ligne. Le demi-tour se prenait
      donc lancé : six mètres de rayon pour un tracteur neuf, dix pour un tracteur amélioré,
-     là où l'écart entre deux lignes en demande un et demi. La machine ratait la ligne
-     suivante, repartait de travers, et devait manœuvrer pour se replacer.
-     Elle décélère maintenant SUR TOUTE L'APPROCHE, selon v² = v_pivot² + 2·a·d : à vingt
-     mètres du bout elle roule encore à dix mètres par seconde, à cinq mètres à cinq, et
-     elle aborde le point exactement à la vitesse qui tourne le plus court.
-     LE MÊME FREIN SERT AUX COINS ADOSSÉS À UNE CLÔTURE (`lent`), qui avaient leur propre
-     rampe linéaire : celle-ci s'arrêtait au quart de la vitesse maximale, ce qui laissait
-     encore 4,6 m/s à un tracteur amélioré. */
-  if(wp.virage || wp.lent){
-    const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+     là où l'écart entre deux lignes en demande un et demi.
+     Elle décélère maintenant SUR TOUTE L'APPROCHE, selon v² = v_pivot² + 2·a·d, et la
+     distance qui compte est celle du POINT OÙ L'ON TOURNE, pas celle du coin : c'est là
+     qu'il faut être au pas, un rayon plus tôt.
+     ET LE FREIN NE DÉPEND PLUS D'UN DRAPEAU. Il se déclenchait sur `virage` ou `lent`, deux
+     marques posées par le plan ; il se déclenche maintenant sur l'ANGLE RÉEL du virage à
+     venir, que le plan l'ait marqué ou non. Les drapeaux restent utiles pour les coins
+     adossés à une clôture, où l'on ralentit même sans tourner. */
+  if(angle > 0.35 || wp.virage || wp.lent){
+    const d = (angle > 0.35) ? Math.max(0, L - dEntree - s)
+                             : Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
     cmd[1] = Math.min(cmd[1], Math.max(0.05, vitesseAvant(d)/v.vmax));
+  }
+  /* ET L'ON NE REMET PAS LES GAZ AU MILIEU DU VIRAGE. C'était le dernier mètre du défaut,
+     et il ne venait pas du tracé mais d'un seuil de `viser` : elle rend la vitesse de
+     pivot tant que le cap est faux de plus de soixante-huit degrés, et UNE FOIS ET DEMIE
+     cette vitesse en deçà. Or un virage à l'équerre commence justement sous ce seuil —
+     le rappel latéral en mange déjà cinquante. La machine reprenait donc 3,7 m/s au lieu
+     de 2,2 EN PLEIN VIRAGE, et le rayon de braquage étant proportionnel à la vitesse, elle
+     tournait sur deux mètres là où le point de tangence en supposait 1,16 : elle traversait
+     sa ligne et ressortait 1,29 m de l'autre côté. Relevé image par image sur la charrue :
+     l'écart passait de −1,28 m à +1,29 m en deux mètres de trajet, puis mettait vingt
+     mètres à se refermer. C'est exactement la queue de billard qu'on voit à l'œil.
+     Tant que le cap n'est pas repris — dix-sept degrés près de la ligne —, la machine reste
+     donc à la vitesse qui tourne le plus court. C'est ce que fait un conducteur : il ne
+     rend les gaz qu'une fois le volant rendu. */
+  {
+    let psi = capL - v.cap;
+    while(psi >  Math.PI) psi -= Math.PI*2;
+    while(psi < -Math.PI) psi += Math.PI*2;
+    if(Math.abs(psi) > 0.30) cmd[1] = Math.min(cmd[1], VIT_PIVOT/v.vmax);
   }
   return cmd;
 }

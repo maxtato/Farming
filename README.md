@@ -4268,6 +4268,158 @@ du chemin, et un chemin est déjà ignoré. La conduite à la main n'est pas con
 volant on travaille où l'on veut, et le banc le vérifie dans les deux sens : **0 cellule
 en automatique, 51 au volant**, sur la même traversée.
 
+### Puis le pilote a cessé de courir après un point
+
+Le joueur a regardé le dessin du plan et il a dit ce qu'il fallait faire : « en allant d'un
+point à un autre, ça fait un dessin en forme de queue de billard par rapport à la parcelle,
+étant donné qu'on sort d'un virage donc prend un peu plus large et qu'on repart tout droit.
+Et avec la vitesse du tracteur et le rayon de braquage, quand le véhicule n'arrive pas à
+recoller parfaitement au tracé, il se met à tourner en rond. Il faut absolument qu'on
+empêche ça. Est-ce qu'on peut pas juste dire : tu vas tout droit, tu tournes à quel endroit,
+puis tu vas tout droit, tu tournes à quel endroit, plutôt que de lui faire suivre un tracé
+qui n'arrivera pas à suivre parfaitement. »
+
+C'est exactement ce que fait le pilote maintenant, et le tracé n'a pas changé d'un point :
+c'est la façon de le suivre qui a changé.
+
+**Le pilote visait le point au bout du tronçon, à trente mètres.** Viser un point n'est pas
+suivre une ligne. Quand la machine sort d'un virage décalée d'un mètre et demi, l'angle vers
+un point situé à trente mètres ne vaut que trois degrés : elle ne se redresse presque pas et
+rejoint sa ligne EN DIAGONALE, pour n'être dessus qu'au dernier mètre. C'est la queue de
+billard, et elle se mesure — écart maximal au milieu d'un côté, relevé sur douze cas (deux
+tailles de parcelle, trois outils, deux crans de vitesse) : **1,64 m au pire, 1,37 m en
+moyenne**.
+
+**Trois règles l'ont remplacé, et rien d'autre.**
+
+**1. Il vise un point posé sur sa ligne, pas le bout du tronçon.** Le cap voulu est celui de
+la ligne, moins un rappel `atan(2·écart / vitesse)` borné à soixante-quinze degrés. Le
+rappel est un ANGLE et il se divise par la vitesse : à 2,2 m/s un mètre d'écart demande
+soixante degrés de correction, à 18,6 il en demande sept — parce qu'un engin lancé met sept
+mètres à corriger ce qu'un engin au pas corrige en un. C'est ce qui rend la même règle bonne
+pour le tracteur de départ et pour le même tracteur au dernier cran de vitesse, où le rayon
+de braquage passe de 1,16 m à 9,8 m. Et les deux termes se SOUSTRAIENT quand la machine
+traverse déjà vers sa ligne : c'est ce qui l'empêche de la dépasser.
+
+**2. Il tourne à un endroit, et cet endroit se calcule.** Un virage d'angle `a` pris au rayon
+`R` commence exactement `R·tan(a/2)` avant le coin — c'est la tangente, la seule façon
+d'enchaîner deux droites sans couper ni déborder. Pour un angle droit et le tracteur de
+départ, cela fait 1,26 m. On ne demande donc plus « l'outil a-t-il dépassé le point ? » —
+question dont la réponse arrivait quatre à six mètres trop tard, l'outil étant traîné —
+mais « suis-je arrivé au point où l'on tourne ? ».
+
+**3. Il ne peut plus tourner en rond.** Le point visé avance TOUJOURS avec la machine : il ne
+peut jamais lui passer derrière l'épaule ni tomber dans son cercle de braquage. Et par-dessus
+cette garantie géométrique, un compteur : au-delà de quatre cents degrés de cap accumulés sur
+un même tronçon, on abandonne ce tronçon et l'on repart droit sur le suivant. Quatre cents
+degrés laissent passer le demi-tour de l'écart (180) et les huit sommets du rond (45 chacun)
+sans jamais les interrompre.
+
+**Et le dernier mètre du défaut ne venait pas du tracé, mais d'un seuil de gaz.** `viser` rend
+la vitesse de pivot tant que le cap est faux de plus de soixante-huit degrés, et une fois et
+demie cette vitesse en deçà. Or un virage à l'équerre commence justement sous ce seuil — le
+rappel latéral en mange déjà cinquante. La machine reprenait donc **3,7 m/s au lieu de 2,2 en
+plein virage**, et le rayon étant proportionnel à la vitesse, elle tournait sur deux mètres là
+où le point de tangence en supposait 1,16 : elle traversait sa ligne et ressortait de l'autre
+côté. Relevé image par image sur la charrue, l'écart passait de −1,28 m à **+1,29 m en deux
+mètres de trajet**, puis mettait vingt mètres à se refermer. Tant que le cap n'est pas repris
+à dix-sept degrés près, la machine reste donc à la vitesse qui tourne le plus court. C'est ce
+que fait un conducteur : il ne rend les gaz qu'une fois le volant rendu.
+
+**La spirale, enfin, ne trace plus de côté plus court que son propre diamètre de braquage.**
+Un tronçon de 1,20 m entre deux virages à l'équerre est un tracé « qui n'arrivera pas à être
+suivi parfaitement » : la machine tourne sur 1,16 m de rayon au mieux, il lui en faudrait 2,32
+pour enchaîner les deux. Elle s'arrête donc au plus tard quand le rectangle restant descend
+sous deux rayons. Ce qu'on laisse, l'outil le couvre — 2,32 m de large contre 4,80 pour la
+plus étroite des charrues — et le rond du centre repasse dessus.
+
+**Ce que ça donne**, sur les douze cas, avant puis après :
+
+| | tracteur de départ | tracteur au dernier cran (×1,55) |
+|---|---|---|
+| écart au pire | 1,54 m → **0,26 m** | 1,64 m → **0,40 m** |
+| écart moyen | 1,28 m → **0,23 m** | 1,37 m → **0,33 m** |
+| tronçons parcourus en rond | 0 → **0** | 0 → **0** |
+| couverture moyenne | 98,7 % → 98,6 % | 98,9 % → 98,5 % |
+| temps par parcelle | 58,1 s → 68,9 s | 57,0 s → 67,8 s |
+
+L'écart est divisé par quatre à six ; la couverture ne bouge pas ; le temps monte de dix-neuf
+pour cent, et c'est le prix assumé de la règle 3 — la machine passe une demi-seconde de plus
+au pas dans chaque virage, vingt-cinq fois par parcelle.
+
+**Et le banc mentait sur le pire du défaut.** Le dessin envoyé au joueur montrait une longue
+diagonale en travers du champ. Elle n'existe pas dans le jeu : la sonde appelait
+`activateParcel` directement, ce qui prépare la terre mais ne retire pas le cylindre de
+collision du panneau « À VENDRE » — 1,60 m de rayon, planté 2,40 m à l'intérieur du coin de
+chaque parcelle. Les trois chemins d'achat du jeu le retirent tous (`ongletParcelles`,
+`refreshBuyButton`, `degagerFriche`) ; la sonde, non. La machine s'y cognait douze secondes,
+le garde-fou des huit secondes abandonnait le point, et elle repartait en diagonale vers le
+suivant. Toutes les sondes de trajet retirent maintenant `p.signObs` en même temps que le
+décor, et les chiffres ci-dessus sont mesurés sans lui.
+
+**Et il n'y a plus qu'un pilote de champ, pour les deux conduites — c'est là que se cachait
+le vrai défaut.** Il y en avait deux, et un seul avait été refait. `autoDrive` mène la machine quand le joueur lance le travail
+lui-même ; `missionDrive` la mène pendant TOUTE la campagne et tout le tutoriel — et
+celui-là visait encore le point au bout du tronçon, avec un rayon de capture de deux mètres.
+Le défaut réparé serait donc resté entier là où le joueur passe le plus clair de son temps.
+Les deux rangent le plan sous les mêmes noms (`v.plan`, `v.plan.i`, `v.plan.entre`) : le
+bloc « au champ » est sorti d'`autoDrive` tel quel dans `piloteChamp`, et les deux
+l'appellent. Une règle écrite deux fois est une règle qui diverge.
+
+**Et c'est le pilote de campagne qui allait le plus mal**, parce que son rayon de capture
+valait deux mètres au lieu d'un et qu'il ne freinait pas du tout avant les coins. Mesuré sur
+quatre passes conduites par une mission, tracteur au dernier cran de vitesse :
+
+| | avant | après |
+|---|---|---|
+| écart au pire | **6,18 m** | **0,40 m** |
+| tronçons parcourus en rond | **11** | **0** |
+| passes qui vont au bout | 3 / 4 | **4 / 4** |
+| temps par parcelle | 167 s | **77 s** |
+| couverture moyenne | 99,6 % | 98,9 % |
+
+Six mètres d'écart sur un côté de trente, et onze tronçons où la machine tourne sur
+elle-même : c'est exactement ce que le joueur décrivait, et cela n'arrivait que sur ce
+pilote-là. La passe est aussi deux fois plus courte, parce qu'une machine qui suit sa ligne
+ne perd plus son temps à la rattraper.
+
+**Trois garde-fous sont venus d'une relecture adverse**, et chacun répond à un scénario
+précis. Le premier : le seuil de virage est géométrique, donc il peut être vrai DÈS LA
+PREMIÈRE IMAGE d'un tronçon — après un abandon, ou sur un virage de plus de quatre-vingt-dix
+degrés, la projection de départ tombe déjà au-delà. Le plan se serait vidé de plusieurs
+points en autant d'images. On exige donc trente centimètres de trajet réel, sauf sur un
+tronçon plus court que cela — qui est toujours le premier, la route ayant déjà déposé la
+machine sur son point de départ — **et sauf si la machine était déjà au-delà du seuil en
+arrivant**. Cette dernière exception n'était pas dans la relecture, et c'est le banc de
+clôture qui l'a réclamée : la projection étant bornée au bout du tronçon, « trente
+centimètres de plus » y devient impossible, plus rien ne libère la machine avant les huit
+secondes du garde-fou de distance, et elle part droit devant pendant ce temps. Relevé :
+l'axe du tracteur sortait de **23,97 m** de sa terre et couchait trois courses de clôture,
+sur un cas qui ne faisait rien de tel avant. Ce qu'on risque en laissant passer est borné —
+une image par point, un demi-tour de plan au pire — et la machine reprend sa ligne au
+tronçon suivant. Le deuxième : le compteur de quatre cents degrés ne
+s'accumule que TANT QU'ON N'AVANCE PAS ; un demi-tour qui progresse le long de sa ligne
+n'est pas un rond, et le compteur se remet à zéro dès que la projection gagne quinze
+centimètres — sans quoi il coupait au bout de 3,7 secondes, contre 8 pour le garde-fou de
+la distance. Le troisième : le point de sortie se capture à un mètre vingt, parce qu'on y
+recule — `marcheArriere` rend la main à un mètre du but, et sans capture de proximité la
+machine repassait en marche avant pour un point situé dans son dos.
+
+**Et le plancher de braquage de la spirale ne laisse jamais plus large qu'un passage.** Deux
+rayons font 3,26 m pour l'enjambeuse, dont le tunnel de vendange n'en couvre que 2,80 : le
+plancher aurait laissé au centre une bande plus large que l'outil, c'est-à-dire de la vigne
+jamais vendangée. Il est donc borné par la largeur d'un passage, et c'est le seul outil du
+jeu que cette borne concerne.
+
+**La même relecture annonçait une perte de couverture dans les coins**, l'outil traîné
+n'étant plus compensé nulle part. Le raisonnement se tient — la charrue est 4,05 m derrière
+l'axe, et l'on tourne maintenant 1,26 m AVANT le coin au lieu de déborder de 4 m après.
+La mesure le dément : sur les quatre parcelles les plus serrées contre la clôture de la
+ferme (vingt centimètres de jeu), trois outils chacune, tracteur au dernier cran de vitesse,
+la couverture moyenne passe de **98,49 % à 98,70 %** et l'écart de 1,60 m à 0,40. Ce que le
+virage à la tangente ne travaille plus, le tour de périphérie et le demi-recouvrement
+l'avaient déjà fait.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
