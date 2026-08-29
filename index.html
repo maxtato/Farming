@@ -1677,7 +1677,22 @@ const PRODUITS = {
   patisserie: {nom:'Pâtisseries',   couleur:'#EFC8A8',
                de:{farine:0.55, oeufs:0.22, lait:0.23}, rendement:0.88, palier:'CONTRAT'},
   patisseriePlus:{nom:'Pâtisseries premium', couleur:'#F0D2B0',
-               de:{farine:0.50, oeufs:0.22, beurre:0.28}, rendement:0.88, palier:'CONTRAT'}
+               de:{farine:0.50, oeufs:0.22, beurre:0.28}, rendement:0.88, palier:'CONTRAT'},
+  /* LA RECETTE AU MIEL, PARCE QU'UNE MISSION LA DÉCRIT MOT POUR MOT.
+     Au palier quatorze, le boulanger dit : « j'ai une nouvelle recette en tête ; cette
+     fois, j'aurais besoin de votre farine, de vos œufs et de votre miel. » Il n'avait
+     aucune recette au miel : ce qu'un commerce accepte dans sa trémie se DÉDUIT de ses
+     recettes — « pas de liste à tenir à jour en double, donc pas de liste qui se
+     désynchronise » —, donc la boulangerie refusait le miel, et les douze kilos de la
+     mission ne pouvaient être livrés nulle part. Mesuré sur les trente missions, c'était
+     avec la bière la seconde et dernière ligne infinissable.
+     Elle passe DEVANT les deux autres recettes à trois ingrédients : `choix:'meilleure'`
+     prend la première réalisable, et le miel est l'entrée la plus chère de la
+     boulangerie — deux euros soixante-quinze le kilo brut, contre 0,76 pour le lait et
+     un beurre qui descend du lait. Apporter du miel doit donc l'emporter. Qui n'en
+     apporte pas retombe sur la pâtisserie premium, exactement comme avant. */
+  patisserieMiel:{nom:'Pâtisseries au miel', couleur:'#EFCE94',
+               de:{farine:0.50, oeufs:0.20, miel:0.30}, rendement:0.88, palier:'CONTRAT'}
 };
 // Le prix se calcule une fois, à la demande, et se retient. La récursion suit `de` :
 // une pâtisserie premium interroge le beurre, qui interroge le lait, qui est brut.
@@ -1861,9 +1876,25 @@ const HALLE = {x: 84, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
    moudre du blé, presque neuf pour faire du vin. Ces durées ont été multipliées par
    4,44 en même temps que les kilos étaient divisés d'autant : une parcelle met donc
    toujours le même temps à passer au moulin. */
+/* ET LA BRASSERIE DE LA FERME, PARCE QU'UNE MISSION LA RÉCLAMAIT SANS ELLE.
+   Au palier six, une mission demande cent quarante litres de bière au Restaurant. Or la
+   bière n'était fabriquée que par la Brasserie du village, qui ENCAISSE — « il vend
+   lui-même, il n'y a rien à emporter » — et aucun module de la halle ne la faisait. Le
+   joueur : « après la brasserie, il me demande de la bière alors que j'ai pas de quoi
+   fabriquer de la bière. » Mesuré sur les trente missions : c'était la SEULE marchandise
+   demandée que la ferme ne savait pas produire.
+   La cuve entre au palier six, celui qui ouvre justement l'orge, la Brasserie et le
+   Restaurant : on vend son orge au village, et on brasse la sienne chez soi. Elle se
+   range après le broyeur, entre les paliers quatre et huit, parce que l'ordre de ce
+   tableau est celui des paliers — c'est lui qui décide de la silhouette du bâtiment.
+   Son prix tient entre ses deux voisins, 700 et 1 200, et sa durée entre les leurs : une
+   fermentation est plus longue qu'une mouture (90 s pour cent kilos) sans atteindre un
+   affinage (400). Cent soixante-cinq secondes : les deux cents kilos d'orge que demande
+   la mission passent en cinq minutes et demie. */
 const ATELIER_MODULES = [
   {cle:'farine',        module:'Moulin',                prix:650,   duree:90},
   {cle:'aliment',       module:'Broyeur',               prix:700,   duree:65},
+  {cle:'biere',         module:'Cuve de brassage',      prix:950,   duree:165},
   {cle:'alimentPlus',   module:'Mélangeur premium',     prix:1200,  duree:130},
   {cle:'fromage',       module:'Fromagerie',            prix:1800,  duree:400},
   {cle:'fromageBrebis', module:'Fromagerie de brebis',  prix:1600,  duree:530},
@@ -2091,7 +2122,8 @@ const NEGOCE = {
   'Atelier textile': {fabrique:['textile'], caisse:true, coef:1.74, debit:0.74},
 
   // — la boulangerie monte en gamme avec ce qu'on lui donne, et vend elle-même
-  'Boulangerie':     {fabrique:['patisseriePlus','patisserie','viennoiserie','pain'],
+  'Boulangerie':     {fabrique:['patisserieMiel','patisseriePlus','patisserie',
+                                'viennoiserie','pain'],
                       choix:'meilleure', caisse:true, coef:1.40, debit:0.90},
 
   // — les points de vente finaux
@@ -2111,13 +2143,24 @@ const NEGOCE = {
      benne au prix fort, et on descend l'échelle pour le reste — c'est le choix qu'on
      veut poser : moins cher, mais tout part. */
   'Caviste':         {achete:['vin','raisin'], coef:1.33, etal:600},
+  /* ET LA BIÈRE Y ENTRE, MAINTENANT QU'ON SAIT LA FAIRE. Elle avait été retirée de ces
+     trois listes, et à raison : « le reste — bière, fromage, beurre, yaourt, lait
+     d'avoine — est fabriqué et vendu par les usines elles-mêmes ; l'afficher ici, c'était
+     promettre au joueur des lignes qu'il ne pourrait jamais honorer. » Seulement la
+     mission du palier six, elle, en demandait toujours cent quarante litres au
+     Restaurant : la correction avait été portée aux étals et pas aux missions. La cuve de
+     brassage de la halle range la bière du côté du fromage — ce que l'atelier de la ferme
+     transforme —, et elle se vend donc comme lui. */
   'Restaurant':      {achete:['oeufs','lait','farine','huile','huileOlive','vin','raisin',
-                              'olives','miel','fromage','fromageBrebis'], coef:1.28, etal:900},
+                              'olives','miel','fromage','fromageBrebis','biere'],
+                      coef:1.28, etal:900},
   'Marché':          {achete:['olives','raisin','oeufs','lait','laitBrebis','laine','farine',
-                              'huile','huileOlive','vin','miel','fromage','fromageBrebis'],
+                              'huile','huileOlive','vin','miel','fromage','fromageBrebis',
+                              'biere'],
                       coef:1.09, etal:2000},
   'Supermarché':     {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
-                              'huile','huileOlive','vin','miel','fromage','fromageBrebis'],
+                              'huile','huileOlive','vin','miel','fromage','fromageBrebis',
+                              'biere'],
                       coef:1.00, etal:9000}
 };
 for(const S of SITES){
@@ -2285,7 +2328,8 @@ const NIVEAUX = [
   {nom:'Deux chaînes à la fois', resume:'La farine ET les œufs dans la même tournée',
    engins:['t2'], parcelles:2},
   {nom:'L\'orge', resume:'L\'orge, la brasserie, le restaurant',
-   cultures:['orge'], engins:['fourgon'], sites:['Brasserie', 'Restaurant'], parcelles:3},
+   cultures:['orge'], engins:['fourgon'], modules:['biere'],
+   sites:['Brasserie', 'Restaurant'], parcelles:3},
   {nom:'L\'avoine', resume:'L\'avoine et son usine',
    cultures:['avoine'], sites:['Usine avoine'], parcelles:3},
   {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',

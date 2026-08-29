@@ -1769,6 +1769,44 @@ l'écran. La ligne dit les trois chiffres qui décident : ce que la tour tient, 
 tiendrait, et **combien de moissons** cela fait — parce que « 646 kg » ne veut rien dire tant
 qu'on ne sait pas ce qu'une moisson rapporte.
 
+## Deux missions qu'on ne pouvait pas finir
+
+**« Après la brasserie, il me demande de la bière alors que j'ai pas de quoi fabriquer de la
+bière. »** Le joueur a raison, et il y en avait une seconde qu'il n'avait pas encore
+rencontrée. Sur les trente-neuf lignes de marchandise que réclament les trente missions,
+deux étaient impossibles :
+
+- **140 litres de bière au Restaurant, au palier six.** La bière n'était fabriquée que par
+  la Brasserie du village, qui *encaisse* — « il vend lui-même, il n'y a rien à emporter » —
+  et aucun des huit métiers de la halle ne la faisait. Le Restaurant ne l'achetait pas non
+  plus. Une passe précédente avait justement **retiré** la bière des étals, en écrivant que
+  « l'afficher ici, c'était promettre au joueur des lignes qu'il ne pourrait jamais
+  honorer » : la correction avait été portée aux étals, et pas aux missions.
+- **12 kg de miel à la Boulangerie, au palier quatorze.** Le boulanger dit « j'ai une
+  nouvelle recette en tête, il me faut votre farine, vos œufs et votre miel » — et n'avait
+  aucune recette au miel. Ce qu'une usine accepte dans sa trémie **se déduit de ses
+  recettes** (« pas de liste à tenir à jour en double, donc pas de liste qui se
+  désynchronise ») : elle refusait donc le miel au quai.
+
+**La ferme brasse maintenant sa bière.** Une neuvième cuve entre à l'atelier — 950 €,
+165 secondes pour cent kilos d'orge —, au palier six, celui qui ouvre justement l'orge, la
+Brasserie et le Restaurant. On vend son orge au village *et* on brasse la sienne chez soi ;
+la bière rejoint le fromage du côté de ce que l'atelier transforme, et se vend donc comme
+lui, au Restaurant, au Marché et au Supermarché. Le tableau des modules est rangé par
+palier, donc la cuve se place après le broyeur ; le palier d'un module se lit dans `NIVEAUX`
+**par clé** et non par position, donc rien ne se décale.
+
+**Et la boulangerie a sa recette au miel** — farine, œufs, miel, exactement ce que le texte
+décrit. Elle passe *devant* les deux autres recettes à trois ingrédients : le choix prend la
+première réalisable, et le miel est l'entrée la plus chère de la boulangerie. Qui n'en
+apporte pas retombe sur la pâtisserie premium, comme avant.
+
+**Le banc pose maintenant les deux questions**, pour chacune des trente-neuf lignes : la
+ferme sait-elle *produire* la marchandise — culture, bête ou métier de la halle —, et le lieu
+de livraison la *prend*-il, en l'achetant ou en l'employant dans une recette. Aucune des deux
+n'était posée. Éprouvé sur l'état d'avant : il rend « MANQUE n10 bière @Restaurant » et
+« REFUSE n10 bière @Restaurant, n22 miel @Boulangerie ».
+
 ## Le garage : acheter, améliorer
 
 Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat
