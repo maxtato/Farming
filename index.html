@@ -9742,21 +9742,33 @@ function planAuto(m, cible){
      virage relevé au banc ; c'est donc lui qu'il faut garder libre, et non un chiffre rond. */
   const RMIN = VIT_PIVOT/Math.max(0.6, v.turn);
   const RU = Math.max(pasL/2, RMIN + 0.3);
-  /* ET SI LE DEMI-TOUR NE PEUT PAS SORTIR, C'EST LE TOUR QUI SE SERRE, PAS LA LIGNE QUI
-     RECULE. Le sommet du demi-tour doit rester à `VIRAGE_BORD` du premier mur — c'est le
-     dépassement de virage mesuré, et l'y coller couche la clôture. Quand ce mur est trop
-     près, on a d'abord rentré le BOUT DE LA LIGNE d'un rayon pour que le tour tienne dans
-     le champ. Mesuré ensuite : cette bande-là n'est jamais travaillée, et elle coûte un
-     cinquième d'une parcelle de bordure — l'épandeur tombait à 79,6 % sur la parcelle
-     carrée adossée à la clôture. On garde donc la ligne entière : la machine va jusqu'au
-     bout, et c'est le demi-tour qui se serre contre le mur, au pas, puisque le pilote y
-     roule déjà à la vitesse de pivot. Mesuré après : 99,1 % au pire, la même clôture
-     debout, et 1,70 m de jeu au mur au lieu de 0,96. Le sommet reste seulement borné à ne
-     jamais repasser DERRIÈRE le bout de la ligne, ce qui ferait reculer la machine. */
+  /* ET LE DEMI-TOUR NE SORT PAS DE LA TERRE. C'est la dernière correction du dessin, et
+     c'est le joueur qui l'a vue avant la mesure : « on va trop loin, on dépasse trop ; je
+     veux que pour chacun des véhicules tu ailles jusqu'au bout de la terre mais que tu
+     dépasses pas sur l'herbe — c'est quand on fera le demi-tour que ça nettoiera
+     correctement. »
+     La ligne, elle, s'arrêtait déjà au bord : `retraitsDe` ne rend jamais de retrait
+     négatif. Ce qui sortait, c'était le SOMMET du demi-tour, posé un demi-pas au-delà du
+     bout de ligne — quatre mètres pour un épandeur, et l'axe du tracteur relevé jusqu'à
+     4,35 m dans l'herbe. Le sommet est donc borné par le bord de la parcelle, et le
+     demi-tour se prend à l'équerre DANS le champ : on arrive au bout, on tourne, on
+     traverse d'un pas le long du bord, on repart. Ce qui reste au bout des lignes, c'est
+     ce demi-tour lui-même qui le balaie, exactement comme le joueur le dit.
+     LE PRIX EST MESURÉ, ET IL EST PETIT. Sur les douze chantiers de bordure : l'axe ne
+     sort plus que de 0,61 m contre 4,35, le plan ne sort plus du tout, et le temps baisse
+     de huit pour cent. La couverture du pire cas passe de 99,1 % à 97,1 — trois cellules de
+     tournière sur les 345 d'un épandeur de douze mètres, qui est le plus large des outils
+     et donc celui qui tourne le plus large. Un rayon de braquage de tolérance a été essayé
+     et rejeté : il rend 0,7 point de couverture pour 2,4 m d'herbe et huit pour cent de
+     temps en plus.
+     LE MUR RESTE PRIORITAIRE. Sur un bord adossé à la clôture de la ferme, `VIRAGE_BORD`
+     moins le jeu rentre le sommet PLUS LOIN que le bord de la parcelle : c'est ce terme-là
+     qui garde la clôture debout, et il domine. Le sommet ne repasse jamais derrière le bout
+     de la ligne non plus, ce qui ferait reculer la machine. */
   const murA0 = bordA0 - jeuDeBord(best, iA0);
   const murA1 = bordA1 + jeuDeBord(best, iA1);
-  const uA0 = Math.min(A0, Math.max(murA0 + VIRAGE_BORD, A0 - RU));
-  const uA1 = Math.max(A1, Math.min(murA1 - VIRAGE_BORD, A1 + RU));
+  const uA0 = Math.min(A0, Math.max(bordA0, murA0 + VIRAGE_BORD, A0 - RU));
+  const uA1 = Math.max(A1, Math.min(bordA1, murA1 - VIRAGE_BORD, A1 + RU));
   /* PAR OÙ L'ON COMMENCE : par le bout et par le côté les plus proches de la machine. Sans
      cela elle traverse la parcelle en diagonale pour aller commencer à l'autre bout, et l'on
      voit ce trajet-là mieux que tout le reste. */
@@ -15599,11 +15611,22 @@ const TUTO = [
       devrait aller vider sans que rien le lui ait dit. */
    fait:()=> bleRentre() >= 30
              && (partParcelle('moisson') >= PART_ETAPE || hopper >= HOP_MAX - 0.5)},
+  /* ET CES DEUX ÉTAPES-LÀ DISENT QUEL BOUTON ELLES DÉSIGNENT. Elles envoient toutes deux
+     sur la grille du silo, où l'on trouve jusqu'à sept lignes — rentrer sa trémie, rentrer
+     sa benne, charger l'un des cinq tas. L'anneau y est jaune, mais l'objectif du tutoriel
+     ne portait que `quoi:'tuto'` et pas la moindre indication du geste : la colonne ne
+     pouvait pas savoir laquelle de ses lignes le tutoriel attendait, et les peignait toutes
+     en bleu. C'est le premier quart d'heure de jeu, et c'est là que le joueur l'a vu.
+     `quoi` et `prod` sont FACULTATIFS et posés sur des lignes existantes : `CAMPAGNE.tuto`
+     est un indice dans cette table, et ajouter ou déplacer une ligne renverrait une partie
+     sauvegardée à la mauvaise étape. Des champs, jamais des lignes. */
   {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
    txt:'STOCKER LA RÉCOLTE — décharge ton blé dans le silo',
+   quoi:'vider', prod:'ble',
    fait:()=> siloStock.ble >= 29.9},
   {cle:'charger', ou:'silo', engin:'pickup', titre:'PRÉPARER LA LIVRAISON',
    txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
+   quoi:'charger', prod:'ble',
    fait:()=> bleABord() >= 29.9},
   {cle:'vendre', ou:'Coopérative', engin:'pickup', titre:'PREMIÈRE VENTE',
    txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
@@ -15790,7 +15813,14 @@ function objectifMission(){
   const E = etapeTuto();
   if(E){
     const L0 = lieuTuto(E);
-    if(L0) return {lieu:L0.lieu, x:L0.x, z:L0.z, quoi:'tuto', txt:E.txt};
+    /* ET L'ÉTAPE DIT SON GESTE QUAND ELLE EN A UN. `quoi:'tuto'` suffisait à allumer le
+       cercle et la flèche, qui ne demandent qu'un lieu ; il ne suffit pas à la colonne de
+       boutons, qui doit savoir LAQUELLE de ses lignes l'étape attend. Les étapes qui visent
+       un transfert portent donc `quoi` et `prod`, et le juge les relaie dans le vocabulaire
+       de tout le monde. Les autres — labourer, semer, attendre que ça pousse — gardent
+       `quoi:'tuto'` : il n'y a pas de bouton à désigner sur un champ. */
+    if(L0) return {lieu:L0.lieu, x:L0.x, z:L0.z,
+                   quoi: E.quoi || 'tuto', cle: E.prod, txt:E.txt};
   }
   const M = missionVisible();
   if(!M) return null;
@@ -18720,16 +18750,17 @@ function refreshChoix(){
      que la mission attend, et c'est justement celui qu'on garde. */
   const Sic = siteIci(m.v);
   /* ---------- ON NE DEMANDE PAS DE SIGNER LA MISSION QUE LE TUTORIEL VIENT DE FAIRE FAIRE
+     LA RÈGLE, EN UNE PHRASE : à la PREMIÈRE mission, et à elle seule, arriver chez le client
+     avec la marchandise déjà à bord la signe toute seule.
      Le joueur : « comme on est déjà dans une phase de jeu et qu'on va livrer les 30 kg, il
      faut qu'on passe direct, il faut pas qu'on voie le bouton prendre la mission, il faut
      qu'on passe direct au bouton jaune pour vendre nos 30 kg. »
      Il a raison, et le tutoriel le dit lui-même : il a envoyé labourer, semer, moissonner
      et charger trente kilos de blé POUR cette mission. Arriver à la Coopérative et se voir
      demander si l'on veut bien la prendre, c'est demander une signature au bout du travail.
-     Quand la marchandise attendue est DÉJÀ À BORD, la mission se prend donc toute seule et
-     le bouton jaune de livraison apparaît directement. Le récit du marchand n'est pas perdu
-     : il se lit dans la fenêtre de fin, celle qui paie. Et si l'on arrive les mains vides,
-     rien ne change — le bouton vert est là, avec son texte.
+     Le récit du marchand n'est pas perdu : il se lit dans la fenêtre de fin, celle qui paie.
+     Et si l'on arrive les mains vides, rien ne change — le bouton vert est là, avec son
+     texte.
 
      ET SEULEMENT LA PREMIÈRE. Le raccourci valait pour les trente missions, et le joueur
      l'a vu tout de suite : « après la mission de la coopérative, j'avais encore du
@@ -18828,8 +18859,13 @@ function refreshChoix(){
      n'existe pas. */
     // Une commande passe avant la vente libre du même produit : c'est l'ordre dans lequel
   // on y pense en arrivant, et la ligne du dessous reste là pour qui veut tout écouler.
+  /* `traire2` manquait, et son absence ne se voyait pas : `rang[A.sens]` rendait undefined,
+     la soustraction rendait NaN, et le comparateur de `sort` recevait NaN — l'ordre de la
+     colonne devenait celui du moteur JavaScript. C'est le second tank d'une brebis, qui
+     donne de la laine en plus de son lait : deux boutons CHARGER au même enclos. */
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
-                auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2, traire:2};
+                auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2,
+                traire:2, traire2:2};
   const rangDe = (A)=> (estMission(A) ? -1 : rang[A.sens]);
   const tri = L.slice().sort((A, B)=> (rangDe(A) - rangDe(B)) || A.txt.localeCompare(B.txt));
   const lignes = [];

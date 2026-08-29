@@ -4752,6 +4752,36 @@ tous les 1,56 m, et l'amont d'une ligne peut tomber pile entre deux — le segme
 pour libre alors qu'il longe la clôture à vingt centimètres. La géométrie tranche là où
 l'échantillonnage se trompe.
 
+**Et le demi-tour ne sort pas de la terre.** « On va trop loin, on dépasse trop ; je veux que
+pour chacun des véhicules tu ailles jusqu'au bout de la terre mais que tu dépasses pas sur
+l'herbe — c'est quand on fera le demi-tour que ça nettoiera correctement. »
+
+La ligne, elle, s'arrêtait déjà au bord : `retraitsDe` ne rend jamais de retrait négatif. Ce
+qui sortait, c'était le **sommet du demi-tour**, posé un demi-pas au-delà du bout de ligne —
+quatre mètres pour un épandeur, et l'axe du tracteur relevé jusqu'à **4,35 m dans l'herbe**.
+Le sommet est maintenant borné par le bord de la parcelle : on arrive au bout, on tourne, on
+traverse d'un pas le long du bord, on repart. Ce qui reste au bout des lignes, c'est ce
+demi-tour lui-même qui le balaie.
+
+Le prix est mesuré, et il est petit. Sur les douze chantiers de bordure :
+
+|                        | avant | après |
+|------------------------|------:|------:|
+| axe hors de sa terre   | 4,35 m | **0,61 m** |
+| ce que le plan prévoit dehors | 3,90 m | **0** |
+| couverture au pire     | 99,1 % | 97,1 % |
+| temps                  | 24 950 img | **22 868** |
+
+Trois cellules de tournière sur les 345 d'un épandeur de douze mètres, qui est le plus large
+des outils et donc celui qui tourne le plus large. Un rayon de braquage de tolérance a été
+essayé et rejeté : il rend 0,7 point de couverture pour 2,4 m d'herbe et huit pour cent de
+temps en plus.
+
+Le mur reste prioritaire. Sur un bord adossé à la clôture de la ferme, `VIRAGE_BORD` moins le
+jeu rentre le sommet **plus loin** que le bord de la parcelle : c'est ce terme-là qui garde la
+clôture debout, et il domine. Mesuré : le sommet ne sort de la terre nulle part, et il garde
+2,20 m du premier mur là où ce mur est plus près que le bord.
+
 ### Ce que les bancs disent, et ce qu'ils disaient de faux
 
 Trois bancs mesuraient l'escargot ; ils mesurent maintenant les lignes. Deux d'entre eux
@@ -4831,6 +4861,21 @@ la mission attend — exactement l'alternative dont le joueur ne voulait pas. Le
 retire la vente libre ne regardait que la mission *déjà signée*. Il regarde maintenant aussi
 celle **à prendre**. La Coopérative garde sa vente libre : c'est l'exception nommée, et elle
 tient par `LIEUX_SERVICE`, qui la range avec le garage et le comptoir.
+
+**Et le premier quart d'heure aussi, qui était la scène exacte du joueur.** Le tutoriel envoie
+au silo deux fois — vider la trémie, puis charger trente kilos dans le pick-up — et l'anneau y
+est jaune. Mais l'objectif du tutoriel ne portait que `quoi:'tuto'`, sans clé ni geste : la
+colonne ne pouvait pas savoir laquelle de ses lignes l'étape attendait, et les peignait toutes
+en bleu. Les deux étapes concernées déclarent maintenant ce qu'elles veulent — `quoi` et
+`prod`, deux **champs facultatifs sur des lignes existantes**, parce que `CAMPAGNE.tuto` est
+un indice dans cette table et qu'ajouter ou déplacer une ligne renverrait une partie
+sauvegardée à la mauvaise étape. Une étape sans geste, elle, ne désigne rien : au champ il n'y
+a pas de bouton à peindre.
+
+Un défaut latent est tombé avec : `traire2` manquait à la table des rangs de la colonne.
+`rang[A.sens]` rendait `undefined`, la soustraction rendait `NaN`, et le comparateur de `sort`
+recevait `NaN` — l'ordre des boutons devenait celui du moteur JavaScript. C'est le second tank
+d'une brebis, qui donne de la laine en plus de son lait : deux boutons CHARGER au même enclos.
 
 ## L'atelier au bout de la cour, et deux réserves au milieu
 
