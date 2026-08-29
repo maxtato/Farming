@@ -1731,6 +1731,44 @@ proportions par construction. Ce qu'on perd, et il faut le dire : un sprite ne p
 *planté* dans le sol ; c'est une étiquette posée sur l'image, pas un panneau de rue. C'est
 exactement ce qui est demandé, et c'est ce qu'était l'ancienne jauge du silo.
 
+## La tour s'agrandit
+
+**La capacité du silo était une formule, et rien d'autre :** `160 + terre × 0,30`. Elle
+suivait la terre possédée, automatiquement, et l'on n'avait aucune prise dessus. Le joueur :
+« il manque des améliorations pour le silo pour augmenter la capacité ; crée ces
+améliorations en lien avec l'accroissement de l'activité. »
+
+La mesure lui donne raison **au-delà de ce qu'il dit**. Relevé palier par palier sur les
+vingt de la campagne — terre possédée, kilos d'une moisson complète de blé, capacité de la
+tour :
+
+| palier | parcelles | une moisson | la tour tient | soit |
+|---|---|---|---|---|
+| 1 · Le fermier | 1 | 49 kg | 228 kg | **4,66 moissons** |
+| 6 · L'orge | 3 | 199 kg | 435 kg | 2,19 |
+| 10 · Gros volumes | 5 | 352 kg | 646 kg | 1,83 |
+| 14 · La gamme fermière | 7 | 582 kg | 963 kg | 1,65 |
+| 20 · Exploitation complète | 20 | 1 848 kg | 2 710 kg | **1,47 moisson** |
+
+Le commentaire du code promettait « deux récoltes et demie quel que soit le nombre de
+parcelles ». C'est faux : la tour **se resserre** à mesure que la ferme grandit, parce que le
+fond de cale de 160 kg domine tant qu'on a une parcelle et ne pèse plus rien quand on en a
+vingt. Le pincement arrive donc exactement au moment où l'on a le plus de grain à rentrer —
+et c'est ça, « en lien avec l'accroissement de l'activité ».
+
+**Le barème multiplie la formule au lieu de la remplacer**, pour que la tour continue de
+suivre la terre : ×1, ×1,5, ×2,1, ×2,9, à **1 200, 4 000 et 11 000 €**. Au dernier palier,
+1,47 moisson devient 4,25 ; au sixième, 2,19 devient 6,33. Les prix sont ceux de la capacité
+de l'atelier (900, 3 400, 9 000) décalés d'un cran vers le haut : le silo sert *toutes* les
+filières et non une seule, et son premier cran s'achète au palier où les primes de mission
+passent 3 000 €.
+
+Il s'achète dans la fenêtre du **stockage**, troisième onglet — c'est là qu'on lit déjà ce
+que la tour contient, et le bouton du stockage est un des trois boutons permanents de
+l'écran. La ligne dit les trois chiffres qui décident : ce que la tour tient, ce qu'elle
+tiendrait, et **combien de moissons** cela fait — parce que « 646 kg » ne veut rien dire tant
+qu'on ne sait pas ce qu'une moisson rapporte.
+
 ## Le garage : acheter, améliorer
 
 Le garage avait **deux boutons, et chacun ne portait qu'une seule chose**. Celui d'achat

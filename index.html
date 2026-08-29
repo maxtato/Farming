@@ -1792,7 +1792,7 @@ const entreeSeule = (cle)=>{
 // qui moud son grain.
 const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
 const SILO_TOUR = {x: 52, z: 50};
-const SILO = {x: 59, z: 50, r: 4.5};      // la grille de déversement, sous la goulotte
+const SILO = {x: 59, z: 50, r: 4.5, cran: 1};   // la grille de déversement, sous la goulotte
 
 /* ---------- UN TRANSFORMATEUR, C'EST TOUJOURS LA MÊME MÉCANIQUE ---------- */
 /* Une trémie où l'on verse des matières, un stock d'où l'on repart avec le produit,
@@ -11955,7 +11955,37 @@ const siloTotal = ()=> SILO_CLES.reduce((t, k)=> t + siloStock[k], 0);
    DEUX RÉCOLTES ET DEMIE de ce qu'on cultive, plus un fond de cale : elle se remplit
    donc au même rythme quel que soit le nombre de parcelles, et rentrer une moisson
    redevient une décision. 326 kg avec une parcelle, 3 000 avec vingt. */
-const siloMax = ()=> Math.round(160 + terreCultivable()*0.30);
+/* ET LA TOUR S'AGRANDIT, PARCE QUE LA FORMULE SEULE NE SUIT PAS.
+   Le commentaire ci-dessus promettait « deux récoltes et demie quel que soit le nombre
+   de parcelles ». La mesure dit autre chose : relevé palier par palier sur les vingt de
+   la campagne, la tour tient 4,66 récoltes de blé au premier et seulement 1,47 au
+   dernier. Le fond de cale de 160 kg domine tant qu'on a une parcelle et ne pèse plus
+   rien quand on en a vingt — la tour se resserre donc à mesure que la ferme grandit,
+   exactement au moment où l'on a le plus de grain à rentrer. Le joueur : « il manque des
+   améliorations pour le silo pour augmenter la capacité ; crée ces améliorations en lien
+   avec l'accroissement de l'activité. »
+   Le barème MULTIPLIE la formule au lieu de la remplacer : la tour continue de suivre la
+   terre — c'est ce qui fait qu'une moisson reste une décision — et les crans rendent la
+   marge que la croissance mange. Au dernier palier, 1,47 récolte devient 4,26 ; au
+   sixième, où le pincement commence à se sentir, 2,19 devient 6,35.
+   LES PRIX SONT CEUX DE L'ATELIER, DÉCALÉS D'UN CRAN VERS LE HAUT. La capacité de la
+   halle vaut 900, 3 400 et 9 000 ; le silo sert TOUTES les filières et non une seule, et
+   son premier cran s'achète au palier où les primes de mission passent 3 000 €. */
+const SILO_UP = {nom:'Silo', det:'Ce que la tour tient de céréales',
+                 paliers:[1, 1.5, 2.1, 2.9], prix:[0, 1200, 4000, 11000]};
+const siloFacteur = ()=>
+  SILO_UP.paliers[Math.max(0, Math.min(SILO_UP.paliers.length - 1, (SILO.cran || 1) - 1))];
+const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*siloFacteur());
+const coutSilo = ()=> ((SILO.cran || 1) < SILO_UP.paliers.length)
+                      ? SILO_UP.prix[SILO.cran || 1] : 0;
+function agrandirSilo(){
+  const c = coutSilo();
+  if(c <= 0 || money < c) return false;
+  money -= c; SILO.cran = (SILO.cran || 1) + 1;
+  showHint('SILO AGRANDI — ' + Math.round(siloMax()) + ' KG');
+  rafraichirEcran();
+  return true;
+}
 // Sur quel tas la benne se sert quand elle arrive vide : le plus gros. C'est celui
 // dont la ferme est le plus encombrée, donc celui qu'il faut sortir en premier.
 function siloPlusGros(){
@@ -12323,10 +12353,17 @@ let hote = pliste;
    hors de la fonction : n'importe quel geste redessine l'écran par rafraichirEcran(),
    et une mémoire locale ramènerait au premier onglet à chaque achat. */
 const FENETRES = {
+  /* ET LE SILO S'AGRANDIT DEPUIS ICI. Sa capacité était une FORMULE et rien d'autre :
+     elle suivait la terre, et l'on n'avait aucune prise dessus. « Il manque des
+     améliorations pour le silo pour augmenter la capacité. » Elles vont dans la fenêtre
+     du STOCKAGE, parce que c'est là qu'on lit déjà ce que la tour contient, et parce
+     que le bouton du stockage est un des trois boutons permanents de l'écran — le menu
+     ne garde que les réglages et la progression. */
   stockage:   {titre:'Stockage',   vues:[{id:'magasin',  nom:'En magasin'},
                                          // L'onglet ne LANCE plus rien : il dit ce que
                                          // la matière deviendrait. Son nom le dit aussi.
-                                         {id:'possible', nom:'Ce que ça devient'}]},
+                                         {id:'possible', nom:'Ce que ça devient'},
+                                         {id:'agrandir', nom:'Agrandir'}]},
   /* PRODUIRE EST DANS L'ATELIER, ET C'EST LE PREMIER ONGLET.
      Le bouton qui LANCE un lot vivait dans la fenêtre du STOCK, sous « production
      possible » : pour transformer du blé en farine, il fallait ouvrir le stock. Le
@@ -12396,7 +12433,8 @@ function rendreFenetre(){
      fonctions citées sont des déclarations, donc hissées : l'objet peut être écrit
      ici alors qu'elles sont définies cinq mille lignes plus bas. */
   const T = ({
-    stockage:   {magasin:vueStockMagasin, possible:vueStockPossible},
+    stockage:   {magasin:vueStockMagasin, possible:vueStockPossible,
+                 agrandir:vueStockAgrandir},
     production: {produire:vueProdProduire, metiers:vueProdMetiers,
                  reglages:vueProdReglages},
     prix:       {_:ongletPrix},
@@ -19614,6 +19652,38 @@ function vueProdMetiers(){
 /* LES TROIS AMÉLIORATIONS UNIVERSELLES. Elles ne s'achètent pas au garage : elles se
    posent sur l'atelier, et l'atelier est à la ferme. Elles ne donnent aucun métier
    neuf, elles changent le RYTHME — d'où leur onglet à part. */
+/* AGRANDIR LA TOUR. Une seule ligne, et elle dit les trois choses qui décident :
+   ce que la tour tient aujourd'hui, ce qu'elle tiendrait au cran suivant, et combien de
+   MOISSONS cela représente — parce que « 646 kg » ne veut rien dire tant qu'on ne sait
+   pas ce qu'une moisson rapporte, et que c'est ce rapport-là qui se dégrade quand la
+   ferme grandit. */
+function vueStockAgrandir(){
+  titre('Agrandir le silo');
+  const c = coutSilo(), n = SILO.cran || 1;
+  const ble = CROPS.find((q)=> q.cle === 'ble');
+  const moisson = terreCultivable()*(ble ? ble.kg : 0.2174);
+  const recoltes = (m)=> moisson > 0.5 ? (m/moisson).toFixed(1) + ' moissons' : 'toute la terre';
+  const base = 160 + terreCultivable()*0.30;
+  if(!c){
+    article(0xF0C24A, SILO_UP.nom + ' ' + '★'.repeat(n - 1),
+      SILO_UP.det + '<br>Au maximum : ' + kg(siloMax()) + ' — ' + recoltes(siloMax()),
+      'Max', 'ok', null);
+  } else {
+    const suiv = Math.round(base*SILO_UP.paliers[n]);
+    const ok = money >= c;
+    article(0xF0C24A, SILO_UP.nom + ' ' + '★'.repeat(n - 1),
+      SILO_UP.det + '<br>' + kg(siloMax()) + ' → <span class="q">' + kg(suiv) + '</span>'
+      + '<br><span class="det2">' + recoltes(siloMax()) + ' → ' + recoltes(suiv) + '</span>',
+      ok ? eur(c) : 'Il manque ' + eur(c - money), ok ? 'vert' : 'no',
+      ok ? ()=> agrandirSilo() : null);
+  }
+  const d = document.createElement('div'); d.className = 'art';
+  d.innerHTML = '<div class="txt"><div class="det">La tour suit la terre qu\'on ' +
+    'possède : ' + kg(Math.round(base)) + ' de base ici, et le cran multiplie ce ' +
+    'chiffre. Elle ne se resserre donc pas quand la ferme grandit — c\'est ce qui ' +
+    'arrivait, et une moisson finissait par ne plus tenir.</div></div>';
+  hote.appendChild(d);
+}
 function vueProdReglages(){
   titre('Régler l\'atelier');
   for(const q of ['capa', 'vite', 'queue']){
@@ -20273,6 +20343,9 @@ function etatJeu(){
             commande: HALLE.file[0] ? Object.assign({}, HALLE.file[0]) : null,
             tremie: Object.assign({}, HALLE.tremie),
             stock: Object.assign({}, HALLE.stock)},
+    // Le cran du silo : un champ FACULTATIF de plus, comme tous ceux qu'on ajoute. Une
+    // sauvegarde d'avant les crans n'en a pas, et se relit sur un silo au premier cran.
+    siloCran: SILO.cran || 1,
     entrepot: Object.assign({}, ENTREPOT.stock),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
     // `graines` est ce qui compte, et il détaille le hangar sac par sac.
@@ -20544,6 +20617,14 @@ function chargerPartie(S){
 
     // 4. l'exploitation
     money = S.money; hopper = S.hopper; delivered = S.delivered; breadKg = S.breadKg;
+    /* LE CRAN DU SILO SE RELIT AVANT LE GRAIN. Ce n'est pas load-bearing aujourd'hui, et
+       il faut le dire : la borne posée deux lignes plus bas ne s'applique qu'au chemin
+       des VIEILLES sauvegardes — celles d'avant les tas par céréale — et une sauvegarde
+       de ce temps-là ne porte évidemment pas de cran. Éprouvé au banc : inverser les deux
+       lignes ne casse aucun contrôle.
+       On les met quand même dans cet ordre, parce que `siloMax()` dépend du cran et que
+       la prochaine borne qu'on ajoutera ici n'aura pas ce mou. */
+    SILO.cran = Math.max(1, Math.min(SILO_UP.paliers.length, Math.round(S.siloCran || 1)));
     // Le silo était un tas unique de « grain » avant la chaîne de production : une
     // vieille partie retrouve son tas versé en blé, la céréale de départ.
     for(const k of SILO_CLES) siloStock[k] = (S.silo && S.silo[k]) || 0;
