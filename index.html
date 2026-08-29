@@ -14657,9 +14657,29 @@ function objectifMission(){
   const M = missionVisible();
   if(!M) return null;
   const S = SITES.find((x)=> x.nom === M.lieu) || null;
-  // Une mission « faire » n'a pas de marchandise : son objectif est là où l'on s'équipe.
-  if(M.faire) return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ, quoi:'aller', txt:'ALLER VOIR'}
-                       : null;
+  /* UNE MISSION « FAIRE » N'A PAS DE MARCHANDISE, mais elle a quand même un but — et
+     jusqu'ici elle n'avait RIEN. Les deux qui existent, « produire de l'aliment premium »
+     et « livrer quatre porcs », n'ont pas de `lieu` : `SITES.find` rendait undefined, le
+     juge rendait null, et le joueur se retrouvait avec une mission en cours, aucun cercle
+     au sol, aucune flèche et aucune ligne au bandeau. Mesuré : objectifMission() valait
+     null sur toute leur durée.
+     L'ALIMENT PREMIUM SE LIT COMME N'IMPORTE QUELLE MARCHANDISE. C'est un produit de
+     l'atelier comme la farine : on le passe dans la même chaîne, avec un besoin d'une
+     unité — le mélangeur s'il manque, la production s'il y a la matière, le champ sinon.
+     Rien à écrire de neuf, il suffit de ne pas court-circuiter.
+     LES PORCS, EUX, N'ONT PAS DE CLÉ DE PRODUIT : on désigne l'enclos quand il y a des
+     bêtes à charger, et la boucherie sinon — c'est là qu'on va voir ce qu'elle veut. */
+  if(M.faire){
+    if(PRODUITS[M.faire]) return objectifProduit(M.faire, 1, S);
+    if(M.faire === 'porcs4'){
+      const P = PATURES.find((q)=> q.espece === 'cochon' && q.betes.length);
+      if(P) return {lieu:'pature' + PATURES.indexOf(P), x:P.quai.x, z:P.quai.z,
+                    quoi:'charger', txt:'CHARGER LES PORCS'};
+      const B = SITES.find((x)=> x.abattoir && siteOuvert(x));
+      if(B) return {lieu:B.nom, x:B.dropX, z:B.dropZ, quoi:'aller', txt:'ALLER VOIR'};
+    }
+    return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ, quoi:'aller', txt:'ALLER VOIR'} : null;
+  }
   // La ligne qui manque le plus : c'est elle qui décide, et elle change toute seule.
   let ligne = null, reste = 0;
   M.lignes.forEach((l, i)=>{
@@ -14667,7 +14687,12 @@ function objectifMission(){
     if(r > reste + 0.01){ reste = r; ligne = l; }
   });
   if(!ligne) return null;
-  const cle = ligne.cle;
+  return objectifProduit(ligne.cle, reste, S);
+}
+/* OÙ TROUVER TANT DE CETTE MARCHANDISE-LÀ, ET DANS QUEL ORDRE. Séparé du juge parce que
+   deux entrées y mènent : une ligne de commande, et une mission « faire » dont ce qu'il
+   faut produire EST un produit de l'atelier. `S` est le commerce où livrer, ou null. */
+function objectifProduit(cle, reste, S){
   const ici = (nom, quoi, txt, pt)=> ({lieu:nom, x:pt.x, z:pt.z, cle, reste, quoi, txt});
 
   // 1. ce qu'on porte déjà : une benne pleine de la bonne matière n'a plus qu'à rouler
@@ -17633,11 +17658,11 @@ function cacherJauge(J, dt){
    démarrage, c'était un mégaoctet et demi de canevas dont dix-sept ne servaient
    jamais. Une parcelle en emprunte une quand elle pousse à portée, et la rend dès
    qu'elle sort du champ de vision. */
-let jaugeEngin = null, jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
+let jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
 let jaugeCuve = null;
 const jaugesLibres = [];
 function poserJauges(){
-  jaugeEngin = creerJauge(); jaugeSilo = creerJauge();
+  jaugeSilo = creerJauge();
   jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
   jaugeCuve = creerJauge();
 }
@@ -17717,24 +17742,24 @@ function majPousseParcelles(dt){
 /* Ce que chaque jauge raconte, une fois par image. Tout est relu dans l'état du jeu :
    aucune de ces valeurs n'est tenue à jour ailleurs, donc aucune ne peut mentir. */
 function majJauges(dt){
-  if(!jaugeEngin) return;
+  if(!jaugeSilo) return;
   majPousseParcelles(dt);
-  const m = MACHINES[cur], v = m.v, T = caisseDe(m);
+  // La position de l'engin sert encore : c'est elle qui décide quelles étiquettes de
+  // LIEU sont assez proches pour valoir la peine d'être peintes.
+  const v = MACHINES[cur].v;
 
-  // — l'engin : elle apparaît quand quelque chose entre ou sort, et s'attarde deux
-  //   secondes pour qu'on voie le résultat avant qu'elle s'efface.
-  const charge = (m.key === 'moisson' && hopper > 0.01) ? {q:hopper, max:HOP_MAX, cle:CROPS[hopCrop].cle}
-               : (T && T.load > 0.01) ? {q:T.load, max:T.capacite, cle:T.type}
-               : null;
-  const bouge = charge && Math.abs(charge.q - (v.jaugeQ === undefined ? charge.q : v.jaugeQ)) > 0.01;
-  v.jaugeQ = charge ? charge.q : 0;
-  v.jaugeT = bouge ? 2.0 : Math.max(0, (v.jaugeT || 0) - dt);
-  if(charge && v.jaugeT > 0){
-    const P = PRODUITS[charge.cle];
-    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z,
-      P ? nomQte(charge.cle, charge.q) : 'Charge ' + kg(charge.q),
-      charge.q/charge.max, P ? P.couleur : '#E6F0F8', dt);
-  } else cacherJauge(jaugeEngin, dt);
+  /* L'ÉTIQUETTE DE L'ENGIN A ÉTÉ RETIRÉE, ET C'ÉTAIT UN DOUBLON. Elle flottait au-dessus
+     de la machine à chaque fois que le chargement bougeait, et disait ce que le bandeau
+     dit déjà en permanence, en bas à droite, avec la même jauge et la même couleur de
+     matière. Au moment d'une livraison, elle venait en plus se poser À CÔTÉ de l'enseigne
+     du commerce, qui annonce elle-même ce que la mission attend : trois fois le même
+     chiffre de blé dans le même coin de l'écran. Le joueur : « on voit l'étiquette sur le
+     bâtiment avec le blé qui rentre, mais [le jeu] envoie une autre étiquette qui se met
+     à côté et indique la même chose. Enlève cette deuxième étiquette. »
+     RIEN N'EST PERDU : la jauge du bandeau porte le poids, la nature et la couleur, et
+     elle est visible même quand la caméra ne cadre pas la machine. Les cinq autres
+     étiquettes restent — silo, atelier, entrepôt, cuve, enclos, parcelles —, parce
+     qu'elles nomment des lieux qu'on ne peut pas lire autrement. */
 
   // — le silo : le total, et la céréale dont il est le plus encombré
   const st = siloTotal();
