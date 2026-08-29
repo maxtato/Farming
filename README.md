@@ -4472,6 +4472,74 @@ dernier cran : **route 4, travail 0, sortie 0**. Le champ est propre ; ce qui ac
 encore, c'est l'approche, où le cran de vitesse continue de s'appliquer — c'est le choix
 assumé de laisser l'amélioration servir là où elle a été achetée.
 
+## Le silo et l'entrepôt ont leur voie, et c'est le joueur qui l'a tracée
+
+Il a dessiné en rouge, sur la carte du plan de travail, les chemins par lesquels il veut
+qu'on accède au silo et à l'entrepôt. La photo se relève au pixel près : quatre pastilles
+de position connue — Supermarché, Usine avoine, Entrepôt, Silo — donnent **6,426 pixels par
+mètre**, et les quatre se retrouvent à moins d'un pixel de leur place calculée. Le tracé
+converti donne, sur la trame du jeu :
+
+| | ligne | de … à |
+|---|---|---|
+| **Silo** | verticale **x = 59**, qui le traverse | z = 40 (chemin) → z = 74 (rocade sud) |
+| **Entrepôt** | rocade sud **z = 74**, puis montée **x = 11** | jusqu'au quai, z = 66,85 |
+
+**Et le dessin dit vrai sur un point qu'il ne pouvait pas connaître.** L'entrepôt n'y est
+accessible que par le sud. Mesuré : la voie x = 11 est libre de z = 74 à z = 68, et bouchée
+de z = 40 à z = 66 — le hangar est une emprise de 16,5 × 17,7 m centrée sur (11, 54), posée
+en travers de cette même verticale côté nord. La voie du silo, elle, est libre sur toute sa
+hauteur : la tour est à x = 52, sept mètres à l'ouest.
+
+**Ce que ça répare.** La grille d'itinéraires n'a que six voies nord-sud (−74, −40, 0, 40,
+80, 114) et six est-ouest. Le silo, à x = 59, n'est sur aucune : on le desservait par la
+plus proche, 40, et donc **toujours par le nord**. Partant de la rocade sud — à vingt-cinq
+mètres du silo — la machine remontait au chemin z = 42,5, traversait tout le champ vers
+l'est, puis redescendait sur la goulotte. Et de l'entrepôt au silo, deux voisins, elle
+repartait vers l'ouest, montait au nord, revenait à l'est et redescendait.
+
+**La voie sert dans les deux sens.** On y entre par un bout, on en sort par un bout, et
+entre les deux c'est la grille comme avant. Le bout se choisit sur la **longueur du trajet
+entier**, pas sur la simple proximité : venant de la rocade sud à l'est, le bout nord est à
+trente-quatre mètres et le bout sud à deux, mais c'est 125 m par le nord contre 72 par le
+sud. On construit donc les deux — quatre au plus si l'on part aussi d'une voie — et l'on
+garde le plus court. Deux lieux du même couloir s'y rejoignent sans passer par la grille.
+
+**Et l'on ne change plus de rangée quand on y est déjà.** Une chaussée fait dix mètres :
+partant du silo à z = 74 pour aller à l'entrepôt à z = 74, la machine allait quand même
+chercher une voie de traverse — elle roulait jusqu'à x = 40 pour n'y rien faire, puis
+revenait. Si le départ est déjà sur la rangée qui dessert le but, on longe, un point c'est
+tout.
+
+**Mesuré**, sur six trajets caractéristiques :
+
+| trajet | avant | après |
+|---|---|---|
+| rocade sud est → silo | 125,5 m | **72,5 m** |
+| rocade sud ouest → silo | 140,5 m | **125,5 m** |
+| entrepôt → silo | 96,8 m, 1 tronçon bloqué | **84,2 m, 0** |
+| silo → entrepôt | 74,2 m, 1 tronçon bloqué | 84,2 m, **0** |
+| garage → silo | 96,0 m | 96,0 m |
+| usine avoine → entrepôt | 166,1 m | 171,1 m |
+
+Les deux tronçons « bloqués » d'avant sont le même : de la goulotte, la machine partait
+plein ouest à z = 50 et passait **dans la tour du silo**, à x = 52. Le trajet est dix mètres
+plus long qu'avant dans ce sens ; il ne traverse plus le silo.
+
+Sur deux cent cinquante-quatre itinéraires tirés d'un quadrillage de départs, la longueur
+totale bouge de **0,4 %** et le nombre de tronçons qui frôlent un obstacle descend de 131 à
+126 : la voie d'accès ne coûte rien à l'ensemble.
+
+**Ce qui n'a pas été fait, et pourquoi.** Le joueur a aussi tracé la verticale x = 0 pour
+descendre du chemin nord vers la rocade sud. Faire préférer au routeur la voie de traverse
+comprise ENTRE le départ et le but — c'est-à-dire x = 0 plutôt que la voie sous les roues —
+a été écrit, puis retiré : le premier tronçon d'un itinéraire se parcourt à la hauteur
+courante, ce qui n'est roulable que si l'on est déjà sur une chaussée. En partant du garage,
+la machine traversait alors soixante-huit mètres de champs à z = 52 pour aller chercher sa
+voie. Les deux choix se valent de toute façon en distance — toutes les voies comprises entre
+les deux donnent la même longueur —, et l'écart de dessin ne vaut que deux fois le décalage
+de conduite à droite, cinq mètres.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

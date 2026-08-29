@@ -10049,12 +10049,20 @@ const GRILLE_V = PATHS_V.concat([-ROAD_C, ROAD_E]).sort((a, b)=> a - b);
 const GRILLE_H = PATHS_H.concat([ROAD_N, ROAD_C]).sort((a, b)=> a - b);
 const voieProche = (v, liste)=>
   liste.reduce((p, c)=> Math.abs(c - v) < Math.abs(p - v) ? c : p, liste[0]);
-function itineraire(ax, az, bx, bz){
+function itineraireGrille(ax, az, bx, bz){
   /* Déjà sur place. Le raccourci valait dix-huit mètres : on quittait la route et l'on
      visait le point de déchargement en ligne droite bien avant d'y être, en travers de
      tout ce qu'il y avait entre. Huit mètres, c'est la longueur d'un attelage — de quoi
      finir de se ranger, pas de quoi couper. */
   if(Math.hypot(bx - ax, bz - az) < 8) return [{x:bx, z:bz}];
+  /* ET LA VOIE DE TRAVERSE RESTE CELLE QUI PASSE SOUS LES ROUES. Prendre plutôt celle qui
+     est ENTRE le départ et le but a été essayé — c'est la ligne x = 0 que le joueur a
+     tracée pour descendre vers l'entrepôt — et mesuré : le premier tronçon de cet
+     itinéraire se parcourt À LA HAUTEUR COURANTE, ce qui n'est roulable que si l'on est
+     déjà sur une chaussée. En partant du garage, la machine traversait alors soixante-huit
+     mètres de champs à z = 52 pour aller chercher sa voie. En distance de Manhattan les
+     deux choix se valent de toute façon : toutes les voies comprises entre les deux donnent
+     la même longueur, et l'écart de dessin ne vaut que deux fois le décalage de droite. */
   const vA = voieProche(ax, GRILLE_V), hA = voieProche(az, GRILLE_H);
   /* UN COMMERCE SE DESSERT PAR LA ROCADE, JAMAIS PAR UN CHEMIN DE SABLE. La grille
      mêle les deux, et un chemin de sable s'arrête à la ferme : un commerce planté à
@@ -10104,15 +10112,21 @@ function itineraire(ax, az, bx, bz){
      perpendiculaire au bon sens d'approche. Le décaler l'éloignerait de ce qu'il vise. */
   const Q = ROAD_W/4;
   const sgn = (a, b)=> (b > a ? 1 : (b < a ? -1 : 0));
+  /* ET L'ON NE CHANGE PAS DE RANGÉE QUAND ON Y EST DÉJÀ. Une chaussée fait dix mètres :
+     partant du silo à z = 74 pour aller à l'entrepôt à z = 74, la machine partait quand même
+     chercher une voie de traverse — elle roulait jusqu'à x = 40 pour n'y rien faire. Si le
+     départ est déjà sur la rangée qui dessert le but, on longe, un point c'est tout. */
+  const memeRangee = Math.abs(az - hB) <= ROAD_W/2 + CALE;
+  const memeVoie   = Math.abs(ax - vB) <= ROAD_W/2 + CALE;
   if(Math.abs(bx - vB) <= Math.abs(bz - hB)){
     // on suit une horizontale (en x) puis une verticale (en z)
-    const zH = cale.h ? hA2 : hA2 + Q*sgn(ax, vB);
+    const zH = cale.h ? hA2 : (memeVoie ? az : hA2 + Q*sgn(ax, vB));
     const xV = cale.v ? vB  : vB  - Q*sgn(zH, bz);
     pts.push({x:ax, z:zH});          // on gagne la voie horizontale la plus proche
     pts.push({x:xV, z:zH});          // on la suit jusqu'à la voie qui dessert le but
     pts.push({x:xV, z:bz});          // puis celle-ci jusqu'à la hauteur du but
   } else {
-    const xV = cale.v ? vA2 : vA2 - Q*sgn(az, hB);
+    const xV = cale.v ? vA2 : (memeRangee ? ax : vA2 - Q*sgn(az, hB));
     const zH = hB + Q*sgn(xV, bx);
     pts.push({x:xV, z:az});
     pts.push({x:xV, z:zH});
@@ -10123,6 +10137,9 @@ function itineraire(ax, az, bx, bz){
      peut RECRÉER une diagonale — le point supprimé était le coude entre deux trajets
      perpendiculaires. On repasse donc derrière : tout segment qui bouge en x ET en z
      retrouve son coude. */
+  return equerrer(pts);
+}
+function equerrer(pts){
   const net = pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
   const droit = [net[0]];
   for(let k = 1; k < net.length; k++){
@@ -10132,6 +10149,91 @@ function itineraire(ax, az, bx, bz){
     droit.push(b);
   }
   return droit;
+}
+/* ---------- LE SILO ET L'ENTREPÔT ONT LEUR VOIE, ET C'EST LE JOUEUR QUI L'A TRACÉE ----------
+   Il a dessiné en rouge, sur la carte du plan de travail, les chemins par lesquels il veut
+   qu'on y accède. Convertis sur la trame du jeu — la carte se relève au pixel près, quatre
+   pastilles connues donnant 6,426 px par mètre —, ils disent ceci :
+     LE SILO : une VERTICALE qui le traverse, x = 59, ouverte à ses deux bouts — au nord le
+     chemin de sable z = 40, au sud la rocade z = 74. On y entre par un bout et l'on va tout
+     droit jusqu'à la goulotte.
+     L'ENTREPÔT : la rocade sud, puis la MONTÉE x = 11 jusqu'au quai. Et par le sud
+     seulement : le hangar est une emprise de 16,5 × 17,7 m centrée sur (11, 54), c'est-à-dire
+     posée EN TRAVERS de la même verticale côté nord. Mesuré : la voie est libre de z = 74 à
+     z = 68, et bouchée de z = 40 à z = 66. Le dessin du joueur dit exactement cela.
+
+   POURQUOI IL LE DEMANDE, ET CE QUE ÇA RÉPARE. La grille d'itinéraires n'a que six voies
+   nord-sud (−74, −40, 0, 40, 80, 114) et six est-ouest. Le silo, à x = 59, n'est sur aucune :
+   on le desservait donc par la voie la plus proche, 40, et TOUJOURS par le nord. Relevé :
+   partant de la rocade sud à z = 76,5 — donc à vingt-cinq mètres du silo —, la machine
+   remontait jusqu'à z = 42,5, traversait tout le champ vers l'est, puis redescendait sur la
+   goulotte : cent mètres pour vingt-cinq. Et de l'entrepôt au silo, deux voisins, elle
+   repartait vers l'ouest, montait au chemin nord, revenait à l'est et redescendait.
+
+   LA VOIE SERT DANS LES DEUX SENS. On y entre par le bout le plus proche de là d'où l'on
+   vient, on en sort par le bout le plus proche de là où l'on va, et entre les deux c'est la
+   grille comme avant. Deux lieux du même couloir — l'entrepôt et son quai — s'y rejoignent
+   sans passer par la grille du tout. */
+function voiesAcces(){
+  /* Les bouts se LISENT dans la grille, ils ne sont pas écrits : la voie du silo s'ouvre sur
+     la première rangée au nord et la première au sud. Si la trame bouge un jour, la voie
+     suit. */
+  const nord = GRILLE_H.filter((h)=> h < SILO.z).pop();
+  const sud  = GRILLE_H.find((h)=> h > SILO.z);
+  const L = [];
+  if(nord !== undefined && sud !== undefined)
+    L.push({nom:'silo', voie:SILO.x, cible:{x:SILO.x, z:SILO.z}, bouts:[nord, sud], large:9});
+  // l'entrepôt : par le sud seulement, le hangar bouche le nord
+  if(typeof ENTREPOT !== 'undefined' && ENTREPOT.quai)
+    L.push({nom:'entrepot', voie:ENTREPOT.quai.x, cible:ENTREPOT.quai,
+            bouts:[ROAD_C], large:9});
+  for(const A of L){
+    A.z0 = Math.min.apply(null, A.bouts.concat([A.cible.z]));
+    A.z1 = Math.max.apply(null, A.bouts.concat([A.cible.z]));
+  }
+  return L;
+}
+const accesDe = (x, z, L)=> L.find((A)=> Math.abs(x - A.voie) <= A.large/2
+                                      && z >= A.z0 - 1 && z <= A.z1 + 1);
+function itineraire(ax, az, bx, bz){
+  // Déjà sur place : la voie ne sert à rien, et l'y faire passer ferait faire un tour.
+  if(Math.hypot(bx - ax, bz - az) < 8) return [{x:bx, z:bz}];
+  const L = voiesAcces();
+  const dep = accesDe(ax, az, L), arr = accesDe(bx, bz, L);
+  if(!dep && !arr) return itineraireGrille(ax, az, bx, bz);
+  // le même couloir aux deux bouts : on y roule, et l'on n'en sort pas
+  if(dep && arr && dep.nom === arr.nom)
+    return equerrer([{x:dep.voie, z:az}, {x:arr.voie, z:bz}, {x:bx, z:bz}]);
+  /* PAR QUEL BOUT ? CELUI QUI DONNE LE TRAJET LE PLUS COURT, ET NON LE PLUS PROCHE.
+     La voie du silo a deux bouts, et le bon n'est pas toujours celui dont on est le plus
+     près : venant de la rocade sud à l'est, le bout nord est à trente-quatre mètres et le
+     bout sud à deux, mais c'est le trajet ENTIER qu'il faut comparer — 125 m par le nord
+     contre 72 par le sud. On construit donc les deux (quatre au plus, si l'on part aussi
+     d'une voie) et l'on garde le plus court. Cela coûte trois polylignes de six points,
+     calculées une fois par destination : rien du tout. */
+  const batir = (zS, zE)=>{
+    const pts = [];
+    let sx = ax, sz = az;
+    if(dep){
+      pts.push({x:dep.voie, z:az});    // on se met dans l'axe de la voie
+      pts.push({x:dep.voie, z:zS});    // on la suit jusqu'à son bout
+      sx = dep.voie; sz = zS;
+    }
+    for(const q of itineraireGrille(sx, sz, arr ? arr.voie : bx, arr ? zE : bz)) pts.push(q);
+    if(arr){
+      pts.push({x:arr.voie, z:bz});    // on entre dans la voie par son bout
+      pts.push({x:bx, z:bz});          // et l'on va au but tout droit
+    }
+    return equerrer(pts);
+  };
+  let mieux = null;
+  for(const zS of (dep ? dep.bouts : [az])) for(const zE of (arr ? arr.bouts : [bz])){
+    const r = batir(zS, zE);
+    let x = ax, z = az, lg = 0;
+    for(const q of r){ lg += Math.hypot(q.x - x, q.z - z); x = q.x; z = q.z; }
+    if(!mieux || lg < mieux.lg) mieux = {lg:lg, r:r};
+  }
+  return mieux.r;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
 function suivreRoute(v, bx, bz, cle, rayon){
