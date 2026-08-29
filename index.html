@@ -9886,11 +9886,13 @@ function viser(v, tx, tz, rayon, vTour){
    Chacun est fusionné en UNE géométrie, donc un seul appel de rendu, comme les maisons. */
 const TRAFIC_MODELES = (function(){
   const NOIR = 0x2A2622, VITRE = 0x22303A, CREME = 0xF2E7D2, INOX = 0xC9CFD3,
-        GRIS = 0x8A9298, CHASSIS = 0x3A3630, ROUGE = 0xC0392B,
+        GRIS = 0x8A9298, CHASSIS = 0x3A3630,
         /* UNE COULEUR, UN RÔLE — et c'est une contrainte, pas une coquetterie : une
            variante de robe remplace les sommets PAR ÉGALITÉ DE COULEUR, donc un feu
            arrière peint du rouge exact d'une carrosserie changerait de couleur avec
-           elle. Le camion à caisse a la robe ROUGE : ses feux passaient au bleu. */
+           elle. C'est arrivé : le camion à caisse avait pour robe le rouge des feux, et
+           ses soixante-douze sommets de feux passaient au bleu avec sa caisse. Sa robe
+           n'est plus rouge du tout aujourd'hui, mais la règle, elle, reste. */
         ROUGE_FEU = 0xC33A2D, ORANGE_GYRO = 0xE3781F,
         JAUNE = 0xF0C24A, ORANGE = 0xE07B24, BLEU = 0x3E7CB8;
   const T = (x, y, z)=> new THREE.Matrix4().makeTranslation(x||0, y||0, z||0);
@@ -10027,7 +10029,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 2 — Break familial : plus long, trois baies latérales, galerie et bagage sanglé.
   function breakFamilial(){
-    const C = robe(0x8E4436), P = [];
+    const C = robe(0x7A6A52), P = [];
     P.push(slab({w:1.92, h:0.66, d:4.7, tw:1.88, td:4.6, c:C, y:0.4}));
     serre(P, 1.76, 0.82, 3.1, C, 1.06, -0.5, 3);
     P.push(B(1.7, 0.1, 2.2, GRIS, 0, 1.88, -0.6));
@@ -10139,9 +10141,9 @@ const TRAFIC_MODELES = (function(){
     roues(P, 0.9, 1.75, -1.75, 0.38, 0.28);
     return P;
   }
-  // 9 — Camion à caisse : cabine rouge, caisse crème, jumelage arrière.
+  // 9 — Camion à caisse : cabine bleue, caisse crème, jumelage arrière.
   function camionCaisse(){
-    const CAB = robe(ROUGE), CAISSE = 0xEFE7D6, P = [];
+    const CAB = robe(0x2F6B8E), CAISSE = 0xEFE7D6, P = [];
     P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
@@ -10294,6 +10296,16 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
    village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
    Chaque modèle reçoit donc DEUX robes de plus, et la sienne est tirée à la naissance.
 
+   ET PLUS UN SEUL ROUGE SUR LA ROCADE. Le joueur pilote un tracteur rouge : « je veux
+   plus de rouge, puisque moi je l'ai en tant que véhicule perso, je veux pas qu'on
+   confonde. » Sept teintes tombaient dans le rouge — le bordeaux de la berline, le rouge
+   de la citadine, la brique du plateau et de la benne, le brun-rouge du break, le rouge
+   de l'autocar et celui de la dépanneuse — et la carrosserie du camion à caisse était le
+   rouge lui-même. Toutes sont remplacées par des teintes de village qui n'appartiennent
+   qu'à elles : kaki, sarcelle, moutarde, brun-taupe, ardoise. Le seul rouge qui reste sur
+   la route est celui du CAMION DE POMPIERS, et il n'y a rien à y confondre : personne ne
+   prend un fourgon d'incendie à échelle et gyrophares pour un tracteur.
+
    ET UNE ROBE NE COÛTE QUE SA COULEUR. Une géométrie fusionnée porte trois tableaux —
    positions, normales, couleurs — et deux robes du même modèle ne diffèrent que par le
    troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
@@ -10305,28 +10317,34 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
    La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
    les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
    l'ACCENT suit la robe dans le même rapport qu'il suivait la couleur d'origine : la
-   bande de toit d'un autocar ambre est d'un ambre plus sombre, celle d'un autocar rouge
-   sera d'un rouge plus sombre, sans qu'on ait à l'écrire.
+   bande de toit d'un autocar ambre est d'un ambre plus sombre, celle d'un monospace
+   anthracite d'un anthracite plus sombre, sans qu'on ait à l'écrire.
 
-   DEUX MODÈLES N'ONT QU'UNE ROBE, et c'est voulu : un camion de pompiers est rouge et
-   une fourgonnette postale est jaune. Ce n'est pas une couleur, c'est une livrée. */
+   TROIS MODÈLES N'ONT QU'UNE ROBE, et c'est voulu : un camion de pompiers est rouge, une
+   fourgonnette postale est jaune, et le CAR DU VILLAGE est jaune lui aussi — c'est le
+   joueur qui l'a voulu ainsi, « le bus, tu le laisseras qu'en jaune ». Ce n'est pas une
+   couleur, c'est une livrée : un car repeint chaque semaine ne serait plus le car du
+   village. Le CAMION À CAISSE, à l'inverse, en a une de plus que tout le monde — quatre
+   en tout — parce que c'est lui qui était rouge, et qu'on lui devait bien ça. */
 const ROBES_TRAFIC = [
-  [0x9C3B33, 0xD8D2C4],           // berline : bordeaux, crème
+  [0x6B7040, 0xD8D2C4],           // berline : kaki, crème
   [0x3B5E4A, 0x4A5560],           // break : vert forêt, ardoise
-  [0xC0392B, 0x7FA8C0],           // citadine : rouge, bleu ciel
+  [0x357F72, 0x7FA8C0],           // citadine : sarcelle, bleu ciel
   [0x8E5A2B, 0xB8B2A4],           // bétaillère : brun, gris clair
-  [0x2F6B8E, 0xA8443A],           // plateau à bottes : bleu, brique
+  [0x2F6B8E, 0xB08A2E],           // plateau à bottes : bleu, moutarde
   [0x37474F, 0xBFC6CC],           // monospace : anthracite, argent
   [0x1E2A30, 0xC26A2A],           // pick-up : noir bleuté, orange
   [0x3E7CB8, 0xD9DDE0],           // fourgon : bleu, blanc gris
-  [0x2F6B8E, 0x4A5560],           // camion à caisse : bleu, ardoise
+  // Le camion à caisse en a une de plus que tout le monde : le joueur les voulait
+  // « toutes les couleurs, sauf en rouge, qui était la couleur originale ».
+  [0x4A5560, 0x6B7040, 0xD8D2C0], // camion à caisse : ardoise, kaki, crème
   [0xD8D2C0, 0x9AA2A7],           // citerne à lait : crème, inox
-  [0xE07B24, 0x8E4436],           // benne : orange, brique
-  [0xB8342A, 0x3B6E9C],           // autocar : rouge, bleu
+  [0xE07B24, 0x7A6A52],           // benne : orange, brun-taupe
+  [],                             // autocar : il reste JAUNE, et rien d'autre
   [0xE4DCC0, 0xCFD6DA],           // camping-car : sable, gris perle
   [],                             // pompiers : une livrée, pas une couleur
   [],                             // postale : idem
-  [0x2F6B8E, 0xC0392B]            // dépanneuse : bleu, rouge
+  [0x2F6B8E, 0x4A5560]            // dépanneuse : bleu, ardoise
 ];
 const TRAFIC_ROBES = (function(){
   const _c = new THREE.Color(), _v = new THREE.Color(), _a = new THREE.Color();
@@ -10840,7 +10858,12 @@ const POOL_TRAFIC = 18;
    remarque parce qu'il est rare. */
 const PART_LOURD = 0.07;                        // un attelage tous les quatorze véhicules
 const CADENCE_MIN = 21, CADENCE_MAX = 48;       // secondes entre deux départs sur UNE file
-const PORTEE_FAISCEAU = 95;                     // au-delà, on n'allume plus les cônes
+/* LE JAUNE D'UN PHARE ALLUMÉ. Les optiques du trafic brillaient d'un crème 0xFFEFC0 —
+   la couleur du VERRE, pas celle de la lumière : de loin, ça se lit comme un phare
+   éteint qu'on éclaire. Le joueur a demandé du jaune ; c'est aussi ce qu'on voit d'une
+   route de nuit. Une nuance en deçà du jaune du guidage (0xFFD21E), pour qu'un phare
+   qui passe ne se confonde pas une seconde avec un cercle d'objectif. */
+const JAUNE_PHARE = 0xFFD24A;
 function dimsTrafic(geo, ech){
   if(!geo.boundingBox) geo.computeBoundingBox();
   const bb = geo.boundingBox;
@@ -10851,17 +10874,9 @@ function dimsTrafic(geo, ech){
    géométrie et sur les optiques notées en la bâtissant : rien n'est écrit à la main, si
    bien qu'un modèle qu'on redessinerait garderait automatiquement le bon encombrement et
    le bon faisceau. */
-const DIM_LEGER = [], CONE_TRAFIC = [], PENTE_TRAFIC = [];
-for(let k = 0; k < TRAFIC_GEOS.length; k++){
-  const E = ECH_TRAFIC*TAILLE_TRAFIC[k];
-  const D = dimsTrafic(TRAFIC_GEOS[k], E), F = TRAFIC_FEUX[k];
-  DIM_LEGER.push(D);
-  // Le faisceau est un enfant de la carrosserie : il subit son échelle, on le calcule
-  // donc en mètres monde puis on le rend au repère du modèle en divisant par la même.
-  const r = reglageFaisceau(F.y*E, 0.33*E, D.avant, F.zAv*E);
-  CONE_TRAFIC.push(faisceauPhare(r.lon/E, r.r0/E, r.r1/E, 0xFFE3B0, 8, 4).geometry);
-  PENTE_TRAFIC.push(r.pente);
-}
+const DIM_LEGER = [];
+for(let k = 0; k < TRAFIC_GEOS.length; k++)
+  DIM_LEGER.push(dimsTrafic(TRAFIC_GEOS[k], ECH_TRAFIC*TAILLE_TRAFIC[k]));
 // L'attelage compte pour un modèle de plus, le dernier : sa longueur est celle du
 // tracteur PLUS la citerne, mesurée depuis la sellette.
 const DIM_LOURD = (function(){
@@ -10870,13 +10885,6 @@ const DIM_LOURD = (function(){
   return {avant:a.avant, arriere:SELLETTE_TRAFIC + r.arriere, larg:a.larg, haut:a.haut};
 })();
 const I_LOURD = TRAFIC_GEOS.length;
-(function(){
-  const F = CAMIONS_GEOS.feux;
-  const r = reglageFaisceau(F.y*ECH_TRAFIC, 0.42*ECH_TRAFIC, DIM_LOURD.avant, F.zAv*ECH_TRAFIC);
-  CONE_TRAFIC.push(faisceauPhare(r.lon/ECH_TRAFIC, r.r0/ECH_TRAFIC, r.r1/ECH_TRAFIC,
-                                 0xFFE3B0, 8, 4).geometry);
-  PENTE_TRAFIC.push(r.pente);
-})();
 const TRAFIC = [];
 let tempsTrafic = 0;
 const prochainDepart = new Array(NB_FILES).fill(0);
@@ -10971,9 +10979,6 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.gy = GY;
   if(GY){ t.gyro.position.set(GY.x, GY.y, GY.z); t.gyro.material.color.setHex(GY.c); }
   t.gyro.visible = false;
-  for(const c of [t.coG, t.coD]) c.geometry = CONE_TRAFIC[modele];
-  t.coG.position.set(-F.w, F.y, F.zAv); t.coG.rotation.set(PENTE_TRAFIC[modele], -0.11, 0);
-  t.coD.position.set( F.w, F.y, F.zAv); t.coD.rotation.set(PENTE_TRAFIC[modele],  0.11, 0);
   const p = surItineraire(route, 0);
   t.cap = Math.atan2(p.tx, p.tz); t.tcap = t.cap; t.fx = p.tx; t.fz = p.tz;
   t.m.position.set(p.x, 0, p.z);
@@ -10982,7 +10987,6 @@ function rendrePlace(t){
   t.actif = false; t.route = null;
   t.m.visible = false; t.rem.visible = false;
   t.avG.visible = t.avD.visible = t.arG.visible = t.arD.visible = false;
-  t.coG.visible = t.coD.visible = false;
 }
 function updateTrafic(dt){
   tempsTrafic += dt;
@@ -11073,11 +11077,19 @@ function updateTrafic(dt){
                roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0,
                rRoll:0, rRollV:0, rPitch:0, rPitchV:0, rHeave:0, rHeaveV:0, rBump:0};
     /* CHAQUE PLACE PORTE SES LUMIÈRES, et elles sont ENFANTS de la carrosserie : elles
-       prennent donc le cap, le roulis et le pompage de la suspension, et le faisceau
-       balaie le paysage quand la voiture passe une bosse — exactement comme sur les
-       engins du joueur. Deux billes devant, deux derrière — sur la citerne pour un
-       attelage —, et deux cônes. */
-    t.avG = billeLumiere(0.30, 0xFFEFC0); t.avD = billeLumiere(0.30, 0xFFEFC0);
+       prennent donc le cap, le roulis et le pompage de la suspension — exactement comme
+       sur les engins du joueur. Deux billes devant, deux derrière, sur la citerne pour
+       un attelage.
+       ET RIEN DE PLUS : PAS DE FAISCEAU. Le joueur l'a demandé — « pour les véhicules du
+       trafic ne mets pas l'effet d'éclairage, fais juste allumer les phares en jaune mais
+       ne mets pas l'effet d'éclairage au sol ». Un cône écrasé projeté devant chaque
+       voiture, c'est le paysage repeint par des phares qui ne servent à personne : on ne
+       conduit pas ces voitures-là. L'optique s'allume, et c'est tout ce qui dit qu'une
+       voiture arrive et par où. Les ENGINS DU JOUEUR, eux, gardent leurs deux faisceaux :
+       lui conduit, et il a besoin de voir devant.
+       LE JAUNE PLUTÔT QUE LE CRÈME. Une optique crème (0xFFEFC0) se lit comme un phare
+       éteint qu'on éclaire ; le jaune se lit comme un phare allumé. */
+    t.avG = billeLumiere(0.30, JAUNE_PHARE); t.avD = billeLumiere(0.30, JAUNE_PHARE);
     // UNE seule paire de feux arrière, qu'on raccroche à la citerne ou à la caisse selon
     // ce qui naît : en garder deux paires dormantes, c'est cent trente-six objets de plus
     // à parcourir dans la scène à chaque image, pour n'en montrer jamais que la moitié.
@@ -11091,13 +11103,6 @@ function updateTrafic(dt){
     // profondeur se fait trancher au couteau et l'on voit un demi-disque.
     t.gyro = billeLumiere(0.26, 0xFFFFFF, true);
     m.add(t.avG); m.add(t.avD); m.add(t.arG); m.add(t.arD); m.add(t.gyro);
-    t.coG = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
-    t.coD = faisceauPhare(1, 1, 1, 0xFFE3B0, 8, 4);
-    for(const c of [t.coG, t.coD]){
-      c.name = 'faisceauPhare';
-      c.scale.y = APLAT_FAISCEAU;                 // écrasé, comme celui des engins
-      m.add(c);
-    }
     TRAFIC.push(t);
   }
   for(let i = 0; i < NB_FILES; i++) prochainDepart[i] = Math.random()*4;
@@ -13862,19 +13867,19 @@ function majEclairagesNuit(){
     if(v.faisceaux) for(const c of v.faisceaux){ c.visible = allume;
                                                  c.material.opacity = k*0.22; }
   }
-  /* ET LA ROCADE S'ALLUME AUSSI. Un véhicule de passage porte les mêmes lumières qu'un
-     engin de la ferme — deux billes crème devant, deux rouges derrière, deux faisceaux —
-     avec une seule différence, qui est une question de coût : LES CÔNES NE S'ALLUMENT QUE
-     DE PRÈS. Deux troncs additifs par véhicule sur toute la carte, cela fait quarante
-     volumes transparents à remplir pour des voitures grosses comme un ongle ; au-delà de
-     quatre-vingt-quinze mètres, les deux billes disent déjà tout ce qu'il y a à savoir —
-     qu'une voiture arrive, et par où. */
-  const loinCarre = PORTEE_FAISCEAU*PORTEE_FAISCEAU;
+  /* ET LA ROCADE S'ALLUME AUSSI, MAIS ELLE N'ÉCLAIRE RIEN. Un véhicule de passage porte
+     deux billes jaunes devant et deux rouges derrière, et pas un faisceau : c'est ce que
+     le joueur a demandé. Le cône avait été mis là pour dire « une voiture arrive, et par
+     où » ; la bille le dit déjà, et elle le dit à toute distance, alors que le cône était
+     de toute façon éteint au-delà de quatre-vingt-quinze mètres. Ce qu'on retire, ce sont
+     deux troncs additifs par véhicule — de la surface transparente à remplir pour des
+     voitures grosses comme un ongle, et un paysage repeint par des phares qui ne servent
+     à personne. La bille monte donc un peu : elle porte seule ce que le phare disait. */
   for(const t of TRAFIC){
     const allume = on && t.actif && t.m.visible;
     const k = allume ? nuitK : 0;
-    for(const h of [t.avG, t.avD]){ h.visible = allume; h.material.opacity = k*0.62;
-                                    h.scale.setScalar(0.85 + 0.3*k); }
+    for(const h of [t.avG, t.avD]){ h.visible = allume; h.material.opacity = k*0.74;
+                                    h.scale.setScalar(0.85 + 0.35*k); }
     // Les feux arrière sont sur la citerne quand il y en a une, sur la caisse sinon :
     // l'autre paire reste éteinte, elle n'a rien à éclairer.
     for(const h of [t.arG, t.arD]){ h.visible = allume; h.material.opacity = k*0.50;
@@ -13894,9 +13899,6 @@ function majEclairagesNuit(){
       t.gyro.material.opacity = (0.30 + 0.55*b)*(0.34 + 0.66*nuitK);
       t.gyro.scale.setScalar(0.75 + 0.45*b);
     } else if(t.gyro.visible) t.gyro.visible = false;
-    const dx = t.m.position.x - camera.position.x, dz = t.m.position.z - camera.position.z;
-    const pres = allume && (dx*dx + dz*dz) < loinCarre;
-    for(const c of [t.coG, t.coD]){ c.visible = pres; c.material.opacity = k*0.22; }
   }
 }
 
@@ -14498,14 +14500,39 @@ function objectifMission(){
     return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, T.load)),
                {x:S.dropX, z:S.dropZ});
 
-  // 2. les deux magasins de la ferme
+  /* 2. LES DEUX MAGASINS DE LA FERME, ET SEULEMENT QUAND ILS SUFFISENT.
+        « On travaille le champ tant qu'on n'a pas assez de blé dans le silo ; dès le
+        moment qu'on a assez de blé dans le silo, on doit livrer. »
+        Le jeu faisait exactement le contraire : `auSilo > 0.5` envoyait CHARGER dès qu'il
+        restait un demi-kilo au fond du silo. Mesuré sur la première mission — trente kilos
+        de blé à la Coopérative — un silo à UN kilo suffisait à faire dire « CHARGER BLÉ
+        1 KG », c'est-à-dire à envoyer faire l'aller-retour pour un trentième de la
+        commande, alors que le champ n'était pas coupé. On ne charge donc que lorsque la
+        ferme, tout compris — le silo, l'entrepôt et ce qu'on porte déjà —, a de quoi
+        SOLDER la ligne. */
   const auSilo = siloStock[cle] || 0, aLEntrepot = entrepotStock(cle);
-  if(auSilo > 0.5)
-    return ici('silo', 'charger', 'CHARGER ' + qteNomHaut(cle, Math.min(reste, auSilo)),
+  const aBord = (T && T.type === cle) ? T.load : 0;
+  const chargerSilo = ()=> ici('silo', 'charger',
+    'CHARGER ' + qteNomHaut(cle, Math.min(reste, auSilo)), {x:SILO.x, z:SILO.z});
+  const chargerEntrepot = ()=> ici('entrepot', 'charger',
+    'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
+    {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
+  if(auSilo + aLEntrepot + aBord >= reste - 0.01){
+    if(auSilo > 0.5) return chargerSilo();
+    if(aLEntrepot > 0.5 && ENTREPOT.quai) return chargerEntrepot();
+  }
+  /* 2 bis. ET CE QUE LA MOISSONNEUSE PORTE ENCORE COMPTE, À CONDITION D'ALLER LE VERSER.
+        « Si on a récolté suffisamment de blé pour que, ajouté à ce qu'il y a dans le silo,
+        ça équivaille à ce dont on a besoin, il faut que ça nous demande d'aller emmener le
+        blé déjà récolté dans le silo, même si le champ n'est pas fini de récolter. »
+        La trémie est le seul contenant du jeu qui ne se livre pas : elle se VIDE, et elle
+        se vide au silo. Tant qu'elle est pleine, le blé est récolté sans être rentré — et
+        c'est la seule situation où l'on interrompt une moisson à mi-parcelle. */
+  const dansTremie = (hopper > 0.5 && CROPS[hopCrop] && CROPS[hopCrop].cle === cle)
+                     ? hopper : 0;
+  if(dansTremie > 0.5 && auSilo + aLEntrepot + aBord + dansTremie >= reste - 0.01)
+    return ici('silo', 'vider', 'VIDER AU SILO — ' + qteNomHaut(cle, dansTremie),
                {x:SILO.x, z:SILO.z});
-  if(aLEntrepot > 0.5 && ENTREPOT.quai)
-    return ici('entrepot', 'charger', 'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
-               {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
 
   // 3 et 4. l'atelier : ce qu'il sort, ou ce qu'il pourrait sortir
   if(PRODUITS[cle] && PRODUITS[cle].de){
@@ -14537,6 +14564,14 @@ function objectifMission(){
       if(O) return O;
     }
   }
+  /* 6. ET SI LA FERME N'Y PEUT PLUS RIEN, ON LIVRE CE QU'ON A. La règle « on attend
+        d'avoir le compte » suppose qu'on puisse encore en produire ; quand la chaîne ne
+        rend plus rien — plus de champ à moissonner, plus de matière à transformer, plus
+        de bête à traire —, attendre serait attendre pour toujours. On repasse alors sur
+        ce que la ferme garde, fût-ce une partie de la commande : une livraison partielle
+        vaut mieux qu'un objectif qu'on ne peut pas atteindre. */
+  if(auSilo > 0.5) return chargerSilo();
+  if(aLEntrepot > 0.5 && ENTREPOT.quai) return chargerEntrepot();
   return S ? ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, reste), {x:S.dropX, z:S.dropZ})
            : null;
 }
@@ -18023,7 +18058,7 @@ function ongletFilieres(){
       'Rendement ' + Math.round(PRODUITS[R.cle].rendement*100) + ' % · ' +
       dec(rendementValeur(R.cle)/parKgDe(entreeSeule(R.cle))) + ' € par ' +
       uniteUn(entreeSeule(R.cle)) + ' engagé · ' + R.duree + ' s les 100 kg',
-      a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Monté')
+      a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Acheté')
          : (auNiveau(niv) ? eur(R.prix) : 'Niveau ' + niv),
       a2 ? 'ok' : 'no', null);
   }
@@ -18131,7 +18166,7 @@ function vueStockPossible(){
     titre('L\'atelier n\'a encore aucun métier');
     const d = document.createElement('div'); d.className = 'art';
     d.innerHTML = '<div class="txt"><div class="det">La halle est nue : rien ne se ' +
-      'transforme tant qu\'un métier n\'y est pas monté. Ils se montent dans ' +
+      'transforme tant qu\'un métier n\'y est pas acheté. Ils s\'achètent dans ' +
       '<b>Production · métiers</b>, et la liste ci-dessous dit ce que chacun tirerait ' +
       'du magasin d\'aujourd\'hui.</div></div>';
     hote.appendChild(d);
@@ -18301,7 +18336,7 @@ function vueProdMetiers(){
         HALLE.file.length + ' / ' + halleFileMax(), 'no', null);
   } else if(!bati){
     article(0x8A9298, 'Aucun module',
-      'La halle est nue. Le premier métier — le moulin — se monte plus bas.',
+      'La halle est nue. Le premier métier — le moulin — s\'achète plus bas.',
       'Vide', 'no', null);
   } else {
     article(0x8A9298, 'Atelier à l\'arrêt',
@@ -18324,8 +18359,8 @@ function vueProdMetiers(){
                  dec(prixUnite(M.cle)) + ' ' + parUniteTxt(M.cle) + ' à la vente';
     if(atelierA(M.cle)){
       article(parseInt(P.couleur.slice(1), 16), M.module + ' — ' + P.nom,
-        fait + '<br>Monté. Il tourne dès qu\'on lui donne de la matière.',
-        'Monté', 'ok', null);
+        fait + '<br>Acheté. Il tourne dès qu\'on lui donne de la matière.',
+        'Acheté', 'ok', null);
       continue;
     }
     const niv = niveauDe('modules', M.cle), libre = auNiveau(niv);
@@ -18335,7 +18370,11 @@ function vueProdMetiers(){
                                (ok ? '' : ' · il manque ' + eur(M.prix - money))
                              : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom +
                                ' · ' + eur(M.prix)),
-      !libre ? 'Niveau ' + niv : (ok ? 'Monter' : 'Trop cher'),
+      /* ACHETER, ET NON MONTER. Le joueur : « au lieu de marquer monter pour le moulin,
+         et pour tout le reste, écris acheter ». C'est un achat — on paie et l'on repart
+         avec —, et le jeu dit ACHETER partout ailleurs : au garage, au comptoir, à
+         l'agence. Un verbe par geste, et le même partout. */
+      !libre ? 'Niveau ' + niv : (ok ? 'Acheter' : 'Trop cher'),
       ok ? 'vert' : 'no',
       ok ? ()=>{ ameliorerAtelier(M.cle); rafraichirEcran(); } : null);
   }
