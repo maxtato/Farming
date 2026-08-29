@@ -6370,7 +6370,7 @@ function buildFarm(){
   let sC = 20260829;
   const rC = ()=>{ sC = (sC*1664525 + 1013904223) >>> 0; return sC/4294967296; };
   for(const K of COINS_VILLAGE){
-    poserBloc(K.fab, K.x, K.z, K.ry);
+    poserBloc(K.fab, K.ox, K.oz, K.ry);
     for(let k = 0; k < 4; k++){
       const a = K.a0 + (k + 0.5)/4*K.aA, d = 11 + rC()*5;
       addTree(K.x + Math.cos(a)*d, K.z + Math.sin(a)*d, 0.9 + rC()*0.45, (rC()*5)|0);
@@ -6967,11 +6967,31 @@ const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBuche
    plante rien de plus — `addTree` refuse tout tronc à moins de 4,50 m d'une chaussée,
    pour que le houppier ne surplombe jamais la route — il fait seulement disparaître des
    arbres en silence : relevé, deux à quatre sur seize avec un secteur de 162°. */
+/* L'OBJET VA AU BORD DE LA ROUTE, LA VERDURE RESTE DERRIÈRE LUI.
+   Les quatre objets étaient posés au MILIEU de leur carré d'herbe : le calvaire se
+   tenait à onze mètres et demi du bitume de la rocade ouest, c'est-à-dire nulle part —
+   on passait devant sans le voir, et un calvaire qui n'est pas au bord du chemin n'est
+   pas un calvaire. Le joueur : « les éléments de village que tu as mis dans les angles,
+   mets-les un peu plus près du bord, plus près de la route, surtout la statue en croix. »
+   Chacun a donc DEUX places : `x, z` reste l'ancre de la verdure — le centre du carré,
+   là où les arbres et les buissons ont de la place — et `ox, oz` est la sienne, calée
+   au plus près du croisement. La cote se déduit : bord de chaussée (ROAD_W/2 de l'axe),
+   plus le rayon du disque de collision, plus une marge. Le calvaire prend 1,4 m de marge,
+   les trois autres 1,8 — il est le plus petit (2,12 m de rayon contre 3 à 4) et c'est
+   celui qu'on a demandé de rapprocher le plus.
+   ET LA MARGE NE DESCEND PAS SOUS 1,35 m. C'est la distance à laquelle `Vehicle.update`
+   commence à repousser une machine d'un obstacle : à 1,20 m, la zone de répulsion du
+   calvaire mordait de dix-sept centimètres sur le bitume, et un véhicule qui longe
+   l'accotement se serait senti écarté par une croix qu'il ne touche pas. */
 const COINS_VILLAGE = [
-  {nom:'NO', fab:vilCalvaire, x:-93, z:-126, ry:0,       a0:Math.PI,     aA:Math.PI/2},
-  {nom:'NE', fab:vilAbriBus,  x:127, z:-126, ry:0,       a0:Math.PI*1.5, aA:Math.PI/2},
-  {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ry:Math.PI, a0:Math.PI/2,   aA:Math.PI/2},
-  {nom:'SE', fab:vilEntree,   x:127, z:85,   ry:Math.PI, a0:0,           aA:Math.PI/2}
+  {nom:'NO', fab:vilCalvaire, x:-93, z:-126, ox:-82.5, oz:-122.8, ry:0,
+   a0:Math.PI,     aA:Math.PI/2},
+  {nom:'NE', fab:vilAbriBus,  x:127, z:-126, ox:124.6, oz:-124.9, ry:0,
+   a0:Math.PI*1.5, aA:Math.PI/2},
+  {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ox:-84.8, oz:84.8,   ry:Math.PI,
+   a0:Math.PI/2,   aA:Math.PI/2},
+  {nom:'SE', fab:vilEntree,   x:127, z:85,   ox:123.9, oz:83.9,   ry:Math.PI,
+   a0:0,           aA:Math.PI/2}
 ];
 
 /* CE QUI REMPLIT LES BANDES ENTRE LES COMMERCES.
@@ -7093,8 +7113,12 @@ function garnirBandes(putBush, putRock){
      objets de coin, eux, se posent tout à la fin, pour ne pas décaler le flux du hasard.
      On déclare donc leur emprise maintenant et on les bâtit plus tard. Onze mètres, plus
      les trois que `libreDehors` ajoute : une clairière de vingt-huit mètres de côté. */
+  /* La clairière couvre l'ancre ET l'objet, qui n'est plus au même endroit : sans
+     l'union des deux, le semis général reprendrait la bande de terrain que l'objet a
+     gagnée en se rapprochant de la route, et l'on aurait un caillou sous le calvaire. */
   for(const K of COINS_VILLAGE)
-    BANDE_LOTS.push({x0:K.x - 11, x1:K.x + 11, z0:K.z - 11, z1:K.z + 11});
+    BANDE_LOTS.push({x0:Math.min(K.x, K.ox) - 11, x1:Math.max(K.x, K.ox) + 11,
+                     z0:Math.min(K.z, K.oz) - 11, z1:Math.max(K.z, K.oz) + 11});
   for(const C of BANDE_CREUX){
     const surZ = SUR_Z[C.dir], sortant = SORTANT[C.dir], bord = BORD_BANDE[C.dir];
     const centre = (C.a + C.b)/2, l = C.b - C.a;

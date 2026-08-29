@@ -3926,6 +3926,21 @@ reste sans emploi, et c'est écrit plutôt que tu.
 Le coût, mesuré : **+24 maillages** de scène et +2 156 triangles de géométrie ; à la caméra
 de départ, +4 appels de rendu et +272 triangles ; les emprises de collision ne bougent pas.
 
+**Puis ils sont descendus au bord de la route.** Ils étaient posés au MILIEU de leur carré
+d'herbe : le calvaire se tenait à **11,5 m** du bitume de la rocade ouest, c'est-à-dire
+nulle part — on passait devant sans le voir, et un calvaire qui n'est pas au bord du chemin
+n'est pas un calvaire. Chacun a donc deux places : l'ancre de la verdure reste au centre du
+carré, là où les arbres ont de la place, et l'objet descend au plus près du croisement. La
+cote se déduit et ne se choisit pas — bord de chaussée, plus le rayon du disque de
+collision, plus une marge — et cette marge ne descend jamais sous **1,35 m**, la distance à
+laquelle `Vehicle.update` commence à repousser une machine d'un obstacle : à 1,20 m, la zone
+de répulsion du calvaire mordait de dix-sept centimètres sur le bitume, et un véhicule qui
+longe l'accotement se serait senti écarté par une croix qu'il ne touche pas. Mesuré après :
+**1,38 m** au calvaire, 1,82 à l'abri de bus, 1,79 au lavoir, 1,83 au panneau d'entrée ; le
+calvaire est passé de 6,70 m à **3,30 m** du bitume, à onze mètres de son ancre. La
+clairière réservée couvre maintenant l'union des deux places : sans cela le semis général
+aurait repris la bande de terrain gagnée, et l'on aurait eu un caillou sous la croix.
+
 ## Le pilote automatique
 
 **L'escargot est strictement orthogonal.** Il ne l'était pas : le tour se refermait sur
