@@ -1966,13 +1966,13 @@ sert tout seul au silo et à l'entrepôt, il n'y a rien à venir y faire, et il 
 d'anneau. Elles **grandissaient** en plus avec les paliers : le même trait de 0,165 m,
 mais un entraxe de 2,31 m au premier cran contre 3,79 m au huitième, soit +64 % — trois
 places trop étroites pour un pick-up qui devenaient trois places larges. Un marquage qui
-s'étire n'est plus un marquage. Au palier 8, les palettes et les caisses se posaient
-carrément par-dessus.
+s'étire n'est plus un marquage. Au palier 8, une des caisses de bois enjambait carrément
+la bande de gauche.
 
 Elles n'étaient l'exception nulle part ailleurs : **tous** les autres marquages du jeu
 sont *peints dans la texture du sol* — la cour de ferme et le garage par
-`marquageParking()`, les quinze parvis de commerce par `buildCommerce` — à la largeur
-canonique 4/PPU = 0,344 m. Ces trois-là étaient de la géométrie posée par-dessus la
+`marquageParking()`, les quinze parvis de commerce par `buildCommerce`, l'allée de la cour
+de transformation par `paintStaticGround` — à la largeur canonique 4/PPU = 0,344 m. Ces trois-là étaient de la géométrie posée par-dessus la
 dalle, 3 maillages et 36 triangles. Elles partent ; il reste le béton et son liseré, qui
 n'ont jamais rien promis.
 
