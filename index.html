@@ -9887,6 +9887,11 @@ function viser(v, tx, tz, rayon, vTour){
 const TRAFIC_MODELES = (function(){
   const NOIR = 0x2A2622, VITRE = 0x22303A, CREME = 0xF2E7D2, INOX = 0xC9CFD3,
         GRIS = 0x8A9298, CHASSIS = 0x3A3630, ROUGE = 0xC0392B,
+        /* UNE COULEUR, UN RÔLE — et c'est une contrainte, pas une coquetterie : une
+           variante de robe remplace les sommets PAR ÉGALITÉ DE COULEUR, donc un feu
+           arrière peint du rouge exact d'une carrosserie changerait de couleur avec
+           elle. Le camion à caisse a la robe ROUGE : ses feux passaient au bleu. */
+        ROUGE_FEU = 0xC33A2D, ORANGE_GYRO = 0xE3781F,
         JAUNE = 0xF0C24A, ORANGE = 0xE07B24, BLEU = 0x3E7CB8;
   const T = (x, y, z)=> new THREE.Matrix4().makeTranslation(x||0, y||0, z||0);
   const B = (w,h,d, c, x,y,z)=>({g:new THREE.BoxGeometry(w,h,d), m:T(x,y,z), c});
@@ -9946,7 +9951,7 @@ const TRAFIC_MODELES = (function(){
     noterFeux(w, y, zAv, zAr);
     for(const sx of [-w, w]){
       P.push(B(0.32, 0.2, 0.1, 0xFFF6CC, sx, y, zAv));
-      P.push(B(0.3, 0.18, 0.1, ROUGE, sx, y, zAr));
+      P.push(B(0.3, 0.18, 0.1, ROUGE_FEU, sx, y, zAr));
     }
   }
   /* LA SERRE : l'habitacle est un SANDWICH de trois tranches — ceinture de caisse,
@@ -10265,7 +10270,7 @@ const TRAFIC_MODELES = (function(){
     P.push(B(0.7, 0.7, 0.7, C, 0, 1.6, 0.7));
     P.push(CY(0.12, 0.8, 8, INOX, 0, 1.85, 0.7, 0, Math.PI/2));
     P.push(B(0.08, 0.08, 1.6, 0x9AA2A7, 0, 1.5, -0.2));
-    gyro(P, 0, 2.56, 1.6, ORANGE);
+    gyro(P, 0, 2.56, 1.6, ORANGE_GYRO);
     P.push(B(2.16, 0.18, 0.4, 0x2A2E32, 0, 0.46, 3.06));
     feux(P, 0.78, 0.8, 3.08, -3.06);
     roues(P, 0.96, 1.9, -1.7, 0.42, 0.3, true);
@@ -10294,7 +10299,8 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
    troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
    d'attribut dans deux géométries, et le processeur graphique ne téléverse le sommet
    qu'une fois. Une robe coûte un tiers d'un modèle, et non un modèle entier — mesuré,
-   434 Kio pour les seize contre 579 pour les quarante-quatre.
+   1 302 Kio d'attributs pour les seize et 2 062 pour les quarante-quatre, là où
+   quarante-quatre géométries pleines en pèseraient 3 582.
 
    La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
    les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
@@ -10353,6 +10359,10 @@ const TRAFIC_ROBES = (function(){
       v.setAttribute('position', g.attributes.position);
       v.setAttribute('normal', g.attributes.normal);
       v.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      // Les bornes se calculent ICI : `dimsTrafic` ne le fait que soixante lignes plus
+      // bas, et recopier un `null` laisserait chaque variante les refaire pour son compte.
+      if(!g.boundingBox) g.computeBoundingBox();
+      if(!g.boundingSphere) g.computeBoundingSphere();
       v.boundingBox = g.boundingBox; v.boundingSphere = g.boundingSphere;
       liste.push(v);
     }
@@ -10386,9 +10396,21 @@ const PORTEUR_TRAFIC = [false, false, false, true, true, false,
 /* ET LES DIX DERNIERS ARRIVÉS PÈSENT UN PEU PLUS. Les six modèles d'origine avaient été
    dessinés à une échelle qui leur est propre : leurs deux camions font 3,81 m de large,
    là où les dix nouveaux plafonnent à 3,76 et descendent à 3,40 pour la dépanneuse. Sur
-   la route, à côté d'une bétaillère, ils avaient l'air fins. Huit pour cent les remettent
-   au même poids — la marge est là : le plus large monte à 4,06 m quand deux semis, qui
-   sont ce que la rocade admet de plus gros, en font 4,85. */
+   la route, à côté d'une bétaillère, ils avaient l'air fins. Huit pour cent leur rendent
+   la vedette en largeur — le plus large monte à 4,05 m quand le semi affiné, qui est le
+   gabarit maximal de la rocade, en fait 4,99.
+   CE N'EST PAS LA CHAUSSÉE QUI BORNE LA TAILLE, C'EST LA HAUTEUR SOUS LES LAMPADAIRES,
+   et il a fallu le mesurer pour le voir. L'ampoule d'un lampadaire a son dessous à
+   5,87 m au-dessus de la route, et la potence passe AU-DESSUS des files. Le camping-car,
+   qui est le plus haut du lot, culmine à 5,82 m au repos et à 6,09 en roulant — la
+   suspension ajoute une trentaine de centimètres au toit — : à huit pour cent il
+   traversait la lampe de vingt et un centimètres, sur deux mille images de circulation.
+   Le facteur est donc RABOTÉ modèle par modèle par la hauteur libre, au lieu d'être écrit
+   à la main : c'est un calcul, il se refait tout seul si un modèle grandit ou si les
+   lampadaires bougent. La réserve de 45 cm couvre les 30 cm de suspension mesurés et
+   laisse 15 cm de jeu au pire. Sur les seize, quatre sont rabotés — le camping-car qui
+   ne peut plus grandir du tout, le camion à caisse, la citerne à lait et l'autocar qui
+   montent à six ou sept pour cent au lieu de huit. */
 const TAILLE_TRAFIC = [1, 1, 1, 1, 1, 1,
                        1.08, 1.08, 1.08, 1.08, 1.08, 1.08,
                        1.08, 1.08, 1.08, 1.08];
@@ -10555,6 +10577,15 @@ const BORD_TRAFIC = {x0:X0 - MARGE_TRAFIC, x1:X1 + MARGE_TRAFIC,
    plus petits que les engins de la ferme — une berline de 4,40 m à côté d'un tracteur de
    4,80 — et la route, vue de la cour, avait l'air d'un circuit de voitures miniatures. */
 const ECH_TRAFIC = 1.5;
+// Le rabotage des tailles par la hauteur libre : il lui faut ECH_TRAFIC, déclaré ici.
+const HAUT_LIBRE = 5.87;        // dessous de l'ampoule d'un lampadaire, mesuré
+const RESERVE_TOIT = 0.45;      // battement de suspension (0,30 mesuré) et jeu
+for(let k = 0; k < TAILLE_TRAFIC.length; k++){
+  const g = TRAFIC_GEOS[k];
+  if(!g.boundingBox) g.computeBoundingBox();
+  const h = g.boundingBox.max.y*ECH_TRAFIC;
+  TAILLE_TRAFIC[k] = Math.min(TAILLE_TRAFIC[k], (HAUT_LIBRE - RESERVE_TOIT)/h);
+}
 /* SAUF EN LARGEUR, POUR LES POIDS LOURDS. Les camions du modèle sont taillés large : cinq
    mètres soixante-treize de carrosserie une fois grandis d'une moitié, sur une chaussée
    de dix. Deux files de deux mètres soixante de part et d'autre de l'axe laissent cinq

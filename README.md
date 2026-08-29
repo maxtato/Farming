@@ -2506,16 +2506,31 @@ Le trafic n'a **aucune emprise de collision** vis-à-vis du joueur, et c'est vou
 cercles mobiles transformerait un croisement en accrochage. On les traverse, comme tout le
 décor mobile.
 
-### Les dix nouveaux grandissent de huit pour cent
+### Les dix nouveaux grandissent de huit pour cent, sauf ceux qui touchent les lampadaires
 
-Portés tels quels, ils étaient plus petits que les six premiers : côte à côte au feu, un
-fourgon avait l'air d'une maquette à côté d'une berline. Le facteur ne peut pas être
-généreux — la largeur de la chaussée est ce qu'elle est, et c'est elle qui a déjà obligé à
-affiner les poids lourds de treize pour cent. **Huit pour cent** est ce qui rentre : le plus
-large des dix passe de 3,76 m à **4,07**, quand l'attelage articulé, lui, occupe 4,85. Le
-facteur s'écrit par modèle dans `TAILLE_TRAFIC`, et il porte à la fois sur la carrosserie,
-sur les dimensions qui servent au suivi de file et sur la portée des phares — sans quoi un
-camion grandi éclairerait toujours à la taille de l'ancien.
+Portés tels quels, ils étaient plus fins que les six premiers : côte à côte au feu, un
+fourgon avait l'air d'une maquette à côté d'une bétaillère. **Huit pour cent** les remettent
+au même poids — le plus large des dix passe de 3,76 m à **4,05**, quand le semi affiné, qui
+est le gabarit maximal de la rocade, en fait 4,99. Le facteur s'écrit par modèle dans
+`TAILLE_TRAFIC`, et il porte à la fois sur la carrosserie, sur les dimensions qui servent au
+suivi de file et sur la portée des phares — sans quoi un camion grandi éclairerait toujours
+à la taille de l'ancien.
+
+**Et ce n'est pas la chaussée qui borne la taille : c'est la hauteur libre sous les
+lampadaires.** On cherchait la limite du mauvais côté. Le dessous de l'ampoule d'un
+lampadaire est à **5,87 m** au-dessus de la route, et la potence passe au-dessus des files.
+Le camping-car, le plus haut du lot, culmine à 5,82 m au repos — mais la suspension le
+soulève et le fait tanguer, et il monte à **6,09 m** en roulant : à huit pour cent il
+traversait la lampe de **vingt et un centimètres**, sur deux mille images de circulation.
+Rien ne le disait, parce qu'aucun banc ne mesurait la hauteur libre. Deux contrôles la
+mesurent maintenant, l'un au repos et l'autre sur cinq minutes de circulation.
+
+Le facteur est donc **raboté par le calcul**, modèle par modèle, au lieu d'être écrit à la
+main : une réserve de 45 cm — les 30 cm de suspension mesurés, plus 15 de jeu — et le reste
+suit tout seul si un modèle grandit ou si les lampadaires bougent. Quatre des seize sont
+rabotés : le camion à caisse et la citerne à lait à 6,6 %, l'autocar à 7,5 %, et le
+camping-car à **0,6 %** — il ne peut pas grandir, il est déjà au plafond. Mesuré sur cinq
+minutes, il reste **15,3 cm** entre la tôle la plus haute et l'ampoule la plus basse.
 
 ### Quarante-quatre robes pour seize carrosseries
 
@@ -2539,6 +2554,17 @@ plus sombre, sans qu'on ait eu à l'écrire.
 **Deux modèles n'ont qu'une robe, et c'est voulu** : un camion de pompiers est rouge et une
 fourgonnette postale est jaune. Ce n'est pas une couleur, c'est une livrée — la repeindre en
 vert donnerait un véhicule qu'on ne reconnaît plus.
+
+**Le piège du remplacement par égalité : une couleur, un rôle.** Substituer par valeur veut
+dire que deux pièces qui partagent exactement la même teinte changent ensemble, qu'on le
+veuille ou non. Le camion à caisse avait pour robe le rouge des **feux arrière** : ses
+soixante-douze sommets de feux passaient au bleu avec la caisse, et le camion roulait avec
+des veilleuses bleues. La dépanneuse avait pour robe l'orange de son **gyrophare** : le dôme
+changeait de couleur tandis que la bille de halo, elle, restait orange. Les deux pièces ont
+donc reçu leur propre teinte — un rouge de feu et un orange de gyrophare distincts d'un
+demi-pour-cent, invisibles à l'œil — et la règle est écrite là où on la lit : une couleur,
+un rôle. Vérifié sommet par sommet : soixante-douze feux et soixante-douze sommets de dôme,
+zéro qui bouge.
 
 Le coût est celui qu'on attend, et il est mesuré : les seize carrosseries pèsent 1 302 Kio
 d'attributs, les quarante-quatre géométries **2 062** — 760 Kio pour vingt-huit robes, quand
