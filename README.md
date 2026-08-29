@@ -3228,6 +3228,48 @@ dépanneuse d'un plateau, et ils sont fondus dans la même géométrie que le re
 carrosserie : ils ne coûtent rien de plus. Ce qui reste allumé sur le trafic tient en une
 phrase — deux optiques jaunes devant, deux rouges derrière, et seulement la nuit.
 
+### Et la couchette du camping-car s'est posée sur la cabine
+
+Le joueur, en le voyant passer : « le camping-car, la couchette en haut de la cabine est
+trop haute, elle ne touche pas le toit de la cabine de conduite ; descends-la pour qu'elle
+touche. »
+
+C'est vrai, et ça se mesure sans discuter. En sondant la géométrie fusionnée par une
+colonne verticale — pour un x et un z donnés, les hauteurs où le rayon rencontre de la
+matière —, sur tout le porte-à-faux (z de 1,50 à 2,85) : le toit de la cabine plafonne à
+**2,14**, le plancher de la couchette commençait à **2,89**. **Soixante-quinze centimètres
+d'air**, et un bloc pâle suspendu au-dessus du pare-brise.
+
+Son plancher tombe à 2,14 pile. Et son toit **monte** à 3,04, celui de la cellule : la ligne
+du dessus devient continue de l'arrière au pare-brise, ce que dit la première ligne de la
+fonction — « la cellule la coiffe d'une capucine ». La descendre sans la grandir l'aurait
+enfoncée vingt centimètres *sous* le toit de la cellule, ce qui n'est plus une capucine mais
+un décrochement.
+
+**Et le véhicule cesse d'être raboté.** Sa hauteur hors tout tombe de 3,59 à 3,19 — c'est la
+trappe de toit qui devient le point haut. Le gabarit des lampadaires (5,87 m moins 45 cm de
+battement de suspension) le bridait à 1,0065 fois sa taille, seul de sa catégorie : il
+repasse à **1,08** comme les quinze autres, et se dresse tout de même **plus bas** sur la
+route — 5,17 m contre 5,42.
+
+**Aucun banc ne pouvait voir ce défaut**, parce qu'aucun ne regardait l'*intérieur* d'une
+silhouette : on mesurait des emprises, des largeurs, des hauteurs hors tout, jamais ce qu'il
+y a entre deux volumes. Le banc du trafic sonde maintenant les seize modèles par colonnes
+verticales. Deux pièges ont dû être écartés pour que la mesure dise vrai :
+
+- **la parité ne marche pas sur une union de boîtes qui se chevauchent.** Compter les
+  traversées comme sur une surface fermée simple dit « dehors » dès qu'on entre dans une
+  deuxième boîte sans être sorti de la première : la sonde annonçait 0,90 m de vide en plein
+  milieu de la matière. On lit donc la **normale** de chaque face — vers le haut, c'est une
+  sortie ; vers le bas, une entrée — et un compteur de profondeur s'occupe des
+  recouvrements ;
+- **un trou doit avoir du volume.** Une colonne tirée un centimètre en dehors d'une cabine
+  ne rencontre que ses deux liserés de ceinture, qui dépassent d'un centimètre, et annonce
+  0,75 m de « vide » là où il n'y a que du vitrage. On exige donc le trou des **deux côtés**
+  de l'axe et sur **deux tranches voisines**.
+
+Résultat : **0,00 m** sur les seize modèles, contre 0,75 sur le camping-car avant.
+
 ## Le son du moteur
 
 Il y en avait déjà, en **synthèse pure** : deux dents de scie désaccordées passées au
