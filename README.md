@@ -447,6 +447,63 @@ l'annonce du palier écrasait la phrase deux millisecondes plus tard : on ne voy
 qu'on venait de gagner. L'expérience se compte d'abord, la fête ensuite, le bandeau en
 dernier.
 
+### Elle saute en arrivant, elle s'allume, et une flèche dit de continuer
+
+Elle était trop figée : les lignes entraient l'une après l'autre, mais la **boîte**, elle,
+était posée. Le joueur :
+
+> « Dès qu'il y a une fenêtre qui apparaît avec un gros message, fais-la bouger, fais-la
+> vibrer un petit peu, fais-la s'allumer, et tu mets un bouton un peu marrant avec une
+> flèche à droite en bas de la fenêtre pour continuer. »
+
+Trois choses, et pas une de plus :
+
+- **Elle tombe.** Vingt-six pixels au-dessus, un dépassement de quatre centièmes, deux
+  degrés de gîte, et elle se recale en 0,52 s — un ressort, pas un fondu.
+- **Elle s'allume.** Un voile jaune posé à l'intérieur du cadre, qui monte à 0,55 d'opacité
+  en un cinquième de seconde et s'efface en une seconde. C'est un pseudo-élément et une
+  `opacity` : rien à repeindre.
+- **La flèche.** Un rond jaune en bas à droite, qui pousse vers la droite tout seul et
+  grossit d'un dixième sous le doigt. Il n'a **pas de gestionnaire à lui** : le clic remonte
+  à la boîte, qui fait déjà passer à la suite. Toucher n'importe où marche encore — le bouton
+  ne fait qu'annoncer ce qu'on pouvait déjà faire.
+
+**Et les appels se dandinent.** *« Pareil pour les onglets, ou pour les trucs qui font une
+pulsation, ou pour les boutons pour changer de véhicule dans la mission : fais vibrer un
+petit peu ces boutons, une petite animation qui bouge un peu de gauche à droite, dans le
+sens horaire, anti-horaire. »*
+
+C'est une **secousse, pas une oscillation** : le mouvement tient dans la première moitié
+d'un cycle de 2,1 s, la seconde est immobile. Un bouton qui tremblerait sans arrêt sous le
+pouce pendant qu'on conduit deviendrait vite pénible ; celui-ci fait signe, se tait, refait
+signe.
+
+| ce qui appelle | ce qu'il fait |
+|---|---|
+| `#engins`, les trois boutons de régie | un anneau qui s'écarte + une gîte de 3,4° |
+| `#veh`, `#service`, `#atelier` | le même, avec une gîte de 2,4° |
+| un onglet, une ligne d'article | un cadre plat qui bat + une respiration à 0,965 |
+| une ligne du parc | un cadre plat + un glissement de 4 px |
+
+**Deux pièges, et ils sont dans le CSS.** Le premier : `#veh`, `#service` et `#atelier` sont
+centrés par `transform:translateX(-50%)`. Une animation de `transform` qui l'oublierait les
+ferait sauter d'une demi-largeur vers la droite — d'où deux jeux d'images, dont l'un
+reconduit le centrage à chaque étape. Le second : un onglet ne peut pas **grandir**.
+`#fenonglets` a `overflow-x:auto` et `#fenliste` un `overflow-y:auto` — qui force l'autre axe
+à `auto` lui aussi — si bien qu'un débordement d'un seul pixel ferait apparaître une barre de
+défilement, et la barre d'onglets se mettrait à glisser toute seule. Elle **rétrécit** donc,
+de trois centièmes et demi : un mouvement qui ne peut pas sortir de la boîte, par
+construction.
+
+Tout cela n'anime que `transform` et `opacity`, sans exception. C'est la leçon payée une
+fois : une `box-shadow` animée coûtait un dixième des images du jeu, 8,7 contre 9,6.
+
+**Et le bouton de service appelle enfin.** Le cercle sous les roues passait au jaune quand la
+mission envoyait là, et le bouton en prenait la couleur — mais il n'appelait pas. C'était le
+dernier bouton du jeu que le guidage désignait sans le désigner. Il porte maintenant la même
+marque que la régie, avec `a.ok` en garde : un bouton grisé qui trépignerait promettrait une
+action qu'il refuse d'exécuter.
+
 ### Des pièces, quand on est payé
 
 L'argent tombait en silence. On déchargeait quatre cents kilos de blé, le chiffre du bandeau
@@ -932,13 +989,41 @@ maintenant ce qu'il sème : 50 kg au neuf, 350 au dernier cran, soit deux parcel
 contre quatorze. C'est la seule amélioration du jeu qui se compte en allers-retours épargnés,
 et c'est ce qui donne enfin un sens à la capacité du barème.
 
-Une cuve ne mélange pas : elle contient **une** graine, comme une benne contient une seule
-nature. Une cuve pleine d'orge ne sème pas du blé — elle vaut zéro pour le blé, et le hangar
-n'y peut rien.
+#### Un sac par semence, et non une cuve pour tout
 
-**Et une graine ne se perd jamais.** Changer de culture au bouton du semoir renvoie ce qui
-reste au hangar ; si le hangar est plein, le réglage est **refusé** plutôt que de jeter vingt
-kilos de blé. Le geste inverse existe aussi, sur la cour : vider la cuve pour changer d'avis.
+La cuve ne mélangeait pas : elle contenait **une** graine, comme une benne contient une seule
+nature. Changer de culture renvoyait ce qui restait au hangar — et si le hangar était plein,
+le réglage était **refusé**, pour ne pas jeter vingt kilos de blé. C'était prudent, et c'était
+un piège, dont le joueur est tombé dedans mot pour mot :
+
+> « Quand je choisissais avec le semoir, maïs, la capacité était vide, et maintenant j'essaye
+> de revenir dessus, j'arrive plus à sélectionner le maïs. »
+
+La chaîne, reconstituée : il achète du maïs au comptoir ; le semoir porte encore du blé ; le
+transvasement veut d'abord rendre ce blé au hangar ; le hangar est presque plein ; le
+transvasement échoue, le maïs reste au hangar, **et le semoir n'est pas réglé sur le maïs** —
+d'où la « capacité vide ». Puis il touche le bouton de culture pour y aller lui-même : le
+bouton appelle le même transvasement, échoue sur le même hangar plein, et **rend la main sans
+changer de culture**. Il est bloqué sur le blé avec du maïs acheté qu'il ne peut pas semer.
+
+Le semoir porte donc maintenant **un casier par semence**, chacun plafonné à `cuveMax` :
+cinquante kilos de blé ET cinquante kilos de maïs à bord, comptés séparément. Le joueur l'a
+demandé en propre : « fais bien en sorte qu'on puisse sélectionner le type de graines, tout en
+gardant le même semoir, et qui a un décompte de la capacité différent pour chacune des
+semences. »
+
+Changer de culture ne déplace donc plus un gramme, et **ne peut plus échouer**. Le bouton dit
+au passage ce qu'il y a dans le sac où l'on vient d'arriver. Vider reste possible, sur la cour
+ou au comptoir : *Vider le semoir* rend **tous** les sacs.
+
+La sauvegarde écrit le dictionnaire `cuves` **et** l'ancien couple `cuveQ`/`cuveCle`, qui porte
+le casier courant — une version plus ancienne du jeu relit donc une partie neuve sans rien
+comprendre au reste, et une partie d'avant les casiers se relit en reconstituant le sien. La
+version de sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
+l'incrémenter rejetterait d'un coup toutes les parties en cours.
+
+Le banc `cuves.js` compte **39 contrôles** depuis ce chantier, contre 25, et sept d'entre eux
+énoncent ce que l'ancien contrat interdisait.
 
 On remplit sur la **cour de la ferme** — c'est là que sont le hangar et le parc à outils, donc
 là qu'on attelle — et au **comptoir agricole**, où l'on vient acheter : on repart chargé au
@@ -1237,6 +1322,51 @@ marchandise, par la même chaîne : la semence qui manque, puis le mélangeur, p
 production. Les porcs, qui n'ont pas de clé de produit, désignent l'enclos quand il y a des
 bêtes à charger et la boucherie sinon.
 
+### L'ordre est : la culture, la graine, puis le champ
+
+Au quatrième palier, la mission demande 180 kg de maïs. Le joueur :
+
+> « La mission ne m'a pas dit d'aller au comptoir agricole alors que j'avais pas encore de
+> maïs, on m'a déjà direct demandé de livrer, ça va pas. Il faut qu'on me demande dans un
+> premier temps d'aller acheter le maïs que je n'ai pas encore, c'est la suite logique, puis
+> après cultiver mon terrain avec le maïs, puis après on continue. »
+
+**Deux verrous étaient invisibles au juge.** Le premier : `CROPS[i].verrou`, le droit de
+semer la culture — personne dans `origineFerme` ne le regardait, donc rien ne l'annonçait, et
+`outilManquant` ne le connaissait pas non plus. Le second : `parcelleDe` rend `null` quand
+toutes les parcelles portent une *autre* culture, si bien que la porte de la semence, gardée
+par `champ.quoi === 'semer'`, ne s'ouvrait jamais. La chaîne rendait `null` — non parce
+qu'elle était épuisée, mais parce que deux verrous la coupaient — et le **filet de fin**
+traduisait « rien à faire » par « livre ce que tu as » : *LIVRER 180 KG DE MAÏS*, avec zéro
+kilo de maïs dans toute la ferme.
+
+L'ordre est maintenant écrit, et c'est celui que le joueur décrit :
+
+| l'état de la ferme | ce que dit le jeu |
+|---|---|
+| la culture n'est pas acquise, et le palier est atteint | **ACQUÉRIR LA CULTURE** au comptoir |
+| acquise, mais pas de graine, et rien de cette culture en terre | **ACHETER LA SEMENCE** au comptoir |
+| pas la machine qu'il faut — moissonneuse, enjambeuse, **ou semoir** | **IL FAUT…** au garage |
+| une terre à travailler | **AU CHAMP** |
+| plus de terre, mais une friche à vendre au palier | **IL FAUT UNE PARCELLE** |
+| plus de terre du tout | **LIBÉRER UNE PARCELLE** |
+
+La condition « la parcelle doit déjà être prête à semer » a disparu : on achète la graine
+**avant** de préparer la terre, ce qui est l'ordre dans lequel on travaille. On ne l'achète en
+revanche pas quand cette culture pousse déjà ou attend la moissonneuse — c'est elle qu'il faut
+aller chercher, pas un sac de plus.
+
+Et le filet de fin ne ment plus. Il livre toujours un stock **partiel** — « une livraison
+partielle vaut mieux qu'un objectif qu'on ne peut pas atteindre » reste la règle — mais une
+livraison de rien du tout n'est pas une livraison partielle, c'est un mensonge : quand la
+ferme détient zéro kilo partout, silo, entrepôt et bennes comprises, il ne dit **rien**. La
+flèche s'éteint et le bandeau se tait. C'est désagréable, et c'est vrai.
+
+Le banc `guidage.js` compte **76 contrôles** depuis ce chantier, contre 69, et l'un des sept
+nouveaux parcourt la chaîne du maïs de bout en bout : culture non acquise → *ACQUÉRIR*,
+acquise et sans graine → *ACHETER LA SEMENCE*, semoir verrouillé → *IL FAUT LE SEMOIR* (onglet
+**Outils** du garage, pas Véhicules), graine achetée → *AU CHAMP*, et jamais *LIVRER*.
+
 ### Une seule étiquette au quai
 
 À la livraison, **trois** choses disaient le même poids de blé dans le même coin de l'écran :
@@ -1288,7 +1418,7 @@ et sur quoi :
 | ce que l'objectif cherche | ce qui bat |
 |---|---|
 | un métier d'atelier qui manque | Production · Métiers · la ligne du moulin |
-| un lot à lancer | Stockage · production possible · la ligne du produit |
+| un lot à lancer | Production · Produire · la ligne du produit |
 | une semence | Comptoir · Semences · la ligne de la culture |
 | un engin qui manque | Acheter · Véhicules · la ligne de la machine |
 
@@ -1441,6 +1571,19 @@ Trois états successifs, et le troisième est le bon.
    un panneau de rue, ce qu'il est — et ne tourne qu'autour de Y pour présenter sa face au
    joueur d'où qu'il vienne. Une ligne de trigonométrie : `atan2` du vecteur bulle →
    caméra dans le plan du sol.
+4. **Un plan qui ne pivote plus du tout.** Le joueur : « celle des commerces pivote
+   toujours, alors que celle du silo, de l'essence et de la production sont fixes ; essaye
+   de me les faire toutes fixes, mais en trois dimensions comme celle des commerces. » Il
+   avait raison, et pour une raison que l'état 3 avait manquée : **la caméra ne tourne
+   jamais**. Son décalage `CAM_BASE = (38, 62, 38)` n'est pas tourné par le zoom, il est
+   seulement divisé — l'azimut du regard vaut `atan2(38, 38)` = **45°**, à toute distance
+   et à tout niveau de zoom, et pas une ligne du fichier ne touche à `camera.rotation`.
+   Un panneau qui « se tourne vers la caméra » ne fait donc que suivre sa propre position
+   relative : il se dévisse lentement quand on roule devant, pour rien.
+   Ils sont maintenant plantés une fois pour toutes à ce cap, `CAP_PANNEAU = π/4`. Une
+   étiquette au pied de la machine est exactement en face ; une à l'autre bout de l'écran
+   est vue de biais d'une vingtaine de degrés. Mesuré sur une capture avant / après : le
+   nom d'un commerce passe **d'incliné à horizontal**, et le lettrage y gagne.
 
 **Et l'on rattrape le raccourci.** Un panneau debout vu d'en haut se tasse : sa hauteur
 apparente vaut le cosinus de l'élévation du regard. Mesuré sur les seize enseignes du
@@ -1450,8 +1593,37 @@ plus proches, celles qu'on lit justement. On le rend en étirant le panneau d'au
 l'écran le rapport dans lequel le texte a été tracé. Mesuré : 0,217 et 0,328 vus pour
 0,221 et 0,336 dessinés, soit **1,8 % d'écart** au lieu du quart manquant.
 
-L'orientation se pose **après** que la caméra a bougé, et non avec le flottement : calculée
-au même endroit, elle viserait la position de l'image précédente.
+Le rattrapage, lui, se pose **après** que la caméra a bougé : calculé avec le flottement, il
+serait en retard d'une image. C'est tout ce qui reste dans cette boucle de fin de trame —
+`rattraperRaccourci(m)`, un `scale.y` et rien d'autre.
+
+### Et les étiquettes de lieu sont devenues les mêmes
+
+Le silo, l'atelier, l'entrepôt, la cuve à gazole, les mangeoires, les tanks et les parcelles
+portaient une **jauge** : un sprite de 384 × 114, parfaitement plat, parfaitement face à
+l'écran. Deux espèces d'étiquette sur le même écran, et le joueur voyait la différence.
+
+Elles sont maintenant du même bois que les enseignes — un plan de 11 m au cap π/4, la même
+plaque sombre, la même fonte, la même barre d'accent — avec **trois étages au lieu d'un** :
+un nom, une ligne de détail, une barre de remplissage. « Silo » et « 900 kg sur 2 700 · Blé »
+et la barre orange, sur une seule plaque.
+
+**Et l'entrepôt n'a plus qu'une étiquette.** Il en portait deux, sur la même verticale au
+millimètre : une enseigne « ENTREPÔT » plantée à la construction du monde, et la barre de
+stock qui s'allumait à la première livraison, soixante-huit centimètres plus haut. Mesuré :
+**2,21 m de recouvrement**, soit 83 % de la hauteur de l'enseigne et 71 % de celle de la
+jauge — et l'enseigne était peinte *par-dessus* (renderOrder 6 contre 4). Le joueur : « il y
+a une étiquette avec marqué entrepôt, et quand on livre à l'entrepôt il y a une étiquette
+qui se met en arrière-plan, ça fait doublon. » L'enseigne a été retirée ; l'étiquette de
+stock porte le nom.
+
+**Et les quatre étiquettes de la cour restent allumées.** Elles ne s'affichaient qu'en
+travaillant : l'atelier seulement pendant un lot, l'entrepôt seulement s'il contenait
+quelque chose, le silo seulement s'il n'était pas vide. Le bâtiment le plus cher de la ferme
+n'avait de nom que quand il tournait. « Je veux que l'étiquette de l'entrepôt et l'étiquette
+de l'atelier de production restent tout le temps visibles. » Elles le sont, dans les 62 m du
+rayon d'affichage, et elles disent ce qu'elles ont à dire quand elles n'ont rien à dire :
+« halle nue · aucun métier », « vide · 1 350 kg de place ».
 
 La pente qui reste — le nom penche un peu vers le bord de l'écran — n'est pas un défaut :
 une arête horizontale du monde ne se projette horizontalement que sur l'axe de vue, et
@@ -2009,6 +2181,54 @@ chercher.
 `ongletComptoir()` déroule toujours les trois vues à la suite : l'aiguillage du menu n'a pas
 de repli, et trois bancs lisent encore le comptoir dans `#pliste`.
 
+### Et il vend aussi le droit de cultiver
+
+Une culture, c'est deux achats : le **droit** de la semer, payé une fois — 600 € pour le
+maïs, 7 500 € pour l'oliveraie — et la **semence**, payée au kilo à chaque parcelle. Le
+second se vendait au comptoir ; le premier ne se prenait qu'à l'onglet *Graines* du menu.
+
+Le rayon des semences du comptoir affichait donc, pour une culture non acquise, une ligne
+grise, un bouton mort marqué « Fermé », et cette phrase :
+
+> « La culture n'est pas encore acquise — elle se prend à l'onglet Graines du menu. »
+
+Or c'est précisément cette ligne-là que le guidage fait battre en jaune quand la mission du
+quatrième palier demande du maïs. Le jeu envoyait au comptoir, et le comptoir renvoyait au
+menu. Le joueur :
+
+> « Je vais au comptoir agricole et je peux pas acheter le maïs, ils me disent d'aller par le
+> menu. Je veux plus ça. »
+
+Le bouton fait maintenant ce qu'il annonce : **Acquérir**, 600 €, et la ligne devient
+*Acheter* dans la foulée. Les deux permanentes apparaissent au même rayon, sous « Ce qui se
+plante », avec le même bouton — elles n'y existaient tout simplement pas tant qu'on ne les
+avait pas prises au menu. La fonction est la même des deux côtés : `acquerirCulture(c)`.
+
+### Le menu ne garde que la vue d'ensemble et les réglages
+
+Il portait neuf onglets, dont **six étaient des rayons** : engins, outils, graines, comptoir,
+élevage, parcelles. Chacun de ces six a sa porte dans le monde — le garage pour les engins et
+les outils, le comptoir pour les graines et les consommables, le quai de l'enclos pour les
+bêtes, le panneau « À VENDRE » planté sur la friche pour les parcelles. Un deuxième chemin
+vers le même achat, c'est un de trop : c'est exactement ce qui avait été corrigé pour le
+stock, la production et les prix quand ils ont reçu leur fenêtre.
+
+> « Le menu, on va le garder que pour les paramètres et avoir une vue globale de la
+> progression ; sinon tout se fait par les boutons. »
+
+Il reste donc **Campagne · Filières · Réglages**, et le bouton du menu s'ouvre sur la
+campagne au lieu du rayon des outils. Les six autres ne sont pas supprimés, ils sont
+**cachés de la barre** : les fonctions restent, l'aiguillage les appelle toujours, et un
+bouton du monde peut encore y déposer d'un coup — le quai d'un enclos plein ouvre encore
+l'élevage. Un rayon caché où l'on se trouve **réapparaît dans la barre**, sinon on ne
+saurait pas où l'on est.
+
+Une chose ne passait par aucun bouton du monde, et il a fallu la déménager : **le choix de
+l'espèce du prochain enclos**. Le message le disait lui-même — « appuie encore pour
+confirmer · MENU ÉLEVAGE POUR CHANGER D'ESPÈCE ». Une fois l'achat armé, un second bouton
+fait maintenant défiler les espèces ouvertes, et remet le compteur d'armement à quatre
+secondes à chaque passage : parcourir la liste ne désarme plus.
+
 ## Un onglet, une question
 
 Une fenêtre répondait à deux questions à la fois. Le **stockage** disait ce qu'on a *et* ce
@@ -2024,20 +2244,24 @@ leçon à réapprendre pour rien.
 | fenêtre | onglet | ce qu'on y trouve |
 |---|---|---|
 | **Stockage** | En magasin | le silo, l'entrepôt, et ce qui roule dans les bennes |
-| | Production possible | ce que la matière du jour permet de sortir, et le bouton qui le lance |
-| **Production** | Métiers | la file en cours, puis **les huit métiers** avec leur recette, leur temps, leur prix |
+| | Ce que ça devient | par matière détenue, ses débouchés chiffrés — **sans un seul bouton** |
+| **Production** | Produire | la file en cours, puis **un bouton par métier acheté** |
+| | Métiers | **les huit métiers** avec leur recette, leur temps, leur prix |
 | | Améliorations | la capacité, la vitesse, la file |
 | **Acheter** | Véhicules · Outils | *voir le garage, plus haut* |
 | **Améliorer** | Véhicules · Outils | *idem* |
 | **Prix des commerces** | *(sans onglet)* | il ne pose qu'une question |
 
-**« Ce que le stock permet » a changé de fenêtre.** Ce bloc vivait dans la production,
-mais il ne parle pas de l'atelier : il parle du **stock** — combien de farine dort dans le
-blé qu'on a. Il passe donc du côté du stock, sous le nom « production possible », et l'écran
-Production ne garde que ce qui lui appartient. Dans cet onglet, **ce qui sort aujourd'hui
-vient en premier** : la liste suivait l'ordre du tableau, si bien qu'un atelier à deux
-métiers montrait six lignes grises avant la première ligne verte — et c'est la ligne verte
-qu'on vient chercher.
+**« Ce que le stock permet » a fait deux fois le voyage.** Ce bloc vivait d'abord dans la
+production ; il en est parti parce qu'il ne parle pas de l'atelier mais du stock — combien
+de farine dort dans le blé qu'on a — et il a emporté avec lui le bouton *Produire*, ce qui
+était l'erreur : on ouvrait le stock pour faire tourner l'atelier. Le **bouton** est
+revenu à l'atelier, dans son onglet *Produire*, et le stock a gardé la **question**, sous le
+nom « ce que ça devient ». Chacun sa moitié, et cette fois c'est la bonne : *qu'est-ce que
+ma matière vaudrait transformée* est une question de stock, *lance ce lot* est un geste
+d'atelier. Dans les deux, **ce qui sort aujourd'hui vient en premier** : la liste suivait
+l'ordre du tableau, si bien qu'un atelier à deux métiers montrait six lignes grises avant la
+première ligne verte — et c'est la ligne verte qu'on vient chercher.
 
 **Les huit métiers sont tous montrés, et chacun se monte pour lui-même.** L'écran n'en
 proposait qu'un, le prochain de la liste : on découvrait la cave en arrivant à la cave, et
@@ -2048,9 +2272,38 @@ la relecture d'une sauvegarde, sinon la cave pousserait avant le moulin.
 
 L'onglet ouvert est retenu **par fenêtre**, hors de la fonction qui dessine : n'importe quel
 geste redessine l'écran, et une mémoire locale ramènerait au premier onglet à chaque achat.
-Et cet aiguillage-ci **a un repli**, à la différence de celui du panneau : il porte neuf
+Et cet aiguillage-ci **a un repli**, à la différence de celui du panneau : il porte dix
 vues au lieu de trois écrans, et une entrée oubliée laisserait la fenêtre vide, *le jeu en
 pause*, sans rien pour comprendre pourquoi.
+
+### Produire se fait à l'atelier, plus au stock
+
+Le bouton qui LANCE un lot vivait dans la fenêtre du **stock**, sous « production
+possible » : pour transformer du blé en farine, il fallait ouvrir le stock. Le joueur :
+
+> « Je veux que la production se passe dans l'onglet produire, dans les petits boutons
+> produire. Là, aujourd'hui, pour produire on est obligé de passer par le stock, je veux
+> pas. Pour la production, faut que ça passe par le bouton de l'atelier de production ; il
+> y aura donc un onglet pour acheter des nouveaux métiers, pour les améliorer, et pour
+> produire. »
+
+Trois onglets, trois questions : **qu'est-ce que je lance**, **qu'est-ce que j'achète**,
+**qu'est-ce que j'améliore**. La file d'attente monte dans *Produire* — c'est ce qu'on vient
+regarder — et *Métiers* ne garde que les huit lignes d'achat. Le guidage suit : un objectif
+`produire` ouvre désormais **Production · Produire**, et plus **Stockage · possible**.
+
+Et le stock, en échange, **détaille**. Le joueur : « tu peux détailler le produit qu'on a, et
+marquer en dessous ce que ça peut devenir, pour que ce soit suffisamment lisible et
+détaillé. » L'onglet s'appelle donc *Ce que ça devient*, et il liste, matière par matière et
+du plus gros tas au plus petit : le métier qui la reprend, ce que le magasin **entier**
+permet d'en sortir, la conversion pour cent kilos engagés, et le gain de la transformation en
+euros. Aucun bouton : une ligne en tête dit où l'on va pour lancer.
+
+Un piège au passage, trouvé en regardant l'écran : la première version divisait la quantité
+détenue par la seule dose de la matière qu'on regardait, et annonçait **1 227 kg d'aliment
+premium pour 400 kg d'orge** — une recette à trois entrées, dont on ne comptait qu'une. Le
+chiffre passe par `potentiel()`, qui prend l'ingrédient le plus court, et la ligne dit
+lequel : « limité par le blé ».
 
 ## L'atelier : huit métiers, trois réglages
 
@@ -2779,6 +3032,23 @@ caisse, tu lui fais toutes les couleurs, sauf en rouge, qui était la couleur or
 Il en a **quatre** — bleu, ardoise, kaki, crème — là où les autres en ont trois : c'est lui
 qui était le rouge, on lui devait bien ça. Le compte final tombe de quarante-quatre
 géométries à **quarante-trois** : l'autocar en perd deux, le camion à caisse en gagne une.
+
+### Et il a cessé de tourner son gyrophare
+
+*« Pour les véhicules du trafic, n'allume pas leur gyrophare. »* Trois modèles en portent un
+— les pompiers, la fourgonnette postale, la dépanneuse — et leur lueur battait deux fois par
+seconde, **de jour comme de nuit**, sur une route de campagne : trois véhicules en
+intervention perpétuelle, pour un signal qui ne s'adresse à personne. On ne conduit pas ces
+voitures-là.
+
+La bille additive est retirée du vivier entier — trente-quatre lutins, dormants pour
+trente et un d'entre eux — avec sa cote notée, sa pose à la naissance et son bloc
+d'animation. Mesuré : **150 sprites dans la scène avant, 128 après**.
+
+**Les dômes, eux, restent sculptés.** Ils font partie de la silhouette qui distingue une
+dépanneuse d'un plateau, et ils sont fondus dans la même géométrie que le reste de la
+carrosserie : ils ne coûtent rien de plus. Ce qui reste allumé sur le trafic tient en une
+phrase — deux optiques jaunes devant, deux rouges derrière, et seulement la nuit.
 
 ## Le son du moteur
 
@@ -3836,9 +4106,22 @@ ce qui suffisait déjà à adoucir l'effet sans le corriger.
 
 **Le passage de roue du pick-up.** Il se lisait comme une baguette posée le long de la
 ridelle : six centimètres trop bas pour qu'on le prenne pour un caisson, et trop étroit
-pour coiffer le pneu à l'aise — les sacs chargés le traversaient. Il gagne **huit
-centimètres de hauteur** (sommet à 1,53 m, sous le liseré des ridelles à 1,70) et **huit de
-largeur** (0,70 m contre 0,62). Le dehors ne bouge pas : il est plaqué contre la ridelle,
+pour coiffer le pneu à l'aise — les sacs chargés le traversaient. Il a gagné **huit
+centimètres de hauteur** et **huit de largeur** (0,70 m contre 0,62), puis **huit de plus
+en hauteur** quand le joueur l'a redemandé : le caisson faisait 0,60 m pour une roue dont
+le sommet est à 1,24, c'est-à-dire vingt-deux centimètres de tôle au-dessus du pneu, et il
+se lisait encore comme une planche. À 0,68 son dessus passe à 1,54 et son liseré à 1,61, en
+gardant **neuf centimètres sous celui des ridelles** (1,70) : le plateau se lit toujours
+comme un plateau ouvert. Le plancher de la benne (0,86) ne bouge pas — c'est par le haut
+que le caisson grandit.
+
+**Et ses feux arrière sortent enfin du hayon.** Ils étaient posés à z = −3,47 ; le hayon,
+lui, va de −3,51 à −3,61. La lentille se trouvait donc **devant** la tôle, entièrement
+masquée par elle, et l'on n'en voyait que ce que le tri en profondeur laissait passer —
+d'où l'impression, que le joueur décrit, d'un feu « à moitié enfoncé dans la benne ». Ils
+reculent à −3,66 : mesuré, le boîtier sombre mord de cinq centimètres dans le panneau,
+comme un enjoliveur, et **la lentille dépasse de dix**, sa face avant affleurant exactement
+la tôle. On les voit de l'arrière, ce qui est la seule chose qu'on demande à un feu arrière. Le dehors ne bouge pas : il est plaqué contre la ridelle,
 et le déborder ferait saillie sur le flanc. C'est donc vers l'**intérieur** de la benne
 qu'il s'élargit — ce qui est aussi la seule chose qu'on en voie depuis la caméra, et ce
 qui borne l'élargissement : les deux colonnes de sacs se rangent entre les caissons, et
@@ -3971,6 +4254,78 @@ chargement. Ce qui change, c'est qu'il se construit **à l'identique**.
 
 Quatre plafonds, chacun posé après mesure, chacun tenu par un contrôle qui échoue si on
 les retire.
+
+### D'abord, ce qui était déjà fondu
+
+Le joueur a demandé de fusionner en une seule forme tout ce qui ne bouge pas : la carcasse
+des voitures du trafic, les animaux hors parties animées, et chaque pied de culture — « un
+épi de maïs doit être un objet, une vigne doit être un objet, un olivier doit être un
+objet, et tu conserves trois tailles de pousse ».
+
+**Les trois l'étaient déjà**, et c'est la première chose à dire :
+
+| ce qui était demandé | l'état réel, mesuré |
+|---|---|
+| la carcasse d'une voiture de trafic | **une seule géométrie**, 16 modèles, 595 primitives, 12 344 triangles au total — et un seul maillage par véhicule vivant |
+| un épi de maïs | **6 primitives fondues**, 36 triangles |
+| une vigne | **13 primitives** (16 en fruit), piquet et fil compris |
+| un olivier | **16 primitives** (21 en fruit) |
+| trois tailles de pousse par culture | `AGES_CULTURE` : **3 âges** pour les cinq céréales, **4** pour les deux permanentes, chacun sa géométrie |
+| un animal, parties animées à part | **2 à 7 maillages** selon l'espèce — corps, tête, quatre pattes, queue —, le corps fondu, les pivots dehors |
+
+**Et les roues du trafic ne doivent surtout pas en sortir.** « Isoler la carcasse des roues,
+en laissant juste l'effet de suspension et de roulis » suppose que les roues aient besoin
+d'être séparées pour que la suspension marche. Elles ne l'ont pas : la suspension et le
+roulis sont portés par la **transformation du maillage entier** — `t.m.rotateX(t.pitch)`,
+`t.m.rotateZ(t.roll)`, `t.m.position.y = t.heave` — et aucune roue de trafic ne tourne sur
+elle-même. Les sortir de la géométrie ferait passer chaque véhicule vivant de **1 à 5 ou 7
+maillages** : à treize véhicules au pire cas, **soixante-cinq appels de dessin de plus**
+pour zéro pixel de différence. Elles restent donc dedans, et l'animation ne perd rien.
+
+Même raisonnement pour les quatre pattes d'une bête : elles battent en diagonale par
+paires, mais chacune pivote **autour de sa propre hanche**. Les fondre deux par deux ferait
+tourner la patte arrière autour de l'épaule avant — deux maillages gagnés contre une
+démarche fausse. On n'y touche pas.
+
+### Puis la cour est passée au four
+
+Le vrai gisement était ailleurs, et la passe de fusion l'avait sauté : elle avait pris les
+quinze commerces, les maisons du rang et des bandes, les clôtures, le mobilier du village
+et l'atelier — et **pas la cour de la ferme**, c'est-à-dire l'endroit où le joueur passe le
+plus de temps.
+
+| ce qui n'était pas fondu | maillages |
+|---|---:|
+| la maison de ferme | ~26 |
+| le puits | 12 |
+| le silo | 5 |
+| le tuyau de chargement | 5 |
+| les six bottes de paille | 6 |
+| la cuve à gazole | 6 |
+| l'aménagement d'un enclos (poste, mangeoire, abri) | 3 groupes, par pâture |
+
+Tout cela est maintenant cuit. Mesuré, à l'identique sur les mêmes poses de caméra :
+
+| | avant | après |
+|---|---:|---:|
+| objets dans la scène | 2 319 | **2 232** |
+| maillages | 1 814 | **1 766** |
+| géométries en mémoire | 348 | **312** |
+| appels de dessin, vue de la cour | 255 | **220** |
+| appels de dessin, vue du silo | 204 | **190** |
+
+Trente-cinq appels de moins là où l'on conduit, soit **13,7 %**. Le prix : la boîte
+englobante d'un objet fondu est celle de l'ensemble, donc quelques centaines de triangles
+partent au GPU quand un seul volume serait visible — relevé à **+4 %** sur la vue de la
+cour. C'est le compromis que la clôture du rang avait déjà appris à doser : on fond par
+objet, jamais d'un tenant.
+
+**Et sept matériaux n'en font plus qu'un.** `MAT_FUSION`, `treeMat`, `fenceMat`, `lampMat`,
+`bushMat`, `birdMat` et `traficMat` étaient **identiques ligne pour ligne** — même classe,
+même `vertexColors`, même `flatShading`, même `shininess` à zéro, même `specular` noir — et
+aucun n'est modifié en cours de partie. Sept programmes compilés là où un suffit. Ce qui
+les distinguait, la couleur, n'a jamais été dans le matériau : elle est dans les sommets, et
+c'est tout l'intérêt du procédé.
 
 **Les cultures ne partent au GPU que si on les regarde.** C'est le plus gros des trois,
 et il tenait à une ligne : les sept maillages de culture portaient `frustumCulled = false`.
