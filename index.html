@@ -1817,6 +1817,33 @@ const entreeSeule = (cle)=>{
 const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
 const SILO_TOUR = {x: 52, z: 50};
 const SILO = {x: 59, z: 50, r: 4.5, cran: 1};   // la grille de déversement, sous la goulotte
+/* ---------- LES DEUX RÉSERVES DE LA COUR ----------
+   Le joueur : « je veux que tu déplaces l'atelier de production tout à droite de la
+   parcelle — attention, tiens compte du fait que cet atelier peut évoluer en taille —
+   parce qu'on va ajouter au milieu, entre le silo et l'atelier, de nouveaux éléments l'un
+   devant l'autre. Ce seront des cuves à graines et engrais ; il faut les positionner l'une
+   au-dessus de l'autre, avec les cercles pour s'approvisionner à droite des bâtiments. »
+
+   CE QU'ELLES SONT : le hangar à graines et le bac à engrais avaient un compte —
+   `STOCK.graines`, `STOCK.engrais` — et aucun bâtiment. On achetait au comptoir, on
+   remplissait au comptoir, et le stock de la ferme n'existait que dans un menu. Il a
+   maintenant deux cuves dans la cour, et c'est là qu'on vient s'approvisionner. L'achat,
+   lui, ne bouge pas : il reste au Comptoir agricole, où l'on voit le bac et le prix.
+
+   OÙ EXACTEMENT, ET POURQUOI CES CHIFFRES-LÀ. La cour de transformation va de x = 43,2 à
+   x = 104,4. L'atelier grandit de dix mètres en largeur entre le premier module et le
+   huitième — mesuré : 14,55 m d'emprise visible au palier zéro, 27,55 au dernier, dont
+   13,51 à droite de son point d'ancrage. On le pose donc à 90,8 : au dernier palier son
+   flanc droit tombe à 104,31, c'est-à-dire dans les neuf centimètres du bord de la dalle,
+   et il ne dépassera jamais. Son flanc GAUCHE recule alors de 81,95 (palier 0) à 76,76
+   (palier 9) : c'est cette borne-là qui décide de la place des cuves, et non celle
+   d'aujourd'hui.
+   Reste, entre la grille du silo — dont le cercle porte jusqu'à x = 63,5 — et ce flanc
+   gauche au pire, une bande de treize mètres. Les cuves s'y posent à 67, leurs cercles à
+   72 : cinq mètres à leur droite, comme demandé, et 4,76 m de dégagement devant l'atelier
+   le plus grand qu'on puisse construire. */
+const RES_GRAINE  = {x: 67, z: 46, quai: {x: 72, z: 46}, r: 3.6};
+const RES_ENGRAIS = {x: 67, z: 54, quai: {x: 72, z: 54}, r: 3.6};
 
 /* ---------- UN TRANSFORMATEUR, C'EST TOUJOURS LA MÊME MÉCANIQUE ---------- */
 /* Une trémie où l'on verse des matières, un stock d'où l'on repart avec le produit,
@@ -1873,7 +1900,11 @@ function fabriquer(U, dt, plafond){
    le premier était offert. Les deux choses se séparent : on achète des MODULES, un
    par métier, et l'on achète à part de la CAPACITÉ, de la VITESSE et de la FILE.
    Un joueur qui ne fera jamais de vin n'a plus à payer la cave pour avoir du débit. */
-const HALLE = {x: 84, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
+/* L'ATELIER EST AU BOUT DE LA COUR, ET IL Y RESTE EN GRANDISSANT. Il était à 84, au
+   milieu ; il est à 90,8, contre le bord droit — voir le calcul au-dessus de `RES_GRAINE`.
+   Ce qui a été vérifié, et qui est la seule chose qui compte ici : au dernier palier son
+   emprise visible va de 76,76 à 104,31, donc elle tient tout entière sur la dalle. */
+const HALLE = {x: 90.8, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
                file: [], modules: [], capa: 1, vite: 1, queue: 1};
 /* LES HUIT MODULES, DANS L'ORDRE DE LA CAMPAGNE.
    L'ordre du tableau est celui des paliers de campagne, et c'est lui qui décide de la
@@ -2673,6 +2704,17 @@ function missionVisible(){
   const M = missionCourante();
   return (M && (M.faire || CAMPAGNE.prise)) ? M : null;
 }
+/* LES TROIS FOURNISSEURS, ET POURQUOI ILS NE SE TAISENT JAMAIS.
+   « À part sur le garage, où l'achat et l'amélioration seront des boutons bleus ; s'il y a
+   une mission liée au garage, le bouton devrait être jaune. Et pareil pour le comptoir
+   agricole et la Coopérative. » On n'y va pas seulement quand la campagne le demande, on y
+   va parce qu'on a besoin de quelque chose : leur jeu continu reste offert, en bleu, sous
+   les jaunes de la mission. Partout ailleurs, là où la mission envoie — ou là où elle se
+   propose —, il n'y a que la mission.
+   La liste vit ici, et non dans la colonne de choix qui l'a inventée : `actionsAuSite` en a
+   besoin elle aussi, pour savoir si la vente libre a le droit de côtoyer une mission qu'on
+   n'a pas encore prise. */
+const LIEUX_SERVICE = ['Garage', 'Comptoir agricole', 'Coopérative'];
 function titreMission(M){
   if(!M) return '';
   if(M.titre) return M.titre;
@@ -5767,6 +5809,111 @@ function buildCommerce(S){
   // 3,20 m de leur toit, quelle que soit leur taille.
   ajouteBulle(S, S.bbH);
 }
+/* ---------- LES DEUX RÉSERVES : GRAINES ET ENGRAIS ----------
+   Deux cuves de cour, posées entre le silo et l'atelier, l'une au-dessus de l'autre. Elles
+   donnent enfin un corps au hangar à graines et au bac à engrais, qui n'étaient que deux
+   nombres dans un menu.
+
+   ELLES NE SE RESSEMBLENT PAS, ET C'EST VOULU. On les voit de loin, de trois quarts, et
+   c'est la SILHOUETTE qui doit dire laquelle est laquelle avant qu'on lise quoi que ce
+   soit : la graine est une cuve trapue en polyéthylène vert, cerclée de son armature, la
+   goulotte à hauteur de semoir ; l'engrais est haute, blanche et perchée sur charpente,
+   parce qu'elle se vide par gravité. Deux volumes, deux couleurs, deux hauteurs.
+
+   LES CERCLES SONT À DROITE, comme demandé. On se range LE LONG de la cuve, pas nez à nez
+   avec elle — c'est la leçon de la cuve à gazole, dont le cercle avait d'abord été posé au
+   bout et qui obligeait à ressortir en marche arrière.
+
+   Elles ne bougent jamais : on les cuit toutes les deux. */
+const BETON_R = 0x9BA3A8, BETON2_R = 0x848C91, INOX_R = 0xC9CFD3,
+      GRIS_R = 0x8A9298, GRIS2_R = 0x6E767C, VERT_R = 0x3E6B4E, VERT2_R = 0x2C5C3C,
+      BLANC_R = 0xF0EDE4, NOIR_R = 0x2E3438, BLEU_R = 0x3E7CB8, ORANGE_R = 0xE07B24;
+// La dalle de propreté : un socle et son ombre portée, sous chaque cuve.
+function dalleRes(g, w, d){
+  g.add(box(w, 0.18, d, BETON_R, 0, 0.09, 0));
+  g.add(box(w + 0.3, 0.1, d + 0.3, BETON2_R, 0, 0.03, 0));
+}
+// L'échelle à crinoline : la signature d'une cuve où l'on monte.
+function echelleRes(g, x, z, h){
+  for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, GRIS_R, x + sx, h/2, z));
+  for(let k = 0; k*0.32 < h; k++) g.add(box(0.5, 0.05, 0.05, INOX_R, x, 0.25 + k*0.32, z));
+  for(let k = 0; k < Math.floor(h/0.6); k++)
+    g.add(cyl(0.34, 0.34, 0.05, 10, GRIS2_R, x, 0.8 + k*0.6, z - 0.16, Math.PI/2));
+}
+// La vanne de soutirage : c'est par là que sort ce qu'on vient chercher.
+function vanneRes(g, x, y, z){
+  g.add(cyl(0.1, 0.1, 0.4, 8, GRIS2_R, x, y, z + 0.2, Math.PI/2));
+  g.add(cyl(0.19, 0.19, 0.07, 10, ORANGE_R, x, y, z + 0.42, Math.PI/2));
+  g.add(box(0.07, 0.28, 0.07, GRIS_R, x, y + 0.2, z + 0.42));
+}
+// La jauge de niveau : un tube clair et ses graduations, pour que la cuve dise qu'elle
+// se lit. Le chiffre exact, lui, est au bandeau — celle-ci ne bouge pas.
+function jaugeRes(g, x, z, y0, h){
+  g.add(box(0.1, h, 0.1, 0xBFE0E8, x, y0 + h/2, z));
+  for(let k = 0; k < 5; k++) g.add(box(0.22, 0.04, 0.06, NOIR_R, x, y0 + h*(k + 0.5)/5, z + 0.06));
+}
+function poserReserves(){
+  // LA CUVE À GRAINES — verte, trapue, goulotte basse : le semoir se range à sa droite.
+  const gr = new THREE.Group();
+  dalleRes(gr, 3.4, 3.4);
+  gr.add(cyl(1.12, 1.12, 3.6, 12, VERT_R, 0, 1.98, 0));
+  gr.add(cyl(1.12, 0.5, 0.55, 12, VERT_R, 0, 4.05, 0));                 // dôme
+  for(let k = 0; k < 4; k++) gr.add(cyl(1.18, 1.18, 0.1, 12, VERT2_R, 0, 0.7 + k*1.0, 0));
+  for(let k = 0; k < 6; k++){                                            // armature verticale
+    const a = k*Math.PI/3;
+    gr.add(box(0.09, 3.6, 0.09, GRIS2_R, Math.cos(a)*1.16, 1.98, Math.sin(a)*1.16));
+  }
+  gr.add(cyl(0.34, 0.34, 0.2, 10, GRIS_R, 0, 4.4, 0));                   // trappe de remplissage
+  // La goulotte donne du côté du cercle : c'est là qu'on se range.
+  gr.add(cyl(0.24, 0.24, 0.6, 8, GRIS2_R, 1.2, 0.75, 0, 0, 0, Math.PI/2));
+  vanneRes(gr, 1.4, 0.75, 0);
+  jaugeRes(gr, 0.4, 1.13, 0.5, 3.0);
+  /* L'ÉCHELLE EST PLUS GRANDE QUE CELLE DES BÂTIMENTS, ET C'EST UNE MESURE. Posées à
+     BAT_ECHELLE, les deux cuves faisaient 2,64 m de diamètre : à l'image, la cuve verte
+     n'arrivait pas au toit de la cabine du pick-up garé devant elle, et l'on n'y lisait pas
+     une réserve de ferme mais une maquette. Elles montent donc à 3,58 m de diamètre pour
+     7,36 m de haut — plus hautes qu'un engin, plus basses que le silo (12 m avec son dôme),
+     ce qui est la place qu'elles occupent vraiment dans la cour. */
+  gr.scale.setScalar(1.6);
+  gr.position.set(RES_GRAINE.x, 0, RES_GRAINE.z);
+  scene.add(gr); fusionnerGroupe(gr);
+  obstacles.push({x:RES_GRAINE.x, z:RES_GRAINE.z, r:1.16*1.6 + 0.4});
+
+  // LA CUVE À ENGRAIS — haute, blanche, perchée : elle se vide par gravité.
+  const en = new THREE.Group();
+  dalleRes(en, 3.0, 3.0);
+  for(const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+    en.add(box(0.2, 2.2, 0.2, GRIS2_R, sx*0.8, 1.28, sz*0.8));
+    const d = box(0.14, 2.4, 0.14, GRIS2_R, sx*0.8, 1.3, 0);
+    d.rotation.x = sx*sz*0.3; en.add(d);                                 // contreventement
+  }
+  en.add(box(2.0, 0.16, 2.0, GRIS_R, 0, 2.4, 0));
+  en.add(cyl(0.85, 0.85, 3.0, 12, BLANC_R, 0, 4.0, 0));
+  en.add(cyl(0.85, 0.28, 0.55, 12, BLANC_R, 0, 5.75, 0));
+  for(let k = 0; k < 3; k++) en.add(cyl(0.9, 0.9, 0.1, 12, BLEU_R, 0, 3.1 + k*0.9, 0));
+  echelleRes(en, -1.0, 0, 5.4);
+  // La descente de vidange et sa vanne donnent elles aussi vers le cercle.
+  en.add(cyl(0.18, 0.18, 1.0, 8, GRIS2_R, 0.9, 2.0, 0));
+  vanneRes(en, 0.9, 2.7, 0);
+  jaugeRes(en, 0.35, 0.86, 2.7, 2.6);
+  /* ELLE A SON ÉCHELLE À ELLE, PLUS PETITE. Le modèle est déjà haut par construction — une
+     charpente de 2,40 m surmontée de trois mètres de cuve — et le multiplier par 1,6 comme
+     la verte l'aurait fait culminer à 10 m, c'est-à-dire au niveau du silo, qui est le
+     repère de la cour. À 1,35 elle monte à 8,50 m : plus haute que sa voisine, ce qui est
+     juste puisqu'elle se vide par gravité, et nettement sous la tour. */
+  en.scale.setScalar(1.35);
+  en.position.set(RES_ENGRAIS.x, 0, RES_ENGRAIS.z);
+  scene.add(en); fusionnerGroupe(en);
+  obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.35 + 0.4});
+
+  /* LES DEUX CERCLES SONT BLEUS ET RESTENT ALLUMÉS, comme la cuve à gazole et pour la même
+     raison : on ne va pas chercher de la graine parce qu'une lumière s'allume, on y va
+     parce qu'on en manque — et la jauge du bandeau le dit déjà. Ce sont des services de la
+     ferme, du jeu continu, et le bleu est la couleur du jeu continu. */
+  anneauAction(RES_GRAINE.quai.x,  RES_GRAINE.quai.z,  1.9, null, {coul:GUIDE.BLEU});
+  anneauAction(RES_ENGRAIS.quai.x, RES_ENGRAIS.quai.z, 2.6, null, {coul:GUIDE.BLEU});
+}
+
 function buildFarm(){
   // Les cotes réelles des commerces ne sont connues qu'ici : les modèles sont déclarés
   // plus haut, mais c'est le premier moment où on peut les instancier sans TDZ.
@@ -17514,8 +17661,21 @@ function actionsAuSite(m, S){
      ET des œufs : chacune a sa commande, son prix et sa place chez le commerce, donc
      chacune a sa ligne. C'est le seul endroit où le passage à la charge multiple se voit
      vraiment — trois lignes au lieu d'une, et l'on choisit ce qu'on dépose. */
+  /* ET « PENDANT UNE MISSION » COMMENCE AVANT DE L'AVOIR PRISE. Le juge ne regardait que
+     `missionVisible()`, c'est-à-dire une mission DÉJÀ SIGNÉE. Devant un client qui la
+     propose encore, on trouvait donc côte à côte le bouton vert « VOIR LA MISSION » et le
+     bouton bleu qui brade au même guichet la marchandise que la mission attend — soit
+     exactement l'alternative dont le joueur ne veut pas : « je veux pas qu'au moment de
+     choisir la mission on ait une autre alternative, à part plus tard à la Coopérative
+     quand on aura débloqué la vente libre. » Le défaut ne se voyait pas tant que la mission
+     se signait toute seule dès qu'on arrivait chargé ; il est apparu le jour où l'on a
+     rendu cette signature au joueur.
+     On regarde donc aussi la mission À PRENDRE ici. La Coopérative, elle, garde sa vente
+     libre : c'est l'exception que le joueur a nommée, et elle tient par `LIEUX_SERVICE`,
+     qui la range avec le garage et le comptoir — on n'y va pas seulement quand la campagne
+     le demande. */
   const misAttendCle = (cle)=>{
-    const M = missionVisible();
+    const M = missionVisible() || (LIEUX_SERVICE.indexOf(S.nom) < 0 ? missionAPrendre() : null);
     if(!M || M.faire || M.lieu !== S.nom) return false;
     return M.lignes.some((l, i)=> l.cle === cle
       && l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01);
@@ -17698,6 +17858,13 @@ function quantiteMax(m, A){
 const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
                     verser:1, rangerEntrepot:1, auge:1};
 const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
+/* ET CE QUE L'OBJECTIF DEMANDE, DANS LE MÊME VOCABULAIRE. `objectifMission` dit où aller
+   et quoi y faire — 'charger', 'collecter', 'vider' — mais dans ses mots à lui. Les
+   traduire en « je viens vider » ou « je viens remplir », c'est pouvoir reconnaître, parmi
+   les quatre boutons d'un poste de ferme, CELUI que le guidage désigne. Les autres valeurs
+   de `quoi` — 'livrer', 'atelier', 'produire', 'module', 'materiel', 'aller' — ne
+   correspondent à aucun transfert de la colonne : elles ne figurent donc pas ici. */
+const SENS_OBJECTIF = {charger:'remplir', collecter:'remplir', vider:'vider'};
 /* `modeDe` sert encore au pilote automatique, qui raisonne toujours en « je viens
    vider » ou « je viens remplir ». La colonne, elle, ne pose plus la question : elle
    montre tout. */
@@ -18234,15 +18401,33 @@ const ARRET = 0.35;                       // m/s : au-dessous, l'engin est à l'
 function actionService(){
   const m = MACHINES[cur], v = m.v;
   if(v.speed > ARRET){ armePature = 0; return null; }
-  /* REMPLIR LA CUVE DE L'OUTIL : AU COMPTOIR, ET NULLE PART AILLEURS. La cour le
-     proposait aussi, et c'était une fausse commodité — on attelait le semoir, on
-     s'arrêtait n'importe où chez soi, et le bandeau demandait de le remplir alors que
-     rien ne disait ce qu'il restait au hangar. Le geste appartient au comptoir : on y
-     voit le bac, on y achète, on repart chargé. Ce qui reste dans la cuve, lui, se lit
-     en haut à droite pendant tout le travail. */
+  /* REMPLIR LA CUVE DE L'OUTIL : AU COMPTOIR, ET DEVANT SA RÉSERVE. La cour le proposait
+     PARTOUT, et c'était une fausse commodité — on attelait le semoir, on s'arrêtait
+     n'importe où chez soi, et le bandeau demandait de le remplir alors que rien ne disait ce
+     qu'il restait au hangar. Le geste est donc revenu au comptoir, où l'on voit le bac, où
+     l'on achète, et d'où l'on repart chargé.
+     Il a maintenant un second lieu, et un seul : la RÉSERVE. Le hangar à graines et le bac à
+     engrais ont deux cuves dans la cour depuis qu'on les y a posées, avec leur jauge et leur
+     vanne — l'argument d'alors tenait à ce qu'il n'y avait nulle part où aller, et il tombe
+     avec elles. L'ACHAT, lui, ne bouge pas d'un pouce : on ne l'a jamais demandé ailleurs
+     qu'au comptoir. Ce qui reste dans la cuve se lit en haut à droite pendant tout le
+     travail. */
   const outil = toolOf(m);
   const cuves = [];
-  if(outil && outil.cuveMax && aQuai(v, COMPTOIR)){
+  /* ---------- ET MAINTENANT, LA COUR AUSSI — MAIS SEULEMENT DEVANT LA BONNE CUVE.
+     La règle ci-dessus disait « au comptoir, et nulle part ailleurs », et son argument
+     était juste : la cour le proposait PARTOUT, donc nulle part en particulier, et rien
+     ne disait ce qu'il restait au hangar. Ce qui a changé, c'est que le hangar existe : il
+     a deux cuves dans la cour, avec leur jauge et leur vanne, et l'on s'y range comme à
+     une pompe. Le geste a retrouvé un lieu, l'argument tombe.
+     ET CHAQUE CUVE NE SERT QUE CE QU'ELLE CONTIENT. Devant la cuve verte on remplit un
+     semoir, devant la blanche un épandeur — l'inverse n'aurait aucun sens, et le laisser
+     faire redonnerait exactement le « partout » qu'on vient de retirer. L'ACHAT, lui, ne
+     bouge pas d'un pouce : il reste au Comptoir agricole, où l'on voit le bac et le prix. */
+  const surReserve = (R)=> prochePoint(v, R.quai.x, R.quai.z, R.r);
+  const bonneCuve = !!outil && outil.cuveMax
+    && (outil.key === 'engrais' ? surReserve(RES_ENGRAIS) : surReserve(RES_GRAINE));
+  if(outil && outil.cuveMax && (aQuai(v, COMPTOIR) || bonneCuve)){
     const eng = outil.key === 'engrais';
     const cle = eng ? null : CROPS[outil.crop || 0].cle;
     const perenne = !eng && CROPS[outil.crop || 0].perenne;
@@ -18534,7 +18719,7 @@ function refreshChoix(){
      Une LIVRAISON de contrat (`A.commande`) n'est pas une vente libre : c'est le geste
      que la mission attend, et c'est justement celui qu'on garde. */
   const Sic = siteIci(m.v);
-  /* ---------- ON NE DEMANDE PAS DE PRENDRE UNE MISSION QU'ON EST DÉJÀ EN TRAIN DE FAIRE
+  /* ---------- ON NE DEMANDE PAS DE SIGNER LA MISSION QUE LE TUTORIEL VIENT DE FAIRE FAIRE
      Le joueur : « comme on est déjà dans une phase de jeu et qu'on va livrer les 30 kg, il
      faut qu'on passe direct, il faut pas qu'on voie le bouton prendre la mission, il faut
      qu'on passe direct au bouton jaune pour vendre nos 30 kg. »
@@ -18544,10 +18729,22 @@ function refreshChoix(){
      Quand la marchandise attendue est DÉJÀ À BORD, la mission se prend donc toute seule et
      le bouton jaune de livraison apparaît directement. Le récit du marchand n'est pas perdu
      : il se lit dans la fenêtre de fin, celle qui paie. Et si l'on arrive les mains vides,
-     rien ne change — le bouton vert est là, avec son texte. */
+     rien ne change — le bouton vert est là, avec son texte.
+
+     ET SEULEMENT LA PREMIÈRE. Le raccourci valait pour les trente missions, et le joueur
+     l'a vu tout de suite : « après la mission de la coopérative, j'avais encore du
+     chargement avec moi, j'ai été à la deuxième mission à l'usine de céréales et là pareil
+     ça n'a pas demandé de valider la mission. C'est valable uniquement pour la première
+     mission de la coopérative. Après il faut rejouer la mission du début à chaque fois. »
+     C'est la bonne règle, et pas seulement par goût : le tutoriel ne fait charger que la
+     PREMIÈRE commande. Aux suivantes, le blé qui reste dans la benne est un reliquat, pas
+     une intention — mesuré, UN kilo oublié après la Coopérative suffisait à signer les
+     quatre-vingts kilos de l'Usine céréales, et le joueur n'avait jamais lu ce que le
+     client lui demandait. Une mission qu'on n'a pas lue n'est pas une mission qu'on a
+     prise. */
   {
     const M0 = missionAPrendre();
-    if(M0 && M0.lignes && Sic && M0.lieu === Sic.nom){
+    if(CAMPAGNE.mission === 0 && M0 && M0.lignes && Sic && M0.lieu === Sic.nom){
       const Tc = caisseDe(m);
       const aBord = M0.lignes.some((l)=> chargeDe(Tc, l.cle) > 0.01
         || (hopper > 0.01 && CROPS[hopCrop] && CROPS[hopCrop].cle === l.cle));
@@ -18561,19 +18758,41 @@ function refreshChoix(){
      que la mission attend encore en est aussi : c'est ce qui décide de la couleur, de
      l'ordre, et de ce qui reste affiché. */
   const Mv = missionVisible();
+  /* ET SUR UN POSTE DE LA FERME, C'EST L'OBJECTIF QUI DÉSIGNE, PAS LA COMMANDE.
+     Le joueur : « le point de chargement au silo est jaune, mais le bouton pour charger est
+     bleu, c'est n'importe quoi. Le chargement fait partie de la mission, ça doit être
+     jaune. » Il a raison, et voici pourquoi le bouton restait bleu : la règle ci-dessus
+     lit `missionVisible().lignes`, qui décrit ce qu'il faut LIVRER AU COMMERCE. Charger
+     trente kilos de blé au silo n'y figure pas — c'est une ÉTAPE du chemin, pas une ligne
+     de commande — et `Sic`, le commerce où l'on se tient, vaut null au silo. La condition
+     tombait donc à faux avant même de regarder l'action.
+     Ce qui sait, c'est `objectifMission()` : c'est lui qui allume l'anneau au sol par
+     `couleurLieu`, et il dit exactement où aller et quoi y faire. On lui demande donc, et
+     le bouton retrouve la couleur de son cercle.
+
+     ET SEULEMENT LE BON BOUTON. Recopier la couleur de l'anneau sur tous les boutons du
+     lieu serait faux deux fois : hors mission, l'anneau du silo est déjà jaune pour dire
+     « il y a quelque chose à faire ici », et le jeu continu se joue en bleu ; et sur un
+     poste il y a plusieurs boutons — au silo, rentrer sa benne ET charger du blé. On exige
+     donc les trois : le même lieu, la même marchandise, et le même SENS — l'objectif dit
+     'charger', le bouton doit remplir. Les autres restent bleus.
+
+     ENFIN, CELA NE RETIRE AUCUN BOUTON. Le filtre « là où la mission envoie, il n'y a que
+     la mission » ne se déclenche que sur un COMMERCE (`etapeIci` exige `Sic`), et les
+     postes de la ferme n'en sont pas : au silo, `estMission` ne décide que de la couleur et
+     de l'ordre. On garde donc le droit d'y verser son orge pendant qu'on vient chercher son
+     blé — simplement, le blé passe en tête, en jaune. */
+  const Obj = objectifMission();
   const estMission = (A)=>{
     if(A.commande) return true;
+    if(!Sic && Obj && Obj.lieu === A.lieu && Obj.cle === A.cle
+       && SENS_OBJECTIF[Obj.quoi] === modeDe(A)) return true;
     if(!Mv || !Mv.lignes || !Sic || Mv.lieu !== Sic.nom) return false;
     return Mv.lignes.some((l, i)=> l.cle === A.cle
       && l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01);
   };
-  /* ET TROIS LIEUX GARDENT LEUR JEU CONTINU, MÊME QUAND LA MISSION Y ENVOIE.
-     « À part sur le garage, où l'achat et l'amélioration seront des boutons bleus ; s'il y
-     a une mission liée au garage, le bouton devrait être jaune. Et pareil pour le comptoir
-     agricole et la coopérative. » Ce sont les trois fournisseurs : on n'y va pas seulement
-     quand la campagne le demande, on y va parce qu'on a besoin de quelque chose. Ailleurs,
-     là où la mission envoie, il n'y a que la mission. */
-  const LIEUX_SERVICE = ['Garage', 'Comptoir agricole', 'Coopérative'];
+  // Les trois fournisseurs gardent leur jeu continu, même quand la mission y envoie :
+  // `LIEUX_SERVICE` les nomme, une fois pour tout le fichier.
   const gardeTout = !Sic || LIEUX_SERVICE.indexOf(Sic.nom) >= 0;
   const L = actionsIci(m)
     .filter((A)=> !memeAction(A, dOffice))
@@ -21580,6 +21799,11 @@ for(const cle in PALIERS) appliquerPalier(cle, niveauMateriel(cle));
   if(sem) remplirCuve(sem, CROPS[sem.crop || 0].cle);
 }
 poserCuve();                 // elle fait partie de la ferme, elle ne s'achète plus
+/* LES DEUX RÉSERVES SE POSENT ICI, ET NON DANS `buildFarm`, POUR LA MÊME RAISON QUE LA
+   CUVE À GAZOLE : leurs cercles sont peints avec `GUIDE.BLEU`, et la table des couleurs du
+   guidage n'existe pas encore quand la ferme se construit. Elles ne bougent jamais, elles
+   cuisent leur géométrie elles-mêmes, et elles poussent leur obstacle au passage. */
+poserReserves();
 /* Les commandes à boutons sont le réglage de départ, et rien ne les posait : le mode
    n'était appliqué qu'au basculement du réglage ou au chargement d'une partie. Une
    partie neuve s'ouvrait donc sur un manche que COMMANDES.mode disait absent. */

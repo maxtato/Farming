@@ -4786,6 +4786,99 @@ Relevé final sur les douze chantiers de bordure, les plus contraints du jeu : *
 couchée** en venant, en travaillant et en repartant, **99,1 %** de la terre faite au pire,
 1,70 m de jeu au mur, une seule passe par parcelle.
 
+## Le bouton prend la couleur de son cercle, et la mission se signe
+
+Deux défauts signalés le même jour, et qui tiennent tous les deux à ce que la colonne de
+boutons sait de la mission en cours.
+
+**« Le point de chargement au silo est jaune, mais le bouton pour charger est bleu, c'est
+n'importe quoi. Le chargement fait partie de la mission, ça doit être jaune. »** Il avait
+raison, et voici pourquoi. `estMission()` lisait `missionVisible().lignes`, c'est-à-dire ce
+qu'il faut **livrer au commerce**. Charger trente kilos de blé au silo n'y figure pas : c'est
+une *étape du chemin*, pas une ligne de commande — et `Sic`, le commerce où l'on se tient,
+vaut `null` au silo. La condition tombait à faux avant même de regarder l'action. Ce qui
+sait, lui, c'est `objectifMission()` : c'est déjà lui qui allume l'anneau au sol. On lui
+demande donc.
+
+**Et seulement le bon bouton.** Recopier la couleur de l'anneau sur tous les boutons du lieu
+serait faux deux fois. Hors mission, l'anneau du silo est déjà jaune pour dire « il y a
+quelque chose à faire ici », et le jeu continu se joue en bleu. Et sur un poste il y a
+plusieurs boutons : arrivé au silo avec vingt kilos dans la benne pendant qu'on vient en
+chercher, on trouve `RENTRER BLÉ 20 KG` et `CHARGER BLÉ 80 KG` — même lieu, même
+marchandise, sens opposés. On exige donc les trois à la fois : le même lieu, la même
+marchandise, et le même **sens**. L'objectif dit `charger`, le bouton doit remplir. Le banc
+mesure exactement ce cas-là.
+
+Cela ne retire aucun bouton : le filtre « là où la mission envoie, il n'y a que la mission »
+ne se déclenche que sur un *commerce*, et les postes de la ferme n'en sont pas.
+
+**« Après la mission de la Coopérative, j'avais encore du chargement avec moi ; à la
+deuxième, à l'Usine céréales, ça n'a pas demandé de valider la mission. C'est valable
+uniquement pour la première mission de la Coopérative. Après il faut rejouer la mission du
+début à chaque fois. »** Le raccourci — arriver chargé de ce que la mission attend la signe
+toute seule — avait été demandé pour la sortie du tutoriel, où le jeu vient de faire
+labourer, semer, moissonner et charger trente kilos *pour cette mission-là*. Il s'appliquait
+aux trente. Il ne s'applique plus qu'à la première, et pas seulement par goût : le tutoriel
+ne fait charger que la première commande. Aux suivantes, le blé qui reste dans la benne est
+un reliquat, pas une intention — **mesuré, un seul kilo oublié après la Coopérative suffisait
+à signer les quatre-vingts kilos de l'Usine céréales**, et le joueur n'avait jamais lu ce que
+le client lui demandait.
+
+**Un troisième défaut est tombé avec le deuxième**, invisible tant que la signature était
+automatique. Devant un client qui propose encore sa mission, on trouvait côte à côte le
+bouton vert `VOIR LA MISSION` et le bouton bleu qui brade au même guichet la marchandise que
+la mission attend — exactement l'alternative dont le joueur ne voulait pas. Le juge qui
+retire la vente libre ne regardait que la mission *déjà signée*. Il regarde maintenant aussi
+celle **à prendre**. La Coopérative garde sa vente libre : c'est l'exception nommée, et elle
+tient par `LIEUX_SERVICE`, qui la range avec le garage et le comptoir.
+
+## L'atelier au bout de la cour, et deux réserves au milieu
+
+**« Déplace l'atelier de production tout à droite de la parcelle — attention, tiens compte du
+fait que cet atelier peut évoluer en taille — parce qu'on va ajouter au milieu, entre le silo
+et l'atelier, des cuves à graines et engrais, l'une au-dessus de l'autre, avec les cercles
+pour s'approvisionner à droite des bâtiments. »**
+
+**Le piège est dans l'incise.** La cour de transformation va de x = 43,2 à x = 104,4.
+L'atelier ne fait pas la même taille à tous les paliers : mesuré, 14,55 m d'emprise visible
+au palier zéro et 27,55 m au dernier, dont 13,51 m à droite de son point d'ancrage. Le poser
+au bord au palier zéro, c'est le faire sortir du terrain au palier neuf. Il est donc calé sur
+sa **taille finale** : à x = 90,8, son flanc droit tombe à 104,31 au dernier palier — neuf
+centimètres du bord — et il n'en sortira jamais. Le banc le vérifie palier par palier.
+
+Son flanc gauche, lui, recule de 81,95 (palier 0) à 76,76 (palier 9). C'est cette borne-là
+qui décide de la place des cuves, et non celle d'aujourd'hui. Entre le cercle du silo, qui
+porte jusqu'à x = 63,5, et ce flanc gauche au pire, il reste une bande de treize mètres : les
+cuves s'y posent à x = 67, leurs cercles à x = 72 — cinq mètres à leur droite, comme demandé,
+et 1,93 m de dégagement devant l'atelier le plus grand qu'on puisse construire.
+
+**Ce qu'elles sont.** Le hangar à graines et le bac à engrais avaient un compte —
+`STOCK.graines`, `STOCK.engrais` — et aucun bâtiment : on achetait au comptoir, on
+remplissait au comptoir, et le stock de la ferme n'existait que dans un menu. Il a maintenant
+deux cuves dans la cour, avec leur jauge et leur vanne, et c'est là qu'on vient s'y servir.
+**L'achat ne bouge pas** : il reste au Comptoir agricole, où l'on voit le bac et le prix.
+
+La règle d'avant disait « remplir la cuve de l'outil : au comptoir, et nulle part ailleurs »,
+et son argument était juste — la cour le proposait *partout*, donc nulle part en particulier,
+et rien ne disait ce qu'il restait au hangar. Ce qui a changé, c'est que le hangar existe. Et
+chaque cuve ne sert que ce qu'elle contient : devant la verte on remplit un semoir, devant la
+blanche un épandeur, l'inverse ne propose rien.
+
+**Elles ne se ressemblent pas, et c'est voulu.** On les voit de loin, de trois quarts : c'est
+la silhouette qui doit dire laquelle est laquelle avant qu'on lise quoi que ce soit. La
+graine est une cuve trapue en polyéthylène vert, cerclée de son armature, goulotte à hauteur
+de semoir ; l'engrais est haute, blanche, perchée sur charpente contreventée, parce qu'elle
+se vide par gravité. Leurs échelles sont mesurées et non choisies : posées à `BAT_ECHELLE`,
+elles faisaient 2,64 m de diamètre et la cuve verte n'arrivait pas au toit de la cabine du
+pick-up garé devant — on n'y lisait pas une réserve de ferme mais une maquette. La verte
+monte donc à ×1,60 (3,58 m de diamètre, 7,36 m de haut) et la blanche à ×1,35 (8,50 m de
+haut) : le modèle est déjà haut par construction, et le multiplier autant que sa voisine
+l'aurait fait culminer au niveau du silo, qui est le repère de la cour.
+
+Les deux cercles sont **bleus et restent allumés**, comme celui de la cuve à gazole et pour
+la même raison : on ne va pas chercher de la graine parce qu'une lumière s'allume, on y va
+parce qu'on en manque — et la jauge du bandeau le dit déjà.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
