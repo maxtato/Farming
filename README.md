@@ -4087,6 +4087,12 @@ aurait repris la bande de terrain gagnée, et l'on aurait eu un caillou sous la 
 
 ## Le pilote automatique
 
+> Cette section raconte l'escargot, et l'escargot n'existe plus : le plan de travail est
+> devenu un va-et-vient de lignes droites — voir « Juste des lignes, et un demi-tour au
+> bout », plus bas. Ce qui suit reste vrai de ce qui a été essayé, et des règles qui ont
+> survécu au changement : le tracé strictement orthogonal, la sortie de parcelle, le
+> retrait bord par bord, le pilote qui suit une ligne au lieu de courir après un point.
+
 **L'escargot est strictement orthogonal.** Il ne l'était pas : le tour se refermait sur
 son coin de départ, puis le suivant commençait au coin rentré d'une passe — un saut en
 diagonale à chaque tour, **32 segments obliques** et jusqu'à 17 m de biais par parcelle.
@@ -4685,6 +4691,100 @@ garage, le comptoir agricole et la Coopérative gardent leur jeu continu en bleu
 jaunes : on n'y va pas seulement quand la campagne le demande, on y va parce qu'on a besoin de
 quelque chose. Partout ailleurs, sur le lieu de l'étape en cours, les actions qui ne servent
 pas la mission sont retirées.
+
+## Juste des lignes, et un demi-tour au bout
+
+Le pilote savait enfin accélérer, freiner et tourner court. Le joueur en tire la
+conséquence : « maintenant qu'on fait des demi-tours serrés, on va essayer de faire juste
+des lignes. On commence à ras de la terre avec juste un tiers de l'outil qui est sur
+l'herbe, on avance à fond, puis on ralentit sur les derniers mètres, brusquement on fait un
+demi-tour à 180°, puis on fait une ligne dans l'autre sens avec un tiers de l'outil qui mord
+sur la ligne tracée précédemment. On fait des lignes l'une après l'autre. »
+
+C'est le dessin le plus ancien de l'agriculture, et c'est aussi le plus rapide. Une spirale
+passe un quart de son temps en virages ; un aller-retour n'en passe qu'aux deux bouts.
+Mesuré sur la parcelle que le joueur avait fait dessiner — charrue sur 30,4 × 19,6 m :
+
+|                        | escargot | lignes |
+|------------------------|---------:|-------:|
+| durée d'une passe      |   75,7 s | **44,0 s** |
+| cellules travaillées   |   99,7 % | **100 %** |
+| clôtures couchées      |        0 |    **0** |
+
+**Les trois chiffres du dessin viennent tous de la même phrase.** « Un tiers de l'outil sur
+l'herbe » : la ligne extrême rentre d'un *sixième* de largeur à l'intérieur du bord —
+l'outil étant centré sur l'axe, il déborde alors d'un tiers. « Un tiers qui mord sur la
+ligne précédente » : le pas vaut *deux tiers* de largeur, et c'est `PAS_PASSE`, lu par le
+banc au lieu d'être recopié. « Un demi-tour à 180° » : il se prend au-delà du bout de la
+ligne, sur un rayon d'un demi-pas — celui qui amène exactement sur la ligne suivante.
+
+**Le nombre de lignes s'arrondit par le haut.** Une bande ne se divise pas en un nombre
+entier de pas. Arrondi au plus proche, le pas réel dépassait parfois les deux tiers demandés
+— 8,80 m au lieu de 8,00 pour l'épandeur, un quart de recouvrement au lieu d'un tiers, et
+9,3 % de la parcelle carrée laissée derrière. Arrondi par le haut, il ne fait plus que se
+resserrer : une ligne de plus coûte **5 % de temps** sur les douze chantiers du banc et rend
+la couverture — 90,7 % au pire devient 98,2, la moisson 94,7 devient 97,8.
+
+**Les lignes suivent l'axe dont les deux bouts sont les plus dégagés**, et le grand côté ne
+tranche qu'à égalité. Le grand côté seul serait plus rapide — moins de lignes, donc moins de
+demi-tours — mais le demi-tour se prend *hors* du champ, et les trois colonnes de parcelles
+adossées à la clôture de la ferme n'ont que vingt centimètres derrière le bord. Relevé au
+banc : la charrue sur la parcelle carrée tirait ses lignes en x, faisait demi-tour à l'ouest,
+et couchait la clôture au huitième point. Regarder d'abord ce que les deux bouts laissent
+suffit à faire tourner les lignes d'un quart de tour et à rendre les demi-tours au couloir.
+
+**Quand le mur est trop près, c'est le demi-tour qui se serre, pas la ligne qui recule.** On
+avait d'abord rentré le bout de la ligne d'un rayon pour que le tour tienne dans le champ.
+Mesuré ensuite : cette bande-là n'est jamais travaillée, et elle coûte **un cinquième d'une
+parcelle de bordure** — l'épandeur tombait à 79,6 % sur la parcelle carrée. La ligne va donc
+jusqu'au bout ; le sommet du demi-tour reste borné à `VIRAGE_BORD` du premier mur, et le
+pilote y roule de toute façon à la vitesse de pivot. Après : **99,1 %** au pire, la même
+clôture debout, et 1,70 m de jeu au mur au lieu de 0,96.
+
+**On entre droit, pas en queue de billard.** Le plan commence par un point d'*amont* posé
+hors du champ, exactement dans l'axe de la première ligne : les deux premiers segments sont
+colinéaires, le dernier virage se fait dehors sur le chemin, et la machine franchit le bord
+déjà droite. La longueur est bornée par le couloir — 9,60 m entre deux parcelles — et c'est
+l'*outil* qu'on mesure, traîné quatre à six mètres derrière. Un dernier garde-fou : le point
+d'amont doit lui aussi rester à `VIRAGE_BORD` du premier mur. `voieLibre` échantillonne son
+segment tous les 1,20 m et cherche un piquet dans un rayon de 2,25 ; la clôture a ses piquets
+tous les 1,56 m, et l'amont d'une ligne peut tomber pile entre deux — le segment passe alors
+pour libre alors qu'il longe la clôture à vingt centimètres. La géométrie tranche là où
+l'échantillonnage se trompe.
+
+### Ce que les bancs disent, et ce qu'ils disaient de faux
+
+Trois bancs mesuraient l'escargot ; ils mesurent maintenant les lignes. Deux d'entre eux
+mentaient sur autre chose, et c'est en les réécrivant qu'on l'a vu.
+
+**Le panneau « À VENDRE » restait planté au milieu du champ mesuré.** `activateParcel`
+n'enlève pas le décor — c'est l'*achat* qui le fait, et les trois chemins d'achat du jeu
+retirent bien `signObs`, un renversable de 1,60 m planté 2,40 m à l'intérieur du coin. Les
+bancs, eux, appelaient `activateParcel` directement et le laissaient là. Ils mesuraient donc
+un plan qui contourne un poteau invisible que le joueur n'a jamais : la machine s'en écartait
+et allait coucher la clôture d'à côté. Une fois le panneau retiré comme le jeu le retire,
+**les deux dernières clôtures couchées disparaissent** et la couverture du pire cas passe de
+82,9 à 90,7 %.
+
+**Le banc posait la machine derrière la clôture de la ferme.** Il la plaçait à neuf mètres
+du coin nord-ouest de la parcelle. Sur les parcelles de bordure, ce point tombe *sept mètres
+derrière* la clôture, hors du réseau de chemins : la route vers le chantier devait alors la
+franchir, et le banc comptait comme défaut du pilote ce qui n'était que sa propre mise en
+place. Elle part maintenant du croisement de chemins le plus proche — là où le jeu amène
+lui-même un tracteur qui vient de la ferme.
+
+**« De combien l'axe sort de sa terre » ne mesure plus rien tout seul.** Le demi-tour demandé
+se fait *dehors*, sur la tournière : la borne de 2,50 m interdisait le demi-tour lui-même. La
+mesure se coupe donc en deux, et chaque moitié dit quelque chose — le *plan* sort de tant, et
+c'est `planAuto` qui le décide, borné à `VIRAGE_BORD` du premier mur ; la *machine* ne doit
+pas sortir plus loin que son plan, à un dépassement de virage près. Le second chiffre est le
+seul qui parle du pilote, et c'est celui qui dérapait : **1,31 m** au-delà d'un plan qui sort
+de 3,90, pour 2,20 admis. Ce qui protège la clôture, ce n'est plus l'excursion mais la
+**marge au mur** — continue, là où le compte de courses couchées est un seuil.
+
+Relevé final sur les douze chantiers de bordure, les plus contraints du jeu : **zéro clôture
+couchée** en venant, en travaillant et en repartant, **99,1 %** de la terre faite au pire,
+1,70 m de jeu au mur, une seule passe par parcelle.
 
 ## Trois âges par culture
 

@@ -9369,7 +9369,16 @@ const VIT_PIVOT = 2.2;
    carrée : c'est un ralentissement long, qu'on voit venir de vingt mètres, comme un
    conducteur qui prépare sa tournière — et non un coup de frein au dernier moment.
    v² = v_pivot² + 2·a·d, la seule loi qui ne mente pas sur une distance d'arrêt. */
-const FREIN_TOURNIERE = 2.5;
+/* ET L'ON FREINE TARD, ET FORT — c'est ce que le joueur demande maintenant : « on avance à
+   fond, puis on ralentit sur les derniers mètres, brusquement ». Deux mètres et demi par
+   seconde carrée faisaient un ralentissement de VINGT-HUIT MÈTRES depuis douze mètres par
+   seconde — c'est-à-dire presque toute une ligne de trente mètres passée à décélérer, et
+   c'est une bonne part du « temps de la passe complète est trop long ». À huit, la même
+   décélération tient en 8,70 m : on roule à fond jusqu'aux derniers mètres, et le demi-tour
+   se prend quand même exactement à la vitesse qui tourne le plus court.
+   Le chiffre est borné par le haut, et pas par le confort : au-delà, la machine s'arrête
+   plus vite que le pilote ne recalcule sa consigne, et le demi-tour part au pas. */
+const FREIN_TOURNIERE = 8.0;
 const vitesseAvant = (d)=> Math.sqrt(VIT_PIVOT*VIT_PIVOT
                                      + 2*FREIN_TOURNIERE*Math.max(0, d));
 /* ET L'ON MARQUE LES POINTS OÙ IL FAUDRA LEVER LE PIED.
@@ -9410,13 +9419,14 @@ function marquer(q, p, serre){
    de la terre du voisin. On borne donc le débord à huit mètres, exactement ce que faisait
    l'ancien retrait d'un sixième, et ce plancher ne rentre AUCUN outil de seize mètres ou
    moins : ni la charrue, ni le semoir, ni l'épandeur avant son dernier cran. */
-/* ---------- CE QUE CHAQUE TOUR REPREND DU PRÉCÉDENT ----------
-   Le pas a valu deux tiers de largeur, puis la MOITIÉ — « la moitié du véhicule sur la
-   partie déjà travaillée, l'autre moitié sur la terre brute » — et le joueur revient
-   dessus : « fais un espacement un petit peu plus large entre chaque passe, là tu remords
-   trop sur tes traces et du coup le temps de la passe complète est trop long. »
-   Il a raison, et cela se chiffre. Douze cas — deux tailles de parcelle, trois outils, deux
-   crans de vitesse — pilotés image par image :
+/* ---------- CE QUE CHAQUE LIGNE REPREND DE LA PRÉCÉDENTE ----------
+   « Une ligne dans l'autre sens avec un tiers de l'outil qui mord sur la ligne tracée
+   précédemment » : le pas vaut donc DEUX TIERS de largeur, et le chiffre est nommé, pas
+   choisi. Il avait valu deux tiers, puis la moitié, puis 0,70 quand le joueur a demandé
+   « un espacement un petit peu plus large » ; deux tiers en est à trois centièmes, et c'est
+   maintenant lui qui le dit en toutes lettres.
+   Ce que la mesure en disait, du temps de l'escargot — douze cas, deux tailles de parcelle,
+   trois outils, deux crans de vitesse :
 
        pas      couverture moyenne   pire cas   temps par parcelle
        0,50           98,5 %          95,6 %         69 s
@@ -9424,12 +9434,11 @@ function marquer(q, p, serre){
        0,70           97,6 %          95,6 %         57 s
        0,80           95,1 %          86,7 %         52 s
 
-   0,70 rend dix-sept pour cent du temps pour neuf dixièmes de point de couverture, et le
-   PIRE CAS ne bouge pas d'un dixième. 0,80, lui, s'effondre : l'épandeur de douze mètres
-   sur une petite parcelle tombe à 86,7 %, parce qu'un outil traîné qui coupe les virages ne
-   rattrape plus un recouvrement d'un cinquième. C'est donc 0,70 — un tiers de recouvrement
-   au lieu de la moitié. */
-const PAS_PASSE = 0.70;
+   0,70 rendait dix-sept pour cent du temps pour neuf dixièmes de point de couverture, et le
+   pire cas ne bougeait pas d'un dixième. 0,80 s'effondrait : l'épandeur de douze mètres sur
+   une petite parcelle tombait à 86,7 %, un outil traîné qui coupe les virages ne rattrapant
+   plus un recouvrement d'un cinquième. Deux tiers est du bon côté de cette falaise. */
+const PAS_PASSE = 2/3;
 const DEBORD_MAX = 8.0;
 function retraitsDe(p, T){
   const voisin = Math.max(0, T.width/2 - DEBORD_MAX);
@@ -9454,88 +9463,29 @@ function planAuto(m, cible){
     if(n > bestN){ bestN = n; best = p; }
   }
   if(!best) return null;
-  /* ON NE RETRAVAILLE PAS TOUTE LA PARCELLE POUR RATTRAPER TROIS COINS. Le second
-     passage refaisait exactement le même escargot sur exactement le même rectangle :
-     il re-balayait cinq cents cellules pour en rattraper deux. L'escargot se trace donc
-     sur l'emprise de CE QUI RESTE À FAIRE, pas sur la parcelle entière — d'un passage
-     à l'autre elle se resserre autour des trous, et le rectangle finit par les couvrir
-     entièrement. Elle est bornée par la parcelle : on ne sort jamais de sa terre. */
-  let rx0 = Infinity, rx1 = -Infinity, rz0 = Infinity, rz1 = -Infinity;
-  {
-    const i0 = Math.max(0, Math.floor((best.x-best.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((best.x+best.w/2-X0)/CS));
-    const j0 = Math.max(0, Math.floor((best.z-best.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((best.z+best.h/2-Z0)/CS));
-    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-      const id = j*GNX+i;
-      if(state[id] === ST.HORS || T.from.indexOf(state[id]) < 0) continue;
-      const cx = X0 + (i+0.5)*CS, cz = Z0 + (j+0.5)*CS;
-      if(cx < rx0) rx0 = cx; if(cx > rx1) rx1 = cx;
-      if(cz < rz0) rz0 = cz; if(cz > rz1) rz1 = cz;
-    }
-  }
-  if(!isFinite(rx0)) return null;
+  /* ET L'ON TRAVAILLE LA PARCELLE ENTIÈRE, PAS L'EMPRISE DE CE QUI RESTE. On a essayé de
+     resserrer le tracé autour des trous, du temps où l'on repassait : la couverture BAISSE
+     — de 78,6 % au pire à 73,5 — parce qu'un rectangle plus petit fait des lignes plus
+     courtes, où un outil traîné quatre à six mètres derrière suit encore moins bien. On ne
+     repasse plus du tout (voir `SEUIL_REPASSE`), et le rectangle est donc toujours celui de
+     la parcelle. Le comptage ci-dessus a déjà garanti qu'il y reste au moins une cellule. */
   const v = m.v;
-  /* LE TOUR SUIVANT MORD SUR LE PRÉCÉDENT. Deux passes espacées d'une largeur d'outil se
-     touchent en théorie et se manquent en pratique : l'outil est traîné quatre à six
-     mètres derrière le tracteur, il coupe donc les virages, et c'est dans les angles que
-     restaient des coins jamais travaillés. Un recouvrement d'un huitième ne suffisait
-     pas ; à un quart, la passe intérieure repasse franchement sur le bord de la
-     précédente et les coins se referment. Ce qu'on paie, c'est un tour de plus par
-     parcelle — quelques secondes — pour ne plus laisser de terre derrière soi.
-     Le chiffre est relevé et non choisi : sur les seize cas du banc de couverture — quatre
-     outils par quatre tailles de parcelle, pilotés image par image — la couverture du pire
-     cas passe de 77,7 % à 88,9 et la moyenne de 92,6 à 93,6. Le paysage n'est pas lisse,
-     l'outil traînant derrière coupant les virages : 0,70 redescend à 81,3 et 0,86 à 78,6.
-     C'est 0,74 qui tient les deux bouts. */
-  /* ET LE CAHIER DES CHARGES A TRANCHÉ UNE SECONDE FOIS : LA MOITIÉ, PAS LE TIERS.
-     « À chaque tour pareil, la moitié du véhicule doit être sur la partie qui a déjà été
-     travaillée et l'autre moitié sur la partie qui n'a pas encore été travaillée. »
-     Le pas vaut donc une DEMI-largeur d'outil, et non deux tiers. C'est la même règle
-     que celle du premier tour, prolongée : le premier passage est à cheval sur le bord,
-     donc à moitié sur l'herbe ; le deuxième est à cheval sur la trace du premier, donc à
-     moitié sur la terre brute ; et ainsi jusqu'au centre.
-     Ce qu'on paie est un tour de plus par parcelle et le tiers du temps de passe ; ce
-     qu'on achète est un recouvrement qui ne dépend plus de la finesse du virage — un
-     outil traîné quatre à six mètres derrière coupe les angles, et c'est là, et nulle
-     part ailleurs, que restaient les coins jamais travaillés. */
+  /* LE PAS D'UNE LIGNE À LA SUIVANTE : DEUX TIERS DE L'OUTIL.
+     « On fait une ligne dans l'autre sens avec un tiers de l'outil qui mord sur la ligne
+     tracée précédemment. » Le tiers qui mord n'est pas du luxe : l'outil est traîné quatre
+     à six mètres derrière le tracteur, il coupe les virages, et deux lignes espacées d'une
+     largeur pleine se touchent en théorie et se manquent en pratique. Le chiffre est aussi
+     un réglage payé : à un huitième de recouvrement la couverture du pire cas tombait à
+     77,7 %, à un quart elle monte à 88,9, et le tiers demandé la tient au-dessus de 99 %.
+     Il vit dans `PAS_PASSE`, une seule fois, pour que le banc puisse le lire au lieu de le
+     recopier. */
   const pas = T.width*PAS_PASSE;
-  // La marge : l'engin roule à une demi-largeur d'outil du bord, de sorte que l'outil
-  // affleure la clôture sans que la machine s'en approche.
-  /* LA MARGE TIENT LE TRACTEUR DANS LA PARCELLE, PAS L'OUTIL. Elle valait une
-     demi-passe — 5,68 m pour un épandeur de douze mètres : le tracé se réduisait à un
-     carré de huit mètres au milieu d'une parcelle de dix-neuf, et un outil traîné six
-     mètres derrière n'y suivait plus rien. Elle vaut maintenant une demi-largeur
-     d'outil au plus (pour que l'outil affleure le bord et pas au-delà) et 1,80 m au
-     plus (pour que le tracteur, large de 2,70, reste dans la terre). Ce qui déborde,
-     c'est l'outil, et il ne peint que ce qui est arable. */
-  const marge = Math.min(T.width/2, 1.8, Math.min(best.w, best.h)/2 - 0.6);
-  /* L'escargot se trace sur la PARCELLE ENTIÈRE, et non sur l'emprise de ce qui reste.
-     Le resserrer autour des trous a été essayé et mesuré : la couverture BAISSE — de
-     78,6 % au pire à 73,5 — parce qu'un rectangle plus petit fait des tours plus
-     courts, où un outil traîné quatre à six mètres derrière suit encore moins bien.
-     Ce qui rattrape les trous, c'est de REPASSER, en entrant par un autre coin. */
-  /* ET LE PREMIER TOUR MORD SUR L'HERBE, DES DEUX TIERS EXACTEMENT.
-     Il passait 15 cm DEHORS, l'axe du tracteur posé juste au-delà du bord : l'outil,
-     centré sur lui, était alors à moitié sur la terre et à moitié sur le chemin — la
-     moitié du premier passage était perdue, et la dernière rangée de cellules ne tenait
-     qu'à la demi-largeur d'outil.
-     L'axe rentre maintenant d'un SIXIÈME de largeur À L'INTÉRIEUR : la bordure
-     extérieure de l'outil sort alors d'un tiers, et les deux tiers restants travaillent
-     de la terre. C'est ce que demande le cahier des charges, et c'est aussi plus sûr
-     pour la machine — relevé sur les trois bords qui longent la clôture de la ferme :
-     l'axe passait à 1,95 m d'un mur de collision situé à 1,85, soit dix centimètres de
-     mou ; il en a maintenant de quatre-vingts centimètres à quatre mètres selon l'outil.
-
-     ET CE QUI SORT NE HEURTE RIEN NI NE PEINT RIEN. L'outil n'a pas d'emprise de
+  /* ET CE QUI DÉBORDE NE HEURTE RIEN NI NE PEINT RIEN. L'outil n'a pas d'emprise de
      collision — seule la caisse en a une — et il ne marque que les cellules dont l'état
      figure dans `from` : entre deux parcelles, tout est HORS. Le couloir mesure 9,60 m
-     (1,60 d'herbe, 6,40 de sable, 1,60 d'herbe) et le plus grand débord possible est
-     celui de l'épandeur au dernier cran, 8,00 m : il reste 1,60 m avant la terre du
-     voisin. On ne laboure donc jamais chez lui.
-
-     La borne sur la demi-parcelle protège les crans futurs : un outil plus large que le
-     tiers d'une petite parcelle retournerait un rectangle vide. */
-  const RENTRE = Math.max(0, Math.min(T.width/6, Math.min(best.w, best.h)/2 - 1.0));
-  void marge; void rx0; void rx1; void rz0; void rz1;
+     (1,60 d'herbe, 6,40 de sable, 1,60 d'herbe) et le plus grand débord possible est celui
+     de l'épandeur au dernier cran, 8,00 m : il reste 1,60 m avant la terre du voisin. On ne
+     laboure donc jamais chez lui. */
   /* CE QUE L'AXE A LE DROIT DE DÉPASSER, CÔTÉ PAR CÔTÉ.
      C'est la mesure qui manquait, et son absence coûtait cher : mesuré sur les trois
      parcelles qui longent vraiment la clôture de la ferme, quatre outils chacune, la
@@ -9545,7 +9495,6 @@ function planAuto(m, cible){
      un obstacle « soft » repousse à o.r + 1,50 m, un dur à o.r + 1,35 — et l'on garde la
      distance du bord à ce mur. La clôture de la ferme est à 2,10 m des parcelles de
      bordure, son mur à 1,85 : il reste VINGT-CINQ CENTIMÈTRES. */
-  void RENTRE;
   const retrait = retraitsDe(best, T);
   const x0 = best.x - best.w/2 + retrait[0], x1 = best.x + best.w/2 - retrait[2];
   const z0 = best.z - best.h/2 + retrait[1], z1 = best.z + best.h/2 - retrait[3];
@@ -9566,275 +9515,173 @@ function planAuto(m, cible){
     arr.push(marquer(Object.assign({x:x, z:z}, o || null), best, serre));
   };
 
-  // On entre par le coin le plus proche, et on tourne toujours dans le même sens :
-  // sans ça l'engin traverse la parcelle en diagonale pour aller commencer ailleurs.
-  const coins0 = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
-  let depart = 0, dMin = Infinity;
-  coins0.forEach(([cx, cz], k)=>{
-    const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
-    if(d < dMin){ dMin = d; depart = k; }
-  });
-  /* ---------- L'ESCARGOT, ET RIEN D'AUTRE ----------
-     Le plan a été « une périphérie puis des lignes droites » le temps d'une version. Il
-     couvrait mieux — les demi-tours tombaient tous sur la tournière — mais le joueur veut
-     l'escargot, et il a une raison qu'aucune mesure de couverture ne dit : ON LE VOIT.
-     Une spirale qui se resserre se lit depuis la cabine, on sait à tout moment où l'on en
-     est et combien il reste ; un balayage en lignes, non.
-
-     LA RÈGLE, MOT POUR MOT : le contour d'abord, puis des tours de plus en plus serrés
-     qui REPRENNENT UN TIERS du passage précédent, jusqu'au centre ; arrivé au centre, un
-     tour sur soi-même, puis on SORT du champ sans passage supplémentaire.
-
-     ET L'ON NE CHERCHE PAS À REMPLIR. C'est demandé, et c'est ce qui change tout par
-     rapport à la version d'avant : plus de rattrapage, plus de seconde passe, plus de
-     tracé calculé pour compenser le fait que l'outil traîne derrière et coupe les
-     virages. Le dessin est le dessin ; ce qu'il laisse, il le laisse.
-
-     LE PAS EST DEUX TIERS DE LARGEUR, ce qui EST le tiers de recouvrement demandé : la
-     passe intérieure repasse sur le tiers extérieur de la précédente.
-
-     TOUT RESTE ORTHOGONAL : chaque déplacement n'a qu'une coordonnée qui change. Une
-     diagonale se voit depuis la cabine, et un banc la refuse. */
   const pts = [];
-  /* `virage` : on y tourne à l'équerre, donc on y arrive au pas. `bord` : on le valide à
-     un mètre et non à deux.
-     LA VALIDATION LARGE COUPAIT LES COINS, ET UN ESCARGOT NE LE SUPPORTE PAS. Un point
-     validé deux mètres trop tôt, sur un balayage en lignes, ne coûte rien : la ligne
-     suivante est parallèle et loin devant. Sur une spirale, le point suivant est le coin
-     d'APRÈS, à angle droit : la machine se retrouve quatre mètres en deçà de la ligne
-     qu'elle doit suivre, vise un but qui est derrière son épaule, et part en marche
-     arrière — relevé, elle sortait du champ par le coin nord-est et le garde-fou des huit
-     secondes l'abandonnait trois points de suite. */
-  const COIN = {virage:true, bord:true};
-  /* Les quatre bornes du tour courant. Après chaque côté parcouru, on rentre CE bord-là
-     d'un pas : c'est ce qui fait une spirale et non des anneaux concentriques reliés par
-     des sauts. */
-  let a0 = x0, a1 = x1, c0 = z0, c1 = z1;
-  const coinsCour = ()=> [[a0,c0],[a1,c0],[a1,c1],[a0,c1]];
-  /* ---------- ON ENTRE PARALLÈLE, ET NON EN QUEUE DE BILLARD ----------
-     Le plan commençait AU COIN. Le pilote y menait la machine par la grille des chemins,
-     donc en travers, et le premier point qu'elle visait ensuite était le coin d'EN FACE,
-     à trente mètres : elle entrait dans la terre de biais et se redressait tout le long
-     du premier côté. C'est la queue de billard — on la voit à l'œil depuis la cabine,
-     et le premier passage, celui qui doit être à cheval sur le bord, ne l'est nulle part
-     sur son premier tiers.
-     On pose donc un point D'ALIGNEMENT en amont du coin de départ, SUR LA LIGNE du
-     premier côté. Les trois premiers points du plan — alignement, coin, coin d'en face —
-     sont alors exactement colinéaires : il n'y a plus de virage à l'entrée du champ, le
-     dernier se fait dehors, sur le chemin, et la machine franchit le bord déjà droite.
+  /* ---------- DES LIGNES, ET RIEN QUE DES LIGNES ----------
+     Le joueur, une fois le pilote capable d'accélérer, de freiner et de tourner court :
+     « maintenant qu'on fait des demi-tours serrés, on va essayer de faire juste des lignes.
+     On commence à ras de la terre avec juste un tiers de l'outil qui est sur l'herbe, on
+     avance à fond, puis on ralentit sur les derniers mètres, brusquement on fait un
+     demi-tour à 180°, puis on fait une ligne dans l'autre sens avec un tiers de l'outil qui
+     mord sur la ligne tracée précédemment, puis un demi-tour à 180°, et on refait la même
+     chose dans l'autre sens. On fait des lignes l'une après l'autre. »
 
-     LA LONGUEUR EST BORNÉE PAR LE COULOIR, PAS CHOISIE. Entre deux parcelles il y a
-     9,60 m ; au-delà on entrerait chez le voisin, et `work()` ne demande jamais à qui
-     appartient la cellule qu'il peint — on lui labourerait sa bande.
-     ET CE N'EST PAS LA MACHINE QU'IL FAUT MESURER, C'EST L'OUTIL. Il est TRAÎNÉ quatre à
-     six mètres derrière : à neuf mètres du coin, la charrue est à treize, donc trois
-     mètres et demi DANS le champ d'en face. Mesuré au banc de clôture : quatre cellules
-     de la terre du voisin retournées, contre une seule avant. On teste donc le couloir
-     que l'OUTIL balaie — de `A + attelage` en arrière du coin jusqu'à `attelage`, large
-     de sa demi-largeur plus trente centimètres — et l'on descend l'échelle jusqu'à ce
-     qu'il tienne dans le couloir : la première longueur dont ce couloir ne touche aucune
-     autre parcelle, et dont la voie est libre, gagne.
-     L'ÉCHELLE DESCEND JUSQU'À DEUX MÈTRES DEUX, ET CE N'EST PAS UN CHIFFRE ROND. Avec
-     quatre échelons — neuf, sept, cinq, trois et demi — l'épandeur de douze mètres, qui
-     traîne six mètres derrière lui, n'en trouvait AUCUN sur deux parcelles : il manquait
-     dix centimètres au dernier. Il entrait donc comme avant, de biais, sur les deux
-     seules parcelles où c'est le plus visible. Six échelons, et chaque outil trouve son
-     compte ; le plus court, 2,20 m, est la distance d'un tour de roue à la vitesse de
-     pivot — de quoi se poser sur la ligne, ce qui suffit puisqu'on y arrive au pas.
-     Si aucun ne passe — un coin coincé entre deux champs —, on entre comme avant : mieux
-     vaut une entrée de biais qu'un point d'alignement qui laboure chez le voisin. */
-  /* ET L'ON ENTRE AU PAS, parce que c'est la vitesse qui décide si l'on y arrive.
-     `viser` roule plein gaz tant que le cap est bon, et le rayon de braquage est
-     PROPORTIONNEL À LA VITESSE : à douze mètres par seconde un tracteur tourne sur 6,3 m
-     de rayon, à deux sur 1,2. Avec neuf mètres d'alignement et le pied au plancher, il ne
-     redresse pas — mesuré, il franchissait encore le bord dix degrés de travers. Le point
-     d'alignement et le coin de départ portent donc `lent` : la machine les aborde à la
-     vitesse qui tourne le plus court, colle à la ligne, et ne reprend son élan qu'une
-     fois dans la terre et déjà droite. C'est ce que fait un conducteur qui entre dans un
-     champ, et cela coûte deux secondes. */
-  /* ET CHAQUE MORCEAU DU PLAN PORTE SON NOM. `amont` : le point d'alignement, hors du
-     champ. `rond` : les huit sommets du tour du centre. `ecart` : le petit aller-retour
-     de la fin. Ils ne changent rien à la conduite — `autoDrive` ne lit que `virage`,
-     `lent`, `bord` et `sortie` — mais ils permettent de MESURER chaque partie du tracé
-     séparément, ce qu'aucun banc ne savait faire : il mesurait le pas de la spirale sur
-     un tableau où le rond et la sortie étaient mélangés. */
+     C'est le dessin le plus ancien de l'agriculture, et c'est aussi le plus rapide : une
+     spirale passe un quart de son temps en virages, un aller-retour n'en passe qu'aux deux
+     bouts. Ce qu'on y gagne se lit dans le tracé lui-même — les lignes suivent le GRAND côté
+     de la parcelle, donc il y en a le moins possible, donc il y a le moins de demi-tours
+     possible.
+
+     LES TROIS CHIFFRES DU DESSIN, ET ILS VIENNENT TOUS DE LA MÊME PHRASE.
+     « Un tiers de l'outil sur l'herbe » : la première ligne rentre d'un SIXIÈME de largeur
+     à l'intérieur du bord — l'outil étant centré sur l'axe, il déborde alors d'un tiers.
+     « Un tiers qui mord sur la ligne précédente » : le pas vaut DEUX TIERS de largeur.
+     « Un demi-tour à 180° » : il se prend au-delà du bout de la ligne, sur un rayon d'un
+     demi-pas — le rayon qui amène exactement sur la ligne suivante.
+
+     ET LE NOMBRE DE LIGNES EST ENTIER, DONC LE PAS EST RECALCULÉ. Poser les lignes de deux
+     tiers en deux tiers laisse une bande orpheline au bout, plus étroite qu'un pas : la
+     dernière ligne tombe alors n'importe où, et le bord opposé n'a pas son tiers dehors. On
+     compte donc combien de lignes il faut, et l'on répartit : le pas réel est au plus deux
+     tiers, et les deux bords extrêmes reçoivent exactement leur tiers de débord.
+
+     CE QU'ON PERD EN CHANGEANT : le tour de périphérie, le rond du centre, le petit écart.
+     Le joueur les a demandés, puis il a demandé autre chose ; ce qui reste écrit ici est ce
+     qu'il veut maintenant. */
+  /* ---------- DANS QUEL SENS TIRER LES LIGNES ----------
+     Le grand côté d'abord : moins de lignes, donc moins de demi-tours. Mais le demi-tour se
+     prend AU BOUT de la ligne, c'est-à-dire hors du champ — et sur les trois colonnes de
+     parcelles adossées à la clôture de la ferme, il n'y a que vingt centimètres derrière le
+     bord. Relevé au banc : la charrue sur une parcelle carrée tirait ses lignes en x, faisait
+     demi-tour à l'ouest, et couchait la clôture au huitième point.
+     On regarde donc D'ABORD ce que les deux bouts laissent : l'axe dont le bout le plus
+     serré est le plus dégagé gagne, et le grand côté ne tranche qu'à égalité. Sur une
+     parcelle carrée collée au mur, cela suffit à faire tourner les lignes d'un quart de tour
+     et à rendre les demi-tours au couloir. */
+  const jeuAxe = (a, b)=> Math.min(jeuDeBord(best, a), jeuDeBord(best, b));
+  const jeuX = jeuAxe(0, 2), jeuZ = jeuAxe(1, 3);
+  const LONG = (Math.abs(jeuX - jeuZ) > 0.5) ? (jeuX > jeuZ) : (best.w >= best.h);
+  const P = (a, b)=> LONG ? {x:a, z:b} : {x:b, z:a};
+  // le long des lignes
+  const A0 = LONG ? x0 : z0, A1 = LONG ? x1 : z1;
+  const iA0 = LONG ? 0 : 1, iA1 = LONG ? 2 : 3;
+  const bordA0 = LONG ? best.x - best.w/2 : best.z - best.h/2;
+  const bordA1 = LONG ? best.x + best.w/2 : best.z + best.h/2;
+  // en travers : le premier axe rentre d'un sixième, ou du retrait s'il est plus grand
+  const eB0 = LONG ? best.z - best.h/2 : best.x - best.w/2;
+  const eB1 = LONG ? best.z + best.h/2 : best.x + best.w/2;
+  const iB0 = LONG ? 1 : 0, iB1 = LONG ? 3 : 2;
+  const RENTRE = T.width/6;
+  let l0 = eB0 + Math.max(retrait[iB0], RENTRE);
+  let l1 = eB1 - Math.max(retrait[iB1], RENTRE);
+  if(l1 < l0){ const mi = (eB0 + eB1)/2; l0 = mi; l1 = mi; }
+  /* ET L'ON ARRONDIT PAR LE HAUT, JAMAIS PAR LE BAS. Arrondi au plus proche, la bande se
+     partageait parfois en un pas PLUS LARGE que deux tiers : l'épandeur de douze mètres sur
+     une parcelle de trente posait quatre lignes à 8,80 m au lieu de cinq à 8,00 — un quart
+     de recouvrement au lieu d'un tiers, et la charrue laissait 9,3 % de la parcelle carrée.
+     Une ligne de plus coûte cinq pour cent de temps sur les douze chantiers du banc, et
+     rend la couverture : 90,7 % au pire devient 98,2, la moisson 94,7 devient 97,8. C'est
+     le tiers qui avait été demandé, et il se paie moins cher qu'annoncé. */
+  const nL = Math.max(1, Math.ceil((l1 - l0)/pas - 1e-6) + 1);
+  const pasL = (nL > 1) ? (l1 - l0)/(nL - 1) : 0;
+  /* LE DEMI-TOUR SORT DU CHAMP, ET IL EN SORT DE CE QUE LE BORD LAISSE.
+     Un demi-tour d'un demi-pas déborde du bout de la ligne d'autant : 1,60 m pour une
+     charrue, 4,00 pour un épandeur. Le couloir entre deux parcelles mesure 9,60 m, mais la
+     clôture de la ferme longe trois colonnes à deux mètres. `jeuDeBord` sait déjà où est le
+     premier mur ; on borne l'excursion par ce qu'il reste, moins la marge de virage.
+     LA MARGE VAUT `VIRAGE_BORD`, ET C'EST UNE MESURE. À 1,20 m d'abord : deux clôtures
+     couchées sur les douze cas, une au travail sur les parcelles adossées au mur. Le point
+     du demi-tour n'est pas le point le plus éloigné du trajet — le pilote arrondit le coin,
+     et la machine passe un peu au-delà. `VIRAGE_BORD` est précisément le dépassement de
+     virage relevé au banc ; c'est donc lui qu'il faut garder libre, et non un chiffre rond. */
+  const RMIN = VIT_PIVOT/Math.max(0.6, v.turn);
+  const RU = Math.max(pasL/2, RMIN + 0.3);
+  /* ET SI LE DEMI-TOUR NE PEUT PAS SORTIR, C'EST LE TOUR QUI SE SERRE, PAS LA LIGNE QUI
+     RECULE. Le sommet du demi-tour doit rester à `VIRAGE_BORD` du premier mur — c'est le
+     dépassement de virage mesuré, et l'y coller couche la clôture. Quand ce mur est trop
+     près, on a d'abord rentré le BOUT DE LA LIGNE d'un rayon pour que le tour tienne dans
+     le champ. Mesuré ensuite : cette bande-là n'est jamais travaillée, et elle coûte un
+     cinquième d'une parcelle de bordure — l'épandeur tombait à 79,6 % sur la parcelle
+     carrée adossée à la clôture. On garde donc la ligne entière : la machine va jusqu'au
+     bout, et c'est le demi-tour qui se serre contre le mur, au pas, puisque le pilote y
+     roule déjà à la vitesse de pivot. Mesuré après : 99,1 % au pire, la même clôture
+     debout, et 1,70 m de jeu au mur au lieu de 0,96. Le sommet reste seulement borné à ne
+     jamais repasser DERRIÈRE le bout de la ligne, ce qui ferait reculer la machine. */
+  const murA0 = bordA0 - jeuDeBord(best, iA0);
+  const murA1 = bordA1 + jeuDeBord(best, iA1);
+  const uA0 = Math.min(A0, Math.max(murA0 + VIRAGE_BORD, A0 - RU));
+  const uA1 = Math.max(A1, Math.min(murA1 - VIRAGE_BORD, A1 + RU));
+  /* PAR OÙ L'ON COMMENCE : par le bout et par le côté les plus proches de la machine. Sans
+     cela elle traverse la parcelle en diagonale pour aller commencer à l'autre bout, et l'on
+     voit ce trajet-là mieux que tout le reste. */
+  const vA = LONG ? v.pos.x : v.pos.z, vB = LONG ? v.pos.z : v.pos.x;
+  let sens = (Math.abs(vA - A0) <= Math.abs(vA - A1)) ? 1 : -1;
+  const parLeHaut = Math.abs(vB - l1) < Math.abs(vB - l0);
+  const traverse = (k)=> parLeHaut ? l1 - k*pasL : l0 + k*pasL;
+
+  /* ---------- ON ENTRE PARALLÈLE, ET NON EN QUEUE DE BILLARD ----------
+     Le plan commençait au bout de la ligne. Le pilote y menait la machine par la grille des
+     chemins, donc en travers, et elle entrait dans la terre de biais. On pose donc un point
+     D'ALIGNEMENT en amont, SUR LA LIGNE : les deux premiers points du plan sont alors
+     colinéaires, il n'y a plus de virage à l'entrée du champ, le dernier se fait dehors sur
+     le chemin, et la machine franchit le bord déjà droite.
+     LA LONGUEUR EST BORNÉE PAR LE COULOIR, PAS CHOISIE. Entre deux parcelles il y a 9,60 m ;
+     au-delà on entrerait chez le voisin. Et ce n'est pas la machine qu'il faut mesurer, c'est
+     l'OUTIL : traîné quatre à six mètres derrière, il est encore dans le champ d'en face
+     quand la machine n'y est plus. On teste donc le couloir que l'outil balaie, et l'on
+     descend l'échelle jusqu'à ce qu'il tienne. */
   const LENT = {lent:true, amont:true};
-  const ROND = {virage:true, bord:true, rond:true};
   let aligne = false;
+  const aDeb0 = sens > 0 ? A0 : A1;
+  const dep0 = P(aDeb0, traverse(0));
   {
-    const AXE = [[1, 0], [0, 1], [-1, 0], [0, -1]][depart];
-    const kx = coins0[depart][0], kz = coins0[depart][1];
+    const dx0 = LONG ? sens : 0, dz0 = LONG ? 0 : sens;
     const att = (T.hitch || 0) + (T.L || 0), demi = T.width/2 + 0.3;
-    // l'emprise de l'outil est PERPENDICULAIRE à la marche : si l'on roule en z, elle
-    // s'étend en x, et réciproquement.
-    const ex = Math.abs(AXE[1])*demi, ez = Math.abs(AXE[0])*demi;
-    for(const A of [9.0, 7.0, 5.5, 4.0, 3.0, 2.2]){
-      const ax = kx - AXE[0]*A, az = kz - AXE[1]*A;
-      const cA = [kx - AXE[0]*(A + att), kz - AXE[1]*(A + att)];
-      const cB = [kx - AXE[0]*att,       kz - AXE[1]*att];
+    const ex = Math.abs(dz0)*demi, ez = Math.abs(dx0)*demi;
+    for(const D of [9.0, 7.0, 5.5, 4.0, 3.0, 2.2]){
+      /* LE MUR D'ABORD, ET PAR LA GÉOMÉTRIE. `voieLibre` échantillonne le segment tous les
+         1,20 m et cherche un piquet dans un rayon de 2,25 ; la clôture de la ferme a ses
+         piquets tous les 1,56 m, et l'amont d'une ligne peut tomber PILE entre deux — le
+         segment passe alors pour libre alors qu'il longe la clôture à vingt centimètres. On
+         borne donc le point d'amont par la même règle que le sommet du demi-tour :
+         `VIRAGE_BORD` du premier mur, mesuré au banc. Si aucun barreau de l'échelle n'y
+         tient, on n'aligne pas — mieux vaut entrer de biais que coucher la clôture. */
+      const aAli = aDeb0 - sens*D;
+      if(aAli < murA0 + VIRAGE_BORD || aAli > murA1 - VIRAGE_BORD) continue;
+      const ax = dep0.x - dx0*D, az = dep0.z - dz0*D;
+      const cA = [dep0.x - dx0*(D + att), dep0.z - dz0*(D + att)];
+      const cB = [dep0.x - dx0*att,       dep0.z - dz0*att];
       const rx0 = Math.min(cA[0], cB[0]) - ex, rx1 = Math.max(cA[0], cB[0]) + ex;
       const rz0 = Math.min(cA[1], cB[1]) - ez, rz1 = Math.max(cA[1], cB[1]) + ez;
       if(PARCELS.some((q)=> q !== best
          && rx1 > q.x - q.w/2 - 0.3 && rx0 < q.x + q.w/2 + 0.3
          && rz1 > q.z - q.h/2 - 0.3 && rz0 < q.z + q.h/2 + 0.3)) continue;
-      if(!voieLibre(ax, az, kx, kz)) continue;
+      if(!voieLibre(ax, az, dep0.x, dep0.z)) continue;
       pose(pts, ax, az, LENT);
       aligne = true;
       break;
     }
   }
-  pose(pts, coins0[depart][0], coins0[depart][1], aligne ? LENT : null);
-  let d = depart;
-  // Garde-fou : une parcelle de trente mètres au semoir fait cinq tours, soit vingt
-  // côtés. Deux cents, c'est trente fois la marge, et cela ne peut pas tourner sans fin.
-  for(let k = 0; k < 200; k++){
-    /* ON S'ARRÊTE DÈS QU'UN CÔTÉ EST MANGÉ, ET NON QUAND LES DEUX LE SONT.
-       Le test portait sur les DEUX dimensions à la fois. Une parcelle n'est presque
-       jamais carrée : le petit côté se referme le premier, et la spirale continuait
-       alors à glisser le long du grand — un aller de onze mètres, un retour de huit, un
-       aller de six, un retour de quatre, TOUS SUR LA MÊME LIGNE. Relevé sur la charrue en
-       30,4 × 19,6 : cinq points pour quatre passages superposés au milieu du champ, et
-       les deux derniers confondus, ce qui donnait un cap d'arrivée nul et retournait le
-       rond sur lui-même. C'est du travail deux fois fait, et ça se voit.
-       Quand un côté descend sous la moitié du pas, la spirale EST au centre : la bande
-       qui reste est plus mince que ce qu'un seul passage couvre — l'outil déborde d'un
-       pas de part et d'autre de sa ligne — donc elle est déjà travaillée. */
-    /* ET ELLE NE TRACE JAMAIS UN CÔTÉ PLUS COURT QUE SON PROPRE DIAMÈTRE DE BRAQUAGE.
-       Un tronçon de 1,20 m entre deux virages à l'équerre, c'est un tracé « qui n'arrivera
-       pas à être suivi parfaitement » : la machine tourne sur 1,16 m de rayon au mieux, il
-       lui en faudrait 2,32 pour enchaîner les deux. Elle débordait, revenait, redébordait —
-       et c'est au centre, là où les côtés deviennent courts, que le dessin s'emmêlait.
-       On arrête donc la spirale au plus tard quand le rectangle restant descend sous deux
-       rayons. Ce qu'on laisse, l'outil le couvre : 2,32 m de large contre 4,80 pour la plus
-       étroite des charrues, et le rond du centre repasse dessus. */
-    /* ET CE PLANCHER NE LAISSE JAMAIS PLUS LARGE QU'UN PASSAGE. Deux rayons de braquage
-       font 3,26 m pour l'enjambeuse, dont le tunnel de vendange n'en couvre que 2,80 :
-       le plancher de braquage aurait laissé au centre une bande plus large que l'outil,
-       c'est-à-dire de la vigne jamais vendangée. On le borne donc à la largeur d'un
-       passage, et c'est le seul outil du jeu que cette borne concerne. */
-    const COURT = Math.min(Math.max(pas*0.5, 2*(VIT_PIVOT/Math.max(0.6, v.turn))),
-                           Math.max(pas*0.5, (T.width || 0) - 0.4));
-    if(a1 - a0 < COURT || c1 - c0 < COURT) break;
-    const C = coinsCour();
-    const suivant = C[(d + 1) % 4];
-    pose(pts, suivant[0], suivant[1], COIN);
-    // on vient de longer le bord `d` : il a été travaillé, on le rentre d'un pas
-    if(d === 0)      c0 = Math.min(c1, c0 + pas);   // on longeait le nord
-    else if(d === 1) a1 = Math.max(a0, a1 - pas);   // l'est
-    else if(d === 2) c1 = Math.max(c0, c1 - pas);   // le sud
-    else             a0 = Math.min(a1, a0 + pas);   // l'ouest
-    d = (d + 1) % 4;
-  }
-  /* ET L'ON FINIT AU MILIEU DE CE QUI RESTE, SANS COUPER EN DIAGONALE.
-     La spirale s'arrête sur un COIN du dernier rectangle ; le rond, lui, se fait « bien
-     au centre ». Viser ce centre tout droit depuis le coin donnait une diagonale de sept
-     mètres EN TRAVERS du champ, et à contresens de la dernière passe : tout le tracé est
-     à angle droit, celle-là se serait vue de la cabine.
-     On finit donc comme on a roulé — un côté, puis la MOITIÉ du suivant. Des deux côtés
-     qui restent, on prend le plus long : son milieu est le centre du rectangle sur cet
-     axe, et sur l'autre le rectangle est déjà plus mince qu'un pas. */
-  {
-    const C2 = coinsCour(), cur = pts[pts.length - 1];
-    const A2 = C2[(d + 1) % 4], B2 = C2[(d + 2) % 4];
-    const dA = Math.hypot(A2[0] - cur.x, A2[1] - cur.z);
-    const dB = Math.hypot(B2[0] - A2[0], B2[1] - A2[1]);
-    if(dB >= dA){
-      pose(pts, A2[0], A2[1], COIN);
-      pose(pts, (A2[0] + B2[0])/2, (A2[1] + B2[1])/2, COIN);
-    } else {
-      pose(pts, (cur.x + A2[0])/2, (cur.z + A2[1])/2, COIN);
+
+  /* ---------- LES LIGNES, L'UNE APRÈS L'AUTRE ----------
+     Quatre points par ligne : le début, la fin, et les deux du demi-tour. Le demi-tour est
+     écrit à l'équerre — sortir du champ, traverser d'un pas, revenir — et c'est le PILOTE
+     qui l'arrondit : il commence à tourner un rayon avant chaque coin et enchaîne les deux
+     virages sans s'arrêter. Écrire la courbe ici la figerait à un rayon ; l'écrire à
+     l'équerre la laisse s'ajuster à la machine qui la prend. */
+  const BOUT = {virage:true, bord:true};
+  for(let k = 0; k < nL; k++){
+    const b = traverse(k);
+    const aDeb = sens > 0 ? A0 : A1, aFin = sens > 0 ? A1 : A0;
+    const d1 = P(aDeb, b), d2 = P(aFin, b);
+    pose(pts, d1.x, d1.z, (k === 0 && aligne) ? LENT : null);
+    pose(pts, d2.x, d2.z, BOUT);
+    if(k < nL - 1){
+      const bs = traverse(k + 1), ap = sens > 0 ? uA1 : uA0;
+      const u1 = P(ap, b), u2 = P(ap, bs);
+      pose(pts, u1.x, u1.z, BOUT);
+      pose(pts, u2.x, u2.z, BOUT);
     }
-  }
-  /* ---------- AU CENTRE : UN ROND, UNE FOIS. PUIS UN PAS DE CÔTÉ, ET L'ON SORT ----------
-     « Une fois que tu arrives au centre, tu fais un cercle, une fois, un rond, une fois ;
-     quand t'es bien au centre, tu pars un tout petit peu et tu reviens au centre, et sur
-     ta lancée tu sors du champ. » C'est mot pour mot le programme, et il n'y a rien
-     d'autre après.
-     Le rond était un RECTANGLE de quatre points — quatre angles droits pris au pas, ce
-     qui se voit et ne ressemble à rien. C'est un octogone maintenant, tangent à la
-     dernière passe et pris DANS LE SENS OÙ LA SPIRALE TOURNAIT DÉJÀ : la machine ne se
-     remet pas dans l'axe, elle enchaîne.
-     Le centre du rond se déduit du cap d'arrivée. La spirale tourne toujours du même
-     côté — d'abord vers +x, puis vers +z, puis −x, puis −z —, ce qui fait tourner le cap
-     de (wx, wz) vers (−wz, wx) : le centre est donc à `rot(w)` d'un rayon, et l'octogone
-     part du point d'arrivée pour y revenir. */
-  {
-    const fin0 = pts[pts.length - 1];
-    /* LE CAP D'ARRIVÉE, ET LE FILET QUI L'EMPÊCHE D'ÊTRE NUL. Deux points confondus en
-       bout de spirale donnaient un cap (0, 0) : le rond se centrait alors SUR le dernier
-       point au lieu de lui être tangent, et la machine devait faire demi-tour pour aller
-       le prendre. Le cas est corrigé à la source — la spirale ne pose plus deux fois le
-       même point — mais un plan ne doit pas dépendre d'une seule garantie. */
-    let av = null;
-    for(let q = pts.length - 2; q >= 0 && !av; q--)
-      if(Math.hypot(pts[q].x - fin0.x, pts[q].z - fin0.z) > 0.2) av = pts[q];
-    if(!av) av = {x:fin0.x - 1, z:fin0.z};
-    let wx = fin0.x - av.x, wz = fin0.z - av.z;
-    const Lw = Math.hypot(wx, wz) || 1; wx /= Lw; wz /= Lw;
-    /* ET LE ROND RESTE DANS LA TERRE. Il se prend autour du dernier point, qui est au
-       centre sur une parcelle normale — mais sur une petite parcelle travaillée par un
-       outil très large, le rectangle de travail est déjà réduit à rien et ce dernier
-       point tombe près d'un bord. Sans borne, le tour sortait l'axe du tracteur de
-       quarante centimètres hors du champ ; on rabat donc chaque point sur le rectangle,
-       et si celui-ci est plat, le rond se réduit à un point et disparaît à l'élagage. */
-    const cx = (q)=> Math.max(Math.min(x0, x1), Math.min(Math.max(x0, x1), q));
-    const cz = (q)=> Math.max(Math.min(z0, z1), Math.min(Math.max(z0, z1), q));
-    /* LE RAYON EST PRIS ENTRE DEUX BORNES ET NON CHOISI. En dessous de `VIT_PIVOT/turn`
-       la machine ne suit pas — c'est le cercle le plus court qu'elle sache tracer, et
-       elle le déborderait. Au-dessus de 3,60 m les huit sommets s'espacent de 2,76 m,
-       soit plus que le rayon de capture d'un point de virage : elle les prendrait un par
-       un, proprement. Plus grand, le rond mordrait la dernière passe ; plus petit, il ne
-       se verrait pas. */
-    const R = Math.max(VIT_PIVOT/Math.max(0.6, v.turn),
-                       Math.min(3.2, Math.abs(x1 - x0)/2, Math.abs(z1 - z0)/2));
-    const ox = fin0.x - wz*R, oz = fin0.z + wx*R;
-    const th0 = Math.atan2(fin0.z - oz, fin0.x - ox);
-    const N = 8;
-    for(let q = 1; q <= N; q++){
-      const th = th0 + q*(Math.PI*2)/N;
-      pose(pts, cx(ox + R*Math.cos(th)), cz(oz + R*Math.sin(th)), ROND);
-    }
-    /* PUIS ON PART UN TOUT PETIT PEU, ON REVIENT, ET LA LANCÉE FAIT LE RESTE.
-       Le sens de sortie se choisit AVANT le pas de côté, parce que c'est lui qui le
-       dicte : on repart du centre dans la direction `u`, donc le petit écart se prend
-       en `−u` — la machine continue sur son cap, fait demi-tour au bout, repasse par le
-       centre et ne s'arrête plus. Les quatre directions sont essayées de la plus
-       contraire au cap d'arrivée à la plus semblable, pour que l'écart se prenne DEVANT
-       elle et non dans son dos, et la première dont la voie est libre gagne.
-       Le point de retour n'est marqué ni `virage` ni `bord` : il se valide sur l'OUTIL,
-       traîné quatre à six mètres derrière, donc la machine a déjà dépassé le centre de
-       toute la longueur de son attelage quand le plan se termine. `finDePlan` calcule
-       alors la sortie depuis sa position ET SON CAP RÉELS : elle sort tout droit. */
-    const PETIT = Math.max(2.5, Math.min(5.0, Math.min(best.w, best.h)/4));
-    /* ET C'EST `pointSortie` QUI DIT SI UN SENS EST BON, PAS UNE MESURE À NOUS.
-       On testait la voie libre sur quatre mètres au-delà du bord ; `pointSortie`, lui,
-       exige quatre mètres PLUS la longueur de l'attelage — il faut bien que l'outil sorte
-       aussi — et refuse en plus un cap dont la sortie tombe à plus de vingt-deux mètres.
-       Deux mesures différentes, deux réponses différentes : l'écart se prenait vers
-       l'ouest pour sortir à l'est, et la machine ressortait à l'ouest en retraversant tout
-       le champ qu'elle venait de faire. On appelle donc la MÊME fonction, avec le cap
-       qu'on lui donnerait, et l'on ne garde que le sens dont elle rend vraiment une
-       sortie dans ce sens-là. */
-    const sup = (T.hitch || 0) + (T.L || 0);
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-      .sort((a2, b2)=> (a2[0]*wx + a2[1]*wz) - (b2[0]*wx + b2[1]*wz));
-    for(const u of dirs){
-      const s2 = pointSortie(best, fin0, {x:fin0.x - u[0], z:fin0.z - u[1]}, sup);
-      if(!s2) continue;
-      const gx = s2.x - fin0.x, gz = s2.z - fin0.z, Lg = Math.hypot(gx, gz) || 1;
-      if((gx*u[0] + gz*u[1])/Lg < 0.8) continue;
-      pose(pts, cx(fin0.x - u[0]*PETIT), cz(fin0.z - u[1]*PETIT),
-           {virage:true, bord:true, ecart:true});
-      /* ET LE RETOUR AU CENTRE SE VALIDE SUR LA MACHINE, PAS SUR L'OUTIL.
-         Partout ailleurs c'est l'outil qui doit avoir dépassé le point — c'est lui qui
-         travaille. Ici c'est un demi-tour : l'outil est TRAÎNÉ, donc au moment où la
-         machine atteint le bout de l'écart, l'outil est encore de l'autre côté du centre
-         — déjà « dépassé ». Le point de retour était consommé EN UNE IMAGE, le demi-tour
-         n'avait pas lieu, et la machine sortait du champ dans le sens de l'écart au lieu
-         du sens de la lancée : elle retraversait tout ce qu'elle venait de faire. */
-      pose(pts, cx(fin0.x), cz(fin0.z), {bord:true, ecart:true});
-      break;
-    }
+    sens = -sens;
   }
   // Deux points confondus font tourner l'engin sur place : on les élague.
   const net = pts.filter((q, k)=> k === 0 ||
