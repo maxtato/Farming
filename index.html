@@ -1296,6 +1296,44 @@ const AX = Math.PI/2;   // cap pour un rectangle aligné : l sur X, w sur Z
 function fillRect(x,z,l,w,color,cap){
   stamp(x,z,l,w,cap||0,(c)=>{ c.fillStyle=color; c.fillRect(-l/2,-w/2,l,w); });
 }
+/* ---------- LE BORD QUI N'EST PAS TRACÉ À LA RÈGLE ----------
+   Un chemin de sable et une parcelle de terre étaient deux rectangles : deux paires de
+   droites parallèles, posées sur l'herbe au cordeau. Vu d'en haut, la vallée se lisait
+   comme un plan cadastral — et c'est ce qui la trahissait le plus, bien avant les
+   bâtiments ou les cultures. Une terre n'a pas d'arête droite ; un chemin creusé par
+   l'usage non plus.
+   BRUIT DE VALEUR, ET NON TIRAGE POINT PAR POINT. Un hasard indépendant à chaque point
+   donnerait un contour hérissé, pas une lisière. On interpole donc entre des valeurs
+   ancrées sur les entiers, avec une courbe douce, et l'on somme DEUX octaves : la
+   première donne la grande ondulation, la seconde, deux fois et demie plus courte et
+   deux fois moins ample, l'irrégularité de détail. L'amplitude crête vaut 0,725 fois
+   `amp` — c'est ce chiffre qu'il faut comparer aux marges du terrain. */
+function nzG(n){ const v = Math.sin(n*127.1)*43758.5453; return v - Math.floor(v); }
+function nz1(t){
+  const i = Math.floor(t), f = t - i, u = f*f*(3 - 2*f);
+  return nzG(i)*(1 - u) + nzG(i + 1)*u;
+}
+function ondul(t, amp, ech){
+  return (nz1(t/ech) - 0.5)*amp + (nz1(t/(ech*0.37) + 11) - 0.5)*amp*0.45;
+}
+/* Un polygone en coordonnées monde. Il passe par `worldDraw`, qui BORNE la recherche de
+   tuiles : un remplissage qui balaierait les cent tuiles de la carte pour peindre une
+   parcelle de vingt mètres en salirait cent au lieu de quatre, et une tuile déclarée
+   sale est redonnée en entier à la carte graphique. */
+function fillPoly(pts, color){
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for(const q of pts){
+    if(q[0] < x0) x0 = q[0]; if(q[0] > x1) x1 = q[0];
+    if(q[1] < z0) z0 = q[1]; if(q[1] > z1) z1 = q[1];
+  }
+  worldDraw(x0, z0, x1, z1, (c)=>{
+    c.beginPath();
+    c.moveTo(pts[0][0], pts[0][1]);
+    for(let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+    c.fillStyle = color; c.fill();
+  });
+}
 
 /* ---------- 5. GRILLE DE CULTURE ---------- */
 const CS = 1.3;                          // taille de cellule de culture
@@ -3102,13 +3140,59 @@ const idxOf = (x,z) => {
 /* ---------- 6. DÉCOR STATIQUE PEINT ---------- */
 // terre nue : aplat brun uniforme, avec le même grain que l'herbe. Pas de sillons :
 // ceux-ci n'apparaissent qu'après le passage d'un outil.
+/* UNE PARCELLE N'EST PLUS UN RECTANGLE POSÉ SUR L'HERBE, C'EST UN MORCEAU DE TERRE.
+   Ses quatre côtés suivent le même bruit que les chemins, et des mouchetures débordent
+   sur l'herbe autour.
+   L'AMPLITUDE EST BORNÉE PAR LE TERRAIN, ET C'EST MESURÉ. Il reste 1,60 m d'herbe entre
+   la terre et le sable — c'est la plus courte des marges, la voisine est à 9,60 m et le
+   bitume à 4,60. À `amp = 0,55`, la crête du bruit vaut 0,725 × 0,55 = 0,40 m : il reste
+   1,20 m. Le chemin, lui, ondule de 0,56 m au plus. Les deux ne se touchent donc jamais,
+   avec 0,64 m d'herbe au pire.
+   LA GRILLE DE CULTURE, ELLE, RESTE RECTANGULAIRE — et c'est voulu. Ce qui ondule est le
+   SOL PEINT, pas ce qui se laboure : la terre qui déborde du rectangle est un décor, et
+   l'outil qui passe dessus ne peint rien, puisque ces cellules-là sont HORS. On voit donc
+   de la terre non cultivable sur quarante centimètres de lisière, ce qu'un bord de champ
+   fait exactement dans la vraie vie. */
+const AMP_TERRE = 0.55, ECH_TERRE = 7;
+function bordParcelle(p, t, cote){
+  return ondul(t + cote*77 + p.x*3 + p.z*5, AMP_TERRE, ECH_TERRE);
+}
 function paintParcelSoil(p){
-  fillRect(p.x, p.z, p.w, p.h, '#6B4A2A', AX);
+  const x0 = p.x - p.w/2, x1 = p.x + p.w/2, z0 = p.z - p.h/2, z1 = p.z + p.h/2;
+  const bord = (t, cote)=> bordParcelle(p, t, cote);
+  const pts = [];
+  for(let x = x0; x <= x1; x += 1.2) pts.push([x, z0 + bord(x, 0)]);
+  for(let z = z0; z <= z1; z += 1.2) pts.push([x1 + bord(z, 1), z]);
+  for(let x = x1; x >= x0; x -= 1.2) pts.push([x, z1 + bord(x, 2)]);
+  for(let z = z1; z >= z0; z -= 1.2) pts.push([x0 + bord(z, 3), z]);
+  fillPoly(pts, '#6B4A2A');
+  // grain de la terre
   const n = Math.round(p.w*p.h/22);
   for(let k=0;k<n;k++){
     const x = p.x + (alea()-0.5)*p.w, z = p.z + (alea()-0.5)*p.h;
     fillRect(x, z, 0.5+alea()*1.5, 0.4+alea()*1.0,
       alea() < 0.5 ? 'rgba(255,255,255,.085)' : 'rgba(0,0,0,.12)', AX);
+  }
+  /* LES MOUCHETURES QUI DÉBORDENT SUR L'HERBE. La distance au bord suit un CARRÉ : très
+     nombreuses contre la parcelle, de plus en plus rares au loin. Semées à égale
+     distance, elles formeraient un liseré — soit une seconde ligne, l'inverse du but.
+     Et jamais sur le sable ni sur le bitume : une tache de terre au milieu d'un chemin
+     ne se lit pas comme un débord de labour, elle se lit comme une salissure. */
+  const PORTEE = 2.2;
+  const m = Math.round((p.w + p.h) / 1.6);
+  for(let k=0;k<m;k++){
+    const cote = k % 4;
+    const u = alea(), d = u*u*PORTEE;
+    let x, z;
+    if(cote === 0){ x = x0 + alea()*p.w; z = z0 + bord(x,0) - d; }
+    else if(cote === 1){ z = z0 + alea()*p.h; x = x1 + bord(z,1) + d; }
+    else if(cote === 2){ x = x0 + alea()*p.w; z = z1 + bord(x,2) + d; }
+    else { z = z0 + alea()*p.h; x = x0 + bord(z,3) - d; }
+    if(surRoute(x, z, 0.4) || onPath(x, z, 0.3)) continue;
+    const r = (0.22 + alea()*0.42) * (1 - u*0.45);
+    const q = alea();
+    fillRect(x, z, r*2, r*1.6,
+             q < 0.5 ? '#6B4A2A' : (q < 0.75 ? '#5A3D25' : '#7C5836'), alea()*Math.PI);
   }
 }
 function paintStaticGround(){
@@ -3146,7 +3230,22 @@ function paintStaticGround(){
   // chemins de sable : ils traversent les parcelles et rejoignent la route
   const path = (x,z,l,vert)=>{
     const w = PATH_W;
-    fillRect(x, z, vert?w:l, vert?l:w, C.sand, AX);
+    /* BORD ONDULÉ PLUTÔT QUE DEUX DROITES PARALLÈLES : le chemin cesse d'être un ruban
+       tracé à la règle. L'ondulation est légère — un huitième de la largeur, soit 0,56 m
+       de crête — sinon le sable paraît rongé, et il faut surtout qu'elle reste loin de
+       la terre : il n'y a que 1,60 m d'herbe entre les deux, dont la parcelle prend déjà
+       0,40. Il en reste 0,64 au pire. */
+    const AMP = w*0.12, ECH = 9;
+    const dec = (t, cote)=> ondul(t + cote*53 + (vert?x:z)*7, AMP, ECH);
+    const pts = [];
+    if(vert){
+      for(let t = -l/2; t <= l/2; t += 1.2) pts.push([x - w/2 + dec(t, 0), z + t]);
+      for(let t = l/2; t >= -l/2; t -= 1.2) pts.push([x + w/2 + dec(t, 1), z + t]);
+    } else {
+      for(let t = -l/2; t <= l/2; t += 1.2) pts.push([x + t, z - w/2 + dec(t, 0)]);
+      for(let t = l/2; t >= -l/2; t -= 1.2) pts.push([x + t, z + w/2 + dec(t, 1)]);
+    }
+    fillPoly(pts, C.sand);
     // éclats dispersés : gravillons clairs et creux sombres, aucun trait continu
     const n = Math.round(l*w/26);
     for(let k=0;k<n;k++){
@@ -8831,9 +8930,10 @@ const vitesseAvant = (d)=> Math.sqrt(VIT_PIVOT*VIT_PIVOT
    clôture avec le champ.
    Un conducteur ne fonce pas dans sa tournière : il ralentit avant de tourner. Un point
    marqué `lent` fait lever le pied quinze mètres avant, et la machine pivote court.
-   La règle est une DISTANCE AU BORD, pas une égalité de coordonnée : le plan principal et
-   le rattrapage ne rentrent pas des mêmes valeurs, et un test d'égalité ne prenait qu'un
-   des deux — c'est ce qui laissait la moitié des clôtures tomber pendant le rattrapage. */
+   La règle est une DISTANCE AU BORD, pas une égalité de coordonnée : du temps où un plan
+   de rattrapage existait, lui et le plan principal ne rentraient pas des mêmes valeurs, et
+   un test d'égalité ne prenait qu'un des deux — c'est ce qui laissait la moitié des
+   clôtures tomber pendant le rattrapage. La distance, elle, ne dépend d'aucun tracé. */
 function marquer(q, p, serre){
   const PRES = VIRAGE_BORD + 1.0;
   if((serre[0] && q.x - (p.x - p.w/2) < PRES) || (serre[2] && (p.x + p.w/2) - q.x < PRES)
@@ -8981,100 +9081,79 @@ function planAuto(m, cible){
     const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
     if(d < dMin){ dMin = d; depart = k; }
   });
-  /* ---------- UN TOUR DE PÉRIPHÉRIE, PUIS DES LIGNES ----------
-     L'escargot faisait des tours de plus en plus serrés jusqu'au centre. Il couvrait bien
-     — 94 à 100 % — mais il tournait sans arrêt : sur une parcelle de trente mètres à la
-     charrue, quatre tours complets, seize virages, et un outil traîné quatre mètres
-     derrière qui coupe chacun d'eux. C'est dans les virages que la terre se perd, et
-     c'est aussi là que la machine déborde vers la clôture.
-     Le plan demandé est celui d'un vrai fermier, et il est plus simple : UN TOUR pour
-     faire la tournière, puis DES LIGNES DROITES entre les deux tournières. Les demi-tours
-     tombent tous sur la bande de périphérie, déjà travaillée ; les lignes, elles, ne
-     tournent pas du tout.
-     Tout reste strictement orthogonal : chaque déplacement n'a qu'une coordonnée qui
-     change. Une diagonale se voit depuis la cabine, et un banc la refuse. */
+  /* ---------- L'ESCARGOT, ET RIEN D'AUTRE ----------
+     Le plan a été « une périphérie puis des lignes droites » le temps d'une version. Il
+     couvrait mieux — les demi-tours tombaient tous sur la tournière — mais le joueur veut
+     l'escargot, et il a une raison qu'aucune mesure de couverture ne dit : ON LE VOIT.
+     Une spirale qui se resserre se lit depuis la cabine, on sait à tout moment où l'on en
+     est et combien il reste ; un balayage en lignes, non.
+
+     LA RÈGLE, MOT POUR MOT : le contour d'abord, puis des tours de plus en plus serrés
+     qui REPRENNENT UN TIERS du passage précédent, jusqu'au centre ; arrivé au centre, un
+     tour sur soi-même, puis on SORT du champ sans passage supplémentaire.
+
+     ET L'ON NE CHERCHE PAS À REMPLIR. C'est demandé, et c'est ce qui change tout par
+     rapport à la version d'avant : plus de rattrapage, plus de seconde passe, plus de
+     tracé calculé pour compenser le fait que l'outil traîne derrière et coupe les
+     virages. Le dessin est le dessin ; ce qu'il laisse, il le laisse.
+
+     LE PAS EST DEUX TIERS DE LARGEUR, ce qui EST le tiers de recouvrement demandé : la
+     passe intérieure repasse sur le tiers extérieur de la précédente.
+
+     TOUT RESTE ORTHOGONAL : chaque déplacement n'a qu'une coordonnée qui change. Une
+     diagonale se voit depuis la cabine, et un banc la refuse. */
   const pts = [];
+  /* `virage` : on y tourne à l'équerre, donc on y arrive au pas. `bord` : on le valide à
+     un mètre et non à deux.
+     LA VALIDATION LARGE COUPAIT LES COINS, ET UN ESCARGOT NE LE SUPPORTE PAS. Un point
+     validé deux mètres trop tôt, sur un balayage en lignes, ne coûte rien : la ligne
+     suivante est parallèle et loin devant. Sur une spirale, le point suivant est le coin
+     d'APRÈS, à angle droit : la machine se retrouve quatre mètres en deçà de la ligne
+     qu'elle doit suivre, vise un but qui est derrière son épaule, et part en marche
+     arrière — relevé, elle sortait du champ par le coin nord-est et le garde-fou des huit
+     secondes l'abandonnait trois points de suite. */
+  const COIN = {virage:true, bord:true};
+  /* Les quatre bornes du tour courant. Après chaque côté parcouru, on rentre CE bord-là
+     d'un pas : c'est ce qui fait une spirale et non des anneaux concentriques reliés par
+     des sauts. */
+  let a0 = x0, a1 = x1, c0 = z0, c1 = z1;
+  const coinsCour = ()=> [[a0,c0],[a1,c0],[a1,c1],[a0,c1]];
   pose(pts, coins0[depart][0], coins0[depart][1]);
   let d = depart;
-  const COIN = {virage:true};                 // on y tourne à l'équerre : on y arrive au pas
-  for(let k = 0; k < 4; k++){
-    if(d === 0)      pose(pts, x1, z0, COIN); // vers l'est, le long du bord nord
-    else if(d === 1) pose(pts, x1, z1, COIN); // vers le sud, le long du bord est
-    else if(d === 2) pose(pts, x0, z1, COIN); // vers l'ouest, le long du bord sud
-    else             pose(pts, x0, z0, COIN); // vers le nord, le long du bord ouest
+  // Garde-fou : une parcelle de trente mètres au semoir fait cinq tours, soit vingt
+  // côtés. Deux cents, c'est trente fois la marge, et cela ne peut pas tourner sans fin.
+  for(let k = 0; k < 200; k++){
+    if(a1 - a0 < pas*0.5 && c1 - c0 < pas*0.5) break;
+    const C = coinsCour();
+    const suivant = C[(d + 1) % 4];
+    pose(pts, suivant[0], suivant[1], COIN);
+    // on vient de longer le bord `d` : il a été travaillé, on le rentre d'un pas
+    if(d === 0)      c0 = Math.min(c1, c0 + pas);   // on longeait le nord
+    else if(d === 1) a1 = Math.max(a0, a1 - pas);   // l'est
+    else if(d === 2) c1 = Math.max(c0, c1 - pas);   // le sud
+    else             a0 = Math.min(a1, a0 + pas);   // l'ouest
     d = (d + 1) % 4;
   }
-  /* LE BALAYAGE. Les lignes courent le long du GRAND côté : c'est le sens qui en demande
-     le moins, et chaque demi-tour est une occasion de laisser de la terre.
-     ELLES S'ARRÊTENT AU NIVEAU DE LA PÉRIPHÉRIE, pas au bord de la parcelle : la tournière
-     est déjà faite, et c'est sur elle que les demi-tours se prennent — c'est ce qui les
-     éloigne de la clôture. Elles commencent à un PAS de la ligne de périphérie, si bien
-     que l'outil, large de T.width, retombe d'un tiers sur ce qu'elle a travaillé. */
-  const surX = (x1 - x0) >= (z1 - z0);
-  const la = surX ? (z1 - z0) : (x1 - x0);
-  /* SAUF SI LES DEUX PASSES OPPOSÉES SE REJOIGNENT DÉJÀ. Le tour de périphérie couvre une
-     demi-largeur d'outil de chaque côté : si le rectangle est plus étroit qu'une largeur
-     d'outil dans un sens, il n'y a plus rien au milieu. C'est le cas de l'épandeur de
-     douze mètres sur une petite parcelle. */
-  if(la > T.width){
-    /* UN OUTIL PRESQUE AUSSI LARGE QUE LA PARCELLE. L'épandeur fait douze mètres, la
-       petite parcelle dix-neuf et demi : une fois les deux tournières faites, la bande du
-       milieu est plus étroite que le pas. `A0` passait alors DEVANT `A1`, la bande était
-       parcourue à l'envers, et deux lignes se croisaient au lieu de couvrir le milieu —
-       mesuré, 88,4 % au lieu de 94,2. Quand la bande ne tient plus un pas, une seule ligne
-       en son milieu la couvre entièrement : c'est ce que ferait n'importe qui. */
-    let A0 = (surX ? z0 : x0) + pas, A1 = (surX ? z1 : x1) - pas;
-    if(A1 < A0){ const c = ((surX ? z0 + z1 : x0 + x1))/2; A0 = c; A1 = c; }
-    /* ET LES LIGNES S'ARRÊTENT SUR LA TOURNIÈRE, PAS AU BORD DU CHAMP.
-       C'est le cœur du plan demandé, et c'est aussi ce qui sauve les clôtures. Le tour de
-       périphérie a déjà travaillé une demi-largeur d'outil vers l'intérieur : une ligne
-       qui s'arrête là rejoint EXACTEMENT ce qui est fait, sans laisser de bande ni
-       repasser pour rien. Et surtout, le demi-tour se prend alors DANS le champ.
-       Mesuré : les lignes qui allaient jusqu'à la ligne de périphérie faisaient sortir
-       l'axe jusqu'à 5,55 m de la parcelle — le demi-tour balaie large — et couchaient
-       vingt-huit tronçons de clôture sur une seule passe de charrue.
-       VIRAGE est ce que le demi-tour prend au-delà du point où il commence, relevé au
-       banc sur les quatre outils. Sur un bord adossé à une clôture, on recule d'autant,
-       moins ce que le bord laisse déjà de jeu. */
-    const VIRAGE = 6.0;
-    const cb0 = surX ? 0 : 1, cb1 = surX ? 2 : 3;
-    const r0 = Math.max(T.width/2, serre[cb0] ? VIRAGE_BORD - jeuDeBord(best, cb0) : 0);
-    const r1 = Math.max(T.width/2, serre[cb1] ? VIRAGE_BORD - jeuDeBord(best, cb1) : 0);
-    let b0 = (surX ? x0 : z0) + r0, b1 = (surX ? x1 : z1) - r1;
-    // Une parcelle trop courte pour deux tournières : les lignes se réduisent à son axe.
-    if(b1 <= b0){ const c = ((surX ? x0 + x1 : z0 + z1))/2; b0 = c; b1 = c; }
-    const ici = pts[pts.length - 1];
-    const aIci = surX ? ici.z : ici.x, bIci = surX ? ici.x : ici.z;
-    // On balaie en partant du bord où l'on vient de finir le tour : traverser la parcelle
-    // à vide pour aller commencer à l'autre bout serait un trajet pour rien.
-    const dep = Math.abs(aIci - A0) <= Math.abs(aIci - A1) ? A0 : A1;
-    const fin = (dep === A0) ? A1 : A0;
-    const n = Math.max(1, Math.ceil(Math.abs(fin - dep)/pas));
-    const versB0 = Math.abs(bIci - b0) < Math.abs(bIci - b1);
-    /* LE RACCORD SE PREND À L'ÉQUERRE, EN DEUX TEMPS.
-       Le tour de périphérie finit sur son coin de départ ; la première ligne, elle,
-       commence RENTRÉE des deux côtés — d'un pas sur son axe, d'une tournière sur sa
-       longueur. Relier les deux directement, c'est une DIAGONALE : deux coordonnées qui
-       changent en même temps. Elle se voit depuis la cabine, un banc la refuse, et la
-       machine la prend en biais en balayant large — mesuré, jusqu'à cinq mètres et demi
-       hors de la parcelle, de quoi coucher la clôture.
-       On longe donc d'abord le bord jusqu'au bout de la première ligne, puis on rentre :
-       chaque déplacement n'a qu'une coordonnée qui change. */
-    const u0 = versB0 ? b0 : b1;
-    if(surX) pose(pts, u0, aIci, COIN); else pose(pts, aIci, u0, COIN);
-    let vb = versB0;
-    /* LES DEUX BOUTS DE CHAQUE LIGNE SONT DES VIRAGES. C'est là que se prend le
-       demi-tour, et c'est la seule chose qui manquait au plan : la machine arrivait au
-       bout de sa ligne PLEIN GAZ — `viser` ne lève le pied qu'une fois le cap faussé,
-       donc après avoir dépassé le point — et virait sur six mètres de rayon là où il
-       en fallait un et demi. Elle ratait la ligne suivante et devait manœuvrer. */
-    for(let k = 0; k <= n; k++){
-      const a = dep + (fin - dep)*k/n;
-      const u = vb ? b0 : b1, w2 = vb ? b1 : b0;
-      if(surX){ pose(pts, u, a, COIN); pose(pts, w2, a, COIN); }
-      else    { pose(pts, a, u, COIN); pose(pts, a, w2, COIN); }
-      vb = !vb;
-    }
+  /* ET AU CENTRE, UN TOUR SUR SOI-MÊME. La spirale finit sur un point, et l'engin s'y
+     arrêterait net, en travers de sa dernière passe. Un tour complet le remet dans l'axe
+     de la sortie et ferme le dessin — c'est ce que fait un conducteur qui a fini.
+     Le rayon est celui que la machine tourne le plus court, `VIT_PIVOT / turn` : plus
+     serré, elle ne suit pas ; plus large, elle ressort de la parcelle par le milieu. */
+  {
+    const fin0 = pts[pts.length - 1];
+    const R = Math.max(1.2, Math.min(VIT_PIVOT/Math.max(0.6, v.turn),
+                                     Math.min(best.w, best.h)/2 - 1.0));
+    /* ET LE TOUR RESTE DANS LA TERRE. Il se prend autour du dernier point, qui est au
+       centre sur une parcelle normale — mais sur une petite parcelle travaillée par un
+       outil très large, le rectangle de travail est déjà réduit à rien et ce dernier
+       point tombe près d'un bord. Sans borne, le tour sortait alors l'axe du tracteur
+       de quarante centimètres hors du champ ; on le rabat donc sur le rectangle, et si
+       celui-ci est plat, le tour se réduit à un point et disparaît à l'élagage. */
+    const cx = (q)=> Math.max(Math.min(x0, x1), Math.min(Math.max(x0, x1), q));
+    const cz = (q)=> Math.max(Math.min(z0, z1), Math.min(Math.max(z0, z1), q));
+    for(const [dx, dz] of [[R, 0], [R, R*2], [-R, R*2], [-R, 0]])
+      pose(pts, cx(fin0.x + dx), cz(fin0.z + dz), COIN);
+    pose(pts, cx(fin0.x), cz(fin0.z), COIN);
   }
   // Deux points confondus font tourner l'engin sur place : on les élague.
   const net = pts.filter((q, k)=> k === 0 ||
@@ -9113,76 +9192,17 @@ function resteCellules(T, p){
   }
   return R;
 }
-/* LE RATTRAPAGE. Une fois l'escargot fini, on regarde ce qui n'a pas été travaillé —
-   et il en reste toujours un peu : l'outil est traîné quatre à six mètres derrière le
-   tracteur et coupe les virages. On ne refait pas la parcelle : on trace des LIGNES
-   DROITES sur l'emprise de ce qui reste, et — c'est tout l'intérêt — on les fait
-   dépasser franchement de part et d'autre, de sorte que les demi-tours, seul endroit
-   où l'outil ne suit pas, se prennent EN DEHORS de ce qu'il faut rattraper. Un tour
-   d'escargot resserré sur les trous avait été essayé : il faisait moins bien, parce
-   qu'il virait précisément là où il fallait travailler. */
-function planRattrapage(m, p){
-  const T = toolOf(m), v = m.v;
-  const R = resteCellules(T, p);
-  if(!R.n) return null;
-  const pas = T.width*(2/3);            // la même que l'escargot, sans quoi les deux divergent
-  /* ET LE MÊME RENTRÉ, POUR LA MÊME RAISON. Les lignes de rattrapage débordaient de
-     quinze centimètres au-delà du bord : le tracteur finissait donc l'axe posé sur la
-     limite, et sur les trois colonnes de parcelles que longe la clôture de la ferme il
-     s'y retrouvait à un mètre quatre-vingt-dix d'un mur de collision situé à deux vingt-
-     cinq — cerné, sans une seule voie libre pour ressortir. Relevé : la charrue
-     s'arrêtait à six centimètres du champ, outil entièrement dedans. Un sixième de
-     largeur rentré, comme l'escargot, et la sortie redevient possible. */
-  /* LE MÊME RETRAIT QUE LE PLAN PRINCIPAL, ET BORD PAR BORD. Le rattrapage rentrait d'un
-     sixième de largeur partout, comme l'escargot avant lui : ses lignes finissaient donc
-     l'axe posé sur la limite, et sur les trois colonnes que longe la clôture de la ferme
-     il la couchait. Il partage maintenant `retraitsDe` avec le plan principal — deux
-     tracés qui rentrent différemment finiraient toujours par diverger. */
-  const ret = retraitsDe(p, T);
-  const DEHORS = T.width*0.5 + (T.hitch || 2) + (T.L || 2) + 1.5;   // de quoi virer au large
-  const surX = (R.x1 - R.x0) >= (R.z1 - R.z0);
-  // Les lignes courent le long du grand côté de ce qui reste ; elles se décalent
-  // le long de l'autre. Tout est borné par l'enveloppe de la parcelle, débord compris :
-  // on ne va pas rattraper trois cellules au prix d'un tour dans la clôture d'à côté.
-  /* ET LES LIGNES ELLES-MÊMES RENTRENT, PAS SEULEMENT LEURS BOUTS.
-     `lim0`/`lim1` bornaient la LONGUEUR des lignes ; leur POSITION, elle, venait tout
-     droit de la boîte des cellules restantes, qui touche le bord de la parcelle. Une
-     ligne de rattrapage pouvait donc être tracée à cinquante centimètres du bord, et le
-     tracteur la suivait le nez dans la clôture. Mesuré : la moitié des clôtures couchées
-     venaient de là, pas du plan principal. */
-  const aL0 = (surX ? p.z - p.h/2 : p.x - p.w/2) + ret[surX ? 1 : 0];
-  const aL1 = (surX ? p.z + p.h/2 : p.x + p.w/2) - ret[surX ? 3 : 2];
-  const aMil = (aL0 + aL1)/2;
-  const dans = (u)=> (aL1 <= aL0) ? aMil : Math.max(aL0, Math.min(aL1, u));
-  const a0 = dans(surX ? R.z0 : R.x0), a1 = dans(surX ? R.z1 : R.x1);
-  const lim0 = (surX ? p.x - p.w/2 : p.z - p.h/2) + ret[surX ? 0 : 1];
-  const lim1 = (surX ? p.x + p.w/2 : p.z + p.h/2) - ret[surX ? 2 : 3];
-  const b0 = Math.max(lim0, (surX ? R.x0 : R.z0) - DEHORS);
-  const b1 = Math.min(lim1, (surX ? R.x1 : R.z1) + DEHORS);
-  const n = Math.max(1, Math.ceil((a1 - a0)/pas));
-  const pts = [];
-  // Les mêmes coins à ralentir que dans le plan principal : le rattrapage longe les mêmes
-  // bords, et il couchait la clôture pour exactement la même raison.
-  const serreR = [0, 1, 2, 3].map((c)=> jeuDeBord(p, c) < VIRAGE_BORD);
-  const poseR = (x, z)=>{ pts.push(marquer({x:x, z:z}, p, serreR)); };
-  /* ON COMMENCE PAR LE BOUT LE PLUS PROCHE. Sans ça l'engin traverse ce qu'il vient de
-     travailler en diagonale pour aller se placer au coin opposé. */
-  const versFin = Math.abs(v.pos[surX ? 'z' : 'x'] - a1) < Math.abs(v.pos[surX ? 'z' : 'x'] - a0);
-  for(let k = 0; k <= n; k++){
-    const a = a0 + (a1 - a0)*(versFin ? n - k : k)/n;
-    const u = (k % 2 === 0) ? b0 : b1, w2 = (k % 2 === 0) ? b1 : b0;
-    if(surX){ poseR(u, a); poseR(w2, a); } else { poseR(a, u); poseR(a, w2); }
-  }
-  /* ET L'ON ARRIVE AU PAS SUR LE PREMIER POINT. Un plan de rattrapage se pose `entre`
-     d'office : la machine ne repasse pas par la route, elle file droit de là où elle
-     vient jusqu'au début des lignes — et elle coupe au plus court, c'est-à-dire le long
-     du bord. Les deux dernières clôtures qui tombaient tombaient là, jamais pendant le
-     travail lui-même. On lève le pied sur ce trajet-là aussi. */
-  if(pts.length && serreR.some(Boolean)) pts[0].lent = true;
-  const net = pts.filter((q, k)=> k === 0 ||
-    Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 0.05);
-  return {pts:net, i:0, replans:0, p:p, reste:R.n, rattrape:true, entre:true};
-}
+/* IL N'Y A PLUS DE RATTRAPAGE, ET C'EST UNE DEMANDE.
+   Une fonction de quatre-vingts lignes traçait des lignes droites sur l'emprise de ce
+   qui restait, une fois l'escargot fini. Elle faisait bien son travail — le pire cas
+   passait de 88 % à 94 de couverture — mais elle coûtait jusqu'à sept traversées de la
+   parcelle pour rattraper trois coins, et le joueur ne veut pas de ces passages-là :
+   « n'essaie pas de chercher à remplir complètement le champ ». Elle est retirée plutôt
+   que gardée en dormance : une fonction que rien n'appelle est une fonction qui ment sur
+   ce que le pilote fait. Ce qu'elle savait faire est écrit ici, si l'on veut la refaire :
+   emprise de ce qui reste, lignes droites qui DÉBORDENT franchement de part et d'autre
+   pour que les demi-tours — seul endroit où l'outil traîné ne suit pas — se prennent en
+   dehors du travail à rattraper. */
 /* ET L'ON FINIT DEHORS. Le dernier point de l'escargot tombe sur un bord ; l'engin s'y
    arrêtait net, à cheval sur la dernière rangée qu'il venait de travailler, et il
    fallait le dégager à la main pour repartir. On ajoute un point franchement hors de
@@ -9308,8 +9328,8 @@ function pointSortie(p, fin, avant, sup, sauf){
    poussait alors contre l'obstacle indéfiniment, moteur au ralenti, plan gelé. Mesuré :
    quatre cent secondes de jeu sans avancer d'un point. On surveille donc la distance au
    point visé ; si elle ne descend plus pendant huit secondes, on abandonne ce point et
-   l'on passe au suivant. Ce qui n'a pas été travaillé là, le rattrapage de fin de passe
-   le retrouvera. */
+   l'on passe au suivant. Ce qui n'a pas été travaillé là reste à faire : on ne repasse
+   plus (voir plus bas), et c'est une passe perdue plutôt qu'une machine bloquée. */
 function pointPerdu(v, wp, dt){
   const plan = v.plan;
   if(!plan) return false;
@@ -9321,9 +9341,10 @@ function pointPerdu(v, wp, dt){
   plan.veilleT = (plan.veilleT || 0) + dt;
   return plan.veilleT > 8;
 }
-/* LA FIN D'UNE PASSE, EN DEUX TEMPS : on vérifie, puis on ressort.
-   Rend `true` tant que le plan a encore quelque chose à faire faire — un rattrapage
-   de plus, ou la sortie de parcelle — et `false` quand c'est vraiment fini.
+/* LA FIN D'UNE PASSE : on ressort.
+   Rend `true` tant que le plan a encore quelque chose à faire faire — c'est-à-dire, depuis
+   qu'il n'y a plus de rattrapage, la seule sortie de parcelle — et `false` quand c'est
+   vraiment fini.
 
    ON NE REVIENT PLUS SUR SES PAS. « Une fois qu'il a fini les passages jusqu'au bout de
    la parcelle, il faut s'arrêter et sortir de la parcelle, pas revenir encore une fois. »
@@ -9338,22 +9359,18 @@ function pointPerdu(v, wp, dt){
    bout laisse entre 0 et 10,7 % de la terre, 4,7 % en moyenne. Au-delà de QUINZE POUR
    CENT ce n'est plus un reliquat de virages, c'est du travail qui ne s'est pas fait : on
    repasse une fois, et une seule. */
+/* ET L'ON NE REPASSE PLUS DU TOUT. « N'essaie pas de chercher à remplir complètement le
+   champ » : c'est demandé, et c'est cohérent avec l'escargot. La spirale laisse ce que
+   tout escargot laisse — les coins que l'outil traîné coupe, quelques cellules au centre
+   — et l'on s'en va. Repasser pour trois coins, c'était traverser la parcelle sept fois
+   pour en rattraper deux ; le joueur n'en veut pas, et le dessin est plus lisible sans.
+   `SEUIL_REPASSE` reste écrit : `resteCellules` s'en sert encore pour dire à l'écran
+   combien il reste, et un banc mesure ce reste. Ce n'est plus une décision, c'est un
+   chiffre. */
 const SEUIL_REPASSE = 0.15;
 function finDePlan(m){
   const v = m.v, plan = v.plan;
   if(!plan || plan.sorti) return false;
-  if((plan.replans || 0) < 1){
-    const T0 = toolOf(m), R0 = resteCellules(T0, plan.p);
-    if(R0.total > 0 && R0.n/R0.total > SEUIL_REPASSE){
-      const r = planRattrapage(m, plan.p);
-      if(r){
-        r.replans = (plan.replans || 0) + 1;
-        v.plan = r;
-        showHint('IL RESTE DU TRAVAIL — ON REPASSE');
-        return true;
-      }
-    }
-  }
   /* DEUX ESSAIS DE SORTIE, PAS UN. Le point de sortie est choisi sur ce que `voieLibre`
      autorise, mais la voie se juge en ligne droite : une machine qui l'aborde de travers
      peut buter sur ce que la ligne évitait, et le garde-fou des huit secondes l'abandonne
@@ -9363,7 +9380,7 @@ function finDePlan(m){
   if(plan.sorti > 2) return false;
   /* LA SORTIE SE CALCULE D'OÙ LA MACHINE EST, PAS D'OÙ LE PLAN FINISSAIT. Elle partait
      du dernier point du tracé — or l'engin ne l'atteint pas toujours : il abandonne un
-     point qu'il ne peut pas rejoindre, ou le rattrapage s'arrête ailleurs. Relevé sur
+     point qu'il ne peut pas rejoindre. Relevé sur
      l'épandeur : le plan finissait au coin ouest, la machine était au coin EST, et on
      lui demandait de traverser dix-huit mètres en diagonale pour sortir par un bord
      qu'elle avait dans le dos. Elle pivotait sur place jusqu'au garde-fou des huit
@@ -9956,6 +9973,13 @@ const TRAFIC_MODELES = (function(){
      note le MILIEU : à trente mètres, une rampe de toit se lit comme une seule lueur, et
      deux billes à quarante centimètres l'une de l'autre coûteraient le double pour ne
      rien montrer de plus. */
+  /* LA ROBE D'UN MODÈLE : la couleur de sa carrosserie, et l'accent qui l'accompagne
+     — la bande de toit d'un autocar, le rail de porte d'un monospace. On la NOTE en la
+     posant, comme les optiques : c'est elle, et elle seule, qu'une variante remplace.
+     Les vitres, les pneus, les jantes, le chrome, les feux et le chargement gardent
+     leur couleur — une berline verte n'a pas des vitres vertes. */
+  let _robePosee = null;
+  function robe(corps, accent){ _robePosee = {corps:corps, accent:accent}; return corps; }
   let _gyroPose = null;
   function gyro(P, x, y, z, c, milieu){
     P.push(B(0.5, 0.12, 0.3, GRIS, x, y, z));
@@ -9987,7 +10011,7 @@ const TRAFIC_MODELES = (function(){
 
   // 1 — Berline : trois volumes, habitacle droit, vitres à hauteur unique.
   function berline(){
-    const C = 0x2E6BA8, P = [];
+    const C = robe(0x2E6BA8), P = [];
     P.push(slab({w:1.9, h:0.62, d:4.4, tw:1.85, td:4.3, c:C, y:0.42}));
     serre(P, 1.72, 0.74, 2.4, C, 1.02, -0.15, 2);
     P.push(B(1.94, 0.16, 0.4, 0x2A2E32, 0, 0.42, 2.2));
@@ -9998,7 +10022,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 2 — Break familial : plus long, trois baies latérales, galerie et bagage sanglé.
   function breakFamilial(){
-    const C = 0x8E4436, P = [];
+    const C = robe(0x8E4436), P = [];
     P.push(slab({w:1.92, h:0.66, d:4.7, tw:1.88, td:4.6, c:C, y:0.4}));
     serre(P, 1.76, 0.82, 3.1, C, 1.06, -0.5, 3);
     P.push(B(1.7, 0.1, 2.2, GRIS, 0, 1.88, -0.6));
@@ -10011,7 +10035,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 3 — Citadine : courte et haute, la plus petite du trafic.
   function citadine(){
-    const C = 0xE8C24A, P = [];
+    const C = robe(0xE8C24A), P = [];
     P.push(slab({w:1.76, h:0.6, d:3.5, tw:1.7, td:3.4, c:C, y:0.38}));
     serre(P, 1.6, 0.7, 2.0, C, 0.98, -0.2, 2);
     P.push(B(1.8, 0.14, 0.34, 0x2A2E32, 0, 0.38, 1.74));
@@ -10021,7 +10045,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 4 — Bétaillère : caisse à claire-voie, cabine vitrée, roues jumelées.
   function betaillere(){
-    const CAB = 0x3E6B4E, CAISSE = 0xC9CFD3, P = [];
+    const CAB = robe(0x3E6B4E), CAISSE = 0xC9CFD3, P = [];
     P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
@@ -10038,7 +10062,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 5 — Plateau à bottes : six bottes rondes sanglées.
   function plateauBottes(){
-    const CAB = 0x8E8172, PAILLE = 0xD9C48A, P = [];
+    const CAB = robe(0x8E8172), PAILLE = 0xD9C48A, P = [];
     P.push(B(2.2, 0.34, 7.4, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.5);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.6));
@@ -10057,7 +10081,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 6 — Monospace : un seul volume, museau court, grandes vitres.
   function monospace(){
-    const C = 0x7A5F8E, P = [];
+    const C = robe(0x7A5F8E, 0x6A5180), P = [];
     P.push(B(2.0, 0.3, 4.8, CHASSIS, 0, 0.44, 0));
     // Ceinture de caisse HAUTE : les vitres ne descendent pas jusqu'aux passages de roues.
     P.push(B(1.96, 0.76, 4.7, C, 0, 0.8, 0));
@@ -10085,7 +10109,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 7 — Pick-up : cabine courte et plateau ouvert à ridelles.
   function pickup(){
-    const C = 0x2F5D4A, P = [];
+    const C = robe(0x2F5D4A), P = [];
     P.push(B(2.0, 0.34, 5.0, CHASSIS, 0, 0.5, 0));
     P.push(slab({w:1.96, h:0.64, d:2.3, tw:1.9, td:2.2, c:C, y:0.44, z:1.5}));
     serre(P, 1.86, 0.92, 1.5, C, 1.08, 1.0, 1);
@@ -10100,7 +10124,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 8 — Fourgon de livraison : caisse haute nervurée, marquage latéral.
   function fourgon(){
-    const C = 0xF2EAD8, P = [];
+    const C = robe(0xF2EAD8), P = [];
     P.push(B(2.0, 0.3, 5.4, CHASSIS, 0, 0.5, 0));
     cabine(P, 2.0, 1.5, 1.9, C, 0.62, 1.7);
     caisseFermee(P, 2.06, 2.0, 3.5, C, 0.62, -0.85, 4);
@@ -10112,7 +10136,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 9 — Camion à caisse : cabine rouge, caisse crème, jumelage arrière.
   function camionCaisse(){
-    const CAB = ROUGE, CAISSE = 0xEFE7D6, P = [];
+    const CAB = robe(ROUGE), CAISSE = 0xEFE7D6, P = [];
     P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
@@ -10126,7 +10150,7 @@ const TRAFIC_MODELES = (function(){
      une rotation autour de X, pas de Z : tournée sur Z, la citerne se mettrait en
      travers de la route. */
   function citerneLait(){
-    const CAB = BLEU, P = [];
+    const CAB = robe(BLEU), P = [];
     P.push(B(2.2, 0.34, 7.2, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.4);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.5));
@@ -10147,7 +10171,7 @@ const TRAFIC_MODELES = (function(){
      même. Une largeur par bloc, cinq nombres, et c'est réglé. */
   const GRAVIER = [0.86, 0.62, 0.74, 0.55, 0.80];
   function benne(){
-    const CAB = JAUNE, CAISSE = 0x8E8172, P = [];
+    const CAB = robe(JAUNE), CAISSE = 0x8E8172, P = [];
     P.push(B(2.2, 0.34, 6.4, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.0);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.1));
@@ -10166,7 +10190,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 12 — Autocar de village : six baies vitrées, pavillon marqué, girouette.
   function autocar(){
-    const C = 0xE0A02E, P = [];
+    const C = robe(0xE0A02E, 0xC98C22), P = [];
     P.push(B(2.3, 0.34, 8.4, CHASSIS, 0, 0.58, 0));
     serre(P, 2.4, 2.5, 8.2, C, 0.72, 0, 6);
     P.push(B(2.44, 0.24, 8.0, 0xC98C22, 0, 3.24, 0));
@@ -10178,7 +10202,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 13 — Camping-car : la cabine dépasse, la cellule la coiffe d'une capucine.
   function campingCar(){
-    const C = 0xF4F0E4, P = [];
+    const C = robe(0xF4F0E4, 0xD8D2C0), P = [];
     P.push(B(2.1, 0.32, 6.6, CHASSIS, 0, 0.52, 0));
     cabine(P, 2.1, 1.5, 1.9, C, 0.64, 2.2);
     P.push(B(2.2, 2.3, 4.4, C, 0, 1.79, -0.7));
@@ -10196,7 +10220,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 14 — Camion de pompiers : volets roulants, échelle sur le toit, rampe bleue.
   function pompiers(){
-    const C = 0xB8342A, P = [];
+    const C = robe(0xB8342A, 0x8E2A22), P = [];
     P.push(B(2.2, 0.34, 6.8, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.4, C, 0.79, 2.0);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.3));
@@ -10219,7 +10243,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 15 — Fourgonnette postale : jaune, caisse courte, un gyrophare.
   function postale(){
-    const C = JAUNE, P = [];
+    const C = robe(JAUNE), P = [];
     P.push(B(1.9, 0.3, 4.4, CHASSIS, 0, 0.46, 0));
     cabine(P, 1.9, 1.25, 1.6, C, 0.56, 1.3);
     caisseFermee(P, 1.94, 1.6, 2.6, C, 0.56, -0.85, 3);
@@ -10232,7 +10256,7 @@ const TRAFIC_MODELES = (function(){
   }
   // 16 — Dépanneuse : plateau incliné, treuil et câble, gyrophare orange.
   function depanneuse(){
-    const C = ORANGE, P = [];
+    const C = robe(ORANGE), P = [];
     P.push(B(2.1, 0.32, 6.2, CHASSIS, 0, 0.56, 0));
     cabine(P, 2.14, 1.8, 2.0, C, 0.7, 1.9);
     P.push(B(2.2, 0.22, 0.48, GRIS, 0, 0.58, 3.0));
@@ -10250,26 +10274,102 @@ const TRAFIC_MODELES = (function(){
   const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace,
                    pickup, fourgon, camionCaisse, citerneLait, benne, autocar,
                    campingCar, pompiers, postale, depanneuse];
-  const geos = [], optiques = [], gyros = [];
+  const geos = [], optiques = [], gyros = [], robes = [];
   for(const f of modeles){
-    _feuxPoses = null; _gyroPose = null;
+    _feuxPoses = null; _gyroPose = null; _robePosee = null;
     geos.push(mergeParts(f()));
-    optiques.push(_feuxPoses); gyros.push(_gyroPose);
+    optiques.push(_feuxPoses); gyros.push(_gyroPose); robes.push(_robePosee);
   }
-  return {geos:geos, feux:optiques, gyros:gyros};
+  return {geos:geos, feux:optiques, gyros:gyros, robes:robes};
 })();
 const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
       TRAFIC_GYROS = TRAFIC_MODELES.gyros;
+/* ---------- LES ROBES ----------
+   Seize modèles, c'est seize voitures. Or on ne croise pas seize voitures dans un
+   village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
+   Chaque modèle reçoit donc DEUX robes de plus, et la sienne est tirée à la naissance.
+
+   ET UNE ROBE NE COÛTE QUE SA COULEUR. Une géométrie fusionnée porte trois tableaux —
+   positions, normales, couleurs — et deux robes du même modèle ne diffèrent que par le
+   troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
+   d'attribut dans deux géométries, et le processeur graphique ne téléverse le sommet
+   qu'une fois. Une robe coûte un tiers d'un modèle, et non un modèle entier — mesuré,
+   434 Kio pour les seize contre 579 pour les quarante-quatre.
+
+   La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
+   les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
+   l'ACCENT suit la robe dans le même rapport qu'il suivait la couleur d'origine : la
+   bande de toit d'un autocar ambre est d'un ambre plus sombre, celle d'un autocar rouge
+   sera d'un rouge plus sombre, sans qu'on ait à l'écrire.
+
+   DEUX MODÈLES N'ONT QU'UNE ROBE, et c'est voulu : un camion de pompiers est rouge et
+   une fourgonnette postale est jaune. Ce n'est pas une couleur, c'est une livrée. */
+const ROBES_TRAFIC = [
+  [0x9C3B33, 0xD8D2C4],           // berline : bordeaux, crème
+  [0x3B5E4A, 0x4A5560],           // break : vert forêt, ardoise
+  [0xC0392B, 0x7FA8C0],           // citadine : rouge, bleu ciel
+  [0x8E5A2B, 0xB8B2A4],           // bétaillère : brun, gris clair
+  [0x2F6B8E, 0xA8443A],           // plateau à bottes : bleu, brique
+  [0x37474F, 0xBFC6CC],           // monospace : anthracite, argent
+  [0x1E2A30, 0xC26A2A],           // pick-up : noir bleuté, orange
+  [0x3E7CB8, 0xD9DDE0],           // fourgon : bleu, blanc gris
+  [0x2F6B8E, 0x4A5560],           // camion à caisse : bleu, ardoise
+  [0xD8D2C0, 0x9AA2A7],           // citerne à lait : crème, inox
+  [0xE07B24, 0x8E4436],           // benne : orange, brique
+  [0xB8342A, 0x3B6E9C],           // autocar : rouge, bleu
+  [0xE4DCC0, 0xCFD6DA],           // camping-car : sable, gris perle
+  [],                             // pompiers : une livrée, pas une couleur
+  [],                             // postale : idem
+  [0x2F6B8E, 0xC0392B]            // dépanneuse : bleu, rouge
+];
+const TRAFIC_ROBES = (function(){
+  const _c = new THREE.Color(), _v = new THREE.Color(), _a = new THREE.Color();
+  return TRAFIC_GEOS.map((g, k)=>{
+    const R = TRAFIC_MODELES.robes[k], liste = [g];
+    if(!R) return liste;
+    _c.set(R.corps);
+    const aOrig = R.accent === undefined ? null : new THREE.Color(R.accent);
+    // Le rapport de l'accent à la robe, canal par canal : c'est lui qu'on reporte.
+    const rap = aOrig ? [aOrig.r/Math.max(1e-4, _c.r), aOrig.g/Math.max(1e-4, _c.g),
+                         aOrig.b/Math.max(1e-4, _c.b)] : null;
+    const src = g.attributes.color.array;
+    for(const teinte of (ROBES_TRAFIC[k] || [])){
+      _v.set(teinte);
+      if(rap) _a.setRGB(Math.min(1, _v.r*rap[0]), Math.min(1, _v.g*rap[1]),
+                        Math.min(1, _v.b*rap[2]));
+      const col = new Float32Array(src);
+      for(let i = 0; i < col.length; i += 3){
+        if(Math.abs(col[i] - _c.r) < 1e-3 && Math.abs(col[i+1] - _c.g) < 1e-3
+                                          && Math.abs(col[i+2] - _c.b) < 1e-3){
+          col[i] = _v.r; col[i+1] = _v.g; col[i+2] = _v.b;
+        } else if(aOrig && Math.abs(col[i] - aOrig.r) < 1e-3
+                        && Math.abs(col[i+1] - aOrig.g) < 1e-3
+                        && Math.abs(col[i+2] - aOrig.b) < 1e-3){
+          col[i] = _a.r; col[i+1] = _a.g; col[i+2] = _a.b;
+        }
+      }
+      const v = new THREE.BufferGeometry();
+      // Positions et normales PARTAGÉES : ce sont les mêmes sommets, à la couleur près.
+      v.setAttribute('position', g.attributes.position);
+      v.setAttribute('normal', g.attributes.normal);
+      v.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      v.boundingBox = g.boundingBox; v.boundingSphere = g.boundingSphere;
+      liste.push(v);
+    }
+    return liste;
+  });
+})();
 /* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Seize modèles tirés à égalité feraient passer un
    camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les seize
    voitures : une rocade de village n'a pas cette allure. Les poids se lisent comme un
    pourcentage — ils font cent — et ils tiennent dans l'esprit des deux autres tirages du
    trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts écrites en clair.
-   Voitures 56 %, utilitaires 11 %, camions de travail 23 %, car et camping-car 7 %,
-   secours et dépannage 3 %. */
-const POIDS_TRAFIC = [14, 11, 13,  5,  5,  9,      // berline, break, citadine, bétaillère, bottes, monospace
-                       9,  8,  5,  4,  4,  4,      // pick-up, fourgon, caisse, citerne, benne, autocar
-                       3,  1,  3,  2];             // camping-car, pompiers, postale, dépanneuse
+   Et les gros roulent MOINS. Sur une route de campagne on croise des voitures ; un
+   camion-benne, un autocar, une dépanneuse sont des événements. Voitures 64 %,
+   utilitaires 10 %, camions de travail 18 %, car et camping-car 6 %, secours 2 %. */
+const POIDS_TRAFIC = [17, 13, 16,  4,  4,  9,      // berline, break, citadine, bétaillère, bottes, monospace
+                       9,  8,  4,  3,  3,  3,      // pick-up, fourgon, caisse, citerne, benne, autocar
+                       3,  1,  2,  1];             // camping-car, pompiers, postale, dépanneuse
 /* ET L'ALLURE DE CHACUN. Un autocar, un camping-car et un camion-benne ne roulent pas
    comme une citadine — mais L'ÉVENTAIL RESTE ÉTROIT, entre 0,90 et 1,05, et c'est une
    contrainte et non un goût : sur trois cent cinquante mètres de file, une voiture rapide
@@ -10283,6 +10383,15 @@ const ALLURE_TRAFIC = [1.05, 1.00, 1.04, 0.92, 0.92, 1.00,
 const PORTEUR_TRAFIC = [false, false, false, true, true, false,
                         false, false, true, true, true, true,
                         false, true, false, true];
+/* ET LES DIX DERNIERS ARRIVÉS PÈSENT UN PEU PLUS. Les six modèles d'origine avaient été
+   dessinés à une échelle qui leur est propre : leurs deux camions font 3,81 m de large,
+   là où les dix nouveaux plafonnent à 3,76 et descendent à 3,40 pour la dépanneuse. Sur
+   la route, à côté d'une bétaillère, ils avaient l'air fins. Huit pour cent les remettent
+   au même poids — la marge est là : le plus large monte à 4,06 m quand deux semis, qui
+   sont ce que la rocade admet de plus gros, en font 4,85. */
+const TAILLE_TRAFIC = [1, 1, 1, 1, 1, 1,
+                       1.08, 1.08, 1.08, 1.08, 1.08, 1.08,
+                       1.08, 1.08, 1.08, 1.08];
 const POIDS_TOTAL = POIDS_TRAFIC.reduce((a, b)=> a + b, 0);
 function tirerModele(){
   let r = Math.random()*POIDS_TOTAL;
@@ -10667,19 +10776,39 @@ function conflitTrafic(R2, v, t0, avant, arriere, u){
   return false;
 }
 /* LA SELLETTE ET LE TIMON. `TIMON_TRAFIC` est la distance de la sellette à l'essieu de la
-   remorque : c'est lui qui décide de combien elle coupe le virage. */
-const SELLETTE_TRAFIC = 1.6*ECH_TRAFIC;
+   remorque : c'est lui qui décide de combien elle coupe le virage.
+   LA SELLETTE RECULE, PARCE QUE LA CITERNE ENTRAIT DANS LA CABINE. Mesuré sur la
+   géométrie : le dos de la cabine est à z = −3,00 et le nez du fût à −2,78 une fois la
+   sellette déduite — VINGT-DEUX CENTIMÈTRES, et les deux caisses n'ont pas la même
+   suspension : elles tanguent chacune de son côté et se traversent au premier dos d'âne.
+   Il en faut assez pour que le coin avant du fût passe même quand l'attelage se plie :
+   ce coin est à 2,50 m de l'axe, il avance donc de 2,50·sin θ quand la remorque prend
+   un angle θ. À un mètre de jeu, l'attelage tient jusqu'à vingt-trois degrés. */
+const SELLETTE_TRAFIC = 2.35*ECH_TRAFIC;
 let TIMON_TRAFIC = 8.0*ECH_TRAFIC;
 // Un objet de travail pour la remorque : la suspension lit et écrit `roll`, `pitch`…
 const _susRem = {roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0};
 /* ---------- LE VIVIER, ET CE QUI L'ALIMENTE ----------
    Les places sont créées une fois pour toutes et RECYCLÉES : une place inoccupée est
    simplement invisible et ne coûte rien au rendu. On change la géométrie du maillage à
-   chaque naissance — c'est ce qui permet d'avoir vingt-huit places pour dix-sept modèles
-   sans fabriquer vingt-huit carrosseries. */
-const POOL_TRAFIC = 28;
-const PART_LOURD = 0.16;                        // un attelage tous les six véhicules
-const CADENCE_MIN = 7, CADENCE_MAX = 16;        // secondes entre deux départs sur UNE file
+   chaque naissance — c'est ce qui permet d'avoir dix-huit places pour dix-sept modèles
+   sans fabriquer dix-huit carrosseries.
+   ET LE VIVIER SUIT LA CADENCE. Il en tenait vingt-huit, calibré sur une rocade qui
+   sortait une voiture toutes les onze secondes ; à trente-quatre, mesuré sur dix minutes,
+   il n'y a JAMAIS plus de TREIZE véhicules vivants à la fois, 9,2 en moyenne. Dix places
+   dormantes, c'est cent quarante et un objets de plus à traverser dans la scène à chaque
+   image pour ne rien montrer. Dix-huit laissent cinq places de marge au pire cas, et pas
+   un départ n'a été refusé faute de place sur la mesure. */
+const POOL_TRAFIC = 18;
+/* LA ROCADE D'UN VILLAGE, PAS D'UNE NATIONALE. Elle sortait une voiture toutes les sept à
+   seize secondes sur chacune des quatre routes, et un attelage articulé sur six : dix-huit
+   véhicules en vue en permanence, ce qui est le trafic d'une rocade urbaine aux heures de
+   pointe. On divise la cadence PAR TROIS — vingt et une à quarante-huit secondes — et l'on
+   raréfie le semi d'autant : un sur quatorze au lieu d'un sur six. Ce qui reste est ce
+   qu'on voit d'une ferme : une voiture qui passe de temps en temps, et un camion qu'on
+   remarque parce qu'il est rare. */
+const PART_LOURD = 0.07;                        // un attelage tous les quatorze véhicules
+const CADENCE_MIN = 21, CADENCE_MAX = 48;       // secondes entre deux départs sur UNE file
 const PORTEE_FAISCEAU = 95;                     // au-delà, on n'allume plus les cônes
 function dimsTrafic(geo, ech){
   if(!geo.boundingBox) geo.computeBoundingBox();
@@ -10693,11 +10822,13 @@ function dimsTrafic(geo, ech){
    le bon faisceau. */
 const DIM_LEGER = [], CONE_TRAFIC = [], PENTE_TRAFIC = [];
 for(let k = 0; k < TRAFIC_GEOS.length; k++){
-  const D = dimsTrafic(TRAFIC_GEOS[k], ECH_TRAFIC), F = TRAFIC_FEUX[k];
+  const E = ECH_TRAFIC*TAILLE_TRAFIC[k];
+  const D = dimsTrafic(TRAFIC_GEOS[k], E), F = TRAFIC_FEUX[k];
   DIM_LEGER.push(D);
-  const r = reglageFaisceau(F.y*ECH_TRAFIC, 0.33*ECH_TRAFIC, D.avant, F.zAv*ECH_TRAFIC);
-  CONE_TRAFIC.push(faisceauPhare(r.lon/ECH_TRAFIC, r.r0/ECH_TRAFIC, r.r1/ECH_TRAFIC,
-                                 0xFFE3B0, 8, 4).geometry);
+  // Le faisceau est un enfant de la carrosserie : il subit son échelle, on le calcule
+  // donc en mètres monde puis on le rend au repère du modèle en divisant par la même.
+  const r = reglageFaisceau(F.y*E, 0.33*E, D.avant, F.zAv*E);
+  CONE_TRAFIC.push(faisceauPhare(r.lon/E, r.r0/E, r.r1/E, 0xFFE3B0, 8, 4).geometry);
   PENTE_TRAFIC.push(r.pente);
 }
 // L'attelage compte pour un modèle de plus, le dernier : sa longueur est celle du
@@ -10780,8 +10911,12 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.t0 = tempsTrafic; t.s = 0;
   t.avant = D.avant; t.arriere = D.arriere;
   t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
-  t.m.geometry = lourd ? CAMIONS_GEOS.tracteur : TRAFIC_GEOS[modele];
-  t.m.scale.set(ECH_TRAFIC*(lourd ? LARG_LOURD : 1), ECH_TRAFIC, ECH_TRAFIC);
+  // La robe se tire avec le modèle : deux berlines de la même minute ne sont pas jumelles.
+  const robes = lourd ? null : TRAFIC_ROBES[modele];
+  t.m.geometry = lourd ? CAMIONS_GEOS.tracteur
+                       : robes[(Math.random()*robes.length)|0];
+  const ech = ECH_TRAFIC*(lourd ? 1 : TAILLE_TRAFIC[modele]);
+  t.m.scale.set(ech*(lourd ? LARG_LOURD : 1), ech, ech);
   t.rem.scale.set(ECH_TRAFIC*LARG_LOURD, ECH_TRAFIC, ECH_TRAFIC);
   t.roll = t.rollV = t.pitch = t.pitchV = t.heave = t.heaveV = t.bump = 0;
   t.rRoll = t.rRollV = t.rPitch = t.rPitchV = t.rHeave = t.rHeaveV = t.rBump = 0;

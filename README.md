@@ -1420,7 +1420,7 @@ position**. Et ils portent enfin leur robe dans le nom — trois lignes « Tract
 sous l'autre, à 4 500 et 18 000 €, ne se distinguaient plus. Le nom reste « Tracteur » au
 bandeau et sur la carte, où la couleur du modèle est sous les yeux.
 
-## Un tour, puis des lignes
+## Un tour, puis des lignes — et le retour de l'escargot
 
 Le pilote traçait un **escargot** : des tours de plus en plus serrés jusqu'au centre. Il
 couvrait bien — 94 à 100 % — mais il tournait sans arrêt. Sur une parcelle de trente
@@ -1552,6 +1552,79 @@ Ce que les douze chantiers du banc de clôture disent des deux changements réun
 | l'axe sort de sa terre de | 1,99 m | **1,29 m** |
 | terre du voisin travaillée | 1 cellule | **0** |
 | terre faite, au pire des douze | 90,7 % | 93,3 % |
+
+### Et le joueur redemande l'escargot
+
+*« On va repartir sur le dessin en escargot : une fois que le contour a été fait, on
+redessine en reprenant un tiers sur ce qui a déjà été fait, jusqu'au centre. Une fois au
+centre et qu'on a fait un tour sur nous-mêmes, on sort du champ sans faire de passage
+supplémentaire. N'essaie pas de chercher à remplir complètement le champ. Fais juste ce
+dessin, t'occupe pas de la charrue que tu traînes derrière ; tu fais ce dessin avec tous
+les véhicules. »*
+
+C'est une demande de **dessin**, pas de rendement, et elle défait volontairement ce que le
+balayage avait gagné. Elle est appliquée telle quelle.
+
+Le tracé tient en une boucle : on pose le coin suivant, **puis** on resserre le seul bord
+qu'on vient de longer, d'un pas qui vaut **deux tiers d'une largeur d'outil** — donc un
+tiers repris sur la passe précédente, exactement ce qui est demandé. Resserrer les quatre
+bords à la fois ferait un cadre concentrique et un saut en diagonale à chaque tour ; un
+bord à la fois ferme la spirale sur elle-même. La boucle s'arrête quand le rectangle
+restant est plus petit qu'un demi-pas, et le tracé se termine par **quatre points** qui
+dessinent un tour sur place au centre, puis par la sortie de parcelle.
+
+| | mesuré |
+|---|---|
+| pas d'une passe à la suivante | **0,667** largeur d'outil (2/3 exact) |
+| segments en biais dans tout le plan | **0** |
+| tours qui repartent vers l'extérieur | **0** |
+| rayon, du premier tour au dernier | 14,4 m → **1,6 m** |
+| le premier tour mord dehors de | 1,6 à 4,0 m selon l'outil |
+| l'axe du tracteur, lui, reste dedans | −0,8 m |
+| passes qui se terminent d'elles-mêmes | **4 sur 4** |
+| la machine finit hors de la parcelle | 3,35 à 9,14 m |
+
+**Le piège était dans la validation des coins, et il a coûté seize points de couverture.**
+Un point de passage se valide à 2 m normalement, à 1 m s'il est marqué « bord » ou
+« sortie ». Les coins de la spirale n'étaient marqués que « virage » : la machine les
+validait deux mètres trop tôt, coupait l'angle, se retrouvait à viser un point *derrière
+son épaule*, sortait du champ par le coin nord-est, et le garde-fou des huit secondes
+abandonnait trois points d'affilée. Couverture réelle sur la moissonneuse en 30,4 × 30,4 :
+**79,8 %**. Les mêmes coins marqués « bord » — donc validés à un mètre — la remontent à
+**96,8 %**. Le tracé n'avait pas changé d'un centimètre.
+
+**Le tour sur place se borne au rectangle.** Sur une petite parcelle avec un outil large, la
+pirouette finale sortait l'axe du tracteur de 0,40 m au-delà de la limite : ses quatre points
+sont donc rabattus dans le rectangle de la parcelle. Le rayon du tour vaut le plus petit du
+rayon de braquage à la vitesse de pivot et de la demi-parcelle.
+
+**Et l'on ne repasse plus du tout.** `planRattrapage` — quatre mille neuf cents octets qui
+retraçaient des lignes droites sur ce qui restait — est **supprimé**, et `finDePlan` ne
+remplace plus le plan : il sort. C'est la seconde moitié de la demande, et elle a sa propre
+vertu : une fonction que plus rien n'appelle ment sur ce que le pilote fait. `SEUIL_REPASSE`
+reste écrit parce que l'écran s'en sert pour dire combien il reste à faire ; ce n'est plus
+une décision.
+
+**Ce que ça coûte, et c'est le prix demandé.** Machine pilotée image par image sur les seize
+cas du banc :
+
+| | un tour puis des lignes | l'escargot |
+|---|---|---|
+| couverture réelle, moyenne | 97,7 % | **86,8 %** |
+| couverture réelle, pire cas | 89,3 % | **67,1 %** |
+| le tracé géométrique couvre | 100 % | 97,7 % |
+| clôtures couchées en travaillant | 0 | 1 (tolérance : 2) |
+| l'axe sort de sa terre de | 1,29 m | 1,42 m |
+| passes par parcelle | 1 | 1 |
+| distance au plus proche obstacle | 1,50 m | 1,50 m |
+
+Les onze points de couverture perdus sont **le dessin lui-même** : un escargot vire seize
+fois là où un balayage vire deux fois, et c'est dans les virages que l'outil traîné coupe.
+Le pire cas — l'épandeur de douze mètres sur une parcelle de dix-neuf — n'a la place que
+d'un tour et demi. Le joueur a vu venir précisément cela et a tranché : *« n'essaie pas de
+chercher à remplir complètement le champ »*. Ce qu'on garde en échange, c'est ce qui avait
+été acheté au prix fort et qui ne se rend pas : une seule passe par parcelle, une sortie
+franche, la clôture debout et le demi-tour au pas.
 
 ## Le premier quart d'heure
 
@@ -2047,7 +2120,7 @@ Le bouton du **A cerclé** ouvre la carte en grand — la seule vue d'ensemble d
 désigne un engin, ce qu'on lui demande, et où :
 
 - **Travailler des parcelles** : on touche les parcelles à la suite. L'engin les fait
-  dans l'ordre, avec l'outil qu'il porte, en serpentin. La moissonneuse va vider au
+  dans l'ordre, avec l'outil qu'il porte, en escargot. La moissonneuse va vider au
   silo quand sa trémie est pleine, puis reprend sa passe.
 - **Navette entre deux lieux** : on touche un départ, puis une arrivée, puis **ce
   qu'elle transporte**. L'engin charge au premier, décharge au second, et recommence.
@@ -2178,8 +2251,9 @@ bas-côté balayés).
 
 ### Ce que ça donne
 
-Mesuré sur quinze minutes, vingt-huit places dans le vivier et vingt-deux véhicules vivants
-en moyenne :
+Mesuré sur quinze minutes, à la cadence de l'époque — vingt-huit places dans le vivier et
+vingt-deux véhicules vivants en moyenne ; la cadence a depuis été divisée par trois, voir
+plus haut :
 
 | | avant (arbitrage au frein) | après (flux vérifié) |
 |---|---|---|
@@ -2194,6 +2268,44 @@ Cadence : une voiture toutes les **7,6 à 8,4 s** sur chacune des quatre routes 
 fourchette demandée était 4 à 10. Dix-huit véhicules visibles à la fois en moyenne, vingt-
 trois au plus. Débord de carrosserie en virage : 0,90 m pour une voiture, 0,09 m pour un
 camion — et 0,94 m depuis que l'autocar roule, qui est le plus long des seize.
+
+### Puis la cadence a été divisée par trois
+
+Dix-huit véhicules en vue en permanence, c'est le trafic d'une rocade urbaine aux heures
+de pointe, pas celui qu'on voit d'une ferme. L'intervalle entre deux départs sur une file
+passe donc de 7–16 s à **21–48**, et la part de semi-remorques de un sur six à **un sur
+quatorze**. Les parts de modèles se déplacent dans le même sens : voitures 64 % au lieu de
+56, camions de travail 18 au lieu de 23, secours 2 au lieu de 3.
+
+| | avant | après |
+|---|---|---|
+| véhicules en vue, en moyenne | 17,8 | **6,8** |
+| cadence par route | 7,5 à 8,8 s | 15 à 20 s |
+| traversées complètes en 5 min | 127 | 70 |
+| attelages en 5 min | 34 | **3** |
+| dégagement au plus juste | +0,21 m | +0,67 m |
+| plus long peloton | 2 | 2 |
+| contacts, images hors chaussée | 0 | 0 |
+
+Le débit tombe de 127 à 70 et non de 127 à 42, et la raison est intéressante : à l'ancienne
+cadence, la rocade était **saturée** — un départ sur deux ne trouvait pas son créneau et
+n'avait pas lieu. Le réglage était donc à 11,5 s de moyenne mais le débit réel à 20. À
+34,5 s de moyenne, plus rien n'échoue : le débit vaut exactement la cadence, huit files ×
+300 s ÷ 34,5 = 69,6, mesuré 70. Ce qui a été divisé par trois, c'est le RÉGLAGE ; ce qu'on
+voit à l'écran est divisé par deux et demi.
+
+**Et le vivier suit.** Vingt-huit places étaient calibrées sur l'ancienne cadence ; mesuré
+sur dix minutes, il n'y a plus jamais plus de **treize** véhicules vivants à la fois, 9,2 en
+moyenne. Il en garde **dix-huit** — cinq de marge sur le pire cas, et pas un départ refusé
+faute de place sur la mesure. Les objets de scène tombent de 2 472 à **2 331** : cent
+quarante et un de moins à traverser à chaque image pour ne rien montrer.
+
+**Et cela se paie en temps de calcul, dans le bon sens.** `updateTrafic` tourne sur les
+véhicules vivants, pas sur les places : son coût par appel tombe de **17,0 à 7,2 µs**. Le
+rendu logiciel du banc fait trop de bruit pour qu'une mesure d'images par seconde tranche
+quoi que ce soit, mais elle penche du même côté — 7,59 le jour et 8,26 la nuit contre 7,29
+et 7,89, avec douze véhicules à l'écran au lieu de vingt-deux, et le même nombre d'appels
+de rendu.
 
 Le seul dégagement qui reste juste est celui de **deux semis qui se croisent** : 0,21 m. Ce
 n'est pas un réglage mais une fatalité géométrique — voir plus bas.
@@ -2224,6 +2336,29 @@ courbes. Débord ramené de 5,60 m à 2,17.
 **Le camion orange n'a plus qu'une remorque : la citerne.** Le plateau porte-engins et le
 fourgon restent écrits — ils ne coûtent rien tant qu'on ne les fabrique pas — mais ne sont
 plus assemblés.
+
+### La citerne entrait dans la cabine
+
+Le joueur l'a vu en virage : *« fais un peu plus d'espace entre la cabine et la remorque
+pour que, quand le camion s'articule, la remorque ne rentre pas trop en collision avec la
+cabine. »* Mesuré sur la géométrie, il avait raison à vingt-deux centimètres près : le dos
+de la cabine est à z = −3,00, le nez du fût à −2,78 une fois la sellette déduite. Et les
+deux caisses n'ont pas la même suspension — elles tanguent chacune de son côté et se
+traversent au premier dos d'âne, même en ligne droite.
+
+L'espace nécessaire ne se choisit pas à l'œil, il se calcule. Le coin avant du fût est à
+2,50 m de l'axe de la remorque ; quand l'attelage se plie d'un angle θ, ce coin **avance**
+de 2,50 · sin θ. Un jeu de 0,22 m ne tenait donc que jusqu'à 5° — autant dire jamais. La
+sellette recule de 1,60 à **2,35** fois l'échelle du trafic : le jeu passe à **0,91 m**,
+et l'attelage tient jusqu'à **vingt-trois degrés**, plus que ce qu'un virage de la rocade
+lui demande jamais.
+
+Reculer la sellette allonge l'attelage d'autant, et c'est la seule chose qu'il fallait
+vérifier : le timon se mesure depuis la sellette, donc l'essieu de la remorque recule avec
+elle et l'ensemble prend 1,12 m. Ce qui décide si la remorque monte sur l'herbe, ce n'est
+pas cette longueur mais le tracé qu'elle suit — elle est posée dessus, pas traînée — et le
+banc le confirme : sur cinq minutes de rocade, **zéro image hors chaussée** et zéro contact,
+comme avant.
 
 ### Les phares du camion étaient enfoncés dans sa calandre
 
@@ -2371,6 +2506,46 @@ Le trafic n'a **aucune emprise de collision** vis-à-vis du joueur, et c'est vou
 cercles mobiles transformerait un croisement en accrochage. On les traverse, comme tout le
 décor mobile.
 
+### Les dix nouveaux grandissent de huit pour cent
+
+Portés tels quels, ils étaient plus petits que les six premiers : côte à côte au feu, un
+fourgon avait l'air d'une maquette à côté d'une berline. Le facteur ne peut pas être
+généreux — la largeur de la chaussée est ce qu'elle est, et c'est elle qui a déjà obligé à
+affiner les poids lourds de treize pour cent. **Huit pour cent** est ce qui rentre : le plus
+large des dix passe de 3,76 m à **4,07**, quand l'attelage articulé, lui, occupe 4,85. Le
+facteur s'écrit par modèle dans `TAILLE_TRAFIC`, et il porte à la fois sur la carrosserie,
+sur les dimensions qui servent au suivi de file et sur la portée des phares — sans quoi un
+camion grandi éclairerait toujours à la taille de l'ancien.
+
+### Quarante-quatre robes pour seize carrosseries
+
+Deux berlines identiques qui se croisent, on les voit ; trois, on ne voit plus qu'elles.
+Chaque modèle reçoit donc **deux teintes de plus** que celle de sa planche, et le vivier
+tire au sort à la naissance. Quarante-quatre géométries pour seize carrosseries.
+
+Ce qui rend la chose gratuite tient en deux lignes : une variante **partage les positions
+et les normales** de son original et ne possède que son propre tableau de couleurs. Ce sont
+les mêmes sommets aux mêmes endroits — seule la couleur change. Vingt-huit variantes ne
+coûtent donc que vingt-huit tableaux de couleurs, pas vingt-huit maillages.
+
+Et la teinte ne se pose pas au hasard sur les sommets : chaque modèle **déclare sa robe**
+au moment où il se dessine — la couleur de sa caisse, et éventuellement celle de son accent
+— et le repeint ne touche que les sommets qui portaient exactement l'une des deux. Les
+roues, les vitres, les pare-chocs et les feux gardent leur couleur, comme sur une vraie
+voiture. L'accent, lui, se reporte en **rapport** et non en valeur absolue : la bande de
+toit d'un autocar ambre est d'un ambre plus sombre, celle d'un autocar rouge sera d'un rouge
+plus sombre, sans qu'on ait eu à l'écrire.
+
+**Deux modèles n'ont qu'une robe, et c'est voulu** : un camion de pompiers est rouge et une
+fourgonnette postale est jaune. Ce n'est pas une couleur, c'est une livrée — la repeindre en
+vert donnerait un véhicule qu'on ne reconnaît plus.
+
+Le coût est celui qu'on attend, et il est mesuré : les seize carrosseries pèsent 1 302 Kio
+d'attributs, les quarante-quatre géométries **2 062** — 760 Kio pour vingt-huit robes, quand
+les recopier entièrement en aurait coûté 1 520 de plus. À comparer aux cinquante-sept
+mégaoctets de textures que le jeu porte déjà. Le temps de calcul par image ne bouge pas : on
+ne fabrique rien à la naissance, on désigne une géométrie déjà construite.
+
 ## Le son du moteur
 
 Il y en avait déjà, en **synthèse pure** : deux dents de scie désaccordées passées au
@@ -2402,9 +2577,9 @@ Six mille hertz laissent trois mille de bande passante, le double de ce qui s'y 
 l'aller-retour 44 100 → 6 000 → 44 100 rend un écart de **0,006 %**. Ce qu'on gagne :
 38 000 caractères au lieu de 280 000, soit 3,5 % du fichier au lieu de 21.
 
-**Le trafic n'a que deux voix pour vingt-huit places.** Chacune suit le plus proche de sa
+**Le trafic n'a que deux voix pour dix-huit places.** Chacune suit le plus proche de sa
 sorte et son volume décroît au carré de la distance jusqu'à s'éteindre à cinquante-cinq
-mètres. Vingt-huit boucles tournant en permanence coûteraient vingt-huit fois plus pour un
+mètres. Dix-huit boucles tournant en permanence coûteraient dix-huit fois plus pour un
 décor qu'on n'entend qu'un à la fois.
 
 Deux voix, mais **trois moteurs**. La chaîne grave ne prenait que l'attelage articulé : un
@@ -2606,12 +2781,14 @@ Quelques partis pris qui expliquent le reste :
 - **Et un tiers de recouvrement entre deux tours.** Le pas était réglé au banc à trois
   cinquièmes de largeur ; deux tiers font mieux — sur les seize cas du banc de
   couverture, le pire passe de **88,4 % à 94,2**.
-- **Le milieu se fait en lignes droites, et c'est mesuré.** Un virage serré au centre a
-  été tracé puis mesuré : la couverture ne bouge pas d'un dixième de point, et il
-  introduit douze segments en biais dans un plan qui n'en avait aucun. Le tracteur sait
-  tourner sur 1,39 m de rayon ; l'outil traîné, non — le timon impose
-  rayon² + attelage² − longueur², sans solution pour le semoir ni l'épandeur, qui se
-  mettent en portefeuille.
+- **Le milieu, c'est un tour sur place, et il est carré.** Le joueur l'a demandé ainsi :
+  arrivé au centre, l'engin fait un tour sur lui-même et sort. Ce tour est tracé en
+  quatre points à angle droit, pas en cercle — un chapelet de points rapprochés remettrait
+  les diagonales que le plan n'a pas, et l'outil traîné ne les suivrait pas : le timon
+  impose rayon² + attelage² − longueur², sans solution pour le semoir ni l'épandeur, qui
+  se mettent en portefeuille. Les quatre points sont bornés au rectangle de la parcelle,
+  faute de quoi une petite parcelle avec un outil large voit la pirouette sortir l'axe du
+  tracteur de quarante centimètres.
 - **Un champ ne se traverse que lorsqu'on y travaille.** Pour aller d'un lieu à un
   autre, l'automatisation rejoint la grille des chemins de sable et des rocades, la
   suit, et ne la quitte qu'au dernier moment — au lieu de viser sa destination en
@@ -3055,12 +3232,11 @@ l'ensemble, et pas un obstacle sur une route. Agrandir les maisons ne coûte rie
 **L'escargot est strictement orthogonal.** Il ne l'était pas : le tour se refermait sur
 son coin de départ, puis le suivant commençait au coin rentré d'une passe — un saut en
 diagonale à chaque tour, **32 segments obliques** et jusqu'à 17 m de biais par parcelle.
-On resserre maintenant UN bord à la fois, juste après l'avoir longé, et le resserrage est
-bridé au milieu : sans cette butée le rectangle se retournait et il restait au centre une
-bande que les deux passes opposées, trop écartées, n'avaient pas jointe. Le cœur, lui, se
-fait en lignes droites plutôt qu'en un dernier tour : un outil traîné quatre à six mètres
-derrière ne suit pas un chapelet de virages. Mesuré sur cinq outils × quatre tailles de
-parcelle : **0 oblique, 100 % du tracé sur la terre, 0 cellule oubliée**.
+On resserre UN bord à la fois, juste après l'avoir longé, et le resserrage est bridé au
+milieu : sans cette butée le rectangle se retournait et il restait au centre une bande que
+les deux passes opposées, trop écartées, n'avaient pas jointe. C'est la règle qui a
+survécu à toutes les versions du plan, y compris la dernière — **0 oblique** sur les seize
+cas du banc, hier comme aujourd'hui.
 
 **Le tour suivant mord sur le précédent, et le premier sort de la parcelle.** Deux
 passes espacées d'une largeur d'outil se touchent en théorie et se manquent en pratique :
@@ -3082,14 +3258,13 @@ l'intérieur du virage sur les premiers mètres : le pas descend de **0,74 à 0,
 d'outil. Relevé sur les seize cas du banc — 0,60 et 0,70 font moins bien, 86,4 % et 86,0 %
 au pire.
 
-**Une passe finie se vérifie, et se termine dehors.** Le tracé épuisé, le pilote regarde
-ce qui n'a pas été travaillé et y renvoie l'engin — jusqu'à trois fois, et l'on s'arrête
-dès qu'un passage n'a plus rien rattrapé. Le rattrapage ne refait pas la parcelle : il
-trace des LIGNES DROITES sur l'emprise de ce qui reste, et les fait dépasser franchement
-de part et d'autre, de sorte que les demi-tours — seul endroit où l'outil ne suit pas le
-tracé — se prennent EN DEHORS de ce qu'il faut rattraper. Un escargot resserré sur les
-trous avait été essayé : il faisait moins bien, parce qu'il virait précisément là où il
-fallait travailler.
+**Une passe finie se vérifie, mais ne se refait plus.** Le tracé épuisé, le pilote sait
+compter ce qui n'a pas été travaillé — l'écran s'en sert pour dire où en est la parcelle —
+mais il ne renvoie plus l'engin dessus : c'est ce que le joueur a demandé, et le plan de
+rattrapage a été supprimé. Deux rattrapages avaient été essayés avant qu'il ne disparaisse :
+des lignes droites sur l'emprise de ce qui restait, qui traversaient la parcelle sept fois
+pour trois coins ; et un escargot resserré sur les trous, qui faisait moins bien encore,
+parce qu'il virait précisément là où il fallait travailler.
 
 Ce qui reste ne se lit d'ailleurs pas dans `from` : la charrue accepte la terre labourée
 et l'épandeur sort du semé pour rendre du semé — leur reste ne diminuerait jamais et la
@@ -3112,8 +3287,9 @@ tracé à la règle, sans rien savoir de ce qui pousse entre deux parcelles : un
 rocher, une clôture peuvent tomber sur un point de passage, et l'engin poussait alors
 contre l'obstacle indéfiniment, plan gelé — mesuré, quatre cents secondes de jeu sans
 avancer d'un point, sur trois des seize cas du banc. Si la distance au point visé ne
-descend plus pendant huit secondes, on l'abandonne ; le rattrapage de fin de passe
-retrouvera ce qui n'a pas été fait là.
+descend plus pendant huit secondes, on l'abandonne et l'on passe au suivant. Ce qui n'a
+pas été travaillé là reste à faire : c'est une passe imparfaite plutôt qu'une machine
+bloquée jusqu'au matin.
 
 Relevé sur les seize cas du banc, machine pilotée image par image et marquage du sol
 actif : la couverture du pire cas passe de **88,9 % à 96,2 %**, la moyenne de 93,6 à
@@ -3367,6 +3543,48 @@ les trois âges viennent justement de doter chaque culture d'une silhouette à 2
 à côté de sa silhouette à 72. Une parcelle éloignée pourrait dessiner la première. Ce
 n'est pas fait : cela touche au rendu de ce qu'on regarde, et se propose avant de se
 décider.
+
+## Une parcelle n'est plus un rectangle posé sur l'herbe
+
+Le sol est peint, et il l'était **à la règle** : quatre rectangles de terre, des chemins de
+sable à bords parallèles, et pas un écart. Vu d'en haut, la ferme ressemblait à un plan
+cadastral. Le joueur a demandé « un peu de variation et une structure moins rectiligne », et
+« des petites taches de terre autour des parcelles de terre ».
+
+**Le contour suit un bruit, pas un tirage.** Un hasard indépendant à chaque point donnerait
+un contour hérissé, pas une lisière. La valeur est donc ancrée sur les entiers et interpolée
+entre eux par une courbe douce, et l'on somme **deux octaves** : la première donne la grande
+ondulation, la seconde — deux fois et demie plus courte, deux fois moins ample —
+l'irrégularité de détail. Les quatre côtés d'une parcelle sont échantillonnés tous les
+1,20 m et remplis en **un seul polygone** : un contour dessiné côté par côté laisserait
+quatre coins ouverts.
+
+**L'amplitude est bornée par le terrain, et c'est mesuré.** Une parcelle a 1,60 m d'herbe
+devant elle avant le sable — c'est la plus courte des marges du monde, la parcelle voisine
+est à 9,60 m et le bitume à 4,60. La crête théorique du bruit vaut 0,725 fois l'amplitude,
+soit 0,40 m pour la terre et 0,56 pour le sable ; relevé sur le monde réel, 0,34 et 0,47.
+Il reste au pire **0,93 m d'herbe** entre une terre qui gonfle et un chemin qui gonfle vers
+elle. Les deux ne se touchent jamais.
+
+**Les mouchetures suivent un carré.** Autour de chaque parcelle, des taches de terre
+débordent sur l'herbe ; leur distance au bord est tirée en `u²`, ce qui les fait très
+nombreuses contre la terre et de plus en plus rares au loin. Semées à distance égale, elles
+auraient formé un liseré — c'est-à-dire une seconde ligne droite, exactement l'inverse du
+but. Elles sont refusées sur le sable et sur le bitume : une tache de terre au milieu d'un
+chemin ne se lit pas comme un débord de labour, elle se lit comme une salissure.
+
+**La grille de culture, elle, reste rectangulaire — et c'est voulu.** Ce qui ondule est le
+sol *peint*, pas ce qui se laboure. La terre qui déborde du rectangle est un décor : l'outil
+qui passe dessus ne marque rien, puisque ces cellules-là sont hors parcelle. On voit donc
+une lisière de terre non cultivable sur une quarantaine de centimètres, ce qu'un bord de
+champ fait exactement dans la vraie vie — et pas une ligne du pilote, du marquage ou de la
+sauvegarde n'a eu à changer.
+
+**Le coût se paie une fois.** Tout cela est peint au démarrage dans la texture du sol, et
+le remplissage passe par `worldDraw`, qui **borne** la recherche de tuiles : peindre une
+parcelle de vingt mètres salit quatre tuiles et non les cent de la carte — une tuile déclarée
+sale est redonnée en entier à la carte graphique. `paintStaticGround` prend **10 ms** au
+chargement ; à l'image, rien.
 
 ## Le décor est tiré au sort, mais toujours le même
 
