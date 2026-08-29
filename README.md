@@ -2685,28 +2685,31 @@ rabotés : le camion à caisse et la citerne à lait à 6,6 %, l'autocar à 7,5 
 camping-car à **0,6 %** — il ne peut pas grandir, il est déjà au plafond. Mesuré sur cinq
 minutes, il reste **15,3 cm** entre la tôle la plus haute et l'ampoule la plus basse.
 
-### Quarante-quatre robes pour seize carrosseries
+### Quarante-trois robes pour seize carrosseries
 
 Deux berlines identiques qui se croisent, on les voit ; trois, on ne voit plus qu'elles.
-Chaque modèle reçoit donc **deux teintes de plus** que celle de sa planche, et le vivier
-tire au sort à la naissance. Quarante-quatre géométries pour seize carrosseries.
+Chaque modèle reçoit donc des teintes de plus que celle de sa planche, et le vivier tire au
+sort à la naissance. Le compte exact, pour qui vient vérifier : douze modèles en reçoivent
+deux, le camion à caisse trois, et trois n'en reçoivent aucune — **quarante-trois
+géométries** pour seize carrosseries.
 
 Ce qui rend la chose gratuite tient en deux lignes : une variante **partage les positions
 et les normales** de son original et ne possède que son propre tableau de couleurs. Ce sont
-les mêmes sommets aux mêmes endroits — seule la couleur change. Vingt-huit variantes ne
-coûtent donc que vingt-huit tableaux de couleurs, pas vingt-huit maillages.
+les mêmes sommets aux mêmes endroits — seule la couleur change. Vingt-sept variantes ne
+coûtent donc que vingt-sept tableaux de couleurs, pas vingt-sept maillages.
 
 Et la teinte ne se pose pas au hasard sur les sommets : chaque modèle **déclare sa robe**
 au moment où il se dessine — la couleur de sa caisse, et éventuellement celle de son accent
 — et le repeint ne touche que les sommets qui portaient exactement l'une des deux. Les
 roues, les vitres, les pare-chocs et les feux gardent leur couleur, comme sur une vraie
 voiture. L'accent, lui, se reporte en **rapport** et non en valeur absolue : la bande de
-toit d'un autocar ambre est d'un ambre plus sombre, celle d'un autocar rouge sera d'un rouge
-plus sombre, sans qu'on ait eu à l'écrire.
+toit d'un autocar ambre est d'un ambre plus sombre, celle d'un monospace anthracite d'un
+anthracite plus sombre, sans qu'on ait eu à l'écrire.
 
-**Deux modèles n'ont qu'une robe, et c'est voulu** : un camion de pompiers est rouge et une
-fourgonnette postale est jaune. Ce n'est pas une couleur, c'est une livrée — la repeindre en
-vert donnerait un véhicule qu'on ne reconnaît plus.
+**Trois modèles n'ont qu'une robe, et c'est voulu** : un camion de pompiers est rouge, une
+fourgonnette postale est jaune, et le car du village est jaune lui aussi. Ce n'est pas une
+couleur, c'est une livrée — la repeindre en vert donnerait un véhicule qu'on ne reconnaît
+plus.
 
 **Le piège du remplacement par égalité : une couleur, un rôle.** Substituer par valeur veut
 dire que deux pièces qui partagent exactement la même teinte changent ensemble, qu'on le
@@ -2720,8 +2723,8 @@ un rôle. Vérifié sommet par sommet : soixante-douze feux et soixante-douze so
 zéro qui bouge.
 
 Le coût est celui qu'on attend, et il est mesuré : les seize carrosseries pèsent 1 302 Kio
-d'attributs, les quarante-quatre géométries **2 062** — 760 Kio pour vingt-huit robes, quand
-les recopier entièrement en aurait coûté 1 520 de plus. À comparer aux cinquante-sept
+d'attributs, les quarante-trois géométries **2 032** — 730 Kio pour vingt-sept robes, quand
+les recopier entièrement en aurait coûté 1 460 de plus. À comparer aux cinquante-sept
 mégaoctets de textures que le jeu porte déjà. Le temps de calcul par image ne bouge pas : on
 ne fabrique rien à la naissance, on désigne une géométrie déjà construite.
 
@@ -2763,8 +2766,7 @@ rang des **livrées** — une couleur qui fait partie du modèle, pas un habilla
 caisse, tu lui fais toutes les couleurs, sauf en rouge, qui était la couleur originale. »*
 Il en a **quatre** — bleu, ardoise, kaki, crème — là où les autres en ont trois : c'est lui
 qui était le rouge, on lui devait bien ça. Le compte final tombe de quarante-quatre
-géométries à **quarante-trois**, l'autocar en perdant deux et le camion à caisse en gagnant
-une.
+géométries à **quarante-trois** : l'autocar en perd deux, le camion à caisse en gagne une.
 
 ## Le son du moteur
 
@@ -3370,14 +3372,28 @@ au rayon de l'obstacle. La mitoyenne coupée est celle dont l'écart tombe le pl
 milieu, à l'exclusion de celle qui mettrait deux fois le même modèle en vis-à-vis. Le rang
 n'est alors plus d'un seul tenant : sa clôture ferme chaque tronçon par son propre pignon
 est, et son rectangle d'obstacle devient DEUX rectangles — un seul reboucherait l'écart
-pour les engins et en ferait un mur invisible de dix mètres. Relevé : 2,05 m de couloir
+pour les engins et en ferait un mur invisible de dix mètres. Relevé : **1,76 m** de couloir
 franchissable, 432 sommets de clôture sur chacun des deux jambages. Dedans : un **poteau
 télégraphique**, un banc et un arbre. Le poteau y a remplacé le calvaire, parti aux quatre
 coins : il monte à 7,55 m — plus haut qu'un mât de lampadaire —, il tient donc le même rôle
 de silhouette qu'on voit du bitume par-dessus la clôture, il est bien plus étroit, et il
-n'était dans aucune partie. L'axe des objets a reculé de quarante centimètres au passage :
-le mobilier ayant grandi de dix-huit pour cent, le banc élargi ramenait sinon le couloir à
-1,64 m.
+n'était dans aucune partie.
+
+Le couloir valait 2,02 m avant que le mobilier ne grandisse de dix-huit pour cent : **c'est
+ce que la taille coûte ici**, et il fallait résister à la tentation de le rendre en décalant
+l'axe vers l'est. Mesuré : à quarante centimètres de plus à l'est, le banc élargi déborde de
+l'écart de six centimètres et **entre de quatorze dans le maillage du pignon de clôture**.
+La contrainte est là, et elle est exacte — le banc s'étend de 2,86 m à l'est de son axe une
+fois grandi, le pignon commence à x = 33,046. L'axe est calé pour laisser quinze centimètres
+de jeu. Et 1,76 m est un jeu de CENTRE, la demi-machine y étant déjà comptée : un engin
+passe. Le pilote automatique, lui, ne s'y risque pas et ne s'y est jamais risqué — dans sa
+métrique à lui, plus large, le couloir vaut 0,66 m contre 0,92 avant, et il était déjà
+infranchissable des deux côtés du changement.
+
+L'arbre de l'écart a rétréci au passage, de 0,9 à 0,7 : mesuré, son houppier arrivait à
+**trois centimètres** du pignon — plus près que le banc, qui était pourtant l'objet dont on
+se méfiait. Un contrôle de banc garde maintenant les deux, en comparant le bord est du
+mobilier de l'écart au début du maillage de clôture.
 
 **Mitoyennes, et clôturées en commun.** Chaque maison avait sa clôture, et deux voisines
 en dressaient donc deux, parallèles, avec entre elles une bande d'herbe qui n'était le
@@ -3475,18 +3491,29 @@ de marge sous le plafond mesuré.
 
 Deux corrections suivent l'échelle, et toutes deux sont mesurées :
 
-- **Le choix d'un creux porte sur l'emprise, plus sur le rayon.** Le test comparait `2r`,
-  un rayon CIRCONSCRIT qui surestime la place prise le long de la bande — de 15 cm pour le
-  lavoir, de **1,15 m** pour l'abri de bus. Résultat : l'abri ratait le grand creux du nord
-  de **deux millimètres et neuf**, et c'est pour cela qu'on n'en voyait jamais. Chaque
-  fabrique déclare maintenant sa largeur réelle en plus de son rayon, et la marge passe de
-  3 mm à 57 cm. Elle est déclarée et non mesurée à l'exécution : la tonnelle tire son
-  feuillage au sort, sa boîte englobante change d'un appel à l'autre, et le choix du creux
-  se mettrait à dépendre d'un tirage de feuilles.
+- **Le choix d'un creux porte sur l'emprise, plus sur le rayon.** Le test comparait `2r`.
+  Or `r` n'est pas un rayon circonscrit : c'est un **disque de collision réglé à la main**,
+  toujours plus petit que la boîte — 3,20 contre 3,46 pour l'abri de bus, 2,60 contre 3,91
+  pour le panneau d'entrée. `2r` n'a donc aucun rapport fiable avec la place prise le long
+  de la bande : il la surestimait d'un demi-mètre pour l'abri et la sous-estimait d'autant
+  pour le bûcher. Résultat : l'abri ratait le grand creux du nord de **deux millimètres et
+  neuf**, et c'est pour cela qu'on n'en voyait jamais. Chaque fabrique déclare maintenant
+  sa largeur réelle en plus de son rayon ; la marge de l'abri y passe à **25,7 cm**, et la
+  plus serrée des quatre est celle de la tonnelle, à 14,3. Cette largeur est déclarée et
+  non mesurée à l'exécution : la tonnelle tire son feuillage au sort et sa boîte englobante
+  varie de 4,80 à 5,15 m d'une construction à l'autre — le choix du creux se mettrait à
+  dépendre d'un tirage de feuilles.
+- **Le test admet sur la largeur, mais choisit sur le rayon**, et il faut le savoir : dans
+  le creux nord, le bûcher entre aussi, et c'est l'abri qui l'emporte parce que son disque
+  est plus gros. C'est voulu — on veut le plus imposant de ceux qui tiennent — mais c'est
+  ce qui laisse le bûcher **sans emplacement dans toute la vallée**. Neuf modèles sur dix
+  sont posés, pas dix.
 - **Le mobilier recule de 5,0 à 5,9 m du bitume.** À cinq mètres, un abri de bus agrandi
   laisse son disque de collision mordre la chaussée de 68 cm au sens de `voieLibre` et de
-  13 au sens de `Vehicle.update` : le pilote automatique s'écarterait d'une route libre. Il
-  reste maintenant 77 cm de bitume franc.
+  13 au sens de `Vehicle.update` : le pilote automatique s'écarterait d'une route libre. Le
+  mordant devient une marge — 22 cm dans la première métrique, 77 dans la seconde — et,
+  mesuré après coup, plus un seul objet de village ne touche le bitume dans l'une ou
+  l'autre.
 
 ### Les quatre coins du monde
 
@@ -3531,15 +3558,15 @@ avait changé. Et leur verdure est semée sur un troisième flux à graine fixe,
 de ceux qui sèment déjà la vallée : le décor reste identique d'une partie à l'autre, sans
 qu'aucun `Math.random` n'entre en jeu.
 
-**Le compte y retombe juste.** Quatre coins, quatre creux et deux places dans l'écart du
-rang : dix emplacements pour dix modèles. Trois d'entre eux — l'abri de bus, le panneau
-d'entrée et le poteau télégraphique — n'étaient dans **aucune** partie. Le lavoir libérant
-le grand creux du nord, l'abri de bus y entre enfin : c'est l'« autre arrêt de bus » que le
-joueur demandait, à la place même du lavoir. Seul le bûcher reste sans emploi.
+**Le compte y retombe presque juste.** Quatre coins, quatre creux et deux places dans
+l'écart du rang : dix emplacements pour **neuf** modèles distincts. Trois d'entre eux —
+l'abri de bus, le panneau d'entrée et le poteau télégraphique — n'étaient dans **aucune**
+partie. Le lavoir libérant le grand creux du nord, l'abri de bus y entre enfin : c'est
+l'« autre arrêt de bus » que le joueur demandait, à la place même du lavoir. Le bûcher, lui,
+reste sans emploi, et c'est écrit plutôt que tu.
 
-Le coût, mesuré : maillages de scène 1 793 → **1 804**, triangles de géométrie 95 300 →
-96 968, appels de rendu à la caméra de départ 265 → 271, obstacles et emprises de collision
-inchangés à 441 et 27.
+Le coût, mesuré : **+24 maillages** de scène et +2 156 triangles de géométrie ; à la caméra
+de départ, +4 appels de rendu et +272 triangles ; les emprises de collision ne bougent pas.
 
 ## Le pilote automatique
 

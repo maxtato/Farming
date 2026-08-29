@@ -6115,18 +6115,28 @@ function buildFarm(){
      fait dix mètres de large mais dix-sept de fond : c'est la seule direction où il y a de
      la place. Vers l'est, parce que le mât de la verge tombe déjà de ce côté de la bouche
      du trou, et que la moitié ouest reste ainsi franchissable.
-     ET L'AXE RECULE DE QUARANTE CENTIMÈTRES, parce que le mobilier a grandi de dix-huit
-     pour cent : à `x1 - 3,2`, le banc élargi ramenait le couloir libre de 2,00 m à 1,64.
-     À `x1 - 2,8` il vaut 2,05 m, mesuré — plus qu'avant. Aucun objet de rayon supérieur à
-     2,40 ne doit entrer ici : le bûcher ou la tonnelle refermeraient le passage. */
+     ET L'AXE SE CALE ENTRE DEUX MURS, PAS AU JUGÉ. Le mobilier ayant grandi de dix-huit
+     pour cent, on est tenté de le décaler vers l'est pour rendre au couloir ce que la
+     taille lui prend. C'est un piège, et il a été mesuré : à `x1 - 2,8`, le banc élargi
+     déborde de l'écart de six centimètres et ENTRE de quatorze dans le maillage du pignon
+     de clôture, qui commence à x = 33,046. La contrainte est là et nulle part ailleurs —
+     le banc s'étend de 2,86 m à l'est de son axe une fois grandi, donc `tx <= 30,18`.
+     À `x1 - 3,1` il reste quinze centimètres de jeu, et le couloir vaut 1,76 m au sens de
+     `Vehicle.update` contre 2,02 avant l'agrandissement : c'est ce que la taille coûte, et
+     un engin passe encore — ce chiffre est un jeu de CENTRE, la demi-machine y est déjà
+     comptée. Aucun objet de rayon supérieur à 2,40 ne doit entrer ici : le bûcher ou la
+     tonnelle refermeraient le passage. */
   if(RANG.trou){
-    const tx = RANG.trou.x1 - 2.8;            // l'axe des objets, côté est de l'écart
+    const tx = RANG.trou.x1 - 3.1;            // l'axe des objets, côté est de l'écart
     poserBloc(vilPoteau,   tx, RANG.z0 + 2.9,  RY_BANDE.S);
     poserBloc(vilBanc,     tx, RANG.z0 + 7.6,  RY_BANDE.S);
-    // Et un arbre plutôt qu'un troisième meuble : le puits part au creux de la bande
-    // ouest, et trois objets bâtis à la file dans un écart de dix mètres se lisent
-    // comme un dépôt, pas comme un bout de village.
-    addTree(tx, RANG.z0 + 12.4, 0.9, 2);
+    /* Et un arbre plutôt qu'un troisième meuble : le puits part au creux de la bande
+       ouest, et trois objets bâtis à la file dans un écart de dix mètres se lisent comme
+       un dépôt, pas comme un bout de village.
+       IL EST PETIT, ET C'EST MESURÉ. À l'échelle 0,9 son houppier arrive à 3,1 cm du
+       pignon de clôture — plus près que le banc, qui est pourtant l'objet dont on se
+       méfiait. À 0,7 il en reste soixante-dix. */
+    addTree(tx, RANG.z0 + 12.4, 0.7, 2);
   }
 
   /* LA VERGE EST UNE RUE, PAS UNE PELOUSE. Neuf mètres entre le bitume et la clôture,
@@ -6227,10 +6237,10 @@ function buildFarm(){
    six modèles sont tirés dix fois le long du brin sud de la rocade, à MAI_ECHELLE,
    qui les met au pas des commerces d'en face ; les dix petits objets, eux, sont à
    VIL_ECHELLE, qui vaut celle des commerces.
-   ET LES DIX SONT TOUS DE LA PARTIE, ce qui n'a pas toujours été le cas. Quatre creux
+   ET NEUF DES DIX SONT DE LA PARTIE, ce qui n'a pas toujours été le cas. Quatre creux
    entre commerces, deux places dans l'écart du rang, et QUATRE COINS du monde : dix
-   emplacements pour dix modèles. L'abri de bus est le seul posé deux fois — dans un
-   creux et dans un coin — parce que le joueur en voulait deux.
+   emplacements. L'abri de bus est le seul posé deux fois — dans un creux et dans un coin
+   — parce que le joueur en voulait deux ; le bûcher est le seul qui reste sans place.
 
    Chaque bloc est FUSIONNÉ en une seule géométrie avant d'entrer dans la scène :
    soixante à cent primitives deviennent un objet, donc un appel de dessin. C'est la
@@ -6782,8 +6792,14 @@ const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBuche
    CHACUN REÇOIT UN OBJET, ET C'EST LUI QUI LUI DONNE SON NOM. Le panneau d'entrée, le
    calvaire, le lavoir et un abri de bus — trois d'entre eux ne se posaient nulle part
    ou étaient à l'étroit dans un creux entre deux commerces. Avec les quatre creux et
-   les deux objets de l'écart du rang, cela fait DIX emplacements pour dix modèles :
+   les deux objets de l'écart du rang, cela fait DIX emplacements pour NEUF modèles :
    l'abri de bus est le seul posé deux fois, et c'est ce que le joueur a demandé.
+   DIX EMPLACEMENTS, NEUF MODÈLES : le bûcher reste sur le carreau. Son emprise de 6,10 m
+   ne passe, une fois grandie, que dans le creux nord de 8,22 m — où l'abri de bus le bat
+   au disque de collision. On l'assume par écrit plutôt que de le laisser croire oublié :
+   l'écart du rang lui est interdit (son disque de 3,30 refermerait le passage à 1,11 m),
+   et lui donner un coin reviendrait à en priver un des quatre objets que le joueur a
+   nommés.
    L'ORIENTATION EST VÉRIFIÉE SUR LA GÉOMÉTRIE, pas devinée. L'abri de bus s'ouvre vers
    son +z local — dossier plein en -D/2, banc tourné vers +z —, le panneau d'entrée se lit
    depuis son +z, le lavoir montre ses trois battoirs en +z. `ry` les tourne donc vers la
@@ -6888,14 +6904,24 @@ function garnirBandes(putBush, putRock){
      plus un village — ne seraient jamais posés. Chaque modèle est retiré de la liste une
      fois posé : quatre creux, quatre objets différents, sans compteur de rotation.
 
-     ET CE QUI DÉCIDE EST L'EMPRISE, PAS LE RAYON. Le test portait sur `2r`, un rayon
-     CIRCONSCRIT qui surestime la place prise LE LONG de la bande — de 15 cm pour le
-     lavoir, de 1,15 m pour l'abri de bus. Mesuré : l'abri ratait le creux nord de DEUX
-     MILLIMÈTRES ET NEUF, et c'est pour cela qu'on n'en voyait jamais. Chaque fabrique
-     déclare donc sa largeur réelle `w` en plus de son rayon, et c'est elle qu'on compare
-     — la marge passe de 3 mm à 57 cm. Elle est déclarée et non mesurée à l'exécution : la
-     tonnelle tire son feuillage au sort, sa boîte englobante change d'un appel à l'autre,
-     et le choix du creux se mettrait à dépendre d'un tirage de feuilles.
+     ET CE QUI DÉCIDE EST L'EMPRISE, PAS LE RAYON. Le test portait sur `2r`. Or `r` n'est
+     pas un rayon circonscrit : c'est un DISQUE DE COLLISION réglé à la main, toujours plus
+     petit que la boîte — mesuré sur les dix modèles, de 3,20 contre 3,46 pour l'abri de
+     bus à 2,60 contre 3,91 pour le panneau d'entrée. `2r` n'a donc aucun rapport fiable
+     avec la place prise LE LONG de la bande : il la surestimait de 50 cm pour l'abri et la
+     SOUS-estimait de 50 cm pour le bûcher. Mesuré, l'abri ratait le creux nord de DEUX
+     MILLIMÈTRES ET NEUF, et c'est pour cela qu'on n'en voyait jamais ; sa marge y vaut
+     maintenant 25,7 cm. Chaque fabrique déclare donc sa largeur réelle `w` en plus de son
+     rayon, et c'est elle qu'on compare. Elle est déclarée et non mesurée à l'exécution :
+     la tonnelle tire son feuillage au sort, sa boîte englobante change d'un appel à
+     l'autre — relevé sur trois cents constructions, de 4,80 à 5,15 m pour un `w` déclaré
+     de 5,30 —, et le choix du creux se mettrait à dépendre d'un tirage de feuilles.
+     LE TEST ADMET SUR `w`, MAIS CHOISIT SUR `r`, et cela se voit : dans le creux nord, le
+     bûcher entre aussi, et c'est l'abri qui l'emporte parce que son disque est plus gros.
+     C'est voulu — on veut le plus IMPOSANT de ceux qui tiennent — mais c'est ce qui laisse
+     le bûcher sans emplacement dans toute la vallée. Les quatre marges, mesurées : table
+     0,56 m à l'ouest, puits 2,25, abri 0,26 au nord, tonnelle 0,14 — c'est la tonnelle,
+     la plus serrée des quatre.
 
      TROIS MODÈLES N'Y SONT PLUS CANDIDATS : le lavoir, le calvaire et le panneau
      d'entrée sont partis garnir les QUATRE COINS du monde, à la demande du joueur. Le
@@ -6933,8 +6959,11 @@ function garnirBandes(putBush, putRock){
         MOB.splice(iChoix, 1);
         /* ET ON RECULE D'AUTANT QU'ON A GRANDI. À cinq mètres du bord, un abri de bus
            agrandi laisse son disque de collision mordre le bitume de 68 cm au sens de
-           `voieLibre` : le pilote automatique s'écarterait d'une chaussée libre. Le recul
-           suit donc l'échelle, et il reste 77 cm de bitume franc. */
+           `voieLibre` et de 13 cm au sens de `Vehicle.update` : le pilote automatique
+           s'écarterait d'une chaussée libre. Le recul suit donc l'échelle, et le mordant
+           devient une marge — 22 cm au sens de `voieLibre`, 77 au sens de
+           `Vehicle.update`. Mesuré après coup : plus un seul objet de village ne touche
+           le bitume dans l'une ou l'autre métrique. */
         const q = pose(5.0*VIL_ECHELLE, centre, objet, RY_BANDE[C.dir]);
         poserBloc(objet, q.x, q.z, q.ry);
         // L'emprise réservée est celle de l'objet, et non plus huit mètres pour tout le
@@ -10435,7 +10464,9 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
 /* ---------- LES ROBES ----------
    Seize modèles, c'est seize voitures. Or on ne croise pas seize voitures dans un
    village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
-   Chaque modèle reçoit donc DEUX robes de plus, et la sienne est tirée à la naissance.
+   Chaque modèle reçoit donc des robes de plus, et la sienne est tirée à la naissance.
+   Le compte exact, pour qui vient vérifier : douze modèles en reçoivent deux, le camion à
+   caisse trois, et trois n'en reçoivent aucune — quarante-trois géométries en tout.
 
    ET PLUS UN SEUL ROUGE SUR LA ROCADE. Le joueur pilote un tracteur rouge : « je veux
    plus de rouge, puisque moi je l'ai en tant que véhicule perso, je veux pas qu'on
@@ -10445,15 +10476,18 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux,
    rouge lui-même. Toutes sont remplacées par des teintes de village qui n'appartiennent
    qu'à elles : kaki, sarcelle, moutarde, brun-taupe, ardoise. Le seul rouge qui reste sur
    la route est celui du CAMION DE POMPIERS, et il n'y a rien à y confondre : personne ne
-   prend un fourgon d'incendie à échelle et gyrophares pour un tracteur.
+   prend un fourgon d'incendie à échelle et gyrophares pour un tracteur. Il reste bien du
+   rouge AILLEURS sur ces véhicules — les feux arrière de tous, un liseré, un dôme — mais
+   plus aucune CARROSSERIE : c'est la silhouette qu'on lit à cent mètres, pas la lentille
+   d'un feu de position.
 
    ET UNE ROBE NE COÛTE QUE SA COULEUR. Une géométrie fusionnée porte trois tableaux —
    positions, normales, couleurs — et deux robes du même modèle ne diffèrent que par le
    troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
    d'attribut dans deux géométries, et le processeur graphique ne téléverse le sommet
    qu'une fois. Une robe coûte un tiers d'un modèle, et non un modèle entier — mesuré,
-   1 302 Kio d'attributs pour les seize et 2 062 pour les quarante-quatre, là où
-   quarante-quatre géométries pleines en pèseraient 3 582.
+   1 302 Kio d'attributs pour les seize carrosseries et 2 032 pour les quarante-trois
+   géométries, là où quarante-trois géométries pleines en pèseraient 3 492.
 
    La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
    les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
