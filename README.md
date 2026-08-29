@@ -2484,20 +2484,25 @@ ne bouge pas, et avec lui la ligne d'entrée des carrefours.
 
 ### Tout le trafic s'allume la nuit
 
-Un véhicule de passage porte les mêmes lumières qu'un engin de la ferme, et par le même
+*Ce qui suit décrit l'état d'alors ; la section suivante dit ce que le joueur en a fait.*
+
+Un véhicule de passage portait les mêmes lumières qu'un engin de la ferme, et par le même
 mécanisme : deux billes additives crème devant, deux rouges derrière — **sur la citerne**
 pour un attelage, sur la caisse pour une voiture —, et deux faisceaux en tronc de cône. Les
 lumières sont **enfants de la carrosserie** : elles prennent le cap, le roulis et le
-pompage de la suspension, et le faisceau balaie le paysage quand la voiture passe une bosse.
+pompage de la suspension, et le faisceau balayait le paysage quand la voiture passait une
+bosse.
 
 Le calcul des cotes du faisceau — pente déduite de la hauteur du phare, longueur coupée là
 où sa génératrice basse touche le sol, écrasement de moitié — était écrit au milieu de la
-construction des éclairages de nuit. Il est maintenant une fonction, `reglageFaisceau()`,
-et **sert deux fois** : un tracteur et une berline de passage éclairent selon la même règle.
-Vérifié par différentiel : les faisceaux des sept engins du joueur sont inchangés au bit
-près après l'extraction.
+construction des éclairages de nuit. Il est devenu une fonction, `reglageFaisceau()`, et il
+a **servi deux fois** : un tracteur et une berline de passage éclairaient selon la même
+règle. Vérifié par différentiel : les faisceaux des sept engins du joueur sont inchangés au
+bit près après l'extraction. Depuis que la rocade n'éclaire plus, il ne sert qu'à la ferme —
+et la fonction reste, parce qu'une règle de géométrie n'a pas à vivre au milieu d'une boucle
+d'affichage.
 
-Deux économies, parce qu'il y a vingt-deux véhicules et non sept :
+Deux économies avaient été trouvées, parce qu'il y avait vingt-deux véhicules et non sept :
 
 - **les faisceaux ne s'allument que de près** (95 m). Deux troncs additifs par véhicule sur
   toute la carte, cela fait quarante volumes transparents à remplir pour des voitures
@@ -2509,8 +2514,8 @@ Deux économies, parce qu'il y a vingt-deux véhicules et non sept :
 
 ### Puis le trafic a cessé d'éclairer
 
-*« Pour les véhicules du trafic, ne mets pas l'effet d'éclairage ; fais juste allumer les
-phares en jaune, mais ne mets pas l'effet d'éclairage au sol. »*
+*« Pour les véhicules du trafic ne mets pas l'effet d'éclairage, fais juste allumer les
+phares en jaune mais ne mets pas l'effet d'éclairage au sol. »*
 
 Les deux économies ci-dessus rendaient le cône **moins cher**. Elles ne répondaient pas à la
 question de savoir s'il avait sa place. Il ne l'avait pas : on ne conduit pas ces
@@ -2721,6 +2726,13 @@ donc reçu leur propre teinte — un rouge de feu et un orange de gyrophare dist
 demi-pour-cent, invisibles à l'œil — et la règle est écrite là où on la lit : une couleur,
 un rôle. Vérifié sommet par sommet : soixante-douze feux et soixante-douze sommets de dôme,
 zéro qui bouge.
+
+Un troisième cas dormait depuis le début : la variante bleue du fourgon valait exactement le
+bleu de son **marquage latéral**. Sur un fourgon sur trois, les trente-six sommets du bandeau
+fusionnaient dans la tôle et le van roulait tout nu. Le contrôle qui l'a trouvé est
+maintenant au banc, et il est général : on compte les couleurs distinctes de chaque géométrie
+et l'on exige qu'une variante en ait autant que son original. Une pièce qui disparaît, c'est
+une couleur en moins.
 
 Le coût est celui qu'on attend, et il est mesuré : les seize carrosseries pèsent 1 302 Kio
 d'attributs, les quarante-trois géométries **2 032** — 730 Kio pour vingt-sept robes, quand

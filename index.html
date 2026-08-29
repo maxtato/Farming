@@ -10509,7 +10509,10 @@ const ROBES_TRAFIC = [
   [0x2F6B8E, 0xB08A2E],           // plateau à bottes : bleu, moutarde
   [0x37474F, 0xBFC6CC],           // monospace : anthracite, argent
   [0x1E2A30, 0xC26A2A],           // pick-up : noir bleuté, orange
-  [0x3E7CB8, 0xD9DDE0],           // fourgon : bleu, blanc gris
+  /* Le bleu de la variante VALAIT celui du marquage latéral (0x3E7CB8) : sur un fourgon
+     sur trois, les trente-six sommets du bandeau fusionnaient dans la tôle et le van
+     roulait tout nu. Une couleur, un rôle — jusque dans les variantes. */
+  [0x2F6B8E, 0xD9DDE0],           // fourgon : bleu pétrole, blanc gris
   // Le camion à caisse en a une de plus que tout le monde : le joueur les voulait
   // « toutes les couleurs, sauf en rouge, qui était la couleur originale ».
   [0x4A5560, 0x6B7040, 0xD8D2C0], // camion à caisse : ardoise, kaki, crème
@@ -14710,7 +14713,10 @@ function objectifMission(){
       const P = PATURES.find((q)=> q.espece === 'cochon' && q.betes.length);
       if(P) return {lieu:'pature' + PATURES.indexOf(P), x:P.quai.x, z:P.quai.z,
                     quoi:'charger', txt:'CHARGER LES PORCS'};
-      const B = SITES.find((x)=> x.abattoir && siteOuvert(x));
+      /* La boucherie, ouverte ou non : un commerce fermé dit son palier sur son enseigne,
+         et c'est encore une information. Rendre null, en revanche, éteint la mission tout
+         entière — plus de cercle, plus de flèche, plus de ligne au bandeau. */
+      const B = SITES.find((x)=> x.abattoir);
       if(B) return {lieu:B.nom, x:B.dropX, z:B.dropZ, quoi:'aller', txt:'ALLER VOIR'};
     }
     return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ, quoi:'aller', txt:'ALLER VOIR'} : null;
@@ -14741,6 +14747,10 @@ function objectifProduit(cle, reste, S){
         juge, qui en fait 1,45. C'est le prix d'un objectif qui ne ment plus. */
   let T = null, aBord = 0;
   for(const m2 of MACHINES){
+    // Une machine VERROUILLÉE n'est pas encore à la ferme : elle a beau porter une benne
+    // dans la table, ce qu'elle contiendrait n'appartient à personne. `bleABord()` faisait
+    // déjà ce tri ; le juge, non.
+    if(m2.verrou) continue;
     const C2 = caisseDe(m2);
     if(!C2 || C2.type !== cle || C2.load <= 0.01) continue;
     aBord += C2.load;
@@ -14767,8 +14777,17 @@ function objectifProduit(cle, reste, S){
     'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
     {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
   if(auSilo + aLEntrepot + aBord >= reste - 0.01){
+    /* LE SEUIL DE 0,5 EST UN « IL Y A QUELQUE CHOSE À PRENDRE », PAS UNE DÉCISION — et il
+       laissait une zone morte : trois cents grammes au silo et 29,8 kg dans la benne pour
+       une commande de trente, la porte du compte s'ouvre et aucune des deux branches ne
+       part, si bien qu'on retournait au champ chercher ce qu'on avait déjà. Quand la
+       ferme a le compte mais que ses deux magasins sont vides à ce point, c'est qu'on
+       porte tout : on va livrer. */
     if(auSilo > 0.5) return chargerSilo();
     if(aLEntrepot > 0.5 && ENTREPOT.quai) return chargerEntrepot();
+    if(S && aBord > 0.01)
+      return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, aBord)),
+                 {x:S.dropX, z:S.dropZ});
   }
   /* 2 bis. ET CE QUE LA MOISSONNEUSE PORTE ENCORE COMPTE, À CONDITION D'ALLER LE VERSER.
         « Si on a récolté suffisamment de blé pour que, ajouté à ce qu'il y a dans le silo,
