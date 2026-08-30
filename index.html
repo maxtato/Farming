@@ -1117,9 +1117,30 @@ const SUN_DIR = new THREE.Vector3(50, 78, 24);
 const sun = new THREE.DirectionalLight(0xFFE6C0, 0.95);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
+/* LA BOÎTE D'OMBRE SE DÉDUIT DE LA PORTÉE D'UNE OMBRE, ET NON D'UNE MARGE AU JUGÉ.
+   Elle couvrait 170 m de côté pour une caméra qui voit 93 m de large — presque le double,
+   et personne ne l'avait mesuré, pour une raison simple : `renderer.info.render.calls` NE
+   COMPTE PAS la passe d'ombre. 468 appels avec les ombres, 468 sans. Tous les chiffres
+   d'appels du fichier ne parlaient que de la passe principale, et la seconde passait sous
+   le radar. Comptée à la main, dans les cultures : 90 appels pour l'image, 250 pour son
+   ombre — près de trois fois plus, pour un dixième des triangles.
+   Or une ombre a une PORTÉE, et elle se calcule. Le soleil est en (50, 78, 24) : une
+   ombre s'étend horizontalement de √(50² + 24²)/78 = 0,71 fois la hauteur de l'objet. Le
+   plus haut du jeu — un arbre de douze mètres — jette donc la sienne à 8,5 m. Un objet à
+   plus de neuf mètres hors du cadre ne peut PAS y poser d'ombre : le redessiner est du
+   travail pur.
+   D'où 130 : 93 m vus, plus 18,5 m de marge à chaque bout, soit plus du double de ce que
+   la plus longue ombre du jeu réclame. Relevé — cultures 250 → 118 appels d'ombre
+   (−53 %), village 169 → 92 (−46 %), cour de ferme 316 → 265 (−16 %) — et les captures
+   avant/après sont les mêmes au trafic près. La carte y GAGNE d'ailleurs en finesse :
+   2048 pixels sur 130 m font 15,7 px/m au lieu de 12,0.
+   ET L'ON NE DESCEND PAS PLUS BAS. À 110 m la marge tombe à 8,5 m, très exactement la
+   portée de l'ombre d'un arbre : le premier peuplier au bord du cadre verrait la sienne
+   apparaître d'un coup. C'est la marge qui fixe le nombre, pas le gain. */
+const OMBRE_COTE = 65;                   // demi-côté de la boîte d'ombre, en mètres
 sun.shadow.camera.near = 20; sun.shadow.camera.far = 300;
-sun.shadow.camera.left = -85; sun.shadow.camera.right = 85;
-sun.shadow.camera.top = 85; sun.shadow.camera.bottom = -85;
+sun.shadow.camera.left = -OMBRE_COTE; sun.shadow.camera.right = OMBRE_COTE;
+sun.shadow.camera.top = OMBRE_COTE; sun.shadow.camera.bottom = -OMBRE_COTE;
 sun.shadow.bias = -0.0012;
 scene.add(sun); scene.add(sun.target);
 

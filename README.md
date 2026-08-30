@@ -5134,6 +5134,61 @@ sans qu'on ait touché à un seuil.
 
 Les appels ne bougent pas, et c'est la preuve que le levier n'était pas là.
 
+## La passe d'ombre, qu'aucun compteur ne comptait
+
+**« Supprime les ombres sur les champs, ça peut peut-être alléger aussi. »** Les cultures
+ne **projettent** pas d'ombre — `champDe` ne lève que `receiveShadow` : il n'y avait rien
+à supprimer de ce côté. En cherchant, on est tombé sur autre chose.
+
+**`renderer.info.render.calls` ne compte pas la passe d'ombre.** 468 appels avec les
+ombres, 468 sans. Tous les chiffres d'appels de ce fichier — et ceux du README — ne
+parlaient que de la passe principale, et la seconde passait sous le radar depuis toujours.
+Comptée à la main, dans les cultures : **90 appels pour l'image, 250 pour son ombre.**
+Près de trois fois plus, pour un dixième des triangles — 80 triangles par appel, c'est-à-
+dire des miettes redessinées une à une.
+
+**Une ombre a une portée, et elle se calcule.** Le soleil est en (50, 78, 24) : une ombre
+s'étend horizontalement de √(50² + 24²) / 78 = **0,71 fois la hauteur de l'objet**. Le
+plus haut du jeu — un arbre de douze mètres — jette donc la sienne à 8,5 m. Un objet à
+plus de neuf mètres hors du cadre ne peut *pas* y poser d'ombre : le redessiner est du
+travail pur. Or la boîte d'ombre couvrait **170 m de côté pour une caméra qui voit 93 m**.
+
+Elle passe à **130** : 93 m vus, plus 18,5 m de marge à chaque bout, soit plus du double
+de ce que la plus longue ombre du jeu réclame.
+
+| | avant | après |
+| --- | --- | --- |
+| dans les cultures | 250 appels d'ombre | **118** (−53 %) |
+| devant le village | 169 | **92** (−46 %) |
+| dans la cour de la ferme | 316 | **265** (−16 %) |
+
+Les captures avant/après sont les mêmes au trafic près — 2,8 % de pixels dans les champs
+et 4,2 % dans la cour, pour un **bruit de fond de 2,0 %** relevé entre deux rendus de la
+même image, une voiture ayant avancé entre les deux. Et la carte y **gagne** en finesse :
+2 048 pixels sur 130 m font 15,7 px/m au lieu de 12,0.
+
+**On ne descend pas plus bas.** À 110 m le gain monterait à −76 % dans les cultures, mais
+la marge tomberait à 8,5 m — très exactement la portée de l'ombre d'un arbre : le premier
+peuplier au bord du cadre verrait la sienne apparaître d'un coup. C'est la marge qui fixe
+le nombre, pas le gain.
+
+### Ce qu'on n'a PAS fait, et pourquoi
+
+Le premier relevé annonçait « 125 projetants de moins de cinquante centimètres, à couper ».
+C'était une **erreur de critère** : ces cinquante centimètres étaient l'ÉPAISSEUR de
+l'objet, pas sa hauteur au-dessus du sol. Les couper aurait emporté les lisses de clôture,
+les fils, les rives de toit — tout ce qui est mince et haut placé, et dont l'ombre se voit
+parfaitement. Le fichier avait d'ailleurs déjà tranché la question dans l'autre sens :
+`OMBRE_MIN = 1,4 m` écarte les bricoles **sur leur emprise au sol**, et son commentaire dit
+mot pour mot « une lisse de clôture de trois mètres garde son ombre, le piquet qui la porte
+non ».
+
+Ce qui restait honnêtement à prendre — les objets à la fois plats *et* posés au sol, dont
+l'ombre tombe sous eux — vaut **9 à 16 appels sur 317**, soit 3 à 5 %. Le seul endroit où
+l'appliquer proprement serait une passe qui parcourt la scène après chaque construction :
+beaucoup de mécanique fragile pour neuf appels de dessin. On s'en passe, et on l'écrit ici
+pour que la question ne se repose pas.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
