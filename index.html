@@ -22734,6 +22734,214 @@ const _smoke = new THREE.Vector3();
    trente bouffées d'un coup. */
 let _dtImage = 1/60;
 const siSouvent = (p)=> Math.random() < p*Math.min(4, _dtImage*60);
+/* ==========================================================================
+   LES CHANTIERS : ON DÉSIGNE UNE PARCELLE, LE MATÉRIEL S'EN OCCUPE
+   ==========================================================================
+   Le joueur : « je veux qu'on ait juste à toucher une parcelle, qu'on décide ce qu'on
+   veut en faire — soit de l'élevage, soit de la culture. Ça nous demande si on va le
+   faire une fois ou en continu, et suivant l'état de la terre à ce moment-là, les
+   véhicules disponibles iront directement travailler la terre dans l'ordre. »
+
+   TOUT CE QUI SUIT N'EST QU'UN ORDONNANCEUR. Le pilote sait déjà travailler une
+   parcelle, porter une marchandise d'un lieu à un autre, aller chercher un outil et se
+   ravitailler : un chantier ne fait que DÉCIDER quelle tâche donner, à quel engin, à
+   quel moment. Pas une ligne de conduite n'est réécrite ici — c'est ce qui rend la
+   chose relisible, et c'est ce qui la rend sûre.
+
+   L'ORDRE DES ÉTAPES N'EST PAS CELUI DU CAHIER DES CHARGES, ET C'EST VOULU. La moisson
+   passe AVANT le labour. La charrue accepte de retourner une terre mûre — son `from`
+   contient l'état MUR — si bien qu'un chantier relancé sur une parcelle à moitié
+   moissonnée enfouirait le blé qui reste debout. On récolte donc d'abord ce qui est
+   prêt, et l'on retourne ensuite ce qui est nu. */
+const CHANTIERS = [];
+// Les trois tracteurs sont les seuls à pouvoir traîner un outil : la moissonneuse et
+// l'enjambeuse portent le leur, le pick-up et le fourgon transportent.
+const EST_TRACTEUR = (m)=> /^t[0-9]$/.test(m.key);
+const ET_MOISSON = 'moisson', ET_LABOUR = 'labour', ET_SEMIS = 'semis',
+      ET_ENGRAIS = 'engrais', ET_POUSSE = 'pousse', ET_FINI = 'fini';
+const NOM_ETAPE = {moisson:'Moisson', labour:'Labour', semis:'Semis', engrais:'Engrais',
+                   pousse:'Ça pousse', fini:'Terminé'};
+
+/* Ce que la terre d'une parcelle réclame, compté cellule par cellule. Une seule
+   traversée : la fonction est appelée deux fois par seconde, pas soixante. */
+function bilanParcelle(p){
+  const b = {mur:0, nu:0, laboure:0, seme:0, sansEngrais:0, total:0};
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i, e = state[id];
+    if(e === ST.HORS) continue;
+    b.total++;
+    if(e === ST.MUR) b.mur++;
+    else if(e === ST.JACHERE || e === ST.CHAUME) b.nu++;
+    else if(e === ST.LABOURE) b.laboure++;
+    else if(e === ST.SEME){ b.seme++; if(!fert[id]) b.sansEngrais++; }
+  }
+  return b;
+}
+/* L'étape courante d'un chantier de culture. Le seuil de cinq pour cent est celui des
+   reliquats : en dessous, ce qui reste est ce que les virages ont laissé, et repartir
+   pour ça coûterait une traversée pour trois coins — c'est déjà la règle du jeu, elle
+   vaut ici aussi. */
+const RESTE_MIN = 0.05;
+function etapeChantier(C){
+  const p = PARCELS[C.p];
+  if(!p || !p.owned) return ET_FINI;
+  const b = bilanParcelle(p);
+  const seuil = Math.max(1, Math.round(b.total*RESTE_MIN));
+  if(b.mur >= seuil) return ET_MOISSON;
+  if(b.nu >= seuil) return ET_LABOUR;
+  if(b.laboure >= seuil) return ET_SEMIS;
+  if(C.engrais && b.sansEngrais >= seuil) return ET_ENGRAIS;
+  if(b.seme) return ET_POUSSE;
+  return ET_FINI;
+}
+/* CE QU'IL FAUT POUR UNE ÉTAPE : une classe d'engin, et un outil ou rien.
+   La vigne et l'olivier se vendangent à l'enjambeuse, les cinq céréales à la
+   moissonneuse — c'est la seule différence entre les deux récoltes. */
+function besoinEtape(C, et){
+  const c = CROPS[C.crop || 0];
+  if(et === ET_MOISSON)
+    return {classe:(c && c.perenne) ? 'enjambeuse' : 'moisson', outil:-1};
+  const cle = (et === ET_LABOUR) ? 'labour' : (et === ET_SEMIS) ? 'semis'
+            : (et === ET_ENGRAIS) ? 'engrais' : null;
+  if(!cle) return null;
+  return {classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === cle)};
+}
+/* POURQUOI ÇA N'AVANCE PAS. Un chantier qui se bloque sans le dire est le seul vrai
+   défaut d'un système qu'on laisse tourner sans le regarder. Chaque étape déclare donc
+   ce qui lui manque, en français, et le chantier le porte jusqu'à ce que ce soit réglé. */
+function blocageEtape(C, et){
+  const c = CROPS[C.crop || 0];
+  if(et === ET_SEMIS){
+    if(c && c.perenne) return null;              // une vigne se plante, elle ne se sème pas
+    const T = TOOLS.find((t)=> t.key === 'semis');
+    const enCuve = T ? cuveDe(T, c.cle) : 0;
+    if(enCuve < 0.5 && (STOCK.graines[c.cle] || 0) < 0.5)
+      return 'PLUS DE SEMENCE DE ' + c.nom.toUpperCase() + ' — À ACHETER AU COMPTOIR';
+  }
+  if(et === ET_ENGRAIS){
+    const T = TOOLS.find((t)=> t.key === 'engrais');
+    if(T && T.verrou) return 'L’ÉPANDEUR N’EST PAS ENCORE ACHETÉ';
+    const enCuve = T ? cuveDe(T, 'engrais') : 0;
+    if(enCuve < 0.5 && STOCK.engrais < 0.5)
+      return 'PLUS D’ENGRAIS — À ACHETER AU COMPTOIR';
+  }
+  if(et === ET_MOISSON && siloPlein() && !(c && c.perenne))
+    return 'SILO PLEIN — LA MOISSON N’A NULLE PART OÙ ALLER';
+  const B = besoinEtape(C, et);
+  if(B && B.outil >= 0 && TOOLS[B.outil].verrou)
+    return TOOLS[B.outil].nom.toUpperCase() + ' PAS ENCORE ACHETÉ';
+  if(B && !MACHINES.some((m)=> !m.verrou && classeDe(m) === B.classe))
+    return 'AUCUN ENGIN POUR ' + NOM_ETAPE[et].toUpperCase();
+  return null;
+}
+const classeDe = (m)=> EST_TRACTEUR(m) ? 'tracteur'
+                     : (m.key === 'moisson' || m.key === 'enjambeuse') ? m.key : 'porteur';
+/* UN ENGIN EST LIBRE S'IL NE FAIT RIEN ET QUE LE JOUEUR N'EST PAS DEDANS. On ne lui
+   prend jamais celui qu'il conduit : le pilote reprendrait la main sous ses doigts. */
+const enginLibre = (m)=> !m.verrou && !m.v.mission && !m.v.auto && MACHINES[cur] !== m
+                         && !CHANTIERS.some((C)=> C.engin === MACHINES.indexOf(m));
+/* ARMER UN ENGIN. Le lanceur de l'ancien écran oubliait la moitié de ces champs — il ne
+   remettait ni `finMoisson` ni l'itinéraire — et comptait sur la première tâche pour
+   nettoyer derrière lui. Ici tout part de zéro, une fois, au même endroit. */
+function armerEngin(m, taches){
+  const v = m.v;
+  v.mission = {taches:taches, i:0, etape:0, boucle:false, attente:0};
+  v.plan = null; v.goSilo = false; v.finMoisson = false;
+  v.sensVoulu = null; v.cleVoulue = null;
+  v.route = null; v.routeBut = null; v.routeArr = null;
+  v.attenteSilo = 0; v.diteSilo = false;
+  if(typeof desarmerRecul === 'function') desarmerRecul(v);
+  v.auto = true;
+}
+/* LA FILE DE TÂCHES D'UNE ÉTAPE. Trois briques, et l'ordre est toujours le même :
+   prendre l'outil, se ravitailler s'il consomme quelque chose, puis travailler. La
+   tâche de ravitaillement sait passer son tour quand le casier est déjà plein — on ne
+   fait donc pas le détour par la cour pour rien. */
+function tachesEtape(C, et, B){
+  const t = [];
+  if(B.outil >= 0){
+    t.push({quoi:'outil', t:B.outil});
+    if(et === ET_SEMIS || et === ET_ENGRAIS) t.push({quoi:'reserve'});
+  }
+  t.push({quoi:'parcelle', p:C.p});
+  return t;
+}
+/* LE RÉPARTITEUR. Deux fois par seconde : on regarde ce que chaque chantier réclame, on
+   récupère les engins qui ont fini, et l'on attribue ce qui est libre. Les chantiers
+   sont servis dans l'ordre où on les a créés — le premier posé est le premier servi,
+   ce qui est la seule règle qu'un joueur puisse prévoir sans la lire. */
+let _tChantiers = 0;
+const PAS_CHANTIERS = 0.5;
+function majChantiers(dt){
+  _tChantiers += dt;
+  if(_tChantiers < PAS_CHANTIERS) return;
+  const pas = _tChantiers; _tChantiers = 0;
+  for(let k = CHANTIERS.length - 1; k >= 0; k--){
+    const C = CHANTIERS[k];
+    // 1. l'engin attribué a-t-il fini ? Le seul signal est la mission qui retombe.
+    if(C.engin >= 0 && !MACHINES[C.engin].v.mission) C.engin = -1;
+    if(C.engin >= 0){ C.bloque = null; continue; }
+    // 2. où en est la terre ?
+    const et = etapeChantier(C);
+    C.etape = et;
+    if(et === ET_FINI){
+      if(!C.continu){ CHANTIERS.splice(k, 1); showHint('CHANTIER TERMINÉ — PARCELLE ' + (C.p + 1)); }
+      continue;
+    }
+    if(et === ET_POUSSE){ C.bloque = null; continue; }   // rien à faire qu'attendre
+    // 3. ce qui manque, s'il manque quelque chose
+    const mal = blocageEtape(C, et);
+    if(mal){
+      if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
+      continue;
+    }
+    C.bloque = null;
+    // 4. un engin libre de la bonne classe, le plus proche de la parcelle
+    const B = besoinEtape(C, et);
+    if(!B) continue;
+    const p = PARCELS[C.p];
+    let choisi = -1, best = 1e9;
+    MACHINES.forEach((m, i)=>{
+      if(classeDe(m) !== B.classe || !enginLibre(m)) return;
+      const d = Math.hypot(m.v.pos.x - p.x, m.v.pos.z - p.z);
+      if(d < best){ best = d; choisi = i; }
+    });
+    if(choisi < 0){
+      // Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le
+      // dit dans le bandeau du chantier, mais on ne crie pas — le joueur le verra.
+      C.bloque = NOM_ETAPE[et].toUpperCase() + ' — EN ATTENTE D’UN ENGIN';
+      continue;
+    }
+    // 5. le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait
+    if(et === ET_SEMIS && B.outil >= 0) TOOLS[B.outil].crop = C.crop || 0;
+    C.engin = choisi;
+    armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
+  }
+}
+/* Poser un chantier de culture sur une parcelle, ou le retirer. */
+function poserChantier(ip, o){
+  const dejaLa = CHANTIERS.findIndex((C)=> C.p === ip);
+  if(dejaLa >= 0) CHANTIERS.splice(dejaLa, 1);
+  const C = {quoi:'culture', p:ip, continu:!!(o && o.continu),
+             crop:(o && o.crop) || 0, engrais:!!(o && o.engrais),
+             produit:(o && o.produit) || null, dest:(o && o.dest) || {},
+             etape:null, engin:-1, bloque:null};
+  CHANTIERS.push(C);
+  return C;
+}
+function retirerChantier(ip){
+  const k = CHANTIERS.findIndex((C)=> C.p === ip);
+  if(k < 0) return false;
+  const C = CHANTIERS[k];
+  // On rend la main à l'engin, sans le laisser au milieu d'un champ en pilote fantôme.
+  if(C.engin >= 0){ const v = MACHINES[C.engin].v; v.mission = null; v.auto = false; v.plan = null; }
+  CHANTIERS.splice(k, 1);
+  return true;
+}
+const chantierDe = (ip)=> CHANTIERS.find((C)=> C.p === ip) || null;
+
 function loop(now){
   requestAnimationFrame(loop);
   /* PLAFONNER LE NOMBRE D'IMAGES, ET POURQUOI CELA AIDE.
@@ -22809,6 +23017,7 @@ function loop(now){
     updateElevage(dt);
     updatePlein(dt);
     updateBetail(dt);
+    majChantiers(dt);
     updateSauvegarde(dt);
     AUDIO.moteurUpdate(v, thrM, m);
     AUDIO.traficUpdate(v.pos.x, v.pos.z);
