@@ -5204,6 +5204,219 @@ par des sauts de ligne, et non en tableau. Le cache de repeinture compare `J.sou
 égalité ; un tableau neuf à chaque image ferait repeindre et téléverser 470 × 304 pixels
 soixante fois par seconde.
 
+## Sept corrections, dont deux bugs que le drapeau ne disait pas
+
+### « Une fois » voulait dire « pour toujours »
+
+Le joueur : « j'ai des automatisations et elles se font continuer alors que je n'ai pas
+choisi le mode continu. »
+
+`etapeChantier` ne lisait **que l'état du sol**. Après la moisson, la parcelle est en
+**chaume**, que `bilanParcelle` compte comme « nu », donc « à labourer ». Le chantier
+repartait labourer, semer, épandre, attendre la pousse, moissonner — indéfiniment.
+`ET_FINI` n'était atteignable que sur une terre vide de tout, ce qui n'arrive jamais après
+une récolte : **les deux modes faisaient exactement la même chose**, et la case à cocher ne
+servait à rien.
+
+Un cycle, c'est préparer, semer, faire pousser, **récolter**. La récolte passée, un
+chantier qui n'est pas en continu a fini sa terre. Mesuré sur les sept états d'un cycle :
+
+| état du sol | « une fois » | « en continu » |
+|---|---|---|
+| chaume au départ | labour | labour |
+| labouré | semis | semis |
+| semé | pousse | pousse |
+| mûr | moisson | moisson |
+| **chaume après moisson** | **fini** | **labour** |
+| chaume, deux regards plus tard | **fini** | labour |
+
+Un élevage non continu ne s'arrêtait jamais non plus — ni `pisteAuge` ni `pisteProduits`
+ne retirent quoi que ce soit. Il s'arrête maintenant après sa tournée, une fois le porteur
+rentré.
+
+### L'engin se place sur son point de chargement
+
+Le joueur : « il faut vraiment arriver à angle droit, sortir de la route, tourner à angle
+droit, **se placer sur le point de chargement**. »
+
+Il ne s'y plaçait pas. `suivreRoute` valide ses points de passage à 5,5 m — ce qu'il faut à
+un croisement, sinon l'engin fait des ronds autour pour le toucher au mètre près. Mais le
+**dernier** point n'est pas un croisement : c'est le point de chargement, et le valider à
+5,5 m déclarait la route finie **avant** que le rayon d'arrêt soit atteint. L'itinéraire
+était jeté, `suivreRoute` rendait `null`, et l'appelant croyait l'engin arrivé.
+
+| | avant | après | rayon du cercle |
+|---|---|---|---|
+| silo | 4,77 m | **3,82 m** | 4,00 |
+| réserve de graines | 5,31 m | **3,58 m** | 3,60 |
+| réserve d'engrais | 5,27 m | **3,43 m** | 3,60 |
+
+Il s'arrêtait donc **hors** du cercle aux trois points ; il s'arrête maintenant dedans, et
+c'est le rayon qui décide de l'arrivée, plus l'épuisement prématuré de la route. Les
+**demi-tours sur place** comptés sur les trois trajets, avant comme après : **zéro**.
+
+### La benne se voyait mal, et ce n'était pas la faute des couleurs
+
+Vérifié d'abord : la géométrie est saine. Rendue en `FrontSide` et en `DoubleSide`, l'image
+est la même — rien n'est à l'envers. Le défaut est ailleurs : **la caméra du jeu regarde de
+haut**, et une benne *ouverte* lui montre son intérieur. On voyait le fond, les parois vues
+de dedans, et surtout les rehausses crème qui cerclent le vide : l'engin lisait comme une
+cagette blanche creuse au lieu d'une masse.
+
+Trois corrections, sans toucher au modèle choisi : la **bâche se déroule** sur 45 % de
+l'avant — ce que fait une remorque en route, ça donne une surface pleine vue d'en haut, et
+ça laisse l'arrière découvert pour qu'on voie le chargement ; la caisse monte d'un cran en
+clarté ; les rehausses descendent d'un cran.
+
+### Ce qui ne bouge pas ne recalcule plus sa matrice
+
+Le changement proposé au tour précédent, fait et vérifié. Dans three.js r128,
+`updateMatrixWorld` descend **tout** le graphe à chaque image, visible ou non.
+
+**733 objets gelés sur 1 707, soit 43 % du graphe.** C'est conservateur : on écarte en bloc
+les sous-arbres de tout ce qui vit — engins, outils, trafic, bêtes, oiseaux, colis, bouffées,
+étiquettes, enseignes, éclairages de nuit, le soleil. Il reste des pièces immobiles à
+l'intérieur d'un tracteur qu'on pourrait geler aussi ; on ne le fait pas, parce que la liste
+des exceptions serait à tenir à jour et que c'est le genre de liste qui pourrit.
+
+**Pourquoi c'est sûr**, et c'est le point qui compte : geler un parent ne casse pas ses
+enfants, et geler un enfant d'un parent qui bouge est sûr pour la même raison. Quand un
+objet bouge, `updateMatrix` pose `matrixWorldNeedsUpdate`, il recalcule et passe
+`force = true` à toute sa descendance, qui recalcule quoi qu'en dise son propre drapeau. Le
+drapeau ne décide que d'une chose : faut-il **recomposer** la matrice locale à partir de
+position/quaternion/échelle.
+
+Le banc vérifie l'invariant directement, sans rejeu : pour chaque objet, la matrice monde
+stockée doit valoir celle du parent multipliée par la locale recomposée. **Zéro écart** sur
+vingt-deux images où l'on roule, où l'on achète une parcelle, où l'on agrandit l'atelier et
+où la nuit tombe.
+
+**Deux pièges de zone morte, coup sur coup.** `poserAtelier` tourne pendant la construction,
+quinze mille lignes avant que `MACHINES` soit déclaré. Première garde : `typeof MACHINES ===
+'undefined'` — et **`typeof` ne protège pas d'une `const` dans sa zone morte** : il rend
+« undefined » sans broncher pour une variable jamais déclarée, mais **lève** une
+ReferenceError pour un `const` déclaré plus bas. La garde était le plantage. Deuxième garde,
+un drapeau `let` : même zone morte, même erreur. C'est `var` qu'il faut — hissé à
+`undefined`, donc faux, donc exactement ce qu'on veut dire.
+
+### La coupe de la moissonneuse reste à plat
+
+Le joueur : « que la carrosserie se penche, mais que l'outil de coupe ne se penche qu'un
+tout petit peu. » C'est aussi ce que fait la vraie machine : la coupe **flotte** sur le sol,
+portée par ses patins, pendant que la caisse travaille sur sa suspension.
+
+Le bec fait huit mètres de large. Mesuré à plein braquage :
+
+| | roulis de la caisse | inclinaison de la coupe | battement aux pointes |
+|---|---|---|---|
+| avant | 13,49° | **13,42°** | ±93 cm |
+| après | 13,65° | **2,12°** | ±15 cm |
+
+La tête est un enfant de la caisse : lui donner l'opposé du roulis l'annule exactement, et
+n'en garder qu'un sixième laisse voir qu'elle est portée par la machine sans qu'elle la
+suive. Elle est posée en x = 0, donc **sur l'axe même du roulis** : la contre-rotation la
+remet à plat sans la déplacer d'un millimètre. Le tangage en garde davantage — un tiers —
+parce que c'est lui qui donne l'impression que la machine mord dans la pente.
+
+### Les réglages d'usine reviennent
+
+Zoom **100 %**, netteté **Maximale**, commandes au **manche**. Changer les valeurs de départ
+n'aurait rien fait : les trois sont **sauvegardées**, et une partie en cours aurait rechargé
+les anciennes. Une sauvegarde qui ne porte pas la marque `reglagesV` est donc relue avec les
+réglages d'usine, **une fois**, puis reçoit la marque — après quoi le menu redevient maître.
+
+### Le créneau du commerce, qui est l'autre moitié de la première demande
+
+Le joueur, dans la même phrase que l'arrivée à angle droit au silo : « quand on arrive à un
+commerce, on fait l'inverse, on fait un créneau pour rentrer en marche arrière dans le
+parking du commerce déchargé et après on repart en marche avant. »
+
+Le jeu faisait exactement le contraire — il entrait de face et ressortait à reculons — et
+pour une raison qui se défend : un parvis de commerce est une impasse, `sortieDeQuai` teste
+neuf mètres devant le capot, ne les trouve pas libres, et se rabat sur la marche arrière.
+La demande consiste à **inverser les deux moitiés** : reculer là où l'on est gêné, avancer
+là où l'on est chargé.
+
+La manœuvre tient en trois temps, tous portés par l'itinéraire qui existait déjà :
+
+1. on suit la route jusqu'au **coude** d'où le parvis descend, et on le **dépasse** ;
+2. le parvis est alors derrière et sur le côté : `marcheArriere` fait partir le **cul** de
+   la machine vers l'anneau, et le train arrière braque tout seul dans le bon sens ;
+3. à l'arrêt, le nez regarde la sortie, et l'on repart en marche avant.
+
+Sur les douze parvis, chacun couru **deux fois** — avec le créneau et sans — pour que la
+comparaison ne repose sur aucun chiffre écrit à la main :
+
+| | on arrive sur l'anneau | derniers mètres en arrière | on repart en avant | nez / chaussée | demi-tours sur place |
+|---|---|---|---|---|---|
+| avant | 12 / 12 | 0 / 12 | **0 / 12** | **167°** (dans la façade) | 0 |
+| après | 12 / 12 | **12 / 12** (23,5 m) | **11 / 12** | **61°** | 0 |
+
+Le silo, l'entrepôt et les deux réserves ne changent pas d'un mètre : le drapeau est porté
+par le **lieu**, et seuls les commerces le portent. Ils donnent sur de la cour ou sur une
+voie, où entrer tout droit ne coûte rien.
+
+#### Quatre choses cassées avant que ça marche, et aucune n'était celle qu'on croyait
+
+**Le dépassement ne peut pas être un nombre fixe.** `marcheArriere` refuse au-delà de 1,1
+radian de travers, soit **63,0°**. L'angle sous lequel on voit l'anneau depuis le point de
+créneau, c'est l'arc-tangente du fond du parvis sur ce qu'on a dépassé. Dix mètres fixes,
+et le parvis de l'Épicerie — 15,10 m de la chaussée à l'anneau — mettait l'anneau à
+**63,6°** : un demi-degré au-delà du refus, sur **tous** les commerces à la fois. Le
+dépassement suit donc le fond, d'un facteur 1,35, et l'angle vaut **36,5° au pire** quel que
+soit le parvis (fonds mesurés de 10,1 à 15,1 m).
+
+**On ne peut pas reculer tant qu'on avance encore.** `update()` inverse le braquage dès que
+les gaz sont négatifs — c'est ainsi qu'on pousse une remorque. Mais tant que la machine
+avance, ces gaz-là ne reculent pas : ils **freinent**, et le braquage inversé fait pivoter
+le nez du mauvais côté pendant tout le freinage. Quatorze images de ce régime suffisaient à
+porter l'anneau au-delà des 63°, et la manœuvre se sabordait avant d'avoir reculé d'un
+mètre. On freine donc **droit**, sans toucher au volant, jusqu'à l'arrêt.
+
+**`speed` est une norme.** Le garde « je roule encore vers l'avant » lisait `v.speed`, qui
+vaut autant à quatre mètres par seconde en avant qu'à quatre en arrière : une fois la
+marche arrière lancée, la condition restait vraie et la machine freinait tout droit
+indéfiniment — **216 mètres de recul en ligne droite** le long de la rocade, jusqu'au bord
+du monde, sans jamais braquer. On projette la vitesse sur le cap.
+
+**Un compteur d'images n'est pas une horloge.** Le premier jet bornait la manœuvre à seize
+secondes lues sur l'image écoulée. Le banc, qui déroule mille tours de boucle sans rien
+afficher, épuisait ces seize secondes en **quatre-vingts tours**. La borne est une horloge,
+celle du joueur. Une garde sur la distance a été essayée puis retirée : pendant l'arc du
+braquage l'anneau s'éloigne avant de se rapprocher, et toute tolérance assez large pour
+l'accepter ne détectait plus rien.
+
+#### Et la sortie ne devine plus sa direction, elle la connaît
+
+Après le créneau, la machine s'immobilise **en travers** — une cinquantaine de degrés par
+rapport à l'axe du parvis, c'est la fin d'un arc, pas une mise en ligne. Le rayon de neuf
+mètres de `sortieDeQuai` part alors en biais à travers le parvis, où il accroche le voisin :
+trois parvis sur douze refusaient la marche avant pour cette seule raison, alors qu'ils
+étaient **mieux** orientés que les neuf autres (49°, 54° et 57° contre 59 à 61).
+
+Or après un créneau, on sait par où l'on est entré : le coude de la chaussée est noté. On
+vise donc **un point**, pas une direction devinée, et l'on repart en avant sur le chemin
+qu'on vient de faire à l'envers. Onze parvis sur douze au lieu de huit. Le douzième — la
+Fromagerie — retombe sur la sortie d'avant, qui marche.
+
+### Le banc du son supposait une machine lente
+
+Le gel des matrices a fait tomber un contrôle : « une voiture qui passe à quatre mètres
+s'entend ». Zéro échec sur cinq sans le gel, **cinq sur douze** avec. Le réflexe serait de
+crier à la régression ; la mesure dit autre chose.
+
+Le banc s'accrochait à une **place du vivier** et s'y collait pendant 880 ms. Or le vivier
+**recycle** ses places : celle qu'on suivait s'éteint au bout de sa route et repart
+ailleurs, parfois en camion. Relevé en flagrant délit — l'écouteur en (115,4 ; −149,5), la
+place suivie en (111,4 ; −159,3), la voiture légère la plus proche à **52 mètres** alors que
+le banc croyait être à quatre.
+
+Le défaut dormait depuis toujours. C'est le gel qui l'a réveillé, en rendant le jeu **assez
+rapide** pour qu'une place se recycle pendant la mesure. Le jeu n'a rien perdu : le banc
+supposait une machine lente. Il suit désormais la voiture la plus proche à chaque image, ce
+qui est d'ailleurs exactement ce que le contrôle prétend mesurer — une voiture qui *passe*
+à quatre mètres, pas une place du vivier. Cinq essais isolés, cinq passages.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit

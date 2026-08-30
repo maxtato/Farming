@@ -1034,7 +1034,12 @@ const PX = 1.1;
    Le plafond se règle donc, et ne s'impose pas. `Infini` garde exactement ce qui
    existait ; 2 et 1,5 rendent la main au processeur graphique. Sur un écran ordinaire
    (un ou deux pixels physiques par pixel CSS), aucun de ces choix ne change rien. */
-const NETTETE = {i: 1, choix: [
+/* NETTETÉ MAXIMALE PAR DÉFAUT. Elle avait été mise à « Élevée » — plafonnée à deux fois
+   la définition CSS — pour ménager les téléphones. Le joueur la reveut telle quelle :
+   « je veux que tu reviennes à 100 % en résolution maximale et avec les contrôles
+   d'origine. » Les trois réglages qu'il cite reprennent donc leur valeur d'origine, et
+   `REGLAGES_V` plus bas les rend à une partie déjà commencée, une fois. */
+const NETTETE = {i: 0, choix: [
   {nom:'Maximale', det:'La définition de l\'écran, telle quelle', max: Infinity},
   {nom:'Élevée',   det:'Plafonnée à deux fois la définition CSS', max: 2},
   {nom:'Douce',    det:'Plafonnée à une fois et demie — le plus fluide', max: 1.5}
@@ -1077,7 +1082,7 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 1, 400);
    sur la caméra. */
 const CAM_BASE = new THREE.Vector3(38, 62, 38);
 const FOG_BASE = {pres:150, loin:260, far:400};
-const ZOOM = {pc:75, min:55, max:160};   // 75 % au départ : on voit venir de plus loin
+const ZOOM = {pc:100, min:55, max:160};  // 100 % : le cadrage d'origine, au mètre près
 /* LE PLAFOND D'IMAGES. Soixante par défaut : on ne bride personne d'office. Le réglage
    vit ici, à côté du zoom, parce que c'est le même genre de décision — ce qu'on donne à
    voir contre ce qu'on demande à la machine. Voir `loop()` pour ce que le plafond fait
@@ -8144,7 +8149,9 @@ function poserAtelier(){
     if(b.isEmpty()) continue;
     const R = {x:(b.min.x + b.max.x)/2, z:(b.min.z + b.max.z)/2,
                hw:(b.max.x - b.min.x)/2, hd:(b.max.z - b.min.z)/2};
-    atelierObs.push(R); boxObs.push(R);
+    // L'atelier vient d'être reconstruit : ses maillages neufs portent le drapeau à vrai.
+  if(typeof figerCeQuiNeBougePas === 'function') figerCeQuiNeBougePas();
+  atelierObs.push(R); boxObs.push(R);
   }
   // Un atelier dont rien ne serait à hauteur de capot n'existe pas, mais s'il arrivait
   // il vaut mieux un mur au bon endroit que pas de mur du tout.
@@ -8822,9 +8829,23 @@ function buildBenne(){
   g.scale.setScalar(BENNE_ECH);
   g.position.z = -BENNE_L;
   outer.add(g);
+  /* ELLE SE VOYAIT MAL, ET C'ÉTAIT LA FAUTE DU CADRAGE PLUS QUE DES COULEURS. Le joueur :
+     « dans le jeu la benne n'est pas affichée correctement, elle est transparente, on ne
+     sait pas où elle est. » Vérifié : la géométrie est saine — rendue en FrontSide et en
+     DoubleSide, l'image est la même, donc rien n'est à l'envers. Le défaut est ailleurs :
+     la caméra du jeu regarde de haut, à 49° d'élévation, et une benne OUVERTE lui montre
+     son intérieur. On voyait donc le fond, les parois vues de dedans, et surtout les
+     rehausses CRÈME qui cerclent le vide — l'engin lisait comme une cagette blanche
+     creuse au lieu d'une masse.
+     Trois corrections, et aucune ne touche au modèle qu'il a choisi :
+       — la BÂCHE se déroule sur l'avant de la caisse au lieu de rester en boudin. C'est
+         ce que fait une remorque bâchée en route, ça donne une surface pleine vue d'en
+         haut, et ça laisse l'arrière découvert pour qu'on voie ce qu'on transporte ;
+       — la caisse monte d'un cran en clarté, pour se détacher du bitume ;
+       — les rehausses descendent d'un cran, pour cesser de tirer l'œil avant la caisse. */
   const NOIR = 0x2A2622, CHASSIS = 0x3A3630, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
-        VERT = 0x3E6B4E, VERT2 = 0x2F5B40, ROUGE = 0xB8342A,
-        CREME = 0xF2E7D2, BACHE = 0x3E5C6B;
+        VERT = 0x4E8F5E, VERT2 = 0x3A6E48, ROUGE = 0xB8342A,
+        CREME = 0xD9CDAE, BACHE = 0x35576B;
   const W = 2.0, L = 3.2, H = 0.85, r = 0.52, yE = r;
 
   /* Une roue de remorque : pneu LISSE. Pas de crampons — ils appartiennent au tracteur,
@@ -8894,7 +8915,15 @@ function buildBenne(){
     g.add(cyl(0.09, 0.09, 0.14, 8, GRIS2, sx*(W/2 + 0.14), yB, L/2 - 0.08, 0, 0, Math.PI/2));
   g.add(box(0.1, 0.42, 0.1, GRIS2, W/2 + 0.2, yB - 0.2, L/2 - 0.08));
   g.add(box(0.24, 0.1, 0.1, GRIS, W/2 + 0.32, yB - 0.4, L/2 - 0.08));
-  g.add(box(W + 0.1, 0.1, 0.5, BACHE, 0, yB - 0.06, L/2 - 0.5));
+  /* LA BÂCHE DÉROULÉE SUR L'AVANT. Elle couvre 45 % de la longueur : assez pour que la
+     benne soit une masse pleine vue de la caméra, pas assez pour cacher le chargement,
+     qui vit dans la moitié arrière. Deux pans très légèrement inclinés font le galbe
+     d'une toile tendue sur ses arceaux plutôt qu'un couvercle plat. */
+  const LB = L*0.45;
+  g.add(box(W + 0.06, 0.09, LB, BACHE, 0, yB - 0.10, L/2 - 0.08 - LB/2));
+  g.add(box(W*0.62, 0.09, LB - 0.14, BACHE, 0, yB - 0.02, L/2 - 0.08 - LB/2));
+  for(const sx of [-1, 1])                                  // les deux arceaux visibles
+    g.add(box(W + 0.08, 0.07, 0.07, GRIS2, 0, yB - 0.13, L/2 - 0.08 - LB*(sx > 0 ? 0.35 : 0.85)));
 
   // — le timon en A, et sa chape à boule. Pas de béquille : elle reste attelée.
   const zT = L/2, LT = 1.5, yT = yE + 0.36;
@@ -8974,6 +9003,10 @@ function suspension(o, S, dt, aLat, aLon, vf){
   o.heave += o.heaveV*dt;
 }
 
+/* Ce que la coupe GARDE du mouvement de la caisse : un sixième du roulis, un tiers du
+   tangage. À zéro elle serait figée comme un décor ; à un elle repartirait avec la
+   carrosserie, ce qui est le défaut qu'on corrige. */
+const COUPE_ROULIS = 0.16, COUPE_TANGAGE = 0.34;
 /* ---------- 11. VÉHICULE (physique arcade avec dérive) ---------- */
 class Vehicle {
   constructor(cfg){
@@ -9155,6 +9188,26 @@ class Vehicle {
     this.body.rotation.z = this.roll;
     this.body.rotation.x = this.pitch;
     this.body.position.y = Math.max(-0.16, Math.min(0.16, this.heave));
+    /* LA COUPE RESTE À PLAT, ET LA CARROSSERIE PENCHE QUAND MÊME.
+       Le joueur : « modifie l'outil de travail de la moissonneuse pour qu'il reste
+       quasiment horizontal même pendant les virages ; fais que la carrosserie se penche,
+       mais que l'outil de coupe ne se penche qu'un tout petit peu. »
+       C'est aussi ce que fait la vraie machine : la coupe FLOTTE sur le sol, portée par
+       ses patins, pendant que la caisse travaille sur sa suspension. Le bec fait huit
+       mètres de large — à dix degrés de roulis, ses pointes montaient et descendaient de
+       soixante-dix centimètres, l'une labourant, l'autre en l'air.
+       La tête est un enfant de la caisse : lui donner l'OPPOSÉ du roulis l'annule
+       exactement, et n'en garder qu'un sixième laisse voir qu'elle est portée par la
+       machine sans qu'elle la suive. Elle est posée en x = 0, donc sur l'axe même du
+       roulis : la contre-rotation la remet à plat sans la déplacer d'un millimètre.
+       Le TANGAGE en garde davantage — un tiers : c'est lui qui donne l'impression que la
+       machine mord dans la pente, et une coupe rigoureusement horizontale au freinage
+       aurait l'air soudée au ciel. */
+    const _tete = this.group.userData.head;
+    if(_tete){
+      _tete.rotation.z = -this.roll*(1 - COUPE_ROULIS);
+      _tete.rotation.x = -this.pitch*(1 - COUPE_TANGAGE);
+    }
     /* LE TRAIN SUIT, PASSÉ UN CERTAIN ÉCART. La suspension d'un vrai véhicule a une
        course : sous un petit roulis la caisse bouge seule, les roues restent au sol —
        c'est ce qu'on voulait et on le garde. Mais la course a une BUTÉE, et au-delà
@@ -11222,7 +11275,7 @@ function itineraire(ax, az, bx, bz){
   return mieux.r;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
-function suivreRoute(v, bx, bz, cle, rayon){
+function suivreRoute(v, bx, bz, cle, rayon, creneau){
   const R = rayon || 3.0;
   const d0 = Math.hypot(bx - v.pos.x, bz - v.pos.z);
   /* ARRIVÉ, ET ON Y RESTE. Sans cette mémoire, l'engin qui vient de toucher son but
@@ -11266,13 +11319,155 @@ function suivreRoute(v, bx, bz, cle, rayon){
       v.routeSortie = {x:A.x + dx/LL*SORTIE_LOIN, z:A.z + dz/LL*SORTIE_LOIN};
       v.routeSortieCle = cle;
     }
+    /* ON ARME LE CRÉNEAU ICI, ET SEULEMENT SI L'ON VIENT DE LOIN. Le dernier point de
+       l'itinéraire — l'anneau du commerce — est remplacé par le point de créneau : la
+       machine roule donc en marche avant jusqu'à DÉPASSER le parvis, et c'est en arrivant
+       au bout de cette route-là qu'elle entame sa marche arrière. Rien n'est armé pour
+       une machine déjà sur le parvis : à quinze mètres, il n'y a plus ni coude ni élan
+       pour manœuvrer, et le créneau se transformerait en demi-tour sur place — celui-là
+       même que le joueur ne veut plus voir. */
+    v.creneau = null; v.creneauT0 = 0;
+    if(creneau && r2 && r2.length >= 2 && d0 > 15){
+      const C = pointCreneau(r2);
+      if(C){
+        /* ON VISE PLUS PROFOND QUE L'ANNEAU, ET C'EST CE QUI REDRESSE LA MACHINE.
+           `marcheArriere` fait pointer le CUL vers ce qu'on lui donne : viser l'anneau
+           lui-même, c'est relâcher la manœuvre au moment où la machine est encore en
+           travers de l'arc — mesuré, 67° d'écart au cap de sortie sur le parvis le plus
+           profond, assez pour que la voie devant le capot ne soit plus libre et qu'on
+           reparte à reculons comme avant. Quatre mètres au-delà de l'anneau, dans l'axe
+           du parvis, et la machine continue de se redresser jusqu'au bout.
+           Elle n'ira pas plus loin pour autant : c'est le test d'arrivée en tête de
+           fonction, mesuré sur l'anneau VRAI, qui arrête la manœuvre — le point visé ne
+           change que la direction, jamais la profondeur. */
+        const A = r2[r2.length - 2];
+        const ux = bx - A.x, uz = bz - A.z, UL = Math.hypot(ux, uz) || 1;
+        v.creneau = {x:bx, z:bz,
+                     vx:bx + ux/UL*CRENEAU_FOND, vz:bz + uz/UL*CRENEAU_FOND};
+        r2[r2.length - 1] = C;
+      }
+    }
   }
   const wp = v.route[v.routeI];
+  /* AU BOUT DE LA ROUTE, ON RECULE. L'itinéraire s'arrête au point de créneau, dix mètres
+     au-delà du parvis : c'est ici que la manœuvre commence. `marcheArriere` rend la main
+     dès que l'anneau est à portée — le rayon d'arrêt reste seul juge de l'arrivée, comme
+     partout ailleurs.
+     ET ELLE PEUT REFUSER. Passé soixante-trois degrés de travers, reculer ne rapproche
+     plus : on est mal placé, ou l'on s'est fait pousser. Douze secondes bornent la
+     manœuvre pour la même raison. Dans les deux cas on ne reste pas planté là — on
+     remet l'anneau au bout de l'itinéraire et l'on finit en marche avant, exactement
+     comme avant le créneau. La manœuvre est un mieux, jamais un blocage. */
+  if(!wp && v.creneau){
+    const C = v.creneau;
+    const d = Math.hypot(C.x - v.pos.x, C.z - v.pos.z);
+    /* ON SE GARDE PAR LA DISTANCE, PAS PAR LES IMAGES. Un compteur qui s'incrémente à
+       chaque tour de pilote compte des IMAGES, et une image ne dure pas la même chose sur
+       un téléphone qui peine et sur un banc qui déroule mille tours de boucle sans rien
+       afficher — le premier jet bornait la manœuvre à seize secondes lues sur l'image
+       écoulée, et le banc les épuisait en quatre-vingts tours, avant que la machine ait
+       reculé d'un mètre. Deux gardes le remplacent, et aucune ne compte les images :
+       la manœuvre a vingt secondes d'HORLOGE, celles du joueur, et rien d'autre ne la
+       borne — une garde sur la distance a été essayée puis retirée : pendant l'arc du
+       braquage l'anneau s'éloigne avant de se rapprocher, et toute tolérance assez large
+       pour l'accepter ne détectait plus rien. */
+    if(!v.creneauT0) v.creneauT0 = performance.now();
+    /* ON S'ARRÊTE D'ABORD, ON RECULE ENSUITE — et c'est le train arrière qui l'impose.
+       `update()` inverse le braquage dès que les gaz sont négatifs, parce que c'est ainsi
+       qu'une remorque se pousse. Mais tant que la machine AVANCE encore, ces gaz négatifs
+       ne reculent pas : ils freinent, et le braquage inversé fait pivoter le nez du
+       mauvais côté pendant tout le freinage. Mesuré : quatorze images de ce régime
+       suffisaient à porter l'anneau au-delà des soixante-trois degrés que `marcheArriere`
+       accepte, et la manœuvre se sabordait elle-même avant d'avoir reculé d'un mètre.
+       On freine donc DROIT, sans toucher au volant, jusqu'à l'arrêt — un conducteur ne
+       fait pas autre chose.
+       ET C'EST LA VITESSE SIGNÉE QU'ON LIT, PAS `speed`. `speed` est une norme : elle vaut
+       autant à quatre mètres par seconde en avant qu'à quatre en arrière. Testée telle
+       quelle, la condition « je roule encore vers l'avant » restait vraie une fois la
+       marche arrière lancée, et la machine freinait tout droit indéfiniment : mesuré,
+       216 mètres de recul en ligne droite le long de la rocade, jusqu'au bord du monde,
+       sans jamais braquer vers l'anneau. On projette donc la vitesse sur le cap. */
+    const _f = v.fwd(), vAvant = v.vel.x*_f.x + v.vel.y*_f.z;
+    if(vAvant > 0.6) return [0, -0.5];
+    /* Le rayon de relâchement vaut celui de l'arrivée, pas moins : la benne dépasse de huit
+       mètres derrière l'essieu et la façade n'est qu'à cinq mètres quarante au-delà de
+       l'anneau. Reculer plus près que ne le ferait une arrivée de face, c'est aller
+       chercher le mur avec ce qu'on ne voit pas. De toute façon c'est le test d'arrivée en
+       tête de fonction qui tranche le premier — ce rayon-ci n'est qu'un plancher. */
+    const rr = (performance.now() - v.creneauT0 > 20000) ? null : marcheArriere(v, C.vx, C.vz, R);
+    if(rr) return rr;
+    v.creneau = null;
+    if(d > R){ v.route.push(C); return [0, 0.4]; }
+  }
   if(!wp){ v.route = null; v.routeBut = null; return null; }
-  // Les points intermédiaires se valident au large : sinon l'engin fait des ronds
-  // autour d'un croisement pour le toucher au mètre près.
-  if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < 5.5){ v.routeI++; return [0, 0.5]; }
-  return viser(v, wp.x, wp.z, 2.4);
+  /* LES POINTS INTERMÉDIAIRES SE VALIDENT AU LARGE, LE DERNIER NON.
+     Cinq mètres et demi, c'est ce qu'il faut à un croisement : sinon l'engin fait des
+     ronds autour pour le toucher au mètre près. Mais le DERNIER point d'un itinéraire
+     n'est pas un croisement — c'est le point de chargement lui-même, et le valider à
+     5,5 m déclarait la route finie AVANT que le rayon d'arrêt soit atteint. L'itinéraire
+     était alors jeté, `suivreRoute` rendait null, et l'appelant croyait l'engin arrivé.
+     Mesuré au porteur : il s'immobilisait à 4,77 m de la goulotte du silo, 5,31 m du
+     cercle des graines, 5,27 m de celui de l'engrais — jamais sur sa marque.
+     Le joueur : « il faut vraiment […] se placer sur le point de chargement. » Le dernier
+     point se valide donc plus serré que le rayon d'arrêt, ce qui garantit que c'est
+     TOUJOURS le rayon qui décide de l'arrivée, et que les derniers mètres se font dans
+     l'axe, à l'équerre, comme le reste du dernier tronçon. */
+  const dernier = v.routeI >= v.route.length - 1;
+  /* Sauf quand ce dernier point est le point de CRÉNEAU : celui-là n'est pas une marque
+     où se poser, c'est l'endroit d'où l'on braque. Trois mètres suffisent — assez large
+     pour ne pas tourner autour, assez serré pour entamer la marche arrière dans l'axe. */
+  const tol = !dernier ? 5.5 : v.creneau ? 3.0 : Math.min(5.5, R*0.5);
+  if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < tol){ v.routeI++; return [0, 0.5]; }
+  return viser(v, wp.x, wp.z, dernier ? (v.creneau ? 1.5 : 1.2) : 2.4);
+}
+/* ---------- LE CRÉNEAU DE COMMERCE ----------
+   Le joueur : « quand on arrive à un commerce, on fait l'inverse, on fait un créneau
+   pour rentrer en marche arrière dans le parking du commerce déchargé et après on
+   repart en marche avant. »
+
+   C'est exactement la manœuvre d'un livreur, et pour la même raison que lui : le parvis
+   d'un commerce est une impasse — dix mètres de bitume entre la chaussée et la façade,
+   3,40 m de rayon d'arrêt. Y entrer en marche avant, c'est devoir en ressortir à
+   reculons avec la remorque en aveugle ; y entrer à reculons, c'est en ressortir en
+   voyant où l'on va. Le camion recule là où il est gêné et avance là où il est chargé.
+
+   La manœuvre tient en trois temps, tous portés par l'itinéraire existant :
+     1. on suit la route jusqu'au COUDE, celui d'où le parvis descend, et l'on DÉPASSE ce
+        coude — le point de créneau est droit devant, sur la chaussée ;
+     2. le parvis est alors derrière et sur le côté : `marcheArriere` fait partir le CUL
+        de la machine vers l'anneau, et le train arrière braque tout seul dans le bon sens ;
+     3. à l'arrêt, le nez regarde la sortie. `sortieDeQuai` teste `voieLibre` DEVANT :
+        elle l'est, puisqu'on regarde la route. On repart donc en marche avant sans
+        qu'une seule ligne de la sortie ait changé.
+
+   DE COMBIEN ON DÉPASSE, ET POURQUOI CE N'EST PAS UN NOMBRE FIXE. `marcheArriere` refuse
+   au-delà d'un radian et un dixième de travers, soit 63,0° : passé cet angle, reculer ne
+   rapproche plus, et elle rend la main. L'angle sous lequel on voit l'anneau depuis le
+   point de créneau, c'est l'arc-tangente du FOND DU PARVIS sur ce qu'on a dépassé.
+   Dix mètres fixes, mesuré : le parvis de l'Épicerie fait 15,10 m de la chaussée à
+   l'anneau, ce qui met l'anneau à 63,6° — un demi-degré au-delà du refus. La marche
+   arrière ne partait pas, sur les seize commerces, et l'engin finissait tout droit
+   comme avant.
+   Le dépassement suit donc le fond du parvis, d'un facteur 1,35 : l'anneau se voit alors
+   sous 36,5° quel que soit le commerce, la moitié de ce que la marche arrière accepte.
+   Dix mètres restent le plancher, pour les parvis courts où l'arc-tangente ne demanderait
+   presque rien mais où il faut quand même de la place pour braquer. */
+const CRENEAU_LOIN = 10, CRENEAU_FOIS = 1.35, CRENEAU_FOND = 4;
+/* Le point de créneau se lit sur les TROIS derniers points de l'itinéraire : l'avant-
+   dernier est le coude, celui d'avant donne le sens de la chaussée. Faute du troisième —
+   un itinéraire d'un seul tronçon — on prend la perpendiculaire au parvis, qui est la
+   même direction à un signe près. */
+function pointCreneau(r){
+  if(!r || r.length < 2) return null;
+  const B = r[r.length - 1], A = r[r.length - 2], P = r.length >= 3 ? r[r.length - 3] : null;
+  let dx, dz;
+  if(P){ dx = A.x - P.x; dz = A.z - P.z; }
+  else { dx = -(B.z - A.z); dz = B.x - A.x; }
+  const LL = Math.hypot(dx, dz);
+  if(LL < 0.5) return null;
+  const fond = Math.hypot(B.x - A.x, B.z - A.z);
+  const loin = Math.max(CRENEAU_LOIN, fond*CRENEAU_FOIS);
+  return {x:A.x + dx/LL*loin, z:A.z + dz/LL*loin};
 }
 /* De combien on recule AU-DELÀ du coude. Relevé sur la sortie du silo, la plus serrée du
    jeu — la tour se dresse à sept mètres de la grille : 4 m de recul laissent 1,55 m entre
@@ -11330,6 +11525,19 @@ function marcheArriere(v, tx, tz, rayon){
 const SORTIE_AVANT = 9;
 function sortieDeQuai(v, cle){
   const arriere = (v.routeSortieCle === cle) ? v.routeSortie : null;
+  /* ENTRÉ EN CRÉNEAU, ON RESSORT PAR OÙ L'ON EST ENTRÉ — MAIS EN MARCHE AVANT.
+     La règle générale tâte NEUF MÈTRES DROIT DEVANT LE CAPOT, parce qu'en temps normal
+     elle ne sait rien d'autre. Après un créneau, si : le coude de la chaussée est noté,
+     et c'est par lui qu'on vient de reculer. Or la machine s'immobilise en travers — une
+     cinquantaine de degrés par rapport à l'axe du parvis, c'est la fin d'un arc, pas une
+     mise en ligne — et le rayon de neuf mètres part alors EN BIAIS à travers le parvis,
+     où il accroche le voisin. Mesuré : trois parvis sur douze refusaient la marche avant
+     pour cette seule raison, alors qu'ils étaient MIEUX orientés que les neuf autres
+     (49°, 54° et 57° contre 59 à 61).
+     On vise donc le coude, qui est un point de la chaussée et non une direction devinée,
+     et l'on repart en avant sur le chemin qu'on vient de faire à l'envers. */
+  if(v.creneau && arriere && voieLibre(v.pos.x, v.pos.z, arriere.x, arriere.z))
+    return {x:arriere.x, z:arriere.z, avant:true};
   const f = {x:Math.sin(v.cap), z:Math.cos(v.cap)};
   const ax = v.pos.x + f.x*SORTIE_AVANT, az = v.pos.z + f.z*SORTIE_AVANT;
   if(voieLibre(v.pos.x, v.pos.z, ax, az)) return {x:ax, z:az, avant:true};
@@ -11338,6 +11546,9 @@ function sortieDeQuai(v, cle){
 function desarmerRecul(v){
   v.reculer = null; v.reculT = 0; v.sortie = null;
   v.routeSortie = null; v.routeSortieCle = null;
+  // Le créneau tombe avec le reste : une consigne de marche arrière qui survit à la fin
+  // d'un plan, c'est le bug de recul fantôme raconté juste au-dessus, en plus discret.
+  v.creneau = null; v.creneauT0 = 0;
 }
 function pasDeRecul(v, dt){
   if(!v.reculer) return null;
@@ -11358,6 +11569,7 @@ function pasDeRecul(v, dt){
 function quitterLieu(v){
   v.reculer = v.sortie; v.reculT = 0; v.sortie = null;
   v.route = null; v.routeBut = null; v.routeArr = null;
+  v.creneau = null; v.creneauT0 = 0;
   /* ET L'ON REVIENT LÀ OÙ L'ON S'EST ARRÊTÉ, PAS AU BOUT DE LA LIGNE. La passe reprenait
      au POINT COURANT du plan, c'est-à-dire à la fin du tronçon interrompu : tout ce qui
      restait de cette ligne — jusqu'à trente mètres — était sauté. On note donc l'endroit
@@ -11578,7 +11790,10 @@ function missionDrive(m, dt){
   // a répondu « Tout » — le pilote prend ce qui vient, comme auparavant.
   v.cleVoulue = t.cle || null;
   v.sensVoulu = 'route';
-  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r);
+  /* ET C'EST LA SEULE TÂCHE QUI DEMANDE LE CRÉNEAU. Les autres vont au silo, aux deux
+     réserves ou au parking : trois endroits qui donnent sur de la cour ou sur une voie,
+     et où entrer tout droit ne coûte rien. Le drapeau vient du LIEU, pas de la tâche. */
+  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r, P.creneau);
   if(r){ M.attente = 0; return r; }
   v.sensVoulu = (M.etape === 0) ? 'remplir' : 'vider';
   M.attente = (M.attente || 0) + dt;
@@ -14566,7 +14781,7 @@ for(const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
    fois la marche arrière engagée elle le reste jusqu'au relâchement : sinon, dès que
    l'engin reprend de la vitesse en reculant, la condition se retournerait et l'on
    repasserait au freinage en boucle. */
-const COMMANDES = {mode:'boutons'};      // 'manche' ou 'boutons'
+const COMMANDES = {mode:'manche'};       // 'manche' ou 'boutons' — le manche est l'origine
 const BTN = {g:false, d:false, acc:false, fre:false, freT:0, arriere:false};
 let frein = false;                       // le frein appuyé, transmis à la physique
 
@@ -15135,9 +15350,13 @@ function lieuxPossibles(){
   PATURES.forEach((P, i)=>{
     L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z, r:5.0});
   });
+  /* ET EUX SEULS SE FONT EN CRÉNEAU. Un parvis de commerce est une impasse de dix
+     mètres fermée par une façade ; le silo, l'entrepôt, les pâtures et les deux réserves
+     donnent au contraire sur de la cour ou sur une voie. Le drapeau ne dit donc pas
+     « c'est un commerce », il dit « on entre là-dedans à reculons ». */
   for(const S of SITES)
     if(S.achete.length || S.accepte.length)
-      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:3.4});
+      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:3.4, creneau:true});
   return L;
 }
 const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
@@ -22476,14 +22695,26 @@ function etatJeu(){
        Le rang de la PARCELLE, lui, en est bien un — c'est déjà ainsi que `parcelles` est
        écrit, et deux conventions dans le même fichier seraient pire qu'une.
        Facultatif comme le reste : absente, la liste vaut vide, et `v` ne bouge pas. */
+    /* `r` ET `l` SONT FACULTATIFS, ET ILS COMPTENT. Ils disent qu'un chantier « une fois »
+       a déjà récolté sa terre ou livré son enclos ; sans eux, recharger une partie
+       relancerait le cycle qu'on venait de finir. Une sauvegarde d'avant ne les porte
+       pas : elle repart comme avant, ce qui est le moins surprenant. */
     chantiers: CHANTIERS.map((C)=> ({q:C.quoi, p:C.p, c:CROPS[C.crop || 0].cle,
       e:!!C.engrais, pr:C.produit || null,
-      d:Object.assign({}, C.dest), k:!!C.continu})),
+      d:Object.assign({}, C.dest), k:!!C.continu,
+      r:!!C.recolte, l:!!C.livre})),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
     // `graines` est ce qui compte, et il détaille le hangar sac par sac.
     stock: {semence: grainesTotal(), graines: Object.assign({}, STOCK.graines),
             engrais: STOCK.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
+    /* LA MARQUE DES RÉGLAGES D'USINE. Le joueur : « rechange les réglages de base […] je
+       veux que tu reviennes à 100 % en résolution maximale et avec les contrôles
+       d'origine. » Changer les valeurs de départ n'aurait rien fait pour lui : les trois
+       sont SAUVEGARDÉES, et sa partie en cours aurait rechargé les anciennes. Une
+       sauvegarde qui ne porte pas cette marque est donc relue avec les réglages d'usine,
+       UNE fois, puis reçoit la marque — après quoi ce qu'il choisit au menu tient. */
+    reglagesV: 1,
     nettete: NETTETE.i,
     zoom: ZOOM.pc,
     commandes: COMMANDES.mode,
@@ -22901,15 +23132,20 @@ function chargerPartie(S){
     AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
     // Une partie d'avant le réglage n'en a pas : elle repart en netteté maximale,
     // c'est-à-dire exactement ce qu'elle connaissait.
-    if(S.nettete !== undefined && NETTETE.choix[S.nettete]){
-      NETTETE.i = S.nettete; applyResolution();
-    }
-    // Idem pour le zoom : absent, il vaut cent pour cent, c'est-à-dire le cadrage
-    // qu'avaient toutes les parties d'avant ce réglage.
-    ZOOM.pc = Math.max(ZOOM.min, Math.min(ZOOM.max, S.zoom || 100));
+    /* UNE SAUVEGARDE SANS LA MARQUE REPART DES RÉGLAGES D'USINE, une fois. Les trois que
+       le joueur nomme — netteté, zoom, commandes — reprennent leur valeur de départ ;
+       tout le reste de la sauvegarde est lu normalement. La marque part avec la
+       sauvegarde suivante, et le menu redevient maître. */
+    const usine = !S.reglagesV;
+    if(!usine && S.nettete !== undefined && NETTETE.choix[S.nettete]) NETTETE.i = S.nettete;
+    applyResolution();
+    // Absent, le zoom vaut cent pour cent : le cadrage qu'avaient toutes les parties
+    // d'avant ce réglage, et celui d'usine.
+    ZOOM.pc = usine ? 100
+                    : Math.max(ZOOM.min, Math.min(ZOOM.max, S.zoom || 100));
     appliquerZoom();
     // Absent, c'est le manche : c'est ce qu'avaient toutes les parties d'avant ce réglage.
-    COMMANDES.mode = S.commandes === 'boutons' ? 'boutons' : 'manche';
+    COMMANDES.mode = (!usine && S.commandes === 'boutons') ? 'boutons' : 'manche';
     IMAGES.cible = (S.images | 0) === 30 ? 30 : 60;
     appliquerCommandes();
     // La coupe et la trémie se déduisent du niveau de la moissonneuse, quelques lignes
@@ -23017,9 +23253,10 @@ function chargerPartie(S){
       const p = PARCELS[q.p];
       if(!p || !p.owned) continue;
       const ic = CROPS.findIndex((c)=> c.cle === q.c);
-      poserChantier(q.p, {quoi:q.q === 'elevage' ? 'elevage' : 'culture',
+      const C2 = poserChantier(q.p, {quoi:q.q === 'elevage' ? 'elevage' : 'culture',
                           crop:ic < 0 ? 0 : ic, engrais:!!q.e, produit:q.pr || null,
                           dest:q.d || {}, continu:!!q.k});
+      C2.recolte = !!q.r; C2.livre = !!q.l;
     }
     updateJourNuit(0);
     flushTiles();
@@ -23251,6 +23488,9 @@ appliquerCommandes();
 caleEspece();
 remplirCommandes(0);
 construireEclairagesNuit();
+// LE MONDE EST BÂTI : on ferme la matrice de tout ce qui n'en changera plus.
+_mondePret = true;
+figerCeQuiNeBougePas();
 updateJourNuit(0);
 setMachine(cur);
 smokeT = 0; chimT = 0; usineT = 0;
@@ -23317,12 +23557,27 @@ function bilanParcelle(p){
    pour ça coûterait une traversée pour trois coins — c'est déjà la règle du jeu, elle
    vaut ici aussi. */
 const RESTE_MIN = 0.05;
-function etapeChantier(C){
+/* UN CHANTIER « UNE FOIS » NE REPART PAS POUR UN TOUR, ET C'ÉTAIT TOUT LE DÉFAUT.
+   Le joueur : « j'ai des automatisations et elles se font continuer alors que je n'ai pas
+   choisi le mode continu. »
+   La cause : cette fonction ne lit QUE l'état du sol. Après la moisson la parcelle est en
+   CHAUME, que `bilanParcelle` compte comme « nu » — donc « à labourer ». Le chantier
+   repartait labourer, semer, épandre, attendre la pousse, moissonner, indéfiniment :
+   ET_FINI n'était atteignable que sur une terre vide de tout, ce qui n'arrive jamais
+   après une récolte. « Une fois » et « en continu » faisaient donc exactement la même
+   chose, et le drapeau ne servait à rien.
+   Un cycle, c'est : préparer, semer, faire pousser, RÉCOLTER. La récolte passée, un
+   chantier qui n'est pas en continu a fini sa terre — il ne reste que la marchandise à
+   porter, et c'est l'autre piste qui s'en charge.
+   `brut` rend l'étape que dicte le sol, SANS ce court-circuit : c'est elle qui permet de
+   voir la moisson se terminer, et donc de poser le drapeau au bon moment. */
+function etapeChantier(C, brut){
   const p = PARCELS[C.p];
   if(!p || !p.owned) return ET_FINI;
   const b = bilanParcelle(p);
   const seuil = Math.max(1, Math.round(b.total*RESTE_MIN));
   if(b.mur >= seuil) return ET_MOISSON;
+  if(!brut && !C.continu && C.recolte) return ET_FINI;
   if(b.nu >= seuil) return ET_LABOUR;
   if(b.laboure >= seuil) return ET_SEMIS;
   if(C.engrais && b.sansEngrais >= seuil) return ET_ENGRAIS;
@@ -23529,6 +23784,7 @@ function pisteProduits(C){
       C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; continue;
     }
     aServi(C, C.enginPort); livre = true;
+    C.livre = true;                 // un enclos « une fois » a rendu son produit
   }
   /* On ne crie qu'au CHANGEMENT, et une fois par produit : sans cela, le bandeau
      répéterait le même avertissement deux fois par seconde tant que l'étal reste plein. */
@@ -23557,14 +23813,31 @@ function majChantiers(dt){
     // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
     if(C.enginTerre >= 0 && !MACHINES[C.enginTerre].v.mission) C.enginTerre = -1;
     if(C.enginPort  >= 0 && !MACHINES[C.enginPort].v.mission)  C.enginPort  = -1;
-    if(C.quoi === 'elevage'){ pisteAuge(C); pisteProduits(C); }
+    if(C.quoi === 'elevage'){
+      pisteAuge(C); pisteProduits(C);
+      /* ET UN ÉLEVAGE « UNE FOIS » S'ARRÊTE APRÈS SA TOURNÉE. Il ne s'arrêtait JAMAIS :
+         ni `pisteAuge` ni `pisteProduits` ne retirent quoi que ce soit, si bien qu'un
+         enclos automatisé nourrissait et livrait indéfiniment, que la case « en continu »
+         soit cochée ou non. On attend que le porteur ait fini sa tournée — sinon on lui
+         couperait la mission en chemin, camion plein. */
+      if(!C.continu && C.livre && C.enginPort < 0 && C.enginTerre < 0){
+        CHANTIERS.splice(k, 1);
+        rentrerAuParc(C);
+        showHint('ÉLEVAGE TERMINÉ — PARCELLE ' + (C.p + 1));
+      }
+    }
     else { pisteTerre(C, k); pisteMarchandise(C); }
   }
 }
 /* La terre : labourer, semer, épandre, moissonner — ou attendre que ça pousse. */
 function pisteTerre(C, k){
   if(C.enginTerre >= 0){ C.bloque = null; return; }
-  const et = etapeChantier(C);
+  /* ON REGARDE D'ABORD CE QUE DIT LE SOL, PUIS ON DÉCIDE. La moisson est finie à
+     l'instant où l'étape brute cesse d'être ET_MOISSON : c'est là qu'on pose le drapeau,
+     et le court-circuit ne peut donc pas se déclencher avant que le cycle soit bouclé. */
+  const brut = etapeChantier(C, true);
+  if(C.etape === ET_MOISSON && brut !== ET_MOISSON) C.recolte = true;
+  const et = (!C.continu && C.recolte && brut !== ET_MOISSON) ? ET_FINI : brut;
   C.etape = et;
   if(et === ET_FINI){
     /* UN CHANTIER « UNE FOIS » NE SE RETIRE QUE QUAND LA MARCHANDISE EST PARTIE. La terre
@@ -23726,6 +23999,87 @@ function retirerChantier(ip){
 }
 const chantierDe = (ip)=> CHANTIERS.find((C)=> C.p === ip) || null;
 
+/* ---------- CE QUI NE BOUGE PAS NE RECALCULE PLUS SA MATRICE ----------
+   Mesuré sur la scène complète, ferme entièrement plantée : 1 707 objets dans le graphe,
+   51 ont bougé en quelques secondes de jeu, 1 645 n'ont JAMAIS bougé — et
+   `matrixAutoUpdate` était vrai pour les 1 707. Or dans three.js r128,
+   `updateMatrixWorld` descend TOUT le graphe à chaque image, visible ou non : pour chaque
+   objet dont le drapeau est vrai il recompose la matrice locale à partir de sa position,
+   de son quaternion et de son échelle, puis la multiplie par celle du parent. Quatre-vingt
+   seize pour cent du graphe payait donc deux produits de matrices par image pour rester
+   exactement où il est — de l'ordre de 197 000 compositions par seconde à soixante images.
+   C'est un gain de PROCESSEUR seulement : aucun triangle, aucun appel de dessin, aucun
+   pixel ne change.
+
+   POURQUOI C'EST SÛR, ET C'EST LE POINT QUI COMPTE. Geler un objet qui bougera plus tard
+   est un défaut SILENCIEUX. Deux propriétés de r128 rendent la chose démontrable :
+     — geler un PARENT ne casse pas ses enfants. Quand un objet bouge, `updateMatrix` pose
+       `matrixWorldNeedsUpdate`, il recalcule et passe `force = true` à toute sa
+       descendance, qui recalcule quoi qu'en dise son propre drapeau ;
+     — geler un ENFANT d'un parent qui bouge est sûr pour la même raison : il reçoit le
+       `force` du parent. Le drapeau ne décide que d'une chose : faut-il RECOMPOSER la
+       matrice locale à partir de position/quaternion/échelle. Un objet dont ces trois-là
+       ne changent jamais n'en a pas besoin.
+   La règle est donc unique et vérifiable : on ne gèle QUE ce dont la transformation
+   PROPRE ne change jamais. On écarte donc, en bloc et sans finesse, les sous-arbres de
+   tout ce qui vit — engins, outils, trafic, bêtes, oiseaux, colis, bouffées, étiquettes,
+   enseignes, éclairages de nuit, le soleil et sa cible. C'est conservateur : il reste des
+   pièces immobiles à l'intérieur d'un tracteur qu'on pourrait geler aussi. On ne le fait
+   pas, parce que la liste des exceptions serait à tenir à jour et que c'est exactement le
+   genre de liste qui pourrit.
+   Le banc `regression` compare, image par image, la matrice monde de CHAQUE objet avec et
+   sans le gel — au repos, en roulant, à l'achat d'une parcelle, à l'agrandissement de
+   l'atelier et à la tombée de la nuit. */
+/* `var` ET NON `let` : c'est la seule déclaration du fichier qui doive être LISIBLE
+   avant sa propre ligne. `poserAtelier` s'exécute pendant la construction, quinze mille
+   lignes plus haut, et un `let` y serait dans sa zone morte — lire son nom lèverait la
+   même ReferenceError que `typeof` juste au-dessus. Un `var` est hissé à `undefined`,
+   donc faux, donc exactement ce qu'on veut dire : « le monde n'est pas prêt ». */
+var _mondePret = false, _figes = 0;
+function figerCeQuiNeBougePas(){
+  /* AU PREMIER APPEL LE MONDE N'EXISTE PAS ENCORE. `poserAtelier` tourne pendant la
+     construction, bien avant que MACHINES et TOOLS soient déclarés.
+     ET `typeof` NE PROTÈGE PAS D'UNE `const` DANS SA ZONE MORTE — c'est le piège, et il
+     a coûté un démarrage entier : `typeof x` rend « undefined » sans broncher pour une
+     variable JAMAIS déclarée, mais LÈVE une ReferenceError pour un `const` déclaré plus
+     bas dans le même module. La garde était donc elle-même le plantage.
+     Un simple drapeau, posé quand la construction est finie, ne peut pas se tromper. */
+  if(!_mondePret) return 0;
+  const vivants = [];
+  const vivant = (o)=>{ if(o) vivants.push(o); };
+  for(const m of MACHINES){ vivant(m.v.group); }
+  for(const t of TOOLS) vivant(t.group);
+  if(typeof TRAFIC !== 'undefined') for(const t of TRAFIC){ vivant(t.g || t.m || t); vivant(t.rem); }
+  if(typeof BIRDS !== 'undefined') for(const o of BIRDS) vivant(o.m || o.g || o);
+  if(typeof puffs !== 'undefined') for(const q of puffs) vivant(q.m);
+  if(typeof COLIS !== 'undefined') for(const c of COLIS) vivant(c.m || c.g || c);
+  if(typeof BULLES !== 'undefined') for(const b of BULLES) vivant(b.m || b.g || b);
+  if(typeof PANNEAUX !== 'undefined') for(const q of PANNEAUX) vivant(q);
+  if(typeof PATURES !== 'undefined') for(const P of PATURES)
+    for(const B of (P.betes || [])) vivant(B.g || B.m || B);
+  if(typeof SITES !== 'undefined') for(const S of SITES) vivant(S.logo);
+  if(typeof nuitGroupe !== 'undefined') vivant(nuitGroupe);
+  vivant(sun); vivant(sun.target);
+  const dehors = new Set();
+  for(const o of vivants) o.traverse((q)=> dehors.add(q));
+  let n = 0;
+  scene.traverse((o)=>{
+    if(dehors.has(o)) return;
+    if(o.userData && o.userData.anime) return;   // ce qui se dit animé le dit pour ça
+    if(!o.matrixAutoUpdate) return;
+    o.updateMatrixWorld(true);                   // une dernière fois, puis on ferme
+    o.matrixAutoUpdate = false;
+    n++;
+  });
+  // Cumulé : `poserAtelier` rappelle cette fonction, et un deuxième passage ne gèle plus
+  // que les maillages neufs. Le compteur dirait donc zéro s'il était remis à chaque fois.
+  _figes += n;
+  return n;
+}
+/* ET L'ON REGÈLE APRÈS CE QUI FABRIQUE DU DÉCOR. L'atelier se reconstruit à chaque métier
+   acheté, une parcelle s'active quand on l'achète : les objets neufs naissent avec le
+   drapeau à vrai, et repayeraient leur matrice pour rien. Deux lignes, aux deux seuls
+   endroits qui en créent après le démarrage. */
 function loop(now){
   requestAnimationFrame(loop);
   /* PLAFONNER LE NOMBRE D'IMAGES, ET POURQUOI CELA AIDE.
