@@ -2437,6 +2437,38 @@ function stockASortir(S, cle){
     ? Object.keys(S.stock).find((k)=> S.stock[k] > 0.01) || null
     : (S.stock[cle] || 0);
 }
+/* ---------- QUI D'AUTRE EN VEUT, ET COMBIEN ----------
+   Le joueur, en décrivant l'automatisation : « si la capacité d'achat de la boulangerie
+   est atteinte, le système nous enverra un message en disant qu'elle ne peut plus
+   accepter de marchandises supplémentaires, et on nous proposera l'alternative de le
+   vendre à un commerce qui l'accepte, avec la liste des commerces, le volume qu'ils
+   acceptent et le prix. »
+
+   Trois colonnes, donc, et pas une de plus : le nom, les kilos que l'étal peut encore
+   prendre, ce que le kilo vaut là-bas.
+
+   TRIÉ PAR CE QUE LA CARGAISON RAPPORTERAIT, ET NON PAR LE PRIX. Le mieux-disant qui
+   n'a plus que trois kilos de place n'est pas le bon choix pour en écouler cent : on
+   classe donc sur le produit du prix par ce qu'il peut PRENDRE, et le prix ne départage
+   que les ex aequo. C'est la même arithmétique que l'arbitrage entre acheteurs du menu
+   de vente, et elle donne le même ordre — il n'y a pas deux façons de comparer deux
+   débouchés.
+
+   `sauf` écarte le commerce qui vient de saturer : on ne propose pas d'aller frapper à
+   la porte qui vient de se fermer. */
+function acheteursDe(cle, sauf, quantite){
+  const q = (quantite === undefined || quantite === null) ? Infinity : quantite;
+  const out = [];
+  for(const S of SITES){
+    if(S.nom === sauf || !acheteMaintenant(S, cle)) continue;
+    const place = placeChez(S, cle);
+    if(place <= 0.01) continue;
+    const prix = prixChez(S, cle), prend = Math.min(place, q);
+    out.push({nom:S.nom, site:S, place:place, prend:prend, prix:prix, gain:prend*prix});
+  }
+  out.sort((a, b)=> b.gain - a.gain || b.prix - a.prix);
+  return out;
+}
 
 
 /* ---------- LA CAMPAGNE : QUINZE PALIERS, DEUX VALEURS ----------
