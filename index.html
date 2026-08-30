@@ -12932,6 +12932,24 @@ const TOOLS = [
 ];
 function attachTool(v, T){
   if(T.attached) return false;
+  /* CE QUI PERDAIT UN OUTIL POUR TOUJOURS. Rien n'interdisait d'atteler un SECOND outil
+     à un engin qui en traîne déjà un : `v.tool` passait au nouveau, et l'ancien gardait
+     son `attached` pointé sur le même véhicule. Il devenait alors introuvable — sa
+     transformation n'est plus suivie (`Vehicle.update` exige `T === this.tool`),
+     `detachTool` ne rend que `v.tool`, et `nearestFreeTool` l'ignore justement parce que
+     son `attached` est vrai. Mesuré : charrue attelée, puis semoir attelé par-dessus —
+     la charrue reste liée au tracteur, invisible au bouton même en se garant dessus, et
+     dételer ne rend que le semoir.
+     Le bouton du joueur ne pouvait pas y tomber : il dételle toujours d'abord. La chaîne
+     d'automatisation, elle, attelle et dételle sans arrêt — et elle y tombait.
+
+     ON NE MET PAS DE CONTRÔLE DE DISTANCE ICI, et c'est délibéré. Il en faudrait un —
+     l'attelage réussit à 257 mètres — mais la relecture d'une sauvegarde appelle
+     `attachTool` pour rendre à chaque engin l'outil qu'il portait, et rien ne garantit
+     que les deux positions relues coïncident au mètre près. La portée est la règle du
+     BOUTON (`nearestFreeTool`, onze mètres) ; l'automate, lui, ne demande l'attelage
+     qu'une fois arrivé sur l'outil et à l'arrêt. */
+  if(v.tool) detachTool(v);
   const f = v.fwd();
   T.attached = v; v.tool = T;
   T.axle.x = v.pos.x - f.x*(T.hitch + T.L);
