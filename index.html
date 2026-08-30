@@ -14793,6 +14793,29 @@ function quantiteAuLieu(cle, quoi){
   const S = SITES.find((s)=> s.nom === cle);
   return (S && S.stock) ? (S.stock[quoi] || 0) : 0;
 }
+/* ---------- CE QUI PEUT ENCORE NOURRIR LES BÊTES, ET OÙ IL DORT ----------
+   Le joueur, sur l'automatisation des élevages : « le système doit fournir du grain en
+   continu tant que les bêtes en ont besoin ; par contre on aura un message d'erreur si
+   jamais on n'a plus de maïs ou d'aliment disponible. »
+   Six choses nourrissent, et `RATION` dit déjà ce que chacune vaut à l'auge : quatre
+   céréales à 1, l'aliment à 1,5, le premium à 2. Elles ne dorment pas au même endroit —
+   les céréales au silo, les aliments composés à l'entrepôt — d'où une seule fonction qui
+   regarde les deux et rend ce qu'il y a, classé par valeur nutritive décroissante : on
+   donne d'abord ce qui nourrit le mieux, comme on le ferait à la main.
+   Une liste VIDE est exactement la condition du message d'erreur. */
+function alimentsDisponibles(){
+  const out = [];
+  for(const k in RATION){
+    const auSilo = siloStock[k] || 0, aLEntrepot = (ENTREPOT.stock && ENTREPOT.stock[k]) || 0;
+    const q = auSilo + aLEntrepot;
+    if(q <= 0.5) continue;
+    out.push({cle:k, q:q, valeur:RATION[k],
+              ou:auSilo >= aLEntrepot ? 'silo' : 'entrepot',
+              silo:auSilo, entrepot:aLEntrepot});
+  }
+  out.sort((a, b)=> b.valeur - a.valeur || b.q - a.q);
+  return out;
+}
 /* CE QU'ON PEUT EMPORTER D'ICI. Ce qu'il y a vraiment, du plus gros tas au plus petit —
    et si le lieu est vide, tout ce qu'il sait donner : on prépare une navette en boucle
    avant que le silo ne se remplisse, et une liste vide n'aurait rien laissé choisir. */
