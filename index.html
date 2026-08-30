@@ -6438,10 +6438,41 @@ function siloElevateur(g, x, h){
    l'horizontale prend tout le reste — 4,81 m, quatre fois l'oblique.
 
    LES TROIS COTES SONT DONNÉES EN MÈTRES DU MONDE, PAS EN UNITÉS DU MODÈLE, et divisées
-   par l'échelle à l'appel. C'est la seule façon de garder la sortie à 5,20 m du sol quand
-   la tour grandit : un semi au gabarit routier fait 4,00 m, il passe dessous avec 1,20 m
-   de marge, et ce nombre-là ne doit pas suivre l'échelle. */
-const SILO_GOU = {sortie: 5.2, depart: 9.0, oblique: 1.2};   // mètres du MONDE
+   par l'échelle à l'appel. C'est la seule façon de fixer une hauteur de passage qui ne
+   suive pas l'échelle de la tour.
+
+   ET ELLE MONTE DE DEUX MÈTRES TRENTE. Le joueur : « fais-la démarrer plus haut sur le
+   silo, il faut qu'un camion puisse passer en dessous de la buse, donc faut que ce soit
+   beaucoup plus haut. » Il a raison, et plus qu'il ne le dit.
+   LE PASSAGE N'A JAMAIS ÉTÉ DE 5,20 m. `sortie` est l'axe du cube de sortie ; sous cet axe
+   pendent la manchette souple et sa collerette, jusqu'à `sortie − 0,918`. La hauteur libre
+   au-dessus de la trappe était donc de 4,28 m, et le commentaire qui promettait 5,20 se
+   comparait en plus au gabarit ROUTIER RÉEL de 4,00 m — alors que le jeu porte sa propre
+   cote, `HAUT_LIBRE = 5,87`, celle sous l'ampoule d'un lampadaire, et que son semi-citerne
+   fait 5,76 m. Résultat mesuré : tout ce qui vient au silo traversait le tuyau — la
+   moissonneuse de 5,35 m de 1,07, le fourgon de 0,69, le tracteur attelé à la benne de
+   0,56. Seul le pick-up passait. Rien ne l'arrêtait, la goulotte n'ayant aucune emprise.
+
+   POURQUOI 11,30 ET 9,30, ET PAS PLUS HAUT. Deux bornes, toutes deux mesurées :
+   — LES CEINTURES DE BÉTON. La robe en porte cinq, à 4,86 / 7,29 / 9,72 / 12,15 / 14,58,
+     qui débordent de 8 cm ; la platine fait 1,21 m de haut. Les seules fenêtres où elle
+     ne chevauche rien sont [8,01 ; 9,00], [10,44 ; 11,43] et [12,87 ; 13,86].
+   — L'ÉTIQUETTE DU SILO. C'est un panneau de 11 × 7,1 m posé à 16,40 avec `depthTest`
+     désactivé : il PEINT PAR-DESSUS tout ce qui passe derrière lui, et sa zone opaque
+     descend jusqu'à 13,19. La troisième fenêtre est donc inutilisable — la platine y
+     serait recouverte d'un tiers. Reste la deuxième, et l'on prend 11,30, qui laisse
+     13 cm sous la ceinture du dessus et 97 au-dessus de celle du dessous.
+   ET LA CHUTE SE RACCOURCIT AU LIEU DE SUIVRE. Monter les deux bouts ensemble aurait gardé
+   la chute de 3,80 m ; on la ramène à 2,00, ce qui monte la buse d'autant en plus et va
+   dans le sens de ce que le joueur demandait au tour précédent — l'oblique « bien plus
+   petite ». Rapport des LONGUEURS de tuyau, celui qui se voit : 1,21 → 2,06.
+   CE QUI NE PASSE TOUJOURS PAS : L'ENJAMBEUSE, 9,07 m. Le jeu lui propose bel et bien de
+   charger du grain — `peutCharger` ne filtre pas la nature de l'engin. Pour elle il
+   faudrait 9,50 m de libre, donc une platine à 13,86, c'est-à-dire sous l'étiquette. On
+   ne la sert pas, et on le dit plutôt que de prétendre le contraire. */
+const SILO_GOU = {sortie: 9.3, depart: 11.3, oblique: 1.2};   // mètres du MONDE
+// Le dessous de la manchette, d'où le grain sort : c'est la vraie hauteur de passage.
+const SILO_BUSE = SILO_GOU.sortie - 0.918;
 function siloGoulotte(g, R, xTrappe, hDepart, hSortie, oblique){
   const xPied = R + 0.15, xCoude = xTrappe - oblique, LH = xCoude - xPied;
   g.add(box(LH, 0.5, 0.5, SIL.ORANGE, (xPied + xCoude)/2, hDepart, 0));
@@ -6580,6 +6611,28 @@ function entPorteQuai(g, x, y, z, w, h, num){
    placées par leurs deux extrémités, et leur inclinaison en découle. */
 function entQuai(g, x, z, w, d, h){
   g.add(box(w, h, d, ENT.SOCLE, x, h/2, z));
+  /* ---------- LE COFFRAGE, ET POURQUOI IL FALLAIT LE POSER ----------
+     Le joueur : « le quai de chargement n'est pas plein, ça fait juste une dalle mais
+     dans le vide ; soit tu épaissis la dalle pour qu'elle arrive jusqu'au sol, soit tu
+     coffres autour de la dalle. »
+     ÉPAISSIR NE SERVIRAIT À RIEN : le socle est déjà plein, de y = h à y = 0. Il ne se
+     VOIT pas, ce qui n'est pas la même chose. `ENT.SOCLE` vaut 0x9BA3A8, et rendu sur une
+     face verticale il donne exactement le gris du bitume de la cour — relevé au pixel,
+     de face et à hauteur d'homme : 105,114,112 pour le quai contre 104,114,112 pour le
+     sol, un point sur 255. Sans arête au pied ni ombre sous le tablier, il ne reste à
+     l'écran que la tôle sombre du dessus : une dalle dans le vide.
+     ON COFFRE DONC, comme le joueur le propose en second : une ombre sous le tablier, une
+     plinthe au pied, et des raidisseurs entre les deux. Trois valeurs différentes qui
+     donnent au massif ses arêtes. TOUT S'ARRÊTE À y = 0 EXACTEMENT — le jeu peint sa
+     propre dalle de bitume, et une pièce qui la traverserait ferait une marche. */
+  g.add(box(w + 0.08, 0.22, d + 0.08, ENT.NOIR,   x, h - 0.18, z));   // ombre sous le tablier
+  g.add(box(w + 0.16, 0.26, d + 0.16, ENT.TOIT,   x, 0.13, z));       // plinthe, de 0 à 0,26
+  for(let k = 0; k < 3; k++)                                          // raidisseurs de façade
+    g.add(box(0.18, h - 0.55, 0.07, ENT.ACIER2,
+              x - w/2 + (k + 1)*w/4, 0.26 + (h - 0.55)/2, z - d/2 - 0.035));
+  for(const sx of [-1, 1]) for(let k = 0; k < 2; k++)                 // et sur les deux flancs
+    g.add(box(0.07, h - 0.55, 0.18, ENT.ACIER2,
+              x + sx*(w/2 + 0.035), 0.26 + (h - 0.55)/2, z - d/2 + 0.55 + k*1.4));
   g.add(box(w + 0.2, 0.14, d + 0.2, ENT.ACIER2, x, h, z));
   for(const sx of [-1, 1])
     g.add(box(0.34, 0.42, 0.24, 0x22262A, x + sx*(w/2 - 0.5), h - 0.34, z - d/2 - 0.1));
@@ -6678,12 +6731,17 @@ function entJauge(g, x, z, y0, h){
    l'enverrait à dix mètres de là. */
 function entCuveGraine(g0, X, Z, ry){
   const g = new THREE.Group();
-  g.add(cyl(1.12, 1.12, 3.6, 12, ENT.VERT, X, 1.98, Z));
+  /* ELLE FLOTTAIT DE DIX-HUIT CENTIMÈTRES, ET SA VOISINE AUSSI. Le modèle d'origine
+     posait sa propre dalle de cour ; on l'a retirée — le jeu peint la sienne — mais tout
+     ce qui se tenait DESSUS a gardé sa hauteur. Le socle du quai avait été dessiné depuis
+     y = 0 et n'a rien vu ; ces deux cuves, non. On les rallonge par le bas jusqu'au sol,
+     ce qui est la première des deux solutions que le joueur propose pour le quai. */
+  g.add(cyl(1.12, 1.12, 3.78, 12, ENT.VERT, X, 1.89, Z));
   g.add(cyl(1.12, 0.5, 0.55, 12, ENT.VERT, X, 4.05, Z));                    // dôme
   for(let k = 0; k < 4; k++) g.add(cyl(1.18, 1.18, 0.1, 12, ENT.VERT2, X, 0.7 + k*1.0, Z));
   for(let k = 0; k < 6; k++){                                                // armature
     const a = k*Math.PI/3;
-    g.add(box(0.09, 3.6, 0.09, ENT.ACIER2, X + Math.cos(a)*1.16, 1.98, Z + Math.sin(a)*1.16));
+    g.add(box(0.09, 3.78, 0.09, ENT.ACIER2, X + Math.cos(a)*1.16, 1.89, Z + Math.sin(a)*1.16));
   }
   g.add(cyl(0.34, 0.34, 0.2, 10, ENT.GRIS, X, 4.4, Z));                     // trappe
   g.add(cyl(0.24, 0.24, 0.6, 8, ENT.ACIER2, X, 0.75, Z - 1.2, Math.PI/2));  // goulotte
@@ -6698,8 +6756,13 @@ function entCuveGraine(g0, X, Z, ry){
 function entCuveEngrais(g0, X, Z, ry, ech){
   const g = new THREE.Group();
   for(const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
-    g.add(box(0.2, 2.2, 0.2, ENT.ACIER2, X + sx*0.8, 1.28, Z + sz*0.8));
-    const d = box(0.14, 2.4, 0.14, ENT.ACIER2, X + sx*0.8, 1.3, Z);
+    // Même dix-huit centimètres de vide que la cuve verte, même correction.
+    g.add(box(0.2, 2.38, 0.2, ENT.ACIER2, X + sx*0.8, 1.19, Z + sz*0.8));
+    /* ET LA DIAGONALE AUSSI : inclinée de 0,3 rad, ses 2,40 lui laissaient 24 cm de vide
+       sous le pied. LA LONGUEUR NE SE DÉDUIT PAS DE LA SEULE HAUTEUR : une barre inclinée
+       descend de (L/2)·cos θ MAIS AUSSI de (e/2)·sin θ par le coin de sa section. À 2,72
+       elle passait 3,6 cm SOUS le bitume ; il faut 2,68, et le pied tombe alors à zéro. */
+    const d = box(0.14, 2.68, 0.14, ENT.ACIER2, X + sx*0.8, 1.3, Z);
     d.rotation.x = sx*sz*0.3; g.add(d);
   }
   g.add(box(2.0, 0.16, 2.0, ENT.GRIS, X, 2.4, Z));
@@ -6755,7 +6818,9 @@ function modeleEntrepot(){
      1,17 m HORS de la dalle, sur le chemin de sable. Mesuré sur ses quatre coins, rotation
      comprise. À x = 4,60 elle reste sur le bitume avec 1,5 m de marge. */
   entPalette(g, 4.6, 0, -D/2 - 1.8, 0.35, 0);
-  for(let k = 0; k < 2; k++) entPalette(g, -4.4 + k*1.4, hQ, -D/2 - 1.9, 0.05*k, 2);
+  // hQ + 0,07 et non hQ : la tôle du tablier est posée SUR le socle, son dessus est à
+  // h + 0,07, et deux palettes posées à h avaient leurs patins noyés dedans.
+  for(let k = 0; k < 2; k++) entPalette(g, -4.4 + k*1.4, hQ + 0.07, -D/2 - 1.9, 0.05*k, 2);
   entTranspalette(g, 3.4, -D/2 - 2.6, Math.PI + 0.6, true);
   // ---- les deux cuves, adossées au pignon ----
   const R90 = -Math.PI/2;
@@ -6990,6 +7055,18 @@ function buildFarm(){
     fusionnerGroupe(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z,
                  hw:ENT_W/2*ENT_POSE, hd:ENT_D/2*ENT_POSE});
+    /* ET LE QUAI EST UN MASSIF, PAS UN DÉCOR — c'est l'autre moitié de « pas plein ».
+       L'emprise ci-dessus ne suit que les MURS : elle s'arrête à z = 57,70 quand le socle
+       du quai, haut de 1,81 m, avance jusqu'à 61,93. On le traversait de part en part, en
+       ligne droite, à pleine vitesse. On lui donne donc sa boîte, lue sur les mêmes
+       coordonnées de modèle que celles qui le bâtissent, et passée par `entPoint` comme
+       tout le reste — un massif dont l'emprise se recopie à la main est un massif qui
+       finira ailleurs que sa géométrie. */
+    // Et elle se prend sur la PLINTHE, qui déborde du socle de 8 centièmes de modèle :
+    // une boîte calée sur le socle nu laisserait une machine entrer de 12 cm dans le pied.
+    const qA = entPoint(-1.12, -(ENT_D/2) + 0.08), qB = entPoint(-5.68, -(ENT_D/2 + 2.88));
+    boxObs.push({x:(qA.x + qB.x)/2, z:(qA.z + qB.z)/2,
+                 hw:Math.abs(qA.x - qB.x)/2, hd:Math.abs(qA.z - qB.z)/2});
     /* LES DEUX CUVES SONT DES OBSTACLES, ELLES AUSSI. La verte est un fût de 1,18 m de
        rayon posé au sol ; la blanche est perchée sur quatre pieds écartés de 1,60 m, et
        c'est la charpente qu'on heurte, pas la cuve. Les deux rayons sont pris sur le
@@ -13697,9 +13774,24 @@ const MACHINES = [
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
+  /* ET LE FOURGON A QUITTÉ L'EST DE L'ENTREPÔT. Le joueur : « fais juste une place pour
+     faire spawn le véhicule à l'est de l'entrepôt ; aujourd'hui je crois qu'il y a deux
+     places, t'as pas besoin d'avoir deux places. » Il y en avait bien deux, côte à côte :
+     le pick-up en douzième case et le fourgon en onzième. Le pick-up reste — c'est celui
+     qu'on a dès la première image, l'autre s'achète neuf mille euros — et le fourgon
+     rejoint la rangée du fond, dans le prolongement du parc à outils.
+     POURQUOI LA CASE 5 ET PAS LA 4, QUI EST POURTANT LA PREMIÈRE LIBRE. Mesuré, depuis
+     chaque place, en suivant la sortie de cour réelle : la case 4 à z = 56 ne laisse que
+     0,51 m au passage — elle se faufile entre la moissonneuse et le dernier outil — quand
+     la case 5 en laisse 5,85 et sort de la cour en 1,7 s. Le trou d'une case entre la
+     benne et le fourgon est le prix du passage, et il est mesuré, pas subi.
+     ET CE N'EST PAS UNE PERTE POUR LES NAVETTES, C'EST UN ÉCHANGE. `armerPorteur` prend
+     le porteur le PLUS PROCHE : avant, le fourgon (155 kg) desservait le silo et le
+     pick-up (70 kg) le quai de l'entrepôt ; après, c'est l'inverse. La capacité totale ne
+     bouge pas, seule la répartition change. */
   {key:'fourgon', nom:'Fourgon', teinte:0xB4BBC0, verrou:true, prix:9000,
    timbre:'voiture', ton:0.86, v:new Vehicle({
-      x:placeCentre(11), z:51.1, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
+      x:placeCentre(5), z:56, cap:Math.PI, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFourgon
     })},
@@ -19686,8 +19778,12 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.capacite - T.load, siloStock[A.cle]);
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q); siloStock[A.cle] -= q;
+      /* LE NUAGE SORT DE LA BUSE, ET LA BUSE A BOUGÉ. Ce 5,5 était calé à la main sur
+         l'ancienne sortie de goulotte ; la goulotte est montée de deux mètres trente et
+         le nuage serait resté pendu dans le vide, deux mètres sous le tuyau. */
       if(siSouvent(0.4))
-        puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
+        puff(SILO.x + (Math.random()-0.5)*2, SILO_BUSE + 0.3,
+             SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }

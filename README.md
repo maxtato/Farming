@@ -5733,15 +5733,26 @@ comme un tuyau plié en deux au milieu. L'oblique est maintenant une vraie **des
 |---|---|---|
 | tronçon horizontal | 2,30 m | **4,81 m** |
 | tronçon oblique (portée) | 2,15 m | **1,20 m** |
-| rapport | 1,07 | **4,01** |
+| rapport des **portées** | 1,07 | **4,01** |
 | pente de l'oblique | 45,7° | **72,5°** |
-| sortie au-dessus du sol | 5,20 m | **5,20 m** |
+| axe de la sortie | 5,20 m | **5,20 m** |
 
 Les trois cotes sont maintenant données **en mètres du monde** et divisées par l'échelle à
-l'appel. C'est la seule façon de garder la sortie à 5,20 m quand la tour grandit : un semi au
-gabarit routier fait 4,00 m, il passe dessous avec 1,20 m de marge, et ce nombre-là ne doit
-pas suivre l'échelle. L'équerre qui porte le tronçon horizontal et la semelle sous le tuyau
-se calculent désormais sur sa longueur au lieu d'être écrites en dur.
+l'appel : c'est la seule façon de fixer une hauteur qui ne suive pas la tour. L'équerre qui
+porte le tronçon horizontal et la semelle sous le tuyau se calculent désormais sur sa
+longueur au lieu d'être écrites en dur.
+
+> **Deux corrections à ce paragraphe**, établies au tour suivant.
+> Le **4,01 est un rapport de portées horizontales, pas de longueurs de tuyau** : vus de
+> profil les deux tronçons font 4,81 m et 3,99 m, soit **1,21**. C'est ce dernier qui se
+> voit, et il ne valait donc pas quatre.
+> Et la ligne « sortie au-dessus du sol » **ne donnait pas la hauteur de passage**. `sortie`
+> est l'axe du cube de sortie ; sous cet axe pendent la manchette souple et sa collerette,
+> jusqu'à `sortie − 0,918`. Le passage réel était de **4,28 m**, pas 5,20. La phrase qui
+> suivait — « un semi au gabarit routier fait 4,00 m, il passe dessous avec 1,20 m de
+> marge » — comparait en plus le monde du jeu au gabarit routier **réel**, alors que le jeu
+> porte sa propre cote, `HAUT_LIBRE = 5,87`, et que son semi-citerne fait 5,76 m. Rien ne
+> passait. Voir « Le tuyau monte de deux mètres trente » plus bas.
 
 ### Vingt-trois objets en moins
 
@@ -5842,6 +5853,137 @@ seule à racler, et elle est la seule à bouger.
 Et un contrôle en plus, celui qui manquait : **les sept machines sortent toutes de leur
 place, avec leur cap**, mesuré depuis chacune. La question ne s'était jamais posée tant que
 le milieu de la cour était vide.
+
+Les vingt suites passent.
+
+## Une seule place, un tuyau plus haut, et un quai qui touche enfin le sol
+
+> « Fais juste une place pour faire spawn le véhicule à l'est de l'entrepôt, là aujourd'hui
+> je crois qu'il y a deux places, t'as pas besoin d'avoir deux places.
+> Le tuyau orange du silo, fais-le démarrer plus haut sur le silo, il faut qu'un camion
+> puisse passer en dessous de la buse du tuyau, donc faut que ce soit beaucoup plus haut.
+> Attention, le quai de chargement de l'entrepôt n'est pas plein, ça fait juste une dalle
+> mais dans le vide : soit tu épaissis la dalle pour qu'elle arrive jusqu'au sol, soit tu
+> coffres autour de la dalle. »
+
+### Le fourgon quitte l'est
+
+Il y avait bien deux places, côte à côte : le pick-up en douzième case, le fourgon en
+onzième. Le pick-up reste — c'est celui qu'on a dès la première image, l'autre s'achète
+9 000 € — et le fourgon rejoint la rangée du fond, en **(−3,07 ; 56)**, dans le prolongement
+du parc à outils.
+
+Pourquoi la case 5 et pas la case 4, qui est pourtant la première libre après les quatre
+outils ? Parce que la mesure ne dit pas la même chose que le plan. Marge **dynamique** au
+pire obstacle, relevée le long de la sortie de cour réelle, obstacles ronds **et** boîtes,
+demi-machine comprise :
+
+| place | statique | **dynamique** | sortie de cour | à ramper |
+|---|---|---|---|---|
+| k11 z 51,1 *(sa place actuelle)* | 5,88 | 3,77 | 1,6 s | 0,1 s |
+| k3 z 51,1 | 18,42 | **−0,00** | 5,7 s | 2,0 s |
+| k4 z 51,1 | 12,29 | **0,71** | 3,0 s | 0,1 s |
+| k4 z 56 | 12,29 | **0,51** | 3,3 s | 0,1 s |
+| **k5 z 56** | 6,15 | **5,85** | **1,7 s** | 0,1 s |
+
+La case 4 a la meilleure marge **statique** de toutes et la pire à l'usage : on s'y gare
+large, mais on en sort en se faufilant entre la moissonneuse et le dernier outil. Le trou
+d'une case entre la benne et le fourgon est le prix du passage, et il est mesuré.
+
+**Le pick-up ne bouge pas**, et sa rotation nez à l'est du tour précédent reste justifiée
+pour une raison qu'on n'avait pas vue alors : les deux anneaux de service des réserves font
+3,05 m de rayon et laissent entre eux un couloir de **3,74 m** en profondeur. Nez à l'est le
+pick-up y présente sa largeur, 2,2 m, et tient dedans ; nez au sud il y coucherait ses
+5,5 m et se poserait sur les deux disques.
+
+Un effet à connaître, qui n'est pas une perte : `armerPorteur` prend le porteur **le plus
+proche**. Avant, le fourgon (155 kg) desservait le silo et le pick-up (70 kg) le quai de
+l'entrepôt ; après, c'est l'inverse. La capacité totale ne bouge pas, seule la répartition
+change.
+
+### Le tuyau monte de deux mètres trente
+
+Le joueur a raison, et plus qu'il ne le dit : **rien ne passait sous la buse.**
+
+La hauteur libre n'a jamais été les 5,20 m que le code annonçait. `sortie` est l'axe du cube
+de sortie ; sous cet axe pendent la manchette souple et sa collerette, jusqu'à
+`sortie − 0,918`. Il y avait donc **4,28 m**. Mesuré sur la géométrie de chaque engin :
+
+| ce qui vient au silo | hauteur | marge **avant** | marge **après** |
+|---|---|---|---|
+| Enjambeuse | 9,07 m | −4,79 | **−0,69** |
+| Moissonneuse | 5,35 m | −1,07 | **+3,03** |
+| Fourgon | 4,97 m | −0,69 | **+3,41** |
+| Tracteur + benne | 4,84 m | −0,56 | **+3,54** |
+| Pick-up | 3,70 m | +0,58 | **+4,68** |
+| *repère : semi-citerne du trafic* | 5,76 m | −1,48 | **+2,62** |
+
+Tout traversait le tuyau sauf le pick-up, et rien ne l'arrêtait — la goulotte n'a aucune
+emprise. `SILO_GOU` passe de `{sortie: 5.2, depart: 9.0}` à **`{sortie: 9.3, depart: 11.3}`**,
+et la hauteur libre de 4,28 à **8,38 m**.
+
+**Deux bornes ont fixé ces chiffres, toutes deux mesurées.**
+
+La robe porte **cinq ceintures de béton** — 4,86 / 7,29 / 9,72 / 12,15 / 14,58 — qui
+débordent de 8 cm, et la platine du tuyau fait 1,21 m de haut. Balayée au demi-centimètre,
+elle n'a que trois fenêtres où elle ne chevauche rien : **[8,01 ; 9,00]**, **[10,44 ; 11,43]**
+et **[12,87 ; 13,86]**.
+
+Et **l'étiquette du silo est un panneau qui peint par-dessus tout**. C'est un sprite de
+11 × 7,1 m posé à 16,40 avec `depthTest` désactivé ; sa zone opaque descend jusqu'à
+**13,19**. La troisième fenêtre est donc inutilisable — la platine y serait recouverte d'un
+tiers, sans tri de profondeur. Reste la deuxième, et l'on prend **11,30** : 13 cm sous la
+ceinture du dessus, 97 cm au-dessus de celle du dessous, et 1,29 m sous l'étiquette.
+
+**La chute se raccourcit au lieu de suivre.** Monter les deux bouts ensemble aurait gardé les
+3,80 m de chute ; on la ramène à **2,00**, ce qui monte la buse d'autant en plus et va dans
+le sens du tour précédent — l'oblique « bien plus petite ». Rapport des **longueurs** de
+tuyau, celui qui se voit : **1,21 → 2,06**. Pente 72,5° → 59°.
+
+Un litéral suivait la buse sans le dire : le nuage de grain du chargement était lâché à
+`y = 5.5`, calé à la main sur l'ancienne sortie. Il serait resté pendu deux mètres sous le
+tuyau ; il lit maintenant la buse.
+
+**Ce qui ne passe toujours pas : l'enjambeuse, 9,07 m.** Le jeu lui propose bel et bien de
+charger du grain — `peutCharger` ne filtre pas la nature de l'engin, et `actionsAuSilo` lui
+rend cinq lignes. Il lui faudrait 9,50 m de libre, donc une platine à 13,86, c'est-à-dire
+sous l'étiquette. On ne la sert pas, et on le dit plutôt que de prétendre le contraire.
+
+### Le quai était plein — il était invisible
+
+Épaissir la dalle n'aurait servi à rien : **le socle du quai est déjà plein**, de 1,81 m
+jusqu'à zéro. C'est autre chose qui manquait.
+
+`ENT.SOCLE` vaut `0x9BA3A8`, et rendu sur une face verticale il donne exactement le gris du
+bitume de la cour. Relevé au pixel, de face et à hauteur d'homme : **105,114,112 pour le
+quai contre 104,114,112 pour le sol — un point sur 255.** Sans arête au pied ni ombre sous
+le tablier, il ne restait à l'écran que la tôle sombre du dessus. Une dalle dans le vide.
+
+On coffre donc, comme le joueur le proposait en second : une **ombre** sous le tablier, une
+**plinthe** au pied, des **raidisseurs** entre les deux. Trois valeurs différentes qui
+rendent ses arêtes au massif. La même colonne de pixels passe de 4 ruptures à 7.
+
+**Et l'autre moitié de « pas plein » était littérale.** `boxObs` ne portait que les murs : il
+s'arrêtait à z = 57,70 quand le socle avance jusqu'à 61,93. On s'enfonçait de 2,88 m dedans
+et on le traversait en travers de part en part. Il a désormais sa boîte, prise sur la
+**plinthe** et non sur le socle nu — 12 cm de débord qui auraient laissé une machine entrer
+dans le pied — et calculée par `entPoint`, comme tout le reste du bâtiment.
+
+### Trois voisins du même défaut
+
+En cherchant ce qui flottait, on a trouvé pourquoi : **le modèle d'origine posait sa propre
+dalle de cour**, on l'a retirée — le jeu peint la sienne — et tout ce qui se tenait dessus a
+gardé sa hauteur. Le socle du quai avait été dessiné depuis zéro et n'a rien vu ; ces
+trois-là, non :
+
+- la **cuve à graines** et ses six montants flottaient de 27 cm ;
+- les **quatre poteaux de la cuve à engrais** aussi ;
+- ses **quatre diagonales** également. Celles-là ont demandé un calcul : une barre inclinée
+  descend de (L/2)·cos θ **mais aussi** de (e/2)·sin θ par le coin de sa section. À 2,72 elle
+  passait 3,6 cm sous le bitume ; il faut 2,68.
+
+Et les deux palettes posées **sur** le quai avaient leurs patins noyés de 7 cm dans la tôle :
+`entPalette` les posait à `hQ`, alors que le dessus du tablier est à `hQ + 0,07`.
 
 Les vingt suites passent.
 
