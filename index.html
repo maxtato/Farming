@@ -11093,6 +11093,47 @@ function missionDrive(m, dt){
     }
     return piloteChamp(v, dt);
   }
+  /* ---------- ALLER CHERCHER SON OUTIL, ET S'Y ATTELER ----------
+     Le pilote savait faire deux choses : travailler une parcelle, et porter une
+     marchandise d'un lieu à un autre. Il ne savait pas CHANGER D'OUTIL — et c'était le
+     maillon qui obligeait le joueur à reprendre le volant entre deux étapes : labourer,
+     rentrer, dételer la charrue, atteler le semoir, ressortir. Une tâche `outil` fait le
+     trajet et l'attelage, et rien d'autre : elle se glisse donc devant n'importe quelle
+     tâche de parcelle, et une chaîne complète s'écrit sans une ligne de pilotage neuve.
+
+     ON DÉTELLE SUR PLACE, ET C'EST VOULU. L'engin arrive avec ce qu'il traîne, le pose
+     là où il vient chercher l'autre — c'est-à-dire au parc à outils — et repart. Un
+     outil abandonné garde sa position au sol (voir `detachTool`), donc on le retrouvera
+     là où on l'a laissé, et non rangé par magie. */
+  if(t.quoi === 'outil'){
+    const T = TOOLS[t.t];
+    v.cleVoulue = null; v.sensVoulu = 'route';
+    // La moissonneuse et l'enjambeuse portent leur outil en elles : `toolOf` le rend
+    // sans qu'on ait rien attelé. Leur demander d'aller chercher une charrue n'aurait
+    // pas de sens, et elles n'ont pas de crochet.
+    if(!T || m.key === 'moisson' || m.key === 'enjambeuse'){ tacheSuivante(m); return [0, 0]; }
+    if(v.tool === T && T.attached === v){ tacheSuivante(m); return [0, 0]; }
+    /* UN OUTIL PRIS PAR UN AUTRE N'EST PAS UNE ERREUR, C'EST UNE ATTENTE. Deux chantiers
+       peuvent vouloir la même charrue au même moment ; celui qui arrive second patiente
+       au lieu d'abandonner son plan. Trente secondes — de quoi laisser finir une passe
+       courte — après quoi il rend la main et le répartiteur reverra sa copie. */
+    if(T.attached && T.attached !== v){
+      M.attente = (M.attente || 0) + dt;
+      if(M.attente > 30){ M.attente = 0; v.mission = null; v.auto = false; v.plan = null; }
+      return [0, 0];
+    }
+    const r = suivreRoute(v, T.x, T.z, 'o' + t.t, 3.0);
+    if(r){ M.attente = 0; return r; }
+    // On ne s'attelle qu'À L'ARRÊT : un crochet qui se ferme à six mètres par seconde
+    // poserait l'outil dix mètres derrière l'endroit où on l'a pris.
+    if(v.speed > 1.2) return [0, 0];
+    if(v.tool) detachTool(v);
+    attachTool(v, T);
+    if(m === MACHINES[cur]) refreshHitchButton();
+    quitterLieu(v);
+    tacheSuivante(m);
+    return [0, 0];
+  }
   // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
   // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
