@@ -12573,12 +12573,21 @@ const TRAFIC_MODELES = (function(){
   /* LA CAISSE FERMÉE : le fourgon, le camion à caisse et la fourgonnette postale portent
      le même volume, à la taille près — un pavé, un bandeau de toit, et des nervures
      réparties sur la longueur. Une seule fonction, trois carrosseries. */
-  function caisseFermee(P, w, h, d, c, y, z, nerv){
+  /* ET LA GARNITURE EST DEVENUE FACULTATIVE — bandeau de toit et nervures. Elle était
+     écrite en dur, or elle sert TROIS carrosseries : la changer pour l'une les changeait
+     toutes. Un paramètre de plus, laissé vide par les deux autres, coûte moins qu'une
+     deuxième fonction qui divergera. */
+  function caisseFermee(P, w, h, d, c, y, z, nerv, garn){
+    // `=== undefined` et non `||` : 0x000000 est une couleur, et un repli par `||` la
+    // remplacerait silencieusement par le brun d'origine. Le piège ne coûte rien à fermer.
+    const G = garn || {};
+    const cT = G.toit === undefined ? 0x9C8C6E : G.toit;
+    const cN = G.nerv === undefined ? 0xE2D9C4 : G.nerv;
     P.push(B(w, h, d, c, 0, y + h/2, z));
-    P.push(B(w + 0.1, 0.2, d + 0.1, 0x9C8C6E, 0, y + h, z));
+    P.push(B(w + 0.1, 0.2, d + 0.1, cT, 0, y + h, z));
     const n = nerv || 5;
     for(let k = 0; k < n; k++)
-      P.push(B(w + 0.04, h*0.9, 0.07, 0xE2D9C4, 0, y + h/2, z - d/2 + d*(k + 0.5)/n));
+      P.push(B(w + 0.04, h*0.9, 0.07, cN, 0, y + h/2, z - d/2 + d*(k + 0.5)/n));
   }
   // Cabine de poids lourd : même sandwich, ceinture plus haute et pavillon mince.
   function cabine(P, w, h, d, c, yBas, zc){
@@ -12718,13 +12727,31 @@ const TRAFIC_MODELES = (function(){
     roues(P, 0.9, 1.75, -1.75, 0.38, 0.28);
     return P;
   }
-  // 9 — Camion à caisse : cabine bleue, caisse crème, jumelage arrière.
+  /* 9 — Camion à caisse : cabine bleue, CAISSE BLANCHE, jumelage arrière.
+     Le joueur : « fais que la caisse reste toujours blanche, peu importe la couleur de la
+     cabine. » Elle ne changeait déjà jamais — le système de variantes ne remplace que les
+     sommets de la couleur de robe, et 0xEFE7D6 n'en est pas ; les 252 sommets de la caisse
+     sont identiques dans les quatre robes, vérifié sommet par sommet. Ce n'est donc pas
+     qu'elle changeait : c'est qu'elle N'ÉTAIT PAS BLANCHE.
+     MESURÉ EN PIXELS RENDUS, pas en hexadécimal, parce que c'est ce que l'œil reçoit :
+     au soleil, 0xEFE7D6 rendait #A8A793 — 91 % de la luminance d'un blanc pur et 21 points
+     de dérive chaude (R−B). Et le BANDEAU DE TOIT, qui déborde le pavé et couvre tout le
+     dessus, rendait #A99B73 : R−B = +54. Vue de la caméra du jeu, qui plonge, la plus
+     grande surface du camion était franchement tan.
+     0xF2F6F1 est le blanc du silo de la laiterie — le plus clair déjà peint sur un volume
+     du jeu, et l'on n'invente pas une teinte quand il en existe une. Rendu #AAB2A5 : 96 %
+     du blanc pur, dérive +5 au lieu de +21. 0xFFFFFF n'existe nulle part comme surface. */
   function camionCaisse(){
-    const CAB = robe(0x2F6B8E), CAISSE = 0xEFE7D6, P = [];
+    const CAB = robe(0x2F6B8E), CAISSE = 0xF2F6F1, NERV = 0xE4E8E4, P = [];
     P.push(B(2.2, 0.34, 7.0, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.3);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.4));
-    caisseFermee(P, 2.4, 2.5, 4.6, CAISSE, 0.79, -1.5, 5);
+    /* LE BANDEAU PASSE À L'INOX ET LES NERVURES AU GRIS CLAIR. Un bandeau brun et des
+       nervures crème sur une caisse blanche ne lisent plus comme de la garniture, mais
+       comme de la salissure. L'inox est déjà sur ce modèle — c'est son pot d'échappement —
+       et n'est la robe de personne. Le RELIEF des nervures est préservé au dixième près :
+       10,0 points de luminance sous le pavé avant, 10,0 après. */
+    caisseFermee(P, 2.4, 2.5, 4.6, CAISSE, 0.79, -1.5, 5, {toit:INOX, nerv:NERV});
     P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.2));
     feux(P, 0.82, 0.86, 3.42, -3.86);
     roues(P, 1.02, 2.3, -1.9, 0.46, 0.34, true);
@@ -12798,18 +12825,44 @@ const TRAFIC_MODELES = (function(){
        tout le porte-à-faux (z de 1,50 à 2,85) : le toit de la cabine plafonne à 2,14, le
        plancher de la couchette commençait à 2,89 — SOIXANTE-QUINZE CENTIMÈTRES D'AIR,
        et un bloc pâle qui pendait dans le vide au-dessus du pare-brise.
-       Son plancher tombe donc à 2,14 pile. Et son toit MONTE à 3,04, celui de la
-       cellule : la ligne du dessus devient continue de l'arrière au pare-brise, ce que
-       dit la première ligne de cette fonction — « la cellule la coiffe d'une capucine ».
-       Descendre le bloc sans le grandir l'aurait enfoncé vingt centimètres SOUS le toit
-       de la cellule, ce qui n'est plus une capucine mais un décrochement.
+       Son plancher tombe donc à 2,14 pile, et il y est resté depuis. Son toit, lui, était
+       alors monté à 3,04, celui de la cellule — la ligne du dessus devenait continue de
+       l'arrière au pare-brise. C'ÉTAIT LE DÉFAUT SUIVANT, et le bloc ci-dessous le
+       corrige : une ligne de toit continue, ce n'est pas une capucine, c'est un fourgon.
+       Descendre le bloc sans le grandir l'aurait alors enfoncé vingt centimètres SOUS le
+       toit de la cellule, ce qui n'est pas davantage une capucine.
        ET LE VÉHICULE CESSE D'ÊTRE RABOTÉ. Sa hauteur hors tout tombe de 3,59 à 3,19 —
        c'est la trappe de toit, à 3,19, qui devient le point haut. Le gabarit des
        lampadaires (5,87 m moins 45 cm de battement) le bridait à 1,0065 fois sa taille :
-       il repasse à 1,08 comme les quinze autres, et se dresse tout de même PLUS BAS sur
-       la route — 5,17 m contre 5,42. */
-    P.push(B(2.16, 0.9, 1.7, C, 0, 2.59, 2.0));
-    P.push(B(1.5, 0.5, 0.12, VITRE, 0, 2.64, 2.86));
+       il repasse à 1,08, la taille pleine des dix gros modèles, et se dresse tout de même
+       PLUS BAS sur la route — 5,17 m contre 5,42. */
+    /* ET ELLE AVANCE, ET ELLE MONTE. Le joueur : « prolonge la couchette plus loin devant
+       la cabine, elle doit dépasser un peu devant la cabine, et fais-la un peu plus haute,
+       elle doit être un peu plus haute que la caisse. »
+       Elle finissait à z = 2,85 quand la face avant de la cabine est à 3,15 : le museau
+       SURPLOMBAIT la couchette, l'inverse d'un camping-car. Et son toit s'arrêtait à 3,04,
+       exactement celui de la cellule : la ligne du dessus était plate d'un bout à l'autre,
+       on ne lisait pas une capucine mais un fourgon à toit droit.
+       LES DEUX NOUVELLES COTES TOMBENT SUR DES REPÈRES QUI EXISTENT DÉJÀ, et ce n'est pas
+       une coquetterie : c'est ce qui empêche le véhicule de rétrécir. En avant, 3,30 est le
+       bout du châssis — le pare-chocs tient toujours le nez à 3,52. En haut, 3,19 est la
+       trappe de toit, qui était déjà le point haut. La boîte englobante ne bouge donc sur
+       AUCUN des trois axes, `TAILLE_TRAFIC` reste à 1,08 et l'écrêtage par la hauteur libre
+       ne se rouvre pas — c'est lui qui avait coûté 25 cm au tour précédent.
+       ET L'AVANCÉE VA JUSQU'AU PLAFOND, qui n'est pas le bout du châssis mais le PARE-CHOCS,
+       à 3,52 : le panneau s'arrête à 3,45 et son verre, saillant de 7 cm comme le veut la
+       convention du modèle, affleure exactement le nez. Un cran de moins aurait laissé la
+       moitié de la marge disponible sans rien gagner en retour.
+       Sur la route : 49 cm de porte-à-faux devant la cabine, 24 cm au-dessus de la caisse,
+       et la couchette passe de 2,75 m à 3,73 m de long. Le plancher, lui, ne remonte pas
+       d'un millimètre : il reste à 2,14, sur le toit de la cabine.
+       ET LA FENÊTRE SE RECENTRE au passage. Elle était 5 cm trop haute dans son panneau —
+       0,25 de marge en bas, 0,15 en haut ; elle en a maintenant 0,275 des deux côtés.
+       UN DÉFAUT DISPARAÎT EN PRIME : la face supérieure de l'ancienne capucine était
+       COPLANAIRE avec celle du bandeau de toit de la cellule, à 3,04, sur un recouvrement
+       de 0,40 × 2,16 — deux quads superposés, donc du z-fighting en puissance. */
+    P.push(B(2.16, 1.05, 2.3, C, 0, 2.665, 2.3));
+    P.push(B(1.5, 0.5, 0.12, VITRE, 0, 2.665, 3.46));
     for(const sx of [-1.12, 1.12]) P.push(B(0.1, 0.6, 1.0, VITRE, sx, 2.1, -0.2));
     P.push(B(0.12, 0.9, 0.9, 0xD8D2C0, 1.12, 1.55, -2.0));
     P.push(B(1.9, 0.1, 2.6, 0xD8D2C0, 0, 3.06, -1.4));
@@ -12938,6 +12991,15 @@ const ROBES_TRAFIC = [
   [0x2F6B8E, 0xD9DDE0],           // fourgon : bleu pétrole, blanc gris
   // Le camion à caisse en a une de plus que tout le monde : le joueur les voulait
   // « toutes les couleurs, sauf en rouge, qui était la couleur originale ».
+  /* LA TROISIÈME EST CRÈME, ET ELLE RESTE — mais il a fallu le vérifier plutôt que le
+     supposer. C'est elle qui avait fait voir le défaut : avec la vieille caisse beige et
+     une cabine crème, le camion lisait d'une seule teinte, 24 points d'écart en pixels
+     rendus contre 180 à 195 pour les trois autres robes. On a donc failli la remplacer par
+     un brun. LE RENDU DIT NON : la caisse une fois vraiment blanche, l'écart passe à 42 —
+     la cabine lit ivoire CHAUD contre une caisse blanche FROIDE, et les deux volumes se
+     séparent d'eux-mêmes. La fusion était le symptôme de la caisse beige, pas de la robe.
+     Le joueur a demandé une caisse blanche, pas une cabine de moins : on ne lui retire pas
+     une couleur qu'il n'a pas mise en cause. */
   [0x4A5560, 0x6B7040, 0xD8D2C0], // camion à caisse : ardoise, kaki, crème
   [0xD8D2C0, 0x9AA2A7],           // citerne à lait : crème, inox
   [0xE07B24, 0x7A6A52],           // benne : orange, brun-taupe
@@ -13027,9 +13089,13 @@ const PORTEUR_TRAFIC = [false, false, false, true, true, false,
    Le facteur est donc RABOTÉ modèle par modèle par la hauteur libre, au lieu d'être écrit
    à la main : c'est un calcul, il se refait tout seul si un modèle grandit ou si les
    lampadaires bougent. La réserve de 45 cm couvre les 30 cm de suspension mesurés et
-   laisse 15 cm de jeu au pire. Sur les seize, quatre sont rabotés — le camping-car qui
-   ne peut plus grandir du tout, le camion à caisse, la citerne à lait et l'autocar qui
-   montent à six ou sept pour cent au lieu de huit. */
+   laisse 15 cm de jeu au pire. Sur les seize, TROIS sont rabotés — le camion à caisse
+   (1,0659), la citerne à lait (1,0628) et l'autocar (1,0754), qui montent à six ou sept
+   pour cent au lieu de huit.
+   ILS ÉTAIENT QUATRE, et cette phrase l'a écrit trop longtemps : le camping-car en est
+   sorti le jour où sa couchette a cessé de flotter au-dessus de sa cabine — son point
+   haut est tombé de 3,59 à 3,19, son plafond est passé à 1,1327, et il tient largement
+   ses 1,08. Il lui reste 43 cm sous l'ampoule, là où l'autocar n'en garde que 16. */
 const TAILLE_TRAFIC = [1, 1, 1, 1, 1, 1,
                        1.08, 1.08, 1.08, 1.08, 1.08, 1.08,
                        1.08, 1.08, 1.08, 1.08];

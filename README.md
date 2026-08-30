@@ -3132,6 +3132,13 @@ rabotés : le camion à caisse et la citerne à lait à 6,6 %, l'autocar à 7,5 
 camping-car à **0,6 %** — il ne peut pas grandir, il est déjà au plafond. Mesuré sur cinq
 minutes, il reste **15,3 cm** entre la tôle la plus haute et l'ampoule la plus basse.
 
+> **Ils ne sont plus que trois**, et ce paragraphe l'a écrit trop longtemps. Le camping-car
+> est sorti de la liste le jour où sa couchette a cessé de flotter au-dessus de sa cabine :
+> son point haut est tombé de 3,59 à 3,19, son plafond est passé à **1,1327**, et il tient
+> largement ses 1,08. Restent le camion à caisse (**1,0659**), la citerne à lait
+> (**1,0628**) et l'autocar (**1,0754**). Les 15,3 cm cités ici sont d'ailleurs ceux de
+> **l'autocar**, pas du camping-car, qui en garde **43**.
+
 ### Quarante-trois robes pour seize carrosseries
 
 Deux berlines identiques qui se croisent, on les voit ; trois, on ne voit plus qu'elles.
@@ -3251,11 +3258,14 @@ matière —, sur tout le porte-à-faux (z de 1,50 à 2,85) : le toit de la cabi
 **2,14**, le plancher de la couchette commençait à **2,89**. **Soixante-quinze centimètres
 d'air**, et un bloc pâle suspendu au-dessus du pare-brise.
 
-Son plancher tombe à 2,14 pile. Et son toit **monte** à 3,04, celui de la cellule : la ligne
-du dessus devient continue de l'arrière au pare-brise, ce que dit la première ligne de la
-fonction — « la cellule la coiffe d'une capucine ». La descendre sans la grandir l'aurait
-enfoncée vingt centimètres *sous* le toit de la cellule, ce qui n'est plus une capucine mais
-un décrochement.
+Son plancher tombe à 2,14 pile, et il n'en a plus bougé. Son toit, lui, était alors monté à
+3,04, celui de la cellule : la ligne du dessus devenait continue de l'arrière au pare-brise.
+La descendre sans la grandir l'aurait enfoncée vingt centimètres *sous* le toit de la
+cellule, ce qui n'est pas davantage une capucine.
+
+> **C'était le défaut suivant.** Une ligne de toit continue, ce n'est pas une capucine, c'est
+> un fourgon — et la couchette finissait 30 cm *derrière* la face de la cabine, si bien que
+> le museau la surplombait. Voir « La couchette avance et monte » plus bas.
 
 **Et le véhicule cesse d'être raboté.** Sa hauteur hors tout tombe de 3,59 à 3,19 — c'est la
 trappe de toit qui devient le point haut. Le gabarit des lampadaires (5,87 m moins 45 cm de
@@ -5984,6 +5994,124 @@ trois-là, non :
 
 Et les deux palettes posées **sur** le quai avaient leurs patins noyés de 7 cm dans la tôle :
 `entPalette` les posait à `hQ`, alors que le dessus du tablier est à `hQ + 0,07`.
+
+Les vingt suites passent.
+
+## La couchette avance et monte, et la caisse du camion devient blanche
+
+> « Pour le camping-car du trafic, prolonge la couchette plus loin devant la cabine : elle
+> doit dépasser un peu devant la cabine. Et fais-la un peu plus haute, elle doit être un peu
+> plus haute que la caisse du camping-car.
+> Pour le camion en photo, fais que la caisse reste toujours blanche peu importe la couleur
+> de la cabine. »
+
+### La capucine était en retrait, et plate
+
+Deux défauts que le tour précédent avait laissés en corrigeant le premier — la couchette qui
+flottait au-dessus de la cabine.
+
+Elle finissait à **z = 2,85** quand la face avant de la cabine est à **3,15** : le museau
+**surplombait** la couchette, l'inverse d'un camping-car. Et son toit s'arrêtait à **3,04**,
+exactement celui de la cellule : la ligne du dessus était plate d'un bout à l'autre. On ne
+lisait pas une capucine, on lisait un fourgon à toit droit.
+
+| | avant | après | sur la route |
+|---|---|---|---|
+| face avant | 2,85 | **3,45** | porte-à-faux de **49 cm** devant la cabine |
+| toit | 3,04 | **3,19** | **24 cm** au-dessus de la caisse |
+| profondeur de couchage | 1,70 | **2,30** | 2,75 m → **3,73 m** |
+| plancher | 2,14 | **2,14** | il touche toujours le toit de la cabine |
+
+**Les deux nouvelles cotes tombent sur des repères qui existent déjà, et ce n'est pas une
+coquetterie : c'est ce qui empêche le véhicule de rétrécir.** En avant, 3,45 laisse le
+pare-chocs tenir le nez à 3,52 — le verre de la fenêtre, saillant de 7 cm comme le veut la
+convention du modèle, vient affleurer exactement dessus. En haut, 3,19 est la trappe de toit,
+qui était **déjà** le point haut. La boîte englobante ne bouge donc sur **aucun** des trois
+axes :
+
+```
+x −1,17 .. 1,18     y 0,02 .. 3,19     z −3,30 .. 3,52
+TAILLE_TRAFIC[12] = 1,08   (plafond 1,1327)
+sur la route : 5,168 m de haut, 11,048 de long, 3,807 de large — identiques
+```
+
+C'est le piège de ce fichier : l'échelle du trafic est **écrêtée par la hauteur libre sous
+les lampadaires**, et comme elle est uniforme, un modèle qui grandit en hauteur rétrécit en
+longueur et en largeur. Ça a déjà coûté 25 cm au camping-car. Ici, rien.
+
+**Un défaut disparaît en prime** : la face supérieure de l'ancienne capucine était
+*coplanaire* avec celle du bandeau de toit de la cellule, à 3,04, sur un recouvrement de
+0,40 × 2,16 — deux quads superposés, donc du z-fighting en puissance.
+
+### La caisse ne changeait pas de couleur : elle n'était pas blanche
+
+Vérification d'abord, parce que la demande dit « **reste** blanche peu importe la couleur de
+la cabine » : le système de variantes ne remplace que les sommets égaux à la couleur de robe,
+et `0xEFE7D6` n'en est pas. Recensement sommet par sommet des quatre robes — **les 252
+sommets de la caisse sont rigoureusement identiques dans les quatre**. Elle ne changeait
+jamais.
+
+Ce n'est donc pas qu'elle changeait, c'est qu'elle **n'était pas blanche**. Mesuré en pixels
+rendus, pas en hexadécimal, parce que c'est ce que l'œil reçoit :
+
+| | rendu au soleil | luminance | % d'un blanc pur | dérive chaude (R−B) |
+|---|---|---|---|---|
+| caisse `0xEFE7D6` | `#A8A793` | 165,8 | 91 % | **+21** |
+| **bandeau de toit `0x9C8C6E`** | `#A99B73` | 155,1 | — | **+54** |
+| **`0xF2F6F1` retenu** | `#AAB2A5` | **175,4** | **96 %** | **+5** |
+| blanc pur `0xFFFFFF` | `#B3B8AF` | 182,3 | 100 % | +4 |
+
+Et le bandeau de toit **déborde le pavé** : il couvre tout le dessus, et la caméra du jeu
+plonge. La plus grande surface visible du camion rendait `#A99B73` — franchement tan. C'est
+ça que le joueur voyait.
+
+`0xF2F6F1` n'est pas une invention : c'est **le blanc du silo de la laiterie**, le plus clair
+déjà peint sur un volume du jeu. `0xFFFFFF` n'existe nulle part comme surface.
+
+Le bandeau passe à l'**inox** — déjà présent sur ce modèle, c'est son pot d'échappement — et
+les nervures à `0xE4E8E4`, qui garde **exactement le même relief** : 10,0 points de luminance
+sous le pavé avant, 10,0 après. `caisseFermee` sert trois carrosseries ; elle reçoit donc un
+paramètre de garniture **facultatif**, que le fourgon et la postale ne passent pas. Vérifié
+par empreinte des attributs, sommet par sommet : les deux autres modèles sont inchangés au
+bit près, et le parc garde ses 43 géométries de robe.
+
+### Et la robe crème de la cabine reste — après avoir failli sauter
+
+C'est elle qui avait fait voir le défaut. Écart mesuré entre cabine et caisse, en pixels
+rendus, **avec la vieille caisse beige** :
+
+| cabine | écart à la caisse |
+|---|---|
+| bleu pétrole `0x2F6B8E` | 183 |
+| ardoise `0x4A5560` | 193 |
+| kaki `0x6B7040` | 182 |
+| **crème `0xD8D2C0`** | **24** |
+
+Sept fois plus proche que n'importe quelle autre : le camion lisait d'une seule teinte. On a
+donc failli la remplacer par un brun chocolat, chiffres à l'appui.
+
+**Le rendu a dit non.** La caisse une fois vraiment blanche, l'écart passe de 24 à **42** :
+la cabine lit ivoire *chaud* contre une caisse blanche *froide*, et les deux volumes se
+séparent d'eux-mêmes. La fusion était le symptôme de la caisse beige, pas de la robe. Le
+joueur a demandé une caisse blanche, pas une cabine de moins — on ne lui retire pas une
+couleur qu'il n'a pas mise en cause.
+
+C'est la deuxième fois dans ce tour qu'un chiffre bien mesuré désignait le mauvais coupable :
+la caisse « qui ne restait pas blanche » ne changeait jamais de couleur, et la cabine « qui
+la faisait disparaître » ne la fait plus disparaître dès qu'on répare la vraie cause.
+
+### Deux affirmations du projet étaient périmées
+
+Trouvées en instruisant ces deux retouches, corrigées sur place :
+
+- « Sur les seize, **quatre** sont rabotés — le camping-car qui ne peut plus grandir du
+  tout… » Ils ne sont plus que **trois** : le camping-car en est sorti le jour où sa
+  couchette a cessé de flotter, son point haut tombant de 3,59 à 3,19. Restent le camion à
+  caisse (1,0659), la citerne à lait (1,0628) et l'autocar (1,0754). Et les « 15,3 cm sous
+  l'ampoule » attribués au camping-car sont ceux de **l'autocar** : le camping-car en garde
+  **43**.
+- « Son toit **monte** à 3,04, celui de la cellule : la ligne du dessus devient continue de
+  l'arrière au pare-brise. » C'était vrai, et c'était le défaut suivant.
 
 Les vingt suites passent.
 
