@@ -5058,6 +5058,82 @@ peut rien y recharger » — mais il l'avait écrite sur le seul commerce qui di
 repointé sur l'**usine à avoine**, qui a exactement le même profil, plutôt que supprimé : la
 règle valait mieux que l'exemple.
 
+## Une plante, moins de triangles — et deux ceps sur trois
+
+**« Est-ce que tu peux faire qu'une vigne égale un objet, un olivier égale un objet,
+pareil pour les plantes ? »** Une vigne *était déjà* un objet : chaque pied est une
+géométrie unique, fusionnée une fois pour toutes au démarrage par `mergeParts`, et les
+8 500 pieds de la ferme ne coûtent que **vingt appels de dessin**. Il n'y avait donc rien
+à fusionner. Ce qui pesait, c'est le nombre de triangles *dans* cet objet — et le relevé
+était sans appel : sur une image prise à la caméra de jeu, vingt parcelles plantées,
+**96,2 % des triangles étaient des cultures** (459 546 sur 477 852).
+
+Le détail disait où. Un olivier, c'était un tronc, **cinq** charpentières, **cinq** masses
+de feuillage et **cinq** olives ; une vigne, un piquet, un fil, un cep, **quatre**
+sarments, **trois** masses et **trois** grappes ; une céréale, **trois** talles.
+
+| plante | avant | après | |
+| --- | --- | --- | --- |
+| Blé | 54 | **36** | −33 % |
+| Orge | 72 | **36** | −50 % |
+| Avoine | 72 | **36** | −50 % |
+| Colza | 60 | **42** | −30 % |
+| Maïs | 36 | **36** | inchangé — il était déjà le moins cher |
+| Vigne | 138 | **66** | −52 % |
+| Olivier | 186 | **78** | −58 % |
+
+**Une seule masse par pied, sauf pour l'olivier.** Trois masses de feuillage coûtaient
+soixante-douze triangles sur les cent trente-huit d'une vigne — plus de la moitié — pour
+un relief qu'on ne lit qu'en s'agenouillant dans le rang. Une masse assez longue fait la
+même haie, parce que c'est le **recouvrement d'un cep sur l'autre** qui la ferme, et non
+l'empilement sur un même cep. L'olivier, lui, a résisté : réduit à une seule masse il
+devenait un parasol plat — très exactement le défaut que le commentaire d'origine disait
+avoir corrigé une fois. Il en garde **deux**, décalées en hauteur *et* au sol, la
+principale plus haute que large : c'est ce qui la rend ronde.
+
+**Et la densité est compensée, ce qui ne coûte pas un triangle.** Au premier essai le
+champ s'éclaircissait : on voyait la terre entre les rangs là où le tapis était fermé —
+le défaut que le commentaire des talles annonçait, mot pour mot. Les deux talles
+s'écartent donc autant que les trois d'avant, et ce qui reste grossit : épis d'un quart,
+barbes plus longues, grains d'avoine plus écartés, grappes de colza plus larges. Le maïs
+n'a pas changé d'un triangle : il sert de témoin dans les captures avant/après.
+
+### Deux ceps sur trois le long du rang
+
+**« Sur les lignes de vigne, divise le nombre de vigne par 1,5 sur chacune des lignes. »**
+Le masque de la vigne ne décidait que de l'écartement des **rangs** — un sur deux, soit
+2,60 m — et posait un pied dans chaque cellule du rang, tous les 1,30 m. Il garde
+maintenant deux mailles sur trois : l'entraxe moyen passe à **1,95 m**, et le nombre de
+ceps dessinés sur une parcelle tombe de **276 à 180** — un rapport de 1,53 pour 1,5
+demandé, l'écart venant des rangs de bordure.
+
+**La grille ne permet pas un écartement régulier.** Sur un pas de 1,30 m, deux tiers
+donnent 1,30 puis 2,60, en alternance. On étire donc le feuillage le long du fil pour que
+la haie reste fermée même sur le grand écart — et l'étirement se **calcule** : une touffe
+est un cylindre à six pans, dont l'emprise vaut 1,73 fois son rayon et non deux. Un
+premier essai à 1,66 laissait dix-neuf centimètres de jour et le rang se lisait en
+pointillé ; il faut 2,60 / (1,73 × 0,84) = 1,79, on prend **2,00**, soit 2,90 m d'emprise
+pour 2,60 m de jour. Le fil de palissage suit : **2,75 m** au lieu de 1,40, de quoi
+rejoindre le voisin le plus lointain. Il se recouvre franchement sur le petit écart —
+un fil qui se superpose à lui-même ne se voit pas, un fil qui s'interrompt se voit tout
+de suite.
+
+**Et la récolte ne bouge pas d'un gramme.** Le fichier l'avait déjà écrit pour l'olivier :
+« le masque de plantation ne réduit pas la récolte, il ne décide que des pieds DESSINÉS ».
+Toutes les cellules du rang sont semées et toutes se moissonnent. Ni les missions, ni les
+contrats, ni la capacité de la ferme ne s'en aperçoivent — et les dix-neuf bancs passent
+sans qu'on ait touché à un seuil.
+
+**Le relevé, à la caméra de jeu, vingt parcelles plantées :**
+
+| | avant | après |
+| --- | --- | --- |
+| triangles par image | 235 578 | **143 358** (−39 %) |
+| appels de dessin | 86 | 85 |
+| triangles d'une parcelle de vigne | 38 088 | **11 880** (−69 %) |
+
+Les appels ne bougent pas, et c'est la preuve que le levier n'était pas là.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

@@ -3878,7 +3878,7 @@ function ageMontee(){
    donc une TOUFFE de trois talles écartées — la silhouette de la planche, répétée — ce
    qui rend au champ la densité qu'il avait. Le maïs seul reste sur une tige : il n'en
    fait jamais qu'une. */
-const TALLES = [[0, 0, 0], [-0.34, 0.24, 0.9], [0.33, -0.23, 3.9]];
+const TALLES = [[-0.33, 0.23, 0.6], [0.32, -0.22, 3.7]];
 /* L'ÉPI EST PLUS GROS QUE SUR LA PLANCHE, et c'est une question de densité, pas de
    goût. La planche sème quatre-vingt-dix pieds au mètre carré et peut se permettre des
    épis de treize centimètres ; le jeu n'en pose qu'un par cellule de 1,30 m. Relevé au
@@ -3890,7 +3890,7 @@ function adulteBle(){
   for(const [ox, oz, a] of TALLES){
     fut(P, 1.15, 0.045, 0.075, 0xF0F0F0, ox, 0, oz);
     for(let k = 0; k < 2; k++)
-      P.push({g:new THREE.CylinderGeometry(0.05, 0.20, 0.62, 3, 1, true),
+      P.push({g:new THREE.CylinderGeometry(0.06, 0.26, 0.70, 3, 1, true),
               m:new THREE.Matrix4().makeRotationY(a + k*2.1)
                  .premultiply(new THREE.Matrix4().makeTranslation(ox, 1.24, oz)), c:0xFFFFFF});
   }
@@ -3900,12 +3900,12 @@ function adulteOrge(){
   const P = [];
   for(const [ox, oz, a] of TALLES){
     fut(P, 1.10, 0.045, 0.075, 0xEAEAEA, ox, 0, oz);
-    P.push({g:new THREE.CylinderGeometry(0.07, 0.20, 0.50, 3, 1, true),
+    P.push({g:new THREE.CylinderGeometry(0.085, 0.27, 0.58, 3, 1, true),
             m:new THREE.Matrix4().makeTranslation(ox, 1.18, oz), c:0xFFFFFF});
     // les barbes : c'est à elles qu'on reconnaît l'orge d'un blé plus pâle
-    for(let k = 0; k < 2; k++){
+    for(let k = 0; k < 1; k++){
       const p = [];
-      brin(p, 1.34, a + k*2.1, 1.25, 0.50, 0.022, 0xFFFFFF);
+      brin(p, 1.34, a + k*2.1, 1.18, 0.62, 0.030, 0xFFFFFF);
       p[0].m.premultiply(new THREE.Matrix4().makeTranslation(ox, 0, oz));
       P.push(p[0]);
     }
@@ -3929,12 +3929,12 @@ function adulteAvoine(){
   for(const [ox, oz, t] of TALLES){
     fut(P, 1.05, 0.04, 0.065, 0xE4E4E4, ox, 0, oz);
     // la panicule est LÂCHE : c'est l'écartement des grains qui la distingue du blé
-    for(let k = 0; k < 3; k++){
-      const a = t + k*1.6, r = 0.09 + (k % 2)*0.05;
+    for(let k = 0; k < 2; k++){
+      const a = t + k*1.6, r = 0.13 + (k % 2)*0.07;
       const m = new THREE.Matrix4().makeRotationZ(0.5*Math.cos(a));
       m.premultiply(new THREE.Matrix4().makeTranslation(
         ox + Math.cos(a)*r, 1.06 - (k % 2)*0.10, oz + Math.sin(a)*r));
-      P.push({g:new THREE.CylinderGeometry(0.02, 0.10, 0.30, 3, 1, true), m, c:0xFFFFFF});
+      P.push({g:new THREE.CylinderGeometry(0.025, 0.14, 0.36, 3, 1, true), m, c:0xFFFFFF});
     }
   }
   return mergeParts(P);
@@ -3945,9 +3945,9 @@ function adulteColza(){
     fut(P, 0.82, 0.045, 0.07, 0xDCDCDC, ox, 0, oz);
     for(let k = 0; k < 2; k++){
       const a = t + k*2.1;
-      P.push({g:new THREE.CylinderGeometry(0.19, 0.15, 0.26, 3, 1, true),
+      P.push({g:new THREE.CylinderGeometry(0.24, 0.19, 0.31, 3, 1, true),
               m:new THREE.Matrix4().makeTranslation(
-                ox + Math.cos(a)*0.13, 0.90 + (k % 2)*0.12, oz + Math.sin(a)*0.13), c:0xFFFFFF});
+                ox + Math.cos(a)*0.17, 0.90 + (k % 2)*0.12, oz + Math.sin(a)*0.13), c:0xFFFFFF});
     }
   }
   brin(P, 0.40, 1.2, 0.90, 0.40, 0.06);
@@ -3968,7 +3968,12 @@ function adulteColza(){
    jonction, donc le rang se reconstitue par construction et non par chance. */
 const BOIS = 0x8A7358, BOIS2 = 0x6B4E24, FEUILLE = 0x5E8C46, FEUILLE2 = 0x6E9A50,
       OLIVE = 0x33421F, RAISIN = 0x7A4A82, ARGENT = 0x8FA98A;
-const filVigne = (P)=> P.push({g:new THREE.BoxGeometry(0.05, 0.05, 1.40),
+/* LE FIL COURT MAINTENANT SUR 2,75 m et non plus 1,40. Avec deux ceps sur trois, le
+   voisin le plus lointain est à 2,60 m : un fil d'une cellule laissait 1,20 m de vide
+   et le palissage devenait un pointillé. Il déborde donc de quinze centimètres sur le
+   grand écart, et se recouvre franchement sur le petit — un fil qui se superpose à
+   lui-même ne se voit pas, un fil qui s'interrompt se voit tout de suite. */
+const filVigne = (P)=> P.push({g:new THREE.BoxGeometry(0.05, 0.05, 2.75),
                                m:new THREE.Matrix4().makeTranslation(0, 2.22, 0), c:0x9AA2A7});
 function vigneJeune(){
   const P = [];
@@ -3976,7 +3981,7 @@ function vigneJeune(){
   filVigne(P);
   fut(P, 0.62, 0.075, 0.115, BOIS, 0.05, 0, 0);    // le jeune cep
   branche(P, 0.62, 0.6, 0.9, 0.42, 0.04, BOIS);
-  touffe(P, 0.10, 1.02, 0.02, 0.34, 0.40, FEUILLE, 1.0, 1.20);
+  touffe(P, 0.10, 1.02, 0.02, 0.34, 0.40, FEUILLE, 1.0, 2.10);
   return mergeParts(P);
 }
 function vigneMontee(){
@@ -3986,8 +3991,7 @@ function vigneMontee(){
   fut(P, 1.04, 0.085, 0.135, BOIS, 0.04, 0, 0);
   branche(P, 1.04, 0.5, 1.10, 0.60, 0.045, BOIS);  // deux sarments palissés
   branche(P, 1.04, 3.6, 1.10, 0.55, 0.042, BOIS);
-  touffe(P,  0.04, 1.52,  0.02, 0.48, 0.58, FEUILLE, 1.02, 1.26);
-  touffe(P, -0.06, 2.06, -0.06, 0.38, 0.46, FEUILLE2, 1.0, 1.10);
+  touffe(P,  0.02, 1.70,  0.00, 0.58, 0.98, FEUILLE, 1.02, 2.30);
   return mergeParts(P);
 }
 /* L'adulte en feuilles : la souche entière, sa charpente et sa frondaison, sans un
@@ -3998,22 +4002,20 @@ function vigneAdulte(sansFruit){
   fut(P, 3.21, 0.055, 0.055, BOIS2);               // piquet
   filVigne(P);                                     // fil
   fut(P, 1.34, 0.10, 0.16, BOIS, 0.03, 0, 0);      // cep
-  // charpente : quatre sarments qui courent le long du fil, très visibles
-  branche(P, 1.34, 0.4, 1.25, 0.78, 0.048, BOIS);
-  branche(P, 1.34, 3.5, 1.25, 0.72, 0.046, BOIS);
-  branche(P, 1.66, 1.6, 1.05, 0.56, 0.038, BOIS);
-  branche(P, 1.66, 4.9, 1.05, 0.52, 0.036, BOIS);
-  /* TROIS MASSES, décalées en x AUTANT qu'en z, et étirées le long du fil. C'est le
-     décalage en x qui fait la haie : la masse basse porte l'épaisseur, les deux hautes
-     se croisent en diagonale de part et d'autre du fil, si bien que la silhouette reste
-     pleine dans l'axe du rang comme vue du dessus. */
-  touffe(P,  0.00, 1.84,  0.00, 0.60, 0.72, FEUILLE,  1.06, 1.30);
-  touffe(P, -0.08, 2.48, -0.22, 0.53, 0.62, FEUILLE2, 1.00, 1.06);
-  touffe(P,  0.09, 2.42,  0.24, 0.53, 0.62, FEUILLE,  1.00, 1.06);
+  // charpente : deux sarments qui courent le long du fil, un peu plus gros que les
+  // quatre d'avant — c'est la ligne du sarment qui dit la vigne, pas leur nombre.
+  branche(P, 1.34, 0.4, 1.25, 0.78, 0.052, BOIS);
+  branche(P, 1.34, 3.5, 1.25, 0.72, 0.050, BOIS);
+  /* UNE SEULE MASSE, ÉTIRÉE LE LONG DU FIL. Elles étaient trois, décalées en x autant
+     qu'en z, et c'est ce décalage qui faisait la haie. Trois masses coûtaient soixante-
+     douze triangles sur les cent trente-huit du pied — plus de la moitié — pour un
+     relief qu'on ne lit qu'en s'agenouillant dans le rang. Une masse assez longue fait
+     la même haie : c'est le RECOUVREMENT d'un cep sur l'autre qui la ferme, pas
+     l'empilement sur un même cep. L'étirement se calcule ; voir le masque de la vigne,
+     qui dit pourquoi il vaut 2,00. */
+  touffe(P,  0.00, 2.02,  0.00, 0.84, 1.46, FEUILLE,  1.08, 2.00);
   if(!sansFruit){
-    fruit(P,  0.40, 1.06,  0.13, 0.16, RAISIN);    // grappes bordeaux sous les sarments
-    fruit(P, -0.36, 1.12, -0.11, 0.15, RAISIN);
-    fruit(P,  0.13, 0.98,  0.29, 0.14, RAISIN);
+    fruit(P,  0.40, 1.06,  0.13, 0.17, RAISIN);    // une grappe, plus grosse
   }
   return mergeParts(P);
 }
@@ -4033,33 +4035,28 @@ function oliveMontee(){
   fut(P, 1.30, 0.09, 0.15, BOIS);
   branche(P, 1.30, 0.4, 0.85, 0.52, 0.048, BOIS);
   branche(P, 1.30, 3.4, 0.85, 0.48, 0.045, BOIS);
-  touffe(P,  0.00, 1.86, 0.00, 0.64, 0.68, ARGENT);
-  touffe(P,  0.34, 1.56, 0.16, 0.46, 0.50, FEUILLE2);
+  touffe(P,  0.06, 1.80, 0.03, 0.80, 0.86, ARGENT);
   return mergeParts(P);
 }
 function oliveAdulte(sansFruit){
   const P = [];
   fut(P, 1.90, 0.14, 0.24, BOIS);                          // tronc
-  branche(P, 1.85, 0.3, 0.75, 1.05, 0.075, BOIS);          // cinq charpentières
-  branche(P, 1.85, 1.6, 0.80, 1.00, 0.070, BOIS);
-  branche(P, 1.85, 3.0, 0.72, 1.10, 0.075, BOIS);
-  branche(P, 1.85, 4.4, 0.85, 0.95, 0.065, BOIS);
-  branche(P, 2.25, 5.5, 0.55, 0.85, 0.055, BOIS);
+  branche(P, 1.85, 0.3, 0.75, 1.05, 0.082, BOIS);          // deux charpentières
+  branche(P, 1.85, 3.0, 0.72, 1.10, 0.082, BOIS);
   /* CINQ MASSES ÉTAGÉES, et non cinq disques à la même hauteur : à cotes égales elles
      se recouvraient en une plaque hexagonale, et l'arbre se lisait comme un champignon.
      La hauteur de chacune suit sa largeur — c'est ce qui les rend rondes — et le cœur
      dépasse les satellites de quarante centimètres. */
-  touffe(P,  0.00, 2.98,  0.00, 1.02, 0.92, ARGENT);       // cœur de la frondaison
-  touffe(P,  0.68, 2.50,  0.29, 0.70, 0.66, FEUILLE2);
-  touffe(P, -0.66, 2.58, -0.27, 0.68, 0.64, ARGENT);
-  touffe(P,  0.19, 2.36, -0.68, 0.62, 0.58, FEUILLE2);
-  touffe(P, -0.17, 2.44,  0.66, 0.60, 0.58, ARGENT);
+  /* DEUX MASSES, ET NON CINQ NI UNE. Cinq se recouvraient en une plaque ; une seule,
+     essayée, rendait l'arbre plat comme un parasol — c'est très exactement le défaut que
+     le commentaire d'origine disait avoir corrigé une fois. Deux masses décalées en
+     hauteur ET au sol suffisent à casser la silhouette, et la principale est plus HAUTE
+     que large : c'est ce qui la rend ronde. */
+  touffe(P,  0.00, 2.86,  0.00, 1.06, 1.52, ARGENT);       // le cœur, haut et rond
+  touffe(P,  0.62, 2.34,  0.28, 0.78, 0.94, FEUILLE2);     // une masse basse, décalée
   if(!sansFruit){
-    fruit(P,  0.98, 2.26,  0.44, 0.10, OLIVE);
-    fruit(P, -0.94, 2.30, -0.38, 0.095, OLIVE);
-    fruit(P,  0.30, 2.66, -0.84, 0.095, OLIVE);
-    fruit(P, -0.22, 2.06,  0.82, 0.09, OLIVE);
-    fruit(P,  0.60, 2.14, -0.30, 0.09, OLIVE);
+    fruit(P,  0.98, 2.26,  0.44, 0.11, OLIVE);
+    fruit(P, -0.94, 2.30, -0.38, 0.11, OLIVE);
   }
   return mergeParts(P);
 }
@@ -4270,7 +4267,25 @@ const CROPS = [
    // peignes batteurs, eux, restent accrochés aux jambes dès 0,75 m et brassent toujours
    // le feuillage sur toute sa hauteur.
    temps:210, repousse:150, kg:0.2536, haut:1.00, large:1.00, cout:6000, verrou:true, perenne:true,
-   plantation:1600, rang:true, masque:(i)=> i % 2 === 0},
+   /* DEUX CEPS SUR TROIS LE LONG DU RANG. Le masque ne décidait que de l'écartement des
+      RANGS — un sur deux, soit 2,60 m — et posait un pied dans chaque cellule du rang,
+      tous les 1,30 m. Le joueur : « sur les lignes de vigne, divise le nombre de vigne
+      par 1,5 sur chacune des lignes ». C'est exactement ce que fait `j % 3 !== 2` : on
+      garde deux mailles sur trois, l'entraxe moyen passe de 1,30 à 1,95 m, et le nombre
+      de ceps dessinés tombe d'un tiers.
+      LA GRILLE NE PERMET PAS UN ÉCARTEMENT RÉGULIER : sur un pas de 1,30 m, deux tiers
+      donnent 1,30 puis 2,60, en alternance. On élargit donc le feuillage le long du fil
+      pour que la haie reste FERMÉE même sur le grand écart. L'étirement se CALCULE : une
+      touffe est un cylindre à six pans, dont l'emprise vaut 1,73 fois son rayon et non
+      deux — un premier essai à 1,66 laissait 19 cm de jour et le rang se lisait en
+      pointillé. Il faut sz ≥ 2,60 / (1,73 × 0,84) = 1,79 ; on prend 2,00, soit 2,90 m
+      d'emprise pour 2,60 m de jour. Le fil de palissage suit. Le rang se lit toujours d'un tenant ;
+      c'est le cep qui s'espace, pas la haie qui se troue.
+      ET LA RÉCOLTE NE BOUGE PAS D'UN GRAMME : « le masque de plantation ne réduit pas la
+      récolte, il ne décide que des pieds DESSINÉS » — toutes les cellules du rang sont
+      semées et toutes se moissonnent. Ni les missions, ni les contrats, ni la capacité
+      de la ferme ne s'en aperçoivent. */
+   plantation:1600, rang:true, masque:(i, j)=> i % 2 === 0 && j % 3 !== 2},
   {nom:'Olives', cle:'olives', lo:new THREE.Color(0xC6D4B4), hi:new THREE.Color(0xCFD0BC),
    // Un olivier n'est pas palissé : sa taille au sol garde son tirage au sort, mais le
    // coefficient est calé pour que le plus grand des arbres — tirage 1,95 — reste sous
