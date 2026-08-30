@@ -5307,6 +5307,50 @@ même nombre de passes, aucune clôture couchée. La machine roule donc exacteme
 avant, met exactement le même temps : c'est la lame seule qui est devenue clémente. La
 couverture du SOL, elle, ne bouge pas d'un dixième — elle avait déjà sa tolérance.
 
+## La poussière coûtait un tiers de l'image
+
+**« Ça lag actuellement lorsque, en auto, mon tracteur laboure un champ et que je dérape
+avec mon pick-up à côté. »** Une scène précise, donc reproductible : on l'a montée au banc
+plutôt que de deviner.
+
+**Le sol n'y était pour rien.** La première hypothèse — la charrue qui salit des tuiles de
+terrain et les renvoie à la carte graphique, deux par image et 819 200 octets — ne tient
+pas : mesuré dans cette scène, **zéro tuile salie par image**. On l'écrit ici pour que la
+piste ne soit pas rouverte.
+
+**Ce sont les bouffées.** Chacune était un `Mesh` à elle, avec SON matériau — c'est ce qui
+lui donnait sa couleur et son estompage. Relevé dans la scène décrite : **trente-sept
+bouffées vivantes en moyenne, quarante-deux au pire**, et elles font **quarante des cent
+dix-huit appels de dessin**. Un tiers de l'image, pour 720 triangles. Rien ne pouvait les
+grouper : cent trente objets, cent trente matériaux, chacun avec son programme et ses
+uniformes. Et elles sont transparentes, c'est-à-dire la sorte qui coûte cher sur un
+téléphone — triées à chaque image, et repeignant les mêmes pixels plusieurs fois.
+
+Elles deviennent **un seul maillage instancié** : un appel, un matériau, la couleur par
+instance. Les mortes restent dans le tampon à l'échelle zéro — la carte graphique les
+traite, mais un sommet dégénéré ne peint aucun pixel, et cent trente icosaèdres de vingt
+triangles font 2 600 triangles, moins qu'un pied de vigne sur une parcelle.
+
+| dans la scène du joueur | avant | après |
+| --- | --- | --- |
+| objets pour la poussière | 130 | **1** |
+| matériaux | 130 | **1** |
+| appels de dessin pour la poussière | **40** | **1** |
+| l'image entière | 118 appels | **72** |
+
+**Le premier essai était raté, et la capture l'a dit.** Un matériau partagé n'a qu'UNE
+opacité pour tout le monde : en exprimant la disparition par la seule échelle — la bouffée
+grossit puis se résorbe — on obtenait des cailloux blancs opaques au lieu d'un nuage.
+L'alpha revient donc **par instance**, avec un attribut `alpha` sur la géométrie et trois
+lignes greffées au nuanceur par `onBeforeCompile` : les chaînes de three sont en clair même
+dans la version compactée, et `gl_FragColor = vec4( outgoingLight, diffuseColor.a )` se
+laisse multiplier. La formule d'estompage est celle d'avant, `op × (1 − t²)`, écrite
+ailleurs — le rendu est le même.
+
+Le **tri**, lui, disparaît : une seule maille se dessine dans l'ordre de son tampon et non
+plus du fond vers l'avant. Sans conséquence ici — les bouffées d'un même nuage ont la même
+couleur, et c'est très exactement le cas où l'ordre ne se voit pas.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

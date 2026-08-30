@@ -8935,19 +8935,76 @@ class Vehicle {
 }
 
 /* ---------- 12. PARTICULES ---------- */
+/* CENT TRENTE BOUFFÉES, CENT TRENTE OBJETS, CENT TRENTE MATÉRIAUX.
+   Chaque bouffée était un `Mesh` à elle, avec SON matériau — c'est ce qui permettait de
+   lui donner sa couleur et son estompage. Le prix se paie à l'image, et il se mesure :
+   dans la scène que le joueur décrit — « ça lag quand mon tracteur laboure en automatique
+   et que je dérape avec mon pick-up à côté » —, il y a trente-sept bouffées vivantes en
+   moyenne, quarante-deux au pire, et elles font QUARANTE des cent dix-huit appels de
+   dessin. Un tiers de l'image, pour 720 triangles. Rien ne pouvait les grouper : cent
+   trente objets et cent trente matériaux, chacun avec son programme et ses uniformes.
+   Elles deviennent UN SEUL maillage instancié : un appel, un matériau, la couleur par
+   instance. Les mortes restent dans le tampon à l'échelle zéro — le processeur graphique
+   les traite, mais un sommet dégénéré ne peint aucun pixel, et c'est cent trente
+   icosaèdres de vingt triangles, soit deux mille six cents : moins qu'un pied de vigne
+   sur une parcelle.
+   CE QU'IL A FALLU RÉSOUDRE : l'estompage. Un matériau partagé n'a qu'UNE opacité pour
+   tout le monde, et le premier essai — opacité constante, disparition par la seule
+   échelle — rendait des cailloux blancs opaques au lieu d'un nuage : la capture était
+   sans appel. L'alpha revient donc par instance, en trois lignes de greffe de nuanceur
+   (voir plus bas), et le rendu est celui d'avant.
+   La collision de profondeur est réglée par `depthWrite:false`, comme avant. Le TRI,
+   lui, disparaît : une seule maille se dessine dans l'ordre de son tampon et non plus
+   du fond vers l'avant. Sans conséquence ici — les bouffées d'un même nuage ont la même
+   couleur, et c'est très exactement le cas où l'ordre ne se voit pas. */
+const PUFF_N = 130;
 const puffs = [];
 const puffGeo = new THREE.IcosahedronGeometry(0.5, 0);
-for(let k=0;k<130;k++){
-  const m = new THREE.Mesh(puffGeo, new THREE.MeshLambertMaterial({
-    color:0xFFF3E0, transparent:true, opacity:0}));
-  m.visible = false; scene.add(m);
-  puffs.push({m, life:0, max:1, vy:0, vx:0, vz:0, s0:1, grav:0.8, op:0.85});
+const puffMat = new THREE.MeshLambertMaterial({transparent:true, opacity:1,
+                                               depthWrite:false});
+/* L'ESTOMPAGE PAR INSTANCE, SANS ÉCRIRE UN NUANCEUR ENTIER.
+   Un matériau partagé n'a qu'une opacité pour tout le monde, et c'est ce qui a fait
+   échouer le premier essai : à opacité constante, les bouffées rendaient des cailloux
+   blancs opaques au lieu d'un nuage. On greffe donc un attribut `alpha` PAR INSTANCE et
+   deux lignes de nuanceur pour le multiplier — `onBeforeCompile` remet la main sur le
+   code de three, dont les chaînes sont en clair même dans la version compactée.
+   Trois lignes de greffe contre quarante appels de dessin, et le rendu est celui d'avant
+   au pixel près : c'est la même formule d'estompage, `op*(1 - t²)`, écrite ailleurs. */
+puffGeo.setAttribute('alpha',
+  new THREE.InstancedBufferAttribute(new Float32Array(130).fill(0), 1).setUsage(THREE.DynamicDrawUsage));
+puffMat.onBeforeCompile = (sh)=>{
+  sh.vertexShader = 'attribute float alpha;\nvarying float vAlpha;\n' +
+    sh.vertexShader.replace('void main() {', 'void main() {\n\tvAlpha = alpha;');
+  sh.fragmentShader = 'varying float vAlpha;\n' +
+    sh.fragmentShader.replace(
+      'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+      'gl_FragColor = vec4( outgoingLight, diffuseColor.a * vAlpha );');
+};
+const puffMesh = new THREE.InstancedMesh(puffGeo, puffMat, PUFF_N);
+puffMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+puffMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(PUFF_N*3), 3);
+puffMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+/* La sphère englobante d'un maillage instancié est celle d'UNE bouffée posée à
+   l'origine : three écarterait tout le nuage dès que ce point-là sort du cadre. Même
+   raison, même remède que pour les cultures. */
+puffMesh.frustumCulled = false;
+puffMesh.renderOrder = 3;
+scene.add(puffMesh);
+const puffAlpha = puffGeo.attributes.alpha;
+const _pm4 = new THREE.Matrix4(), _pq = new THREE.Quaternion(),
+      _pv3 = new THREE.Vector3(), _ps3 = new THREE.Vector3(), _pcol = new THREE.Color();
+for(let k=0;k<PUFF_N;k++)
+  puffs.push({i:k, vive:false, x:0, y:0, z:0, life:0, max:1,
+              vy:0, vx:0, vz:0, s0:1, grav:0.8, op:0.85, col:0xFFF3E0});
+// on démarre toutes les instances à l'échelle zéro : rien ne se voit tant que rien ne vit
+for(let k=0;k<PUFF_N;k++){
+  _pm4.compose(_pv3.set(0,0,0), _pq, _ps3.set(0,0,0));
+  puffMesh.setMatrixAt(k, _pm4);
 }
 let puffI = 0;
 function puff(x,y,z,color,scale,up,life,grav,op,spread){
   const p = puffs[puffI = (puffI+1)%puffs.length];
-  p.m.visible = true; p.m.position.set(x,y,z);
-  p.m.material.color.setHex(color);
+  p.vive = true; p.x = x; p.y = y; p.z = z; p.col = color;
   p.life = 0; p.max = (life || 0.55) + Math.random()*0.5;
   p.s0 = scale*(0.7+Math.random()*0.6);
   p.vy = (up||0.6)*(0.6+Math.random()*0.8);
@@ -8955,19 +9012,33 @@ function puff(x,y,z,color,scale,up,life,grav,op,spread){
   p.vx = (Math.random()-0.5)*sp; p.vz = (Math.random()-0.5)*sp;
   p.grav = grav === undefined ? 0.8 : grav;
   p.op = op === undefined ? 0.85 : op;
+  _pcol.setHex(color);
+  puffMesh.setColorAt(p.i, _pcol);
+  puffMesh.instanceColor.needsUpdate = true;
 }
 function updatePuffs(dt){
+  let bouge = false;
   for(const p of puffs){
-    if(!p.m.visible) continue;
+    if(!p.vive) continue;
     p.life += dt;
     const t = p.life/p.max;
-    if(t >= 1){ p.m.visible = false; p.m.material.opacity = 0; continue; }
-    p.m.position.x += p.vx*dt; p.m.position.y += p.vy*dt; p.m.position.z += p.vz*dt;
+    bouge = true;
+    if(t >= 1){
+      p.vive = false;
+      _pm4.compose(_pv3.set(0,0,0), _pq, _ps3.set(0,0,0));
+      puffMesh.setMatrixAt(p.i, _pm4);
+      puffAlpha.array[p.i] = 0;
+      continue;
+    }
+    p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
     p.vy -= p.grav*dt;
+    // La croissance et l'estompage sont ceux d'avant, au chiffre près.
     const s = p.s0*(0.5 + t*1.5);
-    p.m.scale.setScalar(s);
-    p.m.material.opacity = p.op*(1-t*t);
+    _pm4.compose(_pv3.set(p.x, p.y, p.z), _pq, _ps3.set(s, s, s));
+    puffMesh.setMatrixAt(p.i, _pm4);
+    puffAlpha.array[p.i] = p.op*(1 - t*t);
   }
+  if(bouge){ puffMesh.instanceMatrix.needsUpdate = true; puffAlpha.needsUpdate = true; }
 }
 /* ---------- LES PIÈCES ----------
    L'argent tombait en silence. On déchargeait quatre cents kilos de blé, le chiffre du
