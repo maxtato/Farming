@@ -1385,7 +1385,7 @@ for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
   mesh.receiveShadow = true;
   mesh.position.set(X0 + TSIZE*(i+0.5), 0, Z0 + TSIZE*(j+0.5));
   scene.add(mesh);
-  tiles.push({ctx, tex, x0:X0+TSIZE*i, z0:Z0+TSIZE*j, dirty:false});
+  tiles.push({ctx, tex, x0:X0+TSIZE*i, z0:Z0+TSIZE*j, dirty:false, sale:null});
 }
 /* On n'en redonne que quelques-unes par image. Une tuile qui attend une image de plus
    avant d'être renvoyée est invisible à soixante images par seconde — mais quatre
@@ -1393,15 +1393,77 @@ for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
    on vide tout : c'est ce qu'attendent les appels qui suivent une grosse repeinture
    (achat de parcelle, chargement de partie), et le jeu y est de toute façon à l'arrêt. */
 let tuileTour = 0;
+/* ON DÉCLARE SALE UN RECTANGLE, PLUS UNE TUILE ENTIÈRE.
+   (Le nom porte « Tuile » : `salir` tout court est déjà pris, plus bas, par les
+   places de parking — et une collision de noms au premier niveau se résout en
+   silence, la dernière déclaration l'emportant.)
+   Une tuile mesure 320 x 320 pixels, soit 409 600 octets. Un passage de charrue en
+   noircit environ 500 — cinq cents sur cent mille — et le jeu renvoyait quand même
+   la tuile entière à la carte graphique, à chaque image, tant que l'engin travaillait.
+   Mesuré au banc : 528 629 octets par image pour 36 x 112 pixels réellement salis.
+   On mémorise donc, avec le drapeau, le rectangle touché ; l'union suffit, deux
+   passages successifs se recouvrent presque toujours. */
+function salirTuile(t, minx, minz, maxx, maxz){
+  const x0 = Math.max(0, Math.floor((minx - t.x0)*PPU) - 1);
+  const x1 = Math.min(TPX, Math.ceil((maxx - t.x0)*PPU) + 1);
+  const y0 = Math.max(0, Math.floor((minz - t.z0)*PPU) - 1);
+  const y1 = Math.min(TPX, Math.ceil((maxz - t.z0)*PPU) + 1);
+  if(x1 <= x0 || y1 <= y0) return;              // rien de cette tuile n'est concerné
+  const s = t.sale;
+  if(s){
+    if(x0 < s.x0) s.x0 = x0;
+    if(y0 < s.y0) s.y0 = y0;
+    if(x1 > s.x1) s.x1 = x1;
+    if(y1 > s.y1) s.y1 = y1;
+  } else t.sale = {x0:x0, y0:y0, x1:x1, y1:y1};
+  t.dirty = true;
+}
+/* LE MOTEUR NE SAIT ENVOYER QU'UNE TEXTURE ENTIÈRE. `needsUpdate` reverse le canevas
+   complet ; il n'existe pas de « ne renvoie que ce carré ». On pose donc les trois
+   lignes de WebGL nous-mêmes, sur la texture que le moteur a déjà créée.
+   TROIS GARDE-FOUS. Tant que la tuile n'a jamais été affichée, le moteur ne lui a pas
+   encore fabriqué de texture : on retombe alors sur `needsUpdate`, qui la créera. Si
+   le rectangle couvre plus de la moitié de la tuile — un achat de parcelle, un
+   chargement de partie — l'envoi entier est plus simple et pas plus cher. Et toute
+   erreur inattendue repasse par le chemin du moteur : on ne perd jamais un dessin.
+   `flipY` : le moteur retourne ses textures à l'envoi, donc la ligne du haut du
+   canevas devient la ligne du BAS de la texture, et le décalage vertical se compte
+   depuis l'autre bord.
+   `getImageData` relit le canevas côté processeur, et c'est le seul reproche qu'on
+   puisse faire à ce chemin. Mais le chemin d'avant relisait le canevas ENTIER, à
+   chaque image : lire 36 x 112 pixels ne peut pas coûter plus cher que d'en lire
+   320 x 320 de la même source. */
+function envoyerTuile(t){
+  const s = t.sale;
+  const P = renderer.properties && renderer.properties.get(t.tex);
+  const gt = P && P.__webglTexture;
+  if(!s || !gt || (s.x1-s.x0)*(s.y1-s.y0)*2 > TPX*TPX){ t.tex.needsUpdate = true; return false; }
+  try {
+    const gl = renderer.getContext();
+    const w = s.x1 - s.x0, h = s.y1 - s.y0;
+    gl.bindTexture(gl.TEXTURE_2D, gt);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, t.tex.flipY);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, t.tex.premultiplyAlpha);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, t.tex.unpackAlignment);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, s.x0, t.tex.flipY ? TPX - s.y1 : s.y0,
+                     gl.RGBA, gl.UNSIGNED_BYTE, t.ctx.getImageData(s.x0, s.y0, w, h));
+    return true;
+  } catch(e){ t.tex.needsUpdate = true; return false; }
+}
 function flushTiles(max){
   const n = tiles.length;
   let reste = (max === undefined) ? n : max;
+  let mainPropre = true;
   for(let k = 0; k < n && reste > 0; k++){
     const t = tiles[(tuileTour + k) % n];
     if(!t.dirty) continue;
-    t.tex.needsUpdate = true; t.dirty = false; reste--;
+    if(envoyerTuile(t)) mainPropre = false;
+    t.dirty = false; t.sale = null; reste--;
     tuileTour = (tuileTour + k + 1) % n;
   }
+  // On a lié une texture dans le dos du moteur : il faut lui dire que ce dont il se
+  // souvient n'est plus vrai, sinon il croira la bonne texture encore en place.
+  if(!mainPropre) renderer.resetState();
 }
 
 /* Tampon : rectangle orienté de longueur l (axe d'avance) et largeur w,
@@ -1422,7 +1484,12 @@ function stamp(x, z, l, w, cap, draw){
     c.beginPath(); c.rect(-l/2,-w/2,l,w); c.clip();
     draw(c, l, w);
     c.restore();
-    t.dirty = true;
+    // La boîte EXACTE du rectangle tourné — pas le disque qui sert au tri des tuiles.
+    // Le disque déclarait sale, autour d'un tampon long et mince, une couronne qui ne
+    // recevait pas un pixel.
+    const ca = Math.abs(Math.cos(cap)), sa = Math.abs(Math.sin(cap));
+    const hx = l/2*sa + w/2*ca + 0.1, hz = l/2*ca + w/2*sa + 0.1;
+    salirTuile(t, x-hx, z-hz, x+hx, z+hz);
   }
 }
 // dessin direct en coordonnées monde : indispensable pour un balayage continu,
@@ -1436,7 +1503,7 @@ function worldDraw(minx, minz, maxx, maxz, fn){
     c.lineCap = 'butt'; c.lineJoin = 'round';
     fn(c);
     c.restore();
-    t.dirty = true;
+    salirTuile(t, minx, minz, maxx, maxz);
   }
 }
 const AX = Math.PI/2;   // cap pour un rectangle aligné : l sur X, w sur Z
@@ -3725,8 +3792,21 @@ function paintSwath(key, a, ar, b, br, w){
   const aRx = a.x + ar.x*w/2, aRz = a.z + ar.z*w/2;
   const bLx = b.x - br.x*w/2, bLz = b.z - br.z*w/2;
   const bRx = b.x + br.x*w/2, bRz = b.z + br.z*w/2;
-  const minx = Math.min(aLx,aRx,bLx,bRx)-2, maxx = Math.max(aLx,aRx,bLx,bRx)+2;
-  const minz = Math.min(aLz,aRz,bLz,bRz)-2, maxz = Math.max(aLz,aRz,bLz,bRz)+2;
+  /* DEUX MÈTRES DE MARGE POUR RIEN. Tout ce que ce passage peint traverse d'abord le
+     découpage des petits carrés, et un carré n'est retenu que si son centre tombe à
+     moins d'une demi-diagonale de la bande balayée : rien ne peut donc déborder de
+     plus d'une demi-diagonale plus un carré, soit 44 cm. La marge de deux mètres ne
+     changeait pas un pixel — mais elle faisait balayer à la grille quatre fois trop de
+     cases (997 testées par image, contre 194), et surtout elle déclarait SALES
+     des tuiles voisines qui ne recevaient jamais rien. Une tuile sale est renvoyée.
+     Le GRAIN garde la boîte large : ses six taches sont tirées au hasard dedans puis
+     découpées, si bien qu'un cadre plus serré en rendrait visibles davantage et que
+     le sillon changerait de teinte. */
+  const MARGE = PSIZE*1.708;
+  const minx = Math.min(aLx,aRx,bLx,bRx)-MARGE, maxx = Math.max(aLx,aRx,bLx,bRx)+MARGE;
+  const minz = Math.min(aLz,aRz,bLz,bRz)-MARGE, maxz = Math.max(aLz,aRz,bLz,bRz)+MARGE;
+  const grx0 = minx-2+MARGE, grx1 = maxx+2-MARGE;
+  const grz0 = minz-2+MARGE, grz1 = maxz+2-MARGE;
   let ux = b.x-a.x, uz = b.z-a.z;
   const ul = Math.hypot(ux,uz) || 1; ux /= ul; uz /= ul;
 
@@ -3815,7 +3895,7 @@ function paintSwath(key, a, ar, b, br, w){
       if(st.grain){
         c.fillStyle = st.grain;
         for(let k=0;k<6;k++)
-          c.fillRect(minx + Math.random()*(maxx-minx), minz + Math.random()*(maxz-minz), 0.24, 0.16);
+          c.fillRect(grx0 + Math.random()*(grx1-grx0), grz0 + Math.random()*(grz1-grz0), 0.24, 0.16);
       }
       c.restore();
     }

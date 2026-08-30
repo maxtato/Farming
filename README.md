@@ -5313,10 +5313,17 @@ couverture du SOL, elle, ne bouge pas d'un dixième — elle avait déjà sa tol
 avec mon pick-up à côté. »** Une scène précise, donc reproductible : on l'a montée au banc
 plutôt que de deviner.
 
-**Le sol n'y était pour rien.** La première hypothèse — la charrue qui salit des tuiles de
-terrain et les renvoie à la carte graphique, deux par image et 819 200 octets — ne tient
-pas : mesuré dans cette scène, **zéro tuile salie par image**. On l'écrit ici pour que la
-piste ne soit pas rouverte.
+**Ce sont les bouffées, et non le sol.** La première hypothèse était la charrue qui salit
+des tuiles de terrain et les renvoie à la carte graphique — le banc d'alors a répondu
+« zéro tuile salie par image », et l'on s'est arrêté là.
+
+**Ce zéro était faux, et il a fallu six semaines pour s'en apercevoir.** Le banc attelait
+la charrue en écrivant `trac.outil = charrue`, alors que l'attelage se lit ailleurs
+(`v.tool`, avec `attached` qui pointe en retour) : `toolOf()` rendait « aucun outil » et
+`work()` repartait à la première ligne sans rien peindre. Le tracteur roulait, la charrue
+ne travaillait pas. La bonne mesure est **1,29 tuile salie par image, soit 528 629 octets**
+— et c'est ce qu'a corrigé le chapitre « Les rayures ne coûtaient pas le dessin ». Le gain
+sur la poussière, lui, tient toujours : il a été mesuré à part.
 
 **Ce sont les bouffées.** Chacune était un `Mesh` à elle, avec SON matériau — c'est ce qui
 lui donnait sa couleur et son estompage. Relevé dans la scène décrite : **trente-sept
@@ -5405,6 +5412,93 @@ les cultures de 1 à 7, les élevages de 0 à 6, les métiers d'atelier de 0 à 
 de 4 à 15 — et la campagne ne bouge pas d'un pouce : même mission, même objectif à l'écran,
 contrats toujours fermés. On reste dans SA partie, on ouvre juste les cadenas. Il se
 sauvegarde en champ facultatif, comme le reste des réglages.
+
+## Les rayures ne coûtaient pas le dessin, elles coûtaient l'affranchissement
+
+**« Ce qui consomme aussi beaucoup, c'est les rayures faites par la charrue et par le
+semoir : ça crée vraiment des rayures à la forme du passage, ça doit être très lourd.
+Peut-être que tu pourrais juste peindre le sol au passage sans créer forcément un dessin
+exact ? »** L'intuition vise le bon endroit — le sol travaillé est bien ce qui rame — mais
+la mesure désigne un autre coupable, et la simplification proposée n'y aurait rien changé.
+
+**Deux coûts empilés, et un seul est gros.** Le sol est peint sur cent tuiles de canevas de
+320 x 320 pixels, chacune couvrant 27,5 m. Un passage d'outil fait donc deux choses :
+
+| par image de travail (charrue, banc) | avant |
+| --- | --- |
+| carrés de terre testés par la grille | 997 |
+| carrés effectivement peints | 51 |
+| traits de sillon | 15 |
+| **pixels de texture réellement noircis** | **≈ 500** |
+| **pixels renvoyés à la carte graphique** | **132 157** |
+
+Le dessin change cinq cents pixels. L'affranchissement en renvoie cent trente-deux mille :
+**528 629 octets par image**, tant que l'engin travaille. Le rapport est de **1 à 264**.
+Simplifier la forme du passage aurait fait maigrir la colonne de gauche — celle qui ne pèse
+presque rien — et laissé la colonne de droite intacte. Et l'on y aurait perdu le grain de
+pixels fins qui fait l'allure du champ travaillé.
+
+### Ce qu'on a fait à la place : n'envoyer que le rectangle sali
+
+`needsUpdate` est le seul bouton que le moteur 3D propose, et il reverse la texture
+**entière**. Il n'y a pas de « renvoie-moi seulement ce carré ». On pose donc les trois
+lignes de WebGL à la main — `bindTexture`, `pixelStorei`, `texSubImage2D` — sur la texture
+que le moteur a déjà fabriquée, et l'on mémorise au passage, à côté du drapeau « sale », le
+**rectangle** touché.
+
+Ce rectangle mesure en moyenne **36 x 112 pixels**. Sur une tuile de 320 x 320, c'est
+**vingt-cinq fois moins**.
+
+Trois garde-fous, parce qu'on marche à côté du moteur : une tuile jamais affichée n'a pas
+encore de texture, on retombe alors sur `needsUpdate` qui la créera ; un rectangle qui
+couvre plus de la moitié de la tuile — achat de parcelle, chargement de partie — repart
+en envoi entier, c'est plus simple et pas plus cher ; et toute erreur inattendue repasse par
+le chemin du moteur, de sorte qu'aucun coup de pinceau ne peut se perdre. Après l'envoi
+manuel, on prévient le moteur que sa mémoire de l'état n'est plus vraie.
+
+### Et deux mètres de marge qui ne peignaient rien
+
+En le mesurant, une deuxième dépense est apparue, plus bête. La boîte englobante du passage
+était élargie de **deux mètres** dans les quatre directions. Or tout ce qui est peint passe
+d'abord par le découpage des petits carrés, et un carré n'est retenu que si son centre tombe
+à moins d'une demi-diagonale de la bande balayée : **rien ne peut déborder de plus de 44 cm**.
+
+Ces deux mètres ne changeaient pas un pixel. Ils faisaient balayer à la grille quatre fois
+trop de cases — et surtout ils déclaraient **sales des tuiles voisines qui ne recevaient
+jamais rien**, chacune renvoyée en entier. La marge tombe à ce qu'un pixel peut atteindre.
+Le **grain**, lui, garde l'ancienne boîte large : ses six taches sont tirées au hasard dedans
+puis découpées, et resserrer le cadre en rendrait visibles davantage — le sillon changerait
+de teinte.
+
+| par image de travail | avant | après |
+| --- | --- | --- |
+| carrés testés — charrue | 997 | **194** |
+| carrés testés — semoir | 768 | **166** |
+| carrés testés — épandeur | 136 | **29** |
+| tuiles déclarées sales — charrue | 1,29 | **0,99** |
+| octets renvoyés — charrue | 528 629 | **≈ 3 900** |
+| octets renvoyés — semoir | 353 103 | **3 299** |
+| octets renvoyés — épandeur | 42 010 | **613** |
+
+### Le sol est identique au pixel près
+
+Ce n'est pas un compromis d'image : c'est le **même dessin**, envoyé autrement.
+
+- Empreinte des trois tuiles peintes (307 200 pixels) après un passage de charrue en virage,
+  puis un semis par-dessus, hasard semé à la même graine : **identique avant et après**.
+- Avec le grain et les graines rendus au hasard, le **nombre de pixels peints** ne bouge pas
+  non plus (2 439 pour le labour, 3 075 pour le semis) ; seules les taches tombent ailleurs,
+  parce qu'on ne visite plus les parcelles qui ne recevaient rien et qu'on y tirait des
+  nombres au hasard pour rien.
+- Deux cents images de travail réel — labour, virage, semis, engrais — envoyées par petits
+  rectangles, puis toutes les tuiles renvoyées en entier de force : **0 octet d'écart** sur
+  les 3 015 524 de l'écran relu. Aucun coup de pinceau ne reste à quai.
+- Les dix-neuf bancs passent, 0 erreur.
+
+Une remarque au passage, trouvée en chemin : `salir` existait déjà dans le fichier, pour les
+places de parking. Une collision de noms au premier niveau se résout **en silence**, la
+dernière déclaration l'emportant — le sol ne se salissait plus du tout. D'où le nom
+`salirTuile`.
 
 ## Trois âges par culture
 
@@ -5832,7 +5926,10 @@ instances-là ne partaient jamais.
 
 **La bande passante des tuiles du sol.** Les tuiles font 27,5 m sur 320 px, et
 `flushTiles` n'en réveille que deux par image : 0,78 Mio au pire, contre 3,13 avant
-qu'elles soient coupées en quatre.
+qu'elles soient coupées en quatre. Ce plafond n'est plus atteint depuis qu'on n'envoie
+que le **rectangle sali** au lieu de la tuile entière — quelques milliers d'octets par
+image en plein travail, vingt-cinq fois moins. Voir « Les rayures ne coûtaient pas le
+dessin, elles coûtaient l'affranchissement ».
 
 **La mémoire des textures.** C'est le poste qui étrangle un téléphone : au-delà de
 quelques centaines de mégaoctets, le navigateur évince des textures et les recharge en
