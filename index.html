@@ -11060,6 +11060,33 @@ function quitterLieu(v){
      du silo — c'est-à-dire à travers la tour, où elle restait plantée pleins gaz. */
   if(v.plan) v.plan.entre = false;
 }
+/* ---------- LE SILO PLEIN NE BLOQUE PLUS EN SILENCE ----------
+   La moissonneuse pleine met son drapeau `goSilo` et roule au silo. Si le silo est plein,
+   `actionsAuSilo` rend une liste VIDE, rien ne s'exécute, et elle reste garée sur la
+   grille avec sa trémie pleine POUR L'ÉTERNITÉ. Aucun message : le seul avertissement du
+   jeu est un « SILO PRESQUE PLEIN » lâché à 92 %, qui ne se répète pas une fois qu'on
+   l'a vu. Et le silo est petit — 326 kg sur une ferme neuve, soit une parcelle et demie.
+   Le joueur, en décrivant l'automatisation : « pour le silo c'est pareil, s'il est plein
+   il faudra un message nous expliquant pourquoi l'automatisation ne peut pas continuer. »
+
+   ON ATTEND D'ABORD, ON RENONCE ENSUITE. Le silo peut se libérer en quelques secondes si
+   une benne est en train d'en sortir : abandonner tout de suite ferait perdre une passe
+   pour rien. Vingt secondes, donc — le temps d'un chargement — puis la machine rend la
+   main en disant pourquoi. Le message d'attente, lui, ne se dit qu'UNE FOIS par blocage.
+   Rend `true` quand la machine a rendu la main. */
+const ATTENTE_SILO = 20;
+function siloRefuse(m, dt){
+  const v = m.v;
+  if(!siloPlein()){ v.attenteSilo = 0; v.diteSilo = false; return false; }
+  if(!v.diteSilo){ v.diteSilo = true; showHint('SILO PLEIN — LA TRÉMIE NE PEUT PAS SE VIDER'); }
+  v.attenteSilo = (v.attenteSilo || 0) + dt;
+  if(v.attenteSilo < ATTENTE_SILO) return false;
+  v.attenteSilo = 0; v.diteSilo = false;
+  v.goSilo = false; v.finMoisson = false;
+  v.auto = false; v.mission = null; v.plan = null;
+  showHint('MOISSON ARRÊTÉE — VIDE LE SILO, PUIS RELANCE');
+  return true;
+}
 /* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
    celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
 function tacheSuivante(m){
@@ -11093,7 +11120,9 @@ function missionDrive(m, dt){
       else {
         v.sensVoulu = 'vider';
         const r = suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0);
-        return r || [0, 0];
+        if(r) return r;
+        siloRefuse(m, dt);          // arrivée : si le silo est plein, on le dit
+        return [0, 0];
       }
     }
     v.sensVoulu = 'route';
@@ -11257,7 +11286,12 @@ function autoDrive(m, dt){
         showHint('TRAVAIL TERMINÉ'); return [0, 0];
       }
     }
-    else return suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0) || [0, 0];
+    else {
+      const r = suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0);
+      if(r) return r;
+      siloRefuse(m, dt);            // arrivée : si le silo est plein, on le dit
+      return [0, 0];
+    }
   }
   if(!v.plan){
     v.plan = planAuto(m);
@@ -13116,6 +13150,13 @@ const SILO_UP = {nom:'Silo', det:'Ce que la tour tient de céréales',
 const siloFacteur = ()=>
   SILO_UP.paliers[Math.max(0, Math.min(SILO_UP.paliers.length - 1, (SILO.cran || 1) - 1))];
 const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*siloFacteur());
+/* DEUX PRÉDICATS NOMMÉS, PARCE QUE LA MÊME QUESTION ÉTAIT POSÉE EN TROIS ENDROITS.
+   « Le silo est-il plein ? » s'écrivait `siloTotal() < siloMax()` ici, `siloTotal() <
+   siloMax() - 0.01` là, et la marge d'un centième n'était pas la même partout. L'entrepôt
+   a ses `entrepotTotal` et `entrepotPlace` depuis toujours ; le silo n'avait rien, et la
+   chaîne d'automatisation allait poser la question une quatrième fois. */
+const siloPlace = ()=> Math.max(0, siloMax() - siloTotal());
+const siloPlein = ()=> siloPlace() <= 0.01;
 const coutSilo = ()=> ((SILO.cran || 1) < SILO_UP.paliers.length)
                       ? SILO_UP.prix[SILO.cran || 1] : 0;
 function agrandirSilo(){
@@ -14849,7 +14890,7 @@ function dispoAuLieu(cle){
    `acheteMaintenant` pour la revente, `accepteMaintenant` pour l'entrée d'une recette —
    et pour les trois lieux de la ferme, la place qui reste. */
 function demandeChez(cle, quoi){
-  if(cle === 'silo') return siloStock[quoi] !== undefined && siloTotal() < siloMax() - 0.01;
+  if(cle === 'silo') return siloStock[quoi] !== undefined && !siloPlein();
   if(cle === 'entrepot') return entrepotAccepte(quoi) && entrepotPlace() > 0.01;
   if(cle.slice(0, 6) === 'pature'){
     const P = PATURES[+cle.slice(6)];
@@ -18329,7 +18370,7 @@ const nomHaut = (k)=> nomDe(k).toUpperCase();
 function actionsAuSilo(m){
   const T = caisseDe(m), out = [];
   const place = !!T && T.load < T.capacite - 0.01, porte = !!T && T.load > 0.01;
-  const dePlace = siloTotal() < siloMax();
+  const dePlace = !siloPlein();
   if(tremiePleine(m) && siloStock[CROPS[hopCrop].cle] !== undefined && dePlace)
     out.push({sens:'tremie', lieu:'silo', cle:CROPS[hopCrop].cle,
               txt:'RENTRER LA TRÉMIE — ' + nomHaut(CROPS[hopCrop].cle)});
