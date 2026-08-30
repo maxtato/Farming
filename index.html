@@ -1683,9 +1683,42 @@ const YARD  = {x:(COUR_X0-3.4)/2, z:(COUR_Z0+COUR_Z1)/2,
                w:-3.4-COUR_X0, h:COUR_Z1-COUR_Z0};        // dalle de parking
 const GYARD = {x:-YARD.x, z:YARD.z, w:YARD.w, h:YARD.h};  // dalle du garage, en miroir
 // Trame des places, partagée : le marquage la dessine, la cuve s'y range.
+/* L'ÉCHELLE DU BÂTI, remontée ici depuis le chapitre des commerces : elle est devenue une
+   cote de TERRAIN le jour où l'entrepôt a porté les deux réserves, puisque c'est elle qui
+   dit où leurs cercles tombent. Le raisonnement qui donne 1,18 est resté à sa place, au
+   milieu des gabarits de commerce ; seul le nombre a bougé. */
+const BAT_ECHELLE = 1.18;
 const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
 const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
-const HANGAR = {x: 11, z: 54, w: 14, d: 15};   // emprise de l'entrepôt, sur la dalle de droite
+/* ---------- L'ENTREPÔT, SES COTES, ET LES DEUX RÉSERVES QUI EN DÉPENDENT ----------
+   Le modèle de brique fait 12 × 9 dans son propre repère, et les deux cuves sont bâties
+   contre son pignon GAUCHE. Il est posé d'un demi-tour, façade au sud : les cuves passent
+   donc à DROITE du bâtiment, ce qui est exactement où le joueur les demande.
+
+   CES QUATRE NOMBRES SERVENT DEUX FOIS — une fois pour bâtir le modèle, une fois pour
+   calculer où poser les cercles d'approvisionnement. C'est pourquoi ils sont ici, au
+   milieu des cotes du terrain, et non dans le fichier du modèle : les faire vivre à deux
+   endroits, c'est se garantir qu'ils divergeront.
+
+   ET L'ENTREPÔT A RECULÉ CONTRE LA ROUTE. Le joueur : « tu reculeras l'entrepôt au maximum
+   au plus près de la route, pour que le point de ravitaillement de l'entrepôt ne soit pas
+   totalement sur la route. » Le quai tombe à 8,85 m de l'axe du bâtiment ; à z = 58,5 il
+   atterrit donc à 67,35, et le bitume de la rocade commence à 69 : le cercle de 2,40 m de
+   rayon mord de soixante-quinze centimètres sur la chaussée et garde 84 % de sa surface
+   sur la dalle.
+   ET C'EST LA COUR DU MODÈLE QUI A FIXÉ LE DERNIER DEMI-MÈTRE, pas le cercle. Un demi-mètre
+   plus au sud le cercle passait encore — mais les palettes que le modèle pose devant son
+   quai dépassaient alors de quarante-cinq centimètres sur le bitume de la rocade. La vraie
+   borne du recul n'est donc pas le point de ravitaillement, c'est le décor qui l'entoure. */
+const ENT_W = 12, ENT_D = 9, ENT_H = 5.0, ENT_HQ = 1.2;
+const ENT_XC = -(ENT_W/2 + 2.1);                        // l'axe des cuves, repère du modèle
+const ENT_CUVES = {graine:{x: ENT_XC + 0.15, z: 2.9}, engrais:{x: ENT_XC - 0.1, z: -4.0}};
+const HANGAR = {x: 11, z: 58.5, w: ENT_W, d: ENT_D};    // emprise de l'entrepôt, dans la cour
+/* LE DEMI-TOUR SE LIT ICI, ET UNE SEULE FOIS. Un point du modèle passe dans le monde par
+   (x, z) → (HANGAR − x·échelle, HANGAR − z·échelle) : c'est la rotation d'un demi-tour,
+   suivie de l'échelle du bâti. Tout ce qui doit connaître un point de l'entrepôt — les
+   cuves, leurs cercles, le quai — passe par cette fonction, et rien d'autre. */
+const entPoint = (x, z)=> ({x: HANGAR.x - x*BAT_ECHELLE, z: HANGAR.z - z*BAT_ECHELLE});
 
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
@@ -1925,44 +1958,71 @@ const entreeSeule = (cle)=>{
 // déposé, comme il l'avait été entre la cour et le garage. Le silo y a déménagé — il
 // était contre la maison, il est maintenant au bout de la chaîne, à côté de l'atelier
 // qui moud son grain.
-const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: 104.4, z0: COUR_Z0, z1: COUR_Z1};
+/* LA DALLE VA JUSQU'À LA ROCADE EST, ET NON PLUS JUSQU'À 104,4.
+   Le joueur : « la dalle où il y a l'atelier, on va l'agrandir et la pousser jusqu'à la
+   route à droite. Il n'y aura plus de barrière du coup à droite de cette dalle ni de
+   lampadaire. »
+   Le bord ouest du bitume de la rocade est se lit sur la route elle-même — `ROAD_E`
+   moins sa demi-largeur, soit 109 — et non sur un nombre écrit à la main : la dalle
+   suivra la route si la route bouge un jour. Elle gagne 4,60 m, et la bande de terre
+   qui portait la clôture disparaît avec eux. */
+const HALLE_YARD = {x0: CHEMIN_COUR + PATH_W/2, x1: ROAD_E - ROAD_W/2,
+                    z0: COUR_Z0, z1: COUR_Z1};
 const SILO_TOUR = {x: 52, z: 50};
-const SILO = {x: 59, z: 50, r: 4.5, cran: 1};   // la grille de déversement, sous la goulotte
-/* ---------- LES DEUX RÉSERVES DE LA COUR ----------
-   Le joueur : « je veux que tu déplaces l'atelier de production tout à droite de la
-   parcelle — attention, tiens compte du fait que cet atelier peut évoluer en taille —
-   parce qu'on va ajouter au milieu, entre le silo et l'atelier, de nouveaux éléments l'un
-   devant l'autre. Ce seront des cuves à graines et engrais ; il faut les positionner l'une
-   au-dessus de l'autre, avec les cercles pour s'approvisionner à droite des bâtiments. »
+/* LES COTES DE LA TOUR SE DÉCLARENT ICI, ET LE POINT DE DÉVERSEMENT S'EN DÉDUIT.
+   L'ancien silo avait sa grille PEINTE au sol à sept mètres de lui, et le 59 était écrit
+   à la main : déplacer la tour laissait la grille derrière. La nouvelle tour porte sa
+   trappe dans son propre modèle, à 7,40 m de son axe — `SILO_R + 4,6` —, et `SILO` se
+   calcule dessus. Bouger `SILO_TOUR` déplace maintenant tout le reste avec lui. */
+const SILO_R = 2.8, SILO_H = 11.0;
+const SILO_TRAPPE = SILO_R + 4.6;               // 7,40 m de l'axe de la tour
+const SILO = {x: SILO_TOUR.x + SILO_TRAPPE, z: SILO_TOUR.z, r: 4.5, cran: 1};
+/* ---------- LES DEUX RÉSERVES, QUI SONT MAINTENANT CELLES DE L'ENTREPÔT ----------
+   Elles ont eu leur propre modèle et leur propre coin de cour : deux cuves plantées à
+   (67 ; 46) et (67 ; 58), au milieu de la cour de transformation, entre le silo et
+   l'atelier. Le joueur : « tu vas supprimer aussi les cuves à engrais et à graines […]
+   et tu vas remplacer l'entrepôt par celui-ci, qui inclut déjà les deux cuves à graines
+   et à engrais. »
 
-   CE QU'ELLES SONT : le hangar à graines et le bac à engrais avaient un compte —
-   `STOCK.graines`, `STOCK.engrais` — et aucun bâtiment. On achetait au comptoir, on
-   remplissait au comptoir, et le stock de la ferme n'existait que dans un menu. Il a
-   maintenant deux cuves dans la cour, et c'est là qu'on vient s'approvisionner. L'achat,
-   lui, ne bouge pas : il reste au Comptoir agricole, où l'on voit le bac et le prix.
+   CE QUI CHANGE, ET CE QUI NE CHANGE PAS. Ce qui change : elles n'ont plus de modèle à
+   elles, elles sont bâties avec l'entrepôt, et elles ont déménagé de la cour de
+   transformation à la cour de la ferme. Ce qui ne change pas : TOUT LE RESTE. Le nom, le
+   quai, le rayon d'arrêt, la voie d'accès, la tâche de ravitaillement du pilote, les deux
+   étiquettes du bandeau, le remplissage au Comptoir — rien de tout cela ne sait qu'elles
+   ont bougé, parce que rien de tout cela ne connaissait leurs coordonnées autrement que
+   par ces deux objets.
 
-   OÙ EXACTEMENT, ET POURQUOI CES CHIFFRES-LÀ. La cour de transformation va de x = 43,2 à
-   x = 104,4. L'atelier grandit de dix mètres en largeur entre le premier module et le
-   huitième — mesuré : 14,55 m d'emprise visible au palier zéro, 27,55 au dernier, dont
-   13,51 à droite de son point d'ancrage. On le pose donc à 90,8 : au dernier palier son
-   flanc droit tombe à 104,31, c'est-à-dire dans les neuf centimètres du bord de la dalle,
-   et il ne dépassera jamais. Son flanc GAUCHE recule alors de 81,95 (palier 0) à 76,76
-   (palier 9) : c'est cette borne-là qui décide de la place des cuves, et non celle
-   d'aujourd'hui.
-   Reste, entre la grille du silo — dont le cercle porte jusqu'à x = 63,5 — et ce flanc
-   gauche au pire, une bande de treize mètres. Les cuves s'y posent à 67, leurs cercles à
-   72 : cinq mètres à leur droite, comme demandé, et 4,76 m de dégagement devant l'atelier
-   le plus grand qu'on puisse construire. */
-const RES_GRAINE  = {x: 67, z: 46, quai: {x: 72, z: 46}, r: 3.6};
-/* ET LA BLANCHE DESCEND DE QUATRE MÈTRES. Le joueur : « écarte un peu plus la cuve à
-   engrais, vers le bas. » Vers le bas de l'écran, c'est vers les z croissants : la caméra
-   regarde depuis (38, 62, 38), donc un z plus grand est plus près d'elle et plus bas dans
-   l'image. Les deux réserves étaient à huit mètres l'une de l'autre, ce qui les faisait
-   lire comme une seule installation ; à douze, chacune a son cercle et son étiquette sans
-   qu'on hésite. La cour va jusqu'à z = 69 et l'emprise de l'atelier s'arrête à z = 55,66
-   au dernier palier : il y a la place, et la voie d'accès des cuves — verticale x = 72,
-   ouverte de z = 40 à z = 74 — la dessert toujours par son bout sud. */
-const RES_ENGRAIS = {x: 67, z: 58, quai: {x: 72, z: 58}, r: 3.6};
+   ET LEURS COORDONNÉES SE DÉDUISENT DE L'ENTREPÔT. Elles étaient écrites à la main ;
+   elles passent maintenant par `entPoint`, qui est la seule ligne du fichier qui connaisse
+   le demi-tour et l'échelle du bâtiment. Reculer l'entrepôt d'un mètre emmène les deux
+   cuves et leurs deux cercles avec lui, sans qu'on ait à y penser.
+
+   LE CERCLE EST À DROITE DE SA CUVE, à 4,40 m de son axe : de quoi ranger un attelage le
+   long d'elle, comme à une pompe, sans que la remorque touche la charpente. C'était cinq
+   mètres quand les cuves étaient seules au milieu de la cour ; elles sont maintenant
+   adossées à un mur, et c'est la place à leur droite qui compte.
+   Le joueur : « laisse sur la droite, au niveau de la dalle, la possibilité de se
+   ravitailler en engrais sans empiéter sur le chemin en sable. » Le chemin de sable qui
+   sépare la cour de la ferme de la cour de transformation occupe [36,8 ; 43,2] ; le cercle
+   de l'engrais, rayon compris, s'arrête à 28,7. Huit mètres de marge. */
+/* LES DEUX CERCLES SONT SUR LA MÊME ABSCISSE, ET ELLE SE PREND SUR LA CUVE LA PLUS À
+   DROITE. Les deux cuves ne sont pas tout à fait alignées dans le modèle — vingt-cinq
+   centimètres d'écart —, et poser chaque cercle à distance fixe de SA cuve donnait deux
+   abscisses différentes, donc une voie d'accès qui n'était l'axe d'aucune des deux.
+   ET LA DISTANCE EST DE 5,60 m, PAS 4,40. À 4,40 la voie ne passait qu'à 1,26 m de la
+   cuve verte, demi-machine comprise — mesuré : la remorque d'un attelage lui frôlait la
+   charpente à 89 cm en allant à l'entrepôt. À 5,60 il reste 2,76 m devant la verte et
+   2,43 devant la blanche, et le cercle de l'engrais, rayon compris, s'arrête encore à
+   29,9 — sept mètres avant le chemin de sable, qui commence à 36,8. */
+const RES_QUAI = 5.6;                    // du centre de la cuve la plus à droite au cercle
+const RES_VOIE = Math.max(entPoint(ENT_CUVES.graine.x, 0).x,
+                          entPoint(ENT_CUVES.engrais.x, 0).x) + RES_QUAI;
+const reserveEn = (c)=>{
+  const p = entPoint(c.x, c.z);
+  return {x:p.x, z:p.z, quai:{x:RES_VOIE, z:p.z}, r:3.6};
+};
+const RES_GRAINE  = reserveEn(ENT_CUVES.graine);
+const RES_ENGRAIS = reserveEn(ENT_CUVES.engrais);
 
 /* ---------- UN TRANSFORMATEUR, C'EST TOUJOURS LA MÊME MÉCANIQUE ---------- */
 /* Une trémie où l'on verse des matières, un stock d'où l'on repart avec le produit,
@@ -2019,11 +2079,27 @@ function fabriquer(U, dt, plafond){
    le premier était offert. Les deux choses se séparent : on achète des MODULES, un
    par métier, et l'on achète à part de la CAPACITÉ, de la VITESSE et de la FILE.
    Un joueur qui ne fera jamais de vin n'a plus à payer la cave pour avoir du débit. */
-/* L'ATELIER EST AU BOUT DE LA COUR, ET IL Y RESTE EN GRANDISSANT. Il était à 84, au
-   milieu ; il est à 90,8, contre le bord droit — voir le calcul au-dessus de `RES_GRAINE`.
-   Ce qui a été vérifié, et qui est la seule chose qui compte ici : au dernier palier son
-   emprise visible va de 76,76 à 104,31, donc elle tient tout entière sur la dalle. */
-const HALLE = {x: 90.8, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
+/* L'ATELIER RECULE VERS LA GAUCHE, ET LA CITERNE À GAZOLE PREND SA DROITE.
+   Le joueur : « décale l'atelier vers la gauche, et à droite de l'atelier tu mettras la
+   citerne à essence, en tenant compte que l'atelier doit être agrandi. Tu laisseras une
+   petite place à côté de la citerne essence sur la dalle pour mettre le point de
+   ravitaillement et la place qu'une voiture puisse se positionner. »
+
+   CE QUI A RENDU LA PLACE. Deux choses, et il fallait les deux : la dalle touche
+   maintenant la rocade est — 109 au lieu de 104,4, soit 4,60 m de gagnés — et les deux
+   réserves, qui occupaient le milieu de la cour à (67 ; 46) et (67 ; 58), sont parties
+   s'adosser à l'entrepôt. Le bâtiment n'a plus rien à sa gauche jusqu'à la trappe du silo.
+
+   OÙ EXACTEMENT, ET POURQUOI 82,9. L'atelier grandit de treize mètres entre le premier
+   module et le neuvième — mesuré sur la géométrie, palier par palier : 14,55 m d'emprise
+   au palier zéro, 27,55 au dernier, dont 13,51 à DROITE de son point d'ancrage et 14,04 à
+   gauche. La citerne à gazole fait 2,20 m de large et son flanc ouest tombe à 99,40. On
+   laisse trois mètres entre les deux — de quoi longer le bâtiment à pied sans que le
+   pare-chocs d'un attelage accroche la cuve — et l'atelier s'ancre donc à
+   99,40 − 3,00 − 13,51 = 82,89, arrondi à 82,9.
+   Au dernier palier son emprise va de 68,86 à 96,41 : il reste alors 7,36 m entre son
+   flanc gauche et la trappe du silo, qui est la voie par laquelle on vient charger. */
+const HALLE = {x: 82.9, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
                file: [], modules: [], capa: 1, vite: 1, queue: 1};
 /* LES HUIT MODULES, DANS L'ORDRE DE LA CAMPAGNE.
    L'ordre du tableau est celui des paliers de campagne, et c'est lui qui décide de la
@@ -3276,7 +3352,8 @@ const MARGE_ARRIERE = 3.0;                // et derrière lui, entre le mur et l
    grande porte de l'entrepôt de la ferme monte à 4,61 m sous linteau, et le tracteur
    qu'on y range fait 5,18 m hors-tout. Le hangar ne laissait pas entrer sa propre
    machine. À 1,18 la porte passe à 5,44 et laisse vingt-six centimètres d'air. */
-const BAT_ECHELLE = 1.18;
+/* Déclaré plus haut, avec les cotes du terrain : l'entrepôt et ses deux réserves s'en
+   servent pour placer leurs cercles, et ils sont déclarés bien avant ce paragraphe. */
 /* LE PARVIS. La cour devant la façade, sur toute la largeur de la dalle. C'est là
    qu'on se gare — les places y sont peintes — et c'est là qu'est posé le cercle jaune.
    Le parking latéral qui l'a précédé mettait l'anneau À CÔTÉ du commerce, treize
@@ -6226,117 +6303,25 @@ function buildCommerce(S){
   // 3,20 m de leur toit, quelle que soit leur taille.
   ajouteBulle(S, S.bbH);
 }
-/* ---------- LES DEUX RÉSERVES : GRAINES ET ENGRAIS ----------
-   Deux cuves de cour, posées entre le silo et l'atelier, l'une au-dessus de l'autre. Elles
-   donnent enfin un corps au hangar à graines et au bac à engrais, qui n'étaient que deux
-   nombres dans un menu.
-
-   ELLES NE SE RESSEMBLENT PAS, ET C'EST VOULU. On les voit de loin, de trois quarts, et
-   c'est la SILHOUETTE qui doit dire laquelle est laquelle avant qu'on lise quoi que ce
-   soit : la graine est une cuve trapue en polyéthylène vert, cerclée de son armature, la
-   goulotte à hauteur de semoir ; l'engrais est haute, blanche et perchée sur charpente,
-   parce qu'elle se vide par gravité. Deux volumes, deux couleurs, deux hauteurs.
-
-   LES CERCLES SONT À DROITE, comme demandé. On se range LE LONG de la cuve, pas nez à nez
-   avec elle — c'est la leçon de la cuve à gazole, dont le cercle avait d'abord été posé au
-   bout et qui obligeait à ressortir en marche arrière.
-
-   Elles ne bougent jamais : on les cuit toutes les deux. */
-// Le béton a disparu de cette palette en même temps que les dalles des deux cuves.
-const INOX_R = 0xC9CFD3,
-      GRIS_R = 0x8A9298, GRIS2_R = 0x6E767C, VERT_R = 0x3E6B4E, VERT2_R = 0x2C5C3C,
-      BLANC_R = 0xF0EDE4, NOIR_R = 0x2E3438, BLEU_R = 0x3E7CB8, ORANGE_R = 0xE07B24;
-/* PAS DE DALLE SOUS LES CUVES. Elles en avaient une, comme le quai de l'atelier : un socle
-   de béton et son ombre portée. Le joueur : « supprime les dalles des nouvelles citernes de
-   ressources, et aussi de l'atelier et de ses évolutions. » Il a raison, et cela se voit
-   mieux qu'il ne le dit : la cour est DÉJÀ une dalle de bitume d'un seul tenant, du chemin
-   de sable jusqu'au bord est. Poser une deuxième dalle dessus, c'est peindre du gris sur du
-   gris et découper le sol en petits carrés là où il devrait se lire d'un tenant. Les cuves
-   se posent donc à même le bitume, comme les engins qui viennent s'y ranger. */
-// L'échelle à crinoline : la signature d'une cuve où l'on monte.
-function echelleRes(g, x, z, h){
-  for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, GRIS_R, x + sx, h/2, z));
-  for(let k = 0; k*0.32 < h; k++) g.add(box(0.5, 0.05, 0.05, INOX_R, x, 0.25 + k*0.32, z));
-  for(let k = 0; k < Math.floor(h/0.6); k++)
-    g.add(cyl(0.34, 0.34, 0.05, 10, GRIS2_R, x, 0.8 + k*0.6, z - 0.16, Math.PI/2));
-}
-// La vanne de soutirage : c'est par là que sort ce qu'on vient chercher.
-function vanneRes(g, x, y, z){
-  g.add(cyl(0.1, 0.1, 0.4, 8, GRIS2_R, x, y, z + 0.2, Math.PI/2));
-  g.add(cyl(0.19, 0.19, 0.07, 10, ORANGE_R, x, y, z + 0.42, Math.PI/2));
-  g.add(box(0.07, 0.28, 0.07, GRIS_R, x, y + 0.2, z + 0.42));
-}
-// La jauge de niveau : un tube clair et ses graduations, pour que la cuve dise qu'elle
-// se lit. Le chiffre exact, lui, est au bandeau — celle-ci ne bouge pas.
-function jaugeRes(g, x, z, y0, h){
-  g.add(box(0.1, h, 0.1, 0xBFE0E8, x, y0 + h/2, z));
-  for(let k = 0; k < 5; k++) g.add(box(0.22, 0.04, 0.06, NOIR_R, x, y0 + h*(k + 0.5)/5, z + 0.06));
-}
-function poserReserves(){
-  // LA CUVE À GRAINES — verte, trapue, goulotte basse : le semoir se range à sa droite.
-  const gr = new THREE.Group();
-  gr.add(cyl(1.12, 1.12, 3.6, 12, VERT_R, 0, 1.98, 0));
-  gr.add(cyl(1.12, 0.5, 0.55, 12, VERT_R, 0, 4.05, 0));                 // dôme
-  for(let k = 0; k < 4; k++) gr.add(cyl(1.18, 1.18, 0.1, 12, VERT2_R, 0, 0.7 + k*1.0, 0));
-  for(let k = 0; k < 6; k++){                                            // armature verticale
-    const a = k*Math.PI/3;
-    gr.add(box(0.09, 3.6, 0.09, GRIS2_R, Math.cos(a)*1.16, 1.98, Math.sin(a)*1.16));
-  }
-  gr.add(cyl(0.34, 0.34, 0.2, 10, GRIS_R, 0, 4.4, 0));                   // trappe de remplissage
-  // La goulotte donne du côté du cercle : c'est là qu'on se range.
-  gr.add(cyl(0.24, 0.24, 0.6, 8, GRIS2_R, 1.2, 0.75, 0, 0, 0, Math.PI/2));
-  vanneRes(gr, 1.4, 0.75, 0);
-  jaugeRes(gr, 0.4, 1.13, 0.5, 3.0);
-  /* L'ÉCHELLE EST PLUS GRANDE QUE CELLE DES BÂTIMENTS, ET C'EST UNE MESURE. Posées à
-     BAT_ECHELLE, les deux cuves faisaient 2,64 m de diamètre : à l'image, la cuve verte
-     n'arrivait pas au toit de la cabine du pick-up garé devant elle, et l'on n'y lisait pas
-     une réserve de ferme mais une maquette. Elles montent donc à 3,58 m de diamètre pour
-     7,36 m de haut — plus hautes qu'un engin, plus basses que le silo (12 m avec son dôme),
-     ce qui est la place qu'elles occupent vraiment dans la cour. */
-  gr.scale.setScalar(1.6);
-  /* ET ELLE DESCEND DE L'ÉPAISSEUR DE LA DALLE QU'ELLE N'A PLUS. Le modèle était dessiné
-     POSÉ SUR son socle : le fond de la cuve, ses cercles et son armature commencent tous à
-     dix-huit centimètres. La dalle retirée, ils flottaient d'autant au-dessus du bitume. On
-     baisse donc le groupe entier de ces dix-huit centimètres, à l'échelle où il est posé. */
-  gr.position.set(RES_GRAINE.x, -0.18*1.6, RES_GRAINE.z);
-  scene.add(gr); fusionnerGroupe(gr);
-  obstacles.push({x:RES_GRAINE.x, z:RES_GRAINE.z, r:1.16*1.6 + 0.4});
-
-  // LA CUVE À ENGRAIS — haute, blanche, perchée : elle se vide par gravité.
-  const en = new THREE.Group();
-  for(const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
-    en.add(box(0.2, 2.2, 0.2, GRIS2_R, sx*0.8, 1.28, sz*0.8));
-    const d = box(0.14, 2.4, 0.14, GRIS2_R, sx*0.8, 1.3, 0);
-    d.rotation.x = sx*sz*0.3; en.add(d);                                 // contreventement
-  }
-  en.add(box(2.0, 0.16, 2.0, GRIS_R, 0, 2.4, 0));
-  en.add(cyl(0.85, 0.85, 3.0, 12, BLANC_R, 0, 4.0, 0));
-  en.add(cyl(0.85, 0.28, 0.55, 12, BLANC_R, 0, 5.75, 0));
-  for(let k = 0; k < 3; k++) en.add(cyl(0.9, 0.9, 0.1, 12, BLEU_R, 0, 3.1 + k*0.9, 0));
-  echelleRes(en, -1.0, 0, 5.4);
-  // La descente de vidange et sa vanne donnent elles aussi vers le cercle.
-  en.add(cyl(0.18, 0.18, 1.0, 8, GRIS2_R, 0.9, 2.0, 0));
-  vanneRes(en, 0.9, 2.7, 0);
-  jaugeRes(en, 0.35, 0.86, 2.7, 2.6);
-  /* ELLE A SON ÉCHELLE À ELLE, PLUS PETITE. Le modèle est déjà haut par construction — une
-     charpente de 2,40 m surmontée de trois mètres de cuve — et le multiplier par 1,6 comme
-     la verte l'aurait fait culminer à 10 m, c'est-à-dire au niveau du silo, qui est le
-     repère de la cour. À 1,35 elle monte à 8,50 m : plus haute que sa voisine, ce qui est
-     juste puisqu'elle se vide par gravité, et nettement sous la tour. */
-  en.scale.setScalar(1.35);
-  // Même descente que la verte : les quatre pieds de sa charpente partaient du dessus de la
-  // dalle, et se retrouvaient en l'air sans elle.
-  en.position.set(RES_ENGRAIS.x, -0.18*1.35, RES_ENGRAIS.z);
-  scene.add(en); fusionnerGroupe(en);
-  obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.35 + 0.4});
-
-  /* LES DEUX CERCLES SONT BLEUS ET RESTENT ALLUMÉS, comme la cuve à gazole et pour la même
-     raison : on ne va pas chercher de la graine parce qu'une lumière s'allume, on y va
-     parce qu'on en manque — et la jauge du bandeau le dit déjà. Ce sont des services de la
-     ferme, du jeu continu, et le bleu est la couleur du jeu continu. */
+/* Les deux cercles d'approvisionnement, posés tard exprès : voir la zone morte de
+   `GUIDE` expliquée dans le bloc de l'entrepôt. Ils sont BLEUS ET RESTENT ALLUMÉS, comme
+   la cuve à gazole et pour la même raison — on ne va pas chercher de la graine parce
+   qu'une lumière s'allume, on y va parce qu'on en manque, et la jauge du bandeau le dit
+   déjà. Ce sont des services de la ferme, du jeu continu, et le bleu est sa couleur. */
+function poserAnneauxReserves(){
   anneauAction(RES_GRAINE.quai.x,  RES_GRAINE.quai.z,  1.9, null, {coul:GUIDE.BLEU});
   anneauAction(RES_ENGRAIS.quai.x, RES_ENGRAIS.quai.z, 2.6, null, {coul:GUIDE.BLEU});
 }
+
+/* LES DEUX RÉSERVES N'ONT PLUS DE MODÈLE À ELLES.
+   Il y avait ici quatre-vingt-dix lignes : une cuve verte trapue, une cuve blanche sur sa
+   charpente, leur échelle à crinoline, leurs vannes, leurs jauges et leurs deux cercles.
+   Tout cela existe encore — mais dans `modeleEntrepot`, bâti avec le bâtiment auquel les
+   réserves sont maintenant adossées, et posé d'un seul groupe avec lui. Les deux cercles
+   d'approvisionnement sont posés là-bas aussi, juste après le quai.
+   Ce qui reste ici est le nom des deux objets : `RES_GRAINE` et `RES_ENGRAIS` se
+   déclarent avec les cotes du terrain et se déduisent de l'entrepôt. */
+
 
 /* ---------- CE QUI TRAÎNE AUTOUR DU SILO ----------
    « Mets des caisses et des objets à côté du silo pour donner des petits détails à cet
@@ -6448,19 +6433,389 @@ function poserCourSilo(){
   sacsEmpiles(g, T.x + 0.4, T.z + 6.2, 4);
   caisseBois(g, T.x + 0.4, 0.38, T.z + 7.2, 0.95, 0.76, 0.72, -0.28);
   pneuTas(g, T.x + 1.2, T.z - 5.4, 3);
-  /* ET ENTRE LES DEUX RÉSERVES, qui sont deux magasins : ce qu'on y range finit toujours
-     par traîner devant. Le creux entre elles est le seul endroit du milieu de cour où rien
-     ne roule — la voie d'accès du silo s'arrête à x = 63,5, les cercles d'approvisionnement
-     commencent à 68,4. */
-  palettes(g, RES_GRAINE.x - 0.6, (RES_GRAINE.z + RES_ENGRAIS.z)/2 - 0.6, 2, ATL.BLE);
-  sacsEmpiles(g, RES_GRAINE.x + 0.5, (RES_GRAINE.z + RES_ENGRAIS.z)/2 - 0.9, 6);
-  caisseBois(g, RES_GRAINE.x + 0.2, 0.4, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 0.9,
-             1.05, 0.8, 0.8, 0.18);
-  jerrican(g, RES_GRAINE.x - 1.3, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 1.0, 0xE07B24, 0.5);
-  jerrican(g, RES_GRAINE.x - 1.7, (RES_GRAINE.z + RES_ENGRAIS.z)/2 + 0.6, 0x3E6B4E, -0.2);
+  /* ET LE CREUX ENTRE LES DEUX RÉSERVES N'EXISTE PLUS.
+     Il y avait ici des palettes, des sacs, une caisse et deux jerricans, posés entre la
+     cuve verte et la cuve blanche — le seul endroit du milieu de cour où rien ne roulait.
+     Les deux cuves ont déménagé contre l'entrepôt : ce milieu de cour est devenu la voie
+     de manœuvre de l'atelier, qui s'est décalé vers la gauche pour laisser sa place à la
+     citerne à gazole. On n'y pose plus rien. */
   scene.add(g);
   // Rien de tout cela ne bouge : on le cuit, comme le silo et la maison de ferme.
   fusionnerGroupe(g);
+}
+
+/* ==========================================================================
+   LE SILO : UNE TOUR DE BÉTON, ET NON PLUS UN CYLINDRE CRÈME
+   ==========================================================================
+   Le joueur : « tu as supprimé le silo et tu vas le remplacer par celui-ci en pièce
+   jointe. » Le modèle arrive tel quel de sa planche ; seules deux choses changent en
+   entrant dans le jeu : il perd le socle du présentoir, et il rend ses cotes au reste
+   du code au lieu de les garder pour lui.
+
+   CE QU'IL APPORTE, ET QUE L'ANCIEN N'AVAIT PAS. L'ancien silo était trois cylindres :
+   une robe, un cône, trois cerclages — et la grille de déversement était PEINTE au sol,
+   à sept mètres de là, reliée par un tuyau posé à part. Trois objets pour une seule
+   installation, et rien qui dise comment le grain descend. Celui-ci porte la chaîne
+   entière : jupe évasée, fût nervuré, couronnement, toit conique, couvercle orange au
+   faîtage, échelle à crinoline, élévateur à godets d'un côté, et de l'autre une goulotte
+   en deux tronçons — l'un horizontal sur son équerre, l'autre oblique — qui descend
+   au-dessus d'une TRAPPE EN VOLUME, caillebotis affleurant où le camion se gare.
+
+   ET C'EST LA TRAPPE QUI FIXE LE POINT DE DÉVERSEMENT. Elle tombe à 7,40 m de l'axe de
+   la tour ; `SILO` s'en déduit au lieu d'être écrit à la main, de sorte que déplacer la
+   tour déplace le point de chargement avec elle. */
+const SIL = {BETON:0x9BA3A8, BETON2:0x848C91, FUT:0xC8CDCF, TOIT:0x8A9298,
+             GRIS:0x8A9298, GRIS2:0x6E767C, INOX:0xC9CFD3, ORANGE:0xE07B24,
+             ORANGE2:0xC96A18, JAUNE:0xF0C24A, HUBLOT:0x44647A, FOSSE:0x4A5257,
+             MANCHE:0x3A4248};
+// Échelle à crinoline : deux montants, des barreaux, et des arceaux derrière.
+function siloEchelle(g, x, z, h){
+  for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, SIL.GRIS, x + sx, h/2, z));
+  for(let k = 0; k*0.32 < h; k++) g.add(box(0.5, 0.05, 0.05, SIL.INOX, x, 0.25 + k*0.32, z));
+  for(let k = 0; k < Math.floor(h/0.6); k++)
+    g.add(cyl(0.34, 0.34, 0.05, 10, SIL.GRIS2, x, 0.8 + k*0.6, z - 0.16, Math.PI/2));
+}
+/* TRAPPE : un caillebotis INTÉGRÉ AU SOL, sans margelle ni couvercle. Seul le cadre
+   affleure, la grille est en léger creux — le camion roule dessus. */
+function siloTrappe(g, x, z, r){
+  g.add(box(r*2.5, 0.12, r*2.5, SIL.BETON2, x, 0.06, z));
+  g.add(box(r*2.2, 0.1, r*2.2, SIL.FOSSE, x, 0.09, z));
+  for(let k = 0; k < 11; k++)
+    g.add(box(r*2.1, 0.07, 0.09, SIL.GRIS2, x, 0.13, z - r + 0.18 + k*(2*r - 0.36)/10));
+  /* Les entretoises courent PERPENDICULAIREMENT aux barreaux : leur décalage se fait
+     donc en X. Décalées en Z, elles glissaient le long de leur propre longueur et
+     sortaient de la grille par les deux bouts. */
+  for(const dx of [-r*0.62, 0, r*0.62])
+    g.add(box(0.09, 0.07, r*1.9, 0x5F676C, x + dx, 0.14, z));
+  for(const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]])
+    g.add(box(dx ? 0.14 : r*2.4, 0.14, dz ? 0.14 : r*2.4, SIL.GRIS,
+              x + dx*r*1.14, 0.07, z + dz*r*1.14));
+}
+function siloElevateur(g, x, h){
+  g.add(box(0.8, h, 0.8, SIL.TOIT, x, h/2, 0));
+  for(let k = 0; k < Math.floor(h/1.6); k++)
+    g.add(box(0.88, 0.1, 0.88, SIL.GRIS2, x, 0.8 + k*1.6, 0));
+  g.add(box(1.1, 1.0, 1.1, SIL.GRIS, x, h + 0.4, 0));
+  const t = box(Math.abs(x) + 0.4, 0.34, 0.46, SIL.GRIS2, x/2, h + 0.15, 0);
+  t.rotation.z = 0.12*Math.sign(x); g.add(t);
+  g.add(box(1.2, 0.9, 1.2, SIL.BETON2, x, 0.45, 0));
+}
+/* GOULOTTE en deux tronçons. Le premier est HORIZONTAL et court le long de l'équerre qui
+   le porte — c'est elle qui reprend l'effort au raccord. Le second repart en oblique et
+   descend au-dessus de la trappe. Rien ne relie la sortie au sol.
+   La sortie est à 5,20 m : un semi au gabarit routier fait 4,00 m, il passe dessous avec
+   1,20 m de marge. */
+function siloGoulotte(g, R, xTrappe, hDepart, hSortie){
+  const xPied = R + 0.15, xCoude = xPied + 2.3;
+  g.add(box(xCoude - xPied, 0.5, 0.5, SIL.ORANGE, (xPied + xCoude)/2, hDepart, 0));
+  for(let k = 0; k < 3; k++)
+    g.add(box(0.12, 0.6, 0.6, SIL.ORANGE2, xPied + 0.5 + k*0.8, hDepart, 0));
+  g.add(box(0.3, 0.9, 0.9, SIL.ORANGE2, xPied, hDepart, 0));          // platine sur la robe
+  // ÉQUERRE : elle porte le tronçon horizontal sur toute sa longueur.
+  const eq = new THREE.BufferGeometry();
+  const P = [[0,0,0],[2.3,0,0],[0,-2.2,0],[0,0,0.22],[2.3,0,0.22],[0,-2.2,0.22]];
+  const F = [[0,1,2],[3,5,4],[0,2,5],[0,5,3],[1,4,5],[1,5,2],[0,3,4],[0,4,1]];
+  const pos = [];
+  for(const f of F) for(const i of f) pos.push(P[i][0], P[i][1], P[i][2]);
+  eq.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  eq.computeVertexNormals();
+  const m = new THREE.Mesh(eq, mat(SIL.ORANGE2));
+  m.position.set(xPied, hDepart - 0.3, -0.11);
+  m.castShadow = true; g.add(m);
+  g.add(box(2.4, 0.16, 0.3, SIL.GRIS2, xPied + 1.15, hDepart - 0.34, 0));
+  // coude, puis tronçon oblique jusqu'au-dessus de la trappe
+  g.add(box(0.62, 0.62, 0.62, SIL.ORANGE2, xCoude, hDepart, 0));
+  const dx = xTrappe - xCoude, dy = hSortie - hDepart;
+  const L = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
+  const t = box(L, 0.5, 0.5, SIL.ORANGE, (xCoude + xTrappe)/2, (hDepart + hSortie)/2, 0);
+  t.rotation.z = ang; g.add(t);
+  for(let k = 0; k < 3; k++){
+    const u = (k + 0.5)/3;
+    const bd = box(0.12, 0.6, 0.6, SIL.ORANGE2, xCoude + dx*u, hDepart + dy*u, 0);
+    bd.rotation.z = ang; g.add(bd);
+  }
+  // sortie : manchette souple, et rien en dessous
+  g.add(box(0.62, 0.62, 0.62, SIL.ORANGE2, xTrappe, hSortie, 0));
+  g.add(cyl(0.28, 0.34, 0.42, 10, SIL.MANCHE, xTrappe, hSortie - 0.4, 0));
+  g.add(cyl(0.36, 0.36, 0.1, 10, SIL.GRIS2, xTrappe, hSortie - 0.63, 0));
+  g.add(box(0.4, 0.4, 0.24, SIL.JAUNE, xTrappe - 0.62, hSortie + 0.05, 0.3));
+}
+function modeleSilo(){
+  const g = new THREE.Group();
+  const R = SILO_R, H = SILO_H;
+  g.add(cyl(R + 1.1, R + 1.1, 0.6, 16, SIL.BETON2, 0, 0.3, 0));
+  g.add(cyl(R + 0.35, R, 2.2, 16, SIL.BETON, 0, 1.7, 0));               // jupe évasée
+  g.add(cyl(R, R, H - 2.2, 16, SIL.FUT, 0, 2.8 + (H - 2.2)/2, 0));
+  for(let k = 0; k < 5; k++) g.add(cyl(R + 0.06, R + 0.06, 0.16, 16, SIL.BETON2, 0, 3.6 + k*1.8, 0));
+  g.add(cyl(R + 0.25, R + 0.25, 0.5, 16, SIL.BETON2, 0, H + 0.9, 0));   // couronnement
+  g.add(cyl(0.4, R + 0.1, 1.6, 16, SIL.TOIT, 0, H + 1.9, 0));           // toiture conique
+  g.add(cyl(0.62, 0.62, 0.24, 12, SIL.ORANGE, 0, H + 2.82, 0));         // couvercle
+  g.add(cyl(0.68, 0.68, 0.1, 12, SIL.ORANGE2, 0, H + 2.68, 0));
+  g.add(box(0.5, 0.12, 0.16, SIL.ORANGE2, 0, H + 2.98, 0.44));          // charnière
+  g.add(box(0.16, 0.16, 0.34, SIL.GRIS2, 0, H + 3.02, -0.34));          // poignée
+  siloEchelle(g, 0, R + 0.12, H + 0.6);
+  /* HUBLOTS : le fût compte seize pans. On les centre sur un pan, on les TOURNE vers
+     l'extérieur, et on les pose à l'aplomb de l'APOTHÈME — la distance du centre au
+     milieu d'un pan, plus courte que le rayon. Sans rotation ils regardaient tous dans
+     la même direction et flottaient devant la paroi. Les quatre sont calés sur l'axe de
+     la goulotte, deux de part et d'autre. */
+  const PANS = 16, apo = R*Math.cos(Math.PI/PANS), pas = 2*Math.PI/PANS, AXE = Math.PI/2;
+  for(const a of [AXE - 1.5*pas, AXE + 1.5*pas,
+                  AXE + Math.PI - 1.5*pas, AXE + Math.PI + 1.5*pas]){
+    const h = box(0.5, 0.5, 0.16, SIL.HUBLOT,
+                  Math.sin(a)*(apo + 0.04), 6.5, Math.cos(a)*(apo + 0.04));
+    h.rotation.y = a; g.add(h);
+    const c = box(0.62, 0.62, 0.1, SIL.BETON2,
+                  Math.sin(a)*(apo + 0.01), 6.5, Math.cos(a)*(apo + 0.01));
+    c.rotation.y = a; g.add(c);
+  }
+  g.add(box(1.8, 2.1, 0.22, SIL.BETON2, 0, 1.05, R + 0.28));            // porte
+  // Goulotte et trappe sur la face +X, à 90° de l'échelle et à l'opposé de l'élévateur.
+  siloTrappe(g, SILO_TRAPPE, 0, 1.7);
+  siloGoulotte(g, R, SILO_TRAPPE, 8.4, 5.2);
+  siloElevateur(g, -(R + 1.5), H + 2.6);
+  return g;
+}
+
+/* ==========================================================================
+   L'ENTREPÔT : UNE HALLE DE BRIQUE, ET LES DEUX RÉSERVES AVEC ELLE
+   ==========================================================================
+   Le joueur : « tu vas supprimer l'entrepôt et tu vas le remplacer par celui-ci qui
+   inclut déjà les deux cuves à graines et à engrais. »
+
+   C'EST LE POINT IMPORTANT : les deux réserves n'ont plus de modèle à elles. Elles
+   étaient posées au milieu de la cour de transformation, à (67 ; 46) et (67 ; 58), et
+   c'est ce qui obligeait l'atelier à se serrer contre le bord droit de la dalle. Elles
+   sont maintenant adossées au pignon de l'entrepôt, dans la cour de la ferme, et le
+   reste du code n'en sait rien : `RES_GRAINE` et `RES_ENGRAIS` gardent leur nom, leur
+   quai et leur rayon — seules leurs coordonnées changent, et elles se déduisent
+   désormais de l'entrepôt. Voir `modeleEntrepot`.
+
+   LE MODÈLE REGARDE LES Z NÉGATIFS, LE JEU LES Z POSITIFS. Sa façade — le quai, les deux
+   rideaux, le seuil de plain-pied — est bâtie en −z, parce que sa planche l'éclairait de
+   ce côté. Dans le jeu, la cour de la ferme s'ouvre au SUD, donc vers les z croissants :
+   on lui donne un demi-tour à la pose, et les cuves, bâties à gauche, passent du même
+   coup À DROITE du bâtiment, ce qui est exactement où le joueur les veut. */
+const ENT = {BRIQUE:0x9C4436, BRIQUE2:0x7E3629, BRIQUE3:0xB05543, TOIT:0x8A9298,
+             ACIER:0x8A9298, ACIER2:0x6E767C, SOCLE:0x9BA3A8, LIGNE:0xE8DCA8,
+             PALETTE:0xA98A5A, CAISSE:0xC9B183, BLEUF:0x2E5C8A,
+             VERT:0x3E6B4E, VERT2:0x2C5C3C, BLANC:0xF0EDE4, BLEU:0x3E7CB8,
+             ORANGE:0xE07B24, INOX:0xC9CFD3, GRIS:0x8A9298, NOIR:0x2E3438,
+             VITRE:0x44647A, SOMBRE:0x2A3238, LAME:0xCBD3D8};
+function entBardage(g, x, y, z, w, h, d, c, c2, n){
+  g.add(box(w, h, d, c, x, y + h/2, z));
+  for(let k = 0; k < (n || 8); k++){                     // nervures verticales
+    const u = -w/2 + w*(k + 0.5)/(n || 8);
+    g.add(box(0.1, h - 0.1, d + 0.04, c2, x + u, y + h/2, z));
+  }
+  g.add(box(w + 0.12, 0.28, d + 0.12, c2, x, y + 0.14, z));   // bavette basse
+}
+/* RIDEAU MÉTALLIQUE : des lames horizontales fines et serrées, un coffre d'enroulement
+   en haut, des coulisses de chaque côté, une barre de seuil en bas. C'est la répétition
+   serrée des lames qui le distingue d'une porte à panneaux.
+   ATTENTION AU SENS : la façade du modèle regarde les Z NÉGATIFS. Tout ce qui doit
+   ressortir de la porte se décale donc en −z ; en +z, cela rentre dans le mur. */
+function entPorteQuai(g, x, y, z, w, h, num){
+  const e = -1;
+  g.add(box(w + 0.3, h + 0.3, 0.14, ENT.ACIER2, x, y + h/2, z - e*0.05));
+  g.add(box(w, h, 0.16, ENT.SOMBRE, x, y + h/2, z));
+  const nl = Math.max(12, Math.round(h/0.22));
+  for(let k = 0; k < nl; k++)
+    g.add(box(w - 0.1, h/nl*0.72, 0.19, ENT.LAME, x, y + h*(k + 0.5)/nl, z + e*0.03));
+  for(const sx of [-1, 1])
+    g.add(box(0.16, h + 0.3, 0.26, ENT.ACIER2, x + sx*(w/2 + 0.1), y + h/2, z + e*0.05));
+  g.add(box(w + 0.5, 0.5, 0.46, ENT.ACIER, x, y + h + 0.25, z + e*0.1));      // coffre
+  g.add(box(w + 0.54, 0.12, 0.52, ENT.ACIER2, x, y + h + 0.5, z + e*0.1));
+  g.add(box(w + 0.1, 0.16, 0.3, ENT.ACIER2, x, y + 0.08, z + e*0.06));        // seuil
+  g.add(box(0.7, 0.42, 0.12, ENT.ACIER2, x, y + h + 0.72, z + e*0.02));       // plaque
+  g.add(box(0.16, 0.26, 0.14, ENT.LIGNE, x, y + h + 0.72, z + e*0.07));
+  if(num > 1) g.add(box(0.16, 0.26, 0.14, ENT.LIGNE, x + 0.22, y + h + 0.72, z + e*0.07));
+}
+/* QUAI : la plateforme à hauteur de plancher de camion, ses butoirs et son auvent.
+   L'AUVENT part DE LA FAÇADE et déborde au-dessus du quai ; les jambes de force sont
+   placées par leurs deux extrémités, et leur inclinaison en découle. */
+function entQuai(g, x, z, w, d, h){
+  g.add(box(w, h, d, ENT.SOCLE, x, h/2, z));
+  g.add(box(w + 0.2, 0.14, d + 0.2, ENT.ACIER2, x, h, z));
+  for(const sx of [-1, 1])
+    g.add(box(0.34, 0.42, 0.24, 0x22262A, x + sx*(w/2 - 0.5), h - 0.34, z - d/2 - 0.1));
+  const zMur = z + d/2;
+  g.add(box(w + 0.6, 0.3, d + 0.5, ENT.TOIT, x, h + 3.4, z - 0.2));
+  g.add(box(w + 0.7, 0.18, 0.3, ENT.ACIER2, x, h + 3.25, z - d/2 - 0.15));
+  for(const sx of [-1, 1])
+    g.add(box(0.16, 3.4, 0.16, ENT.ACIER, x + sx*(w/2 + 0.06), h + 1.7, z - d/2 + 0.25));
+  for(const sx of [-1, 1]){
+    const A = [x + sx*(w/2 + 0.06), h + 3.35, zMur - 0.1];
+    const B = [x + sx*(w/2 + 0.06), h + 3.16, z - d/2 + 0.45];
+    const L = Math.hypot(B[1] - A[1], B[2] - A[2]);
+    const j = box(0.12, 0.12, L, ENT.ACIER2, A[0], (A[1] + B[1])/2, (A[2] + B[2])/2);
+    j.rotation.x = -Math.atan2(B[1] - A[1], B[2] - A[2]);
+    g.add(j);
+  }
+}
+function entPalette(g, x, y, z, ry, charge){
+  const p = new THREE.Group();
+  for(let k = 0; k < 3; k++) p.add(box(1.15, 0.09, 0.16, ENT.PALETTE, 0, 0.05, -0.4 + k*0.4));
+  p.add(box(1.15, 0.07, 1.0, ENT.PALETTE, 0, 0.13, 0));
+  if(charge){
+    for(let k = 0; k < charge; k++)
+      p.add(box(1.0, 0.42, 0.85, k % 2 ? ENT.CAISSE : 0xD8C79A, 0, 0.38 + k*0.44, 0));
+    p.add(box(1.06, 0.05, 0.9, ENT.GRIS, 0, 0.38 + charge*0.44 - 0.2, 0));
+  }
+  p.position.set(x, y, z); if(ry) p.rotation.y = ry;
+  g.add(p);
+}
+/* TRANSPALETTE. Beaucoup plus petit qu'un chariot, et c'est justement l'intérêt : il
+   donne l'échelle sans encombrer la cour. Trois pièces le font reconnaître — les deux
+   fourches basses, le timon incliné, le bloc de pompe entre les deux. */
+function entTranspalette(g, x, z, ry, avecPalette){
+  const t = new THREE.Group();
+  const yF = 0.13;
+  for(const sx of [-1, 1]){
+    t.add(box(0.17, 0.09, 1.25, ENT.ACIER2, sx*0.2, yF - 0.045, 0.45));
+    t.add(box(0.19, 0.16, 0.3, ENT.ACIER, sx*0.2, yF, -0.15));
+    t.add(cyl(0.075, 0.075, 0.13, 8, 0x22262A, sx*0.2, 0.075, 1.0, 0, 0, Math.PI/2));
+  }
+  t.add(box(0.58, 0.18, 0.22, ENT.ACIER, 0, yF, -0.2));
+  t.add(box(0.34, 0.46, 0.36, 0xE0A02E, 0, 0.37, -0.5));
+  for(const sx of [-1, 1])
+    t.add(cyl(0.15, 0.15, 0.11, 10, 0x22262A, sx*0.16, 0.15, -0.62, 0, 0, Math.PI/2));
+  // TIMON : il se couche VERS L'ARRIÈRE, du côté de l'opérateur, et non de la charge.
+  const tm = cyl(0.05, 0.05, 1.05, 8, ENT.ACIER2, 0, 0.9, -0.86);
+  tm.rotation.x = -0.42; t.add(tm);
+  t.add(box(0.46, 0.09, 0.1, ENT.NOIR, 0, 1.3, -1.08));
+  t.add(box(0.2, 0.07, 0.07, 0xC0392B, 0, 1.22, -1.0));
+  if(avecPalette){
+    const yP = yF;
+    for(const dx of [-0.42, 0, 0.42]) for(const dz of [-0.42, 0, 0.42])
+      t.add(box(0.24, 0.1, 0.24, 0x8A6A3A, dx, yP + 0.05, 0.45 + dz));
+    t.add(box(1.15, 0.06, 1.0, ENT.PALETTE, 0, yP + 0.13, 0.45));
+    for(let k = 0; k < 2; k++)
+      t.add(box(1.0, 0.42, 0.85, k % 2 ? ENT.CAISSE : 0xD8C79A, 0, yP + 0.37 + k*0.44, 0.45));
+  }
+  t.position.set(x, 0, z); if(ry) t.rotation.y = ry;
+  g.add(t);
+}
+/* ÉCHELLE À CRINOLINE des cuves. Les arceaux ne sont pas des cylindres pleins — de face
+   ils feraient des disques opaques — mais des arcs en cinq segments, ouverts côté
+   échelon, ce qui laisse voir les barreaux. */
+function entEchelleCuve(g, x, z, h){
+  const e = new THREE.Group(), L = 0.26;
+  for(const sx of [-L, L]) e.add(box(0.06, h, 0.06, ENT.GRIS, sx, h/2, 0));
+  for(let k = 0; k*0.3 < h - 0.2; k++) e.add(box(L*2, 0.045, 0.045, ENT.INOX, 0, 0.25 + k*0.3, 0));
+  const R = 0.36, N = 5;
+  for(let k = 0; k < Math.floor((h - 0.6)/0.75); k++){
+    const y = 1.0 + k*0.75;
+    for(let i = 0; i < N; i++){
+      const a1 = Math.PI*(i/N) - Math.PI/2, a2 = Math.PI*((i + 1)/N) - Math.PI/2;
+      const x1 = Math.sin(a1)*R, z1 = -Math.cos(a1)*R;
+      const x2 = Math.sin(a2)*R, z2 = -Math.cos(a2)*R;
+      const seg = box(0.05, 0.05, Math.hypot(x2 - x1, z2 - z1), ENT.ACIER2,
+                      (x1 + x2)/2, y, (z1 + z2)/2);
+      seg.rotation.y = Math.atan2(x2 - x1, z2 - z1);
+      e.add(seg);
+    }
+    for(const sx of [-L, L]) e.add(box(0.05, 0.05, R, ENT.ACIER2, sx, y, -R/2));
+  }
+  e.position.set(x, 0, z); g.add(e);
+}
+function entVanne(g, x, y, z){
+  g.add(cyl(0.1, 0.1, 0.4, 8, ENT.ACIER2, x, y, z + 0.2, Math.PI/2));
+  g.add(cyl(0.19, 0.19, 0.07, 10, ENT.ORANGE, x, y, z + 0.42, Math.PI/2));
+  g.add(box(0.07, 0.28, 0.07, ENT.GRIS, x, y + 0.2, z + 0.42));
+}
+function entJauge(g, x, z, y0, h){
+  g.add(box(0.1, h, 0.1, 0xBFE0E8, x, y0 + h/2, z));
+  for(let k = 0; k < 5; k++) g.add(box(0.22, 0.04, 0.06, ENT.NOIR, x, y0 + h*(k + 0.5)/5, z + 0.06));
+}
+/* CUVE À GRAINES : polyéthylène vert cerclé, trapue, goulotte basse.
+   Chaque cuve est un groupe qu'on RECENTRE SUR SON PROPRE AXE avant de la tourner :
+   sans cela le quart de tour la ferait pivoter autour de l'origine du bâtiment et
+   l'enverrait à dix mètres de là. */
+function entCuveGraine(g0, X, Z, ry){
+  const g = new THREE.Group();
+  g.add(cyl(1.12, 1.12, 3.6, 12, ENT.VERT, X, 1.98, Z));
+  g.add(cyl(1.12, 0.5, 0.55, 12, ENT.VERT, X, 4.05, Z));                    // dôme
+  for(let k = 0; k < 4; k++) g.add(cyl(1.18, 1.18, 0.1, 12, ENT.VERT2, X, 0.7 + k*1.0, Z));
+  for(let k = 0; k < 6; k++){                                                // armature
+    const a = k*Math.PI/3;
+    g.add(box(0.09, 3.6, 0.09, ENT.ACIER2, X + Math.cos(a)*1.16, 1.98, Z + Math.sin(a)*1.16));
+  }
+  g.add(cyl(0.34, 0.34, 0.2, 10, ENT.GRIS, X, 4.4, Z));                     // trappe
+  g.add(cyl(0.24, 0.24, 0.6, 8, ENT.ACIER2, X, 0.75, Z - 1.2, Math.PI/2));  // goulotte
+  entVanne(g, X, 0.75, Z - 1.55);
+  entJauge(g, X + 1.13, Z + 0.4, 0.5, 3.0);
+  g.position.set(X, 0, Z);
+  g.children.forEach((o)=> o.position.sub(new THREE.Vector3(X, 0, Z)));
+  if(ry) g.rotation.y = ry;
+  g0.add(g);
+}
+/* CUVE À ENGRAIS : perchée sur charpente contreventée, vidange par gravité. */
+function entCuveEngrais(g0, X, Z, ry, ech){
+  const g = new THREE.Group();
+  for(const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+    g.add(box(0.2, 2.2, 0.2, ENT.ACIER2, X + sx*0.8, 1.28, Z + sz*0.8));
+    const d = box(0.14, 2.4, 0.14, ENT.ACIER2, X + sx*0.8, 1.3, Z);
+    d.rotation.x = sx*sz*0.3; g.add(d);
+  }
+  g.add(box(2.0, 0.16, 2.0, ENT.GRIS, X, 2.4, Z));
+  g.add(cyl(0.85, 0.85, 3.0, 12, ENT.BLANC, X, 4.0, Z));
+  g.add(cyl(0.85, 0.28, 0.55, 12, ENT.BLANC, X, 5.75, Z));
+  for(let k = 0; k < 3; k++) g.add(cyl(0.9, 0.9, 0.1, 12, ENT.BLEU, X, 3.1 + k*0.9, Z));
+  entEchelleCuve(g, X, Z - 1.0, 5.4);
+  entVanne(g, X, 2.7, Z - 1.25);
+  g.add(cyl(0.18, 0.18, 1.0, 8, ENT.ACIER2, X, 2.0, Z - 0.9));              // descente
+  entJauge(g, X + 0.86, Z + 0.35, 2.7, 2.6);
+  g.position.set(X, 0, Z);
+  g.children.forEach((o)=> o.position.sub(new THREE.Vector3(X, 0, Z)));
+  if(ry) g.rotation.y = ry;
+  if(ech) g.scale.setScalar(ech);
+  g0.add(g);
+}
+/* L'AXE DES CUVES, dans le repère du modèle : elles sont adossées au pignon gauche, donc
+   au pignon DROIT une fois le bâtiment retourné. Ces trois nombres servent deux fois —
+   une fois pour bâtir, une fois pour calculer où poser les cercles d'approvisionnement —
+   et c'est pour cela qu'ils sont déclarés dehors. */
+function modeleEntrepot(){
+  const g = new THREE.Group();
+  const W = ENT_W, D = ENT_D, H = ENT_H, hQ = ENT_HQ;
+  // Pas de cour : le jeu peint sa propre dalle de bitume, et en poser une deuxième
+  // par-dessus ferait une marche de quatorze centimètres au milieu du parking.
+  entBardage(g, 0, 0.0, 0, W, H + 0.6, D, ENT.BRIQUE, ENT.BRIQUE2, 9);
+  g.add(gable(D + 1.0, 2.0, W + 1.0, ENT.TOIT, 0, H + 0.6, 0, Math.PI/2));
+  // Boulonnage de faîtage sur LES DEUX PANS, enfoncé dans la tôle pour qu'il affleure.
+  for(const sens of [-1, 1]) for(let k = 0; k < 4; k++)
+    g.add(box(W + 1.06, 0.07, 0.12, ENT.ACIER2, 0, H + 0.77 + k*0.4,
+              sens*(D/2 - 0.9 - k*1.1)));
+  g.add(box(W*0.4, 0.4, 1.2, 0xBFD6DE, 0, H + 1.9, 0));                     // lanterneau
+  // façade : un quai à gauche, une porte de plain-pied à droite, une porte de service
+  entQuai(g, -3.4, -D/2 - 1.4, 4.4, 2.8, hQ);
+  entPorteQuai(g, -3.4, 0.6, -D/2 - 0.02, 3.0, 3.2, 1);
+  entPorteQuai(g, 3.4, 0.0, -D/2 - 0.02, 3.6, 4.2, 2);
+  g.add(box(4.2, 0.62, 0.7, ENT.SOCLE, 3.4, 0.31, -D/2 - 0.35));            // socle évidé
+  g.add(box(5.0, 0.14, 2.6, ENT.SOCLE, 3.4, 0.07, -D/2 - 1.3));             // aire d'accès
+  for(const sx of [-1, 1])
+    g.add(cyl(0.14, 0.16, 0.9, 8, ENT.LIGNE, 3.4 + sx*2.4, 0.45, -D/2 - 1.5));
+  g.add(box(1.2, 2.1, 0.18, ENT.ACIER2, W/2 - 1.4, 1.65, -D/2 - 0.02));     // porte de service
+  g.add(box(0.9, 1.4, 0.22, ENT.VITRE, W/2 - 1.4, 1.9, -D/2 - 0.06));
+  g.add(box(W + 0.2, 0.34, D + 0.2, ENT.BRIQUE3, 0, H + 0.4, 0));           // bandeau
+  for(let k = 0; k < 4; k++)
+    g.add(box(1.5, 0.85, 0.16, ENT.VITRE, -4.5 + k*3.0, 4.1, D/2 + 0.02));  // fenêtres hautes
+  g.add(box(4.4, 0.9, 0.22, ENT.BLEUF, 0, H + 1.1, -D/2 - 0.1));            // enseigne
+  g.add(box(3.9, 0.4, 0.26, 0xE8EDF0, 0, H + 1.1, -D/2 - 0.16));
+  entPalette(g, -5.6, 0, -D/2 - 3.4, 0.25, 3);
+  entPalette(g, -4.5, 0, -D/2 - 3.8, -0.1, 2);
+  entPalette(g, 6.6, 0, -D/2 - 1.8, 0.35, 0);
+  for(let k = 0; k < 2; k++) entPalette(g, -4.4 + k*1.4, hQ, -D/2 - 1.9, 0.05*k, 2);
+  entTranspalette(g, 3.4, -D/2 - 2.6, Math.PI + 0.6, true);
+  // ---- les deux cuves, adossées au pignon ----
+  const R90 = -Math.PI/2;
+  entCuveGraine(g, ENT_CUVES.graine.x, ENT_CUVES.graine.z, R90 + Math.PI);
+  entCuveEngrais(g, ENT_CUVES.engrais.x, ENT_CUVES.engrais.z, R90 + Math.PI, 1.2);
+  for(let k = 0; k < 6; k++)                                     // garde-corps côté cour
+    g.add(box(0.1, 1.0, 0.1, ENT.ACIER2, ENT_XC + 2.0, 0.5, -4.8 + k*1.8));
+  g.add(box(0.1, 0.09, 9.0, ENT.ACIER, ENT_XC + 2.0, 1.0, -0.7));
+  return g;
 }
 
 function buildFarm(){
@@ -6494,7 +6849,14 @@ function buildFarm(){
   // qu'un obstacle à contourner. Il ne restait de toute façon que deux mètres entre
   // le bout de la dalle et la rocade est.
   fenceRun(true,  -F, FN, F, PATHS_H, GAP);   // bord ouest
-  fenceRun(true,  FE, FN, F, PATHS_H, GAP);   // bord est
+  /* ET LE BORD EST S'ARRÊTE AU NORD DE LA COUR DE TRANSFORMATION.
+     La dalle touche maintenant le bitume de la rocade : il n'y a plus de bande de terre
+     entre les deux, donc plus rien où planter une clôture. Elle courait de −106,8 à 66,5 ;
+     elle s'arrête à 43,2, c'est-à-dire au bord nord de la dalle. Vingt-trois mètres de
+     grillage en moins, et surtout quatorze poteaux qui n'obstruent plus la manœuvre —
+     ils étaient à 106,5, soit deux mètres cinquante en travers de ce qui est désormais
+     du bitume. */
+  fenceRun(true,  FE, FN, COUR_Z0, PATHS_H, GAP);   // bord est, jusqu'à la cour
 
   // lampadaires en bord de route, potence tournée vers la chaussée
   const LP = ROAD_C - ROAD_W/2 - 2.0, LPE = ROAD_E - ROAD_W/2 - 2.0;
@@ -6510,78 +6872,39 @@ function buildFarm(){
     if(clearOfPath(t, LPN)) addLamp( t, LPN, 0);                  // route nord
     if(!devantLaFerme(t) && clearOfPath(t, LP)) addLamp(t, LP, Math.PI);
   }
+  /* ET LA MÊME RÈGLE VAUT MAINTENANT SUR LA ROCADE EST. Elle ne valait que pour la
+     route du sud, parce que la dalle s'arrêtait cinq mètres avant la rocade est et qu'un
+     mât tenait dans l'intervalle. La dalle touche la route : le mât serait planté au
+     milieu du bitume de manœuvre. Un seul est concerné, celui de z = 60. */
+  const devantLaDalle = (z)=> z >= HALLE_YARD.z0 - 2 && z <= HALLE_YARD.z1;
   for(let t=-100; t<=60; t+=20){
     if(clearOfPath(-LP, t)) addLamp(-LP, t,  Math.PI/2);          // route ouest
-    if(clearOfPath( LPE, t)) addLamp( LPE, t, -Math.PI/2);        // route est
+    if(!devantLaDalle(t) && clearOfPath( LPE, t)) addLamp( LPE, t, -Math.PI/2);  // route est
   }
 
-  // Le silo se dresse au bout de la cour de transformation, à côté de l'atelier qui
-  // moud son grain. Un gros tuyau part de son sommet et surplombe la voie : on se gare
-  // sur la grille, en dessous, pour vider sa trémie ou pour recharger une benne.
-  const silo = new THREE.Group();
-  silo.add(cyl(3.2,3.2,9.5,10,C.cream,0,4.75,0));
-  silo.add(cyl(0.15,3.5,2.6,10,C.orange,0,10.6,0));
-  for(let k=1;k<4;k++) silo.add(cyl(3.3,3.3,0.2,10,0xE7B98A,0,k*2.4,0));
-  silo.position.set(SILO_TOUR.x,0,SILO_TOUR.z);
+  /* LE SILO SE DRESSE AU BOUT DE LA COUR, ET IL PORTE MAINTENANT TOUTE SA CHAÎNE.
+     Il tenait en trois cylindres, et le reste de l'installation était éparpillé : un
+     TUYAU posé en objet séparé, une GRILLE PEINTE au sol sept mètres plus loin, et rien
+     entre les deux qui dise comment le grain descend. La tour de béton apporte les trois
+     d'un coup — la robe, la goulotte sur son équerre, la trappe en volume — et l'on ne
+     pose plus qu'UN groupe. Le point de déversement, lui, ne se règle plus : il se lit
+     sur `SILO`, qui se déduit de la tour. */
+  const silo = modeleSilo();
+  silo.position.set(SILO_TOUR.x, 0, SILO_TOUR.z);
   scene.add(silo);
   /* LE BÂTI DE FERME PASSE PAR LE FOUR, LUI AUSSI. La passe de fusion avait pris les
      quinze commerces, les maisons, les clôtures, le mobilier du village et l'atelier —
-     et avait oublié la cour, c'est-à-dire l'endroit où le joueur passe le plus de temps.
-     Cinq objets y montaient à cinquante-quatre maillages : le silo, son tuyau, la maison
-     de ferme, le puits et les bottes. Rien de tout cela ne bouge d'un millimètre.
-     `fusionnerGroupe` refuse en dessous de quatre volumes et rend null sans rien casser :
-     l'appel est donc sûr même si l'un d'eux maigrit un jour. */
+     et avait oublié la cour, c'est-à-dire l'endroit où le joueur passe le plus de temps. */
   fusionnerGroupe(silo);
-  obstacles.push({x:SILO_TOUR.x,z:SILO_TOUR.z,r:3.3});
+  /* L'EMPRISE SUIT LA JUPE, PAS LE FÛT. La base évasée déborde de 1,10 m — 3,90 m de
+     rayon au sol contre 2,80 au fût —, et c'est elle qu'on heurte en longeant la tour. */
+  obstacles.push({x:SILO_TOUR.x, z:SILO_TOUR.z, r:SILO_R + 1.1});
+  /* ET L'ÉLÉVATEUR À GODETS EST UN MUR À PART ENTIÈRE : un fût carré de quatre-vingts
+     centimètres planté à 4,30 m à l'ouest de la tour, avec sa semelle de béton de 1,20 m.
+     Sans lui l'engin passait au travers en contournant le silo par la gauche. */
+  boxObs.push({x:SILO_TOUR.x - (SILO_R + 1.5), z:SILO_TOUR.z, hw:0.65, hd:0.65});
 
   poserCourSilo();
-
-  // tuyau de chargement, du silo jusqu'au-dessus du chemin
-  const tuyau = new THREE.Group();
-  tuyau.add(cyl(0.62,0.62,8.2,10, 0xB9BFC4, 0,0,0, 0,0,Math.PI/2));
-  tuyau.add(cyl(0.75,0.75,0.5,10, 0x8A9298, -3.6,0,0, 0,0,Math.PI/2));
-  tuyau.add(cyl(0.9,0.62,1.5,10, 0xE8B44A, 4.0,-0.7,0));           // goulotte de sortie
-  tuyau.position.set(SILO_TOUR.x + 3.6, 7.6, SILO_TOUR.z);
-  scene.add(tuyau);
-  tuyau.add(box(0.3,2.2,0.3, 0x8A9298, 3.2,-1.6,0));               // haubans
-  tuyau.add(box(0.3,2.2,0.3, 0x8A9298, 0.6,-1.6,0));
-  fusionnerGroupe(tuyau);          // après les haubans : ils sont ajoutés plus tard
-
-  // grille de déversement peinte sur le chemin de sable, sous la goulotte
-  // Grille de vidange : un caillebotis rond en fonte, cadre épais et barreaux clairs
-  // sur fond sombre. Pas de cerclage jaune, la pièce se lit d'elle-même.
-  const GR = 2.4;
-  worldDraw(SILO.x-4, SILO.z-4, SILO.x+4, SILO.z+4, (c)=>{
-    // assise en béton, légèrement plus large que la grille
-    c.fillStyle = '#7A7A72';
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR+0.55, 0, Math.PI*2); c.fill();
-    c.fillStyle = '#5E5F58';
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR+0.22, 0, Math.PI*2); c.fill();
-    // fosse sombre
-    c.fillStyle = '#23282B';
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR, 0, Math.PI*2); c.fill();
-    // barreaux, découpés au cercle
-    c.save();
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR-0.05, 0, Math.PI*2); c.clip();
-    c.fillStyle = '#9AA2A7';
-    for(let k=-6;k<=6;k++)
-      c.fillRect(SILO.x-GR, SILO.z + k*0.38 - 0.11, GR*2, 0.22);
-    c.fillStyle = '#6E757A';                       // entretoises transversales
-    c.fillRect(SILO.x-0.13, SILO.z-GR, 0.26, GR*2);
-    c.fillRect(SILO.x-GR*0.62-0.1, SILO.z-GR, 0.2, GR*2);
-    c.fillRect(SILO.x+GR*0.62-0.1, SILO.z-GR, 0.2, GR*2);
-    c.restore();
-    // cadre et boulons
-    c.strokeStyle = '#8A9298'; c.lineWidth = 0.34;
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR+0.11, 0, Math.PI*2); c.stroke();
-    c.strokeStyle = '#4A4F53'; c.lineWidth = 0.16;
-    c.beginPath(); c.arc(SILO.x, SILO.z, GR+0.28, 0, Math.PI*2); c.stroke();
-    c.fillStyle = '#4A4F53';
-    for(let k=0;k<8;k++){
-      const a2 = k/8*Math.PI*2;
-      c.beginPath(); c.arc(SILO.x + Math.cos(a2)*(GR+0.11), SILO.z + Math.sin(a2)*(GR+0.11), 0.16, 0, 7); c.fill();
-    }
-  });
 
   // Le silo marche dans les deux sens : la moissonneuse y vide sa trémie, une caisse y
   // fait le plein de grain. Il s'éteint quand la trémie est vide ET le silo aussi — ou
@@ -6695,47 +7018,58 @@ function buildFarm(){
                0.5+alea()*1.4, 0.4+alea()*0.9,
                alea()<0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
 
-    const W = HANGAR.w, D = HANGAR.d, H = 6.4, MUR = 0xC9CEC6;
-    const g = new THREE.Group();
-    for(const sx of [-W/2+0.5, W/2-0.5]) g.add(box(1.0, H, D, MUR, sx, H/2, 0));
-    g.add(box(W, H, 1.0, MUR, 0, H/2, -D/2+0.5));      // fond
-    g.add(box(W, H, 1.0, MUR, 0, H/2,  D/2-0.5));      // façade fermée
-    g.add(box(W*0.62, H*0.72, 0.3, 0x333A3F, 0, H*0.36, D/2+0.06));   // grande porte
-    for(let k=0;k<4;k++) g.add(box(W*0.58, 0.14, 0.12, 0x8A9298, 0, H*0.16+k*H*0.16, D/2+0.24));
-    g.add(gable(D+0.8, 3.0, W+0.8, 0x7C4A38, 0, H, 0, Math.PI/2));
-    const tex = enseigneTex('Entrepôt', 0x7C4A38, 'usine', 'cle');
-    const pan = new THREE.Mesh(new THREE.PlaneGeometry(W*0.62, 2.1),
-      new THREE.MeshBasicMaterial({map:tex}));
-    pan.position.set(0, H*0.9, D/2+0.62); g.add(pan);
-    /* L'entrepôt est le bâtiment qui PROUVE le décalage d'échelle. Sa grande porte fait
-       6,4 × 0,72 = 4,61 m sous linteau et le tracteur qu'on y range en fait 5,18
-       hors-tout : on rangeait la machine dans une remise trop basse pour elle, et le
-       fourgon comme la moissonneuse n'y entraient pas davantage. Le groupe porte
-       l'échelle ; l'emprise de collision et le quai, eux, sont calculés sur W et D AVANT
-       échelle et doivent la reprendre à la main — l'oublier laisserait 1,26 m de mur de
-       chaque côté hors de l'obstacle, et on roulerait au travers. */
+    /* L'ENTREPÔT DE BRIQUE, ET LES DEUX RÉSERVES AVEC LUI.
+       L'ancien était quatre murs de tôle claire et un pignon : W×D×H posés à la main,
+       une grande porte peinte et une enseigne. Celui-ci arrive tel quel de sa planche —
+       bardage brique nervuré, quai à hauteur de camion sous son auvent, deux rideaux
+       métalliques dont un de plain-pied, fenêtres hautes, palettes et transpalette dans
+       la cour — et il porte EN PLUS les deux cuves à graines et à engrais.
+
+       LE DEMI-TOUR EST LA SEULE CHOSE QU'ON LUI FASSE. Sa façade est bâtie en −z ; la
+       cour de la ferme s'ouvre au sud, donc en +z. Un demi-tour, et tout suit : le quai
+       regarde la cour, et les cuves, bâties contre le pignon gauche, se retrouvent à
+       DROITE du bâtiment, entre lui et le chemin de sable. */
+    const g = modeleEntrepot();
+    g.rotation.y = Math.PI;
+    /* L'ÉCHELLE PORTE SUR LE GROUPE ; L'EMPRISE ET LE QUAI DOIVENT LA REPRENDRE À LA MAIN.
+       C'est la leçon de l'ancien entrepôt, et elle vaut toujours : oublier le facteur
+       laissait un mètre de mur de chaque côté hors de l'obstacle, et l'on roulait au
+       travers. Ici tout passe par `entPoint`, qui l'applique une fois pour toutes. */
     g.scale.setScalar(BAT_ECHELLE);
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     fusionnerGroupe(g);
-    boxObs.push({x:HANGAR.x, z:HANGAR.z, hw:W/2*BAT_ECHELLE, hd:D/2*BAT_ECHELLE});
-    // Un quai devant la grande porte, et l'anneau qui va avec : l'entrepôt reçoit de
-    // nouveau de la marchandise, il lui faut de nouveau un endroit où s'arrêter. Quatre
-    // mètres devant la façade, mais la façade a reculé : sans le facteur l'anneau se
-    // serait retrouvé À L'INTÉRIEUR de la nouvelle emprise de collision.
-    ENTREPOT.quai = {x: HANGAR.x, z: HANGAR.z + D/2*BAT_ECHELLE + 4.0};
+    boxObs.push({x:HANGAR.x, z:HANGAR.z,
+                 hw:ENT_W/2*BAT_ECHELLE, hd:ENT_D/2*BAT_ECHELLE});
+    /* LES DEUX CUVES SONT DES OBSTACLES, ELLES AUSSI. La verte est un fût de 1,18 m de
+       rayon posé au sol ; la blanche est perchée sur quatre pieds écartés de 1,60 m, et
+       c'est la charpente qu'on heurte, pas la cuve. Les deux rayons sont pris sur le
+       modèle et remis à l'échelle du bâti. */
+    obstacles.push({x:RES_GRAINE.x,  z:RES_GRAINE.z,  r:1.18*BAT_ECHELLE + 0.4});
+    obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.2*BAT_ECHELLE + 0.4});
+    /* LE QUAI EST DEVANT LE RIDEAU DE PLAIN-PIED, et non devant celui du quai haut :
+       c'est par là qu'un engin entre, l'autre étant une plateforme à hauteur de plancher
+       de camion où il ne peut pas monter. Le rideau est à x = +3,4 dans le modèle, donc
+       à gauche une fois retourné, et l'aire bétonnée devant lui s'étend jusqu'à −5,8.
+       On se pose trois mètres plus loin, soit 8,80 m de l'axe du bâtiment. */
+    ENTREPOT.quai = entPoint(3.4, -(ENT_D/2 + 3.0));
     const agirEnt = ()=> actionsEntrepot(MACHINES[cur]).length > 0;
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
       ()=> couleurPoste('entrepot', agirEnt) !== GUIDE.GRIS,
       {coulDyn: ()=> couleurPoste('entrepot', agirEnt)});
-    /* PLUS D'ENSEIGNE ICI : L'ÉTIQUETTE DE STOCK PORTE LE NOM.
-       Il y en avait deux, sur la même verticale au millimètre — cette enseigne, posée une
-       fois pour toutes à la construction du monde, et la barre de stock qui s'allumait à
-       la première livraison soixante-huit centimètres plus haut. Mesuré : 2,21 m de
-       recouvrement, 83 % de la hauteur de l'enseigne, et l'enseigne peinte PAR-DESSUS
-       (renderOrder 6 contre 4) — d'où la « deuxième étiquette qui se met en arrière-plan »
-       que le joueur décrit. C'est l'étiquette de lieu qui reste, elle porte désormais le
-       nom, le stock et la barre ; voir majJauges. */
+    /* LES DEUX CERCLES DES RÉSERVES NE SE POSENT PAS ICI, ET C'EST UNE ZONE MORTE QUI
+       L'IMPOSE. Ils sont bleus fixes — `{coul: GUIDE.BLEU}` —, or `GUIDE` est un `const`
+       déclaré APRÈS l'appel de `buildFarm`, et le lire ici lève une ReferenceError qui
+       arrête la construction du monde en plein milieu. C'est le même piège que la garde
+       de `figerCeQuiNeBougePas` : une valeur lue tout de suite, dans un fichier où l'ordre
+       des déclarations n'est pas celui du raisonnement. L'anneau du quai, lui, passe : sa
+       couleur est une fonction, donc lue plus tard.
+       Les deux cercles se posent donc avec le reste des anneaux tardifs, dans
+       `poserAnneauxReserves`, appelé là où `poserReserves` l'était. */
+    /* PLUS D'ENSEIGNE PEINTE ICI : L'ÉTIQUETTE DE STOCK PORTE LE NOM.
+       Il y en avait deux sur la même verticale au millimètre, et l'enseigne était peinte
+       PAR-DESSUS la barre de stock — d'où la « deuxième étiquette en arrière-plan » que le
+       joueur décrivait. C'est l'étiquette de lieu qui reste ; voir majJauges. */
   })();
 
   // géométries partagées du petit décor
@@ -8178,10 +8512,18 @@ function poserAtelier(){
 function marquageParking(){
   const ZM = COUR_Z0 + 2.2, PROF = 11.5;   // ZM, pas Z0 : ce dernier est l'origine du monde                    // même bande pour toutes
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
-  // Une séparation qui tomberait sous le garage ressortirait en moignon de part et
-  // d'autre du bâtiment : ces places-là sont occupées, on ne les trace pas. La cuve,
-  // elle, est centrée dans sa place, donc aucune ligne ne passe dessous.
-  const sousHangar = (x)=> x > HANGAR.x - HANGAR.w/2 - 1.5 && x < HANGAR.x + HANGAR.w/2 + 1.5;
+  /* Une séparation qui tomberait sous le bâtiment ressortirait en moignon de part et
+     d'autre : ces places-là sont occupées, on ne les trace pas.
+     ET L'ENTREPÔT NE S'ARRÊTE PLUS AU BÂTIMENT. Il porte maintenant les deux réserves,
+     adossées à son pignon droit et débordant de quatre mètres de plus vers l'est : une
+     séparation passait pile sous la cuve à graines. On lit donc l'emprise sur ce qui est
+     vraiment posé — les murs, puis chaque cuve — au lieu de la déduire d'une largeur.
+     La citerne à gazole, elle, ne compte plus : elle a quitté la cour pour la dalle de
+     l'atelier, et aucune ligne ne va la chercher là-bas. */
+  const sousHangar = (x)=>
+       (x > HANGAR.x - ENT_W/2*BAT_ECHELLE - 1.5 && x < HANGAR.x + ENT_W/2*BAT_ECHELLE + 1.5)
+    || Math.abs(x - RES_GRAINE.x)  < 2.6
+    || Math.abs(x - RES_ENGRAIS.x) < 2.6;
   worldDraw(COUR_X0-2, ZM-2, COUR_X1+2, ZM+PROF+2, (c)=>{
     c.fillStyle = '#E2E6E8';
     c.beginPath();
@@ -11093,8 +11435,19 @@ function itineraireGrille(ax, az, bx, bz){
      retrouve son coude. */
   return equerrer(pts);
 }
-function equerrer(pts){
-  const net = pts.filter((q, k)=> k === 0 || Math.hypot(q.x - pts[k-1].x, q.z - pts[k-1].z) > 1.5);
+/* ET LE PREMIER TRONÇON EN FAIT PARTIE, CE QUI N'ALLAIT PAS DE SOI.
+   `equerrer` mettait à l'équerre les points de passage ENTRE EUX, mais jamais le segment
+   qui va de la machine au premier d'entre eux — il n'était pas dans la liste. Tant que la
+   machine partait d'une voie, cela ne se voyait pas : le premier point était pris dans son
+   axe. Le jour où l'entrepôt a reculé et où sa voie d'accès s'est déplacée à x = 6,99, un
+   départ de la rocade sud-ouest, en (0 ; 76,5), rejoignait la bouche de la voie en
+   (6,99 ; 74) — sept mètres de côté et deux et demi de fond, en diagonale, sur une route.
+   Un seul trajet sur cinquante-six, mais c'est un vrai biais, et le banc l'a nommé.
+   Le point de départ est donc passé en argument. Il ne devient pas un point de passage
+   pour autant : on le retire à la sortie, une fois l'équerre posée. */
+function equerrer(pts, depart){
+  const src = depart ? [depart].concat(pts) : pts;
+  const net = src.filter((q, k)=> k === 0 || Math.hypot(q.x - src[k-1].x, q.z - src[k-1].z) > 1.5);
   const droit = [net[0]];
   for(let k = 1; k < net.length; k++){
     const a = droit[droit.length - 1], b = net[k];
@@ -11102,7 +11455,10 @@ function equerrer(pts){
       droit.push({x:a.x, z:b.z});             // le coude, à l'équerre
     droit.push(b);
   }
-  return sansDemiTour(droit);
+  const r = sansDemiTour(droit);
+  if(depart && r.length && Math.abs(r[0].x - depart.x) < 0.05
+                        && Math.abs(r[0].z - depart.z) < 0.05) r.shift();
+  return r;
 }
 /* ---------- ON NE FAIT PAS DEUX MÈTRES CINQUANTE POUR REVENIR SUR SES PAS ----------
    Le joueur : « l'accès doit se faire par les mêmes routes et à angle droit comme pour
@@ -11178,28 +11534,21 @@ function voiesAcces(){
   const L = [];
   if(nord !== undefined && sud !== undefined)
     L.push({nom:'silo', voie:SILO.x, cible:{x:SILO.x, z:SILO.z}, bouts:[nord, sud], large:9});
-  /* LES DEUX RÉSERVES PARTAGENT UNE VOIE, PARCE QU'ELLES PARTAGENT UN COULOIR. Leurs
-     deux cercles sont sur la même abscisse — x = 72, cinq mètres à droite des cuves,
-     comme le joueur les a demandés — et rien ne les sépare : c'est une allée nord-sud,
-     et elle se dessert comme celle du silo.
+  /* LES DEUX RÉSERVES PARTAGENT UNE VOIE, PARCE QU'ELLES PARTAGENT UN COULOIR.
+     Leurs deux cercles sont à trente centimètres l'un de l'autre en abscisse — ils sont
+     posés chacun à 4,40 m à droite de sa cuve, et les deux cuves ne sont pas tout à fait
+     alignées dans le modèle —, ce qui tient très largement dans les neuf mètres de la
+     voie. C'est une allée nord-sud, et elle se dessert comme celle du silo.
 
-     POURQUOI IL LA FAUT. Les citernes n'étaient sur aucune voie : la grille les
-     desservait par sa verticale la plus proche, x = 80, ce qui fait aborder le quai de
-     l'engrais en descendant x = 77,5. Or l'atelier grandit VERS LA GAUCHE, et son flanc
-     recule palier après palier — mesuré sur l'emprise de collision, pas sur le dessin :
-     82,18 m au palier 0, 79,00 au palier 4, 77,53 au palier 9. En comptant la
-     demi-largeur d'une machine, 1,35 m, la route x = 77,5 passe DANS le mur dès le
-     palier 5 : marge +0,15 m au palier 4, −0,14 au 5, −1,32 au 9. C'est-à-dire qu'elle
-     se bloque exactement quand on a bâti de quoi vouloir automatiser.
-     La voie x = 72 garde 4,18 m de dégagement au pire palier, et 8,83 au premier.
+     ELLE A DÉMÉNAGÉ AVEC ELLES. Elle courait en x = 72, au milieu de la cour de
+     transformation, et le raisonnement qui l'y plaçait tenait à l'atelier : celui-ci
+     grandit vers la gauche, son flanc reculant de 82,18 au palier 0 à 77,53 au palier 9,
+     si bien que la verticale x = 77,5 de la grille passait DANS le mur dès le palier 5.
+     Les réserves sont maintenant adossées à l'entrepôt, dans la cour de la ferme : la
+     voie les suit sans qu'on ait à la déplacer, puisqu'elle se lit sur leurs quais.
 
-     ET ELLE ÉVITE AUSSI LA CITERNE ELLE-MÊME. L'ancienne approche par le nord longeait
-     z = 42,5, ce qui passe à 3,50 m du centre du silo à graines pour un rayon de
-     collision de 3,61 : onze centimètres dans l'obstacle, sur sept des douze trajets
-     mesurés — de quoi se faire repousser juste avant de se ranger.
-
-     Les bouts se lisent dans la grille comme ceux du silo : la première rangée au nord
-     du quai des graines, la première au sud de celui de l'engrais. */
+     Les bouts se lisent dans la grille comme ceux du silo : la première rangée au nord du
+     quai des graines, la première au sud de celui de l'engrais. */
   const nCuves = GRILLE_H.filter((h)=> h < RES_GRAINE.quai.z).pop();
   const sCuves = GRILLE_H.find((h)=> h > RES_ENGRAIS.quai.z);
   if(nCuves !== undefined && sCuves !== undefined)
@@ -11225,7 +11574,7 @@ function itineraire(ax, az, bx, bz){
   if(!dep && !arr) return itineraireGrille(ax, az, bx, bz);
   // le même couloir aux deux bouts : on y roule, et l'on n'en sort pas
   if(dep && arr && dep.nom === arr.nom)
-    return equerrer([{x:dep.voie, z:az}, {x:arr.voie, z:bz}, {x:bx, z:bz}]);
+    return equerrer([{x:dep.voie, z:az}, {x:arr.voie, z:bz}, {x:bx, z:bz}], {x:ax, z:az});
   /* PAR QUEL BOUT ? CELUI QUI DONNE LE TRAJET LE PLUS COURT, ET NON LE PLUS PROCHE.
      La voie du silo a deux bouts, et le bon n'est pas toujours celui dont on est le plus
      près : venant de la rocade sud à l'est, le bout nord est à trente-quatre mètres et le
@@ -11246,7 +11595,7 @@ function itineraire(ax, az, bx, bz){
       pts.push({x:arr.voie, z:bz});    // on entre dans la voie par son bout
       pts.push({x:bx, z:bz});          // et l'on va au but tout droit
     }
-    return equerrer(pts);
+    return equerrer(pts, {x:ax, z:az});
   };
   /* ET ENTRE DEUX BOUTS, ON REGARDE AUSSI SI L'ON PASSE. La longueur seule ne suffit
      pas : la grille ne connaît aucun obstacle, et le chemin de sable x = 80 traverse
@@ -18798,12 +19147,21 @@ function ameliorerEnclos(P){
 
 
 /* ---------- 21. LA CUVE DE LA FERME ---------- */
-// Acheter en gros suppose d'avoir où stocker. La cuve se pose une fois, dans un coin
-// de la cour, et évite ensuite l'aller-retour à la pompe pour chaque plein.
-// Rangée le long du flanc est du garage, sur la place n° 10 dont elle occupe
-// exactement le centre : aucune séparation ne passe dessous. Elle était auparavant
-// plantée au milieu de la cour, là où l'on manœuvre.
-const CUVE_POS = {x:placeCentre(9), z:HANGAR.z};
+/* Acheter en gros suppose d'avoir où stocker. La cuve se pose une fois et évite ensuite
+   l'aller-retour à la pompe pour chaque plein.
+
+   ELLE A TRAVERSÉ LA FERME. Elle était rangée le long du flanc est du garage, sur la
+   place n° 10 de la cour — et c'est justement là que l'entrepôt de brique adosse
+   maintenant ses deux réserves. Le joueur : « à droite de l'atelier, tu mettras la
+   citerne à essence. » Elle passe donc dans la cour de transformation, à l'extrémité
+   est de la dalle agrandie, entre l'atelier et la rocade.
+
+   ET IL RESTE LA PLACE D'UN ATTELAGE À CÔTÉ. La cuve fait 6,40 m de long sur 2,20 de
+   large, couchée nord-sud ; son cercle de plein est à 4,40 m à sa droite. Un attelage
+   complet — pick-up et benne, 13,20 m — s'y range dans l'axe nord-sud sans mordre ni sur
+   la rocade au sud ni sur le bord nord de la dalle, et il reste 4,10 m de bitume entre le
+   cercle et le bitume de la route. */
+const CUVE_POS = {x: 100.5, z: 52};
 let cuveMesh = null;
 function poserCuve(){
   if(cuveMesh) return;
@@ -18844,9 +19202,11 @@ function commanderVrac(lots){
 /* LE CERCLE DU PLEIN EST SUR LE FLANC DE LA CUVE, PAS DANS SON AXE. Il était posé au
    BOUT, quatre mètres au-delà du pistolet : on se rangeait nez à nez avec la cuve, dans
    l'axe de ses six mètres quarante, et l'on ressortait en marche arrière. On se range
-   maintenant LE LONG d'elle, comme à une pompe — le côté est est le seul libre, le
-   hangar occupant tout l'ouest à deux mètres vingt — et le cercle est calé à la hauteur
-   de l'armoire de distribution, qui sort à 3,3 m du centre. */
+   maintenant LE LONG d'elle, comme à une pompe, et le cercle est calé à la hauteur de
+   l'armoire de distribution, qui sort à 3,3 m du centre.
+   Le côté EST reste le bon côté, mais plus pour la même raison : ce n'était que le seul
+   libre quand le hangar occupait tout l'ouest ; c'est maintenant celui qui donne sur les
+   huit mètres de bitume libre entre la cuve et la rocade. */
 const quaiCuve = {x: CUVE_POS.x + 4.4, z: CUVE_POS.z + 3.0};
 
 /* ---------- 22. TRANSPORT : LE CHARGEMENT A UNE NATURE ---------- */
@@ -23427,11 +23787,11 @@ for(const cle in PALIERS) appliquerPalier(cle, niveauMateriel(cle));
   if(sem) remplirCuve(sem, CROPS[sem.crop || 0].cle);
 }
 poserCuve();                 // elle fait partie de la ferme, elle ne s'achète plus
+poserAnneauxReserves();      // après GUIDE : voir la zone morte expliquée là-bas
 /* LES DEUX RÉSERVES SE POSENT ICI, ET NON DANS `buildFarm`, POUR LA MÊME RAISON QUE LA
    CUVE À GAZOLE : leurs cercles sont peints avec `GUIDE.BLEU`, et la table des couleurs du
    guidage n'existe pas encore quand la ferme se construit. Elles ne bougent jamais, elles
    cuisent leur géométrie elles-mêmes, et elles poussent leur obstacle au passage. */
-poserReserves();
 /* Les commandes à boutons sont le réglage de départ, et rien ne les posait : le mode
    n'était appliqué qu'au basculement du réglage ou au chargement d'une partie. Une
    partie neuve s'ouvrait donc sur un manche que COMMANDES.mode disait absent. */

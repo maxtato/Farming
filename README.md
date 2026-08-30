@@ -5534,6 +5534,170 @@ l'agrandissement — c'était **quatre** parvis avec l'ancienne benne, mesuré d
 Ces poteaux-là portent le drapeau `soft` : ils ploient, la machine passe. Un vrai camion
 fait exactement la même chose.
 
+## La cour se rouvre : la dalle jusqu'à la route, et deux bâtiments neufs
+
+Sept demandes qui n'en font qu'une — refaire l'angle sud-est de la ferme.
+
+> « La dalle où il y a l'atelier, on va l'agrandir et la pousser jusqu'à la route à droite.
+> Il n'y aura plus de barrière du coup à droite de cette dalle ni de lampadaire. Tu vas
+> supprimer aussi les cuves à engrais et à graines. Tu peux ensuite décaler l'atelier vers
+> la gauche, et à droite de l'atelier tu mettras la citerne à essence, en tenant compte que
+> l'atelier doit être agrandi. […] Tu as supprimé le silo et tu vas le remplacer par celui-ci
+> en pièce jointe. Et tu vas enfin supprimer l'entrepôt et tu vas le remplacer par celui-ci,
+> qui inclut déjà les deux cuves à graines et à engrais. »
+
+### La dalle touche la route, et deux choses tombent avec
+
+`HALLE_YARD.x1` passe de 104,4 à **109**, et ce 109 n'est pas écrit à la main : c'est
+`ROAD_E − ROAD_W/2`, le bord ouest du bitume. La dalle suivra la route si la route bouge.
+
+Elle gagne 4,60 m, et la bande de terre qui les séparait disparaît — avec elle **quatorze
+poteaux de clôture** plantés à x = 106,5, qui se retrouvaient en travers de ce qui est
+désormais du bitume de manœuvre, et **un lampadaire**, celui de z = 60. La clôture est
+s'arrête maintenant au bord nord de la cour ; la règle « pas de mât devant la ferme », qui
+ne valait que pour la route du sud, vaut aussi pour la rocade est.
+
+Vérifié à la verticale, en vue orthographique : le gris de la dalle s'arrête à x = 109,00 et
+le bitume commence au pixel suivant. Ni herbe ni chemin entre les deux.
+
+### Le silo n'est plus trois cylindres
+
+L'ancien tenait en une robe crème, un cône et trois cerclages — et le reste de
+l'installation était éparpillé : un **tuyau** posé en objet séparé, une **grille peinte au
+sol** sept mètres plus loin, et rien entre les deux qui dise comment le grain descend.
+
+La tour de béton apporte la chaîne entière en un seul groupe : jupe évasée, fût nervuré,
+couronnement, toit conique, couvercle orange au faîtage, échelle à crinoline, élévateur à
+godets d'un côté, et de l'autre une goulotte en deux tronçons — l'un horizontal sur son
+équerre, l'autre oblique — qui descend au-dessus d'une **trappe en volume**, caillebotis
+affleurant où le camion se gare.
+
+**Et c'est la trappe qui fixe le point de déversement.** Elle tombe à `SILO_R + 4,6` =
+7,40 m de l'axe de la tour ; `SILO` s'en déduit au lieu d'être écrit à la main. Déplacer la
+tour déplace maintenant le point de chargement avec elle — ce qui n'était pas le cas, la
+grille peinte restant où elle était.
+
+### L'entrepôt porte les deux réserves
+
+Les deux cuves n'ont plus de modèle à elles : quatre-vingt-dix lignes ont disparu. Elles
+sont bâties avec la halle de brique, adossées à son pignon, et posées d'un seul groupe avec
+elle.
+
+Le modèle regarde les z **négatifs** — sa planche l'éclairait de ce côté. La cour de la
+ferme s'ouvre au sud : un demi-tour à la pose, et tout suit. Le quai regarde la cour, et les
+cuves, bâties contre le pignon gauche, se retrouvent **à droite** du bâtiment, ce qui est
+exactement où le joueur les veut. Le demi-tour se lit dans une seule ligne du fichier —
+`entPoint(x, z)` — par laquelle passe tout ce qui doit connaître un point de l'entrepôt.
+
+**Ce qui ne change pas : tout le reste.** `RES_GRAINE` et `RES_ENGRAIS` gardent leur nom,
+leur quai, leur rayon, leur voie d'accès, la tâche de ravitaillement du pilote, leurs deux
+étiquettes et leur remplissage au Comptoir. Rien de tout cela ne sait qu'elles ont déménagé,
+parce que rien ne connaissait leurs coordonnées autrement que par ces deux objets — qui se
+déduisent maintenant de l'entrepôt.
+
+| | avant | après |
+|---|---|---|
+| cuve à graines | (67 ; 46) | **(20,4 ; 55,1)**, contre l'entrepôt |
+| cuve à engrais | (67 ; 58) | **(20,7 ; 63,2)** |
+| leurs deux cercles | x = 72, chacun devant sa cuve | **x = 26,28**, la même abscisse pour les deux |
+| dégagement de la voie | 4,18 m au pire palier | **2,75 m** et 2,43 m, cuves comprises |
+| cercle de l'engrais / chemin de sable | — | **6,92 m** de marge |
+
+Les deux cercles sont alignés sur **une seule abscisse**, prise sur la cuve la plus à
+droite : les deux cuves ne le sont pas tout à fait dans le modèle — 25 cm d'écart — et poser
+chaque cercle à distance fixe de *sa* cuve donnait une voie d'accès qui n'était l'axe
+d'aucune des deux. La distance est passée de 4,40 m à **5,60** : à 4,40 la voie ne passait
+qu'à 1,26 m de la cuve verte, demi-machine comprise, et la remorque d'un attelage lui frôlait
+la charpente à 89 cm.
+
+### Reculé contre la route, et c'est le décor qui a fixé le dernier demi-mètre
+
+« Tu reculeras l'entrepôt au maximum, au plus près de la route, pour que le point de
+ravitaillement ne soit pas totalement sur la route. » Le quai tombe à 8,85 m de l'axe du
+bâtiment ; à z = 58,5 il atterrit à 67,35, et le bitume commence à 69 : le cercle de 2,40 m
+mord de 75 cm sur la chaussée et **garde 84 % de sa surface sur la dalle**.
+
+Un demi-mètre plus au sud le cercle passait encore — mais les palettes que le modèle pose
+devant son quai dépassaient alors de **45 cm** sur le bitume. La vraie borne du recul n'est
+pas le point de ravitaillement, c'est le décor qui l'entoure.
+
+### L'atelier recule, la citerne prend sa droite
+
+Deux choses ont rendu la place, et il fallait les deux : la dalle a gagné 4,60 m à l'est, et
+les deux réserves ont libéré le milieu de la cour.
+
+L'atelier grandit de treize mètres entre le premier module et le neuvième — mesuré palier
+par palier sur la géométrie : **14,55 m au palier zéro, 27,55 au dernier**, dont 13,51 à
+droite de son ancrage. La citerne fait 2,20 m de large et son flanc ouest tombe à 99,40. On
+laisse trois mètres entre les deux, et l'atelier s'ancre à 99,40 − 3,00 − 13,51 = **82,9**,
+contre 90,8.
+
+| | avant | après |
+|---|---|---|
+| ancrage de l'atelier | 90,8 | **82,9** |
+| emprise au dernier palier | 76,76 → 104,31 | **68,86 → 96,41** |
+| citerne à gazole | (21,5 ; 54), contre le garage | **(100,5 ; 52)**, sur la dalle |
+| son cercle de plein | (25,9 ; 57) | **(104,9 ; 55)** |
+| bitume à droite du cercle | — | **4,10 m** avant la route |
+
+Il reste 7,36 m entre le flanc gauche de l'atelier au pire palier et la trappe du silo :
+c'est la voie par laquelle on vient charger, et elle reste ouverte.
+
+### Ce que la mesure a trouvé en passant
+
+**Le premier tronçon d'un itinéraire n'était jamais mis à l'équerre.** `equerrer` squarait
+les points de passage entre eux, mais jamais le segment qui va de la machine au premier
+d'entre eux — il n'était pas dans la liste. Tant qu'on partait d'une voie, cela ne se voyait
+pas. Le jour où l'entrepôt a reculé et où sa voie s'est déplacée à x = 6,99, un départ de la
+rocade sud-ouest rejoignait la bouche de la voie **en diagonale** : sept mètres de côté et
+deux et demi de fond, sur une route. Un trajet sur cinquante-six, et c'est le banc qui l'a
+nommé. Le point de départ est passé en argument ; il ne devient pas un point de passage pour
+autant, on le retire à la sortie.
+
+**Une zone morte de plus.** Les deux cercles des réserves sont bleus fixes — `GUIDE.BLEU` —
+et `GUIDE` est un `const` déclaré **après** l'appel de `buildFarm`. Les poser depuis le
+constructeur de l'entrepôt levait une `ReferenceError` qui arrêtait la construction du monde
+en plein milieu, et tout ce qui se déclare après restait `undefined`. Ils se posent donc avec
+les anneaux tardifs. L'anneau du quai, lui, passe : sa couleur est une fonction, donc lue
+plus tard.
+
+### Les cinq postes de la ferme, avec la benne attelée
+
+| poste | vitesse au contact | s'arrête à | rayon | demi-tours |
+|---|---|---|---|---|
+| silo | 2,19 m/s | 3,62 m | 4,50 | 0 |
+| réserve de graines | 1,69 | 2,95 | 3,60 | 0 |
+| réserve d'engrais | 1,96 | 2,83 | 3,60 | 0 |
+| entrepôt | 5,27 | 2,95 | 4,50 | 0 |
+| citerne à gazole | 1,45 | 2,46 | 3,00 | 0 |
+
+Tous atteints, tous dans leur cercle, aucun demi-tour sur place. Un point reste juste :
+allant du parc à l'entrepôt, l'attelage **frôle la cuve à graines à 1,35 m** — exactement le
+seuil de collision, donc la machine est très légèrement repoussée en passant. C'est le prix
+de deux cuves posées entre les rangées de parking et le bâtiment ; la cour de la ferme ne
+laisse pas de quoi les écarter davantage sans mordre sur le chemin de sable.
+
+### Les bancs
+
+Quatre suites encodaient l'ancienne cour et ont été refaites au bon niveau, pas recalées :
+
+- **chantiers** lisait un rayon de silo de 4,0 écrit à la main quand `SILO.r` vaut 4,5, et
+  mesurait la position au moment où le pilote *déclare* l'arrivée. Il lit le rayon du jeu et
+  mesure où la machine **s'arrête** — avec un contrôle de plus sur la vitesse au contact ;
+- **cuves** vérifiait un écartement de 12 m entre les deux réserves, demandé quand elles
+  étaient seules au milieu de la cour. C'est le modèle de l'entrepôt qui fixe leur écart
+  maintenant ; ce qui se vérifie est qu'elles restent deux installations **distinctes** et
+  que l'engrais ne mord pas le chemin de sable ;
+- **decor** exigeait que l'atelier soit « au bout » de la dalle et les cuves « entre le silo
+  et l'atelier ». Les deux exigences ont été remplacées par celles que le joueur a posées à
+  la place — la place laissée à la citerne, les cuves à droite de l'entrepôt ;
+- **pilote** lançait un attelage plein gaz d'ouest en est le long du chemin de sable z = 40.
+  La course est maintenant nord-sud sur la voie des réserves : **11,15 m/s** sur ses seize
+  mètres, et le contrôle mord — lancé sur l'axe des cuves au lieu de la voie, le même
+  attelage n'arrive pas au bout et tombe à 0,10 m/s.
+
+Les vingt suites passent.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit
