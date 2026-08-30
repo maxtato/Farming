@@ -6115,6 +6115,229 @@ Trouvées en instruisant ces deux retouches, corrigées sur place :
 
 Les vingt suites passent.
 
+## Quinze demandes d'un coup, dont trois bugs d'automatisation
+
+Un lot entier, du défaut de tracé au livelock du moteur de chantiers. Les trois bugs
+d'abord : ce sont eux qui empêchaient de jouer.
+
+### « Celui avec les graines s'est allumé mais il bug »
+
+> « Quand j'achète les 3 tracteurs et que je les équipe chacun d'un outil en mode
+> automatique, l'un doit labourer, l'autre suivre avec le semoir, l'autre avec l'épandeur.
+> Mais là j'ai celui avec les graines qui s'est allumé mais il bug. Il doit vouloir chercher
+> à atteler la charrue qui est déjà sur un autre tracteur. »
+
+**Mot pour mot.** `enginLePlusProche` ne regardait que la **distance** : elle confiait
+l'étape au tracteur le plus près du champ, sans se demander qui portait l'outil qu'elle
+exige. Le désigné partait donc chercher un outil attelé à un voisin — et la tâche `outil`
+ne sait détacher que le sien, `detachTool(v)` ne rendant que `v.tool`. Elle tombait sur son
+attente de trente secondes, rendait la main, et le répartiteur **redésignait aussitôt le
+même tracteur**, toujours le plus proche.
+
+L'attente était **infinie par construction** : son commentaire suppose que l'autre travaille
+et va finir sa passe. Ici l'autre est garé, moteur coupé. Rien ne détachera jamais son outil.
+
+Reproduit au banc, avant :
+
+```
+ 5s  t2 ALLUMÉ  outil=semis  tâche=outil:labour  attente=5   v=0.0 m/s
+30s  t2 ALLUMÉ  outil=semis  tâche=outil:labour  attente=30  v=0.0 m/s
+...  3 abandons de mission · 0 cellule labourée sur 225
+```
+
+Sur la chaîne complète : **34 917 images bloquées**, chantier mort.
+
+La règle juste existait déjà dans le fichier, appliquée à la benne par `armerPorteur` : **un
+outil attelé ne se vole pas, il désigne son porteur.** `enginPourOutil` la porte aux étapes
+de terre. Un outil posé au sol, lui, n'appartient à personne : on reprend la distance, et le
+cas nominal — un seul tracteur qui va chercher ses outils l'un après l'autre — ne change pas
+d'une ligne. Après : `109s semis/t2` → `189s engrais/t3` → `252s pousse`, 222 cellules semées,
+zéro abandon.
+
+Et le bandeau ne ment plus. « EN ATTENTE D'UN ENGIN » pouvait s'afficher avec deux tracteurs
+endormis au parc ; il dit maintenant **« SEMIS — SEMOIR EST SUR UN ENGIN OCCUPÉ »**, sans quoi
+le joueur irait acheter un quatrième tracteur qui ne servirait à rien.
+
+### Le pick-up qui venait voler le silo
+
+> « Quand j'automatise de faire du blé et le livrer au silo, ça doit rester au silo ; là le
+> pick-up vient charger au silo alors qu'on lui a rien dit. »
+
+**C'était pire que ça : le camion repartait avec la récolte et ne la rendait jamais.**
+
+`etapeMarchandise` ne posait qu'une question — « où y a-t-il du stock ? » — sans jamais
+demander « est-ce que ce n'est pas déjà arrivé ? ». Destination silo, blé au silo : elle
+armait une navette **silo → silo**. Le second aller n'a aucune distance à parcourir,
+`suivreRoute` se déclare arrivé tout de suite, l'engin traverse le cercle trop vite pour
+qu'`actionsIci` — muette au-dessus de 2,5 m/s — lui propose de rentrer sa charge, et il
+s'arrête cent mètres plus loin, plein.
+
+| | avant | après |
+|---|---|---|
+| blé au silo, chantier « une fois » | **0 kg** | **120 kg** |
+| blé coincé dans les caisses | **120 kg** | **0** |
+| navettes lieu → lui-même | 1 | **0** |
+| en continu, par moisson | 250 → **0** | 250 → **250** |
+
+Le fichier savait déjà l'écrire : `preneursDe(quoi, depart)` écarte le départ de la même
+façon. Neuf cas légitimes ont été remontés un par un pour vérifier qu'ils survivent — la
+livraison à un commerce qui passe par le silo, la transformation à l'atelier, l'élevage vers
+le Marché, la destination entrepôt — et tous rendent exactement la même chose qu'avant.
+
+### Chacun rentre quand il a fini
+
+> « Quand un véhicule a fini sa tâche et qu'il a rien à faire, il peut retourner au parking.
+> Pas la peine d'attendre que tout le monde ait fini le champ pour rentrer tous ensemble. »
+
+`rentrerAuParc` n'avait que deux appelants, tous deux **juste après le `splice`** qui efface
+le chantier. Les ordres tombaient donc tous à la même image :
+
+| engin | finit sa tâche | ordre de retour | attente |
+|---|---|---|---|
+| t3 (labour) | 3 883 | 16 519 | **12 636 images** |
+| t2 (semis, engrais) | 11 797 | 16 519 | 4 722 |
+| moisson | 16 124 | 16 519 | 395 |
+| pick-up (livraison) | 17 837 | **jamais** | — |
+
+Le pick-up livrait encore à l'instant du `splice` : `enginLibre` le disait pris,
+`rentrerAuParc` l'a sauté, le chantier a été effacé et **plus personne ne l'a regardé**.
+C'est le véhicule planté au milieu de nulle part.
+
+On libère maintenant en continu, à la fin de chaque tour de `majChantiers`. Après, cinq fins
+de tâche donnent **cinq ordres à cinq images différentes**, et les cinq arrivent au parc.
+L'écart entre la première machine rentrée et la dernière passe de **522 à 14 528 images**.
+
+Quatre gardes, chacune mesurée : on ne renvoie pas la machine que le **joueur** conduit ; pas
+celle qui porte encore une **charge** ; jamais **deux fois** le même ordre ; et celle qui
+livre encore **reste en liste** au lieu d'être oubliée. Plus **trois secondes d'inutilité
+continue** avant de faire rouler. Un chantier effacé à la main vide sa liste au lieu de
+l'abandonner ; un chantier **en continu** n'en vide aucune, ses engins lui restant acquis.
+
+Et surtout, **un retour au parc se reprend**. C'est la garde qui sauve la ferme de départ,
+celle qui n'a qu'un tracteur : labour fini, plus de semence, le joueur en rachète dix
+secondes après. Sans elle, le tracteur est déjà parti et **plus rien ne sait le rappeler** —
+il faut qu'il se gare avant de repartir. Il fallait lever **les deux verrous**, pas un seul :
+`armerEngin` pose une mission *et* met `v.auto` à vrai, et ne relâcher que la mission laissait
+le répartiteur aller chercher un autre tracteur — ou n'en trouver aucun.
+
+| ferme de départ, un seul tracteur | images |
+|---|---|
+| le chantier réclame le semis | 3 924 |
+| bandeau « PLUS DE SEMENCE DE BLÉ — À ACHETER AU COMPTOIR » | — |
+| ordre de retour au parc | 4 079 |
+| achat au comptoir | 4 525 |
+| **semis reparti** | **4 544**, soit **19 images après l'achat** |
+
+> Un défaut trouvé en chemin : écrit d'abord avec le seuil des anneaux d'action (0,01 kg), la
+> moissonneuse ne rentrait **jamais**. Il lui reste 0,23 kg au fond après sa dernière passe,
+> et le pilote ne la fait vider qu'au-delà de **0,5**. Un garde-fou plus sévère que la règle
+> qu'il protège bloque tout.
+
+### Les chemins de sable rejoignaient la route en biais
+
+L'ondulation des bords valait ±0,77 m **partout**, y compris à la dernière section. Les deux
+bords arrivaient donc sur le bitume décalés chacun de son côté et d'une valeur différente :
+le chemin se terminait en biais, avec un coin d'herbe d'un côté et un débord de l'autre. Un
+chemin peut serpenter au milieu d'un champ ; il rejoint une route **d'équerre**. L'ondulation
+se referme maintenant sur les quatre derniers mètres.
+
+### L'atelier, et ce qui l'empêche de grandir
+
+`ATL_POSE` passe de 1,18 à **1,26**, et le bâtiment se recentre de 30 cm vers l'est et 1,80 m
+vers le nord. Huit pour cent, et pas davantage — c'est le **dernier palier** qui le fixe :
+
+```
+à l'ouest, l'anneau du silo (66,49)      : x ≥ 67,49 + 11,898·e
+à l'est, la citerne et sa place (97,40)  : x ≤ 97,40 − 11,449·e
+                                se croisent à e = 1,281
+```
+
+Deux essais ont été nécessaires. Le premier, à 1,35, comparait le flanc de l'atelier au
+**centre** de la citerne et concluait 1,34 m ; le banc a mesuré contre son **flanc** et n'a
+trouvé que 24 cm. Le second, à 1,30, rendait 1,32 m — et le banc a rappelé sa règle : il ne
+faut pas seulement la place de la citerne, il faut son cercle de plein **et** de quoi ranger
+un attelage à côté, soit deux mètres au-delà.
+
+> `campagne.js` reconstruisait l'atelier avec `BAT_ECHELLE` recopié à la main. Le jour où
+> l'atelier a pris la sienne, il a comparé un bâtiment de 1,18 à une emprise bâtie à 1,26 et
+> déclaré l'emprise fausse. Elle était juste ; c'est le banc qui mesurait un autre bâtiment.
+> Il lit maintenant `ATL_POSE`.
+
+### Huit retouches de placement
+
+- **Le cercle du silo était enterré dans sa grille.** Le cadre de la trappe empile une dalle,
+  une fosse, onze barreaux et trois entretoises : son dessus est à **0,236 m** — mesuré sur la
+  géométrie posée, non déduit des cotes — et le cercle se pose à 0,11 comme tous les autres.
+  `anneauAction` reçoit un `y` facultatif ; celui du silo monte à 0,32.
+- **Les pancartes « À VENDRE » étaient noyées dans leurs poteaux.** Les poteaux font 0,22
+  d'épaisseur centrés sur zéro ; la plaque, épaisse de 0,14 et centrée elle aussi, occupait
+  −0,07 à +0,07 : **entièrement à l'intérieur du bois**. Elle est maintenant clouée par-dessus.
+- **Les traînées de pneu et la fumée partaient du milieu de l'engin**, décalées seulement de
+  côté. On relève désormais l'essieu arrière à la construction, sur les roues que le modèle
+  déclare et à l'échelle du groupe : −2,62 pour le pick-up, −3,08 pour le fourgon, −1,50 pour
+  les tracteurs, **+0,60** pour la moissonneuse, dont les roues motrices sont devant.
+- **Le pick-up prend la case peinte de l'est**, celle que le fourgon a libérée.
+- **Les deux palettes chargées devant le quai** de l'entrepôt sont parties : elles tombaient
+  exactement sur la bande où une machine s'arrête depuis que le massif a son emprise.
+- **Le cercle de l'entrepôt passe devant le quai haut**, à 2,60 m du nez du massif — c'est
+  lui qui fixe la distance, un cercle posé plus au sud serait un cercle qu'on ne peut pas
+  atteindre.
+- **L'arbre de la parcelle de la maison** monte dans l'angle : dix mètres trente de haut pour
+  un houppier de 8,55 m contre une maison qui culmine à 7,68 — il passait par-dessus l'angle
+  sud-ouest du toit.
+- **La citerne à lait du trafic devient un céréalier**, bâti au gabarit du jeu et non recopié :
+  les ensembles articulés de la planche font dix-neuf unités, soit trente mètres sur la route,
+  quand le plus long véhicule du trafic en fait 13,55. On reprend la silhouette — nez court,
+  benne à flancs évasés, et les deux trémies coniques de vidange à quoi se reconnaît un
+  céréalier — sur l'empattement de 7,20 que portait la citerne. Longueur et échelle
+  identiques au véhicule remplacé : 12,37 m, TAILLE 1,0627.
+
+### Les champs s'éclaircissent sans se troubler
+
+> « Pour le maïs, fais des épis plus grands mais réduis leur nombre d'environ 1,5 fois ; pour
+> le colza réduis par deux, et pour l'avoine pareil, et pour l'orge pareil, et pour le blé
+> pareil. »
+
+Le `masque` existait déjà pour les permanentes, et il ne décide **que des pieds dessinés** :
+ni la récolte, ni les missions, ni les contrats ne s'en aperçoivent. C'est donc un allègement
+pur.
+
+| culture | masque | pieds gardés | `large` |
+|---|---|---|---|
+| Blé, Colza, Avoine, Orge | `(i+j) % 2 === 0` | **1 sur 2** | ×1,41 |
+| Maïs | `(i+j) % 3 !== 2` | **2 sur 3** | ×1,22, épi ×1,4 |
+
+L'échiquier plutôt qu'un rang sur deux : il retire une cellule dans les **deux** directions,
+là où supprimer un rang entier laisserait des couloirs de 2,60 m qu'on lirait comme des
+sillons ratés. Et chaque pied s'élargit d'autant, ce qui n'est pas un ajout mais la condition
+pour que la demande tienne : sur une maille de 1,30 m, un échiquier porte le plus proche
+voisin à **1,84 m** — la diagonale. Un pied qui garderait sa largeur laisserait la terre
+paraître entre les tiges, et le joueur aurait un champ pelé au lieu d'un champ moins lourd.
+
+### Trois bâtiments plus légers
+
+| | avant | après |
+|---|---|---|
+| silo | 129 maillages, 2 724 tri | **101**, **2 108** |
+| entrepôt | 265 maillages, 3 892 tri | **244**, **3 640** |
+
+Le silo paie son **échelle** : sur ses 129 maillages, elle en portait 58 à elle seule — deux
+montants, trente-sept barreaux tous les 32 cm, dix-neuf arceaux de crinoline tous les 60. Le
+reste du silo, fût, jupe, toit, goulotte et trappe compris, n'en fait que 71. On double les
+deux pas : l'échelle garde ses montants et sa crinoline sur toute sa hauteur, et sa silhouette
+est la même à dix mètres — c'est l'espacement qu'on ne lit pas de loin, pas la présence.
+
+L'entrepôt perd ses **quatre** fenêtres hautes de l'arrière (elles étaient quatre, pas trois,
+et sur la face qui regarde le sud, dos à la route et dos à la caméra) et ses **huit** barres de
+boulonnage de faîtage.
+
+Et **le quai redevient un gros bloc gris**, comme demandé. C'était la couleur qui faisait le
+travail, pas les détails : `ENT.SOCLE` rendu sur une face verticale donnait exactement le gris
+du bitume — 105,114,112 contre 104,114,112. On garde donc celle-là seule, en gris de toiture
+franchement plus sombre, et les neuf volumes du coffrage s'en vont. Un volume au lieu de dix.
+
+Les vingt suites passent.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit

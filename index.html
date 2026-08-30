@@ -2136,8 +2136,34 @@ function fabriquer(U, dt, plafond){
    99,40 − 3,00 − 13,51 = 82,89, arrondi à 82,9.
    Au dernier palier son emprise va de 68,86 à 96,41 : il reste alors 7,36 m entre son
    flanc gauche et la trappe du silo, qui est la voie par laquelle on vient charger. */
-const HALLE = {x: 82.9, z: 50, niveau: 0, tremie: {}, stock: {}, recette: null,
+/* L'ATELIER A GRANDI, ET IL A FALLU LE RECENTRER POUR CELA. Le joueur : « augmente la
+   taille de l'atelier et ses évolutions. » Le bâtiment pousse d'un cran à chaque module
+   acheté ; c'est donc le DERNIER palier qui borne l'échelle, et il était déjà serré — à
+   1,18 il occupait x 68,86..96,41 et z 43,92..61,81, soit 72 cm seulement au sud du bord
+   de dalle et 2,37 m de l'anneau du silo.
+   ON NE POUVAIT PAS GRANDIR SUR PLACE : à 1,30 la marge sud tombait à 10 cm. On décale
+   donc le bâtiment de 30 cm vers l'est et de 1,80 m vers le nord — au MILIEU de la place
+   qui lui reste — et l'on prend 1,30.
+   ET C'EST LA CITERNE À GAZOLE QUI A FIXÉ LE PLAFOND, EN DEUX TEMPS. Un premier essai à
+   1,35 comparait le flanc de l'atelier au CENTRE de la citerne, à x = 100,5, et concluait
+   1,34 m de marge ; le banc a mesuré contre son FLANC, à 99,40, et n'a trouvé que 24 cm.
+   Un second essai à 1,30 rendait 1,32 m — et le banc a rappelé la règle qu'il tient depuis
+   que la citerne est là : il ne faut pas seulement la place de la citerne, il faut aussi
+   son cercle de plein ET de quoi ranger un attelage à côté, soit DEUX MÈTRES au-delà.
+   Les deux bornes s'écrivent alors, en fonction de l'échelle e :
+     à l'ouest, l'anneau du silo (66,49) :   x ≥ 67,49 + 11,898·e
+     à l'est, la citerne et sa place (97,40) : x ≤ 97,40 − 11,449·e
+   Elles se croisent à e = 1,281. On prend 1,26, ce qui laisse 1,12 m à l'ouest et 2,37 m
+   à l'est au lieu de refermer les deux à zéro.
+   HUIT POUR CENT, DONC, ET PAS DAVANTAGE — c'est la place qui reste, et c'est le DERNIER
+   PALIER qui la fixe : à vide le bâtiment tient largement, mais un atelier qui déborderait
+   une fois ses huit métiers achetés ne serait pas un atelier plus grand, ce serait un
+   atelier à refaire.
+   TOUT CE QUI EN DÉPEND SUIT : l'emprise de collision se mesure sur la géométrie posée,
+   la fumée sort de HALLE.x/z, et HALLE.quai se recalcule sur la même échelle. */
+const HALLE = {x: 82.6, z: 51.8, niveau: 0, tremie: {}, stock: {}, recette: null,
                file: [], modules: [], capa: 1, vite: 1, queue: 1};
+const ATL_POSE = 1.26;
 /* LES HUIT MODULES, DANS L'ORDRE DE LA CAMPAGNE.
    L'ordre du tableau est celui des paliers de campagne, et c'est lui qui décide de la
    silhouette du bâtiment : chaque module acheté agrandit la halle d'un cran. Le prix
@@ -3828,8 +3854,20 @@ function paintStaticGround(){
        de crête — sinon le sable paraît rongé, et il faut surtout qu'elle reste loin de
        la terre : il n'y a que 1,60 m d'herbe entre les deux, dont la parcelle prend déjà
        0,40. Il en reste 0,64 au pire. */
-    const AMP = w*0.12, ECH = 9;
-    const dec = (t, cote)=> ondul(t + cote*53 + (vert?x:z)*7, AMP, ECH);
+    /* ET L'ONDULATION S'ÉTEINT AUX DEUX BOUTS. Le joueur : « les chemins en sable ne sont
+       pas bien alignés avec la route à l'endroit où ils la rejoignent. »
+       Il a raison, et la cause est ici : l'ondulation valait ±0,77 m PARTOUT, y compris à
+       la dernière section. Les deux bords arrivaient donc sur le bitume décalés chacun de
+       son côté et d'une valeur différente — le chemin se terminait en biais, plus étroit
+       ou plus large que ses 6,40 m, avec un coin d'herbe d'un côté et un débord de
+       l'autre. Un chemin peut serpenter au milieu d'un champ ; il rejoint une route
+       d'équerre, sinon ce n'est plus un chemin, c'est une erreur de tracé.
+       LE FONDU EST LINÉAIRE SUR QUATRE MÈTRES : au-delà, l'ondulation est pleine et rien
+       ne change ; en deçà, elle se referme jusqu'à zéro, et la dernière section fait
+       exactement PATH_W de large, centrée sur l'axe. */
+    const AMP = w*0.12, ECH = 9, FONDU = 4;
+    const dec = (t, cote)=> ondul(t + cote*53 + (vert?x:z)*7, AMP, ECH)
+                          * Math.max(0, Math.min(1, (l/2 - Math.abs(t))/FONDU));
     const pts = [];
     if(vert){
       for(let t = -l/2; t <= l/2; t += 1.2) pts.push([x - w/2 + dec(t, 0), z + t]);
@@ -4218,8 +4256,10 @@ function adulteMais(){
   brin(P, 0.62, 0.5, 0.55, 0.85, 0.17);
   brin(P, 1.05, 3.4, 0.50, 0.78, 0.15);
   brin(P, 1.34, 1.9, 0.58, 0.70, 0.14);
-  P.push({g:new THREE.CylinderGeometry(0.07, 0.12, 0.40, 3, 1, true),
-          m:new THREE.Matrix4().makeRotationZ(-0.25).setPosition(0.13, 1.0, 0), c:0xFFFFFF});
+  // L'ÉPI, quarante pour cent plus gros : c'est la moitié de la demande du joueur, l'autre
+  // étant le masque qui retire un pied sur trois. Un maïs se reconnaît à son fruit.
+  P.push({g:new THREE.CylinderGeometry(0.10, 0.17, 0.56, 3, 1, true),
+          m:new THREE.Matrix4().makeRotationZ(-0.25).setPosition(0.15, 1.0, 0), c:0xFFFFFF});
   P.push({g:new THREE.CylinderGeometry(0.02, 0.07, 0.42, 3, 1, true),
           m:new THREE.Matrix4().makeTranslation(0, 1.9, 0), c:0xFFFFFF});
   return mergeParts(P);
@@ -4531,23 +4571,44 @@ const wheatBase = [];   // fiche de plante par cellule cultivable : {x,z,i,j,rot
    toutes seules après chaque récolte : `plantation` est ce que coûte la parcelle plantée
    — 1 600 € pour une vigne, 1 200 € pour une oliveraie — et il ne se repaie jamais. */
 const PARC_REF = 552;                    // la parcelle de départ, en cellules
+/* ---------- LA MAILLE DE PLANTATION S'EST ÉCLAIRCIE ----------
+   Le joueur : « pour le champ de maïs, fais des épis plus grands mais réduis leur nombre
+   d'environ 1,5 fois ; pour le colza réduis leur nombre par deux, et pour l'avoine pareil,
+   et pour l'orge pareil, et pour le blé pareil. »
+   Le `masque` existait déjà pour les permanentes, et il dit exactement ce qu'il faut : il
+   ne décide QUE des pieds DESSINÉS. Ni la récolte, ni les missions, ni les contrats, ni la
+   capacité de la ferme ne s'en aperçoivent — toutes les cellules restent semées et
+   moissonnées. C'est donc un allègement pur.
+   L'ÉCHIQUIER PLUTÔT QU'UN RANG SUR DEUX. `(i + j) % 2` retire une cellule sur deux dans
+   les DEUX directions : le champ garde sa trame, là où supprimer un rang entier laisserait
+   des couloirs de 2,60 m qu'on lirait comme des sillons ratés.
+   ET CHAQUE PIED S'ÉLARGIT D'AUTANT, ce qui n'est pas un ajout mais la condition pour que
+   la demande tienne : sur une maille de 1,30 m, un échiquier porte le plus proche voisin
+   à 1,84 m — la diagonale. Un pied qui garderait sa largeur laisserait donc la terre
+   paraître entre les tiges, et le joueur aurait un champ pelé au lieu d'un champ moins
+   lourd. On multiplie `large` par √2 = 1,41 pour les quatre qui perdent la moitié, et par
+   √1,5 = 1,22 pour le maïs, qui n'en perd qu'un tiers. Le même raisonnement, chiffré de
+   la même façon, avait servi à la vigne. */
 const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(C.wheatLo), hi:new THREE.Color(C.wheatHi),
-   temps:75, kg:0.2174, haut:1.00, large:0.90, grainePrix:0.18, graineKg:25},
+   temps:75, kg:0.2174, haut:1.00, large:1.27, grainePrix:0.18, graineKg:25,
+   masque:(i, j)=> (i + j) % 2 === 0},
+  // Le maïs perd un pied sur trois et gagne en épi : la cylindre du fruit passe de
+  // 0,07/0,12/0,40 à 0,10/0,17/0,56 dans `adulteMais`.
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:110, kg:0.2536, haut:1.00, large:0.93, cout:600, verrou:true,
-   grainePrix:0.27, graineKg:18},
+   temps:110, kg:0.2536, haut:1.00, large:1.14, cout:600, verrou:true,
+   grainePrix:0.27, graineKg:18, masque:(i, j)=> (i + j) % 3 !== 2},
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:1.00, large:1.15, cout:2400, verrou:true,
-   grainePrix:0.36, graineKg:12},
+   temps:140, kg:0.1993, haut:1.00, large:1.63, cout:2400, verrou:true,
+   grainePrix:0.36, graineKg:12, masque:(i, j)=> (i + j) % 2 === 0},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:90, kg:0.2264, haut:1.00, large:1.34, cout:900, verrou:true,
-   grainePrix:0.22, graineKg:22},
+   temps:90, kg:0.2264, haut:1.00, large:1.89, cout:900, verrou:true,
+   grainePrix:0.22, graineKg:22, masque:(i, j)=> (i + j) % 2 === 0},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x8FA84A), hi:new THREE.Color(0xD8C68A),
-   temps:95, kg:0.2355, haut:1.00, large:1.00, cout:700, verrou:true,
-   grainePrix:0.20, graineKg:23},
+   temps:95, kg:0.2355, haut:1.00, large:1.41, cout:700, verrou:true,
+   grainePrix:0.20, graineKg:23, masque:(i, j)=> (i + j) % 2 === 0},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
   // ne poussent pas non plus à chaque cellule — un olivier tous les 6,50 m, un pied de
@@ -5188,10 +5249,17 @@ function signTexture(price){
 function addSign(p, x, z){
   const g = new THREE.Group();
   for(const sx of [-1.5, 1.5]) g.add(box(0.22,3.2,0.22,0x7A5730, sx,1.6,0));
-  g.add(box(3.9,2.0,0.14,0x8A6640, 0,2.75,0));
+  /* LA PLAQUE EST DEVANT SES POTEAUX, ET NON DEDANS. Le joueur : « les pancartes d'achat
+     de terrain sont noyées dans les poteaux qui les tiennent, la plaque doit être devant
+     les poteaux. » Les poteaux font 0,22 d'épaisseur centrés sur z = 0, donc −0,11 à
+     +0,11 ; la plaque, épaisse de 0,14 et centrée elle aussi sur 0, occupait −0,07 à
+     +0,07 : elle était ENTIÈREMENT à l'intérieur du bois, et le texte, à 0,09, aussi.
+     On la pose maintenant à partir de la face avant des poteaux — centre 0,18 — et le
+     texte 8 cm devant elle. Un panneau se cloue par-dessus son cadre, pas au travers. */
+  g.add(box(3.9,2.0,0.14,0x8A6640, 0,2.75,0.18));
   const pl = new THREE.Mesh(new THREE.PlaneGeometry(3.6,1.8),
     new THREE.MeshBasicMaterial({map:signTexture(p.price)}));
-  pl.position.set(0,2.75,0.09); g.add(pl);
+  pl.position.set(0,2.75,0.26); g.add(pl);
   g.position.set(x,0,z); g.rotation.y = Math.PI/4;
   scene.add(g);
   p.sign = g; p.signPos = {x, z};
@@ -5537,19 +5605,26 @@ const VERT_CONTRAT = 0x62D84E;
 function anneauAction(x, z, phase, actif, opt){
   const O = opt || {};
   const R = O.r || ANNEAU_R, EP = O.ep || ANNEAU_EP, C = O.coul || JAUNE_ACTION;
+  /* ET IL PEUT SE POSER PLUS HAUT QUE LE SOL. Onze centimètres suffisent partout — sauf
+     là où l'on a construit quelque chose EN DESSOUS. Le joueur : « pour le silo, mets le
+     cercle de déchargement au-dessus de la grille. » La grille de la trappe empile une
+     dalle, une fosse, onze barreaux et trois entretoises : son dessus est à 0,236 m une
+     fois le silo mis à l'échelle, et le cercle passait donc DEDANS. `O.y` le remonte,
+     et rien d'autre du jeu n'a besoin de ce paramètre. */
+  const Y = O.y === undefined ? 0.11 : O.y;
   const mat = (op)=> new THREE.MeshBasicMaterial({color:C, transparent:true, opacity:op,
                        blending:THREE.NormalBlending, side:THREE.DoubleSide,
                        depthWrite:false});
   const anneau = new THREE.Mesh(new THREE.RingGeometry(R - EP, R, 48), mat(0.95));
   anneau.rotation.x = -Math.PI/2;
-  anneau.position.set(x, 0.11, z);
+  anneau.position.set(x, Y, z);
   anneau.renderOrder = 3;
   scene.add(anneau);
   // Le centre : la même couleur, le quart de l'intensité. C'est lui qui fait du cercle
   // une CIBLE où se poser, et non un simple trait sur le sol.
   const centre = new THREE.Mesh(new THREE.CircleGeometry(R - EP, 40), mat(0.30));
   centre.rotation.x = -Math.PI/2;
-  centre.position.set(x, 0.10, z);
+  centre.position.set(x, Y - 0.01, z);
   centre.renderOrder = 3;
   scene.add(centre);
   // Ils RESPIRENT : opacité et échelle changent à chaque image. Le drapeau le dit, pour
@@ -6395,11 +6470,21 @@ const SIL = {BETON:0x9BA3A8, BETON2:0x848C91, FUT:0xC8CDCF, TOIT:0x8A9298,
              ORANGE2:0xC96A18, JAUNE:0xF0C24A, HUBLOT:0x44647A, FOSSE:0x4A5257,
              MANCHE:0x3A4248};
 // Échelle à crinoline : deux montants, des barreaux, et des arceaux derrière.
+/* L'ÉCHELLE EST LA PLUS GROSSE DÉPENSE DU SILO, ET DE LOIN. Le joueur demande que le
+   bâtiment soit moins lourd ; or sur ses 129 maillages, l'échelle en portait 58 à elle
+   seule — deux montants, TRENTE-SEPT barreaux tous les 32 cm, et DIX-NEUF arceaux de
+   crinoline tous les 60. Le reste du silo, fût, jupe, toit, goulotte et trappe compris,
+   n'en fait que 71.
+   ON DOUBLE LES DEUX PAS, et rien d'autre. Un barreau tous les 64 cm et un arceau tous
+   les 1,20 m : l'échelle garde ses montants sur toute sa hauteur, sa crinoline sur toute
+   sa hauteur, et sa silhouette est la même à dix mètres — c'est l'ESPACEMENT qu'on ne lit
+   pas de loin, pas la présence. Vingt-huit maillages de moins pour un silo qu'on regarde
+   de vingt mètres. */
 function siloEchelle(g, x, z, h){
   for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, SIL.GRIS, x + sx, h/2, z));
-  for(let k = 0; k*0.32 < h; k++) g.add(box(0.5, 0.05, 0.05, SIL.INOX, x, 0.25 + k*0.32, z));
-  for(let k = 0; k < Math.floor(h/0.6); k++)
-    g.add(cyl(0.34, 0.34, 0.05, 10, SIL.GRIS2, x, 0.8 + k*0.6, z - 0.16, Math.PI/2));
+  for(let k = 0; k*0.64 < h; k++) g.add(box(0.5, 0.05, 0.05, SIL.INOX, x, 0.25 + k*0.64, z));
+  for(let k = 0; k < Math.floor(h/1.2); k++)
+    g.add(cyl(0.34, 0.34, 0.05, 10, SIL.GRIS2, x, 0.8 + k*1.2, z - 0.16, Math.PI/2));
 }
 /* TRAPPE : un caillebotis INTÉGRÉ AU SOL, sans margelle ni couvercle. Seul le cadre
    affleure, la grille est en léger creux — le camion roule dessus. */
@@ -6610,29 +6695,19 @@ function entPorteQuai(g, x, y, z, w, h, num){
    L'AUVENT part DE LA FAÇADE et déborde au-dessus du quai ; les jambes de force sont
    placées par leurs deux extrémités, et leur inclinaison en découle. */
 function entQuai(g, x, z, w, d, h){
-  g.add(box(w, h, d, ENT.SOCLE, x, h/2, z));
-  /* ---------- LE COFFRAGE, ET POURQUOI IL FALLAIT LE POSER ----------
-     Le joueur : « le quai de chargement n'est pas plein, ça fait juste une dalle mais
-     dans le vide ; soit tu épaissis la dalle pour qu'elle arrive jusqu'au sol, soit tu
-     coffres autour de la dalle. »
-     ÉPAISSIR NE SERVIRAIT À RIEN : le socle est déjà plein, de y = h à y = 0. Il ne se
-     VOIT pas, ce qui n'est pas la même chose. `ENT.SOCLE` vaut 0x9BA3A8, et rendu sur une
-     face verticale il donne exactement le gris du bitume de la cour — relevé au pixel,
-     de face et à hauteur d'homme : 105,114,112 pour le quai contre 104,114,112 pour le
-     sol, un point sur 255. Sans arête au pied ni ombre sous le tablier, il ne reste à
-     l'écran que la tôle sombre du dessus : une dalle dans le vide.
-     ON COFFRE DONC, comme le joueur le propose en second : une ombre sous le tablier, une
-     plinthe au pied, et des raidisseurs entre les deux. Trois valeurs différentes qui
-     donnent au massif ses arêtes. TOUT S'ARRÊTE À y = 0 EXACTEMENT — le jeu peint sa
-     propre dalle de bitume, et une pièce qui la traverserait ferait une marche. */
-  g.add(box(w + 0.08, 0.22, d + 0.08, ENT.NOIR,   x, h - 0.18, z));   // ombre sous le tablier
-  g.add(box(w + 0.16, 0.26, d + 0.16, ENT.TOIT,   x, 0.13, z));       // plinthe, de 0 à 0,26
-  for(let k = 0; k < 3; k++)                                          // raidisseurs de façade
-    g.add(box(0.18, h - 0.55, 0.07, ENT.ACIER2,
-              x - w/2 + (k + 1)*w/4, 0.26 + (h - 0.55)/2, z - d/2 - 0.035));
-  for(const sx of [-1, 1]) for(let k = 0; k < 2; k++)                 // et sur les deux flancs
-    g.add(box(0.07, h - 0.55, 0.18, ENT.ACIER2,
-              x + sx*(w/2 + 0.035), 0.26 + (h - 0.55)/2, z - d/2 + 0.55 + k*1.4));
+  /* ---------- UN GROS BLOC GRIS, ET RIEN D'AUTRE ----------
+     Le joueur avait signalé que le quai paraissait flotter ; le socle était pourtant
+     PLEIN, de y = h à y = 0. Il ne se VOYAIT pas : `ENT.SOCLE` vaut 0x9BA3A8, et rendu
+     sur une face verticale il donne exactement le gris du bitume de la cour — relevé au
+     pixel, de face et à hauteur d'homme, 105,114,112 contre 104,114,112.
+     On l'avait donc coffré : ombre sous le tablier, plinthe, sept raidisseurs — neuf
+     volumes de plus. Le joueur, maintenant : « pour le quai, fais un gros bloc gris, pas
+     la peine de faire le soubassement avec des détails. »
+     C'EST LA COULEUR QUI FAISAIT LE TRAVAIL, PAS LES DÉTAILS, et l'on garde donc celle-là
+     seule : le socle passe au gris de toiture 0x686E72, franchement plus sombre que le
+     bitume, et les neuf volumes du coffrage s'en vont. Le quai se lit toujours comme un
+     massif posé au sol, pour un volume au lieu de dix. */
+  g.add(box(w, h, d, ENT.TOIT, x, h/2, z));
   g.add(box(w + 0.2, 0.14, d + 0.2, ENT.ACIER2, x, h, z));
   for(const sx of [-1, 1])
     g.add(box(0.34, 0.42, 0.24, 0x22262A, x + sx*(w/2 - 0.5), h - 0.34, z - d/2 - 0.1));
@@ -6790,10 +6865,11 @@ function modeleEntrepot(){
   // par-dessus ferait une marche de quatorze centimètres au milieu du parking.
   entBardage(g, 0, 0.0, 0, W, H + 0.6, D, ENT.BRIQUE, ENT.BRIQUE2, 9);
   g.add(gable(D + 1.0, 2.0, W + 1.0, ENT.TOIT, 0, H + 0.6, 0, Math.PI/2));
-  // Boulonnage de faîtage sur LES DEUX PANS, enfoncé dans la tôle pour qu'il affleure.
-  for(const sens of [-1, 1]) for(let k = 0; k < 4; k++)
-    g.add(box(W + 1.06, 0.07, 0.12, ENT.ACIER2, 0, H + 0.77 + k*0.4,
-              sens*(D/2 - 0.9 - k*1.1)));
+  /* PLUS DE BOULONNAGE DE FAÎTAGE. Le joueur : « enlève aussi tous les petits détails de
+     boulons sur les côtés du toit. » C'étaient huit barres de sept centimètres d'épaisseur
+     posées à plat sur les deux pans, enfoncées dans la tôle pour affleurer — donc huit
+     volumes pour un liseré qui ne se lit qu'en collant le nez dessus, sur un toit que la
+     caméra regarde de vingt mètres. */
   g.add(box(W*0.4, 0.4, 1.2, 0xBFD6DE, 0, H + 1.9, 0));                     // lanterneau
   // façade : un quai à gauche, une porte de plain-pied à droite, une porte de service
   entQuai(g, -3.4, -D/2 - 1.4, 4.4, 2.8, hQ);
@@ -6806,12 +6882,17 @@ function modeleEntrepot(){
   g.add(box(1.2, 2.1, 0.18, ENT.ACIER2, W/2 - 1.4, 1.65, -D/2 - 0.02));     // porte de service
   g.add(box(0.9, 1.4, 0.22, ENT.VITRE, W/2 - 1.4, 1.9, -D/2 - 0.06));
   g.add(box(W + 0.2, 0.34, D + 0.2, ENT.BRIQUE3, 0, H + 0.4, 0));           // bandeau
-  for(let k = 0; k < 4; k++)
-    g.add(box(1.5, 0.85, 0.16, ENT.VITRE, -4.5 + k*3.0, 4.1, D/2 + 0.02));  // fenêtres hautes
+  /* LES QUATRE FENÊTRES HAUTES DE L'ARRIÈRE SONT PARTIES. Le joueur : « pour l'entrepôt,
+     enlève les trois vitres qui sont derrière qu'on ne voit pas. » Elles étaient quatre,
+     et elles sont sur la face +z du modèle — c'est-à-dire, le bâtiment étant posé d'un
+     demi-tour, celle qui regarde le SUD, dos à la route et dos à la caméra. On ne les a
+     jamais vues, et on ne les verra jamais : le jeu ne se joue pas de l'autre côté. */
   g.add(box(4.4, 0.9, 0.22, ENT.BLEUF, 0, H + 1.1, -D/2 - 0.1));            // enseigne
   g.add(box(3.9, 0.4, 0.26, 0xE8EDF0, 0, H + 1.1, -D/2 - 0.16));
-  entPalette(g, -5.6, 0, -D/2 - 3.4, 0.25, 3);
-  entPalette(g, -4.5, 0, -D/2 - 3.8, -0.1, 2);
+  /* LES DEUX PALETTES CHARGÉES QUI ÉTAIENT ICI SONT PARTIES. Le joueur : « supprime les
+     deux caisses qui sont devant le quai de l'entrepôt. » Elles tombaient en (21,96 ;
+     62,83) et (20,30 ; 63,44), c'est-à-dire exactement sur la bande où une machine
+     s'arrête maintenant que le massif du quai a son emprise — on se garait dessus. */
   /* CETTE PALETTE-LÀ EST RENTRÉE DE DEUX MÈTRES. Le modèle la posait à x = 6,60 dans son
      repère, c'est-à-dire au bord de sa cour de présentation ; à l'échelle du jeu, et le
      bâtiment étant calé aussi à l'ouest que la place du pick-up le permet, elle tombait
@@ -6928,9 +7009,14 @@ function buildFarm(){
      maillon central de presque toutes les chaînes — le grain y passe entre le champ et
      le client. */
   const agirSilo = ()=> actionsAuSilo(MACHINES[cur]).length > 0;
+  /* Y = 0,26 : LE CERCLE PASSE AU-DESSUS DE LA GRILLE. Le cadre de la trappe empile une
+     dalle de béton, une fosse, onze barreaux et trois entretoises ; à l'échelle du silo
+     son dessus est à 0,236 m — MESURÉ sur la géométrie posée, et non déduit des cotes du
+     modèle —, et le cercle, posé à 0,11 comme tous les autres, était enterré dedans.
+     0,32 le pose franchement dessus, avec 8 cm de marge. */
   anneauAction(SILO.x, SILO.z, 1.1,
                ()=> couleurPoste('silo', agirSilo) !== GUIDE.GRIS,
-               {coulDyn: ()=> couleurPoste('silo', agirSilo)});
+               {y: 0.32, coulDyn: ()=> couleurPoste('silo', agirSilo)});
 
   // maison, à l'écart de la cour
   const h = new THREE.Group();
@@ -7073,12 +7159,20 @@ function buildFarm(){
        modèle et remis à l'échelle du bâti. */
     obstacles.push({x:RES_GRAINE.x,  z:RES_GRAINE.z,  r:1.18*ENT_POSE + 0.4});
     obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.2*ENT_POSE + 0.4});
-    /* LE QUAI EST DEVANT LE RIDEAU DE PLAIN-PIED, et non devant celui du quai haut :
-       c'est par là qu'un engin entre, l'autre étant une plateforme à hauteur de plancher
-       de camion où il ne peut pas monter. Le rideau est à x = +3,4 dans le modèle, donc
-       à gauche une fois retourné, et l'aire bétonnée devant lui s'étend jusqu'à −5,8.
-       On se pose trois mètres plus loin, soit 8,80 m de l'axe du bâtiment. */
-    ENTREPOT.quai = entPoint(3.4, -(ENT_D/2 + 3.0));
+    /* LE POINT DE CHARGEMENT PASSE DEVANT LE QUAI HAUT. Le joueur : « mets le cercle de
+       chargement et déchargement de l'entrepôt devant le quai. » Il était devant le
+       RIDEAU DE PLAIN-PIED, à l'autre bout de la façade — le seul endroit par où un engin
+       peut entrer, disait le raisonnement, l'autre étant une plateforme à hauteur de
+       plancher de camion. C'est vrai d'un engin qui ENTRE ; ça ne l'est pas d'un engin
+       qui se fait charger, et c'est ce qu'on vient faire ici.
+       LE MASSIF FIXE LA DISTANCE, PAS LE GOÛT. Le quai avance jusqu'à z = 62,05 depuis
+       que sa plinthe a son emprise ; une machine s'y arrête donc à 63,4 au plus près, et
+       un cercle posé plus au sud serait un cercle qu'on ne peut pas atteindre. On le pose
+       à 4,60 unités de modèle devant le pignon, soit z = 64,65 : la machine s'y range de
+       face, 2,60 m devant le nez du massif, et il reste 4,35 m jusqu'au bitume de la
+       rocade. L'abscisse, elle, est celle du quai — x = −3,4 dans le modèle, 18,64 une
+       fois le bâtiment retourné. */
+    ENTREPOT.quai = entPoint(-3.4, -(ENT_D/2 + 4.6));
     const agirEnt = ()=> actionsEntrepot(MACHINES[cur]).length > 0;
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
       ()=> couleurPoste('entrepot', agirEnt) !== GUIDE.GRIS,
@@ -7458,8 +7552,15 @@ function buildFarm(){
     else if(r < 0.62) putBush(x, z, rnd2);
     else if(r < 0.80) putRock(x, z, rnd2);
   }
-  // parcelle de la maison : un arbre et un buisson, placés à la main
-  addTree(-63.5, 52.5, 1.0, 0);
+  /* PARCELLE DE LA MAISON : un arbre et un buisson, placés à la main.
+     L'ARBRE A REMONTÉ DANS L'ANGLE. Le joueur : « décale l'arbre qu'il y a sur la
+     parcelle de notre maison vers l'angle en haut de la parcelle, pour pas qu'il touche
+     le toit. » Il était en (−63,5 ; 52,5) : dix mètres trente de haut pour un houppier
+     de 8,55 m de large, contre une maison qui occupe x −64,88..−51,12 et z 49,81..64,19
+     et culmine à 7,68. Le houppier passait donc par-dessus l'angle sud-ouest du toit.
+     Il monte dans le coin haut de la parcelle, celui que la clôture ferme à x = −66,5 et
+     z ≈ 47,8, ce qui l'éloigne de l'angle de toit le plus proche. */
+  addTree(-66, 46.5, 1.0, 0);
   putBush(-50.5, 50.5, alea);
 
   marquageParking();     // en dernier : les deux dalles doivent être posées
@@ -8453,7 +8554,7 @@ function poserAtelier(){
   // La halle suit le bâti du village : c'est un bâtiment de la ferme, et l'engin qui vient
   // s'y ranger a grandi sans elle. fusionnerGroupe() prend l'inverse de la matrice DU
   // groupe, donc une échelle posée sur le groupe lui-même survit à la cuisson.
-  atelierMesh.scale.setScalar(BAT_ECHELLE);
+  atelierMesh.scale.setScalar(ATL_POSE);
   atelierMesh.position.set(HALLE.x, 0, HALLE.z);
   scene.add(atelierMesh);
   const u = atelierMesh.userData;
@@ -8486,7 +8587,7 @@ function poserAtelier(){
      derrière : on roulait au travers. Ce qui sélectionne les maillages reste leur CENTRE,
      à un mètre près de la profondeur déclarée, sinon le conteneur et l'auvent du quai,
      plantés devant, allongeraient l'emprise jusqu'à interdire le quai. */
-  const hd = u.D/2*BAT_ECHELLE, demiW = u.W/2*BAT_ECHELLE;
+  const hd = u.D/2*ATL_POSE, demiW = u.W/2*ATL_POSE;
   const bandes = [new THREE.Box3(), new THREE.Box3(), new THREE.Box3()];
   for(const b of bandes) b.makeEmpty();
   const _bbM = new THREE.Box3();
@@ -8497,7 +8598,7 @@ function poserAtelier(){
     if(Math.abs((_bbM.min.z + _bbM.max.z)/2 - HALLE.z) > hd + 1) return;
     // À hauteur de capot seulement : la dalle de quai, haute de seize centimètres, est
     // ignorée, et l'auvent, qui commence à cinq mètres, aussi — on passe dessous.
-    if(!(_bbM.min.y < 2.5*BAT_ECHELLE && _bbM.max.y > 1.2*BAT_ECHELLE)) return;
+    if(!(_bbM.min.y < 2.5*ATL_POSE && _bbM.max.y > 1.2*ATL_POSE)) return;
     const cx = (_bbM.min.x + _bbM.max.x)/2 - HALLE.x;
     bandes[cx < -demiW ? 0 : (cx > demiW ? 2 : 1)].union(_bbM);
   });
@@ -8516,7 +8617,7 @@ function poserAtelier(){
   // Un atelier dont rien ne serait à hauteur de capot n'existe pas, mais s'il arrivait
   // il vaut mieux un mur au bon endroit que pas de mur du tout.
   if(!atelierObs.length){
-    const R = {x:HALLE.x, z:HALLE.z, hw:demiW + 2.7*BAT_ECHELLE, hd:hd};
+    const R = {x:HALLE.x, z:HALLE.z, hw:demiW + 2.7*ATL_POSE, hd:hd};
     atelierObs.push(R); boxObs.push(R);
   }
   /* PLUS D'ANNEAU DEVANT L'ATELIER. Il se sert tout seul au silo et à l'entrepôt, et
@@ -8525,7 +8626,7 @@ function poserAtelier(){
      RELIT PLUS NULLE PART — la fumée sort de `HALLE.x/z` directement, et le disait déjà
      quand ce commentaire prétendait le contraire. Il ne sert plus qu'aux bancs, à qui il
      donne le bord avant du bâtiment sans avoir à remesurer la géométrie. */
-  HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2*BAT_ECHELLE + 4.0};
+  HALLE.quai = {x: HALLE.x, z: HALLE.z + u.D/2*ATL_POSE + 4.0};
 }
 
 /* Marquage du parking — UNE seule trame pour toute l'aire, cour et garage confondus.
@@ -9419,6 +9520,19 @@ class Vehicle {
     this.train = new THREE.Group();
     for(const c of this.group.children.slice())
       (wheels.has(c) ? this.train : this.body).add(c);
+    /* OÙ EST L'ESSIEU ARRIÈRE. La poussière de roues et la trace au sol se posaient sur
+       `v.pos`, c'est-à-dire au MILIEU de l'engin, décalé seulement de côté : on voyait
+       donc fumer et marquer une bande de sol qui n'était sous aucun pneu. Le joueur : « les
+       traînées de pneu et de fumée se sont décalées vers l'avant et ne coïncident plus
+       avec les pneus arrières. »
+       On relève la cote une fois pour toutes, ICI, sur les roues arrière que le modèle a
+       déjà déclarées — et à l'échelle du groupe, sans quoi les 1,90 du pick-up vaudraient
+       1,90 au lieu de ses 2,62 réels. Elle est NÉGATIVE vers l'arrière, sauf pour la
+       moissonneuse dont les roues motrices sont devant. */
+    const _wr = ud.wr || [];
+    this.essieuAr = _wr.length
+      ? _wr.reduce((a, w)=> a + w.position.z, 0)/_wr.length*(this.group.scale.z || 1)
+      : 0;
     this.exhaust = ud.exhaust || null;
     this.group.add(this.body);
     this.group.add(this.train);
@@ -9980,9 +10094,14 @@ scene.add(trailMesh);
 function updateTrail(v, now, dt){
   if(v.speed > 1.0){
     const last = trail[trail.length-1];
-    if(!last || Math.hypot(v.pos.x-last.x, v.pos.z-last.z) > TRAIL_STEP){
+    /* LA TRACE SE POSE SOUS LES ROUES ARRIÈRE. Elle partait de `v.pos`, le milieu de
+       l'engin : les deux bandes couraient donc deux mètres et demi devant les pneus qui
+       étaient censés les laisser. Le décalage est celui relevé à la construction. */
+    const fw = v.fwd(), ea = v.essieuAr || 0;
+    const tx = v.pos.x + fw.x*ea, tz = v.pos.z + fw.z*ea;
+    if(!last || Math.hypot(tx-last.x, tz-last.z) > TRAIL_STEP){
       const r = right(v.cap);
-      trail.push({x:v.pos.x, z:v.pos.z, rx:r.x, rz:r.z, t:now, w:v.trackW});
+      trail.push({x:tx, z:tz, rx:r.x, rz:r.z, t:now, w:v.trackW});
       if(trail.length > TRAIL_N) trail.shift();
     }
   }
@@ -12757,20 +12876,38 @@ const TRAFIC_MODELES = (function(){
     roues(P, 1.02, 2.3, -1.9, 0.46, 0.34, true);
     return P;
   }
-  /* 10 — Citerne à lait : fût inox cerclé. Le fût couche son axe LE LONG du camion —
-     une rotation autour de X, pas de Z : tournée sur Z, la citerne se mettrait en
-     travers de la route. */
-  function citerneLait(){
-    const CAB = robe(BLEU), P = [];
+  /* 10 — Céréalier : nez court, benne haute à flancs évasés, deux trémies de vidange.
+     LA CITERNE A LAISSÉ LA PLACE À UN CÉRÉALIER. Le joueur : « supprime le camion avec la
+     citerne du trafic et remplace-le par un de ceux-là », en joignant une planche de cinq
+     camions et de sept ensembles articulés. C'est le CÉRÉALIER qu'on retient : un village
+     de ferme croise du grain, pas du lait en vrac, et c'est le seul de la planche qui
+     n'existe pas déjà sur la route — le camion à caisse tient le fourgon, le plateau à
+     bottes tient la marchandise ouverte, la benne tient le vrac lourd.
+     IL EST BÂTI AU GABARIT DU JEU, ET NON RECOPIÉ. Les ensembles articulés de la planche
+     font dix-neuf unités de long : trente mètres sur la route, quand le plus long
+     véhicule du trafic — l'autocar — en fait 13,55. On reprend donc la SILHOUETTE du
+     modèle 3 — nez court, benne haute à flancs évasés, et surtout les deux trémies
+     coniques de vidange qui pendent sous le châssis, à quoi se reconnaît un céréalier —
+     sur l'empattement de 7,20 que portait la citerne. Rien d'autre ne change : mêmes
+     feux, mêmes roues jumelées, même place dans la table. */
+  function cerealier(){
+    const CAB = robe(0x2F7D46), P = [];                  // vert de coopérative
     P.push(B(2.2, 0.34, 7.2, CHASSIS, 0, 0.62, 0));
     cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.4);
     P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.5));
-    P.push(CY(1.15, 5.0, 14, INOX, 0, 2.0, -1.4, Math.PI/2));
-    for(const dz of [-3.6, -2.2, -0.8, 0.6])
-      P.push(CY(1.2, 0.16, 14, 0xA8B0B5, 0, 2.0, dz, Math.PI/2));
-    P.push(B(0.7, 0.4, 0.7, GRIS, 0, 3.2, -1.4));
-    P.push(B(0.34, 0.34, 4.6, GRIS, 0, 0.86, -1.4));
-    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.3));
+    // la benne : flancs évasés vers le haut, d'où le prisme à dessus élargi
+    P.push(slab({w:2.3, h:2.24, d:6.0, tw:2.62, td:6.1, c:0xD8B24A, y:0.96, z:-0.7}));
+    P.push(B(2.68, 0.2, 6.2, 0x9E7C24, 0, 3.30, -0.7));  // margelle de gueule
+    for(const dz of [-3.1, -1.5, 0.1, 1.7])              // raidisseurs de flanc
+      P.push(B(2.72, 0.13, 0.17, 0xB08F2C, 0, 2.1, dz));
+    /* LES DEUX TRÉMIES : c'est la signature, et elles sont LARGES EN HAUT. Un premier jet
+       les avait posées à l'envers — 2,20 au sol pour 0,85 sous la benne —, ce qui donnait
+       deux socles évasés qui dépassaient du châssis. Une trémie recueille : elle prend
+       toute la largeur de la caisse et se resserre sur sa vanne. */
+    for(const dz of [-2.5, 0.6])
+      P.push(slab({w:0.85, h:0.86, d:0.85, tw:2.2, td:2.0, c:0xC9A23E, y:0.10, z:dz}));
+    P.push(B(2.34, 2.24, 0.18, 0xC9A23E, 0, 0.96 + 1.12, -3.78));  // hayon arrière
+    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.3));                  // pot d'échappement
     feux(P, 0.82, 0.86, 3.52, -3.96);
     roues(P, 1.02, 2.4, -1.9, 0.46, 0.34, true);
     return P;
@@ -12926,7 +13063,7 @@ const TRAFIC_MODELES = (function(){
     return P;
   }
   const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace,
-                   pickup, fourgon, camionCaisse, citerneLait, benne, autocar,
+                   pickup, fourgon, camionCaisse, cerealier, benne, autocar,
                    campingCar, pompiers, postale, depanneuse];
   const geos = [], optiques = [], robes = [];
   for(const f of modeles){
@@ -13001,7 +13138,7 @@ const ROBES_TRAFIC = [
      Le joueur a demandé une caisse blanche, pas une cabine de moins : on ne lui retire pas
      une couleur qu'il n'a pas mise en cause. */
   [0x4A5560, 0x6B7040, 0xD8D2C0], // camion à caisse : ardoise, kaki, crème
-  [0xD8D2C0, 0x9AA2A7],           // citerne à lait : crème, inox
+  [0xD8D2C0, 0x9AA2A7],           // céréalier : crème, inox
   [0xE07B24, 0x7A6A52],           // benne : orange, brun-taupe
   [],                             // autocar : il reste JAUNE, et rien d'autre
   [0xE4DCC0, 0xCFD6DA],           // camping-car : sable, gris perle
@@ -13836,7 +13973,7 @@ const MACHINES = [
      place : elles sortent avec 2,29 m à 4,48 m de marge. Celle-ci était la seule à
      racler, et elle est la seule à bouger. */
   {key:'pickup', nom:'Pick-up', teinte:0x3E7CB8, prix:0, timbre:'voiture', ton:1.06, v:new Vehicle({
-      x:placeCentre(10), z:51.1, cap:Math.PI/2, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
+      x:placeCentre(11), z:51.1, cap:Math.PI/2, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
@@ -24062,8 +24199,25 @@ const classeDe = (m)=> EST_TRACTEUR(m) ? 'tracteur'
                      : (m.key === 'moisson' || m.key === 'enjambeuse') ? m.key : 'porteur';
 /* UN ENGIN EST LIBRE S'IL NE FAIT RIEN ET QUE LE JOUEUR N'EST PAS DEDANS. On ne lui
    prend jamais celui qu'il conduit : le pilote reprendrait la main sous ses doigts. */
+/* UN ENGIN QUI RENTRE AU PARC RESTE DISPONIBLE, et c'est indispensable depuis qu'il rentre
+   tout seul. `armerEngin` pose une mission, et `enginLibre` refusait toute machine qui en a
+   une : le retour au parc rendait donc l'engin INTOUCHABLE jusqu'à ce qu'il soit garé.
+   Mesuré sur la ferme de DÉPART, celle qui n'a qu'un tracteur : labour fini, plus de
+   semence, le joueur en rachète dix secondes après. Sans cette garde, le tracteur est déjà
+   parti vers le parc, le bandeau affiche « SEMIS — EN ATTENTE D'UN ENGIN » alors que le
+   seul tracteur de la ferme roule en sens inverse, et le semis ne repart que 733 images
+   après l'achat au lieu de 20. Trente-six fois plus, sur le cas le plus banal du jeu.
+   AUCUN DÉLAI NE RÉPARE CELA, parce que le déclencheur est le joueur : il peut racheter à
+   n'importe quel moment. Il faut donc pouvoir REPRENDRE un retour en cours, et c'est sans
+   danger — un retour au parc n'a rien à finir, il se remplace.
+   ET IL FAUT LEVER LES DEUX VERROUS, PAS UN SEUL : `armerEngin` pose la mission ET met
+   `v.auto` à vrai. Ne relâcher que la mission laissait `!m.v.auto` refuser la machine, et
+   le répartiteur allait chercher un autre tracteur — ou n'en trouvait aucun. */
+const rentreAuParc = (v)=> !!v.mission && !v.mission.boucle
+  && (v.mission.taches || []).every((t)=> t.quoi === 'parc');
 const enginLibre = (m)=> { const i = MACHINES.indexOf(m);
-  return !m.verrou && !m.v.mission && !m.v.auto && cur !== i
+  const rentre = rentreAuParc(m.v);
+  return !m.verrou && (rentre || (!m.v.mission && !m.v.auto)) && cur !== i
          && !CHANTIERS.some((C)=> C.enginTerre === i || C.enginPort === i); };
 /* ARMER UN ENGIN. Le lanceur de l'ancien écran oubliait la moitié de ces champs — il ne
    remettait ni `finMoisson` ni l'itinéraire — et comptait sur la première tâche pour
@@ -24123,9 +24277,25 @@ function etapeMarchandise(C){
       return {et:ET_ATELIER};
     }
   }
-  // De quoi livrer, et où le prendre.
-  const ou = quantiteAuLieu('silo', fini) > 0.5 ? 'silo'
-           : quantiteAuLieu('entrepot', fini) > 0.5 ? 'entrepot' : null;
+  /* DE QUOI LIVRER, ET OÙ LE PRENDRE — MAIS JAMAIS LÀ OÙ L'ON LIVRE.
+     Le joueur : « quand j'automatise de faire du blé et le livrer au silo, ça doit rester
+     au silo ; là le pick-up vient charger au silo alors qu'on lui a rien dit. »
+     `destinationsDe` propose le silo et l'entrepôt, et c'est voulu — « ranger sans vendre
+     est une destination parfaitement légitime ». Mais cette ligne ne cherchait QUE du
+     stock : elle répondait « où charger ? » sans jamais demander « est-ce déjà arrivé ? ».
+     Destination silo, blé au silo : elle rendait `ou = 'silo'`, et le répartiteur armait
+     un porteur sur la navette silo → silo.
+     ET LE CAMION REPARTAIT AVEC LA RÉCOLTE. Le second aller n'a aucune distance à
+     parcourir : `suivreRoute` se déclare arrivé tout de suite, l'engin traverse le cercle
+     du silo trop vite pour qu'`actionsIci` — muette au-dessus de 2,5 m/s — lui propose de
+     rentrer sa charge, et il s'arrête cent mètres plus loin, plein. Mesuré : 120 kg au
+     silo avant, 0 après, 120 dans la caisse du fourgon garé. En continu, 250 kg volés à
+     chaque moisson.
+     Une livraison dont le départ est l'arrivée n'est pas une livraison. On écarte donc le
+     lieu choisi des endroits où l'on va charger : ce qui y est déjà EST livré. Le fichier
+     savait déjà le dire — `preneursDe(quoi, depart)` écarte le départ de la même façon. */
+  const ou = (lieu !== 'silo' && quantiteAuLieu('silo', fini) > 0.5) ? 'silo'
+           : (lieu !== 'entrepot' && quantiteAuLieu('entrepot', fini) > 0.5) ? 'entrepot' : null;
   if(!ou) return null;
   /* LE LIEU EN VEUT-IL ENCORE ? C'est `demandeChez` qui répond, et c'est le même test que
      celui du transfert lui-même : un commerce fermé, un étal plein, une trémie d'usine qui
@@ -24262,6 +24432,10 @@ function majChantiers(dt){
     }
     else { pisteTerre(C, k); pisteMarchandise(C); }
   }
+  /* ET L'ON REND AU PARC CEUX QUI N'ONT PLUS RIEN À FAIRE. Après la boucle, et jamais
+     avant : à cet instant chaque chantier s'est déjà servi, si bien qu'un engin encore
+     libre est un engin dont AUCUN chantier n'a voulu ce tour-ci. */
+  libererEngins(pas);
 }
 /* La terre : labourer, semer, épandre, moissonner — ou attendre que ça pousse. */
 function pisteTerre(C, k){
@@ -24295,11 +24469,18 @@ function pisteTerre(C, k){
   C.bloque = null;
   const B = besoinEtape(C, et);
   if(!B) return;
-  const choisi = enginLePlusProche(B.classe, PARCELS[C.p]);
+  const choisi = enginPourOutil(B.classe, PARCELS[C.p], B.outil);
   if(choisi < 0){
-    // Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le dit
-    // dans le bandeau du chantier, mais on ne crie pas — le joueur le verra.
-    C.bloque = NOM_ETAPE[et].toUpperCase() + ' — EN ATTENTE D’UN ENGIN';
+    /* Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le dit
+       dans le bandeau du chantier, mais on ne crie pas — le joueur le verra.
+       ET L'ON DIT LEQUEL DES DEUX MANQUE. Depuis qu'un outil attelé désigne son porteur,
+       « EN ATTENTE D'UN ENGIN » peut s'afficher alors que DEUX tracteurs dorment au parc,
+       moteur coupé : ce n'est pas un engin qui manque, c'est l'outil qui est sur un engin
+       occupé. Le joueur irait acheter un quatrième tracteur qui ne servirait à rien. */
+    const T = B.outil >= 0 ? TOOLS[B.outil] : null;
+    C.bloque = NOM_ETAPE[et].toUpperCase()
+             + (T && T.attached ? ' — ' + T.nom.toUpperCase() + ' EST SUR UN ENGIN OCCUPÉ'
+                                : ' — EN ATTENTE D’UN ENGIN');
     return;
   }
   // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait.
@@ -24381,10 +24562,73 @@ function armerPorteur(C, champ, ou, faire){
    ON NE RAPPELLE QUE CE QUI EST LIBRE. Un engin repris entre-temps par un autre chantier,
    ou dans lequel le joueur est monté, continue ce qu'il fait : `enginLibre` le dit. Et
    celui qui est déjà sur sa case n'a rien à faire. */
+/* ---------- CHACUN RENTRE QUAND IL A FINI, SANS ATTENDRE LES AUTRES ----------
+   Le joueur : « quand un véhicule a fini sa tâche et qu'il a rien à faire, il peut
+   retourner au parking ; pas la peine d'attendre que tout le monde ait fini le champ pour
+   rentrer tous ensemble. »
+   C'ÉTAIT BIEN LE CAS, ET MESURÉ. `rentrerAuParc` n'avait que deux appelants, tous deux
+   juste après le `splice` qui efface le chantier : les ordres de retour tombaient donc
+   TOUS À LA MÊME IMAGE, celle de la fin. Relevé sur un cycle complet : le tracteur du
+   labour finissait à l'image 3 883 et attendait 12 636 images — trois minutes et demie —
+   avant qu'on lui dise de rentrer.
+   ET IL Y AVAIT PIRE : le pick-up, qui livrait encore à l'instant du splice, était sauté
+   par `enginLibre`, le chantier effacé, et PLUS PERSONNE NE LE REGARDAIT. Il ne rentrait
+   jamais. C'est le véhicule planté au milieu de nulle part.
+   ON LIBÈRE DONC EN CONTINU, à la fin de chaque tour de `majChantiers` : tout engin qui a
+   servi et qu'aucun chantier n'a repris ce tour-ci descend dans une file d'attente, et il
+   rentre après TROIS SECONDES d'inutilité CONTINUE — toute reprise remet le compteur à
+   zéro. Le cas serré est réel : dans la trace, le labour finit à 3 877 et le semis
+   redémarre 19 images plus tard ; sans le délai, le tracteur serait parti pour rien.
+   QUATRE GARDES, chacune mesurée : on ne renvoie pas la machine que le JOUEUR conduit ; on
+   ne renvoie pas celle qui porte encore une charge à livrer ; on n'arme pas deux fois le
+   même retour ; et celle qui livre encore reste EN LISTE au lieu d'être oubliée.
+   LE SEUIL DE TRÉMIE EST CELUI DU PILOTE, 0,5 kg, et non celui des anneaux d'action,
+   0,01 : il reste 0,23 kg au fond de la moissonneuse après sa dernière passe, et le pilote
+   ne la fait vider qu'au-delà de 0,5. Un garde-fou plus sévère que la règle qu'il protège
+   l'aurait empêchée de rentrer, jamais. */
+const ARENTRER = [];            // rangs des engins qui doivent un retour au parc
+const REPOS = {};               // depuis combien de temps chacun ne sert plus, en secondes
+const RETOUR_DELAI = 3;         // ce qu'il faut d'inutilité CONTINUE avant de faire rouler
+const VIDE_TREMIE = 0.5;        // le seuil du pilote, pas celui des anneaux
+const aRentrer = (i)=>{ if(i >= 0 && ARENTRER.indexOf(i) < 0){ ARENTRER.push(i); REPOS[i] = 0; } };
+const chargeA = (m)=>{ const K = caisseDe(m);
+  return (K && K.load > 0.01) || (m.key === 'moisson' && hopper > VIDE_TREMIE); };
+function libererEngins(pas){
+  for(const C of CHANTIERS){
+    /* UN CHANTIER EN CONTINU NE RENVOIE PERSONNE. La règle est écrite dans ce fichier
+       depuis que l'automatisation existe : « une fois une action automatique terminée, SI
+       ELLE N'EST PAS EN CONTINU, le véhicule doit venir se garer sur le parking. » Un
+       chantier en continu ne se termine jamais ; ses engins repartent au tour suivant, et
+       les renvoyer au parc entre deux passes ne serait qu'un aller-retour de plus. */
+    if(C.continu) continue;
+    for(let k = (C.servi || []).length - 1; k >= 0; k--){
+      const i = C.servi[k];
+      if(i === C.enginTerre || i === C.enginPort) continue;
+      C.servi.splice(k, 1); aRentrer(i);
+    }
+  }
+  for(let k = ARENTRER.length - 1; k >= 0; k--){
+    const i = ARENTRER[k], m = MACHINES[i];
+    if(!m || !m.v.parc){ ARENTRER.splice(k, 1); delete REPOS[i]; continue; }
+    /* LE JOUEUR AU VOLANT SUSPEND LA DETTE, IL NE L'EFFACE PAS. Un premier jet sortait la
+       machine de la liste : deux secondes dans la cabine, et elle restait plantée dans le
+       champ pour toujours. `enginLibre` écarte déjà `cur` à chaque tour ; il suffit donc
+       d'attendre qu'il redescende. */
+    if(i === cur){ REPOS[i] = 0; continue; }
+    if(!enginLibre(m) || chargeA(m)){ REPOS[i] = 0; continue; }
+    REPOS[i] = (REPOS[i] || 0) + pas;
+    if(REPOS[i] < RETOUR_DELAI) continue;
+    ARENTRER.splice(k, 1); delete REPOS[i];
+    if(Math.hypot(m.v.pos.x - m.v.parc.x, m.v.pos.z - m.v.parc.z) < 6) continue;
+    armerEngin(m, [{quoi:'parc'}]);
+  }
+}
 function rentrerAuParc(C){
   for(const i of (C.servi || [])){
     const m = MACHINES[i];
-    if(!m || !m.v.parc || !enginLibre(m)) continue;
+    if(!m || !m.v.parc) continue;
+    if(i === cur) continue;                        // le joueur est dedans : elle est à lui
+    if(!enginLibre(m)){ aRentrer(i); continue; }   // il livre encore : on le garde en liste
     if(Math.hypot(m.v.pos.x - m.v.parc.x, m.v.pos.z - m.v.parc.z) < 6) continue;
     armerEngin(m, [{quoi:'parc'}]);
   }
@@ -24404,6 +24648,44 @@ function enginLePlusProche(classe, ou){
     if(d < best){ best = d; choisi = i; }
   });
   return choisi;
+}
+/* ---------- C'EST L'OUTIL QUI DÉSIGNE SON TRACTEUR, PAS LA DISTANCE ----------
+   Le joueur : « quand j'achète les 3 tracteurs et que je les équipe chacun d'un outil en
+   mode automatique, l'un doit labourer, l'autre suivre avec le semoir, l'autre avec
+   l'épandeur. Mais là j'ai celui avec les graines qui s'est allumé mais il bug. Il doit
+   vouloir chercher à atteler la charrue qui est déjà sur un autre tracteur. »
+
+   IL AVAIT RAISON, MOT POUR MOT. `enginLePlusProche` ne regarde QUE la distance : elle
+   confiait l'étape au tracteur le plus près du champ, sans se demander qui portait
+   l'outil qu'elle exige. Le désigné partait donc chercher un outil attelé à un voisin —
+   et la tâche `outil` ne sait détacher QUE le sien, `detachTool(v)` ne rendant que
+   `v.tool`. Elle tombait alors sur son attente de trente secondes, rendait la main, et le
+   répartiteur redésignait AUSSITÔT le même tracteur, toujours le plus proche : allumé, à
+   l'arrêt, pour toujours. Relevé au banc : cent secondes d'immobilité, trois abandons de
+   mission, zéro cellule labourée, et le tracteur qui portait la charrue n'avait pas bougé
+   d'un mètre. Sur la chaîne complète, 34 917 images bloquées et un chantier mort.
+   L'ATTENTE ÉTAIT INFINIE PAR CONSTRUCTION : son commentaire suppose que l'autre travaille
+   et va finir sa passe. Ici l'autre est garé, moteur coupé. Rien ne détachera jamais son
+   outil.
+
+   LA RÈGLE EST CELLE QUE `armerPorteur` APPLIQUE DÉJÀ À LA BENNE : un outil attelé ne se
+   vole pas, il DÉSIGNE son porteur. S'il est libre, l'étape est pour lui — aucun détour,
+   aucun échange. S'il travaille ailleurs ou si le joueur est dedans, on attend qu'il ait
+   fini au lieu d'immobiliser un second tracteur.
+   UN OUTIL POSÉ AU SOL, LUI, N'APPARTIENT À PERSONNE : on reprend alors la distance, et le
+   cas nominal — un seul tracteur qui va chercher ses outils l'un après l'autre — ne change
+   pas d'une ligne. `B.outil` vaut −1 pour la moisson, qui retombe sur l'ancien chemin. */
+function enginPourOutil(classe, ou, io){
+  const T = io >= 0 ? TOOLS[io] : null;
+  if(!T || !T.attached) return enginLePlusProche(classe, ou);
+  const j = MACHINES.findIndex((m)=> m.v === T.attached);
+  /* ET SI L'OUTIL EST ATTELÉ À QUELQUE CHOSE QUI N'EST PAS DU PARC, on retombe sur la
+     distance plutôt que de bloquer le chantier sans rien dire. Ce n'est pas atteignable
+     aujourd'hui — la relecture de sauvegarde écarte les porteurs absents, et seuls les
+     trois tracteurs ont un crochet — mais une branche muette qui rend −1 pour toujours
+     n'a aucune raison d'exister. */
+  if(j < 0) return enginLePlusProche(classe, ou);
+  return (classeDe(MACHINES[j]) === classe && enginLibre(MACHINES[j])) ? j : -1;
 }
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){
@@ -24428,6 +24710,12 @@ function retirerChantier(ip){
   const C = CHANTIERS[k];
   // On rend la main aux engins, sans les laisser au milieu d'un champ en pilote fantôme.
   for(const i of [C.enginTerre, C.enginPort]) if(i >= 0) arreterMission(MACHINES[i]);
+  /* ET ON LES RAMÈNE, comme à la fin d'un chantier. C'est le bouton que le joueur presse
+     tous les jours, et c'était le trou le plus large : `retirerChantier` effaçait le
+     chantier sans passer `C.servi` à personne, si bien que tout ce qui avait servi restait
+     planté là où il en était. Mesuré : un tracteur à 118 m du parc, cinquante secondes de
+     boucle complète, aucun ordre de retour. */
+  for(const i of (C.servi || [])) aRentrer(i);
   CHANTIERS.splice(k, 1);
   return true;
 }
@@ -24564,8 +24852,11 @@ function loop(now){
     v.steerVis = steerM ? 0.35 : 0;
     // poussière de roues / dérive
     if(v.speed > 3 && siSouvent(0.25 + v.slip*0.6)){
+      // sur l'essieu ARRIÈRE, et non au milieu de l'engin : `f` porte le décalage.
       const r = right(v.cap), s = (Math.random() < 0.5 ? -1 : 1)*v.trackW;
-      puff(v.pos.x + r.x*s, 0.4, v.pos.z + r.z*s, 0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
+      const f = v.fwd(), e = v.essieuAr || 0;
+      puff(v.pos.x + r.x*s + f.x*e, 0.4, v.pos.z + r.z*s + f.z*e,
+           0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
     }
     updateTrail(v, now/1000, dt);
     // fumée grise au pot d'échappement : lente au ralenti, dense à l'accélération
