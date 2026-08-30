@@ -11134,6 +11134,41 @@ function missionDrive(m, dt){
     tacheSuivante(m);
     return [0, 0];
   }
+  /* ---------- SE RESSERVIR À SA RÉSERVE, ET REPARTIR ----------
+     Le semoir et l'épandeur portent ce qu'ils sèment : cinquante kilos au neuf, trois
+     cent cinquante au dernier cran. Une parcelle de blé en consomme vingt-cinq — donc
+     au premier semoir, un chantier de deux parcelles demande déjà un aller-retour, et
+     c'est le joueur qui devait le faire.
+     La tâche va au quai de LA BONNE réserve — la verte pour les graines, la blanche
+     pour l'engrais — remplit le casier de la culture voulue, et repart. Elle ne dit
+     RIEN de ce qui a manqué : c'est le chantier qui diagnostique, parce que lui seul
+     sait s'il faut attendre, changer de culture ou prévenir le joueur. */
+  if(t.quoi === 'reserve'){
+    const T = toolOf(m);
+    v.cleVoulue = null; v.sensVoulu = 'route';
+    if(!T || !T.cuveMax){ tacheSuivante(m); return [0, 0]; }
+    const eng = T.key === 'engrais';
+    const C = CROPS[T.crop || 0];
+    // Une vigne ne se sème pas, elle se plante et se paie au champ : rien à charger.
+    if(!eng && C && C.perenne){ tacheSuivante(m); return [0, 0]; }
+    const R = eng ? RES_ENGRAIS : RES_GRAINE;
+    const cle = eng ? 'engrais' : C.cle;
+    // Déjà plein : on ne fait pas le voyage pour rien.
+    if(placeCuve(T, cle) < 0.5){ tacheSuivante(m); return [0, 0]; }
+    const r = suivreRoute(v, R.quai.x, R.quai.z, eng ? 'rEng' : 'rGra', R.r);
+    if(r){ M.attente = 0; return r; }
+    // On ne branche la vanne qu'à l'arrêt, comme le joueur : le seuil est celui du
+    // bandeau de service, pour que l'automate et la main obéissent au même chiffre.
+    if(v.speed > 0.35) return [0, 0];
+    M.attente = (M.attente || 0) + dt;
+    remplirCuve(T, cle);
+    // Un seul appel suffit — il prend tout ce que la place et le hangar permettent.
+    // Le délai laisse à l'engin le temps de s'immobiliser avant qu'on renonce.
+    if(placeCuve(T, cle) < 0.5 || M.attente > 2){
+      M.attente = 0; quitterLieu(v); tacheSuivante(m);
+    }
+    return [0, 0];
+  }
   // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
   // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
