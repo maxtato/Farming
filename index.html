@@ -10805,7 +10805,29 @@ function itineraireGrille(ax, az, bx, bz){
      Et l'on ne décale PAS une voie qui a été calée sur le but : ce calage existe parce
      qu'un quai posé à un mètre de l'axe donnerait sinon un dernier tronçon d'un mètre
      perpendiculaire au bon sens d'approche. Le décaler l'éloignerait de ce qu'il vise. */
-  const Q = ROAD_W/4;
+  /* ET LE QUART SE PREND SUR LA VOIE OÙ L'ON EST, PAS SUR LA PLUS LARGE DU JEU. Le
+     décalage valait ROAD_W/4 partout, soit 2,50 m : le quart d'une ROCADE. Or la grille
+     mêle rocades et chemins de sable, et un chemin ne fait que 6,40 m. Se ranger à 2,50 m
+     de son axe, c'est se ranger à 70 cm du bas-côté — et surtout dans ce que le décor
+     déborde par là.
+
+     MESURÉ, ET C'EST LE BLOCAGE QUE LE JOUEUR SIGNALE. Le silo à graines est planté en
+     z = 46 avec un disque de collision de 2,256 m ; en comptant la demi-machine, son
+     emprise remonte à z = 42,394. La file de droite du chemin z = 40 tombait à 42,50 :
+     ELLE PASSAIT DANS LA CITERNE, de onze centimètres. Onze centimètres suffisent — la
+     collision ne repousse pas seulement, elle multiplie la vitesse par 0,4 À CHAQUE
+     IMAGE tant qu'on est dedans. Relevé sur la physique du jeu, plein gaz, attelage
+     complet : 11,97 m/s à l'entrée, 0,10 m/s devant la citerne, 241 pas pour franchir
+     les dix mètres — contre 51 sur la même course tracée un mètre plus au nord. L'engin
+     ne s'arrête pas tout à fait ; il rampe, et de loin cela se voit comme un blocage.
+
+     Un quart de 6,40 m fait 1,60 m : la file passe à z = 41,60, à 79 cm de l'emprise de
+     la citerne et à 1,60 m du bas-côté. Deux machines s'y croisent encore — 2,70 m de
+     large chacune, deux files de 3,20 m. */
+  const ROCADES_V = [-ROAD_C, ROAD_E], ROCADES_H = [ROAD_N, ROAD_C];
+  const largeVoie = (v, roc)=> roc.some((r)=> Math.abs(r - v) < 0.5) ? ROAD_W : PATH_W;
+  const QV = largeVoie(vA2, ROCADES_V)/4, QH = largeVoie(hA2, ROCADES_H)/4;
+  const QVB = largeVoie(vB, ROCADES_V)/4, QHB = largeVoie(hB, ROCADES_H)/4;
   const sgn = (a, b)=> (b > a ? 1 : (b < a ? -1 : 0));
   /* ET L'ON NE CHANGE PAS DE RANGÉE QUAND ON Y EST DÉJÀ. Une chaussée fait dix mètres :
      partant du silo à z = 74 pour aller à l'entrepôt à z = 74, la machine partait quand même
@@ -10815,14 +10837,14 @@ function itineraireGrille(ax, az, bx, bz){
   const memeVoie   = Math.abs(ax - vB) <= ROAD_W/2 + CALE;
   if(Math.abs(bx - vB) <= Math.abs(bz - hB)){
     // on suit une horizontale (en x) puis une verticale (en z)
-    const zH = cale.h ? hA2 : (memeVoie ? az : hA2 + Q*sgn(ax, vB));
-    const xV = cale.v ? vB  : vB  - Q*sgn(zH, bz);
+    const zH = cale.h ? hA2 : (memeVoie ? az : hA2 + QH*sgn(ax, vB));
+    const xV = cale.v ? vB  : vB  - QVB*sgn(zH, bz);
     pts.push({x:ax, z:zH});          // on gagne la voie horizontale la plus proche
     pts.push({x:xV, z:zH});          // on la suit jusqu'à la voie qui dessert le but
     pts.push({x:xV, z:bz});          // puis celle-ci jusqu'à la hauteur du but
   } else {
-    const xV = cale.v ? vA2 : (memeRangee ? ax : vA2 - Q*sgn(az, hB));
-    const zH = hB + Q*sgn(xV, bx);
+    const xV = cale.v ? vA2 : (memeRangee ? ax : vA2 - QV*sgn(az, hB));
+    const zH = hB + QHB*sgn(xV, bx);
     pts.push({x:xV, z:az});
     pts.push({x:xV, z:zH});
     pts.push({x:bx, z:zH});
@@ -10843,7 +10865,48 @@ function equerrer(pts){
       droit.push({x:a.x, z:b.z});             // le coude, à l'équerre
     droit.push(b);
   }
-  return droit;
+  return sansDemiTour(droit);
+}
+/* ---------- ON NE FAIT PAS DEUX MÈTRES CINQUANTE POUR REVENIR SUR SES PAS ----------
+   Le joueur : « l'accès doit se faire par les mêmes routes et à angle droit comme pour
+   le silo, parce que là ça se bloque. »
+
+   CE QUI SE BLOQUAIT, ET POURQUOI. Une voie d'accès se prend PAR UN BOUT, et ses bouts
+   sont des axes de chaussée — z = 40 pour le chemin de sable, z = 74 pour la rocade.
+   `batir` conduisait donc l'engin jusqu'à l'axe exact, puis passait la main à la grille,
+   qui roule à droite : son premier point est à deux mètres cinquante EN ARRIÈRE, sur la
+   file de droite de la chaussée qu'on vient d'atteindre. Le trajet disait : « descends
+   dix mètres, remonte deux et demi, puis tourne. » Un attelage ne remonte pas deux
+   mètres et demi : il braque, sort du couloir, revient, et le pilote — qui valide un
+   point de passage à cinq mètres et demi — le tient pour atteint avant d'y être et
+   attaque le virage de travers.
+
+   Relevé sur les quarante-huit couples de lieux qui comptent : DIX-SEPT itinéraires se
+   retournaient ainsi, tous au bout d'une voie — (59, 40) et (59, 74) pour le silo,
+   (11, 74) pour l'entrepôt. Le pire est celui des deux voisins que ces voies devaient
+   justement rapprocher : du silo à l'entrepôt, 84,2 m pour 64,8 à vol d'oiseau, avec
+   DEUX demi-tours.
+
+   LA CORRECTION EST GÉOMÉTRIQUE, ET SÛRE PAR CONSTRUCTION. Après l'équerrage, tous les
+   tronçons sont sur un axe. Trois points A, B, C dont les deux tronçons sont de sens
+   opposés sont donc ALIGNÉS, et C est ENTRE A et B : supprimer B ne crée aucune
+   diagonale, ne saute aucun obstacle — le chemin A→C est strictement inclus dans
+   A→B→C — et raccourcit toujours. On retire l'apex, et l'engin s'arrête sur la file de
+   droite au lieu d'aller toucher l'axe pour rien.
+
+   Un seul passage suffirait : A→C garde le sens qu'avait A→B, donc le tronçon d'avant
+   n'a pas à être réexaminé. On reprend quand même l'indice, parce que le tronçon
+   d'APRÈS, lui, se compare à un segment neuf. */
+function sansDemiTour(pts){
+  for(let k = 1; k < pts.length - 1; k++){
+    const a = pts[k-1], b = pts[k], c = pts[k+1];
+    const ux = b.x - a.x, uz = b.z - a.z, vx = c.x - b.x, vz = c.z - b.z;
+    const lu = Math.hypot(ux, uz), lv = Math.hypot(vx, vz);
+    if(lu < 0.05 || lv < 0.05) continue;
+    if((ux*vx + uz*vz)/(lu*lv) > -0.7) continue;   // ce n'est pas un retournement
+    pts.splice(k, 1); k--;                          // l'apex saute, A→C reste droit
+  }
+  return pts;
 }
 /* ---------- LE SILO ET L'ENTREPÔT ONT LEUR VOIE, ET C'EST LE JOUEUR QUI L'A TRACÉE ----------
    Il a dessiné en rouge, sur la carte du plan de travail, les chemins par lesquels il veut
@@ -10878,6 +10941,33 @@ function voiesAcces(){
   const L = [];
   if(nord !== undefined && sud !== undefined)
     L.push({nom:'silo', voie:SILO.x, cible:{x:SILO.x, z:SILO.z}, bouts:[nord, sud], large:9});
+  /* LES DEUX RÉSERVES PARTAGENT UNE VOIE, PARCE QU'ELLES PARTAGENT UN COULOIR. Leurs
+     deux cercles sont sur la même abscisse — x = 72, cinq mètres à droite des cuves,
+     comme le joueur les a demandés — et rien ne les sépare : c'est une allée nord-sud,
+     et elle se dessert comme celle du silo.
+
+     POURQUOI IL LA FAUT. Les citernes n'étaient sur aucune voie : la grille les
+     desservait par sa verticale la plus proche, x = 80, ce qui fait aborder le quai de
+     l'engrais en descendant x = 77,5. Or l'atelier grandit VERS LA GAUCHE, et son flanc
+     recule palier après palier — mesuré sur l'emprise de collision, pas sur le dessin :
+     82,18 m au palier 0, 79,00 au palier 4, 77,53 au palier 9. En comptant la
+     demi-largeur d'une machine, 1,35 m, la route x = 77,5 passe DANS le mur dès le
+     palier 5 : marge +0,15 m au palier 4, −0,14 au 5, −1,32 au 9. C'est-à-dire qu'elle
+     se bloque exactement quand on a bâti de quoi vouloir automatiser.
+     La voie x = 72 garde 4,18 m de dégagement au pire palier, et 8,83 au premier.
+
+     ET ELLE ÉVITE AUSSI LA CITERNE ELLE-MÊME. L'ancienne approche par le nord longeait
+     z = 42,5, ce qui passe à 3,50 m du centre du silo à graines pour un rayon de
+     collision de 3,61 : onze centimètres dans l'obstacle, sur sept des douze trajets
+     mesurés — de quoi se faire repousser juste avant de se ranger.
+
+     Les bouts se lisent dans la grille comme ceux du silo : la première rangée au nord
+     du quai des graines, la première au sud de celui de l'engrais. */
+  const nCuves = GRILLE_H.filter((h)=> h < RES_GRAINE.quai.z).pop();
+  const sCuves = GRILLE_H.find((h)=> h > RES_ENGRAIS.quai.z);
+  if(nCuves !== undefined && sCuves !== undefined)
+    L.push({nom:'cuves', voie:RES_GRAINE.quai.x, cible:RES_ENGRAIS.quai,
+            bouts:[nCuves, sCuves], large:9});
   // l'entrepôt : par le sud seulement, le hangar bouche le nord
   if(typeof ENTREPOT !== 'undefined' && ENTREPOT.quai)
     L.push({nom:'entrepot', voie:ENTREPOT.quai.x, cible:ENTREPOT.quai,
@@ -10921,12 +11011,50 @@ function itineraire(ax, az, bx, bz){
     }
     return equerrer(pts);
   };
+  /* ET ENTRE DEUX BOUTS, ON REGARDE AUSSI SI L'ON PASSE. La longueur seule ne suffit
+     pas : la grille ne connaît aucun obstacle, et le chemin de sable x = 80 traverse
+     l'atelier dès que celui-ci a grandi — son annexe de gauche va de 77,53 à 82,84 m,
+     c'est-à-dire À CHEVAL sur l'axe du chemin. Un engin parti de la cour est se rangeait
+     donc sur sa file, montait plein nord et se plantait dans le bâtiment. Mesuré au
+     dernier palier, sur les couples de lieux menant aux deux réserves : 254 points de
+     trajet dans un mur.
+
+     Les quatre candidats PARTAGENT leurs deux extrémités — `batir` pose les mêmes
+     premier et dernier tronçons —, donc ce qui les distingue est au milieu, et les
+     compter se fait à égalité : un quai collé à un hangar pénalise tout le monde pareil.
+     On prend d'abord celui qui traverse le moins, la longueur ne départage qu'ensuite ;
+     un mur ne se franchit pas, alors qu'un détour se roule.
+
+     Le comptage ne sert à rien quand il n'y a qu'un candidat, et c'est le cas courant :
+     on ne le fait que s'il y a un choix. Mesuré : 24 µs pour bâtir un itinéraire, 41 µs
+     pour en compter les murs, et `itineraire` n'est appelé qu'au changement de but —
+     quelques fois par minute pour toute la ferme. */
+  const MI_MACHINE = 1.35;
+  const traverse = (r)=>{
+    let n = 0, x = ax, z = az;
+    for(const q of r){
+      const dx = q.x - x, dz = q.z - z, l = Math.hypot(dx, dz), pas = Math.max(1, Math.ceil(l));
+      for(let i = 0; i <= pas; i++){
+        const px = x + dx*i/pas, pz = z + dz*i/pas;
+        for(const o of boxObs){
+          const cx = Math.max(o.x - o.hw, Math.min(o.x + o.hw, px));
+          const cz = Math.max(o.z - o.hd, Math.min(o.z + o.hd, pz));
+          if((px-cx)*(px-cx) + (pz-cz)*(pz-cz) < MI_MACHINE*MI_MACHINE){ n++; break; }
+        }
+      }
+      x = q.x; z = q.z;
+    }
+    return n;
+  };
+  const boutsD = dep ? dep.bouts : [az], boutsA = arr ? arr.bouts : [bz];
+  const choix = boutsD.length*boutsA.length > 1;
   let mieux = null;
-  for(const zS of (dep ? dep.bouts : [az])) for(const zE of (arr ? arr.bouts : [bz])){
+  for(const zS of boutsD) for(const zE of boutsA){
     const r = batir(zS, zE);
     let x = ax, z = az, lg = 0;
     for(const q of r){ lg += Math.hypot(q.x - x, q.z - z); x = q.x; z = q.z; }
-    if(!mieux || lg < mieux.lg) mieux = {lg:lg, r:r};
+    const m = choix ? traverse(r) : 0;
+    if(!mieux || m < mieux.m || (m === mieux.m && lg < mieux.lg)) mieux = {lg:lg, m:m, r:r};
   }
   return mieux.r;
 }

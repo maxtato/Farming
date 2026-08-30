@@ -3531,7 +3531,15 @@ Quelques partis pris qui expliquent le reste :
 - **Et l'on roule sur la voie de droite.** Les points étaient posés sur l'AXE de la
   chaussée : deux engins se croisant se rentraient dedans. Chaque tronçon est décalé
   d'un quart de chaussée à droite de son sens de marche — trente tronçons mesurés, zéro
-  à contresens.
+  à contresens. **Un quart de SA chaussée** : 2,50 m sur une rocade de 10 m, 1,60 sur un
+  chemin de sable de 6,40. Le quart de la rocade appliqué au chemin rangeait l'engin à
+  70 cm du bas-côté, et dans la citerne à graines qui déborde par là.
+- **Et l'on ne fait pas deux mètres cinquante pour revenir sur ses pas.** Une voie
+  d'accès se prend par un bout, et ses bouts sont des axes de chaussée ; la grille, elle,
+  repart de la file de droite, deux mètres et demi en arrière. Dix-sept des quarante-huit
+  itinéraires se retournaient ainsi. L'apex d'un tel retournement se supprime sans rien
+  changer d'autre : les trois points sont alignés et le troisième est entre les deux
+  premiers.
 - **On repart en avançant quand il y a la place.** On ressortait toujours en marche
   arrière. C'est juste au fond d'un parvis de commerce, où la façade est à 5,40 m ; pas
   au silo, devant lequel s'ouvrent dix-neuf mètres de cour, et où l'on reculait pourtant
@@ -4707,6 +4715,10 @@ converti donne, sur la trame du jeu :
 | **Silo** | verticale **x = 59**, qui le traverse | z = 40 (chemin) → z = 74 (rocade sud) |
 | **Entrepôt** | rocade sud **z = 74**, puis montée **x = 11** | jusqu'au quai, z = 66,85 |
 
+Une troisième s'y est ajoutée depuis, que le joueur n'avait pas dessinée parce que les deux
+réserves n'existaient pas encore : la verticale **x = 72** qui dessert leurs deux quais.
+Voir « Les deux réserves ont leur voie, et trois blocages tombent avec », plus bas.
+
 **Et le dessin dit vrai sur un point qu'il ne pouvait pas connaître.** L'entrepôt n'y est
 accessible que par le sud. Mesuré : la voie x = 11 est libre de z = 74 à z = 68, et bouchée
 de z = 40 à z = 66 — le hangar est une emprise de 16,5 × 17,7 m centrée sur (11, 54), posée
@@ -4761,6 +4773,151 @@ la machine traversait alors soixante-huit mètres de champs à z = 52 pour aller
 voie. Les deux choix se valent de toute façon en distance — toutes les voies comprises entre
 les deux donnent la même longueur —, et l'écart de dessin ne vaut que deux fois le décalage
 de conduite à droite, cinq mètres.
+
+## Les deux réserves ont leur voie, et trois blocages tombent avec
+
+Le joueur : « je veux que tu ajoutes au-dessus des citernes d'engrais et de grain des
+étiquettes comme sur le silo qui indiquent l'état de remplissage. Et pour l'action
+automatique, l'accès doit se faire par les mêmes routes et à angle droit comme pour le
+silo, parce que là ça se bloque. »
+
+Les étiquettes étaient une demi-heure de travail. Le blocage en a coûté davantage, parce
+qu'il n'y en avait pas un mais **trois**, et qu'aucun n'était celui qu'on croyait.
+
+### Les étiquettes
+
+Les deux réserves étaient les seules pièces de la cour à n'en pas avoir. Le silo,
+l'atelier, l'entrepôt, la cuve à gazole et chaque enclos disent leur contenu au-dessus
+d'eux ; la semence et l'engrais, non. On ne savait ce qu'il restait qu'en s'arrêtant au
+comptoir, et une passe de semis s'arrêtait au milieu du champ sans qu'on ait rien vu venir.
+
+**Le rouge est à l'autre bout que pour le silo, et c'est voulu.** Un silo alarme quand il
+est *plein* — c'est plein qu'il bloque la moisson. Une réserve alarme quand elle est
+*vide* — c'est vide qu'elle arrête le semoir. La couleur désigne ce qui empêche, elle ne
+remplit pas un gabarit. Rouge sous 10 %, ambre sous 30 %, vert au-dessus.
+
+Les hauteurs sont mesurées : sommet du silo à graines **6,91 m**, du bac à engrais
+**7,89 m**. La cuve à gazole culmine à 4,00 m pour une étiquette à 7,40 — 3,40 m de
+dégagement. Même écart ici, ce qui donne **9,6 et 10,6** : un mètre de décalage entre les
+deux, parce qu'elles ne sont qu'à huit mètres l'une de l'autre en z et que deux plaques à
+la même altitude se recouvrent vues du dessus.
+
+### Premier blocage : le demi-tour de deux mètres cinquante
+
+Une voie d'accès se prend **par un bout**, et ses bouts sont des axes de chaussée : z = 40
+pour le chemin de sable, z = 74 pour la rocade. L'itinéraire conduisait donc l'engin
+jusqu'à l'axe *exact*, puis passait la main à la grille — qui roule à droite, et dont le
+premier point est **deux mètres cinquante en arrière**, sur la file de droite de la
+chaussée qu'on venait d'atteindre. Le trajet disait : « descends dix mètres, remonte-en
+deux et demi, puis tourne. »
+
+Un attelage ne remonte pas deux mètres et demi. Il braque, sort du couloir, revient. Et le
+pilote, qui valide un point de passage à cinq mètres et demi, le tient pour atteint avant
+d'y être et attaque le virage de travers.
+
+Relevé sur les quarante-huit couples de lieux qui comptent : **dix-sept itinéraires se
+retournaient ainsi**, tous au bout d'une voie — (59, 40) et (59, 74) pour le silo,
+(11, 74) pour l'entrepôt. Le pire est celui des deux voisins que ces voies devaient
+justement rapprocher : **du silo à l'entrepôt, 84,2 m pour 64,8 à vol d'oiseau, avec deux
+demi-tours.**
+
+La correction est géométrique et sûre par construction. Après l'équerrage, tous les
+tronçons sont sur un axe ; trois points dont les deux tronçons sont de sens opposés sont
+donc *alignés*, et le troisième est **entre** les deux premiers. Supprimer l'apex ne crée
+aucune diagonale, ne saute aucun obstacle — le chemin A→C est strictement inclus dans
+A→B→C — et raccourcit toujours.
+
+**Dix-sept demi-tours → zéro.**
+
+### Deuxième blocage : la route qui entre dans l'atelier
+
+Les citernes n'étaient sur aucune voie. La grille les desservait par sa verticale la plus
+proche, x = 80, ce qui fait aborder le quai de l'engrais **en descendant x = 77,5**.
+
+Or l'atelier grandit vers la gauche, et son flanc recule module après module. Mesuré sur
+l'emprise de collision, pas sur le dessin :
+
+| palier | flanc gauche | marge de la route x = 77,5 |
+|---|---|---|
+| 0 | 82,18 m | +3,33 m |
+| 4 | 79,00 m | +0,15 m |
+| **5** | **78,71 m** | **−0,14 m** |
+| 9 | 77,53 m | −1,32 m |
+
+En comptant la demi-largeur d'une machine, 1,35 m, **la route passe dans le mur dès le
+cinquième module** — c'est-à-dire exactement quand on a bâti de quoi vouloir automatiser.
+
+Les deux réserves reçoivent donc leur voie, sur le modèle de celle du silo : une seule
+pour les deux quais, à **x = 72**, l'abscisse de leurs cercles, ouverte au nord sur le
+chemin z = 40 et au sud sur la rocade z = 74. Elle garde **4,18 m** de dégagement au pire
+palier, 8,83 au premier.
+
+### Troisième blocage : le quart de chaussée pris sur la mauvaise chaussée
+
+Le décalage de conduite à droite valait `ROAD_W/4` partout — soit 2,50 m, le quart d'une
+**rocade**. Mais la grille mêle rocades et chemins de sable, et un chemin ne fait que
+**6,40 m**. Se ranger à 2,50 m de son axe, c'est se ranger à 70 cm du bas-côté.
+
+Et surtout dans ce que le décor déborde par là. Le silo à graines est planté en z = 46 avec
+un disque de collision de 2,256 m ; en comptant la demi-machine, son emprise remonte à
+**z = 42,394**. La file de droite du chemin z = 40 tombait à **42,50** : elle passait dans
+la citerne, de onze centimètres.
+
+Onze centimètres suffisent, parce que la collision ne repousse pas seulement — elle
+**multiplie la vitesse par 0,4 à chaque image** tant qu'on est dedans. Relevé sur la
+physique du jeu, plein gaz, attelage complet :
+
+| | pas pour franchir les dix mètres | vitesse la plus basse |
+|---|---|---|
+| ancienne file, z = 42,50 | **372** | **0,10 m/s** |
+| nouvelle file, z = 41,60 | **178** | **10,43 m/s** |
+
+L'engin ne s'arrêtait pas tout à fait : il rampait. De loin, cela se voit comme un blocage,
+et c'en est un.
+
+Le quart se prend maintenant sur la voie où l'on est. Un quart de 6,40 m fait **1,60 m** :
+la file passe à z = 41,60, à 79 cm de l'emprise de la citerne et à 1,60 m du bas-côté. Deux
+machines s'y croisent encore — 2,70 m de large chacune, deux files de 3,20 m.
+
+### Quatrième blocage : le chemin de sable qui passe sous l'atelier
+
+Les trois premiers réparés, il en restait un, que la mesure a sorti toute seule. L'atelier
+au dernier palier occupe **x = 77,53 à 103,96**. Le chemin de sable vertical **x = 80** lui
+passe donc **dessous** : le bâtiment est à cheval sur l'axe de la voie. Un engin parti de la
+cour est se rangeait sur sa file, montait plein nord et se plantait dans le mur.
+
+La grille d'itinéraires ne connaît aucun obstacle — c'est son principe, et c'est ce qui la
+rend lisible. Mais `itineraire` construit déjà **jusqu'à quatre candidats** quand un des
+deux bouts est sur une voie d'accès, et il n'en gardait que le plus court. Il regarde
+maintenant aussi s'ils passent : d'abord celui qui traverse le moins de bâtiment, la
+longueur ne départage qu'ensuite. Un mur ne se franchit pas, alors qu'un détour se roule.
+
+La comparaison est juste parce que les quatre candidats **partagent leurs deux extrémités**
+— le premier et le dernier tronçon sont les mêmes pour tous —, donc un quai collé à un
+hangar pénalise tout le monde pareil. Et le comptage ne sert à rien quand il n'y a qu'un
+candidat : on ne le fait que s'il y a un choix. Mesuré : 24 µs pour bâtir un itinéraire,
+41 µs pour en compter les murs, et `itineraire` n'est appelé qu'au changement de but —
+quelques fois par minute pour toute la ferme.
+
+Sur les couples de lieux menant aux deux réserves, au dernier palier d'atelier :
+**227 points de trajet dans un mur, sur seize trajets → zéro.**
+
+*(Un point de départ qui est lui-même dans un bâtiment n'est pas un point de départ : au
+dernier palier l'atelier couvre x 82,6 à 103,96, et le repère « champ est » (100, 50) se
+retrouve dedans. Le banc l'écarte et le dit, plutôt que de compter sa sortie de mur comme
+une traversée.)*
+
+### Ce que ça donne bout à bout
+
+| trajet | avant | après |
+|---|---|---|
+| rocade sud-est → quai des graines | 60,5 m | **38,5 m** (le trajet à vol d'oiseau) |
+| silo → quai de l'engrais | 48,0 m | **32,0 m** |
+| entrepôt → quai de l'engrais | 114,2 m | **93,2 m** |
+| entrepôt → quai des graines | 120,2 m | **101,2 m** |
+
+Et les douze approches mesurées descendent maintenant la voie x = 72 **dans l'axe**, à
+l'équerre, comme au silo — au lieu de couper le champ à z = 42,5 en rasant la citerne.
 
 ## Cinq demandes d'un coup
 
