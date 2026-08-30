@@ -22023,6 +22023,22 @@ function etatJeu(){
     // sauvegarde d'avant les crans n'en a pas, et se relit sur un silo au premier cran.
     siloCran: SILO.cran || 1,
     entrepot: Object.assign({}, ENTREPOT.stock),
+    /* LES CHANTIERS SE SAUVEGARDENT, ET RIEN DE LEUR AVANCEMENT.
+       C'est le dividende du choix de départ : l'étape ne se mémorise pas, elle SE LIT SUR
+       LA TERRE. Un chantier n'est donc qu'un réglage — cette parcelle, cette graine, ce
+       produit, ce client, une fois ou en continu — et il n'y a ni étape, ni engin
+       réquisitionné, ni tournée en cours à remettre en place. À la relecture, le
+       répartiteur regarde le champ et repart de là où il en est, en une demi-seconde.
+       Ils vivent ICI et non dans le bloc `campagne` : une ferme en mode libre a des
+       chantiers comme les autres, et le bloc campagne se relit par un autre chemin.
+       La CULTURE est écrite par sa CLÉ et non par son rang : CROPS est une table
+       positionnelle, et y insérer une plante décalerait toutes les parties enregistrées.
+       Le rang de la PARCELLE, lui, en est bien un — c'est déjà ainsi que `parcelles` est
+       écrit, et deux conventions dans le même fichier seraient pire qu'une.
+       Facultatif comme le reste : absente, la liste vaut vide, et `v` ne bouge pas. */
+    chantiers: CHANTIERS.map((C)=> ({q:C.quoi, p:C.p, c:CROPS[C.crop || 0].cle,
+      e:!!C.engrais, pr:C.produit || null,
+      d:Object.assign({}, C.dest), k:!!C.continu})),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
     // `graines` est ce qui compte, et il détaille le hangar sac par sac.
     stock: {semence: grainesTotal(), graines: Object.assign({}, STOCK.graines),
@@ -22551,6 +22567,20 @@ function chargerPartie(S){
     majBulles();
     caleEspece();
     setMachine(MACHINES[S.cur] && !MACHINES[S.cur].verrou ? S.cur : 0);
+    /* LES CHANTIERS SE REPOSENT EN DERNIER, quand la terre, les parcelles et les enclos
+       sont tous en place : un chantier posé plus tôt lirait un champ qui n'existe pas
+       encore. On écarte ce qui ne tient plus — une parcelle revendue, une culture
+       disparue de la table — sans le dire : une sauvegarde qui se relit à moitié vaut
+       mieux qu'une sauvegarde refusée. */
+    CHANTIERS.length = 0;
+    if(Array.isArray(S.chantiers)) for(const q of S.chantiers){
+      const p = PARCELS[q.p];
+      if(!p || !p.owned) continue;
+      const ic = CROPS.findIndex((c)=> c.cle === q.c);
+      poserChantier(q.p, {quoi:q.q === 'elevage' ? 'elevage' : 'culture',
+                          crop:ic < 0 ? 0 : ic, engrais:!!q.e, produit:q.pr || null,
+                          dest:q.d || {}, continu:!!q.k});
+    }
     updateJourNuit(0);
     flushTiles();
     return true;

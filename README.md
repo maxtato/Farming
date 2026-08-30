@@ -2664,6 +2664,12 @@ immobilisé : il se traîne au ralenti jusqu'à la cuve.
 
 ## Le plan de travail
 
+> **Cet écran n'existe plus.** Il est remplacé par celui des chantiers — voir « On touche
+> une parcelle, et le matériel s'en occupe ». La section ci-dessous raconte comment on en
+> est arrivé là, et pourquoi la mécanique de navette qu'elle décrit a été gardée sous le
+> nouvel écran : c'est elle qui porte toutes les livraisons de la chaîne.
+
+
 Le bouton du **A cerclé** ouvre la carte en grand — la seule vue d'ensemble du jeu. On y
 désigne un engin, ce qu'on lui demande, et où :
 
@@ -4090,6 +4096,210 @@ longe l'accotement se serait senti écarté par une croix qu'il ne touche pas. M
 calvaire est passé de 6,70 m à **3,30 m** du bitume, à onze mètres de son ancre. La
 clairière réservée couvre maintenant l'union des deux places : sans cela le semis général
 aurait repris la bande de terrain gagnée, et l'on aurait eu un caillou sous la croix.
+
+## On touche une parcelle, et le matériel s'en occupe
+
+> Cette section remplace l'écran « Plan de travail » raconté plus bas. Il n'existe plus.
+
+**« J'aimerais complètement revoir le système d'automatisation. Je veux qu'on ait juste à
+toucher une parcelle, qu'on décide ce qu'on veut en faire — soit de l'élevage, soit de la
+culture. Ça nous demande si on va le faire une fois ou en continu, et suivant l'état de la
+terre à ce moment-là, les véhicules disponibles iront directement travailler la terre dans
+l'ordre. »**
+
+**L'ancien écran demandait de commencer par le matériel.** On choisissait un engin, puis un
+mode, puis on composait une file de tâches : trois décisions avant d'avoir dit ce qu'on
+voulait obtenir. Le nouveau part de la **fin** — cette parcelle, ce produit, ce client — et
+un répartiteur en déduit le matériel.
+
+### Tout cela n'est qu'un ordonnanceur
+
+C'est le fait le plus important de ce chantier, et il n'était pas acquis d'avance : **le
+pilote n'a pas été réécrit d'une ligne.** Il savait déjà travailler une parcelle
+(`{quoi:'parcelle', p}`) et porter une marchandise d'un lieu à un autre
+(`{quoi:'navette', a, b, cle}`). Toute la chaîne s'écrit avec ces deux briques, plus deux
+nouvelles qui lui manquaient :
+
+| tâche | ce qu'elle fait | mesuré |
+| --- | --- | --- |
+| `{quoi:'outil', t}` | l'engin va chercher l'outil, dételle ce qu'il traîne, s'attelle | charrue prise à 12 s, champ à 23 s, 238 cellules labourées à 150 s |
+| `{quoi:'reserve'}` | il va au quai de **sa** réserve et remplit le casier voulu | semoir 0 → 50 kg à la verte, épandeur 0 → 30 kg à la blanche |
+
+L'attelage n'était nulle part : il n'existait qu'un chemin, le bouton du HUD, et aucune
+machine en pilote automatique ne pouvait atteindre un outil. Le ravitaillement non plus —
+et il le fallait, parce qu'un semoir neuf ne porte que cinquante kilos quand une parcelle
+de blé en consomme vingt-cinq.
+
+### L'étape se lit sur la terre, elle n'est pas mémorisée
+
+`bilanParcelle` compte les cellules mûres, nues, labourées, semées, non fertilisées ;
+`etapeChantier` en déduit ce qu'il reste à faire. Un chantier repris au milieu, une
+parcelle à moitié faite, une partie rechargée : **il n'y a jamais rien à resynchroniser.**
+C'est ce qui rend la sauvegarde triviale, et c'est ce qui rend le système lisible.
+
+| état de la terre | étape | engin | file de tâches |
+| --- | --- | --- | --- |
+| mûre | moisson | moissonneuse | `parcelle` |
+| nue ou en chaume | labour | tracteur | `outil:labour` → `parcelle` |
+| labourée | semis | tracteur | `outil:semis` → `reserve` → `parcelle` |
+| semée, sans engrais | engrais | tracteur | `outil:engrais` → `reserve` → `parcelle` |
+| semée et fertilisée | ça pousse | aucun | — |
+
+**La moisson passe avant le labour, et c'est le point le moins évident.** La charrue
+accepte de retourner une terre mûre — son `from` contient l'état MUR — si bien qu'un
+chantier relancé sur une parcelle à moitié moissonnée enfouirait le blé resté debout.
+
+### Deux pistes en parallèle, et c'est la raison d'être du répartiteur
+
+La terre et la marchandise n'avancent pas au même rythme : pendant que le tracteur laboure
+la parcelle suivante, un porteur emmène déjà la récolte de la précédente. Un chantier tient
+donc **deux emplacements d'engin**, servis indépendamment. Un seul les aurait mis en file,
+et l'on aurait construit un ordonnanceur pour rien.
+
+La piste de la marchandise n'a que trois états : on transforme s'il faut transformer, on
+livre s'il y a de quoi livrer, on ne fait rien sinon. **L'atelier n'a besoin d'aucun
+engin** — il se sert lui-même au silo et à l'entrepôt par des vis sans fin — si bien que la
+mise en file est une décision, pas une tournée.
+
+| ce qu'on demande | ce que le chantier fait |
+| --- | --- |
+| blé au silo → Coopérative | navette `silo → Coopérative : blé` |
+| **farine** → Boulangerie, avec du blé au silo | un lot entre dans la file de l'atelier |
+| la farine est prête à l'entrepôt | navette `entrepôt → Boulangerie : farine` |
+| farine → Restaurant, qui l'**achète** au lieu de la prendre | la même navette : c'est `demandeChez` qui tranche |
+
+Le répartiteur tourne deux fois par seconde, sert les chantiers dans l'ordre où on les a
+posés, et donne à chaque étape l'engin **libre le plus proche** de l'endroit où il doit
+aller. Il ne prend jamais celui que le joueur conduit. La proximité n'est pas du luxe : le
+parc à outils est à cent mètres des champs, et prendre le tracteur d'en face coûte une
+minute d'aller-retour visible à l'écran.
+
+### Rien ne se bloque en silence
+
+C'est le seul vrai défaut d'un système qu'on laisse tourner sans le regarder. Chaque étape
+déclare ce qui lui manque, en français, et le message n'est dit **qu'au changement** — pas
+deux fois par seconde.
+
+| ce qui manque | ce que le jeu dit |
+| --- | --- |
+| semence | PLUS DE SEMENCE DE BLÉ — À ACHETER AU COMPTOIR |
+| engrais | PLUS D'ENGRAIS — À ACHETER AU COMPTOIR |
+| place au silo | SILO PLEIN — LA MOISSON N'A NULLE PART OÙ ALLER |
+| aliment pour les bêtes | PLUS D'ALIMENT POUR LES BREBIS — NI GRAIN NI ALIMENT EN STOCK |
+| un engin | LABOUR — EN ATTENTE D'UN ENGIN |
+| un client saturé | BOULANGERIE NE PEUT PLUS RIEN PRENDRE |
+
+### Et quand un client sature, on propose autre chose
+
+**« On nous proposera l'alternative de le vendre à un commerce qui l'accepte, avec la liste
+des commerces, le volume qu'ils acceptent et le prix. »** Trois colonnes, et pas une de
+plus. Relevé pour cent kilos de farine :
+
+| | place | prix | ce que la cargaison rapporterait |
+| --- | --- | --- | --- |
+| Restaurant | 900 kg | 1,15 €/kg | **115 €** |
+| Épicerie | 1 200 kg | 1,06 | 106 |
+| Marché | 2 000 kg | 0,98 | 98 |
+| Supermarché | 9 000 kg | 0,90 | 90 |
+
+**Le tri se fait sur ce que la cargaison rapporterait, et non sur le prix.** Le mieux-disant
+qui n'a plus que trois kilos de place n'est pas le bon choix pour en écouler cent ; le prix
+ne départage que les ex aequo. C'est la même arithmétique que l'arbitrage du menu de vente,
+et elle donne le même ordre.
+
+Un fait utile trouvé en mesurant : **la Boulangerie n'achète pas la farine, elle la prend.**
+Sa liste `achete` est vide, elle a une trémie d'usine. « Alimenter » un lieu et « lui
+vendre » sont deux gestes différents, et les deux tests du fichier disaient déjà la
+différence.
+
+### L'élevage : nourrir sans relâche, et un lieu par produit
+
+Rien de neuf à conduire ici non plus — vérifié au banc **avant** d'écrire une ligne : un
+pick-up lâché sur `{quoi:'navette', a:'silo', b:'pature0', cle:'mais'}` charge à 47 s et
+remplit la mangeoire à 111 s.
+
+**Deux seuils, et ils ne se valent pas.** On ravitaille à **moitié** de mangeoire : elle ne
+tient que quatre kilos chez la brebis quand un fourgon en porte cent cinquante, donc
+attendre le vide ferait jeûner les bêtes le temps du trajet. On vient chercher le produit au
+**quart** de cuve seulement : un aller-retour pour trois litres de lait ne vaut pas le
+gazole.
+
+**Un blocage par produit, et non un seul pour l'enclos.** Le Marché peut être plein de laine
+pendant que l'Épicerie prend encore le lait. Avec un seul message, la réussite du second
+effaçait l'avertissement du premier et le joueur ne savait jamais que sa laine s'entassait.
+Relevé : Marché saturé → l'avertissement reste sur la laine, et le lait part quand même à
+l'Épicerie.
+
+Une ruche ne se nourrit pas — « elles constituent une activité passive » — et la piste de la
+mangeoire passe son tour pour elle.
+
+### L'écran
+
+Le même écran, la même carte, les mêmes rangées de puces : **c'est la question qui a
+changé.** Trois rangées, trois questions dans l'ordre — quoi cultiver, quoi livrer, où le
+livrer. La troisième est celle que le cahier des charges appelle « la troisième étape,
+disponible dès le départ ».
+
+Sans chantier, l'écran ne demande qu'une chose : toucher une parcelle. Sinon il liste les
+chantiers en cours avec leur étape ou ce qui les bloque, et l'on retouche celui qu'on veut.
+
+Changer de culture change ce qu'on peut en faire : le blé propose **Blé** ou **Farine**,
+l'orge propose **Orge**, **Bière** ou **Aliment premium** — ce que l'atelier sait faire, et
+rien d'autre. L'aide sous la carte dit toujours la question suivante, jamais l'état.
+
+Sur la carte, les lieux qui prennent le produit en cours de réglage s'allument et les autres
+passent au quart d'opacité. Et le blanc autour d'un engin ne dit plus « celui que tu as
+choisi » mais **« celui qui travaille »** : c'est la seule façon de voir, sans fermer
+l'écran, qui est au champ et qui attend au parc.
+
+Le mode « navette entre deux lieux » disparaît de l'écran, comme demandé. **Sa mécanique
+reste** : c'est elle qui porte toutes les livraisons de la chaîne.
+
+### La sauvegarde n'a rien à retenir
+
+C'est le dividende du choix de départ. Un chantier n'est qu'un **réglage** — cette parcelle,
+cette graine, ce produit, ce client, une fois ou en continu — et il n'y a ni étape, ni engin
+réquisitionné, ni tournée en cours à remettre en place. À la relecture, le répartiteur
+regarde le champ et repart de là où il en est, en une demi-seconde.
+
+`v` ne bouge pas : `chantiers` est un champ **facultatif** de plus, et une sauvegarde qui ne
+le porte pas se relit sans lui. La culture y est écrite par sa **clé** et non par son rang —
+`CROPS` est positionnelle, et y insérer une plante décalerait toutes les parties
+enregistrées. Le rang de la parcelle, lui, en est bien un : c'est déjà ainsi que `parcelles`
+est écrit, et deux conventions dans le même fichier seraient pire qu'une.
+
+### Trois défauts trouvés en construisant, et corrigés
+
+Aucun des trois n'était visible avant, et les trois étaient réels.
+
+**Atteler un second outil perdait le premier pour toujours.** `v.tool` passait au nouveau, et
+l'ancien gardait son `attached` pointé sur le même véhicule : sa transformation n'était plus
+suivie, `detachTool` ne rendait que `v.tool`, et `nearestFreeTool` l'ignorait justement parce
+que son `attached` était vrai. Mesuré : charrue attelée puis semoir attelé par-dessus, la
+charrue reste liée au tracteur, invisible au bouton même garé dessus. Le bouton du joueur ne
+pouvait pas y tomber — il dételle toujours d'abord — mais la chaîne attelle sans arrêt.
+
+**Le silo plein bloquait en silence.** La moissonneuse pleine roulait au silo, `actionsAuSilo`
+rendait une liste vide, et elle restait garée sur la grille **pour l'éternité**. Le seul
+avertissement du jeu était un « SILO PRESQUE PLEIN » lâché à 92 %, qui ne se répète pas. Elle
+attend maintenant vingt secondes — le silo peut se libérer si une benne en sort — puis rend
+la main en disant pourquoi.
+
+**Et un engin en automatique sans plan labourait ce qu'il traversait.** `work()` restreignait
+le travail à la parcelle visée *quand il y a un plan* ; sans plan, l'outil retournait tout ce
+qu'il croisait. Tant que le pilote n'allait qu'au champ, cela ne pouvait pas se voir — il a
+toujours un plan en route. Depuis qu'il sait aller chercher un outil, il traverse la ferme
+charrue baissée et sans plan. Reproduit sur une ferme entièrement semée : un tracteur parti
+chercher le semoir à 194 mètres a **labouré 109 cellules semées** en travers de champs que le
+joueur venait d'ensemencer. Après correction : **0**, même trajet, et le travail normal
+intact.
+
+### Vérifications
+
+`chantiers.js` couvre la piste marchandise, l'élevage, l'aller-retour de sauvegarde et les
+trois défauts — 17 contrôles. `plan.js` est réécrit sur le nouvel écran — 21 contrôles, dont
+les cinq du répartiteur, en cliquant pour de vrai dans le DOM. Les dix-huit bancs existants
+passent.
 
 ## Le pilote automatique
 
