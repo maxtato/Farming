@@ -874,6 +874,8 @@
       </div>
       <div id="dosebtns2">
         <div class="db ann" id="doseann">Annuler</div>
+        <!-- Le libellé est réécrit à chaque ouverture par `ouvrirQuantite` : voir
+             SENS_BOUTON. Celui-ci n'est plus qu'un repli, et celui de l'atelier. -->
         <div class="db pri" id="dosego">Lancer la production</div>
       </div>
     </div>
@@ -3679,10 +3681,17 @@ function sweepSubdiv(a, ar, b, br, w){
   const step = PSIZE * 0.5;
   return Math.max(1, Math.min(24, Math.ceil(Math.max(dist, arc) / step)));
 }
-function inSweep(px, pz, a, ar, b, br, w, margin, nsub){
+/* `arriere` ÉTIRE LA BANDE VERS L'ARRIÈRE, ET VERS L'ARRIÈRE SEULEMENT.
+   `margin` élargit la bande dans les quatre directions à la fois, ce qui convient au
+   sol — un sol travaillé un peu large ne choque personne — mais pas à une lame : une
+   marge avant ferait tomber l'épi AVANT que la machine ne l'atteigne, et l'on verrait le
+   champ se coucher devant elle. Le vecteur `(-rz, rx)` est l'axe d'avance de l'outil ;
+   on borne donc l'avant à `hl` et l'arrière à `hl + arriere`. */
+function inSweep(px, pz, a, ar, b, br, w, margin, nsub, arriere){
   const dist = Math.hypot(b.x-a.x, b.z-a.z);
   const hl = dist/(2*nsub) + margin;
   const hw = w/2 + margin;
+  const dos = hl + (arriere || 0);
   for(let k=0;k<nsub;k++){
     const tm = (k + 0.5)/nsub;
     const cx = a.x + (b.x-a.x)*tm, cz = a.z + (b.z-a.z)*tm;
@@ -3690,7 +3699,8 @@ function inSweep(px, pz, a, ar, b, br, w, margin, nsub){
     const rl = Math.hypot(rx,rz) || 1; rx /= rl; rz /= rl;
     const dx = px-cx, dz = pz-cz;
     if(Math.abs(dx*rx + dz*rz) > hw) continue;
-    if(Math.abs(dx*(-rz) + dz*rx) > hl) continue;
+    const avant = dx*(-rz) + dz*rx;
+    if(avant > hl || avant < -dos) continue;
     return true;
   }
   return false;
@@ -12953,6 +12963,23 @@ function work(m, dt){
   // marge fixe de 30 cm — pas un multiple de la taille de cellule. Les bords restent
   // donc lisses, tout en garantissant qu'aucune bande ne reste non traitée.
   const w = T.width + 0.6;
+  /* CE QUE LA LAME PREND, ET CE QU'ELLE LAISSAIT DEBOUT.
+     Le sol était peint avec 92 cm de tolérance autour de la bande balayée, mais la
+     PLANTE n'était fauchée que si son point tombait très exactement dedans — marge nulle.
+     Les deux ne disaient donc pas la même chose : on voyait le passage peint et un brin
+     restait debout au milieu. Le joueur : « il faut vraiment toucher parfaitement une
+     culture pour la moissonner, du coup c'est très facile d'en louper un lors d'un
+     demi-tour ».
+     Deux tolérances, et pas une seule, parce qu'elles ne se valent pas.
+     COTÉ, trente centimètres : de quoi rattraper un pied semé au bord de la coupe — un
+     pied porte un décalage de semis de ±28 cm — sans que la machine fauche visiblement
+     plus large que sa barre.
+     ARRIÈRE, quatre-vingts centimètres, et RIEN DEVANT : « en prenant en compte ce qui
+     est sous et derrière la lame, pas juste devant la lame ». C'est aussi ce qui se
+     passe pour de vrai — un rabatteur ramasse ce qu'il vient de coucher — et c'est ce
+     qui sauve le demi-tour, où la barre balaie un arc et frôle l'intérieur du virage.
+     Une marge AVANT, elle, serait fausse : le champ se coucherait devant la machine. */
+  const COUPE_COTE = 0.30, COUPE_ARRIERE = 0.80;
   const aLx = prev.x - prev.r.x*w/2, aLz = prev.z - prev.r.z*w/2;
   const aRx = prev.x + prev.r.x*w/2, aRz = prev.z + prev.r.z*w/2;
   const bLx = cur.x  - cur.r.x*w/2,  bLz = cur.z  - cur.r.z*w/2;
@@ -13002,7 +13029,8 @@ function work(m, dt){
     if(!eligible && inSweep(cellX(i), cellZ(j), prev, prev.r, cur, cur.r, w, CH, nsubW))
       eligible = true;
     const wb = wheatBase[instOf[id]];
-    if(inSweep(wb.x, wb.z, prev, prev.r, cur, cur.r, w, 0, nsubW)) touched.push(id);
+    if(inSweep(wb.x, wb.z, prev, prev.r, cur, cur.r, w, COUPE_COTE, nsubW, COUPE_ARRIERE))
+      touched.push(id);
   }
 
   // Semences et engrais : la trémie de l'outil puise dans le stock de la ferme.
@@ -18292,6 +18320,19 @@ const SENS_OBJECTIF = {charger:'remplir', collecter:'remplir', vider:'vider'};
    pas : `traire` et `prendre` remplissent, `vendre` vide, et les trois se dosent. */
 const SENS_DOSABLE = {prendre:1, prendreEntrepot:1, reprendre:1, traire:1, traire2:1,
                       vendre:1, tremieVente:1};
+/* LE BOUTON DU CURSEUR DIT LE GESTE, ET PAS « LANCER LA PRODUCTION ».
+   Le libellé était écrit en dur dans le HTML — c'est celui de l'atelier, le premier
+   endroit qui a eu un curseur — et `ouvrirQuantite` sait depuis longtemps le remplacer
+   par `o.action`. Seuls l'achat de semence et celui d'engrais s'en servaient : partout
+   ailleurs, on demandait au fermier de « lancer la production » pour charger une benne
+   de blé ou pour vendre son lait. Le joueur : « ce nom ne doit être que pour produire,
+   pour le reste ça doit porter le nom de ce qu'on veut faire ».
+   Un sens absent de cette table n'est de toute façon pas dosable — c'est la même liste,
+   mot pour mot, et c'est voulu : le jour où l'on rendra un sens dosable, il faudra lui
+   donner son verbe ici, faute de quoi il retombera sur le libellé de l'atelier. */
+const SENS_BOUTON = {prendre:'Charger', prendreEntrepot:'Charger', reprendre:'Charger',
+                     traire:'Collecter', traire2:'Collecter',
+                     vendre:'Vendre', tremieVente:'Déposer'};
 /* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
    possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
    ait rien demandé. Désormais on répond toujours — mais une seule fois quand il n'y a
@@ -18906,6 +18947,7 @@ function actionService(){
                   if(n <= 1){ chargerBetail(P, v, 1); showHint('EN ROUTE POUR LA BOUCHERIE'); return; }
                   ouvrirQuantite({
                     max: n, titre: 'Embarquer ' + dNom(E2.pluriel.toLowerCase()),
+                    action: 'Embarquer',
                     sortie: (q)=> q + ' ' + (q > 1 ? E2.pluriel.toLowerCase() : E2.un.toLowerCase().replace(/^une? /, '')),
                     detail: (q)=> 'Sur ' + n + ' adulte' + (n>1?'s':'') + ' au pré · ' +
                                   'place à bord pour ' + (cap - (v.betail||0)) +
@@ -19273,7 +19315,7 @@ function refreshChoix(){
         // chiffre que le client vient de lui donner.
         if(SENS_DOSABLE[A.sens] && !A.commande && max >= 2)
           ouvrirQuantite({
-            max: max, titre: A.txt,
+            max: max, titre: A.txt, action: SENS_BOUTON[A.sens],
             sortie: (q)=> qteHaut(A.cle, q),
             detail: (q)=> 'Sur ' + qteHaut(A.cle, max) + ' possibles' +
                           (A.S && A.sens === 'vendre' ? '<br>Soit ' + eur(q*prixChez(A.S, A.cle)) : ''),

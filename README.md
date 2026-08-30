@@ -5243,6 +5243,70 @@ c'est-à-dire au pire moment. La probabilité se lit donc maintenant **par secon
 ramène à l'image écoulée, avec un plafond à quatre images de retard pour qu'un à-coup d'une
 demi-seconde ne crache pas trente bouffées d'un coup.
 
+## Le bouton dit le geste, et la lame prend ce qu'elle a couché
+
+**« Quand on veut déposer ou charger des produits qu'on sélectionne avec le curseur, le
+bouton s'appelle "lancer la production". Ce nom ne doit être que pour produire ; pour le
+reste il doit porter le nom de ce qu'on veut faire. »** Le libellé était écrit **en dur
+dans le HTML** — c'est celui de l'atelier, le premier endroit qui a eu un curseur — et
+`ouvrirQuantite` savait pourtant déjà le remplacer. Seuls l'achat de semence et celui
+d'engrais s'en servaient : partout ailleurs on demandait au fermier de « lancer la
+production » pour charger une benne de blé ou vendre son lait.
+
+Chaque sens dosable porte maintenant son verbe, dans une table jumelle de celle qui dit
+quels sens ouvrent un curseur — même liste, mot pour mot, et c'est voulu : le jour où l'on
+rendra un sens dosable, il faudra lui donner son verbe, faute de quoi il retombera sur le
+libellé de l'atelier. Un banc le vérifie.
+
+| sens | bouton |
+| --- | --- |
+| `prendre`, `prendreEntrepot`, `reprendre` | **Charger** |
+| `traire`, `traire2` | **Collecter** |
+| `vendre` | **Vendre** |
+| `tremieVente` | **Déposer** |
+| embarquer une bête | **Embarquer** |
+| l'atelier, et lui seul | **Lancer la production** |
+
+### Ce qui est sous et derrière la lame
+
+**« Là il faut vraiment toucher parfaitement une culture pour la moissonner, du coup c'est
+très facile de louper un brin lors d'un demi-tour. »** Le défaut était une asymétrie que
+personne n'avait vue : le SOL était peint avec **92 cm de tolérance** autour de la bande
+balayée, mais la PLANTE n'était fauchée que si son point tombait très exactement dedans —
+**marge nulle**. Les deux ne disaient donc pas la même chose, et l'on voyait le passage
+peint avec un brin resté debout au milieu.
+
+**Deux tolérances, et pas une seule**, parce qu'elles ne se valent pas.
+
+- **Côté, trente centimètres** : de quoi rattraper un pied semé au bord de la coupe — un
+  pied porte un décalage de semis de ±28 cm — sans que la machine fauche visiblement plus
+  large que sa barre.
+- **Arrière, quatre-vingts centimètres, et rien devant** : « en prenant en compte ce qui
+  est sous et derrière la lame, pas juste devant la lame ». C'est aussi ce qui se passe
+  pour de vrai — un rabatteur ramasse ce qu'il vient de coucher — et c'est ce qui sauve le
+  demi-tour, où la barre balaie un arc et frôle l'intérieur du virage. Une marge **avant**
+  serait fausse : le champ se coucherait devant la machine.
+
+`inSweep` gagne donc un paramètre `arriere` qui n'étire la bande que vers l'arrière, le
+vecteur `(-rz, rx)` étant l'axe d'avance de l'outil.
+
+**Relevé, au volant, sur une parcelle entière** — ce qui reste debout après un passage
+complet :
+
+| outil | avant | après |
+| --- | --- | --- |
+| labour | 2 cellules | **0** |
+| semis | 1 | **0** |
+| engrais | 5 | **0** |
+| moisson | 3 | **0** |
+
+Et en automatique, la couverture au pire cas passe de **97,1 % à 100 %**. Tout le reste du
+relevé est identique au chiffre près — même nombre d'images (2 389, 1 809, 1 257, 2 280),
+même dépassement hors de la terre (7,02, 7,58, 8,90, 2,93 m), même marge aux obstacles,
+même nombre de passes, aucune clôture couchée. La machine roule donc exactement comme
+avant, met exactement le même temps : c'est la lame seule qui est devenue clémente. La
+couverture du SOL, elle, ne bouge pas d'un dixième — elle avait déjà sa tolérance.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
