@@ -5027,8 +5027,11 @@ du bâtiment mais à la façon dont le fichier range son état.
   `MISSIONS_REECRITS` dit lesquelles ont changé de contenu depuis. Le chargement remet ces
   missions-là à zéro, et **elles seules** : le rang 12 garde son avancement, et une partie
   enregistrée depuis garde le sien. On perd au pire une mission à moitié faite, jamais une
-  mission finie — le rang n'avance qu'une fois la mission soldée. Ajouter une mission *à la
-  fin* ne coûtera toujours rien ; c'est insérer ou réécrire qui se paie ici.
+  mission finie — le rang n'avance qu'une fois la mission soldée. Elle est aussi **rendue au
+  commerce qui la propose** : une mission réécrite a changé de marchandise *et* de commerce,
+  la garder « prise » ferait porter au joueur un ordre qu'aucun marchand ne lui a donné et lui
+  ferait sauter le seul endroit où le nouveau texte se lit. Ajouter une mission *à la fin* ne
+  coûtera toujours rien ; c'est insérer ou réécrire qui se paie ici.
 - **La renommée est le seul état durable rangé par NOM de commerce.** La clé écrite hier était
   `'Brasserie'`, celle qu'on cherche aujourd'hui est `'Épicerie'` : le test échouait, la
   renommée retombait à zéro, et un joueur qui avait servi ce commerce dix fois — prime ×1,5,
@@ -5044,11 +5047,12 @@ du bâtiment mais à la façon dont le fichier range son état.
 Ce que la trémie du rang 0 contenait, enfin, est filtré à la relecture : l'Épicerie héritait
 sinon de jusqu'à 335 kg d'orge, invisibles et éternels, puisqu'elle ne fabrique plus rien.
 
-**Six contrôles nouveaux dans le banc `campagne`** tiennent tout cela : que la sauvegarde écrit
-le rang de la table, qu'une mission réécrite repart de zéro, qu'une mission intacte garde son
-avancement, qu'une sauvegarde d'aujourd'hui n'est pas remise à zéro, que la renommée change de
-nom sans que celle des autres bouge, et qu'en mode libre le contrat du commerce disparu tombe
-pendant que les deux autres restent. Le banc `chaine` mesurait, lui, une vraie règle — « on
+**Sept contrôles nouveaux dans le banc `campagne`** tiennent tout cela : que la sauvegarde
+écrit le rang de la table, qu'une mission réécrite repart de zéro, qu'elle est rendue au
+Restaurant qui la propose, qu'une mission intacte garde son avancement, qu'une sauvegarde
+d'aujourd'hui garde le sien *et* sa prise, que la renommée change de nom sans que celle des
+autres bouge, et qu'en mode libre le contrat du commerce disparu tombe pendant que les deux
+autres restent. Le banc `chaine` mesurait, lui, une vraie règle — « on
 verse dans une trémie d'usine, elle transforme, elle paie toute seule, on repart vide, on ne
 peut rien y recharger » — mais il l'avait écrite sur le seul commerce qui disparaissait. Il est
 repointé sur l'**usine à avoine**, qui a exactement le même profil, plutôt que supprimé : la

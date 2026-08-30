@@ -2955,12 +2955,21 @@ function chargerCampagne(S){
        avoir brassé un litre, et la découverte de la cuve sautée, EN SILENCE. On remet
        donc ces deux missions-là à zéro : on perd un avancement partiel, jamais une
        mission finie, puisque le rang n'avance qu'une fois la mission soldée. */
-    if((C.mv | 0) < MISSIONS_V && MISSIONS_REECRITS.indexOf(CAMPAGNE.mission) >= 0)
-      CAMPAGNE.faits = [];
+    const missionReecrite = (C.mv | 0) < MISSIONS_V
+                            && MISSIONS_REECRITS.indexOf(CAMPAGNE.mission) >= 0;
+    if(missionReecrite) CAMPAGNE.faits = [];
     /* UNE PARTIE D'AVANT AVAIT DÉJÀ SA MISSION. Le drapeau n'existait pas, et l'absence
        vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
        faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
     CAMPAGNE.prise = C.prise === undefined ? true : !!C.prise;
+    /* MAIS UNE MISSION RÉÉCRITE N'EST PLUS CELLE QU'ON AVAIT PRISE. Elle a changé de
+       marchandise ET de commerce : la garder « prise » ferait porter au joueur un ordre
+       qu'aucun marchand ne lui a donné, et lui ferait sauter le seul endroit où le
+       nouveau texte se lit — le rang 8 est justement celui où le Restaurant explique
+       qu'il cherche quelqu'un pour brasser une bière du village. On la rend donc à son
+       lieu : c'est la règle ordinaire du jeu (« une mission qui nomme un lieu est
+       proposée par ce lieu »), et l'avancement qu'on lui rend est de toute façon nul. */
+    if(missionReecrite) CAMPAGNE.prise = false;
     /* MÊME RÈGLE POUR LE TUTORIEL, ET POUR LA MÊME RAISON. Le champ n'existait pas ; son
        absence vaut « déjà vu ». Sans ce défaut, toute partie en cours se réveillerait à
        la première étape et s'entendrait expliquer comment labourer. */
