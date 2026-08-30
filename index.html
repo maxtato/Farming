@@ -14923,28 +14923,81 @@ function naturesNavette(a, b){
 const planEl = document.getElementById('plan');
 const planCv = document.getElementById('plancv');
 // Ce qu'on est en train de composer. `taches` est la file, `mode` ce qu'on ajoute.
-let planEngin = 0, planMode = 'parcelle', planTaches = [], planBoucle = false, planNav = null;
-// La marchandise choisie au départ, avant de dire où on la porte : c'est elle qui
-// décide quels lieux d'arrivée s'allument.
-let planNavCle = null;
+/* `planTaches` n'est plus une file de tâches : c'est la liste de ce que la carte doit
+   surligner, et elle ne contient jamais qu'une parcelle — celle qu'on est en train de
+   régler. Le nom est resté parce que `dessinerCarte` le lit, et qu'une carte qui sait
+   déjà surligner une parcelle n'avait pas besoin d'être réécrite. */
+let planTaches = [];
 // L'indice de la navette dont on choisit la nature, ou -1 : la rangée des natures
 // n'apparaît que le temps de répondre.
-let planProd = -1;
 
+/* ==========================================================================
+   L'ÉCRAN DES CHANTIERS : ON TOUCHE UNE PARCELLE, ET C'EST TOUT
+   ==========================================================================
+   Le joueur : « j'aimerais faire quelque chose de plus simple, je veux qu'on ait juste à
+   toucher une parcelle, qu'on décide ce qu'on veut en faire — soit de l'élevage, soit de
+   la culture — ça nous demande si on va le faire une fois ou en continu. »
+
+   L'ANCIEN ÉCRAN DEMANDAIT DE COMMENCER PAR LE MATÉRIEL. On choisissait un engin, puis un
+   mode, puis on composait une file de tâches : trois décisions avant d'avoir dit ce qu'on
+   voulait obtenir. Le nouveau part de la FIN — cette parcelle, ce produit, ce client — et
+   le répartiteur en déduit le matériel. C'est le même écran, la même carte, les mêmes
+   rangées de puces ; c'est la question qui a changé.
+
+   TROIS RANGÉES, ET ELLES POSENT TROIS QUESTIONS DANS L'ORDRE : quoi cultiver, quoi
+   livrer, où le livrer. La troisième est celle que le cahier des charges appelle « la
+   troisième étape, disponible dès le départ ». */
+let chSel = -1;                       // la parcelle désignée, ou -1
+let chQuoi = 'culture', chCrop = 0, chEngrais = false;
+let chProduit = null, chDest = {}, chContinu = false, chEdit = null;
+
+/* Ce qu'on peut livrer depuis une culture : la matière brute, et tout ce que l'atelier
+   sait en faire. On ne propose pas une recette dont on n'a pas le métier — la fenêtre de
+   l'atelier est là pour l'acheter, et ce n'est pas ici qu'on le décide. */
+function produitsPossibles(cleBrut){
+  const out = [cleBrut];
+  for(const M of ATELIER_MODULES){
+    if(!atelierA(M.cle)) continue;
+    const ent = recetteEntrees(M.cle);
+    if(ent[cleBrut] !== undefined && out.indexOf(M.cle) < 0) out.push(M.cle);
+  }
+  return out;
+}
+/* Qui peut prendre ce produit. On garde le silo et l'entrepôt : « ranger sans vendre »
+   est une destination parfaitement légitime, et c'est même la plus simple. */
+const destinationsDe = (cle)=> lieuxPossibles()
+  .filter((L)=> lieuPrend(L.cle).indexOf(cle) >= 0)
+  .map((L)=> L.cle);
+/* Les produits d'un élevage : un pour la plupart, deux pour la brebis. */
+function produitsElevage(P){
+  const E = ESPECES[P.espece] || ESPECES.vache, out = [];
+  if(E.produit) out.push(E.produit);
+  if(E.second) out.push(E.second.cle);
+  return out;
+}
+function chargerReglages(ip){
+  const C = chantierDe(ip);
+  const p = PARCELS[ip];
+  chQuoi = p.pature ? 'elevage' : 'culture';
+  if(C){
+    chQuoi = C.quoi; chCrop = C.crop || 0; chEngrais = !!C.engrais;
+    chProduit = C.produit; chDest = Object.assign({}, C.dest); chContinu = !!C.continu;
+  } else {
+    chCrop = 0; chEngrais = false; chDest = {}; chContinu = false;
+    chProduit = (chQuoi === 'culture') ? CROPS[0].cle : null;
+  }
+  if(chQuoi === 'elevage'){
+    const P = patureDe(ip), l = P ? produitsElevage(P) : [];
+    chEdit = l[0] || null;
+  } else chEdit = chProduit;
+}
 function ouvrirPlan(){
   relacherCommandes();
-  planEngin = cur;
-  const M = MACHINES[planEngin];
-  planTaches = (M.v.mission ? M.v.mission.taches.slice() : []);
-  planBoucle = !!(M.v.mission && M.v.mission.boucle);
-  planNav = null; planProd = -1;
+  chSel = -1; planTaches = [];
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
-  /* LA LÉGENDE DIT CE QUE LE VERT VEUT DIRE ICI. « Mission disponible » était écrit en
-     dur, et le mode libre n'a pas de mission : le même point vert y annonce un contrat
-     de commerce. Un mot faux sous une carte se paie cher — c'est ce qu'on lit pour
-     décider où aller. */
+  document.getElementById('plantitre').textContent = 'Chantiers';
   document.getElementById('planlegvert').textContent =
     MODE_LIBRE ? 'Contrat disponible' : 'Mission disponible';
   planEl.style.display = 'block';
@@ -14967,97 +15020,114 @@ function majPlan(){
   const rE = document.getElementById('planengins'), rM = document.getElementById('planmodes'),
         rT = document.getElementById('plantaches'), rP = document.getElementById('planprod');
   rE.innerHTML = ''; rM.innerHTML = ''; rT.innerHTML = ''; rP.innerHTML = '';
-  MACHINES.forEach((m, i)=>{
-    if(m.verrou) return;
-    rE.appendChild(planPuce(m.nom.toUpperCase(), i === planEngin, ()=>{
-      planEngin = i;
-      planTaches = (m.v.mission ? m.v.mission.taches.slice() : []);
-      planBoucle = !!(m.v.mission && m.v.mission.boucle);
-      planNav = null; planNavCle = null; planProd = -1; majPlan();
-    }, couleurEngin(m)));
-  });
-  const M = MACHINES[planEngin], T = toolOf(M);
-  const peutTravailler = !!(T && T.from) || M.key === 'moisson';
-  rM.appendChild(planPuce('Travailler des parcelles', planMode === 'parcelle',
-    peutTravailler ? ()=>{ planMode = 'parcelle'; planNav = null; planNavCle = null; planProd = -1; majPlan(); } : null));
-  rM.appendChild(planPuce('Navette entre deux lieux', planMode === 'navette',
-    ()=>{ planMode = 'navette'; planNav = null; planNavCle = null; planProd = -1; majPlan(); }));
-  if(!peutTravailler && planMode === 'parcelle'){ planMode = 'navette'; return majPlan(); }
+  const lancer = document.getElementById('planlancer');
+  const boucle = document.getElementById('planboucle');
+  boucle.textContent = 'EN CONTINU';
 
-  if(!planTaches.length) rT.appendChild(planPuce('Aucune tâche — touche la carte', false, null));
-  planTaches.forEach((t, k)=>{
-    // Le nom du lieu, pas sa clé : la file se lit comme une phrase.
-    const nomLieu = (cle)=>{ const P = lieuPoint(cle); return P ? P.nom : cle; };
-    const nom = (t.quoi === 'parcelle')
-      ? 'Parcelle ' + (t.p + 1)
-      : (nomLieu(t.a) + ' → ' + nomLieu(t.b)
-         + ' · ' + (t.cle ? nomDe(t.cle) : 'Tout'));
-    /* DEUX ZONES DANS UNE PUCE. Le libellé rouvre le choix de la nature, la croix
-       supprime la tâche. Elles sont dans le même bouton pour que la file reste une
-       ligne de phrases, mais la croix a sa propre zone de touche — sans quoi on
-       efface la tâche en voulant changer ce qu'elle transporte. */
-    const b = planPuce(nom, false, (t.quoi === 'navette')
-      ? ()=>{ planProd = k; majPlan(); } : null);
-    b.classList.add('tache');
-    const x = document.createElement('span');
-    x.className = 'xx'; x.textContent = '✕';
-    x.addEventListener('pointerdown', (e)=>{
-      e.stopPropagation();
-      planTaches.splice(k, 1);
-      if(planProd === k) planProd = -1; else if(planProd > k) planProd--;
-      majPlan();
-    });
-    b.appendChild(x);
-    rT.appendChild(b);
-  });
-  /* LA RANGÉE DES NATURES. Elle n'existe que le temps de répondre : posée en
-     permanence, elle prendrait une ligne d'écran sur un téléphone couché pour une
-     question qui ne se pose qu'à la création d'une navette. */
-  const tp = planTaches[planProd];
-  if(tp && tp.quoi === 'navette'){
-    const nats = naturesNavette(tp.a, tp.b);
-    rP.appendChild(planPuce('Tout', !tp.cle, ()=>{ tp.cle = null; planProd = -1; majPlan(); }));
-    for(const k of nats)
-      rP.appendChild(planPuce(nomDe(k), tp.cle === k,
-        ()=>{ tp.cle = k; planProd = -1; majPlan(); },
-        (PRODUITS[k] || {}).couleur));
-    if(!nats.length)
-      rP.appendChild(planPuce('rien ne circule sur ce trajet', false, null)).classList.add('vide');
-  }
-  /* ET LA MÊME RANGÉE POSE LA TROISIÈME QUESTION, celle qui vient d'être ajoutée : le lieu
-     de départ est touché, on dit CE QU'ON EMPORTE, et c'est seulement après que la carte
-     n'allume plus que les preneurs. La quantité est écrite à côté du nom — c'est la seule
-     façon de savoir, sans fermer la fenêtre, s'il y a assez de ce qu'on croit charger. */
-  else if(planMode === 'navette' && planNav){
-    const dispo = dispoAuLieu(planNav);
-    for(const k of dispo){
-      const q = quantiteAuLieu(planNav, k);
-      rP.appendChild(planPuce(nomDe(k) + (q > 0.01 ? ' · ' + qteHaut(k, q) : ''),
-        planNavCle === k, ()=>{ planNavCle = k; majPlan(); },
-        (PRODUITS[k] || {}).couleur));
+  /* ---------- AUCUNE PARCELLE DÉSIGNÉE : on montre les chantiers en cours ---------- */
+  if(chSel < 0){
+    if(!CHANTIERS.length) rE.appendChild(planPuce('Touche une parcelle sur la carte', false, null));
+    for(const C of CHANTIERS){
+      const P = PARCELS[C.p];
+      const quoi = C.quoi === 'elevage'
+        ? (ESPECES[(patureDe(C.p) || {}).espece] || {nom:'Élevage'}).nom
+        : CROPS[C.crop || 0].nom;
+      const dit = C.bloque || C.bloqueM
+                || (C.malProduit ? C.malProduit[Object.keys(C.malProduit)[0]].mal : null)
+                || NOM_ETAPE[C.etape] || C.etape || '…';
+      const b = planPuce('Parcelle ' + (C.p + 1) + ' · ' + quoi + ' — ' + dit,
+                         false, ()=>{ chSel = C.p; chargerReglages(C.p);
+                                      planTaches = [{quoi:'parcelle', p:C.p}]; majPlan(); });
+      b.classList.add('tache');
+      if(C.bloque || C.bloqueM || C.malProduit) b.classList.add('vide');
+      rE.appendChild(b);
     }
-    if(!dispo.length)
-      rP.appendChild(planPuce('rien à emporter d\'ici', false, null)).classList.add('vide');
+    document.getElementById('planaide').textContent =
+      'Touche une parcelle : tu diras quoi en faire, une fois ou en continu.'
+      + (planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.');
+    lancer.classList.add('no'); lancer.textContent = 'LANCER';
+    boucle.classList.remove('on');
+    dessinerCarte();
+    return;
+  }
+
+  /* ---------- UNE PARCELLE EST DÉSIGNÉE ---------- */
+  const p = PARCELS[chSel], C = chantierDe(chSel);
+  const enCours = !!C;
+  rE.appendChild(planPuce('Parcelle ' + (chSel + 1), false,
+                          ()=>{ chSel = -1; planTaches = []; majPlan(); }));
+  rE.appendChild(planPuce('Culture', chQuoi === 'culture',
+    p.pature ? null : ()=>{ chQuoi = 'culture'; chProduit = CROPS[chCrop].cle;
+                            chEdit = chProduit; chDest = {}; majPlan(); }));
+  rE.appendChild(planPuce('Élevage', chQuoi === 'elevage',
+    p.pature ? ()=>{ chQuoi = 'elevage'; chDest = {};
+                     const P = patureDe(chSel), l = P ? produitsElevage(P) : [];
+                     chEdit = l[0] || null; majPlan(); } : null));
+
+  if(chQuoi === 'culture'){
+    // Ce qu'on sème. Une culture verrouillée par le palier reste visible, mais éteinte :
+    // le joueur voit ce qui l'attend au palier suivant.
+    CROPS.forEach((c, i)=>{
+      const ok = ouvert('cultures', c.cle);
+      rM.appendChild(planPuce(c.nom + (ok ? '' : ' · N' + niveauDe('cultures', c.cle)),
+        i === chCrop, ok ? ()=>{ chCrop = i;
+          if(produitsPossibles(c.cle).indexOf(chProduit) < 0){ chProduit = c.cle; chEdit = c.cle; }
+          chDest = {}; majPlan(); } : null, c.couleur));
+    });
+    const Tep = TOOLS.find((t)=> t.key === 'engrais');
+    rM.appendChild(planPuce('Engrais', chEngrais,
+      (Tep && !Tep.verrou) ? ()=>{ chEngrais = !chEngrais; majPlan(); } : null));
+    // Ce qu'on livre : la matière brute, ou ce que l'atelier en fait.
+    for(const k of produitsPossibles(CROPS[chCrop].cle))
+      rT.appendChild(planPuce(nomDe(k), chProduit === k,
+        ()=>{ chProduit = k; chEdit = k; chDest = {}; majPlan(); },
+        (PRODUITS[k] || {}).couleur));
+  } else {
+    const P = patureDe(chSel);
+    const prods = P ? produitsElevage(P) : [];
+    if(!P) rM.appendChild(planPuce('Cette parcelle n’est pas encore un enclos', false, null));
+    else rM.appendChild(planPuce((ESPECES[P.espece] || {}).nom + ' · '
+                                 + P.betes.length + '/' + P.places, false, null));
+    // UN PRODUIT À LA FOIS, ET CHACUN SA DESTINATION. « Pour le même élevage, fournir les
+    // deux produits soit au même endroit, soit un endroit spécifique pour chacun. »
+    for(const k of prods)
+      rT.appendChild(planPuce(nomDe(k) + (chDest[k] ? ' → ' + nomLieu(chDest[k]) : ''),
+        chEdit === k, ()=>{ chEdit = k; majPlan(); }, (PRODUITS[k] || {}).couleur));
+  }
+
+  // Où livrer CE produit-là.
+  if(chEdit){
+    const dests = destinationsDe(chEdit);
+    if(!dests.length) rP.appendChild(planPuce('personne ne prend ' + nomDe(chEdit), false, null))
+                        .classList.add('vide');
+    for(const d of dests){
+      const L = lieuPoint(d);
+      const ouvertL = demandeChez(d, chEdit);
+      rP.appendChild(planPuce((L ? L.nom : d) + (ouvertL ? '' : ' · plein'),
+        chDest[chEdit] === d,
+        ()=>{ chDest[chEdit] = (chDest[chEdit] === d) ? undefined : d;
+              if(!chDest[chEdit]) delete chDest[chEdit];
+              majPlan(); }));
+    }
   }
   rP.style.display = rP.children.length ? '' : 'none';
-  // Le pincement ne se devine pas : on le dit, et seulement tant qu'on ne s'en est pas
-  // servi — une fois la carte grossie, la ligne redevient l'aide au choix.
-  const zoomDit = planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.';
-  const nomDuLieu = (cle)=>{ const P = lieuPoint(cle); return P ? P.nom : cle; };
-  document.getElementById('planaide').textContent = (tp
-    ? 'Et qu\'est-ce qu\'il transporte ?'
-    : ((planMode === 'parcelle')
-      ? 'Touche les parcelles à travailler, dans l\'ordre où tu les veux.'
-      : (!planNav ? 'Touche le lieu de départ.'
-         : (!planNavCle
-            ? 'Qu\'est-ce qu\'on emporte de ' + nomDuLieu(planNav) + ' ?'
-            : nomDe(planNavCle) + ' — où livrer ? Seuls les lieux qui en veulent '
-              + 'maintenant sont allumés.')))
-      + zoomDit);
-  document.getElementById('planboucle').classList.toggle('on', planBoucle);
-  const lancer = document.getElementById('planlancer');
-  lancer.classList.toggle('no', !planTaches.length);
-  lancer.textContent = MACHINES[planEngin].v.mission ? 'ARRÊTER' : 'LANCER';
+
+  /* L'AIDE DIT LA PROCHAINE QUESTION, jamais l'état. C'est la règle de l'ancien écran et
+     elle vaut toujours : une ligne sous la carte qui décrit ce qu'on voit ne sert à rien,
+     une ligne qui dit quoi toucher fait avancer. */
+  const aide = (chQuoi === 'elevage' && !patureDe(chSel))
+      ? 'Monte d’abord un enclos sur cette parcelle, en t’y arrêtant avec un engin.'
+    : !chEdit ? 'Choisis ce que tu veux livrer.'
+    : !chDest[chEdit] ? 'Où livrer ' + nomDe(chEdit) + ' ?'
+    : (enCours ? 'Le chantier tourne. Touche ARRÊTER pour le retirer.'
+               : 'Une fois ou en continu, puis LANCER.');
+  document.getElementById('planaide').textContent = aide;
+  boucle.classList.toggle('on', chContinu);
+  const pret = chQuoi === 'culture'
+    ? (!!chProduit && !!chDest[chProduit])
+    : (!!patureDe(chSel) && Object.keys(chDest).length > 0);
+  lancer.classList.toggle('no', !pret && !enCours);
+  lancer.textContent = enCours ? 'ARRÊTER' : 'LANCER';
   dessinerCarte();
 }
 
@@ -15166,29 +15236,19 @@ function dessinerCarte(){
                (S.emp.x1 - S.emp.x0)*planEch, (S.emp.z1 - S.emp.z0)*planEch);
   // les lieux où l'on charge et décharge
   const lieux = lieuxPossibles();
-  /* ET QUAND ON SAIT CE QU'ON EMPORTE, LA CARTE NE MONTRE PLUS QUE CEUX QUI EN VEULENT.
-     Les autres restent dessinés — on ne fait pas disparaître la moitié du village sous le
-     doigt du joueur — mais éteints, à un quart d'opacité : on lit d'un coup d'œil où ce
-     qu'on tient peut aller, et l'on ne compose plus un trajet qui ne livrera rien. */
-  const preneurs = (planMode === 'navette' && planNav && planNavCle)
-                   ? preneursDe(planNavCle, planNav) : null;
+  /* LA CARTE ALLUME LES DESTINATIONS DU CHANTIER EN COURS DE RÉGLAGE. Elle éteignait
+     autrefois les lieux qui ne voulaient pas de la marchandise qu'on portait ; la question
+     est la même, elle se pose seulement plus tôt — on choisit un produit, et l'on voit
+     d'un coup d'œil qui le prend. Les autres restent dessinés, à un quart d'opacité : on
+     ne fait pas disparaître la moitié du village sous le doigt du joueur. */
+  const preneurs = chEdit ? destinationsDe(chEdit) : null;
   for(const P of lieux){
-    const dep = planNav === P.cle;
-    const pris = planTaches.some((t)=> t.quoi === 'navette' && (t.a === P.cle || t.b === P.cle));
-    const eteint = !!preneurs && !dep && preneurs.indexOf(P.cle) < 0;
+    const vise = !!chEdit && chDest[chEdit] === P.cle;
+    const eteint = !!preneurs && !vise && preneurs.indexOf(P.cle) < 0;
     c.globalAlpha = eteint ? 0.25 : 1;
-    c.beginPath(); c.arc(px(P.x), pz(P.z), dep ? 7 : 5, 0, Math.PI*2);
-    c.fillStyle = dep ? '#FFF' : (pris ? '#FAD201' : (preneurs ? '#8BE07A' : '#7FD1E8'));
+    c.beginPath(); c.arc(px(P.x), pz(P.z), vise ? 7 : 5, 0, Math.PI*2);
+    c.fillStyle = vise ? '#FFF' : (preneurs ? '#8BE07A' : '#7FD1E8');
     c.fill();
-    /* UN LIEU, UN NOM. Ceux qui portent une couleur de guidage sont nommés plus bas, en
-       couleur : les écrire ici aussi les doublait, et « COOPÉRATIVE » venait se coucher
-       sur « Atelier textile » à deux pixels près. */
-    if(planMode === 'navette'
-       && !(SITES.some((S2)=> S2.nom === P.cle) && couleurGuide(P.cle) !== GUIDE.GRIS)){
-      c.fillStyle = 'rgba(255,255,255,.75)';
-      c.font = 'bold 8px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
-      c.fillText(P.nom.slice(0, 14), px(P.x), pz(P.z) - 8);
-    }
     c.globalAlpha = 1;
   }
   /* LA CARTE PARLE LA MÊME LANGUE QUE LE SOL, et elle le dit PAR-DESSUS. Les points de
@@ -15244,7 +15304,11 @@ function dessinerCarte(){
     if(m.verrou) return;
     c.beginPath(); c.arc(px(m.v.pos.x), pz(m.v.pos.z), 4.5, 0, Math.PI*2);
     c.fillStyle = couleurEngin(m); c.fill();
-    c.strokeStyle = (MACHINES[planEngin] === m) ? '#FFF' : 'rgba(0,0,0,.5)';
+    // Blanc autour des engins que les chantiers ont réquisitionnés : c'est la seule
+    // façon de voir, sans fermer l'écran, qui travaille et qui attend au parc.
+    const i = MACHINES.indexOf(m);
+    const auTravail = CHANTIERS.some((C)=> C.enginTerre === i || C.enginPort === i);
+    c.strokeStyle = auTravail ? '#FFF' : 'rgba(0,0,0,.5)';
     c.lineWidth = 2; c.stroke();
   });
 }
@@ -15321,51 +15385,39 @@ planCv.addEventListener('pointerup', planDoigtFin);
 planCv.addEventListener('pointercancel', planDoigtFin);
 function planDesigner(ev){
   const w = carteVersMonde(ev);
-  if(planMode === 'parcelle'){
+  /* UNE SEULE PARCELLE À LA FOIS. L'ancien écran composait une FILE de parcelles pour un
+     engin donné ; ici chaque parcelle a son chantier, et les chantiers tournent tous
+     ensemble. Toucher une parcelle la désigne, la retoucher la relâche.
+     `planTaches` ne sert plus qu'à la carte : c'est elle qui dit quoi surligner, et il
+     n'y a rien à réécrire dans `dessinerCarte` pour cela. */
+  {
     const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
                                               && Math.abs(w.z - p.z) < p.h/2);
     if(i < 0) return;
-    const k = planTaches.findIndex((t)=> t.quoi === 'parcelle' && t.p === i);
-    if(k >= 0) planTaches.splice(k, 1); else planTaches.push({quoi:'parcelle', p:i});
-  } else {
-    // le lieu le plus proche du doigt, à condition d'être vraiment dessus
-    let best = null, bd = 14/planEch;
-    for(const P of lieuxPossibles()){
-      const d = Math.hypot(w.x - P.x, w.z - P.z);
-      if(d < bd){ bd = d; best = P; }
-    }
-    if(!best) return;
-    /* TROIS TOUCHES, DANS CET ORDRE : le départ, la marchandise (dans la rangée du bas),
-       puis l'arrivée. Tant que la marchandise n'est pas dite, toucher un autre lieu
-       CHANGE le départ au lieu de créer un trajet — c'est ce qu'on veut faire neuf fois
-       sur dix quand on s'est trompé de point.
-       Et une fois la marchandise dite, seuls les preneurs répondent : toucher un lieu qui
-       n'en veut pas ne fait rien, ce qui vaut mieux qu'un trajet qui ne livrera rien. */
-    if(!planNav || planNav === best.cle){
-      planNav = (planNav === best.cle) ? null : best.cle;
-      planNavCle = null;
-    }
-    else if(!planNavCle) planNav = best.cle;
-    else if(preneursDe(planNavCle, planNav).indexOf(best.cle) >= 0){
-      planTaches.push({quoi:'navette', a:planNav, b:best.cle, cle:planNavCle});
-      planNav = null; planNavCle = null;
-    }
+    if(chSel === i){ chSel = -1; planTaches = []; }
+    else { chSel = i; chargerReglages(i); planTaches = [{quoi:'parcelle', p:i}]; }
   }
   majPlan();
 }
 document.getElementById('planfermer').addEventListener('pointerdown', fermerPlan);
 document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
-  planBoucle = !planBoucle; majPlan();
+  chContinu = !chContinu; majPlan();
 });
 document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
-  const M = MACHINES[planEngin], v = M.v;
-  if(v.mission){ arreterMission(M); majPlan(); return; }
-  if(!planTaches.length) return;
-  v.mission = {taches:planTaches.slice(), i:0, etape:0, boucle:planBoucle, attente:0};
-  v.auto = true; v.plan = null; v.goSilo = false; v.sensVoulu = null; v.cleVoulue = null;
-  desarmerRecul(v);
-  showHint(M.nom.toUpperCase() + ' — ' + planTaches.length + ' TÂCHE'
-           + (planTaches.length > 1 ? 'S' : '') + (planBoucle ? ' EN BOUCLE' : ''));
+  if(chSel < 0) return;
+  if(chantierDe(chSel)){
+    retirerChantier(chSel);
+    showHint('CHANTIER ARRÊTÉ — PARCELLE ' + (chSel + 1));
+    majPlan(); return;
+  }
+  const pret = chQuoi === 'culture'
+    ? (!!chProduit && !!chDest[chProduit])
+    : (!!patureDe(chSel) && Object.keys(chDest).length > 0);
+  if(!pret) return;
+  poserChantier(chSel, {quoi:chQuoi, continu:chContinu, crop:chCrop,
+                        engrais:chEngrais, produit:chProduit, dest:chDest});
+  showHint('CHANTIER LANCÉ — PARCELLE ' + (chSel + 1)
+           + (chContinu ? ' · EN CONTINU' : ''));
   fermerPlan();
 });
 function arreterMission(M){
@@ -22925,7 +22977,8 @@ function etapeMarchandise(C){
   }
   return {et:ET_LIVRER, ou:ou};
 }
-const nomLieuHaut = (cle)=>{ const L = lieuPoint(cle); return (L ? L.nom : cle).toUpperCase(); };
+const nomLieu = (cle)=>{ const L = lieuPoint(cle); return L ? L.nom : cle; };
+const nomLieuHaut = (cle)=> nomLieu(cle).toUpperCase();
 /* ---------- L'ÉLEVAGE : NOURRIR SANS RELÂCHE, LIVRER CHAQUE PRODUIT OÙ L'ON A DIT ----------
    Le joueur : « le système doit être intelligent : il doit fournir du grain en continu
    tant que les bêtes en ont besoin. Par contre on aura un message d'erreur si jamais on
@@ -23130,10 +23183,7 @@ function retirerChantier(ip){
   if(k < 0) return false;
   const C = CHANTIERS[k];
   // On rend la main aux engins, sans les laisser au milieu d'un champ en pilote fantôme.
-  for(const i of [C.enginTerre, C.enginPort]){
-    if(i < 0) continue;
-    const v = MACHINES[i].v; v.mission = null; v.auto = false; v.plan = null;
-  }
+  for(const i of [C.enginTerre, C.enginPort]) if(i >= 0) arreterMission(MACHINES[i]);
   CHANTIERS.splice(k, 1);
   return true;
 }
