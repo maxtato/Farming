@@ -22840,8 +22840,9 @@ const classeDe = (m)=> EST_TRACTEUR(m) ? 'tracteur'
                      : (m.key === 'moisson' || m.key === 'enjambeuse') ? m.key : 'porteur';
 /* UN ENGIN EST LIBRE S'IL NE FAIT RIEN ET QUE LE JOUEUR N'EST PAS DEDANS. On ne lui
    prend jamais celui qu'il conduit : le pilote reprendrait la main sous ses doigts. */
-const enginLibre = (m)=> !m.verrou && !m.v.mission && !m.v.auto && MACHINES[cur] !== m
-                         && !CHANTIERS.some((C)=> C.engin === MACHINES.indexOf(m));
+const enginLibre = (m)=> { const i = MACHINES.indexOf(m);
+  return !m.verrou && !m.v.mission && !m.v.auto && cur !== i
+         && !CHANTIERS.some((C)=> C.enginTerre === i || C.enginPort === i); };
 /* ARMER UN ENGIN. Le lanceur de l'ancien écran oubliait la moitié de ces champs — il ne
    remettait ni `finMoisson` ni l'itinéraire — et comptait sur la première tâche pour
    nettoyer derrière lui. Ici tout part de zéro, une fois, au même endroit. */
@@ -22868,6 +22869,52 @@ function tachesEtape(C, et, B){
   t.push({quoi:'parcelle', p:C.p});
   return t;
 }
+/* ---------- LA PISTE DE LA MARCHANDISE ----------
+   Le joueur : « on pourra sélectionner la farine ou d'autres objets transformés. Dans ce
+   cas, une fois arrivé au silo, il faudra tout retransformer à l'atelier et le mettre
+   dans la file d'attente ; une fois que ce sera terminé et disponible à l'entrepôt, elles
+   seront à charger. Et il y aura une troisième étape : après avoir choisi la parcelle et
+   le type de produit, on sélectionne l'endroit qu'on souhaite alimenter, par exemple la
+   boulangerie. »
+
+   TROIS ÉTATS SEULEMENT. On transforme s'il faut transformer, on livre s'il y a de quoi
+   livrer, on ne fait rien sinon. L'atelier n'a besoin d'AUCUN engin — il se sert lui-même
+   au silo et à l'entrepôt par des vis sans fin — si bien que la mise en file est une
+   décision, pas une tournée. */
+const ET_ATELIER = 'atelier', ET_LIVRER = 'livrer';
+const LOT_ATELIER = 60;   // ce qu'on met en file d'un coup, en kilos de produit fini
+function etapeMarchandise(C){
+  const fini = C.produit;
+  if(!fini) return null;
+  const lieu = C.dest && C.dest[fini];
+  if(!lieu) return null;
+  const brut = CROPS[C.crop || 0].cle;
+  /* IL FAUT TRANSFORMER ? On ne met en file que si la matière est là ET que l'atelier
+     n'a pas déjà ce lot en route : sans cette seconde condition, le répartiteur
+     empilerait un lot toutes les demi-secondes jusqu'à saturer la file. */
+  if(fini !== brut){
+    const dejaEnFile = HALLE.file.some((L)=> L.cle === fini);
+    const dejaPret = quantiteAuLieu('entrepot', fini) + quantiteAuLieu('silo', fini);
+    if(!dejaEnFile && dejaPret < 0.5){
+      if(!atelierA(fini)) return {mal:'L’ATELIER NE SAIT PAS FAIRE ' + nomHaut(fini)};
+      if(quantiteAuLieu('silo', brut) + quantiteAuLieu('entrepot', brut) < 0.5) return null;
+      return {et:ET_ATELIER};
+    }
+  }
+  // De quoi livrer, et où le prendre.
+  const ou = quantiteAuLieu('silo', fini) > 0.5 ? 'silo'
+           : quantiteAuLieu('entrepot', fini) > 0.5 ? 'entrepot' : null;
+  if(!ou) return null;
+  /* LE LIEU EN VEUT-IL ENCORE ? C'est `demandeChez` qui répond, et c'est le même test que
+     celui du transfert lui-même : un commerce fermé, un étal plein, une trémie d'usine qui
+     déborde. Quand il dit non, on ne se tait pas — on propose. */
+  if(!demandeChez(lieu, fini)){
+    const q = quantiteAuLieu(ou, fini);
+    return {mal:nomLieuHaut(lieu) + ' NE PEUT PLUS RIEN PRENDRE', autres:acheteursDe(fini, lieu, q)};
+  }
+  return {et:ET_LIVRER, ou:ou};
+}
+const nomLieuHaut = (cle)=>{ const L = lieuPoint(cle); return (L ? L.nom : cle).toUpperCase(); };
 /* LE RÉPARTITEUR. Deux fois par seconde : on regarde ce que chaque chantier réclame, on
    récupère les engins qui ont fini, et l'on attribue ce qui est libre. Les chantiers
    sont servis dans l'ordre où on les a créés — le premier posé est le premier servi,
@@ -22880,54 +22927,99 @@ function majChantiers(dt){
   const pas = _tChantiers; _tChantiers = 0;
   for(let k = CHANTIERS.length - 1; k >= 0; k--){
     const C = CHANTIERS[k];
-    // 1. l'engin attribué a-t-il fini ? Le seul signal est la mission qui retombe.
-    if(C.engin >= 0 && !MACHINES[C.engin].v.mission) C.engin = -1;
-    if(C.engin >= 0){ C.bloque = null; continue; }
-    // 2. où en est la terre ?
-    const et = etapeChantier(C);
-    C.etape = et;
-    if(et === ET_FINI){
-      if(!C.continu){ CHANTIERS.splice(k, 1); showHint('CHANTIER TERMINÉ — PARCELLE ' + (C.p + 1)); }
-      continue;
-    }
-    if(et === ET_POUSSE){ C.bloque = null; continue; }   // rien à faire qu'attendre
-    // 3. ce qui manque, s'il manque quelque chose
-    const mal = blocageEtape(C, et);
-    if(mal){
-      if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
-      continue;
-    }
-    C.bloque = null;
-    // 4. un engin libre de la bonne classe, le plus proche de la parcelle
-    const B = besoinEtape(C, et);
-    if(!B) continue;
-    const p = PARCELS[C.p];
-    let choisi = -1, best = 1e9;
-    MACHINES.forEach((m, i)=>{
-      if(classeDe(m) !== B.classe || !enginLibre(m)) return;
-      const d = Math.hypot(m.v.pos.x - p.x, m.v.pos.z - p.z);
-      if(d < best){ best = d; choisi = i; }
-    });
-    if(choisi < 0){
-      // Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le
-      // dit dans le bandeau du chantier, mais on ne crie pas — le joueur le verra.
-      C.bloque = NOM_ETAPE[et].toUpperCase() + ' — EN ATTENTE D’UN ENGIN';
-      continue;
-    }
-    // 5. le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait
-    if(et === ET_SEMIS && B.outil >= 0) TOOLS[B.outil].crop = C.crop || 0;
-    C.engin = choisi;
-    armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
+    // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
+    if(C.enginTerre >= 0 && !MACHINES[C.enginTerre].v.mission) C.enginTerre = -1;
+    if(C.enginPort  >= 0 && !MACHINES[C.enginPort].v.mission)  C.enginPort  = -1;
+    pisteTerre(C, k);
+    pisteMarchandise(C);
   }
+}
+/* La terre : labourer, semer, épandre, moissonner — ou attendre que ça pousse. */
+function pisteTerre(C, k){
+  if(C.enginTerre >= 0){ C.bloque = null; return; }
+  const et = etapeChantier(C);
+  C.etape = et;
+  if(et === ET_FINI){
+    /* UN CHANTIER « UNE FOIS » NE SE RETIRE QUE QUAND LA MARCHANDISE EST PARTIE. La terre
+       finie, il reste la récolte à transformer et à livrer : s'effacer là laisserait le
+       grain au silo et le joueur devant un chantier disparu sans que rien soit arrivé. */
+    if(!C.continu && !etapeMarchandise(C)){
+      CHANTIERS.splice(k, 1);
+      showHint('CHANTIER TERMINÉ — PARCELLE ' + (C.p + 1));
+    }
+    return;
+  }
+  if(et === ET_POUSSE){ C.bloque = null; return; }   // rien à faire qu'attendre
+  const mal = blocageEtape(C, et);
+  if(mal){
+    if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
+    return;
+  }
+  C.bloque = null;
+  const B = besoinEtape(C, et);
+  if(!B) return;
+  const choisi = enginLePlusProche(B.classe, PARCELS[C.p]);
+  if(choisi < 0){
+    // Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le dit
+    // dans le bandeau du chantier, mais on ne crie pas — le joueur le verra.
+    C.bloque = NOM_ETAPE[et].toUpperCase() + ' — EN ATTENTE D’UN ENGIN';
+    return;
+  }
+  // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait.
+  if(et === ET_SEMIS && B.outil >= 0) TOOLS[B.outil].crop = C.crop || 0;
+  C.enginTerre = choisi;
+  armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
+}
+/* La marchandise : mettre en file à l'atelier, puis porter au lieu choisi. */
+function pisteMarchandise(C){
+  const M = etapeMarchandise(C);
+  C.etapeM = M ? (M.et || null) : null;
+  if(!M){ C.bloqueM = null; C.alternatives = null; return; }
+  if(M.mal){
+    C.alternatives = M.autres || null;
+    if(C.bloqueM !== M.mal){
+      C.bloqueM = M.mal;
+      const a = (M.autres || [])[0];
+      showHint(M.mal + (a ? '  ·  ' + a.nom.toUpperCase() + ' EN PREND '
+                             + kg(a.prend).toUpperCase() + ' À ' + dec(a.prix) + ' €' : ''));
+    }
+    return;
+  }
+  C.bloqueM = null; C.alternatives = null;
+  if(M.et === ET_ATELIER){ lancerProduction(C.produit, LOT_ATELIER); return; }
+  if(C.enginPort >= 0) return;
+  const choisi = enginLePlusProche('porteur', M.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO));
+  if(choisi < 0){ C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; return; }
+  C.enginPort = choisi;
+  armerEngin(MACHINES[choisi],
+             [{quoi:'navette', a:M.ou, b:C.dest[C.produit], cle:C.produit}]);
+}
+/* L'engin libre de cette classe le plus proche d'un point. La proximité n'est pas du
+   luxe : le parc à outils est à cent mètres des champs, et prendre le tracteur d'en face
+   coûte une minute d'aller-retour visible à l'écran. */
+function enginLePlusProche(classe, ou){
+  let choisi = -1, best = 1e9;
+  MACHINES.forEach((m, i)=>{
+    if(classeDe(m) !== classe || !enginLibre(m)) return;
+    const d = Math.hypot(m.v.pos.x - ou.x, m.v.pos.z - ou.z);
+    if(d < best){ best = d; choisi = i; }
+  });
+  return choisi;
 }
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){
   const dejaLa = CHANTIERS.findIndex((C)=> C.p === ip);
   if(dejaLa >= 0) CHANTIERS.splice(dejaLa, 1);
+  /* DEUX PISTES, ET C'EST LA RAISON D'ÊTRE DU RÉPARTITEUR. La terre et la marchandise
+     n'avancent pas au même rythme : pendant que le tracteur laboure la parcelle suivante,
+     un porteur emmène déjà la récolte de la précédente. Un chantier tient donc DEUX
+     emplacements d'engin, servis indépendamment — un seul les mettrait en file, et l'on
+     aurait construit un ordonnanceur pour rien. */
   const C = {quoi:'culture', p:ip, continu:!!(o && o.continu),
              crop:(o && o.crop) || 0, engrais:!!(o && o.engrais),
              produit:(o && o.produit) || null, dest:(o && o.dest) || {},
-             etape:null, engin:-1, bloque:null};
+             etape:null, etapeM:null, enginTerre:-1, enginPort:-1,
+             bloque:null, bloqueM:null, alternatives:null};
   CHANTIERS.push(C);
   return C;
 }
@@ -22935,8 +23027,11 @@ function retirerChantier(ip){
   const k = CHANTIERS.findIndex((C)=> C.p === ip);
   if(k < 0) return false;
   const C = CHANTIERS[k];
-  // On rend la main à l'engin, sans le laisser au milieu d'un champ en pilote fantôme.
-  if(C.engin >= 0){ const v = MACHINES[C.engin].v; v.mission = null; v.auto = false; v.plan = null; }
+  // On rend la main aux engins, sans les laisser au milieu d'un champ en pilote fantôme.
+  for(const i of [C.enginTerre, C.enginPort]){
+    if(i < 0) continue;
+    const v = MACHINES[i].v; v.mission = null; v.auto = false; v.plan = null;
+  }
   CHANTIERS.splice(k, 1);
   return true;
 }
