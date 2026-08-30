@@ -22926,6 +22926,97 @@ function etapeMarchandise(C){
   return {et:ET_LIVRER, ou:ou};
 }
 const nomLieuHaut = (cle)=>{ const L = lieuPoint(cle); return (L ? L.nom : cle).toUpperCase(); };
+/* ---------- L'ÉLEVAGE : NOURRIR SANS RELÂCHE, LIVRER CHAQUE PRODUIT OÙ L'ON A DIT ----------
+   Le joueur : « le système doit être intelligent : il doit fournir du grain en continu
+   tant que les bêtes en ont besoin. Par contre on aura un message d'erreur si jamais on
+   n'a plus de maïs ou d'aliment disponible. Et pour l'élevage de moutons, on peut décider
+   de fournir les deux produits possibles — la laine et le lait — soit au même endroit,
+   soit à un endroit spécifique pour chacun. »
+
+   RIEN DE NEUF À CONDUIRE ICI NON PLUS. Nourrir, c'est une navette du silo vers la
+   mangeoire ; collecter et livrer, c'est une navette de l'enclos vers le lieu choisi.
+   Vérifié au banc avant d'écrire une ligne : un pick-up lâché sur
+   `{quoi:'navette', a:'silo', b:'pature0', cle:'mais'}` charge à 47 s et remplit la
+   mangeoire à 111 s, sans une ligne neuve.
+
+   DEUX SEUILS, ET ILS NE SE VALENT PAS. On ravitaille à MOITIÉ de mangeoire : elle ne
+   tient que huit kilos quand un pick-up en porte cent quarante, donc attendre le vide
+   ferait jeûner les bêtes le temps du trajet. On vient chercher le produit au QUART de
+   cuve seulement : un aller-retour pour trois litres de lait ne vaut pas le gazole. */
+const patureDe = (ip)=> PATURES.find((q)=> q.p === PARCELS[ip]) || null;
+const SEUIL_AUGE = 0.5, SEUIL_TANK = 0.25;
+function pisteAuge(C){
+  const P = patureDe(C.p);
+  if(!P){ C.etape = ET_FINI; return; }
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  // Une ruche ne mange pas : « elles constituent une activité passive », dit le cahier
+  // des charges. Lui porter du grain serait un troupeau de plus à ravitailler pour rien.
+  if(!E.rationCycle){ C.etape = 'ruche'; C.bloque = null; return; }
+  if(C.enginTerre >= 0){ C.bloque = null; return; }
+  if(P.grain >= P.grainMax*SEUIL_AUGE){ C.etape = 'auge pleine'; C.bloque = null; return; }
+  const dispo = alimentsDisponibles();
+  if(!dispo.length){
+    const mal = 'PLUS D’ALIMENT POUR LES ' + E.pluriel.toUpperCase()
+              + ' — NI GRAIN NI ALIMENT EN STOCK';
+    if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
+    return;
+  }
+  C.bloque = null; C.etape = 'nourrir';
+  const A = dispo[0];                        // le plus nourrissant d'abord
+  const i = enginLePlusProche('porteur', A.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO));
+  if(i < 0){ C.bloque = 'MANGEOIRE — EN ATTENTE D’UN PORTEUR'; return; }
+  C.enginTerre = i;
+  armerEngin(MACHINES[i],
+             [{quoi:'navette', a:A.ou, b:'pature' + PATURES.indexOf(P), cle:A.cle}]);
+}
+/* LES PRODUITS, UN PAR UN, CHACUN VERS SON LIEU. Une brebis en donne deux — la laine et
+   le lait — et rien n'oblige à les envoyer au même endroit. On sert dans l'ordre de la
+   liste de l'espèce, un porteur à la fois : deux tournées simultanées demanderaient deux
+   porteurs libres, ce qu'une ferme n'a pas toujours. */
+function pisteProduits(C){
+  const P = patureDe(C.p);
+  if(!P) return;
+  const E = ESPECES[P.espece] || ESPECES.vache;
+  const lots = [];
+  if(E.produit) lots.push({cle:E.produit, q:P.produit || 0, max:P.produitMax || 1});
+  if(E.second)  lots.push({cle:E.second.cle, q:P.produit2 || 0, max:P.produit2Max || 1});
+  const cleP = 'pature' + PATURES.indexOf(P);
+  /* UN BLOCAGE PAR PRODUIT, ET NON UN SEUL POUR L'ENCLOS. Une brebis donne deux choses :
+     le Marché peut être plein de laine pendant que l'Épicerie prend encore le lait. Avec
+     un seul message, la réussite du second effaçait l'avertissement du premier, et le
+     joueur ne savait jamais que sa laine s'entassait. Chaque produit garde donc SON
+     blocage et SA liste d'acheteurs de remplacement — c'est aussi ce que l'écran devra
+     montrer, une ligne par produit. */
+  C.etapeM = null;
+  const malProduit = {};
+  let livre = false;
+  for(const L of lots){
+    const lieu = C.dest && C.dest[L.cle];
+    if(!lieu || L.q < L.max*SEUIL_TANK) continue;
+    if(!demandeChez(lieu, L.cle)){
+      malProduit[L.cle] = {mal:nomLieuHaut(lieu) + ' NE PEUT PLUS PRENDRE DE ' + nomHaut(L.cle),
+                           autres:acheteursDe(L.cle, lieu, L.q)};
+      continue;
+    }
+    C.etapeM = 'livrer ' + L.cle;
+    if(livre || C.enginPort >= 0) continue;      // un porteur à la fois
+    const i = enginLePlusProche('porteur', P.quai);
+    if(i < 0){ C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; continue; }
+    C.enginPort = i; livre = true;
+    armerEngin(MACHINES[i], [{quoi:'navette', a:cleP, b:lieu, cle:L.cle}]);
+  }
+  /* On ne crie qu'au CHANGEMENT, et une fois par produit : sans cela, le bandeau
+     répéterait le même avertissement deux fois par seconde tant que l'étal reste plein. */
+  for(const k in malProduit){
+    const M = malProduit[k];
+    if(C.malProduit && C.malProduit[k] && C.malProduit[k].mal === M.mal) continue;
+    const a = M.autres[0];
+    showHint(M.mal + (a ? '  ·  ' + a.nom.toUpperCase() + ' EN PREND '
+                          + kg(a.prend).toUpperCase() + ' À ' + dec(a.prix) + ' €' : ''));
+  }
+  C.malProduit = Object.keys(malProduit).length ? malProduit : null;
+  if(livre || C.enginPort >= 0) C.bloqueM = null;
+}
 /* LE RÉPARTITEUR. Deux fois par seconde : on regarde ce que chaque chantier réclame, on
    récupère les engins qui ont fini, et l'on attribue ce qui est libre. Les chantiers
    sont servis dans l'ordre où on les a créés — le premier posé est le premier servi,
@@ -22941,8 +23032,8 @@ function majChantiers(dt){
     // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
     if(C.enginTerre >= 0 && !MACHINES[C.enginTerre].v.mission) C.enginTerre = -1;
     if(C.enginPort  >= 0 && !MACHINES[C.enginPort].v.mission)  C.enginPort  = -1;
-    pisteTerre(C, k);
-    pisteMarchandise(C);
+    if(C.quoi === 'elevage'){ pisteAuge(C); pisteProduits(C); }
+    else { pisteTerre(C, k); pisteMarchandise(C); }
   }
 }
 /* La terre : labourer, semer, épandre, moissonner — ou attendre que ça pousse. */
@@ -23026,11 +23117,11 @@ function poserChantier(ip, o){
      un porteur emmène déjà la récolte de la précédente. Un chantier tient donc DEUX
      emplacements d'engin, servis indépendamment — un seul les mettrait en file, et l'on
      aurait construit un ordonnanceur pour rien. */
-  const C = {quoi:'culture', p:ip, continu:!!(o && o.continu),
+  const C = {quoi:(o && o.quoi) || 'culture', p:ip, continu:!!(o && o.continu),
              crop:(o && o.crop) || 0, engrais:!!(o && o.engrais),
              produit:(o && o.produit) || null, dest:(o && o.dest) || {},
              etape:null, etapeM:null, enginTerre:-1, enginPort:-1,
-             bloque:null, bloqueM:null, alternatives:null};
+             bloque:null, bloqueM:null, alternatives:null, malProduit:null};
   CHANTIERS.push(C);
   return C;
 }
