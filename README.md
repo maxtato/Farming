@@ -5189,6 +5189,60 @@ l'appliquer proprement serait une passe qui parcourt la scène après chaque con
 beaucoup de mécanique fragile pour neuf appels de dessin. On s'en passe, et on l'écrit ici
 pour que la question ne se repose pas.
 
+## Trente images plutôt que soixante, si on veut
+
+**« Je sais qu'on peut changer les FPS pour que ça rame moins, en passant à 30 au lieu de
+60 — c'est possible ? »** Oui, et la boucle s'y prêtait déjà : elle est entièrement pilotée
+par `dt`, clampé à 50 ms, donc rien de la simulation ne dépend de la cadence. Mais il faut
+dire ce que le plafond fait, et surtout ce qu'il ne fait pas.
+
+**Plafonner ne rend aucune image moins chère.** Une image qui coûte quarante millisecondes
+en coûtera toujours quarante, et sur un appareil déjà sous les trente images le plafond ne
+change rien du tout. Ce qu'il change, c'est le travail par **seconde** — de moitié — donc
+la chaleur, donc la batterie, donc le moment où le téléphone se bride lui-même. C'est ce
+bridage thermique qui fait qu'une partie devient poussive au bout de cinq minutes, et pas
+le coût d'une image. Et il change une seconde chose, qui se voit tout de suite : un
+appareil qui tient quarante à cinquante-cinq images de façon **irrégulière** paraît plus
+saccadé qu'un trente parfaitement régulier. La régularité se lit mieux que le nombre.
+
+**La manière compte autant que le principe.** Refuser une image tant qu'il ne s'est pas
+écoulé 33,3 ms donnerait, sur un écran à soixante hertz, une image à 16,7 puis une à 33,3 :
+deux images d'affilée d'inégale durée, c'est-à-dire du sautillement — pire que pas de
+plafond du tout. Une tolérance de quatre millisecondes fait qu'on prend le battement
+d'écran le plus proche : un sur deux à 60 Hz, un sur trois à 90, un sur quatre à 120.
+`last` n'avance qu'aux images **rendues**, si bien que le `dt` d'une image plafonnée vaut
+les deux battements écoulés et que rien ne ralentit.
+
+Relevé — le banc ne tient que onze images par seconde et ne peut donc pas *mesurer* un
+plafond à trente : on appelle `loop()` à la main, avec les battements exacts de chaque
+écran, et l'on regarde lesquels sont rendus.
+
+| écran | plafond | images rendues | durées vues | temps simulé |
+| --- | --- | --- | --- | --- |
+| 60 Hz | aucun | 60 /s | 16,7 ms | 2,000 s |
+| 60 Hz | 30 | **30 /s** | 33,3 ms | 2,000 s |
+| 90 Hz | 30 | **30 /s** | 33,3 ms | 2,000 s |
+| 120 Hz | 30 | **30 /s** | 33,3 ms | 2,000 s |
+| 30 Hz | 30 | 30 /s | 33,3 ms | 2,000 s |
+
+Une seule durée par ligne : la cadence est **régulière** sur les trois écrans. Et le temps
+simulé est identique partout — la ferme ne pousse ni plus vite ni moins vite.
+
+**Le réglage vit dans « Image », à côté du zoom**, et il vaut soixante par défaut : on ne
+bride personne d'office. Il se sauvegarde comme le zoom et le choix des commandes, en champ
+facultatif — une partie d'avant vaut soixante, et `v` ne bouge pas.
+
+### Une chance « par image » n'en est pas une
+
+Quinze bouffées du jeu — poussière de roues, menue paille du batteur, fumée à la grille,
+vapeurs de transfert — étaient tirées à `Math.random() < p` **une fois par image**. Tant
+que le jeu tournait à soixante, cela faisait 60 p bouffées par seconde et personne ne s'en
+apercevait ; le jour où l'on plafonne à trente, le décor se vide de moitié. Pire : sur un
+téléphone qui peine, la poussière se serait raréfiée exactement quand le jeu ralentit,
+c'est-à-dire au pire moment. La probabilité se lit donc maintenant **par seconde** et se
+ramène à l'image écoulée, avec un plafond à quatre images de retard pour qu'un à-coup d'une
+demi-seconde ne crache pas trente bouffées d'un coup.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure

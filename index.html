@@ -1076,6 +1076,11 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 1, 400);
 const CAM_BASE = new THREE.Vector3(38, 62, 38);
 const FOG_BASE = {pres:150, loin:260, far:400};
 const ZOOM = {pc:75, min:55, max:160};   // 75 % au départ : on voit venir de plus loin
+/* LE PLAFOND D'IMAGES. Soixante par défaut : on ne bride personne d'office. Le réglage
+   vit ici, à côté du zoom, parce que c'est le même genre de décision — ce qu'on donne à
+   voir contre ce qu'on demande à la machine. Voir `loop()` pour ce que le plafond fait
+   vraiment, et surtout pour ce qu'il ne fait pas. */
+const IMAGES = {cible: 60};
 const CAM_OFF = CAM_BASE.clone();
 const zoomK = ()=> 100/Math.max(1, ZOOM.pc);
 /* Ce que la caméra embrasse au sol, en mètres. C'est la seule mesure qui parle vraiment
@@ -13090,7 +13095,7 @@ function work(m, dt){
   if(anyField && SWATH[T.key]) paintSwath(T.key, prev, prev.r, cur, cur.r, w);
   const cx = cur.x, cz = cur.z, r = cur.r;
   // particules liées au travail
-  if(anyField && Math.random() < 0.5){
+  if(anyField && siSouvent(0.5)){
     const s = (Math.random()-0.5)*T.width;
     if(T.recolte) puff(cx + r.x*s, T.caisse ? 1.9 : 1.3, cz + r.z*s,
                        T.caisse ? 0xC9B4C4 : 0xFFD27A, 0.5, 0.5);
@@ -13104,7 +13109,7 @@ function work(m, dt){
     else puff(cx + r.x*s, 0.5, cz + r.z*s, 0xC9B79A, 0.32, 0.3);
   }
   // La menue paille sort du batteur d'une moissonneuse ; une enjambeuse n'en fait pas.
-  if(T.key === 'moisson' && anyField && Math.random() < 0.25){
+  if(T.key === 'moisson' && anyField && siSouvent(0.25)){
     puff(v.pos.x - Math.sin(v.toolCap)*3, 4.2, v.pos.z - Math.cos(v.toolCap)*3, 0xFFF0D0, 0.5, 1.1);
   }
 }
@@ -18347,12 +18352,12 @@ const actionPour = (m)=>{
    qui sort de la fosse et retombe : basse, large, rasante, à l'endroit exact où la
    matière arrive. */
 function fumeeGrille(cle){
-  if(Math.random() < 0.55)
+  if(siSouvent(0.55))
     puff(SILO.x + (Math.random()-0.5)*2.2, 0.4 + Math.random()*0.7,
          SILO.z + (Math.random()-0.5)*2.2, 0xD9D3C4, 0.62, 0.85, 1.6, -0.20, 0.42, 0.9);
   // et quelques grains, à la couleur de ce qu'on verse : la poussière seule
   // ressemblerait à un feu de broussailles
-  if(Math.random() < 0.25)
+  if(siSouvent(0.25))
     puff(SILO.x + (Math.random()-0.5)*1.4, 1.6 + Math.random()*0.8,
          SILO.z + (Math.random()-0.5)*1.4, teinteDe(cle), 0.3, 0.35, 0.7, 1.2, 0.8, 1.2);
 }
@@ -18383,7 +18388,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.capacite - T.load, siloStock[A.cle]);
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q); siloStock[A.cle] -= q;
-      if(Math.random() < 0.4)
+      if(siSouvent(0.4))
         puff(SILO.x + (Math.random()-0.5)*2, 5.5, SILO.z + (Math.random()-0.5)*2, 0xF2D98A, 0.4, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -18394,7 +18399,7 @@ function executer(m, A, dt){
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q);
       if(deux) P.produit2 -= q; else P.produit -= q;
-      if(Math.random() < 0.3) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
+      if(siSouvent(0.3)) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
@@ -18405,7 +18410,7 @@ function executer(m, A, dt){
       const q = Math.min(lent, chargeDe(T, A.cle), (P.grainMax - P.grain)/rend);
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); P.grain += q*rend;
-      if(Math.random() < 0.4) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
+      if(siSouvent(0.4)) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
       viderType(T);
       if(P.grain >= P.grainMax - 0.01) showHint('AUGE REMPLIE');
       return;
@@ -18414,7 +18419,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, chargeDe(T, A.cle), entrepotPlace());
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); entrepotRange(A.cle, q); livraison('entrepot', A.cle, q);
-      if(Math.random() < 0.3)
+      if(siSouvent(0.3))
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.28);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01) showHint(nomDe(A.cle).toUpperCase() + ' RENTRÉ À L\'ENTREPÔT');
@@ -18424,7 +18429,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.capacite - T.load, entrepotStock(A.cle));
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q); entrepotRetire(A.cle, q);
-      if(Math.random() < 0.3)
+      if(siSouvent(0.3))
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -18439,7 +18444,7 @@ function executer(m, A, dt){
       entamerEtal(A.S, A.cle, q);
       livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
-      if(Math.random() < 0.4) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
+      if(siSouvent(0.4)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
         showHint(nomDe(A.cle).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €');
@@ -18451,7 +18456,7 @@ function executer(m, A, dt){
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       livraison(A.S.nom, A.cle, q); compter(A.cle, q);
-      if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
+      if(siSouvent(0.3)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
         showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
@@ -18461,7 +18466,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, T.capacite - T.load, A.S.stock[A.cle]);
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q); A.S.stock[A.cle] -= q;
-      if(Math.random() < 0.3) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
+      if(siSouvent(0.3)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
@@ -18473,7 +18478,7 @@ function executer(m, A, dt){
       if(vente){ encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
                  entamerEtal(A.S, A.cle, q); }
       else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
-      if(Math.random() < 0.6)
+      if(siSouvent(0.6))
         puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,
              teinteDe(A.cle), 0.4, 0.2);
       if(hopper <= 0.01){ hopper = 0;
@@ -18516,10 +18521,10 @@ function fabriquerSite(S, cle, debitKg, dt){
     const gain = (U.stock[cle] || 0)*prixChez(S, cle);
     encaisser(gain); compter(cle, (U.stock[cle] || 0));
     if(gain > 0) gainContinu(S.x, S.z);
-    if(Math.random() < 0.10 && S.smoke)
+    if(siSouvent(0.10) && S.smoke)
       puff(S.smoke.x, S.smoke.y, S.smoke.z, 0xC6CBCE, 0.6, 0.9, 2.6, -0.3, 0.42, 0.5);
   }
-  if(q > 0 && Math.random() < 0.08)
+  if(q > 0 && siSouvent(0.08))
     puff(S.x, 6.0, S.z, 0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
   return q;
 }
@@ -18615,7 +18620,7 @@ function updateAtelier(dt){
       // et a donc monté avec lui : ces trois cotes étaient calées à la main en mètres
       // bruts, et la fumée naissait sous la ligne de toiture — l'atelier fumait par le
       // milieu de sa façade.
-      if(Math.random() < 0.12)
+      if(siSouvent(0.12))
         puff(HALLE.x + 3.2*BAT_ECHELLE, 6.4*BAT_ECHELLE, HALLE.z - 2.0*BAT_ECHELLE,
              0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
       if(C2.reste <= 0.01) commandeFinie('ATELIER — ' + P.nom.toUpperCase() + ' TERMINÉ');
@@ -20959,6 +20964,18 @@ function ongletReglages(){
     });
 
   titre('Image');
+  const f30 = IMAGES.cible === 30;
+  article(0xFAD201, 'Fluidité — ' + (f30 ? '30 images' : '60 images'),
+    f30 ? 'Le jeu se limite à trente images par seconde. Il n\'en dessine aucune plus '
+        + 'vite, mais il en dessine deux fois moins : moitié moins de chaleur, moitié '
+        + 'moins de batterie, et le téléphone se bride moins vite de lui-même.'
+        : 'Le jeu dessine autant d\'images que l\'écran en accepte. Si ça saccade sur '
+        + 'votre appareil, trente images RÉGULIÈRES se lisent souvent mieux que '
+        + 'cinquante irrégulières — et l\'appareil chauffe deux fois moins.',
+    f30 ? '60 images' : '30 images', 'vert', ()=>{
+      IMAGES.cible = f30 ? 60 : 30;
+      showHint('FLUIDITÉ — ' + IMAGES.cible + ' IMAGES PAR SECONDE');
+    });
   articleCurseur(0xFAD201, 'Zoom', {
     min: ZOOM.min, max: ZOOM.max, pas: 5, unite: ' %',
     lire: ()=> ZOOM.pc,
@@ -21528,6 +21545,9 @@ function etatJeu(){
     nettete: NETTETE.i,
     zoom: ZOOM.pc,
     commandes: COMMANDES.mode,
+    // Facultatif comme le reste des réglages : absent, il vaut soixante, c'est-à-dire
+    // le comportement de toujours. `v` ne bouge pas.
+    images: IMAGES.cible,
     moisson: {width: MOISSON.width, level: MOISSON.level, hopMax: HOP_MAX},
     /* LA CAMPAGNE. Elle s'ajoute en CHAMPS FACULTATIFS, et la version de la
        sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
@@ -21928,6 +21948,7 @@ function chargerPartie(S){
     appliquerZoom();
     // Absent, c'est le manche : c'est ce qu'avaient toutes les parties d'avant ce réglage.
     COMMANDES.mode = S.commandes === 'boutons' ? 'boutons' : 'manche';
+    IMAGES.cible = (S.images | 0) === 30 ? 30 : 60;
     appliquerCommandes();
     // La coupe et la trémie se déduisent du niveau de la moissonneuse, quelques lignes
     // plus bas : on lit encore ces trois champs pour les parties d'avant le barème, et
@@ -22237,9 +22258,41 @@ setMachine(cur);
 smokeT = 0; chimT = 0; usineT = 0;
 last = performance.now();
 const _smoke = new THREE.Vector3();
+/* UNE CHANCE « PAR IMAGE » N'EN EST PAS UNE.
+   Quinze bouffées du jeu — poussière de roues, fumée à la grille, vapeurs de transfert —
+   étaient tirées à `Math.random() < p` UNE FOIS PAR IMAGE. Tant que le jeu tournait à
+   soixante, cela faisait 60p bouffées par seconde et personne ne s'en apercevait ; le
+   jour où l'on plafonne à trente, le décor se vide de moitié — et sur un téléphone qui
+   peine, la poussière disparaîtrait exactement quand le jeu ralentit, c'est-à-dire au
+   pire moment. La probabilité se lit donc PAR SECONDE, et se ramène à l'image écoulée.
+   Le plafond à quatre images de retard évite qu'un à-coup d'une demi-seconde ne crache
+   trente bouffées d'un coup. */
+let _dtImage = 1/60;
+const siSouvent = (p)=> Math.random() < p*Math.min(4, _dtImage*60);
 function loop(now){
   requestAnimationFrame(loop);
+  /* PLAFONNER LE NOMBRE D'IMAGES, ET POURQUOI CELA AIDE.
+     Plafonner ne rend AUCUNE image moins chère : une image qui coûte quarante
+     millisecondes en coûtera toujours quarante. Ce que le plafond change, c'est le
+     travail par SECONDE — de moitié — donc la chaleur, donc la batterie, donc le moment
+     où le téléphone se met à se brider lui-même. C'est ce bridage thermique qui fait
+     qu'une partie devient poussive au bout de cinq minutes, pas le coût d'une image.
+     Et il change une seconde chose, qui se voit tout de suite : un appareil qui tient
+     quarante à cinquante-cinq images de façon IRRÉGULIÈRE paraît plus saccadé qu'un
+     trente parfaitement régulier. La régularité se lit mieux que le nombre.
+     Sur un appareil qui est déjà sous les trente, en revanche, le plafond ne fait rien.
+
+     LA MANIÈRE COMPTE AUTANT QUE LE PRINCIPE. Refuser une image tant qu'il ne s'est pas
+     écoulé 33,3 ms donnerait, sur un écran à soixante hertz, une image à 16,7 puis une à
+     33,3 : deux images d'affilée d'inégale durée, c'est-à-dire du sautillement — pire
+     que pas de plafond du tout. La tolérance de quatre millisecondes fait qu'on prend le
+     battement d'écran le plus proche : un sur deux à 60 Hz, un sur trois à 90, un sur
+     quatre à 120. Le résultat est trente images RÉGULIÈRES sur les trois écrans.
+     `last` n'avance qu'aux images RENDUES : le `dt` d'une image plafonnée vaut donc bien
+     les deux battements écoulés, et rien de la simulation ne ralentit. */
+  if(IMAGES.cible < 60 && now - last < 1000/IMAGES.cible - 4) return;
   let dt = Math.min(0.05, (now-last)/1000); last = now;
+  _dtImage = dt || 1/60;
   if(paused) dt = 0;
 
   keyboardInput();
@@ -22265,7 +22318,7 @@ function loop(now){
     const st = v.update(dt, steerM, thrM, freinM);
     v.steerVis = steerM ? 0.35 : 0;
     // poussière de roues / dérive
-    if(v.speed > 3 && Math.random() < 0.25 + v.slip*0.6){
+    if(v.speed > 3 && siSouvent(0.25 + v.slip*0.6)){
       const r = right(v.cap), s = (Math.random() < 0.5 ? -1 : 1)*v.trackW;
       puff(v.pos.x + r.x*s, 0.4, v.pos.z + r.z*s, 0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
     }
