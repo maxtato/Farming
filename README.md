@@ -5025,6 +5025,22 @@ Autour de l'Usine céréales, les maillages passent de **484 à 131**. L'image e
 `mat()` et `MAT_FUSION` sont le même matériau Phong à ombrage plat, seule la couleur
 change de source.
 
+**La réponse, élément par élément**, relevée sur la scène, ferme entièrement plantée et
+atelier au dernier palier :
+
+| ce que le joueur nomme | cuit ? | volumes soudés en un maillage |
+|---|---|---|
+| la cuve à graines | oui | 23 |
+| la cuve à engrais | oui | 52 |
+| le silo | oui | 5 |
+| l'atelier | oui | **102** |
+| l'entrepôt | oui | 10 |
+| la cuve à gazole | oui | 6 |
+| la benne | oui | **73** |
+| les clôtures et bâtiments des commerces | oui | **15 sur 15** |
+
+Total de la vallée : **81 blocs, 2 888 volumes soudés.**
+
 **Ce qui reste hors bloc, et pourquoi.** Les 438 restants sont pour l'essentiel les
 **382 arbres, rochers et touffes semés à la racine de la scène**, chacun à sa place sur
 369 m de large. Les souder ferait une seule maille grande comme la carte : on gagnerait
@@ -5036,6 +5052,88 @@ Le reste ne peut pas entrer dans un bloc : `MAT_FUSION` est un matériau unique 
 par sommet, donc tout ce qui est texturé (119 maillages : étiquettes, bulles, sol),
 transparent (101 : anneaux, halos, colis) ou animé (351 engins, 42 lumières de nuit) en
 est exclu par construction.
+
+## Trois pistes de performance : une faite, une déjà faite, une fausse
+
+Le joueur : « fais les modifications que tu m'as suggérées. » Il y en avait trois. Une
+seule tenait, et c'est celle qui est faite. Les deux autres ne méritent pas d'être
+silencieuses : l'une était déjà réglée, l'autre était **une erreur de ma part**.
+
+### 1. Les clôtures de commerce — faite
+
+Voir plus haut : 871 → 438 maillages de décor opaque hors bloc, image identique.
+
+### 2. Les lumières de nuit — c'était déjà fait
+
+J'avais annoncé « 144 objets et autant de matrices entretenues 24 h sur 24, zéro dessiné
+en plein jour ». Le comptage était juste, la conclusion prématurée : `majEclairagesNuit`
+pose déjà `nuitGroupe.visible = false` par temps de jour, et three.js saute un sous-arbre
+invisible dans `projectObject` — rien n'est ni trié ni dessiné. Le fichier porte même la
+trace de la fois où cela a été corrigé : *« `.visible` et pas seulement l'opacité :
+three.js trie et dessine un transparent à opacité nulle. Sans ça, le jour coûtait autant
+que la nuit. »*
+
+Il ne restait donc que le coût de **matrices**, qui n'est pas propre aux lumières — voir
+plus bas.
+
+### 3. Les plantes en double face — je me trompais
+
+J'avais écrit : *« les plantes sont dessinées en double face alors qu'elles sont faites de
+cônes convexes : 72 228 triangles rasterisés pour rien »*, et j'en avais fait le plus gros
+levier du jeu, à mesurer avant de toucher.
+
+Mesuré : **c'est faux, et le double face est structurel.** Toutes les briques d'une plante
+sont des `CylinderGeometry(..., openEnded = true)` — des tubes **sans couvercle** — et
+certaines feuilles sont des plans de deux triangles. Le compte des arêtes le dit sans
+appel : sur les **23 géométries** de culture du jeu, **zéro** est fermée. Une arête de bord
+n'appartient qu'à un seul triangle ; il y en a partout.
+
+| culture | âge | triangles | arêtes | dont **de bord** |
+|---|---|---|---|---|
+| Blé | levée | 12 | 24 | **12** (50 %) |
+| Blé | adulte | 36 | 72 | **36** (50 %) |
+| Colza | adulte | 42 | 84 | **42** |
+| Raisin | adulte en fruits | 66 | 120 | **42** |
+| Olives | adulte en fruits | 78 | 144 | **54** |
+
+Passer en `FrontSide` ne supprimerait pas des triangles inutiles : cela **creuserait chaque
+plante**, en enlevant la paroi lointaine de chaque tube et le dessous de chaque feuille. Le
+commentaire du code le disait déjà, en une ligne que j'avais lue trop vite : *« Double
+face : une feuille est un PLAN de deux triangles, qu'il faut voir du dessus comme du
+dessous. »* Et le fichier garde la trace d'un précédent exactement inverse, sur le trafic :
+*« l'enroulement est inversé par rapport à la planche ; elle peignait en DoubleSide, ce qui
+masquait l'erreur. »*
+
+**Rien à faire ici, et c'est le résultat le plus utile des trois** : le plus gros levier
+annoncé du jeu n'existe pas.
+
+### Ce qui reste, et qui n'était pas dans la liste
+
+En cherchant le coût des lumières de nuit, la mesure en a sorti un autre, plus général.
+Dans three.js r128, `updateMatrixWorld` descend **tout** le graphe à chaque image, visible
+ou non : pour chaque objet dont `matrixAutoUpdate` est vrai, il recompose la matrice locale
+puis la multiplie par celle du parent.
+
+Relevé sur la scène complète, ferme entièrement plantée :
+
+| | |
+|---|---|
+| objets dans le graphe | **1 707** |
+| qui ont bougé en quelques secondes de jeu | **51** (39 maillages, 7 groupes, 4 sprites, le soleil) |
+| qui n'ont **jamais** bougé | **1 645** — 96 % |
+| dont `matrixAutoUpdate` est vrai | **1 707** — tous |
+
+Autrement dit, la quasi-totalité du graphe paie deux produits de matrices par image pour
+rester exactement où elle est, soit de l'ordre de 197 000 compositions par seconde à
+soixante images. C'est un gain **de processeur seulement** : aucun triangle, aucun appel de
+dessin, **aucun pixel** ne change.
+
+Ce n'est pas fait, et volontairement : geler un objet qui bougera plus tard est un défaut
+**silencieux**, qui ne se voit que quand quelque chose reste planté au mauvais endroit. Le
+faire proprement demande un banc qui compare la matrice monde de chaque objet, image par
+image, avec et sans le gel, y compris pendant les événements qui déplacent des choses —
+l'achat d'une parcelle, l'agrandissement de l'atelier, la tombée de la nuit. C'est un
+chantier à part entière, et il attend un feu vert.
 
 ## Cinq demandes d'un coup
 
