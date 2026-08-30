@@ -1949,7 +1949,15 @@ const SILO = {x: 59, z: 50, r: 4.5, cran: 1};   // la grille de déversement, so
    72 : cinq mètres à leur droite, comme demandé, et 4,76 m de dégagement devant l'atelier
    le plus grand qu'on puisse construire. */
 const RES_GRAINE  = {x: 67, z: 46, quai: {x: 72, z: 46}, r: 3.6};
-const RES_ENGRAIS = {x: 67, z: 54, quai: {x: 72, z: 54}, r: 3.6};
+/* ET LA BLANCHE DESCEND DE QUATRE MÈTRES. Le joueur : « écarte un peu plus la cuve à
+   engrais, vers le bas. » Vers le bas de l'écran, c'est vers les z croissants : la caméra
+   regarde depuis (38, 62, 38), donc un z plus grand est plus près d'elle et plus bas dans
+   l'image. Les deux réserves étaient à huit mètres l'une de l'autre, ce qui les faisait
+   lire comme une seule installation ; à douze, chacune a son cercle et son étiquette sans
+   qu'on hésite. La cour va jusqu'à z = 69 et l'emprise de l'atelier s'arrête à z = 55,66
+   au dernier palier : il y a la place, et la voie d'accès des cuves — verticale x = 72,
+   ouverte de z = 40 à z = 74 — la dessert toujours par son bout sud. */
+const RES_ENGRAIS = {x: 67, z: 58, quai: {x: 72, z: 58}, r: 3.6};
 
 /* ---------- UN TRANSFORMATEUR, C'EST TOUJOURS LA MÊME MÉCANIQUE ---------- */
 /* Une trémie où l'on verse des matières, un stock d'où l'on repart avec le produit,
@@ -8796,9 +8804,24 @@ function buildEnjambeuse(){
    — les roues d'un outil ne tournent pas, `userData.wheels` n'existe que pour les engins —
    donc `fusionnerGroupe` s'applique sans réserve et ramène le tout à un seul maillage,
    moins cher que les douze d'avant. */
+/* ELLE GRANDIT D'UN QUART. Le joueur, en la voyant en jeu : « augmente la taille de la
+   nouvelle benne. » Le modèle porté faisait 2,78 m de large pour 5,28 de long — la
+   largeur exacte du tracteur qui la tire, ce qui était juste sur le papier et menu à
+   l'écran, où l'ancienne caisse ocre en faisait 3,86. Un quart de plus la porte à 3,48 ×
+   3,29 × 6,60 : plus large qu'un engin, ce qu'une remorque de ferme doit être.
+   L'ÉCHELLE SE POSE SUR LE GROUPE INTÉRIEUR, ET L'ESSIEU RECULE D'AUTANT. `T.L` est la
+   distance de l'anneau à l'essieu : elle suit le modèle, sinon la caisse traînerait
+   décalée de son propre timon. `fusionnerGroupe` prend l'inverse de la matrice du groupe
+   EXTÉRIEUR, si bien qu'une échelle posée sur l'intérieur est cuite dans la géométrie et
+   survit à la fusion — c'est le même mécanisme que pour l'atelier. */
+const BENNE_ECH = 1.25;
+const BENNE_L = +(3.2*BENNE_ECH).toFixed(3);      // 4,0 m de l'anneau à l'essieu
 function buildBenne(){
   const outer = new THREE.Group();
-  const g = new THREE.Group(); g.position.z = -3.2; outer.add(g);
+  const g = new THREE.Group();
+  g.scale.setScalar(BENNE_ECH);
+  g.position.z = -BENNE_L;
+  outer.add(g);
   const NOIR = 0x2A2622, CHASSIS = 0x3A3630, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
         VERT = 0x3E6B4E, VERT2 = 0x2F5B40, ROUGE = 0xB8342A,
         CREME = 0xF2E7D2, BACHE = 0x3E5C6B;
@@ -8897,8 +8920,9 @@ function buildBenne(){
      elle, n'en avait pas : un tracteur attelé transportait bel et bien ses cent trente-cinq
      kilos, mais la caisse restait vide à l'œil. Les cotes sont celles de l'INTÉRIEUR de la
      caisse, exprimées dans le repère de `outer`, donc décalées de L comme tout le reste. */
-  outer.userData.benne = {x:[-0.42, 0.42], z:[-3.2 - 1.35, -3.2 + 1.35],
-                          y:y0 + 0.30, n:8, ech:0.9};
+  outer.userData.benne = {x:[-0.42*BENNE_ECH, 0.42*BENNE_ECH],
+                          z:[-BENNE_L - 1.35*BENNE_ECH, -BENNE_L + 1.35*BENNE_ECH],
+                          y:(y0 + 0.30)*BENNE_ECH, n:8, ech:0.9*BENNE_ECH};
   fusionnerGroupe(outer);
   return outer;
 }
@@ -13275,7 +13299,7 @@ const TOOLS = [
             verrou:true, prix:250}),
   // La benne ne travaille pas la terre : elle transporte. C'est elle qui relie le
   // moulin à la boulangerie, deuxième maillon de la chaîne économique.
-  makeTool({key:'benne', nom:'Benne', build:buildBenne, hitch:2.0, L:3.2,
+  makeTool({key:'benne', nom:'Benne', build:buildBenne, hitch:2.0, L:BENNE_L,
             cargo:true, capacite:135, load:0, aide:'Transporte la farine'})
 ];
 function attachTool(v, T){
@@ -20378,11 +20402,25 @@ const PAN_W = 470, PAN_NOM = 52, PAN_SOUS = 46;
 // Trois étages, toujours dessinés au même endroit : c'est ce qui permet de REPEINDRE le
 // canevas d'une étiquette au lieu de la reconstruire, vingt fois par seconde s'il le faut.
 const PAN_YNOM = 24, PAN_YACC = 84, PAN_YSOUS = 96, PAN_YBAR = 158, PAN_HBAR = 22;
-const PAN_H = PAN_YBAR + PAN_HBAR + 20;               // 200
+/* ET UNE ÉTIQUETTE PEUT AVOIR PLUSIEURS LIGNES DE DÉTAIL. Le joueur : « indique dans
+   l'étiquette de la cuve à graines et dans le silo le détail des graines et des types de
+   récolte. » Il n'y avait qu'une ligne, et elle disait le total plus la nature la plus
+   grosse — « 400 kg sur 326 · Blé » — ce qui cache justement ce qu'il demande : les
+   quatre autres céréales du silo, les six autres semences de la réserve.
+   Le canevas grandit donc d'une ligne pour ces deux-là, et pour elles seules : la hauteur
+   est propre à chaque étiquette, et le sprite prend son rapport de SON canevas. Le texte
+   de détail se passe en une seule chaîne coupée par des sauts de ligne, et non en tableau,
+   parce que le cache de repeinture compare `J.sous` par ÉGALITÉ : un tableau neuf à chaque
+   image ferait repeindre et téléverser 470 × 252 pixels soixante fois par seconde. */
+const PAN_LIGNE = 52;                                 // ce qu'ajoute une ligne de plus
+const panHaut = (n)=> PAN_YBAR + PAN_HBAR + 20 + Math.max(0, (n || 1) - 1)*PAN_LIGNE;
+const PAN_H = panHaut(1);                             // 200
 const PAN_RATIO = PAN_H/PAN_W;
-function peindrePanneauCv(c, nom, accent, sous, barre, k, coul){
-  c.clearRect(0, 0, PAN_W, PAN_H);
-  const r = 34, w = PAN_W - 20, h = PAN_H - 22, x = 10, y = 8;
+function peindrePanneauCv(c, nom, accent, sous, barre, k, coul, lignes){
+  const nL = Math.max(1, lignes || 1);
+  const PAN_HH = panHaut(nL), yBar = PAN_YBAR + (nL - 1)*PAN_LIGNE;
+  c.clearRect(0, 0, PAN_W, PAN_HH);
+  const r = 34, w = PAN_W - 20, h = PAN_HH - 22, x = 10, y = 8;
   c.fillStyle = 'rgba(28,35,40,.80)';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -20401,26 +20439,61 @@ function peindrePanneauCv(c, nom, accent, sous, barre, k, coul){
   c.fillText(nom, PAN_W/2, PAN_YNOM + PAN_NOM/2);
   c.fillStyle = accent; c.fillRect(PAN_W/2 - 130, PAN_YACC, 260, 5);
   if(sous){
-    c.fillStyle = 'rgba(255,255,255,.82)';
-    let t2 = PAN_SOUS;
-    c.font = 'bold ' + t2 + 'px "Trebuchet MS",Verdana,sans-serif';
-    while(t2 > 20 && c.measureText(sous).width > PAN_W - 56){
-      t2 -= 2; c.font = 'bold ' + t2 + 'px "Trebuchet MS",Verdana,sans-serif';
+    // La première ligne porte le total, les suivantes le détail : plus petites et plus
+    // discrètes, parce que c'est du second plan et que ça doit se lire comme tel.
+    const li = String(sous).split('\n');
+    for(let q = 0; q < li.length && q < nL; q++){
+      if(!li[q]) continue;
+      const base = q === 0 ? PAN_SOUS : PAN_SOUS - 8;
+      c.fillStyle = q === 0 ? 'rgba(255,255,255,.82)' : 'rgba(255,255,255,.66)';
+      let t2 = base;
+      c.font = 'bold ' + t2 + 'px "Trebuchet MS",Verdana,sans-serif';
+      while(t2 > 24 && c.measureText(li[q]).width > PAN_W - 56){
+        t2 -= 2; c.font = 'bold ' + t2 + 'px "Trebuchet MS",Verdana,sans-serif';
+      }
+      c.fillText(li[q], PAN_W/2, PAN_YSOUS + q*PAN_LIGNE + base/2);
     }
-    c.fillText(sous, PAN_W/2, PAN_YSOUS + PAN_SOUS/2);
   }
   if(barre){
     const bx = 34, bw = PAN_W - 68;
     c.fillStyle = 'rgba(255,255,255,.16)';
-    c.fillRect(bx, PAN_YBAR, bw, PAN_HBAR);
+    c.fillRect(bx, yBar, bw, PAN_HBAR);
     c.fillStyle = coul;
-    c.fillRect(bx, PAN_YBAR, bw*k, PAN_HBAR);
+    c.fillRect(bx, yBar, bw*k, PAN_HBAR);
   }
 }
+/* LE DÉTAIL D'UN TAS, DEUX NATURES PAR LIGNE — ET C'EST MESURÉ, PAS CHOISI. La largeur
+   utile d'une étiquette est de 414 pixels. Relevé sur le vrai canevas et la vraie police,
+   avec la réduction automatique qui ramène le texte dans la boîte :
+     deux natures  « Blé 240 · Orge 100 »                        38 px — se lit de loin
+     trois natures « Blé 240 · Orge 100 · Maïs 60 »              30 px — se lit encore
+     quatre        « … · Avoine 25 »                             22 px — à la limite
+     cinq          « … · +1 »                                    18 px ET ÇA DÉBORDE
+   Tout mettre sur une ligne donnait donc une trace grise illisible, ce qui est le
+   contraire de ce qui est demandé. On en met deux par ligne, sur deux lignes, et le reste
+   se compte en « +n ». Le plus gros d'abord : c'est l'ordre dans lequel on le lit. */
+const DETAIL_PAR_LIGNE = 2;
+function detailTas(lire, cles, nom, nLignes){
+  const l = [];
+  for(const k of cles){ const q = lire(k); if(q > 0.5) l.push({k:k, q:q}); }
+  if(!l.length) return '';
+  l.sort((a, b)=> b.q - a.q);
+  const nL = Math.max(1, nLignes || 1), cap = nL*DETAIL_PAR_LIGNE;
+  // Si tout ne tient pas, la dernière case sert à compter ce qui reste plutôt qu'à
+  // montrer une nature de plus : « +3 » dit qu'il y en a d'autres, un nom de plus non.
+  const vus = l.slice(0, l.length > cap ? cap - 1 : cap);
+  const mots = vus.map((e)=> nom(e.k) + ' ' + Math.round(e.q));
+  if(l.length > vus.length) mots.push('+' + (l.length - vus.length));
+  const li = [];
+  for(let i = 0; i < mots.length; i += DETAIL_PAR_LIGNE)
+    li.push(mots.slice(i, i + DETAIL_PAR_LIGNE).join('  ·  '));
+  return li.join('\n');
+}
 const PANNEAUX = [];
-function creerJauge(){
+function creerJauge(lignes){
+  const nL = Math.max(1, lignes || 1);
   const cv = document.createElement('canvas');
-  cv.width = PAN_W; cv.height = PAN_H;
+  cv.width = PAN_W; cv.height = panHaut(nL);
   const tex = new THREE.CanvasTexture(cv);
   // Comme les enseignes : filtrage linéaire, pas de mipmaps. Sans ça le pilote
   // reconstruit toute la pyramide à chaque kilo chargé.
@@ -20445,7 +20518,7 @@ function creerJauge(){
      appartient au paysage, elle rapetisse avec lui. */
   const m = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
     depthWrite:false, depthTest:false, fog:false, opacity:0}));
-  m.scale.set(PAN_LARGE, PAN_LARGE*PAN_RATIO, 1);
+  m.scale.set(PAN_LARGE, PAN_LARGE*cv.height/PAN_W, 1);
   m.renderOrder = 5;                       // au-dessus des cercles (3), sous les enseignes (6)
   m.visible = false;
   /* Le drapeau `anime` reste, et il ne sert plus au rattrapage : il sert à la FUSION de
@@ -20454,7 +20527,8 @@ function creerJauge(){
   m.userData.anime = true;
   scene.add(m);
   PANNEAUX.push(m);
-  return {sp:m, cv, ctx:cv.getContext('2d'), tex, k:-1, txt:null, sous:null, coul:null};
+  return {sp:m, cv, ctx:cv.getContext('2d'), tex, k:-1, txt:null, sous:null, coul:null,
+          lignes:nL};
 }
 function peindreJauge(J, nom, sous, k, coul){
   // arrondi au centième : c'est le pas visible sur une barre de 480 pixels
@@ -20462,7 +20536,7 @@ function peindreJauge(J, nom, sous, k, coul){
   if(J.k === kk && J.txt === nom && J.sous === sous && J.coul === coul) return;
   J.k = kk; J.txt = nom; J.sous = sous; J.coul = coul;
   peindrePanneauCv(J.ctx, nom, coul || '#8A9298', sous, kk !== null, kk || 0,
-                   coul || '#8A9298');
+                   coul || '#8A9298', J.lignes);
   J.tex.needsUpdate = true;
 }
 // Une étiquette ne se montre que si elle a quelque chose à dire ET qu'on est assez près :
@@ -20494,10 +20568,12 @@ let jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
 let jaugeCuve = null, jaugeGraine = null, jaugeEngrais = null;
 const jaugesLibres = [];
 function poserJauges(){
-  jaugeSilo = creerJauge();
+  // Deux lignes de détail pour les deux tas qu'on veut voir en nature : le silo et la
+  // réserve de graines. Les autres n'ont qu'un contenu, une ligne leur suffit.
+  jaugeSilo = creerJauge(3);
   jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
   jaugeCuve = creerJauge();
-  jaugeGraine = creerJauge(); jaugeEngrais = creerJauge();
+  jaugeGraine = creerJauge(3); jaugeEngrais = creerJauge();
 }
 function prendreJauge(p){
   if(p.jauge) return p.jauge;
@@ -20599,10 +20675,12 @@ function majJauges(dt){
        « vide » quand elle l'est — c'est une information, pas un silence. */
   const st = siloTotal();
   {
-    const gros = st > 0.5 ? siloPlusGros() : null;
+    /* LE DÉTAIL PAR NATURE, ET NON PLUS LE SEUL PLUS GROS TAS. La ligne disait
+       « 400 kg sur 326 · Blé » : elle cachait les quatre autres céréales, qui sont
+       justement ce qu'on vient lire avant de charger. */
+    const det = detailTas((k)=> siloStock[k] || 0, SILO_CLES, (k)=> PRODUITS[k].nom, 2);
     montrerJauge(jaugeSilo, SILO_TOUR.x, 16.4, SILO_TOUR.z, 'Silo',
-      st > 0.5 ? Math.round(st) + ' kg sur ' + Math.round(siloMax()) +
-                 (gros ? '  ·  ' + PRODUITS[gros].nom : '')
+      st > 0.5 ? Math.round(st) + ' kg sur ' + Math.round(siloMax()) + '\n' + det
                : 'vide  ·  ' + Math.round(siloMax()) + ' kg de place',
       st/siloMax(), st > siloMax()*0.92 ? '#E8563F' : '#FFAE2E', dt);
   }
@@ -20694,13 +20772,16 @@ function majJauges(dt){
        mètres en z, et deux plaques à la même altitude se chevauchent vues d'en haut. */
   {
     const gt = grainesTotal(), kg1 = STOCK.max > 0 ? gt/STOCK.max : 0;
-    // Le plus gros sac, pour dire d'un coup d'oeil ce qu'on peut semer sans rentrer.
-    let gros = null;
-    for(const k in STOCK.graines)
-      if(STOCK.graines[k] > 0.5 && (!gros || STOCK.graines[k] > STOCK.graines[gros])) gros = k;
-    montrerJauge(jaugeGraine, RES_GRAINE.x, 9.6, RES_GRAINE.z, 'Réserve de graines',
-      gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(STOCK.max)
-                 + (gros ? '  ·  ' + nomDe(gros) : '')
+    /* CHAQUE SEMENCE ET SON POIDS, et non plus le seul plus gros sac. C'est ce qu'on
+       vient vérifier avant de lancer un semis : savoir qu'il reste du blé ne dit pas
+       s'il reste de l'orge. L'ordre des CULTURES sert de clé, pas celui du dictionnaire :
+       il est stable, et il est celui du reste du jeu.
+       LA PLAQUE MONTE DE 1,4 M. Elle a gagné deux lignes, donc 2,4 m de haut ; à 9,6 son
+       bord bas serait tombé à 6,04 m, sous le sommet du silo à graines (6,91). À 11,0 il
+       repasse à 7,44, au-dessus du dôme. */
+    const det = detailTas((k)=> STOCK.graines[k] || 0, CROPS.map((c)=> c.cle), nomDe, 2);
+    montrerJauge(jaugeGraine, RES_GRAINE.x, 11.0, RES_GRAINE.z, 'Réserve de graines',
+      gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(STOCK.max) + '\n' + det
                : 'vide  ·  aucune semence en stock',
       kg1, kg1 < 0.10 ? '#E8563F' : (kg1 < 0.30 ? '#F0A030' : '#8BE07A'), dt);
     const ke = STOCK.max > 0 ? STOCK.engrais/STOCK.max : 0;

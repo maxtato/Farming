@@ -5135,6 +5135,75 @@ image, avec et sans le gel, y compris pendant les événements qui déplacent de
 l'achat d'une parcelle, l'agrandissement de l'atelier, la tombée de la nuit. C'est un
 chantier à part entière, et il attend un feu vert.
 
+## Trois retouches, dont une qui demandait de mesurer la police
+
+### La benne grandit d'un quart
+
+Vue en jeu, la benne portée était menue : 2,78 m de large, exactement la largeur du
+tracteur qui la tire — juste sur le papier, petit à l'écran, là où l'ancienne caisse ocre
+faisait 3,86.
+
+| | ancienne caisse | modèle porté | **maintenant** |
+|---|---|---|---|
+| largeur | 3,86 m | 2,78 m | **3,47 m** |
+| hauteur | 2,75 m | 2,63 m | **3,29 m** |
+| longueur | 5,25 m | 5,28 m | **6,60 m** |
+
+L'échelle se pose sur le **groupe intérieur**, et l'essieu recule d'autant : `T.L`, la
+distance de l'anneau à l'essieu, passe de 3,20 à **4,00 m**. Sans ça la caisse traînerait
+décalée de son propre timon. Vérifié en l'attelant : l'écart tracteur–essieu vaut
+exactement `hitch + L` = 2,00 + 4,00 = **6,00 m**.
+
+`fusionnerGroupe` prend l'inverse de la matrice du groupe **extérieur** — une échelle
+posée sur l'intérieur est donc cuite dans la géométrie et survit à la fusion. Elle reste
+**un seul maillage** pour 73 volumes.
+
+### La cuve à engrais descend de quatre mètres
+
+« Vers le bas » de l'écran, c'est vers les **z croissants** : la caméra regarde depuis
+(38, 62, 38), donc un z plus grand est plus près d'elle et plus bas dans l'image. La
+blanche passe de z = 54 à **z = 58**.
+
+Les deux réserves étaient à huit mètres l'une de l'autre et se lisaient comme une seule
+installation ; à **douze**, chacune a son cercle et son étiquette sans qu'on hésite. La
+cour va jusqu'à z = 69, l'emprise de l'atelier s'arrête à z = 55,66 au dernier palier, et
+la voie d'accès des cuves — la verticale x = 72, ouverte de z = 40 à z = 74 — dessert
+toujours les deux quais. Mesuré : la voie passe à **1,90 m** de la cuve blanche et à
+**1,39 m** de la verte, demi-machine comprise.
+
+### Le détail des graines et des récoltes — et pourquoi il a fallu mesurer la police
+
+L'étiquette disait « 400 kg sur 326 · Blé » : le total, plus la nature la plus grosse.
+Elle cachait donc exactement ce qu'on vient y lire — les quatre autres céréales du silo,
+les six autres semences de la réserve.
+
+Premier essai : tout sur la ligne existante. **Illisible.** La largeur utile d'une
+étiquette est de 414 px, et la réduction automatique ramène le texte dans la boîte.
+Relevé sur le vrai canevas et la vraie police :
+
+| ce qu'on met sur une ligne | taille finale |
+|---|---|
+| `Blé 240 · Orge 100` | **38 px** — se lit de loin |
+| `Blé 240 · Orge 100 · Maïs 60` | **30 px** — se lit encore |
+| `… · Avoine 25` (quatre) | **22 px** — à la limite |
+| `… · +1` (cinq) | **18 px, et ça déborde quand même** |
+
+D'où la forme retenue : **deux natures par ligne, sur deux lignes**, le reste compté en
+« +n ». Le canevas de ces deux étiquettes-là — et d'elles seules — grandit de deux lignes,
+et le sprite prend son rapport de **son** canevas plutôt que d'une constante commune.
+
+```
+Silo                       Réserve de graines
+425 kg sur 326             293 kg sur 450
+Blé 240 · Orge 100         Blé 180 · Orge 60
+Maïs 60 · Avoine 25        Maïs 30 · +2
+```
+
+**Un détail qui coûte cher si on le rate** : le texte se passe en une seule chaîne coupée
+par des sauts de ligne, et non en tableau. Le cache de repeinture compare `J.sous` par
+égalité ; un tableau neuf à chaque image ferait repeindre et téléverser 470 × 304 pixels
+soixante fois par seconde.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit
