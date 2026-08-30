@@ -5698,6 +5698,153 @@ Quatre suites encodaient l'ancienne cour et ont été refaites au bon niveau, pa
 
 Les vingt suites passent.
 
+## Plus grand, plus loin, plus foncé — et la cour du silo se vide
+
+Cinq retouches sur les deux bâtiments neufs du tour précédent.
+
+> « Agrandis la taille du silo et de l'entrepôt. Fonce un peu le toit de l'entrepôt et
+> recule-le le plus loin de la route. Pour le tuyau du silo, fais la partie horizontale plus
+> longue et la partie oblique bien plus petite. Et supprime toutes les caisses etc. qui sont
+> placées autour du silo. »
+
+### Le silo à 1,35
+
+Les deux modèles arrivaient à l'échelle une, et cela se voyait surtout sur le silo : la tour
+faisait **14,50 m**, moins que le clocher du village. Elle est posée à **1,35**, ce qui la
+porte à **19,58 m** et fait passer le rayon de sa jupe de 3,90 à **5,27**.
+
+Ce chiffre est un choix, pas un calcul — la cour est large et rien ne le contraint de près.
+Ce qui est mesuré, c'est qu'il passe : l'ensemble occupe x 45,38 – 64,86 et z 44,73 – 55,27,
+soit **2,18 m** de dalle encore libres à l'ouest sous l'élévateur à godets, **1,53 m** au
+sud, et **9,40 m** entre le cadre de la trappe et le flanc gauche de l'atelier, qui commence
+à 74,25.
+
+Le point de déversement suit l'échelle, forcément — la trappe fait partie du modèle. Il
+passe de 59,40 à **61,99**, et tout ce qui vise le silo s'en déduit : rien n'a été recalé
+ailleurs.
+
+### Le tuyau : quatre fois plus d'horizontale que d'oblique
+
+La goulotte descend de la tour en deux tronçons. Ils faisaient presque la même longueur —
+**2,30 m** d'horizontale contre **2,15** d'oblique, un rapport de 1,07 — et cela se lisait
+comme un tuyau plié en deux au milieu. L'oblique est maintenant une vraie **descente** :
+
+| | avant | après |
+|---|---|---|
+| tronçon horizontal | 2,30 m | **4,81 m** |
+| tronçon oblique (portée) | 2,15 m | **1,20 m** |
+| rapport | 1,07 | **4,01** |
+| pente de l'oblique | 45,7° | **72,5°** |
+| sortie au-dessus du sol | 5,20 m | **5,20 m** |
+
+Les trois cotes sont maintenant données **en mètres du monde** et divisées par l'échelle à
+l'appel. C'est la seule façon de garder la sortie à 5,20 m quand la tour grandit : un semi au
+gabarit routier fait 4,00 m, il passe dessous avec 1,20 m de marge, et ce nombre-là ne doit
+pas suivre l'échelle. L'équerre qui porte le tronçon horizontal et la semelle sous le tuyau
+se calculent désormais sur sa longueur au lieu d'être écrites en dur.
+
+### Vingt-trois objets en moins
+
+Il y avait autour de la tour deux palettes chargées et leurs sacs, cinq fûts, quatre
+jerricans, six caisses de bois, deux tas de pneus, une brouette et un diable — vingt-trois
+objets posés au tour d'avant pour « donner des petits détails à cet espace », quand la tour
+se dressait sur vingt mètres de dalle vide. La raison a disparu avec eux : à 19,58 m de haut
+sur 5,27 m de rayon au sol, elle n'a plus besoin qu'on meuble autour d'elle.
+
+### L'entrepôt à 1,28, et pourquoi pas plus
+
+La halle de brique était en fait **plus petite** que le bâtiment de tôle qu'elle remplaçait —
+14,16 m de large contre 16,52 —, et c'est ce qui se voyait. À **1,28** elle fait
+**18,12 × 13,59 m** pour **11,48 m** de haut : elle dépasse enfin ce qu'il y avait avant, et
+gagne 64 % de surface au sol.
+
+Ce qui borne ce chiffre, c'est la cour prise **en largeur**, et par ses deux appendices :
+
+- à l'ouest, ce n'est pas le mur qui touche le premier mais **l'avancée de toit** : le pan
+  déborde de 7,71 fois l'échelle depuis l'axe, contre 7,08 pour le bardage. Il faut donc
+  x ≥ 3,40 + 7,71 × e ;
+- à l'est, ce n'est pas le bâtiment mais **le cercle de ravitaillement en engrais**, qui se
+  pose 5,60 m à droite de sa cuve et porte 3,60 m de rayon ; il ne doit pas mordre le chemin
+  de sable, qui commence à 36,80.
+
+Les deux se croisent à e = 1,305. On prend **1,28**, ce qui laisse 44 cm d'intervalle pour
+poser x — on le met au milieu, **13,50** — et rend **24 cm** sous le toit à l'ouest et
+**1,71 m** devant le chemin de sable à l'est.
+
+> Une correction, au passage. Le premier calcul avait conclu que la place du pick-up bornait
+> le tout : elle ne borne rien. Il ne comparait que les **abscisses** quand la vraie
+> contrainte est une distance à deux dimensions — le pick-up est à (27,60 ; 51,10) et la cuve
+> à engrais à (25,89 ; 56,79), soit **5,95 m** et non 1,71. C'est cette erreur corrigée qui a
+> permis de passer de 1,167 à 1,28.
+
+### Reculé jusqu'au bord de la dalle
+
+Le tour d'avant l'avait rapproché de la route pour que son quai n'y soit pas entièrement ;
+celui-ci demande l'inverse. Il passe de z = 58,5 à **z = 50,9**, et son quai de 67,35 à
+**62,23** : le cercle ne mord plus du tout sur la chaussée, il en reste à **6,77 m**, et son
+bord le plus proche du bitume s'arrête à 64,63, soit **4,37 m** avant la rocade.
+
+Ce qui borne le recul, ce n'est pas le mur : c'est **l'avancée de toit du pignon arrière**.
+Le modèle est posé d'un demi-tour, si bien que son arrière regarde le sud ; le pan y déborde
+d'un demi-mètre au-delà du mur, ce qui fait **75 cm** une fois mis à l'échelle du bâti. Le
+mur arrive donc à 44,10 et le toit à 43,35, pour une dalle qui s'arrête à 43,20 : **quinze
+centimètres**. À z = 50 — le premier chiffre essayé — le toit passait de 75 cm sur l'herbe,
+ce qui ne se voit qu'en mesurant.
+
+Une palette du modèle a dû rentrer, elle aussi. Il la posait à x = 6,60 dans son repère,
+c'est-à-dire au bord de sa cour de présentation ; à l'échelle du jeu elle tombait **1,17 m
+hors** de la dalle, sur le chemin de sable. Mesuré sur ses quatre coins, rotation comprise.
+À x = 4,60 elle reste sur le bitume avec 1,5 m de marge.
+
+### Le toit, 25 % plus sombre
+
+`0x8A9298` → **`0x686E72`**. Il portait le gris de la tôle du village — le même que les
+poteaux, les coulisses et les jambes de force du même bâtiment, si bien que la toiture se
+confondait avec sa propre quincaillerie vue de dessus. Et la caméra du jeu regarde de haut.
+
+### Ce que l'agrandissement a cassé : le pick-up ne sortait plus de sa place
+
+C'est le banc qui l'a trouvé, et il ne faisait pas partie de la demande. En rapprochant
+l'entrepôt du centre de la cour, on a rapproché sa **cuve à graines** de la douzième place de
+parking : elle est à (25,51 ; 46,52) avec une emprise de 2,18 m, et le pick-up se gare à
+(27,60 ; 51,10) — **deux mètres neuf**. Nez au sud, comme tout le reste du parc, il partait
+droit dessus.
+
+| depuis sa place | marge au pire obstacle | à ramper | pour quitter la cour |
+|---|---|---|---|
+| nez au sud (avant) | **−0,00 m** | 4,0 s | 5,5 s |
+| **nez à l'est (après)** | **+1,50 m** | **0,1 s** | **1,6 s** |
+
+Nez à l'est, il sort par la voie des cuves — qui est de toute façon le premier point de son
+itinéraire. Les six autres machines ont été mesurées une par une depuis leur propre place :
+elles sortent avec **2,29 m à 4,48 m** de marge et moins de deux secondes. Celle-ci était la
+seule à racler, et elle est la seule à bouger.
+
+### Trois bancs remis au bon niveau
+
+- **cuves** exigeait « deux mètres entre le cercle de l'engrais et le chemin de sable », un
+  nombre sans origine : deux mètres ne veulent rien dire tant qu'on ne dit pas ce qui doit y
+  tenir. L'entrepôt a grandi, la marge est tombée à 1,71 m, et le contrôle a sauté sans que
+  rien n'empiète sur quoi que ce soit. Il demande maintenant ce que le joueur avait demandé :
+  que le cercle ne touche pas le sable, **et** qu'un engin posé au point du cercle le plus à
+  droite garde encore sa carrosserie sur le bitume — **0,36 m** au pire cas, **3,96 m** dans
+  le cas réel où il arrive par la voie.
+- **pilote** exigeait que l'emprise de la **remorque** ne touche aucun obstacle. Ce n'a jamais
+  été vrai : −1,06 m avant la réfection de la cour, −2,00 après. Le contrôle confondait deux
+  choses — les obstacles repoussent **la machine** ; la remorque est de la géométrie tractée,
+  la collision ne la regarde pas, et sa queue balaie donc large dans un virage serré. C'est
+  une limite connue du jeu, pas un réglage qui aurait dérapé. On mesure maintenant les deux et
+  on n'exige que ce que la physique tient : **1,50 m** pour l'engin, le balayage de la
+  remorque étant imprimé à côté comme observation.
+- **pilote** figeait aussi le cap de départ à `Math.PI`. Un banc qui remet le pick-up face au
+  sud mesure une manœuvre que le jeu ne fait plus : il lit désormais le cap de la place.
+
+Et un contrôle en plus, celui qui manquait : **les sept machines sortent toutes de leur
+place, avec leur cap**, mesuré depuis chacune. La question ne s'était jamais posée tant que
+le milieu de la cour était vide.
+
+Les vingt suites passent.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit

@@ -1700,25 +1700,50 @@ const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
    milieu des cotes du terrain, et non dans le fichier du modèle : les faire vivre à deux
    endroits, c'est se garantir qu'ils divergeront.
 
-   ET L'ENTREPÔT A RECULÉ CONTRE LA ROUTE. Le joueur : « tu reculeras l'entrepôt au maximum
-   au plus près de la route, pour que le point de ravitaillement de l'entrepôt ne soit pas
-   totalement sur la route. » Le quai tombe à 8,85 m de l'axe du bâtiment ; à z = 58,5 il
-   atterrit donc à 67,35, et le bitume de la rocade commence à 69 : le cercle de 2,40 m de
-   rayon mord de soixante-quinze centimètres sur la chaussée et garde 84 % de sa surface
-   sur la dalle.
-   ET C'EST LA COUR DU MODÈLE QUI A FIXÉ LE DERNIER DEMI-MÈTRE, pas le cercle. Un demi-mètre
-   plus au sud le cercle passait encore — mais les palettes que le modèle pose devant son
-   quai dépassaient alors de quarante-cinq centimètres sur le bitume de la rocade. La vraie
-   borne du recul n'est donc pas le point de ravitaillement, c'est le décor qui l'entoure. */
+   ET L'ENTREPÔT S'EST ÉLOIGNÉ DE LA ROUTE, alors qu'il en avait été rapproché au tour
+   précédent. Le joueur avait demandé « au plus près de la route, pour que le point de
+   ravitaillement ne soit pas totalement sur la route » ; il demande maintenant « recule-le
+   le plus loin de la route ». Il passe donc de z = 58,5 à z = 50,9, et son quai de 67,35
+   à 62,23 : le cercle ne mord plus du tout sur la chaussée. Il en reste à 6,77 m, et son
+   bord le plus proche du bitume s'arrête à 64,63, soit 4,37 m avant la rocade.
+   CE QUI BORNE LE RECUL : ce n'est pas le mur, c'est L'AVANCÉE DE TOIT DU PIGNON ARRIÈRE.
+   Le modèle est posé d'un demi-tour, si bien que son ARRIÈRE regarde le sud ; le pan y
+   déborde d'un demi-mètre au-delà du mur, ce qui fait 75 cm une fois mis à l'échelle du
+   bâti. Le mur arrive donc à 44,10 et le toit à 43,35, pour une dalle qui s'arrête à 43,2 :
+   quinze centimètres. À z = 50 — le premier chiffre essayé — le toit passait de 75 cm sur
+   l'herbe, ce qui ne se voit qu'en mesurant. La dalle arrête le mouvement, rien d'autre.
+   */
 const ENT_W = 12, ENT_D = 9, ENT_H = 5.0, ENT_HQ = 1.2;
+/* ET IL EST POSÉ PLUS GRAND QUE SON DESSIN, LUI AUSSI. Le joueur : « agrandis la taille du
+   silo et de l'entrepôt. » La halle de brique était en fait PLUS PETITE que le bâtiment de
+   tôle qu'elle remplaçait — 14,16 m de large contre 16,52 —, et c'est ce qui se voyait.
+   À 1,28 elle fait 18,12 × 13,59 m : elle dépasse enfin ce qu'il y avait avant, et gagne
+   64 % de surface au sol.
+   CE QUI BORNE CE CHIFFRE : LA COUR DE LA FERME, PRISE EN LARGEUR. Elle va de 3,40 à 36,80,
+   et le bâtiment doit y tenir avec ses deux appendices.
+   À l'ouest, ce n'est pas le mur qui touche le premier mais L'AVANCÉE DE TOIT : le pan
+   déborde de 7,71 fois l'échelle depuis l'axe, contre 7,08 pour le bardage. Il faut donc
+   x ≥ 3,40 + 7,71 × e.
+   À l'est, ce n'est pas le bâtiment mais LE CERCLE DE RAVITAILLEMENT EN ENGRAIS, qui se
+   pose 5,60 m à droite de sa cuve et porte 3,60 m de rayon ; il ne doit pas mordre le
+   chemin de sable, qui commence à 36,80. Il faut donc x + 9,68 × e + 9,20 ≤ 35,30, en se
+   gardant un mètre et demi de marge.
+   Les deux se croisent à e = 1,305. On prend 1,28, ce qui laisse un intervalle de 44 cm
+   pour poser x — on le met au milieu, 13,50 — et rend 24 cm sous le toit à l'ouest et
+   1,71 m devant le chemin de sable à l'est.
+   LA PLACE DU PICK-UP, ELLE, NE BORNE RIEN, contrairement à ce qu'un premier calcul avait
+   conclu : il est à (27,60 ; 51,10) et la cuve à engrais à (25,89 ; 56,79), soit 5,95 m —
+   le calcul ne comparait que les abscisses, et les deux diffèrent surtout en z. */
+const ENT_ECH = 1.28;
+const ENT_POSE = BAT_ECHELLE*ENT_ECH;        // du repère du modèle au monde
 const ENT_XC = -(ENT_W/2 + 2.1);                        // l'axe des cuves, repère du modèle
 const ENT_CUVES = {graine:{x: ENT_XC + 0.15, z: 2.9}, engrais:{x: ENT_XC - 0.1, z: -4.0}};
-const HANGAR = {x: 11, z: 58.5, w: ENT_W, d: ENT_D};    // emprise de l'entrepôt, dans la cour
+const HANGAR = {x: 13.5, z: 50.9, w: ENT_W, d: ENT_D};  // emprise de l'entrepôt, dans la cour
 /* LE DEMI-TOUR SE LIT ICI, ET UNE SEULE FOIS. Un point du modèle passe dans le monde par
    (x, z) → (HANGAR − x·échelle, HANGAR − z·échelle) : c'est la rotation d'un demi-tour,
    suivie de l'échelle du bâti. Tout ce qui doit connaître un point de l'entrepôt — les
    cuves, leurs cercles, le quai — passe par cette fonction, et rien d'autre. */
-const entPoint = (x, z)=> ({x: HANGAR.x - x*BAT_ECHELLE, z: HANGAR.z - z*BAT_ECHELLE});
+const entPoint = (x, z)=> ({x: HANGAR.x - x*ENT_POSE, z: HANGAR.z - z*ENT_POSE});
 
 // La chaussée occupe 69 à 79 du centre ; le terrain va jusqu'à 110. Bâtiments et
 // parkings s'alignent sur une même ligne de façade à 3 m du bitume, et se développent
@@ -1975,8 +2000,20 @@ const SILO_TOUR = {x: 52, z: 50};
    trappe dans son propre modèle, à 7,40 m de son axe — `SILO_R + 4,6` —, et `SILO` se
    calcule dessus. Bouger `SILO_TOUR` déplace maintenant tout le reste avec lui. */
 const SILO_R = 2.8, SILO_H = 11.0;
-const SILO_TRAPPE = SILO_R + 4.6;               // 7,40 m de l'axe de la tour
-const SILO = {x: SILO_TOUR.x + SILO_TRAPPE, z: SILO_TOUR.z, r: 4.5, cran: 1};
+const SILO_TRAPPE = SILO_R + 4.6;               // 7,40 m de l'axe, dans le repère du modèle
+/* ET LA TOUR EST POSÉE PLUS GRANDE QUE SON DESSIN. Le joueur : « agrandis la taille du
+   silo et de l'entrepôt. » Le modèle arrive à l'échelle une ; on le pose à 1,35, ce qui
+   porte la tour de 14,50 m à 19,58 et le rayon de sa jupe de 3,90 à 5,27.
+   CE CHIFFRE EST UN CHOIX, PAS UN CALCUL — la cour est large et rien ne le contraint de
+   près. Ce qui est mesuré, c'est qu'il passe : l'ensemble occupe x 45,38 .. 64,86 et
+   z 44,73 .. 55,27, donc 2,18 m de dalle restent à l'ouest sous l'élévateur à godets,
+   1,53 m au sud, et 9,40 m séparent encore le cadre de la trappe du flanc gauche de
+   l'atelier, qui commence à 74,25. Il y a de la place pour bien plus ; on s'arrête là
+   parce que la tour est déjà deux fois plus haute que tout ce qui l'entoure.
+   ET LE POINT DE DÉVERSEMENT SUIT L'ÉCHELLE, forcément : la trappe fait partie du modèle.
+   Il passe de 59,40 à 61,99, et `SILO` s'en déduit — rien n'est à recaler ailleurs. */
+const SILO_ECH = 1.35;
+const SILO = {x: SILO_TOUR.x + SILO_TRAPPE*SILO_ECH, z: SILO_TOUR.z, r: 4.5, cran: 1};
 /* ---------- LES DEUX RÉSERVES, QUI SONT MAINTENANT CELLES DE L'ENTREPÔT ----------
    Elles ont eu leur propre modèle et leur propre coin de cour : deux cuves plantées à
    (67 ; 46) et (67 ; 58), au milieu de la cour de transformation, entre le silo et
@@ -6323,126 +6360,15 @@ function poserAnneauxReserves(){
    déclarent avec les cotes du terrain et se déduisent de l'entrepôt. */
 
 
-/* ---------- CE QUI TRAÎNE AUTOUR DU SILO ----------
-   « Mets des caisses et des objets à côté du silo pour donner des petits détails à cet
-   espace. » La tour se dressait sur une dalle vide de vingt mètres : rien au sol, rien
-   contre ses tôles, et la cour de transformation commençait pour de bon dix mètres plus
-   loin, devant l'atelier, qui a ses sacs et ses palettes depuis toujours.
+/* ---------- ON NE POSE PLUS RIEN AUTOUR DU SILO ----------
+   Il y avait ici une cour entière de bric-à-brac : deux palettes chargées et leurs sacs,
+   cinq fûts, quatre jerricans, six caisses de bois, deux tas de pneus, une brouette et un
+   diable — vingt-trois objets répartis autour de la tour pour « donner des petits détails
+   à cet espace », quand elle se dressait sur vingt mètres de dalle vide.
+   Le joueur : « supprime toutes les caisses etc. qui sont placées autour du silo. » Et la
+   raison qui les avait fait poser a disparu avec elles : la tour fait maintenant 19,58 m
+   de haut sur 5,27 m de rayon au sol, elle n'a plus besoin qu'on meuble autour d'elle. */
 
-   OÙ, ET POURQUOI PAS AILLEURS. Trois choses interdisent le reste de l'espace, et elles
-   sont mesurées, pas devinées : la VOIE D'ACCÈS du silo, large de neuf mètres, court en
-   x = 59 du nord au sud — c'est par là que tout arrive et repart, et `voiesAcces` le dit ;
-   l'EMPRISE de la tour vaut 3,30 m de rayon ; et le bitume s'arrête à x = 43,2. Tout ce qui
-   suit tient donc à l'ouest et au nord de la tour, entre son emprise et le bord de la
-   dalle, là où rien ne roule jamais.
-
-   ET RIEN DE TOUT CELA N'ARRÊTE UN ENGIN. Aucun de ces objets ne pousse d'obstacle : c'est
-   la règle que suit déjà le fourbi de l'atelier — sacs, palettes, caisses — et c'est la
-   bonne, parce qu'un décor qui bloque un épandeur de douze mètres dans sa propre cour est
-   un piège et non un détail. Tout est sous un mètre vingt, sauf la pile de caisses, qui est
-   dans l'angle mort le plus lointain. */
-function caisseBois(g, x, y, z, w, h, d, ry){
-  const c = new THREE.Group();
-  c.add(box(w, h, d, ATL.BOIS, 0, 0, 0));
-  // deux lattes claires par face longue : c'est ce qui fait lire une CAISSE et non un bloc
-  for(const dy of [-h*0.26, h*0.26]){
-    c.add(box(w + 0.03, h*0.16, 0.04, ATL.BOIS2, 0, dy, d/2));
-    c.add(box(w + 0.03, h*0.16, 0.04, ATL.BOIS2, 0, dy, -d/2));
-  }
-  for(const sx of [-w/2, w/2]) c.add(box(0.06, h, d + 0.03, ATL.BOIS2, sx, 0, 0));
-  c.position.set(x, y, z); if(ry) c.rotation.y = ry;
-  g.add(c);
-}
-function futMetal(g, x, z, c, ry){
-  const f = new THREE.Group();
-  f.add(cyl(0.29, 0.29, 0.88, 10, c, 0, 0.44, 0));
-  for(const dy of [0.28, 0.60]) f.add(cyl(0.31, 0.31, 0.07, 10, 0x6E767C, 0, dy, 0));
-  f.add(cyl(0.1, 0.1, 0.05, 8, 0x8A9298, 0.12, 0.90, 0));
-  f.position.set(x, 0, z); if(ry) f.rotation.y = ry;
-  g.add(f);
-}
-function pneuTas(g, x, z, n){
-  for(let k = 0; k < n; k++)
-    g.add(cyl(0.46, 0.46, 0.19, 12, 0x2A2622,
-              x + (k % 2)*0.06, 0.10 + k*0.19, z + (k % 3)*0.05));
-}
-function jerrican(g, x, z, c, ry){
-  const j = new THREE.Group();
-  j.add(box(0.34, 0.46, 0.2, c, 0, 0.23, 0));
-  j.add(box(0.12, 0.07, 0.16, 0x2E3438, 0.08, 0.49, 0));       // bouchon
-  j.add(box(0.28, 0.05, 0.06, 0x2E3438, -0.02, 0.48, 0));      // poignée
-  j.position.set(x, 0, z); if(ry) j.rotation.y = ry;
-  g.add(j);
-}
-function brouette(g, x, z, ry){
-  const b = new THREE.Group();
-  b.add(box(0.66, 0.3, 0.9, 0x4A5359, 0, 0.52, 0));            // caisson
-  b.add(box(0.7, 0.06, 0.94, 0x39424A, 0, 0.68, 0));
-  b.add(cyl(0.22, 0.22, 0.09, 10, 0x2A2622, 0, 0.22, 0.66, 0, 0, Math.PI/2));
-  for(const sx of [-0.26, 0.26]){
-    b.add(box(0.06, 0.06, 1.5, 0x8A6A3A, sx, 0.42, -0.2));     // brancards
-    b.add(box(0.06, 0.34, 0.06, 0x6E767C, sx, 0.17, -0.62));   // pieds
-  }
-  b.position.set(x, 0, z); if(ry) b.rotation.y = ry;
-  g.add(b);
-}
-function diable(g, x, z, ry){
-  const d = new THREE.Group();
-  for(const sx of [-0.19, 0.19]) d.add(box(0.05, 1.15, 0.05, 0x8A9298, sx, 0.62, 0));
-  d.add(box(0.44, 0.05, 0.05, 0x8A9298, 0, 1.18, 0));
-  d.add(box(0.46, 0.05, 0.24, 0x6E767C, 0, 0.07, 0.12));       // bec
-  for(const sx of [-0.24, 0.24])
-    d.add(cyl(0.16, 0.16, 0.06, 10, 0x2A2622, sx, 0.16, -0.04, 0, 0, Math.PI/2));
-  d.position.set(x, 0, z);
-  d.rotation.x = -0.24;                                        // appuyé contre la tôle
-  if(ry) d.rotation.y = ry;
-  g.add(d);
-}
-function poserCourSilo(){
-  const g = new THREE.Group();
-  const T = SILO_TOUR;
-  // au nord-ouest : deux palettes chargées et leurs sacs, comme devant l'atelier
-  palettes(g, T.x - 5.5, T.z - 4.0, 2, ATL.BLE);
-  sacsEmpiles(g, T.x - 4.4, T.z - 4.4, 6);
-  // plein nord : des fûts et deux jerricans, contre le bord de la dalle
-  futMetal(g, T.x - 2.4, T.z - 5.1, 0xC0392B, 0.3);
-  futMetal(g, T.x - 1.6, T.z - 5.5, 0x3E6B4E, -0.2);
-  futMetal(g, T.x - 2.9, T.z - 5.9, 0x9BA3A8, 0.8);
-  jerrican(g, T.x - 3.7, T.z - 5.2, 0xE07B24, 0.4);
-  jerrican(g, T.x - 4.1, T.z - 5.5, 0xE8C24A, -0.3);
-  // plein ouest : des bidons vides et une caisse ouverte
-  futMetal(g, T.x - 7.4, T.z - 0.8, 0x6E767C, 0.15);
-  futMetal(g, T.x - 7.2, T.z + 0.2, 0x8A6A3A, -0.5);
-  caisseBois(g, T.x - 6.3, 0.35, T.z + 0.9, 1.0, 0.7, 0.78, 0.22);
-  // au sud-ouest : la pile de caisses, dans l'angle le plus lointain
-  caisseBois(g, T.x - 6.4, 0.4, T.z + 2.8, 1.1, 0.8, 0.85, 0.1);
-  caisseBois(g, T.x - 5.3, 0.4, T.z + 3.1, 1.1, 0.8, 0.85, -0.14);
-  caisseBois(g, T.x - 5.9, 1.2, T.z + 2.95, 1.05, 0.78, 0.8, 0.35);
-  caisseBois(g, T.x - 7.3, 0.36, T.z + 3.6, 0.9, 0.72, 0.7, 0.5);
-  // plein sud : des pneus et la brouette
-  pneuTas(g, T.x - 4.8, T.z + 5.6, 4);
-  pneuTas(g, T.x - 5.7, T.z + 5.2, 2);
-  brouette(g, T.x - 3.4, T.z + 4.8, 1.9);
-  // et le diable, appuyé contre la tôle de la tour
-  diable(g, T.x - 3.9, T.z + 1.3, -Math.PI/2);
-  /* AU SUD, DU CÔTÉ D'OÙ ON REGARDE. Les quatre tas ci-dessus sont derrière la tour pour la
-     caméra par défaut : posés seuls, ils ne se voyaient qu'en tournant autour. On en met
-     donc aussi sur le devant, en restant sous la limite de la voie d'accès — elle commence
-     à x = 54,5, et rien ici ne dépasse 53,2. */
-  palettes(g, T.x + 1.0, T.z + 5.8, 1, ATL.BOIS2);
-  sacsEmpiles(g, T.x + 0.4, T.z + 6.2, 4);
-  caisseBois(g, T.x + 0.4, 0.38, T.z + 7.2, 0.95, 0.76, 0.72, -0.28);
-  pneuTas(g, T.x + 1.2, T.z - 5.4, 3);
-  /* ET LE CREUX ENTRE LES DEUX RÉSERVES N'EXISTE PLUS.
-     Il y avait ici des palettes, des sacs, une caisse et deux jerricans, posés entre la
-     cuve verte et la cuve blanche — le seul endroit du milieu de cour où rien ne roulait.
-     Les deux cuves ont déménagé contre l'entrepôt : ce milieu de cour est devenu la voie
-     de manœuvre de l'atelier, qui s'est décalé vers la gauche pour laisser sa place à la
-     citerne à gazole. On n'y pose plus rien. */
-  scene.add(g);
-  // Rien de tout cela ne bouge : on le cuit, comme le silo et la maison de ferme.
-  fusionnerGroupe(g);
-}
 
 /* ==========================================================================
    LE SILO : UNE TOUR DE BÉTON, ET NON PLUS UN CYLINDRE CRÈME
@@ -6503,17 +6429,29 @@ function siloElevateur(g, x, h){
 /* GOULOTTE en deux tronçons. Le premier est HORIZONTAL et court le long de l'équerre qui
    le porte — c'est elle qui reprend l'effort au raccord. Le second repart en oblique et
    descend au-dessus de la trappe. Rien ne relie la sortie au sol.
-   La sortie est à 5,20 m : un semi au gabarit routier fait 4,00 m, il passe dessous avec
-   1,20 m de marge. */
-function siloGoulotte(g, R, xTrappe, hDepart, hSortie){
-  const xPied = R + 0.15, xCoude = xPied + 2.3;
-  g.add(box(xCoude - xPied, 0.5, 0.5, SIL.ORANGE, (xPied + xCoude)/2, hDepart, 0));
-  for(let k = 0; k < 3; k++)
-    g.add(box(0.12, 0.6, 0.6, SIL.ORANGE2, xPied + 0.5 + k*0.8, hDepart, 0));
+
+   ET LE PARTAGE ENTRE LES DEUX A CHANGÉ. Le joueur : « pour le tuyau du silo, fais la
+   partie horizontale plus longue et la partie oblique bien plus petite. » Les deux
+   faisaient presque la même longueur — 2,30 m d'horizontale contre 2,15 d'oblique, un
+   rapport de 1,07, et cela se lisait comme un tuyau plié en deux au milieu. L'oblique est
+   maintenant une DESCENTE : 1,20 m de portée pour 3,80 m de chute, soit 72°, et
+   l'horizontale prend tout le reste — 4,81 m, quatre fois l'oblique.
+
+   LES TROIS COTES SONT DONNÉES EN MÈTRES DU MONDE, PAS EN UNITÉS DU MODÈLE, et divisées
+   par l'échelle à l'appel. C'est la seule façon de garder la sortie à 5,20 m du sol quand
+   la tour grandit : un semi au gabarit routier fait 4,00 m, il passe dessous avec 1,20 m
+   de marge, et ce nombre-là ne doit pas suivre l'échelle. */
+const SILO_GOU = {sortie: 5.2, depart: 9.0, oblique: 1.2};   // mètres du MONDE
+function siloGoulotte(g, R, xTrappe, hDepart, hSortie, oblique){
+  const xPied = R + 0.15, xCoude = xTrappe - oblique, LH = xCoude - xPied;
+  g.add(box(LH, 0.5, 0.5, SIL.ORANGE, (xPied + xCoude)/2, hDepart, 0));
+  const nb = Math.max(3, Math.round(LH/1.1));
+  for(let k = 0; k < nb; k++)
+    g.add(box(0.12, 0.6, 0.6, SIL.ORANGE2, xPied + LH*(k + 0.5)/nb, hDepart, 0));
   g.add(box(0.3, 0.9, 0.9, SIL.ORANGE2, xPied, hDepart, 0));          // platine sur la robe
-  // ÉQUERRE : elle porte le tronçon horizontal sur toute sa longueur.
+  // ÉQUERRE : elle porte le tronçon horizontal sur TOUTE sa longueur, qui n'est plus fixe.
   const eq = new THREE.BufferGeometry();
-  const P = [[0,0,0],[2.3,0,0],[0,-2.2,0],[0,0,0.22],[2.3,0,0.22],[0,-2.2,0.22]];
+  const P = [[0,0,0],[LH,0,0],[0,-2.2,0],[0,0,0.22],[LH,0,0.22],[0,-2.2,0.22]];
   const F = [[0,1,2],[3,5,4],[0,2,5],[0,5,3],[1,4,5],[1,5,2],[0,3,4],[0,4,1]];
   const pos = [];
   for(const f of F) for(const i of f) pos.push(P[i][0], P[i][1], P[i][2]);
@@ -6522,7 +6460,7 @@ function siloGoulotte(g, R, xTrappe, hDepart, hSortie){
   const m = new THREE.Mesh(eq, mat(SIL.ORANGE2));
   m.position.set(xPied, hDepart - 0.3, -0.11);
   m.castShadow = true; g.add(m);
-  g.add(box(2.4, 0.16, 0.3, SIL.GRIS2, xPied + 1.15, hDepart - 0.34, 0));
+  g.add(box(LH + 0.1, 0.16, 0.3, SIL.GRIS2, xPied + LH/2, hDepart - 0.34, 0));
   // coude, puis tronçon oblique jusqu'au-dessus de la trappe
   g.add(box(0.62, 0.62, 0.62, SIL.ORANGE2, xCoude, hDepart, 0));
   const dx = xTrappe - xCoude, dy = hSortie - hDepart;
@@ -6572,7 +6510,8 @@ function modeleSilo(){
   g.add(box(1.8, 2.1, 0.22, SIL.BETON2, 0, 1.05, R + 0.28));            // porte
   // Goulotte et trappe sur la face +X, à 90° de l'échelle et à l'opposé de l'élévateur.
   siloTrappe(g, SILO_TRAPPE, 0, 1.7);
-  siloGoulotte(g, R, SILO_TRAPPE, 8.4, 5.2);
+  siloGoulotte(g, R, SILO_TRAPPE, SILO_GOU.depart/SILO_ECH,
+               SILO_GOU.sortie/SILO_ECH, SILO_GOU.oblique/SILO_ECH);
   siloElevateur(g, -(R + 1.5), H + 2.6);
   return g;
 }
@@ -6596,7 +6535,12 @@ function modeleSilo(){
    ce côté. Dans le jeu, la cour de la ferme s'ouvre au SUD, donc vers les z croissants :
    on lui donne un demi-tour à la pose, et les cuves, bâties à gauche, passent du même
    coup À DROITE du bâtiment, ce qui est exactement où le joueur les veut. */
-const ENT = {BRIQUE:0x9C4436, BRIQUE2:0x7E3629, BRIQUE3:0xB05543, TOIT:0x8A9298,
+/* LE TOIT EST PLUS FONCÉ QUE CELUI DU MODÈLE. Le joueur : « fonce un peu le toit de
+   l'entrepôt. » Il était au gris de la tôle du village, 0x8A9298 — le même que les
+   poteaux, les coulisses et les jambes de force du même bâtiment, si bien que la toiture
+   se confondait avec sa propre quincaillerie vue de dessus, et la caméra du jeu regarde
+   de haut. Vingt-cinq pour cent plus sombre, et la brique ressort. */
+const ENT = {BRIQUE:0x9C4436, BRIQUE2:0x7E3629, BRIQUE3:0xB05543, TOIT:0x686E72,
              ACIER:0x8A9298, ACIER2:0x6E767C, SOCLE:0x9BA3A8, LIGNE:0xE8DCA8,
              PALETTE:0xA98A5A, CAISSE:0xC9B183, BLEUF:0x2E5C8A,
              VERT:0x3E6B4E, VERT2:0x2C5C3C, BLANC:0xF0EDE4, BLEU:0x3E7CB8,
@@ -6805,7 +6749,12 @@ function modeleEntrepot(){
   g.add(box(3.9, 0.4, 0.26, 0xE8EDF0, 0, H + 1.1, -D/2 - 0.16));
   entPalette(g, -5.6, 0, -D/2 - 3.4, 0.25, 3);
   entPalette(g, -4.5, 0, -D/2 - 3.8, -0.1, 2);
-  entPalette(g, 6.6, 0, -D/2 - 1.8, 0.35, 0);
+  /* CETTE PALETTE-LÀ EST RENTRÉE DE DEUX MÈTRES. Le modèle la posait à x = 6,60 dans son
+     repère, c'est-à-dire au bord de sa cour de présentation ; à l'échelle du jeu, et le
+     bâtiment étant calé aussi à l'ouest que la place du pick-up le permet, elle tombait
+     1,17 m HORS de la dalle, sur le chemin de sable. Mesuré sur ses quatre coins, rotation
+     comprise. À x = 4,60 elle reste sur le bitume avec 1,5 m de marge. */
+  entPalette(g, 4.6, 0, -D/2 - 1.8, 0.35, 0);
   for(let k = 0; k < 2; k++) entPalette(g, -4.4 + k*1.4, hQ, -D/2 - 1.9, 0.05*k, 2);
   entTranspalette(g, 3.4, -D/2 - 2.6, Math.PI + 0.6, true);
   // ---- les deux cuves, adossées au pignon ----
@@ -6890,6 +6839,7 @@ function buildFarm(){
      pose plus qu'UN groupe. Le point de déversement, lui, ne se règle plus : il se lit
      sur `SILO`, qui se déduit de la tour. */
   const silo = modeleSilo();
+  silo.scale.setScalar(SILO_ECH);
   silo.position.set(SILO_TOUR.x, 0, SILO_TOUR.z);
   scene.add(silo);
   /* LE BÂTI DE FERME PASSE PAR LE FOUR, LUI AUSSI. La passe de fusion avait pris les
@@ -6898,13 +6848,12 @@ function buildFarm(){
   fusionnerGroupe(silo);
   /* L'EMPRISE SUIT LA JUPE, PAS LE FÛT. La base évasée déborde de 1,10 m — 3,90 m de
      rayon au sol contre 2,80 au fût —, et c'est elle qu'on heurte en longeant la tour. */
-  obstacles.push({x:SILO_TOUR.x, z:SILO_TOUR.z, r:SILO_R + 1.1});
+  obstacles.push({x:SILO_TOUR.x, z:SILO_TOUR.z, r:(SILO_R + 1.1)*SILO_ECH});
   /* ET L'ÉLÉVATEUR À GODETS EST UN MUR À PART ENTIÈRE : un fût carré de quatre-vingts
      centimètres planté à 4,30 m à l'ouest de la tour, avec sa semelle de béton de 1,20 m.
      Sans lui l'engin passait au travers en contournant le silo par la gauche. */
-  boxObs.push({x:SILO_TOUR.x - (SILO_R + 1.5), z:SILO_TOUR.z, hw:0.65, hd:0.65});
-
-  poserCourSilo();
+  boxObs.push({x:SILO_TOUR.x - (SILO_R + 1.5)*SILO_ECH, z:SILO_TOUR.z,
+               hw:0.65*SILO_ECH, hd:0.65*SILO_ECH});
 
   // Le silo marche dans les deux sens : la moissonneuse y vide sa trémie, une caisse y
   // fait le plein de grain. Il s'éteint quand la trémie est vide ET le silo aussi — ou
@@ -7035,18 +6984,18 @@ function buildFarm(){
        C'est la leçon de l'ancien entrepôt, et elle vaut toujours : oublier le facteur
        laissait un mètre de mur de chaque côté hors de l'obstacle, et l'on roulait au
        travers. Ici tout passe par `entPoint`, qui l'applique une fois pour toutes. */
-    g.scale.setScalar(BAT_ECHELLE);
+    g.scale.setScalar(ENT_POSE);
     g.position.set(HANGAR.x, 0, HANGAR.z);
     scene.add(g);
     fusionnerGroupe(g);
     boxObs.push({x:HANGAR.x, z:HANGAR.z,
-                 hw:ENT_W/2*BAT_ECHELLE, hd:ENT_D/2*BAT_ECHELLE});
+                 hw:ENT_W/2*ENT_POSE, hd:ENT_D/2*ENT_POSE});
     /* LES DEUX CUVES SONT DES OBSTACLES, ELLES AUSSI. La verte est un fût de 1,18 m de
        rayon posé au sol ; la blanche est perchée sur quatre pieds écartés de 1,60 m, et
        c'est la charpente qu'on heurte, pas la cuve. Les deux rayons sont pris sur le
        modèle et remis à l'échelle du bâti. */
-    obstacles.push({x:RES_GRAINE.x,  z:RES_GRAINE.z,  r:1.18*BAT_ECHELLE + 0.4});
-    obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.2*BAT_ECHELLE + 0.4});
+    obstacles.push({x:RES_GRAINE.x,  z:RES_GRAINE.z,  r:1.18*ENT_POSE + 0.4});
+    obstacles.push({x:RES_ENGRAIS.x, z:RES_ENGRAIS.z, r:1.0*1.2*ENT_POSE + 0.4});
     /* LE QUAI EST DEVANT LE RIDEAU DE PLAIN-PIED, et non devant celui du quai haut :
        c'est par là qu'un engin entre, l'autre étant une plateforme à hauteur de plancher
        de camion où il ne peut pas monter. Le rideau est à x = +3,4 dans le modèle, donc
@@ -8521,7 +8470,7 @@ function marquageParking(){
      La citerne à gazole, elle, ne compte plus : elle a quitté la cour pour la dalle de
      l'atelier, et aucune ligne ne va la chercher là-bas. */
   const sousHangar = (x)=>
-       (x > HANGAR.x - ENT_W/2*BAT_ECHELLE - 1.5 && x < HANGAR.x + ENT_W/2*BAT_ECHELLE + 1.5)
+       (x > HANGAR.x - ENT_W/2*ENT_POSE - 1.5 && x < HANGAR.x + ENT_W/2*ENT_POSE + 1.5)
     || Math.abs(x - RES_GRAINE.x)  < 2.6
     || Math.abs(x - RES_ENGRAIS.x) < 2.6;
   worldDraw(COUR_X0-2, ZM-2, COUR_X1+2, ZM+PROF+2, (c)=>{
@@ -13731,8 +13680,20 @@ const MACHINES = [
      tire, mais il faut un tracteur, et un tracteur qui tire une benne ne laboure pas.
      Le jeu commence donc avec de quoi faire un aller-retour complet — labourer, semer,
      moissonner, rentrer, livrer — et pas un outil de plus. */
+  /* ET IL EST GARÉ NEZ À L'EST, seul de tout le parc à ne pas regarder le sud.
+     Ce n'est pas un choix d'esthétique, c'est une mesure. L'entrepôt agrandi a rapproché
+     sa cuve à graines de la douzième place : elle est maintenant à (25,51 ; 46,52) avec
+     une emprise de 2,18 m, et le pick-up se gare à (27,60 ; 51,10) — deux mètres neuf.
+     Nez au sud, il partait DROIT DESSUS : marge nulle au centimètre, quatre secondes à
+     ramper contre l'emprise, cinq secondes et demie pour quitter la cour là où toutes
+     les autres machines en mettent moins de deux. Nez à l'est, il sort par la voie des
+     cuves — qui est de toute façon le premier point de son itinéraire — avec 1,50 m de
+     dégagement et deux secondes de sortie, comme le fourgon.
+     LES SIX AUTRES MACHINES ONT ÉTÉ MESURÉES AUSSI, une par une, depuis leur propre
+     place : elles sortent avec 2,29 m à 4,48 m de marge. Celle-ci était la seule à
+     racler, et elle est la seule à bouger. */
   {key:'pickup', nom:'Pick-up', teinte:0x3E7CB8, prix:0, timbre:'voiture', ton:1.06, v:new Vehicle({
-      x:placeCentre(10), z:51.1, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
+      x:placeCentre(10), z:51.1, cap:Math.PI/2, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
