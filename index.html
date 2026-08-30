@@ -2478,13 +2478,26 @@ const niveauDe = (famille, cle)=> _ouverture[famille + ':' + cle] || 1;
    ligne : la lever ici les lève toutes d'un coup, sans une seule exception disséminée
    dans les treize appelants. `niveauDe` n'est PAS touché : c'est lui qui écrit
    « Ouvre au niveau 8 » dans les menus, et l'information reste bonne à lire. */
-const ouvert = (famille, cle)=> MODE_LIBRE || CAMPAGNE.niveau >= niveauDe(famille, cle);
+/* L'INTERRUPTEUR D'ESSAI. Le joueur : « je veux que dans les réglages je puisse ouvrir
+   la possibilité d'acheter toutes les parcelles, de créer tous les élevages, pour
+   pouvoir tout tester ».
+   Il ne touche QUE les verrous, et rien d'autre : la campagne continue, les missions
+   s'enchaînent, le palier monte comme avant. C'est la différence avec le mode libre, qui
+   est un autre jeu — pas de mission, contrats ouverts, et depuis peu sa propre
+   sauvegarde. Ici on reste dans SA partie, on ouvre juste les cadenas.
+   Trois lignes suffisent, et c'est voulu : tout ce qui se verrouille dans ce fichier —
+   cultures, outils, engins, métiers d'atelier, espèces d'élevage, commerces, parcelles —
+   passe par `ouvert`, `auNiveau` ou `parcellesPermises`. Un quatrième chemin serait un
+   verrou qui échappe déjà au mode libre, donc un défaut à corriger là-bas. */
+let TOUT_OUVERT = false;
+const ouvert = (famille, cle)=> MODE_LIBRE || TOUT_OUVERT
+                               || CAMPAGNE.niveau >= niveauDe(famille, cle);
 // Le même court-circuit pour les huit endroits qui comparent un palier à la main : sans
 // lui, le verrou serait levé mais le bouton resterait gris, avec « Niveau 12 » écrit
 // dessus, sur quelque chose qu'on a le droit d'acheter.
-const auNiveau = (niv)=> MODE_LIBRE || CAMPAGNE.niveau >= niv;
+const auNiveau = (niv)=> MODE_LIBRE || TOUT_OUVERT || CAMPAGNE.niveau >= niv;
 // Combien de parcelles on a le droit de posséder au palier courant.
-const parcellesPermises = ()=> MODE_LIBRE ? NIVEAUX[NIVEAUX.length - 1].parcelles
+const parcellesPermises = ()=> (MODE_LIBRE || TOUT_OUVERT) ? NIVEAUX[NIVEAUX.length - 1].parcelles
                              : NIVEAUX[Math.min(NIVEAUX.length, CAMPAGNE.niveau) - 1].parcelles;
 
 /* LES MISSIONS DE CAMPAGNE. Une seule à la fois, dans l'ordre, et c'est elle qui
@@ -2990,6 +3003,7 @@ function chargerCampagne(S){
        vaut « prise » : la lui redemander reviendrait à lui retirer une mission à moitié
        faite pour l'envoyer la rechercher. Une partie NEUVE, elle, part à faux. */
     CAMPAGNE.prise = C.prise === undefined ? true : !!C.prise;
+    TOUT_OUVERT = !!C.toutOuvert;
     /* MAIS UNE MISSION RÉÉCRITE N'EST PLUS CELLE QU'ON AVAIT PRISE. Elle a changé de
        marchandise ET de commerce : la garder « prise » ferait porter au joueur un ordre
        qu'aucun marchand ne lui a donné, et lui ferait sauter le seul endroit où le
@@ -21064,6 +21078,21 @@ function ongletReglages(){
     confirmeReset ? 'Confirmer ?' : 'Recommencer', confirmeReset ? 'ok' : '',
     ()=>{ if(confirmeReset) nouvellePartie(); else confirmeReset = true; });
 
+  const to = TOUT_OUVERT;
+  article(to ? 0x8BE07A : 0xC4553A, 'Tout déverrouiller — ' + (to ? 'oui' : 'non'),
+    to ? 'Toutes les parcelles sont achetables, tous les élevages, toutes les cultures, '
+       + 'tout le matériel et tous les métiers de l\'atelier. Les paliers ne verrouillent '
+       + 'plus rien — mais la campagne continue, et les missions s\'enchaînent comme avant.'
+       : 'Ouvre d\'un coup tout ce qu\'un palier retient : parcelles, élevages, cultures, '
+       + 'matériel, métiers d\'atelier. Pour essayer le jeu sans attendre. La campagne '
+       + 'n\'est pas touchée — ce n\'est pas le mode libre, c\'est votre partie sans cadenas.',
+    to ? 'Reverrouiller' : 'Tout ouvrir', to ? '' : 'vert', ()=>{
+      TOUT_OUVERT = !to;
+      majBulles();
+      if(typeof caleEspece === 'function') caleEspece();
+      showHint(TOUT_OUVERT ? 'TOUT EST DÉVERROUILLÉ' : 'LES PALIERS REPRENNENT LA MAIN');
+    });
+
   titre('Conduite');
   const bt = COMMANDES.mode === 'boutons';
   article(0xFAD201, 'Commandes — ' + (bt ? 'boutons' : 'manche'),
@@ -21484,7 +21513,18 @@ addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx
    Le terrain est le gros morceau : 12 100 cellules × 4 tableaux. On les empile dans
    un seul octet-tableau puis on les compresse en RLE — une carte est faite de longues
    plages identiques, la compression est donc excellente — avant de passer en base64. */
-const SAVE = {clef:'moisson.partie.v1', periode:6, t:0, derniere:0, actif:true, pret:false};
+/* DEUX TIROIRS, UN PAR MODE, ET LA CAMPAGNE GARDE LE SIEN.
+   Le mode libre écrasait la campagne : `lancerLibre()` commençait par effacer la
+   sauvegarde, et il n'y en avait qu'une. Le joueur : « quand on commence le mode libre,
+   on écrase la campagne ; je veux pouvoir continuer là où on s'est arrêté en mode libre
+   ET en mode campagne ».
+   La clé de la campagne NE CHANGE PAS — c'est ce qui fait que toute partie existante se
+   retrouve où elle était. Le mode libre reçoit la sienne. `v` ne bouge pas non plus : ce
+   ne sont pas les sauvegardes qui changent, c'est le tiroir où on les range. */
+const SAVE = {clef:'moisson.partie.v1', clefLibre:'moisson.partie.libre.v1',
+              periode:6, t:0, derniere:0, actif:true, pret:false};
+const clefDe = (libre)=> libre ? SAVE.clefLibre : SAVE.clef;
+const clefCourante = ()=> clefDe(MODE_LIBRE);
 
 /* Les deux tampons sont gardés d'un enregistrement à l'autre. L'ancienne version
    allouait, toutes les six secondes, un tableau de 180 Kio PUIS un tableau JS de près
@@ -21677,6 +21717,9 @@ function etatJeu(){
                // Facultatif, comme le reste du bloc : absent d'une vieille sauvegarde,
                // il vaut false et la partie repart en campagne. `v` ne bouge pas.
                libre: MODE_LIBRE,
+               // L'interrupteur d'essai des Réglages. Facultatif comme le reste : absent,
+               // il vaut faux, et les paliers gardent la main.
+               toutOuvert: TOUT_OUVERT,
                // Le cliquet du tutoriel. Absent d'une vieille sauvegarde, il vaut la
                // longueur de la table : une partie déjà commencée ne se voit pas
                // expliquer comment labourer.
@@ -21724,7 +21767,7 @@ function sauvegarder(explicite){
   // sans qu'on y ait seulement touché.
   if(!SAVE.actif || !SAVE.pret) return false;
   try {
-    localStorage.setItem(SAVE.clef, JSON.stringify(etatJeu()));
+    localStorage.setItem(clefCourante(), JSON.stringify(etatJeu()));
     SAVE.derniere = Date.now();
     if(explicite) showHint('PARTIE SAUVEGARDÉE');
     return true;
@@ -21734,13 +21777,30 @@ function sauvegarder(explicite){
     return false;
   }
 }
-function lireSauvegarde(){
+function lireSauvegarde(clef){
   try {
-    const s = localStorage.getItem(SAVE.clef);
+    const s = localStorage.getItem(clef || clefCourante());
     return s ? JSON.parse(s) : null;
   } catch(e){ SAVE.actif = false; return null; }
 }
-function effacerSauvegarde(){ try { localStorage.removeItem(SAVE.clef); } catch(e){} }
+function effacerSauvegarde(clef){
+  try { localStorage.removeItem(clef || clefCourante()); } catch(e){}
+}
+/* UNE PARTIE LIBRE RANGÉE DANS LE TIROIR DE LA CAMPAGNE. Avant les deux tiroirs, tout
+   dormait sous la même clé, et une partie libre en cours s'y trouve encore. On la
+   déménage une fois pour toutes, au premier chargement : elle se dit libre elle-même,
+   par `campagne.libre`, il n'y a donc rien à deviner. Sans cela, le joueur retrouverait
+   sa partie libre derrière le bouton « Reprendre la campagne ». */
+function rangerLesTiroirs(){
+  try {
+    const s = localStorage.getItem(SAVE.clef);
+    if(!s) return;
+    const S = JSON.parse(s);
+    if(!(S && S.campagne && S.campagne.libre)) return;
+    if(!localStorage.getItem(SAVE.clefLibre)) localStorage.setItem(SAVE.clefLibre, s);
+    localStorage.removeItem(SAVE.clef);
+  } catch(e){}
+}
 function sauvegardeInfo(){
   if(!SAVE.actif) return 'Indisponible : ce navigateur refuse le stockage local sur cette page.';
   if(!SAVE.derniere) return 'La partie s\'enregistre toute seule toutes les ' + SAVE.periode + ' secondes.';
@@ -22220,7 +22280,11 @@ function boutonAccueil(txt, principal, f){
    « NIVEAU 8 » sur des commerces désormais ouverts. `caleEspece()` recale l'espèce par
    défaut, qui n'est plus la poule mais la première de la liste. */
 function lancerLibre(){
-  effacerSauvegarde();
+  /* IL N'EFFACE PLUS RIEN. Il effaçait la sauvegarde avant de partir, du temps où il
+     n'y avait qu'un tiroir : commencer une partie libre coûtait sa campagne. Chaque
+     mode a maintenant le sien, et l'on repart d'une terre vierge en mode libre sans
+     que la campagne s'en aperçoive. */
+  effacerSauvegarde(SAVE.clefLibre);
   MODE_LIBRE = true;
   majBulles();
   if(typeof caleEspece === 'function') caleEspece();
@@ -22248,29 +22312,47 @@ function lancerPartie(){
     annoncerEtape(TUTO[0]);
   }
 }
+/* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
+   L'ORDRE DES BOUTONS EST UN CONTRAT. Une centaine de bancs entrent dans le jeu en
+   cliquant le PREMIER `.accbtn.pri`, et attendent d'y trouver une CAMPAGNE ; d'autres
+   cherchent un bouton dont le texte contient « mode libre » pour entrer en partie libre.
+   Le bouton principal reste donc toujours l'entrée en campagne — reprise s'il y a une
+   campagne à reprendre, « Commencer » sinon — et le bouton qui ouvre une partie libre
+   NEUVE garde son libellé exact. La reprise du mode libre, elle, se nomme autrement :
+   « Reprendre — mode libre » contient bien « mode libre », mais elle passe APRÈS, et
+   dans un banc au stockage vierge elle n'existe pas. */
 (function ouvrirAccueil(){
   paused = true;
-  const S = lireSauvegarde();
+  rangerLesTiroirs();
+  const SC = lireSauvegarde(SAVE.clef), SL = lireSauvegarde(SAVE.clefLibre);
   const sous = document.getElementById('accsous');
-  if(S){
+  const resume = (S)=>{
     const d = new Date(S.quand);
-    sous.textContent = 'Partie en cours — ' + Math.round(S.money).toLocaleString('fr-FR') + ' €, jour '
-      + (S.jour ? S.jour.jours : 1) + ', enregistrée le '
-      + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR').slice(0,5);
-    boutonAccueil('Reprendre', true, ()=>{
-      if(!chargerPartie(S)) showHint('SAUVEGARDE ILLISIBLE — NOUVELLE PARTIE');
-      lancerPartie();
-    });
-    boutonAccueil('Nouvelle partie', false, ()=>{ effacerSauvegarde(); MODE_LIBRE = false;
-                                                 majBulles(); lancerPartie(); });
-    boutonAccueil('Mode libre', false, lancerLibre);
-  } else {
-    sous.textContent = SAVE.actif
-      ? 'La partie s\'enregistre toute seule : tu peux fermer et revenir.'
-      : 'Le stockage local est refusé ici : la partie ne sera pas conservée.';
-    boutonAccueil('Commencer', true, lancerPartie);
-    boutonAccueil('Mode libre', false, lancerLibre);
-  }
+    return Math.round(S.money).toLocaleString('fr-FR') + ' €, jour '
+      + (S.jour ? S.jour.jours : 1) + ', le ' + d.toLocaleDateString('fr-FR')
+      + ' à ' + d.toLocaleTimeString('fr-FR').slice(0,5);
+  };
+  const reprendre = (S, libre)=> ()=>{
+    MODE_LIBRE = !!libre;
+    if(!chargerPartie(S)) showHint('SAUVEGARDE ILLISIBLE — NOUVELLE PARTIE');
+    if(libre){ majBulles(); if(typeof caleEspece === 'function') caleEspece(); }
+    lancerPartie();
+  };
+  const lignes = [];
+  if(SC) lignes.push('Campagne — ' + resume(SC));
+  if(SL) lignes.push('Mode libre — ' + resume(SL));
+  sous.innerHTML = lignes.length ? lignes.join('<br>')
+    : (SAVE.actif ? 'La partie s\'enregistre toute seule : tu peux fermer et revenir.'
+                  : 'Le stockage local est refusé ici : la partie ne sera pas conservée.');
+  // 1. l'entrée en campagne, TOUJOURS le bouton principal
+  if(SC) boutonAccueil('Reprendre la campagne', true, reprendre(SC, false));
+  else   boutonAccueil('Commencer', true, ()=>{ MODE_LIBRE = false; lancerPartie(); });
+  // 2. la reprise du mode libre, s'il y a quelque chose à reprendre
+  if(SL) boutonAccueil('Reprendre — mode libre', false, reprendre(SL, true));
+  // 3. repartir de zéro, dans l'un ou l'autre
+  if(SC) boutonAccueil('Nouvelle campagne', false, ()=>{
+    effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
+  boutonAccueil('Mode libre', false, lancerLibre);
 })();
 
 /* ---------- 29. PROGRESSION ---------- */

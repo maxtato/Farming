@@ -5351,6 +5351,61 @@ Le **tri**, lui, disparaît : une seule maille se dessine dans l'ordre de son ta
 plus du fond vers l'avant. Sans conséquence ici — les bouffées d'un même nuage ont la même
 couleur, et c'est très exactement le cas où l'ordre ne se voit pas.
 
+## Deux parties à la fois, et un interrupteur pour tout essayer
+
+**« Quand on commence le mode libre, on écrase la campagne. Je veux qu'il y ait la
+possibilité de continuer où on s'est arrêté en mode libre ET en mode campagne. »** Il n'y
+avait qu'un tiroir, et `lancerLibre()` commençait par l'effacer : ouvrir une partie libre
+coûtait sa campagne, sans avertissement.
+
+**Deux tiroirs, un par mode.** La clé de la campagne **ne change pas** — c'est ce qui fait
+que toute partie existante se retrouve exactement où elle était — et le mode libre reçoit
+la sienne, `moisson.partie.libre.v1`. `v` ne bouge pas non plus : ce ne sont pas les
+sauvegardes qui changent, c'est le tiroir où on les range.
+
+**Une partie libre déjà commencée déménage toute seule.** Avant les deux tiroirs, tout
+dormait sous la même clé, et une partie libre en cours s'y trouve encore. Elle se dit libre
+elle-même, par `campagne.libre` : il n'y a rien à deviner, on la déplace au premier
+chargement. Sans cela, le joueur retrouverait sa partie libre derrière le bouton
+« Reprendre la campagne ».
+
+**L'accueil propose ce qui existe**, avec le détail de chaque partie — argent, jour, date
+d'enregistrement — sur sa propre ligne :
+
+| ce qu'on a | boutons |
+| --- | --- |
+| rien | **Commencer** · Mode libre |
+| une campagne | **Reprendre la campagne** · Nouvelle campagne · Mode libre |
+| une partie libre | **Commencer** · Reprendre — mode libre · Mode libre |
+| les deux | **Reprendre la campagne** · Reprendre — mode libre · Nouvelle campagne · Mode libre |
+
+**L'ordre des boutons est un contrat.** Une centaine de bancs entrent dans le jeu en
+cliquant le premier `.accbtn.pri` et attendent d'y trouver une CAMPAGNE ; d'autres cherchent
+un bouton dont le texte contient « mode libre » pour ouvrir une partie libre. Le bouton
+principal reste donc toujours l'entrée en campagne — reprise s'il y a une campagne à
+reprendre, « Commencer » sinon — et celui qui ouvre une partie libre **neuve** garde son
+libellé exact. La reprise du mode libre s'appelle « Reprendre — mode libre » : elle
+contient bien la formule, mais elle passe après, et dans un banc au stockage vierge elle
+n'existe pas.
+
+### Tout déverrouiller, pour essayer
+
+**« Je veux que dans les réglages je puisse ouvrir la possibilité d'acheter toutes les
+parcelles, de créer tous les élevages, pour pouvoir tout tester. »** Un interrupteur dans
+« Partie » ouvre d'un coup tout ce qu'un palier retient.
+
+Il tient en **trois lignes**, et c'est voulu : tout ce qui se verrouille dans ce fichier —
+cultures, outils, engins, métiers d'atelier, espèces d'élevage, commerces, parcelles —
+passe par `ouvert`, `auNiveau` ou `parcellesPermises`. Un quatrième chemin serait un verrou
+qui échappe déjà au mode libre, donc un défaut à corriger là-bas.
+
+**Ce n'est pas le mode libre.** C'est la différence qui compte, et un banc la tient :
+au palier 1, mission 3, l'interrupteur fait passer les parcelles achetables de **1 à 99**,
+les cultures de 1 à 7, les élevages de 0 à 6, les métiers d'atelier de 0 à 9, les commerces
+de 4 à 15 — et la campagne ne bouge pas d'un pouce : même mission, même objectif à l'écran,
+contrats toujours fermés. On reste dans SA partie, on ouvre juste les cadenas. Il se
+sauvegarde en champ facultatif, comme le reste des réglages.
+
 ## Trois âges par culture
 
 Une culture n'avait qu'**une** silhouette : celle de la plante mûre, rapetissée à mesure
