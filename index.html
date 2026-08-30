@@ -5211,6 +5211,16 @@ function clotureSite(S){
       (u, v)=> bande(v - u, EP, (u + v)/2, E.z1));
     for(const s2 of [-1, 1]) pilier(S.quaiX + s2*PORTE/2, E.z1);
   }
+  /* ET LA CLÔTURE SE CUIT, COMME TOUT CE QUI NE BOUGE PAS. Le joueur : « confirme-moi
+     que tous les bâtiments, la cuve à engrais et à grain, les clôtures, tout est combiné
+     en bloc. » La réponse était non, et c'est ici que ça manquait : `clotureSite` posait
+     son groupe dans la scène sans le passer à `fusionnerGroupe`. Un grillage, ce sont
+     onze poteaux, trois lisses et une maille PAR CÔTÉ — mesuré : jusqu'à 68 maillages
+     pour un seul commerce, et 352 pour les six clôtures de la bande est.
+     Rien n'y bouge, tout y est opaque et d'une seule couleur : c'est le cas le plus
+     favorable qui soit pour la cuisson. Un muret ou un trottoir descend sous les quatre
+     volumes exigés — `fusionnerGroupe` rend alors null sans rien casser. */
+  fusionnerGroupe(g);
   scene.add(g);
 }
 // Les maisons du bord de route sont maintenant des BLOCS AUTONOMES — voir
@@ -8758,16 +8768,138 @@ function buildEnjambeuse(){
             nez:3.0}};
   return g;
 }
+/* ---------- LA BENNE À REHAUSSES ----------
+   Le joueur : « supprime la benne existante et mets cette benne à la place. Elle pourra
+   être utilisée pour transporter des récoltes et produits. »
+
+   CE QUE REMPLACE CE MODÈLE. L'ancienne benne était un tronc de pyramide jaune posé sur
+   quatre roues : trois volumes de caisse, deux essieux, douze maillages en tout, et rien
+   qui dise qu'on la tire. Celle-ci se lit en trois étages — le châssis et ses garde-boue,
+   la caisse verte à ridelles, les rehausses claires sur leurs montants — plus une bâche
+   roulée en travers de la face avant et son échelle d'accès.
+
+   TOUT EST LOCAL À CETTE FONCTION, ET C'EST DÉLIBÉRÉ. La planche d'où vient ce modèle
+   déclare au premier niveau roue, timon, caisse, chargement, chassisBenne, feuxArriere,
+   plus une quinzaine de constantes de couleur. Ce fichier a déjà perdu deux fonctions à
+   une collision silencieuse de ce genre — la dernière déclaration de premier niveau
+   gagne, sans le moindre avertissement, et le symptôme apparaît trois écrans plus loin.
+   Rien de ce qui suit ne sort d'ici.
+
+   z = 0 EST L'ANNEAU D'ATTELAGE. C'est la convention de tous les outils : `Vehicle.update`
+   pose `T.group` sur le point d'attelage — la position de l'engin reculée de `T.hitch` —
+   et fait suivre l'essieu à `T.L` derrière. Le modèle se bâtit donc autour de son essieu,
+   puis recule de L : la chape tombe douze centimètres devant l'origine, exactement là où
+   elle vient coiffer la boule.
+
+   ET ELLE EST CUITE. Soixante-treize volumes, c'est six fois l'ancienne ; laissés séparés
+   ils coûteraient soixante-treize appels de dessin dès qu'elle est en vue. Rien n'y bouge
+   — les roues d'un outil ne tournent pas, `userData.wheels` n'existe que pour les engins —
+   donc `fusionnerGroupe` s'applique sans réserve et ramène le tout à un seul maillage,
+   moins cher que les douze d'avant. */
 function buildBenne(){
-  const outer = new THREE.Group(); const g = new THREE.Group(); g.position.z = -1.6; outer.add(g);
-  g.add(box(0.4,0.4,1.5,C.dark,0,1.0,0.85));                       // timon
-  g.add(slab({w:2.9,h:1.7,d:4.2, tw:3.3,td:4.6, c:0xD8B24A, y:0.85, z:-1.0}));   // caisse évasée
-  g.add(slab({w:3.35,h:0.24,d:4.65, tw:3.1,td:4.4, c:0x9E7C24, y:2.55, z:-1.0}));
-  g.add(box(0.5,0.6,0.5,C.dark,0,0.75,-3.4));
-  for(const sgn of [-1,1]){
-    const w1 = wheelMesh(0.78,0.5); w1.position.set(sgn*1.65,0.78,-0.4); g.add(w1);
-    const w2 = wheelMesh(0.78,0.5); w2.position.set(sgn*1.65,0.78,-2.1); g.add(w2);
+  const outer = new THREE.Group();
+  const g = new THREE.Group(); g.position.z = -3.2; outer.add(g);
+  const NOIR = 0x2A2622, CHASSIS = 0x3A3630, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
+        VERT = 0x3E6B4E, VERT2 = 0x2F5B40, ROUGE = 0xB8342A,
+        CREME = 0xF2E7D2, BACHE = 0x3E5C6B;
+  const W = 2.0, L = 3.2, H = 0.85, r = 0.52, yE = r;
+
+  /* Une roue de remorque : pneu LISSE. Pas de crampons — ils appartiennent au tracteur,
+     qui tire ; la benne, elle, ne fait que rouler. */
+  const roueLisse = (x, y, z, rr, l)=>{
+    const w = new THREE.Group();
+    w.add(cyl(rr, rr, l, 12, NOIR, 0, 0, 0, 0, 0, Math.PI/2));
+    w.add(cyl(rr*0.52, rr*0.52, l + 0.06, 8, CREME, 0, 0, 0, 0, 0, Math.PI/2));
+    w.add(cyl(rr*0.3, rr*0.3, l + 0.1, 8, GRIS2, 0, 0, 0, 0, 0, Math.PI/2));
+    w.position.set(x, y, z); return w;
+  };
+  /* UN BRAS DE TIMON SE PLACE PAR SES DEUX BOUTS, ET SON ANGLE EN DÉCOULE. Le tracer
+     comme une barre inclinée « à peu près » donnait un A qui s'évase vers l'anneau, ce
+     qui n'a aucun sens mécanique : les bras sont LARGES au pied, où ils s'attachent aux
+     longerons, et se REJOIGNENT sur l'attelage. */
+  const bras = (xPied, xPointe, zPied, zPointe, y, e)=>{
+    const dx = xPointe - xPied, dz = zPointe - zPied;
+    const m = box(e, 0.16, Math.hypot(dx, dz), CHASSIS,
+                  (xPied + xPointe)/2, y, (zPied + zPointe)/2);
+    m.rotation.y = Math.atan2(dx, dz);
+    g.add(m);
+  };
+
+  // — le châssis : longeron, deux brancards, l'essieu, et les garde-boue
+  g.add(box(W - 0.3, 0.22, L + 0.3, CHASSIS, 0, yE + 0.36, 0));
+  for(const sx of [-1, 1]) g.add(box(0.16, 0.3, L, CHASSIS, sx*(W/2 - 0.3), yE + 0.36, 0));
+  g.add(box(W + 0.5, 0.16, 0.16, CHASSIS, 0, yE, 0));
+  for(const sx of [-1, 1]){
+    g.add(box(0.46, 0.1, r*2.2, VERT2, sx*(W/2 + 0.1), yE + r + 0.12, 0));
+    g.add(box(0.46, r*0.5, 0.1, VERT2, sx*(W/2 + 0.1), yE + r - 0.1,  r*1.05));
+    g.add(box(0.46, r*0.5, 0.1, VERT2, sx*(W/2 + 0.1), yE + r - 0.1, -r*1.05));
   }
+
+  // — la caisse : fond, quatre ridelles, arêtes renforcées, porte arrière à charnières hautes
+  const y0 = yE + 0.5;
+  g.add(box(W, 0.12, L, VERT2, 0, y0, 0));
+  for(const sx of [-1, 1]) g.add(box(0.1, H, L, VERT, sx*(W/2 - 0.05), y0 + H/2, 0));
+  g.add(box(W, H, 0.1, VERT, 0, y0 + H/2, L/2 - 0.05));
+  g.add(box(W - 0.1, H - 0.12, 0.1, VERT2, 0, y0 + H/2, -L/2 + 0.05));
+  for(const sx of [-1, 1])
+    g.add(cyl(0.07, 0.07, 0.2, 8, GRIS2, sx*(W/2 - 0.16), y0 + H - 0.08,
+              -L/2 + 0.02, 0, 0, Math.PI/2));
+  for(const sx of [-1, 1]) g.add(box(0.16, 0.12, L + 0.1, VERT2, sx*(W/2 - 0.05), y0 + H, 0));
+  g.add(box(W + 0.1, 0.12, 0.16, VERT2, 0, y0 + H,  L/2 - 0.05));
+  g.add(box(W + 0.1, 0.12, 0.16, VERT2, 0, y0 + H, -L/2 + 0.05));
+  for(let k = 0; k < 4; k++) for(const sx of [-1, 1])
+    g.add(box(0.06, H - 0.16, 0.1, VERT2, sx*(W/2 + 0.01), y0 + H/2,
+              -L/2 + 0.6 + k*(L - 1.2)/3));
+
+  // — les rehausses : une seconde ridelle, plus claire, posée sur la première
+  const yR = y0 + H;
+  for(const sx of [-1, 1]) g.add(box(0.08, 0.55, L, CREME, sx*(W/2 - 0.05), yR + 0.28, 0));
+  g.add(box(W, 0.55, 0.08, CREME, 0, yR + 0.28, L/2 - 0.05));
+  g.add(box(W - 0.1, 0.55, 0.08, CREME, 0, yR + 0.28, -L/2 + 0.05));
+  for(const sx of [-1, 1]) g.add(box(0.14, 0.1, L + 0.1, GRIS2, sx*(W/2 - 0.05), yR + 0.56, 0));
+  for(let k = 0; k < 4; k++) for(const sx of [-1, 1])
+    g.add(box(0.1, 0.6, 0.09, GRIS2, sx*(W/2 + 0.02), yR + 0.28, -L/2 + 0.5 + k*(L - 1)/3));
+
+  // — l'échelle d'accès, contre la face avant
+  for(const sx of [-0.3, 0.3]) g.add(box(0.07, 1.1, 0.07, GRIS2, sx, yR - 0.1, L/2 + 0.1));
+  for(let k = 0; k < 3; k++) g.add(box(0.7, 0.06, 0.06, GRIS, 0, yR - 0.5 + k*0.4, L/2 + 0.1));
+
+  // — la bâche roulée sur son axe, en travers de la face avant, avec sa manivelle
+  const yB = yR + 0.62;
+  g.add(cyl(0.15, 0.15, W + 0.24, 10, BACHE, 0, yB, L/2 - 0.08, 0, 0, Math.PI/2));
+  for(const sx of [-1, 1])
+    g.add(cyl(0.09, 0.09, 0.14, 8, GRIS2, sx*(W/2 + 0.14), yB, L/2 - 0.08, 0, 0, Math.PI/2));
+  g.add(box(0.1, 0.42, 0.1, GRIS2, W/2 + 0.2, yB - 0.2, L/2 - 0.08));
+  g.add(box(0.24, 0.1, 0.1, GRIS, W/2 + 0.32, yB - 0.4, L/2 - 0.08));
+  g.add(box(W + 0.1, 0.1, 0.5, BACHE, 0, yB - 0.06, L/2 - 0.5));
+
+  // — le timon en A, et sa chape à boule. Pas de béquille : elle reste attelée.
+  const zT = L/2, LT = 1.5, yT = yE + 0.36;
+  for(const sx of [-1, 1]) bras(sx*0.62, sx*0.1, zT, zT + LT, yT, 0.14);
+  bras(-0.55, 0.55, zT + 0.15, zT + 0.15, yT, 0.14);
+  g.add(box(0.3, 0.2, 0.6, CHASSIS, 0, yT, zT + LT - 0.1));
+  g.add(box(0.34, 0.3, 0.42, GRIS2, 0, yT + 0.02, zT + LT + 0.22));
+  g.add(cyl(0.16, 0.16, 0.14, 12, GRIS, 0, yT - 0.13, zT + LT + 0.22));
+  g.add(box(0.14, 0.26, 0.14, GRIS, 0, yT + 0.24, zT + LT + 0.1));
+  g.add(box(0.1, 0.12, 0.3, GRIS2, 0, yT + 0.34, zT + LT + 0.02));
+
+  // — les feux arrière et la plaque
+  for(const sx of [-0.78, 0.78]){
+    g.add(box(0.28, 0.24, 0.1, 0x2A2E32, sx, y0, -L/2 - 0.06));
+    g.add(box(0.2, 0.16, 0.08, ROUGE, sx, y0, -L/2 - 0.11));
+  }
+  g.add(box(0.5, 0.24, 0.06, CREME, 0, y0 - 0.24, -L/2 - 0.08));
+
+  for(const sx of [-1, 1]) g.add(roueLisse(sx*(W/2 + 0.12), yE, 0, r, 0.34));
+
+  /* CE QU'ELLE PORTE SE VOIT DEDANS. `majColis` sème des sacs dans le volume qu'un engin
+     déclare sous `userData.benne` — le pick-up en a un depuis toujours. La benne tirée,
+     elle, n'en avait pas : un tracteur attelé transportait bel et bien ses cent trente-cinq
+     kilos, mais la caisse restait vide à l'œil. Les cotes sont celles de l'INTÉRIEUR de la
+     caisse, exprimées dans le repère de `outer`, donc décalées de L comme tout le reste. */
+  outer.userData.benne = {x:[-0.42, 0.42], z:[-3.2 - 1.35, -3.2 + 1.35],
+                          y:y0 + 0.30, n:8, ech:0.9};
+  fusionnerGroupe(outer);
   return outer;
 }
 function buildEpandeur(){
@@ -8862,6 +8994,13 @@ class Vehicle {
     this.vmax0 = this.vmax; this.accel0 = this.accel; this.turn0 = this.turn;
     this.toolOffset = cfg.toolOffset || 0;
     this.toolX = this.pos.x; this.toolZ = this.pos.z; this.toolCap = this.cap;
+    /* SA PLACE AU PARC, RETENUE UNE FOIS POUR TOUTES. Le joueur : « une fois une action
+       automatique terminée, si elle n'est pas en continu, le véhicule doit venir se garer
+       sur le parking de la ferme. » Chaque engin a déjà SA place — la cour est découpée en
+       douze cases par `placeCentre`, et c'est là qu'il commence la partie. On garde donc
+       simplement d'où il vient : rien à inventer, rien à sauvegarder, et deux engins ne
+       peuvent pas se disputer la même case puisqu'elles sont attribuées à la table. */
+    this.parc = {x:cfg.x, z:cfg.z, cap:cfg.cap || 0};
   }
   fwd(){ return {x:Math.sin(this.cap), z:Math.cos(this.cap)}; }
   right(){ return {x:Math.cos(this.cap), z:-Math.sin(this.cap)}; }
@@ -11350,6 +11489,35 @@ function missionDrive(m, dt){
      pour l'engrais — remplit le casier de la culture voulue, et repart. Elle ne dit
      RIEN de ce qui a manqué : c'est le chantier qui diagnostique, parce que lui seul
      sait s'il faut attendre, changer de culture ou prévenir le joueur. */
+  /* RENTRER SE GARER. La dernière tâche d'un chantier « une fois » : l'engin regagne sa
+     case et rend la main. On y va par les ROUTES comme partout ailleurs — `suivreRoute`,
+     donc `itineraire`, donc les voies d'accès et l'équerre — et non en ligne droite à
+     travers la cour. Trois mètres de rayon : c'est la moitié d'une case de parking, de
+     quoi se ranger sans exiger le centimètre. */
+  if(t.quoi === 'parc'){
+    v.cleVoulue = null; v.sensVoulu = 'route';
+    const P = v.parc;
+    if(!P){ tacheSuivante(m); return [0, 0]; }
+    /* EN DEUX TEMPS, PARCE QU'UNE CASE N'EST PAS UN QUAI. `suivreRoute` valide son
+       dernier point de passage AU LARGE — cinq mètres et demi, ce qui convient à la
+       grille d'un silo et laissait l'engin s'arrêter à 4,76 m de sa place, mesuré. Une
+       case fait 6,13 m : on se garait chez le voisin, et en travers, parce que le dernier
+       tronçon d'un itinéraire arrive par la rangée et non dans l'axe de la case.
+       On roule donc jusqu'à SEPT MÈTRES DEVANT la place — l'allée de la cour —, puis on
+       y entre tout droit. Les engins se rangent alors tous dans le même sens, celui
+       qu'ils avaient au premier matin. */
+    const AV = 7;
+    if(M.etape === 0){
+      const r = suivreRoute(v, P.x, P.z + AV, 'parc', 3.0);
+      if(r){ M.attente = 0; return r; }
+      M.etape = 1; v.route = null; v.routeBut = null; v.routeArr = null;
+    }
+    M.attente = (M.attente || 0) + dt;
+    if(Math.hypot(P.x - v.pos.x, P.z - v.pos.z) > 1.5 && M.attente < 20)
+      return viser(v, P.x, P.z, 1.2);
+    tacheSuivante(m);
+    return [0, 0];
+  }
   if(t.quoi === 'reserve'){
     const T = toolOf(m);
     v.cleVoulue = null; v.sensVoulu = 'route';
@@ -15827,9 +15995,19 @@ function majColis(m, A, dt){
   if(!v.colis) v.colis = [];
   if(!v.colisSol) v.colisSol = [];
 
-  // — dans la benne : autant de sacs que la charge en mérite, jamais plus que de places
-  if(ud && ud.benne && T && PRODUITS[T.type]){
-    const B = ud.benne;
+  /* — DANS LA BENNE : autant de sacs que la charge en mérite, jamais plus que de places.
+       ET LA CAISSE PEUT ÊTRE CELLE DE L'OUTIL. On ne regardait que `v.group.userData` :
+       le pick-up et le fourgon montraient leur chargement, un tracteur attelé à la benne
+       ne montrait rien. Il transportait pourtant — `caisseDe` rend l'outil dès qu'il porte
+       `cargo` — et l'on voyait une caisse vide traverser la ferme avec deux cents kilos
+       dedans. Si la caisse qui compte est un OUTIL et qu'il déclare son volume, les sacs
+       vont dans le groupe de l'outil, qui suit son propre timon. */
+  const surOutil = !!(T && T.group && T.group.userData && T.group.userData.benne
+                      && T === m.v.tool);
+  const udB = surOutil ? T.group.userData : ud;
+  const groupeB = surOutil ? T.group : (v.body || v.group);
+  if(udB && udB.benne && T && PRODUITS[T.type]){
+    const B = udB.benne;
     const vise = Math.max(0, Math.min(B.n, Math.round(T.load/T.capacite*B.n)));
     while(v.colis.length > vise){ const c = v.colis.pop(); rendreColis(c); }
     while(v.colis.length < vise){
@@ -15844,7 +16022,7 @@ function majColis(m, A, dt){
          que la benne penchait autour d'elles : dans un virage un peu appuyé, on les
          voyait traverser la ridelle. Elles vivent maintenant dans la caisse, et
          penchent avec elle. */
-      const c = colisEnBenne(m, v.body || v.group, x, B.y, z, T.type);
+      const c = colisEnBenne(m, groupeB, x, B.y, z, T.type);
       if(!c) break;
       c.m.scale.setScalar(B.ech);
       v.colis.push(c);
@@ -23227,11 +23405,12 @@ function pisteAuge(C){
   }
   C.bloque = null; C.etape = 'nourrir';
   const A = dispo[0];                        // le plus nourrissant d'abord
-  const i = enginLePlusProche('porteur', A.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO));
-  if(i < 0){ C.bloque = 'MANGEOIRE — EN ATTENTE D’UN PORTEUR'; return; }
-  C.enginTerre = i;
-  armerEngin(MACHINES[i],
-             [{quoi:'navette', a:A.ou, b:'pature' + PATURES.indexOf(P), cle:A.cle}]);
+  const ouA = A.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO);
+  if(!armerPorteur(C, 'enginTerre', ouA,
+                   ()=> [{quoi:'navette', a:A.ou, b:'pature' + PATURES.indexOf(P), cle:A.cle}])){
+    C.bloque = 'MANGEOIRE — EN ATTENTE D’UN PORTEUR'; return;
+  }
+  aServi(C, C.enginTerre);
 }
 /* LES PRODUITS, UN PAR UN, CHACUN VERS SON LIEU. Une brebis en donne deux — la laine et
    le lait — et rien n'oblige à les envoyer au même endroit. On sert dans l'ordre de la
@@ -23264,10 +23443,11 @@ function pisteProduits(C){
     }
     C.etapeM = 'livrer ' + L.cle;
     if(livre || C.enginPort >= 0) continue;      // un porteur à la fois
-    const i = enginLePlusProche('porteur', P.quai);
-    if(i < 0){ C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; continue; }
-    C.enginPort = i; livre = true;
-    armerEngin(MACHINES[i], [{quoi:'navette', a:cleP, b:lieu, cle:L.cle}]);
+    if(!armerPorteur(C, 'enginPort', P.quai,
+                     ()=> [{quoi:'navette', a:cleP, b:lieu, cle:L.cle}])){
+      C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; continue;
+    }
+    aServi(C, C.enginPort); livre = true;
   }
   /* On ne crie qu'au CHANGEMENT, et une fois par produit : sans cela, le bandeau
      répéterait le même avertissement deux fois par seconde tant que l'étal reste plein. */
@@ -23311,6 +23491,9 @@ function pisteTerre(C, k){
        grain au silo et le joueur devant un chantier disparu sans que rien soit arrivé. */
     if(!C.continu && !etapeMarchandise(C)){
       CHANTIERS.splice(k, 1);
+      // On efface AVANT de rappeler : `enginLibre` interroge la liste des chantiers, et
+      // un chantier encore présent tiendrait ses propres engins pour occupés.
+      rentrerAuParc(C);
       showHint('CHANTIER TERMINÉ — PARCELLE ' + (C.p + 1));
     }
     return;
@@ -23333,7 +23516,7 @@ function pisteTerre(C, k){
   }
   // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait.
   if(et === ET_SEMIS && B.outil >= 0) TOOLS[B.outil].crop = C.crop || 0;
-  C.enginTerre = choisi;
+  C.enginTerre = aServi(C, choisi);
   armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
 }
 /* La marchandise : mettre en file à l'atelier, puis porter au lieu choisi. */
@@ -23354,12 +23537,74 @@ function pisteMarchandise(C){
   C.bloqueM = null; C.alternatives = null;
   if(M.et === ET_ATELIER){ lancerProduction(C.produit, LOT_ATELIER); return; }
   if(C.enginPort >= 0) return;
-  const choisi = enginLePlusProche('porteur', M.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO));
-  if(choisi < 0){ C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; return; }
-  C.enginPort = choisi;
-  armerEngin(MACHINES[choisi],
-             [{quoi:'navette', a:M.ou, b:C.dest[C.produit], cle:C.produit}]);
+  const ou = M.ou === 'silo' ? SILO : (ENTREPOT.quai || SILO);
+  if(!armerPorteur(C, 'enginPort', ou,
+                   ()=> [{quoi:'navette', a:M.ou, b:C.dest[C.produit], cle:C.produit}])){
+    C.bloqueM = 'LIVRAISON — EN ATTENTE D’UN PORTEUR'; return;
+  }
+  aServi(C, C.enginPort);
 }
+/* ---------- QUI PORTE, QUAND LE PICK-UP EST DÉJÀ PRIS ----------
+   Le joueur : « la benne pourra être utilisée pour transporter des récoltes et produits,
+   et aussi en mode automatique via les tracteurs pour livrer si le pick-up est utilisé. »
+
+   CE QUI MANQUAIT. Le répartiteur ne cherchait qu'un PORTEUR — `classeDe` ne range dans
+   cette classe que le pick-up et le fourgon — et s'arrêtait net sur « EN ATTENTE D'UN
+   PORTEUR » dès qu'ils étaient tous les deux pris. Une ferme qui a trois tracteurs et une
+   benne restait donc bloquée, alors que `caisseDe` sait depuis toujours qu'un tracteur
+   attelé à la benne EST un porteur : il rend l'outil dès qu'il déclare `cargo`.
+
+   L'ORDRE COMPTE. On prend d'abord un vrai utilitaire, parce qu'il roule plus vite et
+   qu'il n'immobilise pas un tracteur dont la terre a besoin. Le tracteur n'arrive qu'en
+   second, et l'on préfère alors CELUI QUI TRAÎNE DÉJÀ LA BENNE : lui n'a aucun détour à
+   faire par le parc à outils. Si elle est attelée à un engin occupé, on ne la lui vole
+   pas — on attend, comme avant.
+
+   La tâche `outil` s'enfile devant la navette, exactement comme le tracteur va chercher
+   sa charrue avant de labourer. Elle sait passer son tour quand l'outil est déjà là. */
+function armerPorteur(C, champ, ou, faire){
+  const i = enginLePlusProche('porteur', ou);
+  if(i >= 0){ C[champ] = i; armerEngin(MACHINES[i], faire()); return true; }
+  const ib = TOOLS.findIndex((T)=> T.key === 'benne');
+  const B = ib >= 0 ? TOOLS[ib] : null;
+  if(!B || B.verrou) return false;
+  let t = -1;
+  if(B.attached){
+    const j = MACHINES.findIndex((m)=> m.v === B.attached);
+    if(j >= 0 && classeDe(MACHINES[j]) === 'tracteur' && enginLibre(MACHINES[j])) t = j;
+    else return false;              // attelée à un engin occupé : on ne la lui prend pas
+  }
+  if(t < 0) t = enginLePlusProche('tracteur', ou);
+  if(t < 0) return false;
+  C[champ] = t;
+  armerEngin(MACHINES[t], [{quoi:'outil', t:ib}].concat(faire()));
+  return true;
+}
+/* ---------- ET L'ON RENTRE SE GARER ----------
+   Le joueur : « une fois une action automatique terminée, si elle n'est pas en continu,
+   le véhicule doit venir se garer sur le parking de la ferme. »
+
+   QUI EST « LE VÉHICULE ». Un chantier en emploie plusieurs au fil de ses étapes — le
+   tracteur laboure, un autre sème, la moissonneuse récolte, un porteur livre — et il les
+   relâche au fur et à mesure : quand la piste veut savoir qui travaille, `enginTerre` et
+   `enginPort` valent déjà −1. On tient donc la liste de CEUX QUI ONT SERVI, et c'est elle
+   qu'on renvoie au parc quand le chantier s'efface.
+
+   ON NE RAPPELLE QUE CE QUI EST LIBRE. Un engin repris entre-temps par un autre chantier,
+   ou dans lequel le joueur est monté, continue ce qu'il fait : `enginLibre` le dit. Et
+   celui qui est déjà sur sa case n'a rien à faire. */
+function rentrerAuParc(C){
+  for(const i of (C.servi || [])){
+    const m = MACHINES[i];
+    if(!m || !m.v.parc || !enginLibre(m)) continue;
+    if(Math.hypot(m.v.pos.x - m.v.parc.x, m.v.pos.z - m.v.parc.z) < 6) continue;
+    armerEngin(m, [{quoi:'parc'}]);
+  }
+}
+const aServi = (C, i)=>{ if(i < 0) return i;
+  if(!C.servi) C.servi = [];
+  if(C.servi.indexOf(i) < 0) C.servi.push(i);
+  return i; };
 /* L'engin libre de cette classe le plus proche d'un point. La proximité n'est pas du
    luxe : le parc à outils est à cent mètres des champs, et prendre le tracteur d'en face
    coûte une minute d'aller-retour visible à l'écran. */

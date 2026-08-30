@@ -4919,6 +4919,124 @@ une traversée.)*
 Et les douze approches mesurées descendent maintenant la voie x = 72 **dans l'axe**, à
 l'équerre, comme au silo — au lieu de couper le champ à z = 42,5 en rasant la citerne.
 
+## La benne à rehausses, et ce qu'elle a entraîné
+
+Le joueur a envoyé un modèle et quatre demandes : « supprime la benne existante et mets
+cette benne à la place. Elle pourra être utilisée pour transporter des récoltes et
+produits. Aussi utilisée en mode automatique via les tracteurs pour livrer si le pick-up
+est utilisé. Une fois une action automatique terminée, si elle n'est pas en continu, le
+véhicule doit venir se garer sur le parking de la ferme. Et confirme-moi que tous les
+bâtiments, la cuve à engrais et à grain, les clôtures, tout est combiné en bloc. »
+
+### Le modèle
+
+L'ancienne benne était un tronc de pyramide ocre sur quatre roues : trois volumes de
+caisse, deux essieux, **douze maillages**. La nouvelle se lit en trois étages — le châssis
+et ses garde-boue, la caisse verte à ridelles, les rehausses claires sur leurs montants —
+plus une bâche roulée en travers de la face avant, son échelle d'accès, un timon en A et
+une chape à boule.
+
+| | avant | après |
+|---|---|---|
+| maillages | 12 | **1** |
+| volumes | 12 | 73, soudés |
+| triangles | 336 | 1 172 |
+| emprise (l × h × p) | 3,86 × 2,75 × 5,25 m | 2,78 × 2,63 × **5,28 m** |
+
+Elle est **cuite**. Soixante-treize volumes laissés séparés coûteraient soixante-treize
+appels de dessin dès qu'elle est en vue ; rien n'y bouge — les roues d'un outil ne
+tournent pas, `userData.wheels` n'existe que pour les engins — donc `fusionnerGroupe`
+s'applique sans réserve et la rend **moins chère que les douze maillages d'avant**, pour
+836 triangles de plus dans un jeu où les cultures en pèsent 99 %.
+
+La largeur passe de 3,86 à 2,78 m : c'est celle du tracteur qui la tire, et non plus
+davantage. La longueur ne bouge pas, à trois centimètres près, parce que le point
+d'attelage est une convention et non un réglage — `z = 0` est l'anneau, `Vehicle.update`
+y pose le groupe, et l'essieu suit à `T.L` derrière. Le modèle est bâti autour de son
+essieu puis reculé de L : la chape tombe à 33 cm devant l'origine, là où elle coiffe la
+boule.
+
+**Tout est local à `buildBenne`.** La planche d'origine déclare au premier niveau `roue`,
+`timon`, `caisse`, `chargement`, `chassisBenne`, `feuxArriere` et une quinzaine de
+constantes de couleur. Ce fichier a déjà perdu deux fonctions à une collision silencieuse
+de ce genre — la dernière déclaration de premier niveau gagne, sans le moindre
+avertissement, et le symptôme apparaît trois écrans plus loin. Rien n'en sort.
+
+### Ce qu'elle porte se voit dedans
+
+`majColis` sème des sacs dans le volume qu'un engin déclare sous `userData.benne`. Le
+pick-up en avait un depuis toujours ; la benne tirée, non. Un tracteur attelé transportait
+donc bel et bien ses deux cents kilos — `caisseDe` rend l'outil dès qu'il porte `cargo` —
+mais on voyait une caisse **vide** traverser la ferme. Les sacs vivent maintenant dans le
+groupe de l'outil, donc ils suivent son timon et non la cabine. Mesuré : six sacs pour
+150 kg sur 200.
+
+### Le porteur de repli
+
+`classeDe` ne range dans la classe « porteur » que le pick-up et le fourgon. Le
+répartiteur s'arrêtait donc net sur « EN ATTENTE D'UN PORTEUR » dès qu'ils étaient pris
+tous les deux — une ferme avec trois tracteurs et une benne restait bloquée.
+
+L'ordre compte, et il est mesuré sur quatre cas :
+
+| situation | qui livre |
+|---|---|
+| un utilitaire libre | le **fourgon** — il roule plus vite et n'immobilise pas un tracteur |
+| pick-up et fourgon pris | un **tracteur**, tâches `outil:benne` puis `navette` |
+| la benne déjà attelée à un tracteur libre | **ce tracteur-là** — zéro détour par le parc à outils |
+| la benne attelée à un engin qui travaille | **personne** — on ne la lui vole pas, on attend |
+
+### Le retour au parc
+
+Chaque engin a déjà **sa** case : la cour est découpée en douze par `placeCentre`, et
+c'est là qu'il commence la partie. On garde simplement d'où il vient — rien à inventer,
+rien à sauvegarder, et deux engins ne peuvent pas se disputer la même case puisqu'elles
+sont attribuées par la table.
+
+Un chantier emploie plusieurs engins au fil de ses étapes et les relâche au fur et à
+mesure : quand il s'efface, `enginTerre` et `enginPort` valent déjà −1. On tient donc la
+liste de **ceux qui ont servi**, et c'est elle qu'on renvoie au parc. On ne rappelle que
+ce qui est libre, et celui qui est déjà sur sa case ne bouge pas.
+
+**En deux temps, parce qu'une case n'est pas un quai.** `suivreRoute` valide son dernier
+point de passage au large — cinq mètres et demi, ce qui convient à la grille d'un silo.
+Mesuré : l'engin s'arrêtait à **4,76 m** de sa place, soit chez le voisin, et en travers,
+parce que le dernier tronçon d'un itinéraire arrive par la rangée et non dans l'axe de la
+case. On roule donc jusqu'à sept mètres devant la place, puis on y entre tout droit :
+**0,82 m** du centre, et tous les engins rangés dans le même sens.
+
+Relevé de bout en bout, un tracteur lâché en plein champ à (60, 10) : **169,7 m par les
+routes**, arrivée en 62,9 s, **1,8 % des images au ralenti**, mission rendue proprement.
+
+### « Tout est-il combiné en bloc ? » — non, et voici où
+
+La réponse mesurée était **non**, et le trou était nommable : `clotureSite` posait son
+groupe dans la scène sans le passer à `fusionnerGroupe`. Un grillage, ce sont onze
+poteaux, trois lisses et une maille **par côté** — jusqu'à 68 maillages pour un seul
+commerce.
+
+| | avant | après |
+|---|---|---|
+| blocs cuits | 65 | **80** |
+| volumes soudés | 2 446 | ~2 880 |
+| décor opaque **hors** bloc | **871** | **438** |
+
+Autour de l'Usine céréales, les maillages passent de **484 à 131**. L'image est la même :
+`mat()` et `MAT_FUSION` sont le même matériau Phong à ombrage plat, seule la couleur
+change de source.
+
+**Ce qui reste hors bloc, et pourquoi.** Les 438 restants sont pour l'essentiel les
+**382 arbres, rochers et touffes semés à la racine de la scène**, chacun à sa place sur
+369 m de large. Les souder ferait une seule maille grande comme la carte : on gagnerait
+381 appels de dessin et l'on perdrait la troncature, donc 56 424 triangles envoyés en
+permanence, y compris quand on regarde ailleurs. Ce n'est pas un oubli, c'est un
+arbitrage — et il pourrait se refaire **par région** si l'on veut les deux.
+
+Le reste ne peut pas entrer dans un bloc : `MAT_FUSION` est un matériau unique à couleurs
+par sommet, donc tout ce qui est texturé (119 maillages : étiquettes, bulles, sol),
+transparent (101 : anneaux, halos, colis) ou animé (351 engins, 42 lumières de nuit) en
+est exclu par construction.
+
 ## Cinq demandes d'un coup
 
 ### Le pas de la spirale s'élargit
