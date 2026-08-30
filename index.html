@@ -20185,12 +20185,13 @@ function cacherJauge(J, dt){
    servaient jamais. Une parcelle en emprunte une quand elle pousse à portée, et la rend
    dès qu'elle sort du champ de vision. */
 let jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
-let jaugeCuve = null;
+let jaugeCuve = null, jaugeGraine = null, jaugeEngrais = null;
 const jaugesLibres = [];
 function poserJauges(){
   jaugeSilo = creerJauge();
   jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
   jaugeCuve = creerJauge();
+  jaugeGraine = creerJauge(); jaugeEngrais = creerJauge();
 }
 function prendreJauge(p){
   if(p.jauge) return p.jauge;
@@ -20368,6 +20369,40 @@ function majJauges(dt){
       litres(CARBU.cuve) + ' sur ' + litres(CARBU.cuveMax),
       kc, kc < 0.15 ? '#E8563F' : (kc < 0.35 ? '#F0A030' : '#8BE07A'), dt);
   } else cacherJauge(jaugeCuve, dt);
+
+  /* — LES DEUX RÉSERVES DE LA COUR. Le joueur : « je veux que tu ajoutes au-dessus des
+       citernes d'engrais et de grain des étiquettes comme sur le silo qui indiquent
+       l'état de remplissage. » Elles étaient les seules du décor de la cour à n'en pas
+       avoir : on ne savait ce qu'il restait de semence qu'en s'arrêtant au comptoir, et
+       une passe de semis s'arrêtait au milieu du champ sans qu'on ait rien vu venir.
+
+       LE ROUGE EST À L'AUTRE BOUT QUE POUR LE SILO, ET C'EST VOULU. Un silo alarme quand
+       il est PLEIN — il bloque la moisson. Une réserve alarme quand elle est VIDE : c'est
+       elle qui arrête le semoir. La couleur doit désigner ce qui empêche, pas remplir un
+       gabarit.
+
+       LES HAUTEURS SONT MESURÉES, pas devinées : le sommet du silo à graines est à 6,91 m
+       et celui du bac à engrais à 7,89. On pose à 2,7 m au-dessus de chacun — le même
+       dégagement que la cuve à gazole, qui culmine à 4,00 pour une étiquette à 7,40 — ce
+       qui donne 9,6 et 10,6, et les décale d'un mètre l'une de l'autre : elles sont à huit
+       mètres en z, et deux plaques à la même altitude se chevauchent vues d'en haut. */
+  {
+    const gt = grainesTotal(), kg1 = STOCK.max > 0 ? gt/STOCK.max : 0;
+    // Le plus gros sac, pour dire d'un coup d'oeil ce qu'on peut semer sans rentrer.
+    let gros = null;
+    for(const k in STOCK.graines)
+      if(STOCK.graines[k] > 0.5 && (!gros || STOCK.graines[k] > STOCK.graines[gros])) gros = k;
+    montrerJauge(jaugeGraine, RES_GRAINE.x, 9.6, RES_GRAINE.z, 'Réserve de graines',
+      gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(STOCK.max)
+                 + (gros ? '  ·  ' + nomDe(gros) : '')
+               : 'vide  ·  aucune semence en stock',
+      kg1, kg1 < 0.10 ? '#E8563F' : (kg1 < 0.30 ? '#F0A030' : '#8BE07A'), dt);
+    const ke = STOCK.max > 0 ? STOCK.engrais/STOCK.max : 0;
+    montrerJauge(jaugeEngrais, RES_ENGRAIS.x, 10.6, RES_ENGRAIS.z, 'Réserve d’engrais',
+      STOCK.engrais > 0.5 ? Math.round(STOCK.engrais) + ' kg sur ' + Math.round(STOCK.max)
+                          : 'vide  ·  aucun engrais en stock',
+      ke, ke < 0.10 ? '#E8563F' : (ke < 0.30 ? '#F0A030' : '#8BE07A'), dt);
+  }
 
   // — les enclos : ce qu'il reste à manger, et où en est le produit. Un troupeau qui
   //   s'arrête de produire ne le dit nulle part ; il fallait ouvrir le menu pour
