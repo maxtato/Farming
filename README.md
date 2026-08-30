@@ -5255,6 +5255,15 @@ Il s'arrêtait donc **hors** du cercle aux trois points ; il s'arrête maintenan
 c'est le rayon qui décide de l'arrivée, plus l'épuisement prématuré de la route. Les
 **demi-tours sur place** comptés sur les trois trajets, avant comme après : **zéro**.
 
+> **Ces trois chiffres sont pris au mauvais instant, et il faut le dire.** Ils relèvent la
+> position de la machine à la seconde où `suivreRoute` rend `null` — c'est-à-dire au moment
+> où le pilote la *déclare* arrivée, pas au moment où elle s'*arrête*. Or elle arrivait
+> lancée, et rien ne la freinait : mesuré au tour suivant, elle touchait l'anneau à
+> **16,66 m/s** et s'immobilisait **4,08 m au-delà**. La correction ci-dessus est réelle —
+> la route n'est plus jetée trop tôt — mais elle ne réglait que la moitié du problème, et
+> le chiffre annoncé donnait à croire l'affaire close. Voir « Rien ne freinait, nulle
+> part » plus bas.
+
 ### La benne se voyait mal, et ce n'était pas la faute des couleurs
 
 Vérifié d'abord : la géométrie est saine. Rendue en `FrontSide` et en `DoubleSide`, l'image
@@ -5399,6 +5408,10 @@ vise donc **un point**, pas une direction devinée, et l'on repart en avant sur 
 qu'on vient de faire à l'envers. Onze parvis sur douze au lieu de huit. Le douzième — la
 Fromagerie — retombe sur la sortie d'avant, qui marche.
 
+> **Et ce créneau a été retiré au tour suivant.** Il marchait, et ce n'était pas la bonne
+> manœuvre : voir « Le créneau était la mauvaise réponse » plus bas. La section est gardée
+> parce qu'elle raconte quatre pièges qui, eux, ne dépendaient pas du choix.
+
 ### Le banc du son supposait une machine lente
 
 Le gel des matrices a fait tomber un contrôle : « une voiture qui passe à quatre mètres
@@ -5416,6 +5429,110 @@ rapide** pour qu'une place se recycle pendant la mesure. Le jeu n'a rien perdu :
 supposait une machine lente. Il suit désormais la voiture la plus proche à chaque image, ce
 qui est d'ailleurs exactement ce que le contrôle prétend mesurer — une voiture qui *passe*
 à quatre mètres, pas une place du vivier. Cinq essais isolés, cinq passages.
+
+## Rien ne freinait, nulle part
+
+Le joueur, en deux phrases : « augmente encore plus la taille de la benne, quasiment à la
+taille de l'arrière du pick-up » ; puis, sur la manœuvre de livraison, « essaye de
+retravailler, sinon l'arrivée en marche avant et ensuite tu recules juste par là où t'es
+arrivé ».
+
+La deuxième phrase a mené à un défaut que personne ne cherchait, et qui n'avait rien à voir
+avec la manœuvre.
+
+### La benne prend la taille de l'arrière du camion
+
+L'étalon est donné par la phrase, alors on est allé le chercher sur le pick-up plutôt que de
+choisir un chiffre au jugé. Relevé sur la carrosserie, en coupes de quinze centimètres et
+faisceaux de phares exclus : le pick-up fait **6,74 × 2,66 × 2,21 m**, et son plateau
+arrière — la partie plate derrière la cabine — **3,30 m de long sur 2,66 de large, ridelles
+de 1,35 m**.
+
+| | caisse de la remorque | plateau du pick-up |
+|---|---|---|
+| avant (échelle 1,25) | 2,50 × 4,00 × **1,06** m | 2,66 × 3,30 × **1,35** |
+| après (échelle 1,50) | 3,00 × 4,80 × **1,27** m | 2,66 × 3,30 × **1,35** |
+
+Elle était trop **basse** d'un quart, et c'est ce qui la faisait lire comme une charrette.
+À 1,50 sa hauteur tombe à huit centimètres de celle des ridelles du camion, et elle le
+dépasse un peu en long et en large. L'attelage entier passe de 3,47 × 6,60 à **4,17 × 7,92 m**,
+distance anneau-essieu 4,00 → **4,80 m**. La capacité ne bouge pas : elle n'a pas été
+demandée, et elle est écrite dans les sauvegardes.
+
+Le contrôle de banc ne code plus aucune de ces cotes : il **relève le pick-up à chaque
+passage** et compare la caisse à ce qu'il trouve. Si le camion change un jour, le banc suit.
+
+### Le créneau était la mauvaise réponse
+
+Il marchait — douze parvis sur douze, onze repartant de face, aucun demi-tour sur place.
+Mais il reculait **23,5 m en moyenne**. Un quart de minute de marche arrière en diagonale
+par livraison, douze fois de suite : ce n'est pas un créneau, c'est un long marche-arrière.
+Et la mesure a montré autre chose : **sans lui, les douze parvis ressortaient déjà à
+reculons**, parce que la façade bloque le rayon de neuf mètres que `sortieDeQuai` tâte
+devant le capot. La manœuvre demandée était donc là depuis le début — mais **par accident**,
+décidée par la géométrie et non par l'intention.
+
+Le lieu porte maintenant un drapeau `impasse`, et il tranche **avant** qu'on tâte quoi que
+ce soit. Qu'un commerce recule un jour sa façade de dix mètres, et l'engin repartira quand
+même par où il est venu.
+
+Une chose a été vérifiée au passage, et elle simplifie tout : **la remorque ne se met pas en
+portefeuille**. L'écart tracteur/remorque, mesuré image par image sur les douze parvis, ne
+dépasse **jamais deux degrés**, ni en virage ni en marche arrière — l'outil est solidaire,
+pas articulé. Aucune manœuvre ne risque donc le pliage ; le seul danger d'un recul est ce
+qu'il **balaie**.
+
+### Rien ne freinait à l'approche. Nulle part.
+
+Le quatrième paramètre de `viser` est un **rayon d'arrêt**, pas une vitesse. `suivreRoute`
+lui passait `1,2` sur le dernier tronçon — en croyant brider l'allure — et `viser` rendait
+donc **plein gaz jusqu'au bout**.
+
+| | avant | après |
+|---|---|---|
+| vitesse au contact de l'anneau | **16,66 m/s** (60 km/h) | **1,79 m/s** (6 km/h) |
+| où la machine s'immobilise | **4,08 m au-delà** de l'anneau | **2,94 m avant**, dedans |
+| marche arrière à l'aller | 0 m | 0 m |
+| demi-tours sur place | 0 | 0 |
+
+La façade est à 5,40 m de l'anneau : on s'arrêtait **à un mètre trente du mur**, lancé, à
+chaque livraison, avant de repartir à reculons. C'est ce dépassement-là qu'on voyait, et
+non la manœuvre. Il valait pour tous les points de dépose du jeu — le silo et les deux
+réserves compris.
+
+La loi d'approche est celle d'un conducteur : **un demi-mètre par seconde de vitesse par
+mètre restant**, et jamais moins de 1,5 m/s pour ne pas ramper. On se pose donc à 1,7 m/s
+sur un anneau de 3,4 m, ce qui laisse quatre-vingts centimètres d'erre. Et l'on ne bride
+que le **dernier** tronçon : sur la rocade, le cran de vitesse acheté sert comme avant.
+
+Le gaz suffit à freiner : `update` accélère à 2,2 fois la reprise quand la consigne est
+**sous** la vitesse du moment. Donner un petit gaz à pleine allure, c'est freiner.
+
+### Et l'on ne recule que jusqu'à sa propre voie
+
+Les huit mètres de `SORTIE_LOIN` avaient été relevés sur la sortie du silo, pour dégager sa
+tour avant de pivoter. Appliqués au parvis d'un commerce, ils garaient la machine **4,63 m
+au-delà du coude** — c'est-à-dire sur la file d'en face, dans un jeu qui tient assez à sa
+file de droite pour avoir un banc dédié.
+
+| | recul de 8 m | recul de 3,5 m |
+|---|---|---|
+| où l'on s'arrête | **4,63 m au-delà** du coude | **0,13 m** — sur sa voie |
+| longueur du recul | 14,3 m | **9,3 m** |
+| écart au chemin d'arrivée | 0,69 m | **0,54 m** |
+| la remorque au plus près d'un obstacle | **−0,30 m** (elle chevauche) | **+0,75 m** |
+
+« Juste par là où t'es arrivé » se mesure, et c'est l'écart latéral à la droite qui joint
+l'anneau au coude : **54 cm au pire**, sur des parvis de dix à quinze mètres.
+
+#### Ce que ça ne règle pas, et qui ne se règle pas
+
+La remorque dépasse de 7,43 m derrière l'essieu. Reculer treize mètres d'attelage hors d'un
+parvis de quinze pour rejoindre une chaussée de dix, ça balaie le trottoir d'en face :
+**trois parvis de la bande ouest frôlent un lampadaire**. Ce n'est pas la faute de
+l'agrandissement — c'était **quatre** parvis avec l'ancienne benne, mesuré des deux côtés.
+Ces poteaux-là portent le drapeau `soft` : ils ploient, la machine passe. Un vrai camion
+fait exactement la même chose.
 
 ## Cinq demandes d'un coup
 

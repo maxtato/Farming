@@ -8821,8 +8821,29 @@ function buildEnjambeuse(){
    décalée de son propre timon. `fusionnerGroupe` prend l'inverse de la matrice du groupe
    EXTÉRIEUR, si bien qu'une échelle posée sur l'intérieur est cuite dans la géométrie et
    survit à la fusion — c'est le même mécanisme que pour l'atelier. */
-const BENNE_ECH = 1.25;
-const BENNE_L = +(3.2*BENNE_ECH).toFixed(3);      // 4,0 m de l'anneau à l'essieu
+/* L'ÉCHELLE DE LA BENNE, ET CE À QUOI ELLE SE MESURE.
+   Le joueur, deux fois de suite : « augmente la taille de la nouvelle benne », puis
+   « augmente encore plus la taille de la benne, quasiment à la taille de l'arrière du
+   pick-up ». La deuxième phrase donne l'étalon, alors on va le chercher sur le pick-up
+   lui-même plutôt que de choisir un chiffre au jugé.
+
+   RELEVÉ SUR LA CARROSSERIE, EN COUPES DE QUINZE CENTIMÈTRES : le pick-up fait
+   6,74 m de long, 2,66 m de large, 2,21 m de haut au pavillon ; sa BENNE ARRIÈRE — la
+   partie plate derrière la cabine — fait 3,45 m de long sur 2,66 m de large, ridelles
+   comprises jusqu'à 1,78 m du sol, soit 1,31 m de haut depuis son plancher.
+
+   LA CAISSE DE LA REMORQUE SE CALE SUR CETTE BENNE-LÀ. Elle mesure 2,0 × 3,2 × 0,85 dans
+   le dessin ; à l'échelle 1,50 elle fait donc 3,00 × 4,80 × 1,28 m. Sa hauteur tombe à
+   trois centimètres de celle des ridelles du pick-up, et elle le dépasse un peu en long
+   et en large — ce qui est exactement l'effet demandé : la remorque n'est plus une
+   charrette derrière un camion, c'est le même volume que l'arrière du camion.
+   Elle était à 1,25, donc à 2,50 × 4,00 × 1,06 : vingt pour cent de plus sur chaque axe.
+
+   ET C'EST LE SEUL CHIFFRE À TOUCHER. Tout le reste en découle — la longueur de l'anneau
+   à l'essieu, la place des sacs, l'emprise. La capacité, elle, ne bouge pas : elle n'a
+   pas été demandée, et elle est écrite dans les sauvegardes. */
+const BENNE_ECH = 1.50;
+const BENNE_L = +(3.2*BENNE_ECH).toFixed(3);      // 4,80 m de l'anneau à l'essieu
 function buildBenne(){
   const outer = new THREE.Group();
   const g = new THREE.Group();
@@ -11275,7 +11296,7 @@ function itineraire(ax, az, bx, bz){
   return mieux.r;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
-function suivreRoute(v, bx, bz, cle, rayon, creneau){
+function suivreRoute(v, bx, bz, cle, rayon, impasse){
   const R = rayon || 3.0;
   const d0 = Math.hypot(bx - v.pos.x, bz - v.pos.z);
   /* ARRIVÉ, ET ON Y RESTE. Sans cette mémoire, l'engin qui vient de toucher son but
@@ -11319,86 +11340,20 @@ function suivreRoute(v, bx, bz, cle, rayon, creneau){
       v.routeSortie = {x:A.x + dx/LL*SORTIE_LOIN, z:A.z + dz/LL*SORTIE_LOIN};
       v.routeSortieCle = cle;
     }
-    /* ON ARME LE CRÉNEAU ICI, ET SEULEMENT SI L'ON VIENT DE LOIN. Le dernier point de
-       l'itinéraire — l'anneau du commerce — est remplacé par le point de créneau : la
-       machine roule donc en marche avant jusqu'à DÉPASSER le parvis, et c'est en arrivant
-       au bout de cette route-là qu'elle entame sa marche arrière. Rien n'est armé pour
-       une machine déjà sur le parvis : à quinze mètres, il n'y a plus ni coude ni élan
-       pour manœuvrer, et le créneau se transformerait en demi-tour sur place — celui-là
-       même que le joueur ne veut plus voir. */
-    v.creneau = null; v.creneauT0 = 0;
-    if(creneau && r2 && r2.length >= 2 && d0 > 15){
-      const C = pointCreneau(r2);
-      if(C){
-        /* ON VISE PLUS PROFOND QUE L'ANNEAU, ET C'EST CE QUI REDRESSE LA MACHINE.
-           `marcheArriere` fait pointer le CUL vers ce qu'on lui donne : viser l'anneau
-           lui-même, c'est relâcher la manœuvre au moment où la machine est encore en
-           travers de l'arc — mesuré, 67° d'écart au cap de sortie sur le parvis le plus
-           profond, assez pour que la voie devant le capot ne soit plus libre et qu'on
-           reparte à reculons comme avant. Quatre mètres au-delà de l'anneau, dans l'axe
-           du parvis, et la machine continue de se redresser jusqu'au bout.
-           Elle n'ira pas plus loin pour autant : c'est le test d'arrivée en tête de
-           fonction, mesuré sur l'anneau VRAI, qui arrête la manœuvre — le point visé ne
-           change que la direction, jamais la profondeur. */
-        const A = r2[r2.length - 2];
-        const ux = bx - A.x, uz = bz - A.z, UL = Math.hypot(ux, uz) || 1;
-        v.creneau = {x:bx, z:bz,
-                     vx:bx + ux/UL*CRENEAU_FOND, vz:bz + uz/UL*CRENEAU_FOND};
-        r2[r2.length - 1] = C;
-      }
-    }
+    /* ON MARQUE L'IMPASSE, ET C'EST TOUT CE QU'ON FAIT ICI.
+       Le premier jet entrait en CRÉNEAU : on dépassait le coude, puis on reculait en
+       diagonale jusqu'à l'anneau. Ça marchait — douze parvis sur douze, onze repartaient
+       de face — mais ça reculait 23,5 m EN MOYENNE, et un quart de minute de marche
+       arrière en biais par livraison n'est pas ce qu'on voulait voir. Le joueur :
+       « sinon l'arrivée en marche avant et ensuite tu recules juste par là où t'es
+       arrivé. » C'est la bonne manœuvre, et c'est celle d'un livreur : on entre de face
+       parce que c'est court et qu'on voit où l'on va, et l'on ressort par son propre
+       chemin, en ligne droite, sur les quinze mètres du parvis.
+       Le drapeau ne fait donc plus manœuvrer personne : il DIT que ce lieu est une
+       impasse, et `sortieDeQuai` s'en sert pour ne pas chercher une sortie ailleurs. */
+    v.impasse = impasse ? cle : null;
   }
   const wp = v.route[v.routeI];
-  /* AU BOUT DE LA ROUTE, ON RECULE. L'itinéraire s'arrête au point de créneau, dix mètres
-     au-delà du parvis : c'est ici que la manœuvre commence. `marcheArriere` rend la main
-     dès que l'anneau est à portée — le rayon d'arrêt reste seul juge de l'arrivée, comme
-     partout ailleurs.
-     ET ELLE PEUT REFUSER. Passé soixante-trois degrés de travers, reculer ne rapproche
-     plus : on est mal placé, ou l'on s'est fait pousser. Douze secondes bornent la
-     manœuvre pour la même raison. Dans les deux cas on ne reste pas planté là — on
-     remet l'anneau au bout de l'itinéraire et l'on finit en marche avant, exactement
-     comme avant le créneau. La manœuvre est un mieux, jamais un blocage. */
-  if(!wp && v.creneau){
-    const C = v.creneau;
-    const d = Math.hypot(C.x - v.pos.x, C.z - v.pos.z);
-    /* ON SE GARDE PAR LA DISTANCE, PAS PAR LES IMAGES. Un compteur qui s'incrémente à
-       chaque tour de pilote compte des IMAGES, et une image ne dure pas la même chose sur
-       un téléphone qui peine et sur un banc qui déroule mille tours de boucle sans rien
-       afficher — le premier jet bornait la manœuvre à seize secondes lues sur l'image
-       écoulée, et le banc les épuisait en quatre-vingts tours, avant que la machine ait
-       reculé d'un mètre. Deux gardes le remplacent, et aucune ne compte les images :
-       la manœuvre a vingt secondes d'HORLOGE, celles du joueur, et rien d'autre ne la
-       borne — une garde sur la distance a été essayée puis retirée : pendant l'arc du
-       braquage l'anneau s'éloigne avant de se rapprocher, et toute tolérance assez large
-       pour l'accepter ne détectait plus rien. */
-    if(!v.creneauT0) v.creneauT0 = performance.now();
-    /* ON S'ARRÊTE D'ABORD, ON RECULE ENSUITE — et c'est le train arrière qui l'impose.
-       `update()` inverse le braquage dès que les gaz sont négatifs, parce que c'est ainsi
-       qu'une remorque se pousse. Mais tant que la machine AVANCE encore, ces gaz négatifs
-       ne reculent pas : ils freinent, et le braquage inversé fait pivoter le nez du
-       mauvais côté pendant tout le freinage. Mesuré : quatorze images de ce régime
-       suffisaient à porter l'anneau au-delà des soixante-trois degrés que `marcheArriere`
-       accepte, et la manœuvre se sabordait elle-même avant d'avoir reculé d'un mètre.
-       On freine donc DROIT, sans toucher au volant, jusqu'à l'arrêt — un conducteur ne
-       fait pas autre chose.
-       ET C'EST LA VITESSE SIGNÉE QU'ON LIT, PAS `speed`. `speed` est une norme : elle vaut
-       autant à quatre mètres par seconde en avant qu'à quatre en arrière. Testée telle
-       quelle, la condition « je roule encore vers l'avant » restait vraie une fois la
-       marche arrière lancée, et la machine freinait tout droit indéfiniment : mesuré,
-       216 mètres de recul en ligne droite le long de la rocade, jusqu'au bord du monde,
-       sans jamais braquer vers l'anneau. On projette donc la vitesse sur le cap. */
-    const _f = v.fwd(), vAvant = v.vel.x*_f.x + v.vel.y*_f.z;
-    if(vAvant > 0.6) return [0, -0.5];
-    /* Le rayon de relâchement vaut celui de l'arrivée, pas moins : la benne dépasse de huit
-       mètres derrière l'essieu et la façade n'est qu'à cinq mètres quarante au-delà de
-       l'anneau. Reculer plus près que ne le ferait une arrivée de face, c'est aller
-       chercher le mur avec ce qu'on ne voit pas. De toute façon c'est le test d'arrivée en
-       tête de fonction qui tranche le premier — ce rayon-ci n'est qu'un plancher. */
-    const rr = (performance.now() - v.creneauT0 > 20000) ? null : marcheArriere(v, C.vx, C.vz, R);
-    if(rr) return rr;
-    v.creneau = null;
-    if(d > R){ v.route.push(C); return [0, 0.4]; }
-  }
   if(!wp){ v.route = null; v.routeBut = null; return null; }
   /* LES POINTS INTERMÉDIAIRES SE VALIDENT AU LARGE, LE DERNIER NON.
      Cinq mètres et demi, c'est ce qu'il faut à un croisement : sinon l'engin fait des
@@ -11413,68 +11368,55 @@ function suivreRoute(v, bx, bz, cle, rayon, creneau){
      TOUJOURS le rayon qui décide de l'arrivée, et que les derniers mètres se font dans
      l'axe, à l'équerre, comme le reste du dernier tronçon. */
   const dernier = v.routeI >= v.route.length - 1;
-  /* Sauf quand ce dernier point est le point de CRÉNEAU : celui-là n'est pas une marque
-     où se poser, c'est l'endroit d'où l'on braque. Trois mètres suffisent — assez large
-     pour ne pas tourner autour, assez serré pour entamer la marche arrière dans l'axe. */
-  const tol = !dernier ? 5.5 : v.creneau ? 3.0 : Math.min(5.5, R*0.5);
+  const tol = dernier ? Math.min(5.5, R*0.5) : 5.5;
   if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < tol){ v.routeI++; return [0, 0.5]; }
-  return viser(v, wp.x, wp.z, dernier ? (v.creneau ? 1.5 : 1.2) : 2.4);
+  const cmd = viser(v, wp.x, wp.z, dernier ? 1.2 : 2.4);
+  /* ON LÈVE LE PIED EN APPROCHANT, ET C'EST NEUF : rien ne freinait, nulle part.
+     Le quatrième paramètre de `viser` est un RAYON D'ARRÊT, pas une vitesse — on lui
+     passait 1,2 en croyant brider l'allure, et il rendait donc plein gaz jusqu'au bout.
+     Mesuré sur les douze parvis : la machine touchait l'anneau à 16,66 m/s, soit
+     soixante kilomètres à l'heure, et le pilote ne la coupait qu'ensuite — sans frein,
+     sur son erre, elle s'immobilisait 4,08 m AU-DELÀ du point de dépose. La façade est
+     à 5,40 m de cet anneau : on s'arrêtait à un mètre trente du mur, lancé, chaque fois.
+     C'est ce dépassement qu'on voyait, et non la manœuvre.
+     LA LOI D'APPROCHE EST CELLE D'UN CONDUCTEUR : un demi-mètre par seconde de vitesse
+     par mètre restant, et jamais moins de 1,5 m/s pour ne pas ramper. On se pose donc à
+     1,7 m/s sur un anneau de 3,4 m, ce qui laisse quatre-vingts centimètres d'erre. Et
+     l'on ne bride que le DERNIER tronçon : sur la rocade, le cran de vitesse acheté sert
+     comme avant.
+     LE GAZ FREINE, ICI. `update` accélère à 2,2 fois la reprise quand la consigne est
+     SOUS la vitesse du moment : donner un petit gaz à pleine allure, c'est freiner. */
+  if(dernier && cmd[1] > 0){
+    const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+    const vVoulue = Math.max(APPROCHE_POSER, d*APPROCHE_PENTE);
+    cmd[1] = Math.min(cmd[1], vVoulue/Math.max(1, v.vmax));
+  }
+  return cmd;
 }
-/* ---------- LE CRÉNEAU DE COMMERCE ----------
-   Le joueur : « quand on arrive à un commerce, on fait l'inverse, on fait un créneau
-   pour rentrer en marche arrière dans le parking du commerce déchargé et après on
-   repart en marche avant. »
-
-   C'est exactement la manœuvre d'un livreur, et pour la même raison que lui : le parvis
-   d'un commerce est une impasse — dix mètres de bitume entre la chaussée et la façade,
-   3,40 m de rayon d'arrêt. Y entrer en marche avant, c'est devoir en ressortir à
-   reculons avec la remorque en aveugle ; y entrer à reculons, c'est en ressortir en
-   voyant où l'on va. Le camion recule là où il est gêné et avance là où il est chargé.
-
-   La manœuvre tient en trois temps, tous portés par l'itinéraire existant :
-     1. on suit la route jusqu'au COUDE, celui d'où le parvis descend, et l'on DÉPASSE ce
-        coude — le point de créneau est droit devant, sur la chaussée ;
-     2. le parvis est alors derrière et sur le côté : `marcheArriere` fait partir le CUL
-        de la machine vers l'anneau, et le train arrière braque tout seul dans le bon sens ;
-     3. à l'arrêt, le nez regarde la sortie. `sortieDeQuai` teste `voieLibre` DEVANT :
-        elle l'est, puisqu'on regarde la route. On repart donc en marche avant sans
-        qu'une seule ligne de la sortie ait changé.
-
-   DE COMBIEN ON DÉPASSE, ET POURQUOI CE N'EST PAS UN NOMBRE FIXE. `marcheArriere` refuse
-   au-delà d'un radian et un dixième de travers, soit 63,0° : passé cet angle, reculer ne
-   rapproche plus, et elle rend la main. L'angle sous lequel on voit l'anneau depuis le
-   point de créneau, c'est l'arc-tangente du FOND DU PARVIS sur ce qu'on a dépassé.
-   Dix mètres fixes, mesuré : le parvis de l'Épicerie fait 15,10 m de la chaussée à
-   l'anneau, ce qui met l'anneau à 63,6° — un demi-degré au-delà du refus. La marche
-   arrière ne partait pas, sur les seize commerces, et l'engin finissait tout droit
-   comme avant.
-   Le dépassement suit donc le fond du parvis, d'un facteur 1,35 : l'anneau se voit alors
-   sous 36,5° quel que soit le commerce, la moitié de ce que la marche arrière accepte.
-   Dix mètres restent le plancher, pour les parvis courts où l'arc-tangente ne demanderait
-   presque rien mais où il faut quand même de la place pour braquer. */
-const CRENEAU_LOIN = 10, CRENEAU_FOIS = 1.35, CRENEAU_FOND = 4;
-/* Le point de créneau se lit sur les TROIS derniers points de l'itinéraire : l'avant-
-   dernier est le coude, celui d'avant donne le sens de la chaussée. Faute du troisième —
-   un itinéraire d'un seul tronçon — on prend la perpendiculaire au parvis, qui est la
-   même direction à un signe près. */
-function pointCreneau(r){
-  if(!r || r.length < 2) return null;
-  const B = r[r.length - 1], A = r[r.length - 2], P = r.length >= 3 ? r[r.length - 3] : null;
-  let dx, dz;
-  if(P){ dx = A.x - P.x; dz = A.z - P.z; }
-  else { dx = -(B.z - A.z); dz = B.x - A.x; }
-  const LL = Math.hypot(dx, dz);
-  if(LL < 0.5) return null;
-  const fond = Math.hypot(B.x - A.x, B.z - A.z);
-  const loin = Math.max(CRENEAU_LOIN, fond*CRENEAU_FOIS);
-  return {x:A.x + dx/LL*loin, z:A.z + dz/LL*loin};
-}
+const APPROCHE_PENTE = 0.5;      // m/s de vitesse par mètre restant
+const APPROCHE_POSER = 1.5;      // m/s : l'allure à laquelle on se pose
 /* De combien on recule AU-DELÀ du coude. Relevé sur la sortie du silo, la plus serrée du
    jeu — la tour se dresse à sept mètres de la grille : 4 m de recul laissent 1,55 m entre
    la machine et la tour, 6 m en laissent 2,56, 8 m en laissent 3,44 et 10 m, 4,20. On
    prend huit : au-delà, on recule longtemps pour gagner peu, et sur la rocade on
    traverserait la chaussée d'en face. */
 const SORTIE_LOIN = 8;
+/* MAIS D'UNE IMPASSE, ON NE RECULE QUE JUSQU'À SA VOIE.
+   Les huit mètres ci-dessus ont été relevés sur la sortie du silo, pour dégager sa tour
+   avant de pivoter. Appliqués au parvis d'un commerce, ils font reculer la machine
+   QUATRE MÈTRES ET DEMI AU-DELÀ du coude — `marcheArriere` rend la main à 3,5 m de son
+   but —, c'est-à-dire de l'autre côté de la chaussée, sur la voie d'en face. Le jeu tient
+   à sa file de droite au point d'avoir un banc pour elle ; l'y garer en travers pour
+   repartir n'a aucun sens.
+   Trois mètres et demi, donc : le rayon de relâchement lui-même, ce qui pose la machine
+   SUR le coude, c'est-à-dire sur sa propre voie, et pas un mètre plus loin.
+   CE QUE ÇA NE RÈGLE PAS, ET QUI NE SE RÈGLE PAS : la remorque, elle, dépasse encore de
+   sept mètres quarante derrière l'essieu. Reculer treize mètres d'attelage hors d'un
+   parvis de quinze pour rejoindre une chaussée de dix, ça balaie le trottoir d'en face —
+   mesuré, trois parvis de la bande ouest frôlent un lampadaire, et c'était QUATRE avant
+   qu'on agrandisse la benne. Ces poteaux-là portent le drapeau `soft` : ils ploient, la
+   machine passe. Un vrai camion fait exactement la même chose. */
+const SORTIE_IMPASSE = 3.5;
 /* ON RESSORT EN MARCHE ARRIÈRE, JUSQU'À LA CHAUSSÉE.
    Un point de dépose est au fond d'une impasse : dix mètres de parvis entre la façade et
    le bitume, ou la grille du silo au pied de sa tour. Repartir en pivotant sur place y
@@ -11525,19 +11467,26 @@ function marcheArriere(v, tx, tz, rayon){
 const SORTIE_AVANT = 9;
 function sortieDeQuai(v, cle){
   const arriere = (v.routeSortieCle === cle) ? v.routeSortie : null;
-  /* ENTRÉ EN CRÉNEAU, ON RESSORT PAR OÙ L'ON EST ENTRÉ — MAIS EN MARCHE AVANT.
-     La règle générale tâte NEUF MÈTRES DROIT DEVANT LE CAPOT, parce qu'en temps normal
-     elle ne sait rien d'autre. Après un créneau, si : le coude de la chaussée est noté,
-     et c'est par lui qu'on vient de reculer. Or la machine s'immobilise en travers — une
-     cinquantaine de degrés par rapport à l'axe du parvis, c'est la fin d'un arc, pas une
-     mise en ligne — et le rayon de neuf mètres part alors EN BIAIS à travers le parvis,
-     où il accroche le voisin. Mesuré : trois parvis sur douze refusaient la marche avant
-     pour cette seule raison, alors qu'ils étaient MIEUX orientés que les neuf autres
-     (49°, 54° et 57° contre 59 à 61).
-     On vise donc le coude, qui est un point de la chaussée et non une direction devinée,
-     et l'on repart en avant sur le chemin qu'on vient de faire à l'envers. */
-  if(v.creneau && arriere && voieLibre(v.pos.x, v.pos.z, arriere.x, arriere.z))
-    return {x:arriere.x, z:arriere.z, avant:true};
+  /* D'UNE IMPASSE, ON RESSORT PAR OÙ L'ON EST ENTRÉ. SANS CHERCHER AILLEURS.
+     Le joueur : « tu recules juste par là où t'es arrivé. » La règle générale, elle,
+     TÂTE NEUF MÈTRES DROIT DEVANT LE CAPOT et repart en avant si c'est libre — ce qui est
+     juste pour le silo, dont la cour s'ouvre sur dix-neuf mètres de bitume, et faux pour
+     un parvis de commerce, qui est fermé par une façade.
+     Or aujourd'hui les seize parvis donnent le bon résultat PAR ACCIDENT : le rayon de
+     neuf mètres bute sur le mur, donc la marche avant est refusée, donc on ressort à
+     reculons. Mesuré, douze parvis sur douze. Mais c'est la géométrie qui décide, pas
+     l'intention : qu'un commerce recule un jour sa façade de dix mètres, et l'engin
+     repartira droit dedans. Le lieu porte donc le drapeau, et le drapeau tranche AVANT
+     qu'on tâte quoi que ce soit.
+     ET LE COUDE EST BIEN LE CHEMIN D'ARRIVÉE : il se lit sur l'avant-dernier point de
+     l'itinéraire, prolongé de huit mètres dans l'axe du parvis. Reculer vers lui, c'est
+     refaire à l'envers, en ligne droite, le dernier tronçon qu'on vient de parcourir. */
+  if(v.impasse === cle && arriere){
+    // On refait le même point, mais court : dans l'axe du parvis, à SORTIE_IMPASSE du coude.
+    const ex = arriere.x - v.pos.x, ez = arriere.z - v.pos.z, EL = Math.hypot(ex, ez) || 1;
+    const court = Math.max(0, EL - (SORTIE_LOIN - SORTIE_IMPASSE));
+    return {x:v.pos.x + ex/EL*court, z:v.pos.z + ez/EL*court};
+  }
   const f = {x:Math.sin(v.cap), z:Math.cos(v.cap)};
   const ax = v.pos.x + f.x*SORTIE_AVANT, az = v.pos.z + f.z*SORTIE_AVANT;
   if(voieLibre(v.pos.x, v.pos.z, ax, az)) return {x:ax, z:az, avant:true};
@@ -11546,9 +11495,10 @@ function sortieDeQuai(v, cle){
 function desarmerRecul(v){
   v.reculer = null; v.reculT = 0; v.sortie = null;
   v.routeSortie = null; v.routeSortieCle = null;
-  // Le créneau tombe avec le reste : une consigne de marche arrière qui survit à la fin
-  // d'un plan, c'est le bug de recul fantôme raconté juste au-dessus, en plus discret.
-  v.creneau = null; v.creneauT0 = 0;
+  // Le drapeau d'impasse tombe avec le reste : il ne vaut que pour le but en cours, et
+  // une consigne de marche arrière qui survit à la fin d'un plan, c'est le bug de recul
+  // fantôme raconté juste au-dessus.
+  v.impasse = null;
 }
 function pasDeRecul(v, dt){
   if(!v.reculer) return null;
@@ -11569,7 +11519,7 @@ function pasDeRecul(v, dt){
 function quitterLieu(v){
   v.reculer = v.sortie; v.reculT = 0; v.sortie = null;
   v.route = null; v.routeBut = null; v.routeArr = null;
-  v.creneau = null; v.creneauT0 = 0;
+  v.impasse = null;
   /* ET L'ON REVIENT LÀ OÙ L'ON S'EST ARRÊTÉ, PAS AU BOUT DE LA LIGNE. La passe reprenait
      au POINT COURANT du plan, c'est-à-dire à la fin du tronçon interrompu : tout ce qui
      restait de cette ligne — jusqu'à trente mètres — était sauté. On note donc l'endroit
@@ -11790,10 +11740,10 @@ function missionDrive(m, dt){
   // a répondu « Tout » — le pilote prend ce qui vient, comme auparavant.
   v.cleVoulue = t.cle || null;
   v.sensVoulu = 'route';
-  /* ET C'EST LA SEULE TÂCHE QUI DEMANDE LE CRÉNEAU. Les autres vont au silo, aux deux
+  /* ET C'EST LA SEULE TÂCHE QUI VA DANS UNE IMPASSE. Les autres vont au silo, aux deux
      réserves ou au parking : trois endroits qui donnent sur de la cour ou sur une voie,
-     et où entrer tout droit ne coûte rien. Le drapeau vient du LIEU, pas de la tâche. */
-  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r, P.creneau);
+     et d'où l'on repart droit devant. Le drapeau vient du LIEU, pas de la tâche. */
+  const r = suivreRoute(v, P.x, P.z, 'n' + M.i + '.' + M.etape, P.r, P.impasse);
   if(r){ M.attente = 0; return r; }
   v.sensVoulu = (M.etape === 0) ? 'remplir' : 'vider';
   M.attente = (M.attente || 0) + dt;
@@ -15350,13 +15300,14 @@ function lieuxPossibles(){
   PATURES.forEach((P, i)=>{
     L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z, r:5.0});
   });
-  /* ET EUX SEULS SE FONT EN CRÉNEAU. Un parvis de commerce est une impasse de dix
-     mètres fermée par une façade ; le silo, l'entrepôt, les pâtures et les deux réserves
-     donnent au contraire sur de la cour ou sur une voie. Le drapeau ne dit donc pas
-     « c'est un commerce », il dit « on entre là-dedans à reculons ». */
+  /* ET EUX SEULS SONT DES IMPASSES. Un parvis de commerce, c'est quinze mètres de bitume
+     entre la chaussée et une façade, et rien d'autre : on y entre, on y décharge, on en
+     ressort par le même chemin. Le silo, l'entrepôt, les pâtures et les deux réserves
+     donnent au contraire sur de la cour ou sur une voie, et l'on en repart droit devant.
+     Le drapeau ne dit donc pas « c'est un commerce », il dit « ça ne débouche sur rien ». */
   for(const S of SITES)
     if(S.achete.length || S.accepte.length)
-      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:3.4, creneau:true});
+      L.push({cle:S.nom, nom:S.nom, x:S.dropX, z:S.dropZ, r:3.4, impasse:true});
   return L;
 }
 const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
