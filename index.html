@@ -1287,13 +1287,24 @@ function fusionnerGroupe(g){
   _fusInv.copy(g.matrixWorld).invert();
   const parts = [], vieux = [];
   let anime = false;
-  g.traverse((o)=>{
+  /* `Object3D.traverse` DESCEND DANS LES ENFANTS QUOI QUE RENDE LE RAPPEL, et c'est ce
+     qui a coûté au Garage son enseigne. Le `return` sur `userData.anime` n'écartait que le
+     GROUPE marqué, jamais sa descendance : les douze volumes du pneu qui tourne étaient
+     recuits dans le bâtiment, puis LIBÉRÉS avec les autres. Il ne restait qu'un groupe
+     vide, toujours dans la scène, que la boucle faisait tourner sur place — mesuré :
+     le logo du Garage, 0 maillage, 0 triangle, 0 enfant, à 10,3 m de haut.
+     On descend donc à la main, et l'on s'arrête POUR DE BON sur ce qui est animé. */
+  const descendre = (o)=>{
     if(o.userData && o.userData.anime){ anime = true; return; }
-    if(!fusionnable(o)) return;
-    parts.push({g:o.geometry, c:o.material.color.getHex(),
-                m:_fusInv.clone().multiply(o.matrixWorld)});
-    vieux.push(o);
-  });
+    if(fusionnable(o)){
+      parts.push({g:o.geometry, c:o.material.color.getHex(),
+                  m:_fusInv.clone().multiply(o.matrixWorld)});
+      vieux.push(o);
+    }
+    const enfants = o.children.slice();
+    for(const c of enfants) descendre(c);
+  };
+  descendre(g);
   if(parts.length < 4) return null;           // rien à gagner sur trois volumes
   for(const o of vieux){ if(o.parent) o.parent.remove(o); o.geometry.dispose(); }
   const m = new THREE.Mesh(mergeParts(parts), MAT_FUSION);
@@ -6099,6 +6110,13 @@ function buildCommerce(S){
     }
     pneu.rotation.x = Math.PI/2;
     pneu.position.set(W*0.28, H+2.3, 0);
+    /* ON LE RECUIT SUR LUI-MÊME AVANT DE LE MARQUER ANIMÉ, ET L'ORDRE COMPTE.
+       Ses dix volumes tournent D'UN BLOC : rien n'oblige à les dessiner un par un, et
+       mesuré à la caméra qui regarde le Garage, ils coûtaient dix appels pour cent
+       quatre-vingt-douze triangles. Fusionnés, c'est un appel et la même enseigne.
+       Le marquage vient APRÈS : `fusionnerGroupe` s'arrête net sur ce qui porte
+       `userData.anime`, et le poser d'abord reviendrait à ne rien recuire du tout. */
+    fusionnerGroupe(pneu);
     pneu.userData.anime = true;            // il tourne : il reste un objet à part
     g.add(pneu); S.logo = pneu;
     g.add(box(0.4,2.4,0.4, 0x6E767C, W*0.28, H+1.1, 0));
