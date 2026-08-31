@@ -9321,3 +9321,130 @@ pouvaient tous tomber dans le silence d'une dent de scie qui ne secoue que 42 % 
 Quarante relevés à 30 ms couvrent cinq cycles.
 
 Les vingt-et-une suites passent : **971 contrôles**, zéro erreur de page.
+
+## Les deux cuves de la cour, et rien d'autre
+
+*« Quand on achète des graines et de l'engrais au comptoir agricole, c'est le stock ou le
+hangar, mais je sais pas quoi ça équivaut. Je veux qu'on arrête complètement ce
+fonctionnement : que quand on achète, ça remplisse les cuves qui sont à côté de l'entrepôt, et
+quand elles sont quasiment vides, on doit retourner au comptoir agricole pour les re-remplir.
+Il faut quand on commence le jeu, on commence avec des cuves remplies. »*
+
+### Un seul endroit, qui s'appelait de quatre façons
+
+L'enquête a d'abord montré qu'il n'y avait **rien à démonter** : le « hangar » du comptoir, le
+« bac » à engrais, le « stock » du menu et les deux cuves de la cour étaient **déjà le même
+objet**. Les deux jauges plantées à côté de l'entrepôt lisaient `STOCK.graines` et
+`STOCK.engrais`, c'est-à-dire exactement les nombres que l'achat déplaçait. Le défaut n'était
+donc pas une mécanique de trop, c'était **un endroit appelé de quatre noms**, dont trois ne
+désignaient rien qu'on puisse aller voir.
+
+Le symbole s'appelle `CUVES`, et il n'y a plus qu'un vocabulaire : *la cuve verte* et *la cuve
+blanche de la cour*. 84 occurrences renommées, la clé de sauvegarde `stock:` laissée intacte
+pour que les parties enregistrées se relisent. Les deux plaques flottantes disent maintenant
+**Cuve à graines** et **Cuve à engrais**, et non plus « Réserve ».
+
+### Ce qui change vraiment : l'achat s'arrête à la cuve
+
+C'est la seule modification de comportement, et c'est celle que la demande nomme. L'achat
+appelait `servirCuve` dans la foulée : les kilos traversaient la cuve de la cour et atterrissaient
+**dans l'outil, où qu'il dorme**. La cuve n'était donc qu'un transit d'un dixième de seconde, et
+le joueur n'avait aucune raison d'aller la voir — ce qui est mot pour mot la remarque.
+
+La boucle tient maintenant en trois adresses :
+
+> le comptoir remplit la cuve de la cour · la cuve de la cour remplit l'outil · l'outil vide son
+> sac au champ
+
+Ce qui n'a **pas** changé, parce qu'une demande antérieure le tient : *« l'achat se fait au
+comptoir, mais les cuves sont remplies immédiatement à distance, pas besoin de venir avec au
+comptoir »*. Le **transvasement** reste servi de loin — l'onglet « Remplir les cuves » sert
+l'outil où qu'il soit. Ce qui a changé, c'est **d'où vient la matière** : de la cuve verte ou
+blanche de la cour, qui se vide pour de bon.
+
+| geste | avant | maintenant |
+|---|---|---|
+| acheter 20 kg d'engrais, épandeur à 168 m | 0 à la cuve, **20 dans l'épandeur** | **20 à la cuve**, 0 dans l'épandeur |
+| acheter 200 kg de blé, semoir à 168 m | 150 à la cuve, **50 dans le semoir** | **200 à la cuve**, 0 dans le semoir |
+| puis ouvrir la vanne | — | 50 montent à bord, 150 restent à la cuve |
+| cuve de la cour à 5 kg de la pleine, acheter 40 kg de maïs | **40 pris**, tous dans le casier du maïs | **5 pris**, et ils vont à la cuve |
+| cuve de la cour pleine | achat possible tant que l'outil a de la place | achat **refusé** — « Cuve pleine » |
+
+Le réglage du semoir suivait l'achat ; il suit maintenant le **transvasement**, seul endroit où
+la graine monte à bord. C'est mieux placé : charger de l'orge sur un semoir réglé sur le blé
+faisait semer du blé, c'est-à-dire rien, et le geste qui règle est désormais celui qui charge —
+par la vanne de la cour comme par l'onglet du comptoir.
+
+Le plafond des graines reste **commun aux sept cultures** : une seule cuve verte dans la cour, un
+seul chiffre sur sa plaque. Cuve pleine de blé, l'achat de maïs est donc refusé, et le rayon le
+dit. Ce n'est pas un blocage — semer vide la cuve, et c'est ce que la mission demande — mais
+c'est une porte qu'il fallait avoir vue, et le compte annoncé par le comptoir a été corrigé pour
+qu'il n'offre plus ce que l'achat ne prendrait pas.
+
+### On commence les deux cuves pleines
+
+|  | avant | maintenant |
+|---|---|---|
+| cuve à graines | 18 kg (**4 %**) | 400 kg (**89 %**) |
+| cuve à engrais | 0 kg (**0 %**) | 450 kg (**100 %**) |
+| dans le semoir | 50 kg | 50 kg |
+| valeur du départ | 3,24 € | **432 €** |
+
+La cuve verte est à 400 et non à 450 parce que le semoir vient d'y prendre son plein de cinquante
+kilos **par la vanne**, comme le ferait le joueur : 400 + 50 = 450, rien n'est inventé. La ferme
+part donc avec **428,76 € de consommables** qu'elle n'avait pas — 450 kg d'engrais à 0,80 € et
+382 kg de blé de plus à 0,18 €. C'est un cadeau de départ assumé : sans lui, commencer « les
+cuves remplies » n'a pas de sens, et l'ancien départ à 4 % déclenchait l'avertissement de cuve
+basse **dès la première image**.
+
+### Quand elles se vident, le jeu le dit
+
+Deux avertissements, calqués sur celui du silo : au **dixième** de la capacité, une seule fois, et
+réarmés au **cinquième**, pour qu'un niveau qui oscille autour du seuil ne bavarde pas.
+
+> CUVE À GRAINES PRESQUE VIDE — À REMPLIR AU COMPTOIR AGRICOLE
+> CUVE À ENGRAIS PRESQUE VIDE — À REMPLIR AU COMPTOIR AGRICOLE
+
+### Le préambule de la troisième mission
+
+Il testait « il y a de l'engrais quelque part », ce qui est vrai dès la première image depuis que
+la cuve blanche part pleine : l'étape se serait franchie sans qu'on ait rien fait, et l'épandeur
+ne serait jamais sorti du parc. Elle demande donc ce que son titre dit — **REMPLIR L'ÉPANDEUR** —
+et regarde la cuve de l'**outil**.
+
+| état | cercle jaune |
+|---|---|
+| épandeur encore au garage | **Garage** |
+| acheté, dételé au parc à outils | **sur l'épandeur** |
+| attelé | **cuve à engrais**, dans la cour |
+| dix kilos à bord | **champ** |
+
+Le cercle se pose d'abord sur l'outil, exactement comme il se pose sur la charrue au premier tour
+de roue : *quand on commence avec la charrue, on ne sait pas où est la charrue*. Et **acheter ne
+franchit plus l'étape** : on achète vingt-cinq kilos, ils vont à la cuve, et l'on reste devant la
+cuve blanche tant qu'on ne s'est pas servi.
+
+### Les bancs
+
+`cuves.js` passe de 45 à **56 contrôles**. Les deux sections qui décrivaient l'ancien
+comportement ont été réécrites plutôt que supprimées — elles disent maintenant l'autre moitié du
+geste : l'achat s'arrête à la cuve, **puis** la vanne sert l'outil de loin. Trois sections neuves
+s'ajoutent : le départ les deux cuves pleines, les deux avertissements de cuve basse (déclenchés
+une fois, réarmés au cinquième, redéclenchés), et une lecture du texte des trois onglets du
+comptoir qui exige qu'il n'y reste **ni « hangar », ni « bac », ni « stock »**.
+
+`campagne30.js` passe de 69 à **71**, `ecrans.js` de 75 à **76**, `guidage.js` de 107 à **108**.
+
+Le différentiel est net. Sur la version d'avant, avec le seul symbole renommé pour que les bancs
+s'exécutent : **9 échecs** dans `cuves`, **4** dans `campagne30`, **2** dans `ecrans`, **2** dans
+`guidage` — chacun sur la ligne exacte que la demande vise.
+
+Un banc a été rendu robuste au passage, et pour la seconde fois : la sonnerie du téléphone. Les
+quarante relevés espacés de 30 ms **depuis le banc** semblaient couvrir cinq cycles ; en réalité
+chaque relevé coûte un aller-retour, et sous la charge de deux bancs côte à côte
+l'échantillonnage se mettait à battre avec la dent de scie — on ne relevait plus que le bas de la
+rampe (0,09 rad au lieu de 0,39). Le tremblement se relève maintenant **dans la page**, image par
+image, sur trois secondes : aucune image ratée, un seul aller-retour. Sous SwiftShader cela fait
+dix-neuf images pour treize cycles, et une amplitude mesurée de 0,36 rad pour un seuil de 0,15.
+
+Les vingt-et-une suites passent : **986 contrôles**, zéro échec, zéro erreur de page.

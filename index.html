@@ -2768,7 +2768,7 @@ function entrepotRetire(cle, q){
 function halleRetire(n, q){ HALLE.stock[n] = Math.max(0, (HALLE.stock[n] || 0) - q); }
 /* LE TARIF DES INTRANTS, ÉCRIT UNE SEULE FOIS. Il vivait à deux endroits : en toutes
    lettres sur l'enseigne du comptoir agricole — « 0,35 € / kg » —, et en nombre dans
-   STOCK, quatre mille lignes plus bas. La remise à l'échelle des prix a multiplié la
+   CUVES, quatre mille lignes plus bas. La remise à l'échelle des prix a multiplié la
    caisse par 4,44 et laissé la façade à l'ancien tarif : on lisait 0,35 € depuis la
    route et l'on se voyait facturer 1,55 €, pendant que l'onglet Comptoir du même
    commerce affichait le vrai prix. C'était le seul prix au kilo du jeu écrit à la main ;
@@ -3309,17 +3309,18 @@ const MISSIONS = [
       // puis la ligne de l'épandeur
       fen:'achat', onglet:'outils', art:'engrais',
       fait:()=> !outilVerrou('engrais')},
-     /* ON DEMANDE CE QU'ON A DIT DE FAIRE. L'étape s'intitulait « remplir l'épandeur »
-        mais ne regardait que la cuve de l'outil : le joueur achetait ses vingt-cinq
-        kilos au comptoir, les voyait arriver au bac, et l'étape restait jaune. Acheter
-        de l'engrais suffit ; le transvasement dans la cuve est le geste d'après, et il
-        compte aussi. */
-     {cle:'engrais', ou:'Comptoir agricole', titre:'ACHETER DE L\'ENGRAIS',
-      txt:'DE L\'ENGRAIS — au comptoir agricole, la quantité que tu veux',
-      // même clé d'article, autre fenêtre : c'est la garde sur `fen` qui les sépare
-      fen:'comptoir', onglet:'consos', art:'engrais',
-      fait:()=> STOCK.engrais > 0.5
-                || cuveDe(TOOLS.find((T)=> T.key === 'engrais'), 'engrais') > 0.5}],
+     /* ET ON DEMANDE CE QUE LE TITRE DIT : REMPLIR L'ÉPANDEUR.
+        L'étape s'appelait « acheter de l'engrais » et se contentait d'en trouver quelque
+        part. Depuis que la ferme commence avec ses DEUX CUVES PLEINES — « il faut, quand
+        on commence le jeu, qu'on commence avec des cuves remplies » — cette condition est
+        vraie dès la première image : l'étape se serait franchie sans qu'on ait rien fait,
+        et l'épandeur ne serait jamais sorti du parc.
+        Elle envoie donc à la CUVE BLANCHE de la cour, et se solde sur la cuve de l'OUTIL.
+        C'est le geste qui manquait au joueur, et c'est celui que la boucle enseigne : le
+        comptoir remplit la cuve de la cour, la cuve de la cour remplit l'outil. */
+     {cle:'engrais', ou:'cuveEngrais', outil:'engrais', titre:'REMPLIR L\'ÉPANDEUR',
+      txt:'REMPLIR L\'ÉPANDEUR — la cuve blanche de la cour en est pleine : sers-toi',
+      fait:()=> cuveDe(TOOLS.find((T)=> T.key === 'engrais'), 'engrais') > 0.5}],
    texte:'J\'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l\'épandeur — l\'engrais peut vous faire gagner du temps, mais libre à vous de l\'utiliser ensuite.',
    fin:'Très bien. Votre ferme commence à trouver son rythme.'},
   {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
@@ -7858,7 +7859,7 @@ function buildFarm(){
        couleur est une fonction, donc lue plus tard.
        Les deux cercles se posent donc avec le reste des anneaux tardifs, dans
        `poserAnneauxReserves`, appelé là où `poserReserves` l'était. */
-    /* PLUS D'ENSEIGNE PEINTE ICI : L'ÉTIQUETTE DE STOCK PORTE LE NOM.
+    /* PLUS D'ENSEIGNE PEINTE ICI : L'ÉTIQUETTE DE CUVES PORTE LE NOM.
        Il y en avait deux sur la même verticale au millimètre, et l'enseigne était peinte
        PAR-DESSUS la barre de stock — d'où la « deuxième étiquette en arrière-plan » que le
        joueur décrivait. C'est l'étiquette de lieu qui reste ; voir majJauges. */
@@ -13012,7 +13013,7 @@ function missionDrive(m, dt){
     if(v.speed > 0.35) return [0, 0];
     M.attente = (M.attente || 0) + dt;
     remplirCuve(T, cle);
-    // Un seul appel suffit — il prend tout ce que la place et le hangar permettent.
+    // Un seul appel suffit — il prend tout ce que la place et la cuve de la cour permettent.
     // Le délai laisse à l'engin le temps de s'immobiliser avant qu'on renonce.
     if(placeCuve(T, cle) < 0.5 || M.attente > 2){
       M.attente = 0; quitterLieu(v); tacheSuivante(m);
@@ -15762,7 +15763,7 @@ const FENETRES = {
                                          {id:'possible', nom:'Ce que ça devient'},
                                          {id:'agrandir', nom:'Agrandir'}]},
   /* PRODUIRE EST DANS L'ATELIER, ET C'EST LE PREMIER ONGLET.
-     Le bouton qui LANCE un lot vivait dans la fenêtre du STOCK, sous « production
+     Le bouton qui LANCE un lot vivait dans la fenêtre du CUVES, sous « production
      possible » : pour transformer du blé en farine, il fallait ouvrir le stock. Le
      joueur : « je veux que la production se passe dans l'onglet produire, dans les
      petits boutons produire ; là, aujourd'hui, pour produire on est obligé de passer par
@@ -16949,7 +16950,7 @@ function appliquerPalier(cle, niv){
       T.cuveMax = c.cuve;
       /* UNE GRAINE NE SE PERD JAMAIS, même ici. Les crans ne font que grandir en jeu, et
          ce cas ne se présente qu'en relisant une sauvegarde abîmée ; le trop-plein
-         retourne quand même au hangar plutôt que de s'évaporer. */
+         retourne quand même à la cuve de la cour plutôt que de s'évaporer. */
       /* Chaque casier est plafonné à part, puisque chacun l'est en jeu — ET CE QUI NE
          TIENT NULLE PART RESTE DANS LE CASIER. La version d'avant écrivait
          `Math.min(trop, grainesPlace())` et jetait le reste : sur une sauvegarde abîmée
@@ -16962,10 +16963,10 @@ function appliquerPalier(cle, niv){
         const trop = T.cuves[k] - T.cuveMax;
         if(trop <= 0) continue;
         const recu = (k === 'engrais')
-          ? Math.min(trop, Math.max(0, STOCK.max - STOCK.engrais))
+          ? Math.min(trop, Math.max(0, CUVES.max - CUVES.engrais))
           : Math.min(trop, grainesPlace());
-        if(k === 'engrais') STOCK.engrais += recu;
-        else STOCK.graines[k] = (STOCK.graines[k] || 0) + recu;
+        if(k === 'engrais') CUVES.engrais += recu;
+        else CUVES.graines[k] = (CUVES.graines[k] || 0) + recu;
         T.cuves[k] -= recu;
       }
     }
@@ -16994,7 +16995,7 @@ cropEl.addEventListener('pointerdown', ()=>{
     if(!CROPS[n].verrou) break;
   }
   /* CHANGER DE CULTURE NE DÉPLACE PLUS RIEN, ET NE PEUT PLUS ÉCHOUER. Le semoir portait
-     une seule nature : en changer rendait le reste au hangar, et si le hangar était
+     une seule nature : en changer rendait le reste à la cuve de la cour, et si elle était
      plein le geste était REFUSÉ — on se retrouvait bloqué sur le blé avec du maïs acheté
      qu'on n'arrivait plus à sélectionner. Chaque graine a maintenant son casier : on
      change de sac, et les deux restent à bord. */
@@ -18412,40 +18413,51 @@ function remplir(v, dt, source){
   return q;
 }
 
-/* ---------- 18. CONSOMMABLES : SEMENCES ET ENGRAIS ---------- */
-/* Le semoir et l'épandeur puisaient dans le vide. Ils consomment maintenant un stock qui
-   s'achète au comptoir agricole, exactement au tarif affiché sur son enseigne.
+/* ---------- 18. CONSOMMABLES : LES DEUX CUVES DE LA COUR ---------- */
+/* IL N'Y A PLUS DE « HANGAR », NI DE « BAC », NI DE « STOCK » : IL Y A DEUX CUVES.
+   Le joueur : « quand on achète des graines et de l'engrais au comptoir agricole, c'est
+   le stock ou le hangar, mais je ne sais pas à quoi ça équivaut. Je veux qu'on arrête
+   complètement ce fonctionnement : que quand on achète, ça remplisse les cuves qui sont à
+   côté de l'entrepôt, et quand elles sont quasiment vides, on doit retourner au comptoir
+   agricole pour les re-remplir. »
 
-   UN HANGAR, PLUSIEURS GRAINES. Le barème donne à chaque culture son prix au kilo et sa
-   dose à la parcelle : une semence de blé et une semence de colza ne sont plus le même
-   sac, et le semoir puise dans celui de la culture qu'il sème. Le hangar, lui, reste
-   unique — 450 kg toutes graines confondues, plus l'engrais à part — de sorte qu'on
-   choisit encore ce qu'on stocke, ce qu'un bac par culture aurait supprimé. */
-const STOCK = {
-  /* PAS UN GRAMME D'ENGRAIS AU DÉPART, ET C'ÉTAIT UN BUG. La ferme en recevait
-     vingt-sept kilos — invendables, inépandables, puisque l'épandeur est sous verrou et
-     coûte 250 €. Ils ne servaient qu'à une chose : rendre VIDE le préambule de la
-     troisième mission. « Acheter de l'engrais » se testait par `STOCK.engrais > 0.5`,
-     déjà vrai depuis la première seconde de jeu — on achetait l'épandeur, le cliquet
-     franchissait les deux étapes d'un coup, et la flèche filait au champ sans qu'on soit
-     jamais passé au comptoir. Le stock de départ est donc nul : le premier engrais du
-     jeu s'achète, et c'est précisément ce que le préambule demande. */
-  graines: {ble: 68}, engrais: 0, max: 450,
+   ET C'ÉTAIT DÉJÀ LE MÊME NOMBRE. Les deux cuves de la cour — la verte pour les graines,
+   la blanche pour l'engrais — affichent depuis toujours `CUVES.graines` et
+   `CUVES.engrais` sur leur jauge : le « hangar » du comptoir et la cuve de la cour ne
+   sont pas deux endroits, c'est le même, appelé de quatre façons — hangar, bac, stock,
+   réserve. C'était ça, le défaut : pas une mécanique de trop, un NOM de trop. La table
+   s'appelle donc `CUVES`, et le mot HANGAR ne paraît plus nulle part.
+
+   DEUX CUVES, DEUX PLAFONDS. La verte tient 450 kg toutes graines confondues — le barème
+   donne à chaque culture son prix au kilo et sa dose à la parcelle, et le semoir puise
+   dans le casier de celle qu'il sème —, la blanche 450 kg d'engrais. On choisit donc
+   encore ce qu'on emporte, ce qu'une cuve par culture aurait supprimé. */
+const CUVES = {
+  /* ON COMMENCE AVEC LES DEUX CUVES PLEINES. « Il faut, quand on commence le jeu, qu'on
+     commence avec des cuves remplies. » La verte part donc pleine de blé — c'est la seule
+     graine ouverte au premier palier — et la blanche pleine d'engrais.
+     CE QUE ÇA CHANGE POUR LE PRÉAMBULE DE LA TROISIÈME MISSION. Il testait « il y a de
+     l'engrais quelque part », ce qui est vrai dès la première image maintenant : l'étape
+     se serait franchie sans qu'on ait rien fait. Elle demande donc ce que son titre dit —
+     REMPLIR L'ÉPANDEUR — et regarde la cuve de l'OUTIL. C'est le geste qui compte, et
+     c'est celui que la boucle du jeu enseigne : le comptoir remplit la cuve de la cour,
+     la cuve de la cour remplit l'outil. */
+  graines: {ble: 450}, engrais: 450, max: 450,
   prixEngrais: PRIX_INTRANT.engrais,
   // 15 kg pour une parcelle standard, dit le barème : l'épandeur en puise donc 27 g
   // par cellule. C'est le seul intrant que le jeu compte encore d'une seule façon,
   // parce que la même poudre nourrit les sept cultures.
   parCellEngrais: 15/PARC_REF
 };
-const grainesTotal = ()=>{ let t = 0; for(const k in STOCK.graines) t += STOCK.graines[k]; return t; };
-const grainesPlace = ()=> Math.max(0, STOCK.max - grainesTotal());
+const grainesTotal = ()=>{ let t = 0; for(const k in CUVES.graines) t += CUVES.graines[k]; return t; };
+const grainesPlace = ()=> Math.max(0, CUVES.max - grainesTotal());
 // Ce qu'une culture consomme par cellule semée. Le barème donne la dose à la parcelle.
 const parCellSemence = (c)=> (c && c.graineKg ? c.graineKg : 25)/PARC_REF;
 /* Ce qu'un outil consomme par cellule traitée, et où il le prend. Le semoir déclare la
    culture qu'il sème (`T.crop`), et c'est elle qui décide du sac, de la dose — et, pour
    une vigne ou une oliveraie, du fait qu'il n'y a pas de sac du tout : on ne sème pas un
    olivier, on le plante, et cela se paie en euros une fois pour toutes. */
-/* LA CUVE DE L'OUTIL, ET NON LE HANGAR. « Le semoir doit réellement perdre les graines
+/* LA CUVE DE L'OUTIL, ET NON CELLE DE LA COUR. « Le semoir doit réellement perdre les graines
    qu'il utilise », dit le cahier des charges : il ne puise plus dans un stock de ferme
    qu'il pourrait vider depuis l'autre bout de la vallée, il porte ce qu'il sème. On
    remplit sa cuve sur la cour, on part, et quand elle est vide il faut rentrer.
@@ -18455,7 +18467,7 @@ const parCellSemence = (c)=> (c && c.graineKg ? c.graineKg : 25)/PARC_REF;
    c'est la seule amélioration du jeu qui se compte en allers-retours épargnés.
 
    ET ELLE TIENT UN SAC PAR SEMENCE. Elle n'en tenait qu'un : changer de culture rendait
-   le reste au hangar, et refusait le changement quand le hangar était plein. Le semoir
+   le reste à la cuve de la cour, et refusait le changement quand elle était pleine. Le semoir
    porte maintenant un casier par graine, chacun plafonné à la même capacité — voir
    `cuves` et `poserDansCuve` plus bas. */
 function bacDe(T){
@@ -18465,12 +18477,13 @@ function bacDe(T){
     return {cuve:T, clef: c ? c.cle : 'ble', par: parCellSemence(c), nom:'SEMOIR', crop:c};
   }
   if(T.key === 'engrais')
-    return {cuve:T, engrais:true, par:STOCK.parCellEngrais, nom:'ÉPANDEUR'};
+    return {cuve:T, engrais:true, par:CUVES.parCellEngrais, nom:'ÉPANDEUR'};
   return null;
 }
-const dansLeBac = (b)=> b.engrais ? STOCK.engrais : (STOCK.graines[b.clef] || 0);
+// Ce que la cuve de la cour porte de CETTE nature-là.
+const dansLaCuveDeLaCour = (b)=> b.engrais ? CUVES.engrais : (CUVES.graines[b.clef] || 0);
 /* Ce que l'outil porte VRAIMENT pour ce travail-là. Une cuve pleine de blé ne sème pas
-   de l'orge : elle vaut zéro pour l'orge, et le hangar n'y peut rien. */
+   de l'orge : elle vaut zéro pour l'orge, et la cuve de la cour n'y peut rien. */
 function dansLaCuve(b){
   const T = b.cuve;
   if(!T) return 0;
@@ -18489,12 +18502,12 @@ function cellulesPossibles(T, voulu){
   if(possible >= voulu) return voulu;
   if(alerteStock <= 0){
     /* Le message dit quoi faire, et ce n'est pas la même chose selon ce qui manque : le
-       hangar a de quoi, il n'y a qu'à transvaser ; il est vide lui aussi, il faut
+       cuve de la cour a de quoi, il n'y a qu'à transvaser ; elle est vide elle aussi, il faut
        acheter. Les deux se font au comptoir — c'est le seul endroit depuis que la cour
        ne remplit plus les cuves. */
-    const auHangar = b.plantation ? 0 : dansLeBac(b);
+    const dansLaCuve = b.plantation ? 0 : dansLaCuveDeLaCour(b);
     showHint(b.plantation ? 'PLUS DE QUOI PLANTER'
-             : b.nom + ' VIDE — ' + (auHangar > b.par ? 'REMPLIR AU COMPTOIR'
+             : b.nom + ' VIDE — ' + (dansLaCuve > b.par ? 'REMPLIR À LA CUVE DE LA COUR'
                                                       : 'ACHETER AU COMPTOIR'));
     alerteStock = 6;
   }
@@ -18516,11 +18529,11 @@ const surLaCour = (v)=> Math.abs(v.pos.x - YARD.x) <= YARD.w/2 + 2
 /* ---------- UNE RÉSERVE PAR SEMENCE ----------
    LA CUVE NE SE VIDE PLUS QUAND ON CHANGE DE CULTURE. C'était le défaut, et il
    s'enchaînait : on achetait du maïs au comptoir, la cuve portait encore du blé, le
-   transvasement le renvoyait au hangar — mais le hangar était plein, `remplirCuve`
-   refusait, et le maïs restait au hangar pendant que le semoir gardait son blé. Le
+   transvasement le renvoyait à la cuve de la cour — mais elle était pleine, `remplirCuve`
+   refusait, et le maïs restait à la cuve pendant que le semoir gardait son blé. Le
    bouton de culture affichait alors une cuve vide pour le maïs, et pire : le geste
    suivant, celui qui aurait sélectionné le maïs, appelait `viderCuve` à son tour,
-   échouait sur le même hangar plein, et RENDAIT LA MAIN SANS CHANGER DE CULTURE.
+   échouait sur la même cuve pleine, et RENDAIT LA MAIN SANS CHANGER DE CULTURE.
    Le joueur : « quand je choisissais avec le semoir maïs, la capacité était vide, et
    maintenant j'essaye de revenir dessus, j'arrive plus à sélectionner le maïs. »
 
@@ -18556,20 +18569,20 @@ function placeCuve(T, cle){
   const k = cle === undefined ? cuveCleDe(T) : cle;
   return Math.max(0, (T.cuveMax || 0) - cuveDe(T, k));
 }
-/* Rendre au hangar ce qui reste : c'est ce qui fait qu'une graine ne se perd jamais.
+/* Rendre à la cuve de la cour ce qui reste : c'est ce qui fait qu'une graine ne se perd jamais.
    Sans clé, c'est le casier COURANT qui rentre ; `viderToutesCuves` les rend tous. */
 function viderCuve(T, cle){
   const k = cle === undefined ? cuveCleDe(T) : cle;
   const q = cuveDe(T, k);
   if(q <= 0.001) return 0;
   if(k === 'engrais'){
-    const pris = Math.min(q, Math.max(0, STOCK.max - STOCK.engrais));
-    STOCK.engrais += pris;
+    const pris = Math.min(q, Math.max(0, CUVES.max - CUVES.engrais));
+    CUVES.engrais += pris;
     poserDansCuve(T, k, q - pris);
     return pris;
   }
   const pris = Math.min(q, grainesPlace());
-  if(pris > 0) STOCK.graines[k] = (STOCK.graines[k] || 0) + pris;
+  if(pris > 0) CUVES.graines[k] = (CUVES.graines[k] || 0) + pris;
   poserDansCuve(T, k, q - pris);
   return pris;
 }
@@ -18578,77 +18591,74 @@ function viderToutesCuves(T){
   for(const k of Object.keys(T.cuves || {})) t += viderCuve(T, k);
   return t;
 }
-// Remplir un casier depuis le hangar. Les autres casiers ne bougent pas.
+// Remplir un casier depuis la cuve de la cour. Les autres casiers ne bougent pas.
 function remplirCuve(T, cle){
   const k = (T.key === 'engrais') ? 'engrais' : cle;
   if(!k) return 0;
   if(k === 'engrais'){
-    const q = Math.min(placeCuve(T, k), STOCK.engrais);
+    const q = Math.min(placeCuve(T, k), CUVES.engrais);
     if(q <= 0.001) return 0;
-    STOCK.engrais -= q;
+    CUVES.engrais -= q;
     poserDansCuve(T, k, cuveDe(T, k) + q);
     solderLecon('cuve');
     return q;
   }
-  const q = Math.min(placeCuve(T, k), STOCK.graines[k] || 0);
+  const q = Math.min(placeCuve(T, k), CUVES.graines[k] || 0);
   if(q <= 0.001) return 0;
-  STOCK.graines[k] -= q;
+  CUVES.graines[k] -= q;
   poserDansCuve(T, k, cuveDe(T, k) + q);
+  /* ET LE SEMOIR SE RÈGLE SUR CE QU'ON VIENT DE CHARGER. Le réglage se faisait à
+     l'achat, quand l'achat servait encore l'outil à distance ; il se fait maintenant
+     au transvasement, c'est-à-dire au seul endroit où la graine monte à bord. Sans
+     lui, on charge de l'orge sur un semoir réglé sur le blé et la machine sème
+     encore du blé, c'est-à-dire rien. Les autres casiers ne bougent pas. */
+  if(T.key === 'semis'){
+    const i = CROP_DE[k];
+    if(i !== undefined && CROPS[i] && !CROPS[i].perenne && T.crop !== i){
+      T.crop = i; refreshCropButton();
+    }
+  }
   // Le premier sac transvasé suffit : le geste est appris, quelle que soit la graine.
   solderLecon('cuve');
   return q;
 }
-/* ACHETER AU COMPTOIR, C'EST REMPLIR LA CUVE — ET DE LOIN.
-   « L'achat se fait au comptoir, mais les cuves sont remplies immédiatement à distance,
-   pas besoin de venir avec au comptoir. » C'était deux trajets pour un sac : on venait
-   acheter vingt-cinq kilos d'engrais, on repartait, et il fallait revenir avec l'épandeur
-   ATTELÉ pour les transvaser — alors même que l'outil dort au parc à outils de la ferme,
-   à deux cents mètres de là. Il se remplit donc là où il est, attelé ou non, et ce qui ne
-   tient pas dans la cuve reste au hangar comme avant.
-   Le semoir se RÈGLE au passage sur la graine achetée : sans ça la cuve porte de l'orge
-   et la machine sème encore du blé, c'est-à-dire rien. Une cuve entamée d'une autre
-   graine se vide d'abord au hangar — rien ne se perd, c'est `remplirCuve` qui le fait
-   déjà — et si le hangar est plein elle refuse le transvasement plutôt que de jeter. */
-let cuveServie = 0;                       // ce que le dernier achat a mis dans la cuve
-function servirCuve(clef){
-  const eng = clef === 'engrais';
-  const T = TOOLS.find((t)=> t.key === (eng ? 'engrais' : 'semis'));
-  if(!T || !T.cuveMax || T.verrou) return 0;
-  if(eng) return remplirCuve(T, null);
-  const i = CROP_DE[clef], c = CROPS[i];
-  if(!c || c.perenne) return 0;           // une pérenne se plante au champ, rien à charger
-  const pris = remplirCuve(T, clef);
-  if(pris > 0){ T.crop = i; refreshCropButton(); }
-  return pris;
-}
+/* ACHETER AU COMPTOIR, C'EST REMPLIR LES DEUX CUVES DE LA COUR — ET RIEN D'AUTRE.
+   « Quand on achète des graines et de l'engrais au comptoir agricole, c'est le stock, ou
+   le hangar, je ne sais pas trop à quoi ça équivaut. Je veux qu'on arrête complètement ce
+   fonctionnement : que quand on achète, ça remplisse les cuves qui sont à côté de
+   l'entrepôt, et quand elles sont quasiment vides, qu'on doive retourner au comptoir
+   agricole pour les remplir. »
+   L'achat servait AUSSI l'outil, à distance, où qu'il fût : la cuve de la cour n'était
+   qu'un transit d'un dixième de seconde, et le joueur n'avait aucune raison d'aller la
+   voir. C'est exactement ce que la remarque vise. L'achat s'arrête donc à la cuve, et
+   la boucle du jeu tient en trois adresses :
+       le comptoir remplit la cuve de la cour,
+       la cuve de la cour remplit l'outil,
+       l'outil vide son sac au champ.
+   ET C'EST CE QUI DONNE UN SENS AUX DEUX CUVES PLEINES DU DÉPART : on ne commencerait
+   pas plein de ce qu'on ne viendrait jamais chercher. */
 // L'achat au comptoir : `clef` est 'engrais', ou la clé d'une culture.
 function acheterIntrant(clef, kg){
   const eng = clef === 'engrais';
   const c = eng ? null : CROPS[CROP_DE[clef]];
-  const prix = eng ? STOCK.prixEngrais : (c ? c.grainePrix : 0);
+  const prix = eng ? CUVES.prixEngrais : (c ? c.grainePrix : 0);
   if(!prix) return 0;
-  /* LA PLACE, C'EST LE HANGAR *PLUS* LA CUVE. Elle ne comptait que le hangar — et comme
-     le hangar est un plafond COMMUN à toutes les graines, un hangar plein de blé rendait
-     l'achat de maïs impossible. Le guidage disait alors « ACHETER LA SEMENCE — MAÏS », on
-     allait au comptoir, et le rayon répondait « Hangar plein » : un ordre inexécutable, et
-     la mission bloquée. Or l'achat sert la cuve DANS LA FOULÉE, deux lignes plus bas :
-     ce qui passe par le hangar n'y reste qu'un instant. On compte donc aussi le casier
-     que l'outil peut recevoir — et seulement s'il y a un outil pour le recevoir, sans
-     quoi le hangar déborderait pour de bon. */
-  const outilCible = TOOLS.find((t)=> t.key === (eng ? 'engrais' : 'semis'));
-  const dansOutil = (outilCible && outilCible.cuveMax && !outilCible.verrou
-                     && !(c && c.perenne))
-    ? placeCuve(outilCible, eng ? 'engrais' : clef) : 0;
-  const place = (eng ? Math.max(0, STOCK.max - STOCK.engrais) : grainesPlace()) + dansOutil;
+  /* LA PLACE, C'EST LA CUVE DE LA COUR, ET ELLE SEULE. Elle comptait aussi le casier de
+     l'outil, parce que l'achat le servait dans la foulée : ce qui passait par la cuve n'y
+     restait qu'un instant. Maintenant que l'achat s'arrête à la cuve, y ajouter le casier
+     la ferait déborder pour de bon.
+     LE PLAFOND DES GRAINES EST COMMUN AUX SEPT CULTURES — une seule cuve verte dans la
+     cour, et un seul chiffre sur sa plaque. Cuve pleine de blé, l'achat de maïs est donc
+     refusé, et le rayon le dit : « Cuve pleine ». Ce n'est pas un blocage — semer vide la
+     cuve, et c'est justement ce que la mission demande — mais c'est une porte qu'il faut
+     avoir vue. */
+  const place = eng ? Math.max(0, CUVES.max - CUVES.engrais) : grainesPlace();
   const q = Math.min(kg, place, Math.floor(money/prix));
   if(q <= 0) return 0;
   money -= q*prix;
   solderLecon('courses');
-  if(eng) STOCK.engrais += q;
-  else STOCK.graines[clef] = (STOCK.graines[clef] || 0) + q;
-  // La cuve se sert dans la foulée, où qu'elle soit. `cuveServie` dit combien y est allé,
-  // pour que le message d'achat le dise sans que l'achat ait à rendre deux nombres.
-  cuveServie = servirCuve(clef);
+  if(eng) CUVES.engrais += q;
+  else CUVES.graines[clef] = (CUVES.graines[clef] || 0) + q;
   return q;
 }
 
@@ -18669,7 +18679,7 @@ function comptoirServable(){
   if(grainesPlace() >= 1)
     for(const c of CROPS)
       if(!c.verrou && c.grainePrix && money >= LOT_GRAINE[0]*c.grainePrix) return true;
-  if(STOCK.max - STOCK.engrais >= 1 && money >= LOT_GRAINE[0]*STOCK.prixEngrais) return true;
+  if(CUVES.max - CUVES.engrais >= 1 && money >= LOT_GRAINE[0]*CUVES.prixEngrais) return true;
   return CARBU.cuve < CARBU.cuveMax - 1 && money >= CARBU.lotVrac*CARBU.prixVrac;
 }
 /* Un seul anneau par commerce, et une seule condition pour tous. Elle énumère
@@ -18947,15 +18957,16 @@ const TUTO = [
    quoi transformer, puis les bêtes, et le village pour finir. */
 const LECONS = [
   /* --- CE QU'IL FAUT POUR TRAVAILLER, ET QUI MANQUE DÈS LA PREMIÈRE HEURE --- */
-  /* LE SEMOIR VIDE EST LE PREMIER MUR DU JEU. Le hangar part avec 68 kg de blé et la cuve
-     du semoir part VIDE : la deuxième marche du tutoriel dit « attelle le semoir et sème
-     ta première parcelle » à quelqu'un qui n'a rien à semer, et rien ne le lui dit. Cette
-     leçon-là arrive donc au moment exact où l'on accroche l'outil. */
+  /* LE SEMOIR VIDE EST LE PREMIER MUR DU JEU. Il part plein — cinquante kilos pris à la
+     cuve verte au démarrage —, mais il se vide en deux parcelles, et la marche suivante
+     dit « sème ta parcelle » à quelqu'un qui n'a plus rien à semer sans que rien ne le
+     lui dise. Cette leçon-là arrive donc au moment exact où l'on accroche l'outil et
+     qu'il est vide. */
   {cle:'cuve', ou:'reserve', tot:true, titre:'REMPLIR LE SEMOIR',
    txt:'REMPLIR LA CUVE — un semoir vide ne sème rien : sers-toi à la cuve verte de la cour, ou au comptoir',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.cuveMax && cuveTotal(T) < 0.5
-               && (T.key === 'engrais' ? STOCK.engrais : grainesTotal()) > 0.5); }},
+               && (T.key === 'engrais' ? CUVES.engrais : grainesTotal()) > 0.5); }},
 
   /* LA TRÉMIE PLEINE, ET C'EST LA MARCHE DE LA MOISSON QUI L'A CÉDÉE. Elle se soldait
      sur une trémie pleine autant que sur un champ fini, pour que le joueur bloqué au
@@ -18971,12 +18982,15 @@ const LECONS = [
    txt:'LE PLEIN — arrête-toi sur le cercle de la citerne, dans la cour : ça coule tout seul, et c’est gratuit',
    quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
 
+  /* ET ELLE SE LÈVE QUAND UNE CUVE SE VIDE, en part de sa contenance et non en kilos :
+     « quand elles sont quasiment vides, on doit retourner au comptoir agricole pour les
+     re-remplir ». Un dixième pour les deux cuves de la cour, un quart pour le gazole. */
   {cle:'courses', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
    titre:'FAIRE SES COURSES', 
-   txt:'LE COMPTOIR AGRICOLE — les graines, l’engrais et le gazole en gros s’achètent là',
+   txt:'LE COMPTOIR AGRICOLE — c’est là qu’on remplit les deux cuves de la cour, et la citerne à gazole',
    quand:()=> comptoirServable()
-              && (grainesTotal() < 25
-                  || (!outilVerrou('engrais') && STOCK.engrais < 1)
+              && (grainesTotal() < CUVES.max*0.10
+                  || (!outilVerrou('engrais') && CUVES.engrais < CUVES.max*0.10)
                   || (CARBU.cuveMax > 0 && CARBU.cuve < CARBU.cuveMax*0.25))},
 
   /* --- CE QU'ON ACHÈTE, ET QUI CHANGE LA FERME --- */
@@ -19378,6 +19392,9 @@ function lieuTuto(E){
   }
   // CHEZ SOI : le point d'herbe où le cercle des missions est posé, à côté de la maison.
   if(ou === 'ferme') return {lieu:'Ferme', x:MAISON.x, z:MAISON.z};
+  // LA CUVE BLANCHE DE LA COUR, celle où l'épandeur se sert.
+  if(ou === 'cuveEngrais')
+    return {lieu:'cuve à engrais', x:RES_ENGRAIS.quai.x, z:RES_ENGRAIS.quai.z};
   const S = SITES.find((x)=> x.nom === ou);
   return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ} : null;
 }
@@ -19713,7 +19730,7 @@ function origineFerme(cle, ici, prof){
   const enCuve = cuveDe(sem, cle);
   const enTerre = champ && (champ.quoi === 'recolter' || champ.quoi === 'pousse');
   if(c0.grainePrix && !enTerre
-     && (STOCK.graines[cle] || 0) + enCuve < c0.graineKg*0.2){
+     && (CUVES.graines[cle] || 0) + enCuve < c0.graineKg*0.2){
     if(CO) return ici(CO.nom, 'acheter', 'ACHETER LA SEMENCE — ' + nomHaut(cle),
                       {x:CO.dropX, z:CO.dropZ});
   }
@@ -21167,7 +21184,7 @@ function commanderVrac(lots){
    maintenant LE LONG d'elle, comme à une pompe, et le cercle est calé à la hauteur de
    l'armoire de distribution, qui sort à 3,3 m du centre.
    Le côté EST reste le bon côté, mais plus pour la même raison : ce n'était que le seul
-   libre quand le hangar occupait tout l'ouest ; c'est maintenant celui qui donne sur les
+   libre quand la cuve occupait tout l'ouest ; c'est maintenant celui qui donne sur les
    huit mètres de bitume libre entre la cuve et la rocade. */
 const quaiCuve = {x: CUVE_POS.x + 4.4, z: CUVE_POS.z + 3.0};
 
@@ -22158,10 +22175,10 @@ function actionService(){
   /* REMPLIR LA CUVE DE L'OUTIL : AU COMPTOIR, ET DEVANT SA RÉSERVE. La cour le proposait
      PARTOUT, et c'était une fausse commodité — on attelait le semoir, on s'arrêtait
      n'importe où chez soi, et le bandeau demandait de le remplir alors que rien ne disait ce
-     qu'il restait au hangar. Le geste est donc revenu au comptoir, où l'on voit le bac, où
+     qu'il restait à la cuve. Le geste est donc revenu au comptoir, où l'on voit la cuve, où
      l'on achète, et d'où l'on repart chargé.
-     Il a maintenant un second lieu, et un seul : la RÉSERVE. Le hangar à graines et le bac à
-     engrais ont deux cuves dans la cour depuis qu'on les y a posées, avec leur jauge et leur
+     Il a maintenant un second lieu, et un seul : LA CUVE DE LA COUR. Les graines et l'engrais
+     y ont chacun la leur depuis qu'on les y a posées, avec leur jauge et leur
      vanne — l'argument d'alors tenait à ce qu'il n'y avait nulle part où aller, et il tombe
      avec elles. L'ACHAT, lui, ne bouge pas d'un pouce : on ne l'a jamais demandé ailleurs
      qu'au comptoir. Ce qui reste dans la cuve se lit en haut à droite pendant tout le
@@ -22171,13 +22188,13 @@ function actionService(){
   /* ---------- ET MAINTENANT, LA COUR AUSSI — MAIS SEULEMENT DEVANT LA BONNE CUVE.
      La règle ci-dessus disait « au comptoir, et nulle part ailleurs », et son argument
      était juste : la cour le proposait PARTOUT, donc nulle part en particulier, et rien
-     ne disait ce qu'il restait au hangar. Ce qui a changé, c'est que le hangar existe : il
-     a deux cuves dans la cour, avec leur jauge et leur vanne, et l'on s'y range comme à
+     ne disait ce qu'il restait en cuve. Ce qui a changé, c'est que la cuve se voit : elle
+     est là, dans la cour, avec leur jauge et leur vanne, et l'on s'y range comme à
      une pompe. Le geste a retrouvé un lieu, l'argument tombe.
      ET CHAQUE CUVE NE SERT QUE CE QU'ELLE CONTIENT. Devant la cuve verte on remplit un
      semoir, devant la blanche un épandeur — l'inverse n'aurait aucun sens, et le laisser
      faire redonnerait exactement le « partout » qu'on vient de retirer. L'ACHAT, lui, ne
-     bouge pas d'un pouce : il reste au Comptoir agricole, où l'on voit le bac et le prix. */
+     bouge pas d'un pouce : il reste au Comptoir agricole, où l'on voit la cuve et le prix. */
   const surReserve = (R)=> prochePoint(v, R.quai.x, R.quai.z, R.r);
   const bonneCuve = !!outil && outil.cuveMax
     && (outil.key === 'engrais' ? surReserve(RES_ENGRAIS) : surReserve(RES_GRAINE));
@@ -22187,7 +22204,7 @@ function actionService(){
     const perenne = !eng && CROPS[outil.crop || 0].perenne;
     const kCuve = eng ? 'engrais' : cle;
     const place = placeCuve(outil, kCuve);
-    const dispo = eng ? STOCK.engrais : (STOCK.graines[cle] || 0);
+    const dispo = eng ? CUVES.engrais : (CUVES.graines[cle] || 0);
     const nom = eng ? 'ENGRAIS' : CROPS[outil.crop || 0].nom.toUpperCase();
     if(perenne)
       cuves.push({txt:nom + ' NE SE SÈME PAS — ELLE SE PLANTE, ET SE PAIE AU CHAMP', ok:false});
@@ -22197,8 +22214,8 @@ function actionService(){
       cuves.push({txt:outil.nom.toUpperCase() + ' PLEIN DE ' + nom + ' — ' +
                       kg(cuveDe(outil, kCuve)).toUpperCase(), ok:false});
     else if(dispo < 0.5)
-      cuves.push({txt:'PLUS ' + (eng ? 'D\u2019ENGRAIS' : dNom(nom).toUpperCase())
-                      + ' AU HANGAR', ok:false});
+      cuves.push({txt:'LA CUVE ' + (eng ? '\u00c0 ENGRAIS' : '\u00c0 GRAINES')
+                      + ' DE LA COUR EST VIDE \u2014 \u00c0 REMPLIR AU COMPTOIR', ok:false});
     else
       cuves.push({txt:'REMPLIR ' + lHaut(outil.nom) + ' — ' + nom + ' ' +
                       kg(Math.min(place, dispo)).toUpperCase(), ok:true,
@@ -22206,10 +22223,10 @@ function actionService(){
                           if(q) showHint('+ ' + kg(q).toUpperCase() + ' ' + nom); }});
     if(cuveTotal(outil) > 0.5)
       cuves.push({txt:'VIDER ' + lHaut(outil.nom) + ' — ' +
-                      kg(cuveTotal(outil)).toUpperCase() + ' AU HANGAR', ok:true,
+                      kg(cuveTotal(outil)).toUpperCase() + ' \u00c0 LA CUVE', ok:true,
                   f:()=>{ const q = viderToutesCuves(outil);
-                          showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
-                                     : 'LE HANGAR EST PLEIN'); }});
+                          showHint(q ? kg(q).toUpperCase() + ' RENDUS \u00c0 LA CUVE'
+                                     : 'LA CUVE DE LA COUR EST PLEINE'); }});
   }
   /* LE COMPTOIR A SA FENÊTRE, ET N'OUVRE PLUS LE MENU GÉNÉRAL. On arrivait au quai, on
      appuyait, et l'on tombait dans le menu de la ferme à un onglet, au milieu d'une barre
@@ -23455,7 +23472,7 @@ function majPousseParcelles(dt){
 const PLEIN_A = 0.995;
 /* L'ENGRAIS N'EST PAS UN PRODUIT, ET C'EST LA SEULE EXCEPTION. Il ne figure pas dans
    `PRODUITS` — il n'a ni prix de vente, ni ligne de silo, ni recette : c'est un INTRANT,
-   qui vit dans `STOCK.engrais` et nulle part ailleurs. `nomDe` rendait donc « Charge »,
+   qui vit dans `CUVES.engrais` et nulle part ailleurs. `nomDe` rendait donc « Charge »,
    et la cuve de l'épandeur s'annonçait « Charge 30 kg ». Deux mots ici valent mieux
    qu'une entrée de plus dans la table des produits, qui donnerait à l'engrais un prix
    et une place au silo qu'il n'a pas. Le vert est celui de la réserve d'engrais. */
@@ -23643,12 +23660,12 @@ function majJauges(dt){
        gabarit.
 
        LES HAUTEURS SONT MESURÉES, pas devinées : le sommet du silo à graines est à 6,91 m
-       et celui du bac à engrais à 7,89. On pose à 2,7 m au-dessus de chacun — le même
+       et celui de la cuve à engrais à 7,89. On pose à 2,7 m au-dessus de chacun — le même
        dégagement que la cuve à gazole, qui culmine à 4,00 pour une étiquette à 7,40 — ce
        qui donne 9,6 et 10,6, et les décale d'un mètre l'une de l'autre : elles sont à huit
        mètres en z, et deux plaques à la même altitude se chevauchent vues d'en haut. */
   {
-    const gt = grainesTotal(), kg1 = STOCK.max > 0 ? gt/STOCK.max : 0;
+    const gt = grainesTotal(), kg1 = CUVES.max > 0 ? gt/CUVES.max : 0;
     /* CHAQUE SEMENCE ET SON POIDS, et non plus le seul plus gros sac. C'est ce qu'on
        vient vérifier avant de lancer un semis : savoir qu'il reste du blé ne dit pas
        s'il reste de l'orge. L'ordre des CULTURES sert de clé, pas celui du dictionnaire :
@@ -23656,15 +23673,15 @@ function majJauges(dt){
        LA PLAQUE MONTE DE 1,4 M. Elle a gagné deux lignes, donc 2,4 m de haut ; à 9,6 son
        bord bas serait tombé à 6,04 m, sous le sommet du silo à graines (6,91). À 11,0 il
        repasse à 7,44, au-dessus du dôme. */
-    const det = detailTas((k)=> STOCK.graines[k] || 0, CROPS.map((c)=> c.cle), nomDe, 2);
-    montrerJauge(jaugeGraine, RES_GRAINE.x, 11.0, RES_GRAINE.z, 'Réserve de graines',
-      gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(STOCK.max) + '\n' + det
-               : 'vide  ·  aucune semence en stock',
+    const det = detailTas((k)=> CUVES.graines[k] || 0, CROPS.map((c)=> c.cle), nomDe, 2);
+    montrerJauge(jaugeGraine, RES_GRAINE.x, 11.0, RES_GRAINE.z, 'Cuve à graines',
+      gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(CUVES.max) + '\n' + det
+               : 'vide  ·  à remplir au comptoir agricole',
       kg1, kg1 < 0.10 ? '#E8563F' : (kg1 < 0.30 ? '#F0A030' : '#8BE07A'), dt);
-    const ke = STOCK.max > 0 ? STOCK.engrais/STOCK.max : 0;
-    montrerJauge(jaugeEngrais, RES_ENGRAIS.x, 10.6, RES_ENGRAIS.z, 'Réserve d’engrais',
-      STOCK.engrais > 0.5 ? Math.round(STOCK.engrais) + ' kg sur ' + Math.round(STOCK.max)
-                          : 'vide  ·  aucun engrais en stock',
+    const ke = CUVES.max > 0 ? CUVES.engrais/CUVES.max : 0;
+    montrerJauge(jaugeEngrais, RES_ENGRAIS.x, 10.6, RES_ENGRAIS.z, 'Cuve à engrais',
+      CUVES.engrais > 0.5 ? Math.round(CUVES.engrais) + ' kg sur ' + Math.round(CUVES.max)
+                          : 'vide  ·  à remplir au comptoir agricole',
       ke, ke < 0.10 ? '#E8563F' : (ke < 0.30 ? '#F0A030' : '#8BE07A'), dt);
   }
 
@@ -23823,7 +23840,7 @@ const kg = (v)=> Math.round(v).toLocaleString('fr-FR') + ' kg';
 const dec = (v, n)=> v.toFixed(n === undefined ? 2 : n).replace('.', ',');
 const litres = (v)=> Math.round(v).toLocaleString('fr-FR') + ' L';
 
-/* Les lots du comptoir. Dix kilos, vingt-cinq, ou de quoi remplir le hangar : le
+/* Les lots du comptoir. Dix kilos, vingt-cinq, ou de quoi remplir la cangar : le
    deuxième est la dose d'une parcelle de blé, le premier de quoi finir un rang. */
 /* Les lots du comptoir. Dix kilos, vingt-cinq : le deuxième est la dose d'une parcelle
    de blé, le premier de quoi finir un rang. Ils ne servent plus de boutons — on achète
@@ -23846,7 +23863,7 @@ const LOT_GRAINE = [10, 25];
    `ongletComptoir()` existe toujours et déroule les trois vues à la suite : l'aiguillage
    du menu n'a pas de repli, et trois bancs lisent encore le comptoir dans #pliste. */
 function ligneGraine(c){
-  const ici = STOCK.graines[c.cle] || 0;
+  const ici = CUVES.graines[c.cle] || 0;
   const niv = niveauDe('cultures', c.cle);
   /* UNE CULTURE NON ACQUISE S'ACQUIERT ICI, ET LE BOUTON MARCHE. Il disait « Fermé »,
      en gris, avec pour tout secours une phrase renvoyant à l'onglet Graines du menu —
@@ -23866,21 +23883,21 @@ function ligneGraine(c){
       ok ? ()=> acquerirCulture(c) : null, c.cle);
     return;
   }
-  // La place que le comptoir annonce est celle que l'achat utilisera : le hangar PLUS le
-  // casier du semoir, qui se sert dans la foulée.
-  const sem0 = TOOLS.find((t)=> t.key === 'semis');
-  const place = grainesPlace() +
-    ((sem0 && sem0.cuveMax && !sem0.verrou && !c.perenne) ? placeCuve(sem0, c.cle) : 0);
+  // La place que le comptoir annonce est celle que l'achat utilisera : ce qui reste dans
+  // la cuve VERTE de la cour, et rien d'autre. Elle comptait aussi le casier du semoir,
+  // du temps où l'achat le servait dans la foulée ; le compte serait faux maintenant, et
+  // le rayon offrirait plus que l'achat n'en prendrait.
+  const place = grainesPlace();
   const max = Math.min(place, Math.floor(money/Math.max(0.01, c.grainePrix)));
   const ok = max >= 1;
   article(c.hi.getHex(), 'Semences ' + dNom(c.nom.toLowerCase()),
     dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg) + ' pour une parcelle, soit ' +
-    euroFin(c.graineKg*c.grainePrix) + '<br>En stock : <span class="' +
+    euroFin(c.graineKg*c.grainePrix) + '<br>À la cuve de la cour : <span class="' +
     (ici >= c.graineKg ? 'q' : 'q court') + '">' + kg(ici) + '</span>' +
     (ici < 1 ? ' — le sac est vide'
              : ' — de quoi semer ' + (ici/c.graineKg).toFixed(1).replace('.', ',') +
                ' parcelle' + (ici >= 2*c.graineKg ? 's' : '')),
-    place < 1 ? 'Hangar plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+    place < 1 ? 'Cuve pleine' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
     ok ? ()=> ouvrirQuantite({
       max: max, titre: 'Semences ' + dNom(c.nom.toLowerCase()), action: 'Acheter',
       depart: c.graineKg,
@@ -23891,11 +23908,11 @@ function ligneGraine(c){
                     '<br>Il restera ' + eur(money - q*c.grainePrix) + ' en caisse',
       valider: (q)=>{ const pris = acheterIntrant(c.cle, q);
                       if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()
-                        + (cuveServie > 0.5 ? ' — SEMOIR REMPLI' : '')); }
+                        + ' \u00c0 LA CUVE DE LA COUR'); }
     }) : null, c.cle);
 }
 function vueComptoirSemences(){
-  titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(STOCK.max) + ' au hangar');
+  titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(CUVES.max) + ' à la cuve de la cour');
   /* UNE LIGNE PAR GRAINE, ET LE CURSEUR POUR LA QUANTITÉ. On n'affiche que ce qu'on a le
      droit de semer avec sa raison : une graine absente de la liste passe pour une graine
      qui n'existe pas. */
@@ -23942,32 +23959,32 @@ function vueComptoirSemences(){
   }
 }
 function vueComptoirConsos(){
-  titre('Engrais — ' + kg(STOCK.engrais) + ' sur ' + kg(STOCK.max) + ' au bac');
+  titre('Engrais — ' + kg(CUVES.engrais) + ' sur ' + kg(CUVES.max) + ' à la cuve de la cour');
   {
-    const prix = STOCK.prixEngrais;
-    const place = Math.max(0, STOCK.max - STOCK.engrais);
+    const prix = CUVES.prixEngrais;
+    const place = Math.max(0, CUVES.max - CUVES.engrais);
     const max = Math.min(place, Math.floor(money/Math.max(0.01, prix)));
     const ok = max >= 1;
     article(0x9FD8E8, 'Engrais',
-      'L\'épandeur y puise ' + Math.round(STOCK.parCellEngrais*1000) +
-      ' g par cellule traitée, soit ' + kg(PARC_REF*STOCK.parCellEngrais) +
-      ' pour une parcelle — ' + euroFin(PARC_REF*STOCK.parCellEngrais*prix) +
-      ' pour un quart de pousse en moins.<br>' + dec(prix) + ' € / kg · en stock ' +
-      '<span class="' + (STOCK.engrais >= 1 ? 'q' : 'q court') + '">' + kg(STOCK.engrais) +
-      '</span> sur ' + kg(STOCK.max),
-      place < 1 ? 'Bac plein' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
+      'L\'épandeur y puise ' + Math.round(CUVES.parCellEngrais*1000) +
+      ' g par cellule traitée, soit ' + kg(PARC_REF*CUVES.parCellEngrais) +
+      ' pour une parcelle — ' + euroFin(PARC_REF*CUVES.parCellEngrais*prix) +
+      ' pour un quart de pousse en moins.<br>' + dec(prix) + ' € / kg · à la cuve ' +
+      '<span class="' + (CUVES.engrais >= 1 ? 'q' : 'q court') + '">' + kg(CUVES.engrais) +
+      '</span> sur ' + kg(CUVES.max),
+      place < 1 ? 'Cuve pleine' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ok ? ()=> ouvrirQuantite({
         max: max, titre: 'Acheter de l\'engrais', action: 'Acheter',
-        depart: PARC_REF*STOCK.parCellEngrais,
+        depart: PARC_REF*CUVES.parCellEngrais,
         sortie: (q)=> kg(q) + ' d\'engrais',
         detail: (q)=> 'Coûte <b>' + euroFin(q*prix) + '</b>' +
                       '<br>De quoi traiter ' +
-                      (q/(PARC_REF*STOCK.parCellEngrais)).toFixed(1).replace('.', ',') +
-                      ' parcelle' + (q >= 2*PARC_REF*STOCK.parCellEngrais ? 's' : '') +
+                      (q/(PARC_REF*CUVES.parCellEngrais)).toFixed(1).replace('.', ',') +
+                      ' parcelle' + (q >= 2*PARC_REF*CUVES.parCellEngrais ? 's' : '') +
                       '<br>Il restera ' + eur(money - q*prix) + ' en caisse',
         valider: (q)=>{ const pris = acheterIntrant('engrais', q);
                         if(pris) showHint('+ ' + kg(pris) + ' D’ENGRAIS'
-                          + (cuveServie > 0.5 ? ' — ÉPANDEUR REMPLI' : '')); }
+                          + ' \u00c0 LA CUVE DE LA COUR'); }
       }) : null, 'engrais');
   }
 
@@ -23992,7 +24009,7 @@ function vueComptoirConsos(){
 }
 /* LA TROISIÈME PORTE : REPARTIR CHARGÉ. Remplir la cuve du semoir ou de l'épandeur se
    faisait déjà ici, mais uniquement par un bouton flottant à quai — et l'on ne pouvait ni
-   voir combien il restait au hangar, ni décider de la quantité. C'est pourtant le geste
+   voir combien il restait à la cuve de la cour, ni décider de la quantité. C'est pourtant le geste
    qui suit l'achat : on vient acheter vingt-cinq kilos, et l'on veut repartir avec. */
 function vueComptoirCuves(){
   /* TOUTES LES CUVES, ET NON CELLE DE L'OUTIL ATTELÉ.
@@ -24018,7 +24035,7 @@ function vueComptoirCuves(){
     const nom = eng ? 'engrais' : c.nom.toLowerCase();
     const kCuve = eng ? 'engrais' : cle;
     const place = placeCuve(T, kCuve);
-    const dispo = eng ? STOCK.engrais : (STOCK.graines[cle] || 0);
+    const dispo = eng ? CUVES.engrais : (CUVES.graines[cle] || 0);
     const perenne = !eng && c.perenne;
     /* CE QU'IL PORTE, SAC PAR SAC. Un semoir qui rentre avec du blé et du maïs à bord
        doit le dire : la ligne n'affichait que la nature réglée, et le second sac
@@ -24026,12 +24043,12 @@ function vueComptoirCuves(){
     const sacs = Object.keys(T.cuves || {}).filter((k)=> T.cuves[k] > 0.5);
     article(0xF0C24A, T.nom + ' — ' + kg(cuveDe(T, kCuve)) + ' sur ' + kg(T.cuveMax) +
       ' ' + dNom(nom),
-      (eng ? 'Il épand l\'engrais du bac.'
+      (eng ? 'Il épand l\'engrais qu\'il porte, pris à la cuve blanche de la cour.'
            : 'Il est réglé sur ' + lNom(nom) + ' — le bouton de l\'écran de conduite en ' +
              'change. Chaque semence a son casier, et sa propre capacité.') +
       (sacs.length > 1 ? '<br>À bord : ' + sacs.map((k)=> kg(T.cuves[k]) + ' ' +
          dNom((PRODUITS[k] ? PRODUITS[k].nom : k).toLowerCase())).join(' · ') : '') +
-      '<br>Au hangar : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
+      '<br>À la cuve de la cour : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
       kg(dispo) + ' ' + dNom(nom) + '</span>',
       T === attele ? 'Attelé' : 'À la ferme', 'no', null);
     if(perenne)
@@ -24043,27 +24060,29 @@ function vueComptoirCuves(){
       const ok = q >= 0.5;
       article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase() + ' ' + dNom(nom),
         place < 0.5 ? 'Le casier ' + dNom(nom) + ' est plein.'
-                    : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' au hangar — le rayon ' +
+                    : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' à la cuve — le rayon ' +
                                      'des semences est à l\'onglet précédent.'
-                                   : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' au hangar, où ' +
+                                   : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' à la cuve de la cour, où ' +
                                      'que soit l\'outil. Les autres sacs ne bougent pas.'),
-        ok ? '+ ' + kg(q) : (place < 0.5 ? 'Plein' : 'Hangar vide'), ok ? 'vert' : 'no',
+        ok ? '+ ' + kg(q) : (place < 0.5 ? 'Plein' : 'Cuve vide'), ok ? 'vert' : 'no',
         ok ? ()=>{ const pris = remplirCuve(T, cle);
                    if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null);
     }
     if(cuveTotal(T) > 0.5)
       article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
-        'Rend ' + kg(cuveTotal(T)) + ' au hangar — tous les sacs. Rien ne se perd, et ' +
+        'Rend ' + kg(cuveTotal(T)) + ' à la cuve de la cour — tous les sacs. Rien ne se ' +
+        'perd, et ' +
         'rien n\'oblige à le faire : garder deux semences à bord est justement ce que ' +
         'les casiers permettent.',
         'Rendre', 'vert', ()=>{ const q = viderToutesCuves(T);
-                                showHint(q ? kg(q).toUpperCase() + ' RENDUS AU HANGAR'
-                                           : 'LE HANGAR EST PLEIN'); });
+                                showHint(q ? kg(q).toUpperCase() + ' RENDUS À LA CUVE'
+                                           : 'LA CUVE EST PLEINE'); });
   }
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">Acheter aux deux onglets précédents ' +
-    'remplit la cuve DANS LA FOULÉE, où que soit l\'outil : il n\'y a jamais besoin de ' +
-    'venir avec au comptoir.</div></div>';
+    'remplit LES DEUX CUVES DE LA COUR, à côté de l\'entrepôt. C\'est là qu\'on sert ' +
+    'l\'outil — d\'ici, ou à leur vanne — et c\'est là qu\'il faut revenir quand ' +
+    'elles se vident.</div></div>';
   hote.appendChild(d);
 }
 // Le menu garde son onglet : son aiguillage n'a pas de repli, et trois bancs lisent
@@ -24334,11 +24353,11 @@ function vueStockMagasin(){
 }
 /* CE QUE ÇA PEUT DEVENIR — ET RIEN À LANCER D'ICI.
    Cet onglet portait les boutons PRODUIRE, et c'était le seul endroit du jeu d'où l'on
-   lançait un lot : on ouvrait le STOCK pour faire tourner l'ATELIER. Le joueur : « pour
+   lançait un lot : on ouvrait le CUVES pour faire tourner l'ATELIER. Le joueur : « pour
    la production, faut que ça passe par le bouton de l'atelier de production ; tu peux
    détailler le produit qu'on a, et marquer en dessous ce que ça peut devenir, pour que
    ce soit suffisamment lisible et détaillé. »
-   Il reste donc la QUESTION DU STOCK, posée à l'envers : ce qu'on a, et ce que ça vaut
+   Il reste donc la QUESTION DU CUVES, posée à l'envers : ce qu'on a, et ce que ça vaut
    une fois transformé. Une ligne par matière détenue, et sous chacune la liste de ses
    débouchés — la recette, le métier qui la fait, ce que la quantité EN MAGASIN rendrait,
    et le gain que la transformation ajoute. Aucun bouton : le lancement est à
@@ -24472,7 +24491,7 @@ function ouvrirQuantite(o){
   /* IL S'OUVRE SUR LA DOSE UTILE, PAS SUR TOUT. « Tout » est le bon défaut pour une
      production — on transforme ce qu'on a — mais pas pour un ACHAT : le curseur s'ouvrait
      sur les 450 kg que la bourse permettait, et deux appuis vidaient la caisse pour
-     remplir le hangar de blé. `depart` donne la dose qu'on vient chercher — une parcelle
+     remplir la cangar de blé. `depart` donne la dose qu'on vient chercher — une parcelle
      de semence, une parcelle d'engrais — et les trois raccourcis restent là pour aller
      plus haut d'un doigt. */
   doseCurseur.min = 1; doseCurseur.max = max;
@@ -25398,9 +25417,9 @@ function etatJeu(){
       d:Object.assign({}, C.dest), k:!!C.continu,
       r:!!C.recolte, l:!!C.livre})),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
-    // `graines` est ce qui compte, et il détaille le hangar sac par sac.
-    stock: {semence: grainesTotal(), graines: Object.assign({}, STOCK.graines),
-            engrais: STOCK.engrais},
+    // `graines` est ce qui compte, et il détaille la cuve de la cour sac par sac.
+    stock: {semence: grainesTotal(), graines: Object.assign({}, CUVES.graines),
+            engrais: CUVES.engrais},
     audio: {on: AUDIO.on, volume: AUDIO.volume},
     /* LA MARQUE DES RÉGLAGES D'USINE. Le joueur : « rechange les réglages de base […] je
        veux que tu reviennes à 100 % en résolution maximale et avec les contrôles
@@ -25826,9 +25845,9 @@ function chargerPartie(S){
     /* UNE PARTIE D'AVANT LE BARÈME N'A QU'UN SEUL TAS DE GRAINES. Il devient du blé :
        c'est la seule culture que tout le monde possède, et c'est celle dont la dose est
        la plus proche de l'ancienne — vingt-cinq kilos la parcelle contre vingt-quatre. */
-    STOCK.graines = S.stock.graines ? Object.assign({}, S.stock.graines)
+    CUVES.graines = S.stock.graines ? Object.assign({}, S.stock.graines)
                                     : {ble: S.stock.semence || 0};
-    STOCK.engrais = S.stock.engrais;
+    CUVES.engrais = S.stock.engrais;
     AUDIO.on = S.audio.on; AUDIO.volume = S.audio.volume; AUDIO.majVolume();
     // Une partie d'avant le réglage n'en a pas : elle repart en netteté maximale,
     // c'est-à-dire exactement ce qu'elle connaissait.
@@ -25915,8 +25934,8 @@ function chargerPartie(S){
     S.outils.forEach((q, i)=>{
       const T = TOOLS[i]; if(!T) return;
       T.level = q.level || 1; T.crop = q.crop;
-      /* Une partie d'avant les cuves n'en a pas : elle repart avec un semoir vide, et le
-         hangar qu'elle a gardé suffit à le remplir dès la première halte sur la cour.
+      /* Une partie d'avant les cuves n'en a pas : elle repart avec un semoir vide, et la
+         cuve qu'elle a gardé suffit à le remplir dès la première halte sur la cour.
          Une partie d'avant les CASIERS n'a que `cuveQ`/`cuveCle` : son unique cuve
          devient le casier de sa nature, et rien n'est perdu. */
       T.cuves = {};
@@ -26105,6 +26124,15 @@ let fini = false;
    qui reste avant le suivant. La campagne finie, la barre se remplit une dernière
    fois et le bandeau le dit. */
 let siloPrevenu = false;
+/* ET LES DEUX CUVES DE LA COUR LE DISENT AUSSI. « Quand elles sont quasiment vides, on
+   doit retourner au comptoir agricole pour les re-remplir » : encore faut-il l'apprendre
+   autrement qu'en tombant en panne au milieu d'un rang. Même mécanique que le silo — une
+   phrase au passage du seuil, qui ne revient qu'après être remontée — et le même seuil que
+   le rouge de leur jauge, un dixième, de sorte que la phrase et la couleur disent la même
+   chose au même moment.
+   L'ENGRAIS NE PRÉVIENT QUE SI L'ON A L'ÉPANDEUR : sans lui, la cuve blanche ne se vide
+   pas, et une phrase sur un outil qu'on n'a pas achete serait du bruit. */
+const cuvePrevenue = {graines:false, engrais:false};
 function refreshHUD(){
   const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
   // En mode libre, `missionCourante()` rend toujours null : sans ce garde-fou, le
@@ -26128,6 +26156,15 @@ function refreshHUD(){
   const partSilo = siloTotal()/siloMax();
   if(partSilo > 0.92 && !siloPrevenu){ siloPrevenu = true; showHint('SILO PRESQUE PLEIN'); }
   else if(partSilo < 0.85) siloPrevenu = false;
+  const partGr = CUVES.max > 0 ? grainesTotal()/CUVES.max : 1;
+  if(partGr < 0.10 && !cuvePrevenue.graines){ cuvePrevenue.graines = true;
+    showHint('CUVE À GRAINES PRESQUE VIDE — À REMPLIR AU COMPTOIR AGRICOLE'); }
+  else if(partGr > 0.20) cuvePrevenue.graines = false;
+  const partEn = CUVES.max > 0 ? CUVES.engrais/CUVES.max : 1;
+  if(partEn < 0.10 && !cuvePrevenue.engrais && !outilVerrou('engrais')){
+    cuvePrevenue.engrais = true;
+    showHint('CUVE À ENGRAIS PRESQUE VIDE — À REMPLIR AU COMPTOIR AGRICOLE'); }
+  else if(partEn > 0.20) cuvePrevenue.engrais = false;
   // La part parcourue DANS le palier courant, pas depuis le début : une barre qui
   // n'avance plus que d'un cheveu au dixième niveau ne dit plus rien.
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
@@ -26161,12 +26198,13 @@ mondePret = true;
    poser ici, à partir de la même table que les crans suivants, évite d'avoir deux
    endroits qui disent la capacité d'un matériel neuf, et donc de les voir diverger. */
 for(const cle in PALIERS) appliquerPalier(cle, niveauMateriel(cle));
-/* ET LE SEMOIR PART PLEIN. Le jeu donne de quoi faire un aller-retour complet dès la
-   première minute — labourer, semer, moissonner, livrer — et il commence à zéro euro :
-   un semoir vide avec un hangar qu'on n'a pas les moyens de vider dans une cuve qu'on
-   ne sait pas encore remplir ferait échouer la première mission sans rien expliquer.
-   Cinquante kilos de blé dedans, dix-huit au hangar : de quoi semer deux parcelles, ce
-   qui est très exactement ce qu'il faut pour la première mission et sa suivante. */
+/* ET LE SEMOIR PART PLEIN, LUI AUSSI. Le jeu donne de quoi faire un aller-retour complet
+   dès la première minute — labourer, semer, moissonner, livrer — et il commence à zéro
+   euro : un semoir vide devant une cuve qu'on ne sait pas encore ouvrir ferait échouer la
+   première mission sans rien expliquer. Il prend donc son plein à la cuve verte comme le
+   ferait le joueur, par `remplirCuve` et non par une valeur écrite à la main : cinquante
+   kilos de blé à bord, quatre cents restés à la cuve. De quoi semer deux parcelles tout
+   de suite, et seize autres sans repasser au comptoir. */
 {
   const sem = TOOLS.find((T)=> T.key === 'semis');
   if(sem) remplirCuve(sem, CROPS[sem.crop || 0].cle);
@@ -26301,14 +26339,14 @@ function blocageEtape(C, et){
     if(c && c.perenne) return null;              // une vigne se plante, elle ne se sème pas
     const T = TOOLS.find((t)=> t.key === 'semis');
     const enCuve = T ? cuveDe(T, c.cle) : 0;
-    if(enCuve < 0.5 && (STOCK.graines[c.cle] || 0) < 0.5)
+    if(enCuve < 0.5 && (CUVES.graines[c.cle] || 0) < 0.5)
       return 'PLUS DE SEMENCE DE ' + c.nom.toUpperCase() + ' — À ACHETER AU COMPTOIR';
   }
   if(et === ET_ENGRAIS){
     const T = TOOLS.find((t)=> t.key === 'engrais');
     if(T && T.verrou) return 'L’ÉPANDEUR N’EST PAS ENCORE ACHETÉ';
     const enCuve = T ? cuveDe(T, 'engrais') : 0;
-    if(enCuve < 0.5 && STOCK.engrais < 0.5)
+    if(enCuve < 0.5 && CUVES.engrais < 0.5)
       return 'PLUS D’ENGRAIS — À ACHETER AU COMPTOIR';
   }
   if(et === ET_MOISSON && siloPlein() && !(c && c.perenne))
@@ -26496,7 +26534,7 @@ function pisteAuge(C){
   const dispo = alimentsDisponibles();
   if(!dispo.length){
     const mal = 'PLUS D’ALIMENT POUR LES ' + E.pluriel.toUpperCase()
-              + ' — NI GRAIN NI ALIMENT EN STOCK';
+              + ' — NI GRAIN NI ALIMENT EN CUVES';
     if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
     return;
   }
