@@ -9690,3 +9690,28 @@ La table fait donc la traduction une fois, à l'endroit où elle se voit, plutô
 dans quinze noms de fichier qu'il faudrait relire un par un.
 
 Vingt-et-une fiches, **210 Ko**. Sept commerces sur quinze.
+
+### Huitième commerce : l'Épicerie, et l'ordre qu'il ne fallait pas suivre
+
+Les sept premiers groupes sont arrivés dans le même ordre — neutre, félicitations, refus — et
+c'est devenu une habitude de lecture. Celui-ci ne le suivait pas : sa **première** planche est le
+pouce levé, sa **deuxième** la main ouverte. Ce sont les gestes qui décident, pas le rang, et
+c'est écrit dans la table à côté de chaque source :
+
+```json
+"neutre": {"src": "4f2fcccf-image.png"},   // main ouverte
+"bravo":  {"src": "c1e9fbe7-image.png"},   // pouce levé
+"refus":  {"src": "0b632b5b-image.png"}    // index dressé
+```
+
+Suivre le rang aurait donné un épicier qui félicite quand il propose et qui propose quand il
+félicite — un défaut que rien n'aurait signalé, puisque les trois fichiers auraient bien été là,
+au bon format, sur la bonne ligne d'yeux.
+
+**La casquette plate a rendu deux de ses planches indétectables**, comme prévu : elle rallonge le
+crâne, le repli par les largeurs sous-dimensionne, et les deux fiches sortaient deux fois trop
+petites — 4,8 et 5,3 Ko contre 9 à 10 pour les autres. Le poids du fichier est d'ailleurs le
+premier signe qu'un cadrage a échoué : un sujet trop petit laisse plus de transparent, et le PNG
+maigrit. Deux ancrages posés à la main, et il rejoint les sept autres.
+
+Vingt-quatre fiches, **235 Ko**. Huit commerces sur quinze.
