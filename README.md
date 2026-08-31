@@ -9622,3 +9622,28 @@ refaites de mémoire au prochain lot.
 
 Douze fiches, **122 Ko**. Les vingt contrôles de `visages.js` passent, dont les douze fichiers
 qui se chargent tous en 192 × 240.
+
+### Le Restaurant n'était pas le chef, et la table sait maintenant parquer
+
+Le tout premier groupe reçu — veste blanche, foulard bleu, un cuisinier — avait été attribué au
+Restaurant **par ressemblance**, faute de groupement. C'était faux : le Restaurant, c'est la
+femme au tableau d'ardoise.
+
+Le chef n'a pourtant rien perdu. Ses trois planches vont ensemble, on sait laquelle est le pouce
+levé et laquelle est le refus, on sait comment les cadrer — **on ne sait que son métier**. Une
+entrée dont le champ `site` est vide part donc en **attente** au lieu de partir dans le jeu :
+
+```json
+"chef": {"site": "",
+  "neutre": {"src": "0ea89937-image.png", "ech": 1.75, "dy": 0.01}, … }
+```
+
+Elle garde son groupement, son cadrage et ses réglages, et le jour où l'on apprend son commerce
+il n'y a **qu'un mot à écrire**. C'est aussi ce qui garantit que `portraits/` ne contienne que ce
+que le jeu charge : un fichier de plus y serait un fichier que rien n'affiche.
+
+La restauratrice, elle, est passée sans effort — ses trois planches sont les seules du lot où le
+détecteur d'yeux mord trois fois sur trois. Seul son refus demandait un cran d'échelle (×1,28) :
+elle y est cadrée plus loin que sur ses deux autres.
+
+Douze fiches dans le jeu, **125 Ko**, plus trois planches en attente de commerce.
