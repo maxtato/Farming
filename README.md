@@ -9760,3 +9760,18 @@ lunettes n'y étaient pour rien. Une explication qu'on croyait tenir, et qui tom
 contre-exemple.
 
 Trente-trois fiches, **326 Ko**. Onze commerces sur quinze.
+
+### Douzième commerce : la Coopérative, le pire cas du lot
+
+Le seul groupe dont les **trois** planches ont échoué — et échoué en grand : le cadrage ne rendait
+que sa chevelure, un gros plan sur un chignon gris où le visage n'entrait plus dans l'image. La
+masse de cheveux clairs, à peine plus foncée que le fond, trompe le détecteur de visage, le
+détecteur d'yeux et le repli par les largeurs, tous les trois.
+
+C'est le cas qui justifie à lui seul d'avoir gardé le troisième étage — l'ancrage à la main. Trois
+relevés sur grille, et elle rejoint les onze autres.
+
+Et c'était le pire moment pour un échec silencieux : la Coopérative est le **premier client du
+jeu**, celui du tutoriel, et son visage est le premier qu'un joueur voit.
+
+Trente-six fiches, **354 Ko**. Douze commerces sur quinze.
