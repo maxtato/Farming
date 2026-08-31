@@ -9679,3 +9679,14 @@ jeu fait donc la traduction, une fois, à l'endroit où elle se voit.
 
 Dix-huit fiches dans le jeu, **182 Ko**. Six commerces sur quinze, vingt-deux planches encore en
 attente de métier.
+
+### Septième commerce : l'Usine céréales
+
+Passée sans correction elle aussi — le détecteur d'yeux mord sur ses trois planches. Son nom a
+demandé la même traduction que l'avoine, avec un point de plus : le site s'appelle `Usine
+céréales`, et le radical est `usine_cereales`, **sans espace et sans accent**. Une adresse doit
+encoder l'un comme l'autre, et une adresse encodée se relit mal dans une liste de quarante-cinq.
+La table fait donc la traduction une fois, à l'endroit où elle se voit, plutôt que quinze fois
+dans quinze noms de fichier qu'il faudrait relire un par un.
+
+Vingt-et-une fiches, **210 Ko**. Sept commerces sur quinze.
