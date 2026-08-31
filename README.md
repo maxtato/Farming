@@ -7900,3 +7900,72 @@ soit calculé.
 > et il se traitera pour lui-même.
 
 Les vingt suites passent.
+
+## Plusieurs chantiers de front, et l'arrêt en rouge
+
+> « Pour l'automatisation, fais qu'on puisse choisir plusieurs parcelles en parallèle, et
+> lancer la même automatisation sur trois parcelles. Fais qu'on puisse après en supprimer une
+> sans supprimer les autres, et puis rajouter une automatisation supplémentaire pour un
+> élevage, qu'on ne soit pas obligé d'arrêter toute l'automatisation et d'en refaire une
+> depuis le début. Et pour le bouton arrêter, fais-le en rouge pas en jaune, parce que là on
+> se perd. »
+
+**Le moteur savait déjà tout faire, et c'est l'écran qui l'empêchait.** Vérifié au banc avant
+d'écrire une ligne de correctif :
+
+| | moteur, avant toute modification |
+|---|---|
+| trois chantiers de blé en parallèle | déjà bon |
+| en retirer un, les deux autres tournent | déjà bon |
+| ajouter un élevage par-dessus | déjà bon |
+| relancer la même parcelle | remplace, ne double pas |
+
+`CHANTIERS` est une liste indexée par parcelle depuis le premier jour. Ce qui obligeait à tout
+reprendre, ce sont **deux détails de l'écran** :
+
+1. `chSel` ne tenait **qu'une** parcelle ;
+2. et surtout **LANCER fermait le panneau** — on était éjecté après chaque lancement, donc on
+   rouvrait, donc on avait l'impression de repartir de zéro.
+
+### Le lot
+
+Toucher une parcelle l'**ajoute** au lot, la retoucher l'en retire, et la carte les surligne
+toutes — `planTaches` acceptait déjà plusieurs entrées, `dessinerCarte` la parcourt, il n'y
+avait rien à y réécrire. Le bouton compte : **« LANCER LES 3 »**. Un seul réglage — la
+culture, le produit, la destination, une fois ou en continu — part sur les trois d'un coup.
+
+Chaque chantier reçoit **sa copie** des destinations. Partager l'objet ferait qu'en retoucher
+un les retoucherait tous, et le banc le vérifie explicitement.
+
+**Un enclos se règle seul.** Ses produits dépendent de l'espèce qui y vit — une vache et une
+brebis ne donnent pas la même chose — et une destination commune n'aurait pas de sens. Le
+toucher remplace donc le lot au lieu de s'y ajouter.
+
+### En retirer un, en ajouter un autre
+
+L'écran **ne se ferme plus** au lancement : le lot se relâche, la liste des chantiers en cours
+revient, et la parcelle suivante est à un doigt. Et chaque ligne de cette liste porte sa
+**croix rouge**, qui ne retire que ce chantier-là — c'est le plus court chemin pour dire
+« en supprimer une sans supprimer les autres ».
+
+### Le rouge
+
+`ARRÊTER` et `LANCER` portaient le même `pri`, donc le même jaune : le bouton disait ce qu'il
+ferait, mais sa couleur disait le contraire une fois sur deux. `ARRÊTER` passe au rouge des
+feux arrière du jeu, `rgb(216, 68, 47)` — et le contrôle le mesure **en pixels rendus**, pas
+en nom de classe : une classe peut exister sans que la règle CSS s'applique.
+
+On n'arrête que si **tout le lot** tourne. Un lot panaché — deux qui tournent, une neuve — se
+relance en bloc, ce qui remet les trois au même réglage : c'est exactement ce qu'on veut en
+ajoutant une parcelle à deux qui tournent déjà.
+
+> **Le banc a suivi, sans qu'aucun contrôle soit affaibli.** `plan.js` montait l'écran en
+> écrivant `chSel = ip` — la variable renommée — ce qui en faisait une globale muette : la
+> rangée des cultures restait vide et le banc plantait. Son échafaudage lit maintenant le
+> lot. Un seul contrôle disait le contraire du nouveau comportement, « et referme l'écran » :
+> il est réécrit **plus exigeant**, pas plus permissif — il ne suffit pas que l'écran reste
+> ouvert, il faut que le lot soit relâché et que le chantier posé soit **déjà** dans la liste.
+> Il échoue sur la version d'avant, qui rendait `display:none`. Six contrôles s'ajoutent :
+> `plan.js` passe de 28 à **36**.
+
+Les vingt suites passent.

@@ -817,6 +817,9 @@
     border:2px solid rgba(255,255,255,.22);color:rgba(255,255,255,.6)}
   #plan .pb.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.5)}
   #plan .pb.pri{border-color:#FAD201;background:#FAD201;color:#1B2429}
+  #plan .pb.pri.stop{border-color:#D8442F;background:#D8442F;color:#FFF1EC}
+  #plan .pcx{display:inline-block;margin-left:8px;padding:0 5px;border-radius:7px;
+    color:#D8442F;font-weight:700;opacity:.85}
   #plan .pb.pri.no{border-color:rgba(255,255,255,.18);background:none;
     color:rgba(255,255,255,.35)}
   #rot{position:absolute;inset:0;background:#1B2429;display:none;align-items:center;justify-content:center;
@@ -16128,7 +16131,26 @@ let planTaches = [];
    TROIS RANGÉES, ET ELLES POSENT TROIS QUESTIONS DANS L'ORDRE : quoi cultiver, quoi
    livrer, où le livrer. La troisième est celle que le cahier des charges appelle « la
    troisième étape, disponible dès le départ ». */
-let chSel = -1;                       // la parcelle désignée, ou -1
+/* LA SÉLECTION EST UN LOT, PAS UNE PARCELLE.
+   Le joueur : « fais qu'on puisse choisir plusieurs parcelles en parallèle, et lancer la
+   même automatisation sur trois parcelles ; si on veut du blé sur trois parcelles, par
+   exemple. Fais qu'on puisse après en supprimer une sans supprimer les autres, et puis
+   rajouter une automatisation supplémentaire pour un élevage sans être obligé d'arrêter
+   toute l'automatisation et d'en refaire une depuis le début. »
+
+   LE MOTEUR SAVAIT DÉJÀ LE FAIRE, ET C'EST L'ÉCRAN QUI L'EMPÊCHAIT. `CHANTIERS` est une
+   liste indexée par parcelle depuis le premier jour : trois chantiers de blé coexistent,
+   en retirer un laisse les autres tourner, en ajouter un d'élevage ne touche à rien.
+   Vérifié au banc avant d'écrire une ligne. Ce qui obligeait à tout refaire, c'étaient
+   deux détails de l'écran : `chSel` ne tenait QU'UNE parcelle, et surtout LANCER fermait
+   le panneau — on était éjecté après chaque lancement, donc on rouvrait, donc on avait
+   l'impression de repartir de zéro.
+
+   UN ENCLOS SE RÈGLE SEUL. Ses produits dépendent de l'espèce qui y vit — une vache et
+   une brebis ne donnent pas la même chose — et une destination commune n'aurait pas de
+   sens. Toucher un enclos remplace donc le lot ; les cultures, elles, s'empilent. */
+let chLot = [];                       // les parcelles désignées, dans l'ordre des touches
+const chRef = ()=> chLot.length ? chLot[0] : -1;   // celle dont on montre les réglages
 let chQuoi = 'culture', chCrop = 0, chEngrais = false;
 let chProduit = null, chDest = {}, chContinu = false, chEdit = null;
 
@@ -16174,7 +16196,7 @@ function chargerReglages(ip){
 }
 function ouvrirPlan(){
   relacherCommandes();
-  chSel = -1; planTaches = [];
+  chLot = []; planTaches = [];
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
@@ -16206,7 +16228,7 @@ function majPlan(){
   boucle.textContent = 'EN CONTINU';
 
   /* ---------- AUCUNE PARCELLE DÉSIGNÉE : on montre les chantiers en cours ---------- */
-  if(chSel < 0){
+  if(!chLot.length){
     if(!CHANTIERS.length) rE.appendChild(planPuce('Touche une parcelle sur la carte', false, null));
     for(const C of CHANTIERS){
       const P = PARCELS[C.p];
@@ -16217,10 +16239,20 @@ function majPlan(){
                 || (C.malProduit ? C.malProduit[Object.keys(C.malProduit)[0]].mal : null)
                 || NOM_ETAPE[C.etape] || C.etape || '…';
       const b = planPuce('Parcelle ' + (C.p + 1) + ' · ' + quoi + ' — ' + dit,
-                         false, ()=>{ chSel = C.p; chargerReglages(C.p);
+                         false, ()=>{ chLot = [C.p]; chargerReglages(C.p);
                                       planTaches = [{quoi:'parcelle', p:C.p}]; majPlan(); });
       b.classList.add('tache');
       if(C.bloque || C.bloqueM || C.malProduit) b.classList.add('vide');
+      /* ET CHAQUE LIGNE PORTE SON PROPRE ARRÊT. « Qu'on puisse après en supprimer une sans
+         supprimer les autres » : le plus court chemin pour le dire est une croix sur la
+         ligne, rouge comme le bouton, qui ne retire que ce chantier-là. */
+      const x = document.createElement('div');
+      x.className = 'pcx'; x.textContent = '✕';
+      x.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
+        retirerChantier(C.p);
+        showHint('CHANTIER ARRÊTÉ — PARCELLE ' + (C.p + 1));
+        majPlan(); });
+      b.appendChild(x);
       rE.appendChild(b);
     }
     document.getElementById('planaide').textContent =
@@ -16232,11 +16264,16 @@ function majPlan(){
     return;
   }
 
-  /* ---------- UNE PARCELLE EST DÉSIGNÉE ---------- */
+  /* ---------- UNE PARCELLE, OU UN LOT, EST DÉSIGNÉ ---------- */
+  const chSel = chRef();
   const p = PARCELS[chSel], C = chantierDe(chSel);
-  const enCours = !!C;
-  rE.appendChild(planPuce('Parcelle ' + (chSel + 1), false,
-                          ()=>{ chSel = -1; planTaches = []; majPlan(); }));
+  /* « EN COURS » VAUT POUR LE LOT ENTIER, et c'est ce qui décide du bouton : on n'arrête
+     que si TOUTES les parcelles désignées tournent déjà. Un lot panaché — deux qui
+     tournent, une neuve — se relance en bloc, ce qui remet les trois au même réglage. */
+  const enCours = chLot.length > 0 && chLot.every((i)=> chantierDe(i));
+  rE.appendChild(planPuce(chLot.length > 1 ? chLot.length + ' parcelles'
+                                           : 'Parcelle ' + (chSel + 1), false,
+                          ()=>{ chLot = []; planTaches = []; majPlan(); }));
   rE.appendChild(planPuce('Culture', chQuoi === 'culture',
     p.pature ? null : ()=>{ chQuoi = 'culture'; chProduit = CROPS[chCrop].cle;
                             chEdit = chProduit; chDest = {}; majPlan(); }));
@@ -16300,15 +16337,28 @@ function majPlan(){
       ? 'Monte d’abord un enclos sur cette parcelle, en t’y arrêtant avec un engin.'
     : !chEdit ? 'Choisis ce que tu veux livrer.'
     : !chDest[chEdit] ? 'Où livrer ' + nomDe(chEdit) + ' ?'
-    : (enCours ? 'Le chantier tourne. Touche ARRÊTER pour le retirer.'
-               : 'Une fois ou en continu, puis LANCER.');
+    : (enCours ? (chLot.length > 1
+          ? 'Les ' + chLot.length + ' chantiers tournent. ARRÊTER les retire tous.'
+          : 'Le chantier tourne. Touche ARRÊTER pour le retirer.')
+       : (chLot.length > 1
+          ? 'Une fois ou en continu, puis LANCER : le même réglage part sur les '
+            + chLot.length + ' parcelles.'
+          : 'Une fois ou en continu, puis LANCER.  ·  Touche une autre parcelle pour en'
+            + ' ajouter une au lot.'));
   document.getElementById('planaide').textContent = aide;
   boucle.classList.toggle('on', chContinu);
   const pret = chQuoi === 'culture'
     ? (!!chProduit && !!chDest[chProduit])
     : (!!patureDe(chSel) && Object.keys(chDest).length > 0);
   lancer.classList.toggle('no', !pret && !enCours);
-  lancer.textContent = enCours ? 'ARRÊTER' : 'LANCER';
+  /* ARRÊTER EST ROUGE, LANCER EST JAUNE. Le joueur : « pour le bouton arrêter, fais-le en
+     rouge pas en jaune parce que là on se perd. » Les deux portaient le même `pri`, donc
+     le même jaune : le bouton disait ce qu'il ferait, mais sa couleur disait le contraire
+     une fois sur deux. Le rouge est celui des feux arrière du jeu, pas un rouge d'alerte
+     inventé pour l'occasion. */
+  lancer.classList.toggle('stop', enCours);
+  lancer.textContent = enCours ? (chLot.length > 1 ? 'ARRÊTER LES ' + chLot.length : 'ARRÊTER')
+                               : (chLot.length > 1 ? 'LANCER LES ' + chLot.length : 'LANCER');
   dessinerCarte();
 }
 
@@ -16566,18 +16616,19 @@ planCv.addEventListener('pointerup', planDoigtFin);
 planCv.addEventListener('pointercancel', planDoigtFin);
 function planDesigner(ev){
   const w = carteVersMonde(ev);
-  /* UNE SEULE PARCELLE À LA FOIS. L'ancien écran composait une FILE de parcelles pour un
-     engin donné ; ici chaque parcelle a son chantier, et les chantiers tournent tous
-     ensemble. Toucher une parcelle la désigne, la retoucher la relâche.
-     `planTaches` ne sert plus qu'à la carte : c'est elle qui dit quoi surligner, et il
-     n'y a rien à réécrire dans `dessinerCarte` pour cela. */
-  {
-    const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
-                                              && Math.abs(w.z - p.z) < p.h/2);
-    if(i < 0) return;
-    if(chSel === i){ chSel = -1; planTaches = []; }
-    else { chSel = i; chargerReglages(i); planTaches = [{quoi:'parcelle', p:i}]; }
-  }
+  /* ON EMPILE LES PARCELLES : toucher en ajoute une au lot, la retoucher l'en retire.
+     `planTaches` ne sert qu'à la carte — elle dit quoi surligner — et elle acceptait déjà
+     plusieurs entrées : `dessinerCarte` la parcourt. Rien à y réécrire. */
+  const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
+                                            && Math.abs(w.z - p.z) < p.h/2);
+  if(i < 0) return;
+  const k = chLot.indexOf(i);
+  if(k >= 0) chLot.splice(k, 1);
+  else if(PARCELS[i].pature || (chLot.length && !!PARCELS[chLot[0]].pature))
+    chLot = [i];                      // un enclos se règle seul, et ne se mêle pas aux champs
+  else chLot.push(i);
+  if(chLot.length) chargerReglages(chLot[0]);
+  planTaches = chLot.map((q)=> ({quoi:'parcelle', p:q}));
   majPlan();
 }
 document.getElementById('planfermer').addEventListener('pointerdown', fermerPlan);
@@ -16585,21 +16636,36 @@ document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
   chContinu = !chContinu; majPlan();
 });
 document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
-  if(chSel < 0) return;
-  if(chantierDe(chSel)){
-    retirerChantier(chSel);
-    showHint('CHANTIER ARRÊTÉ — PARCELLE ' + (chSel + 1));
-    majPlan(); return;
+  if(!chLot.length) return;
+  const lot = chLot.slice();
+  /* ON N'ARRÊTE QUE SI TOUT LE LOT TOURNE — sinon le bouton lance, et relancer un lot
+     panaché remet ses parcelles au même réglage, ce qui est précisément ce qu'on veut
+     quand on en ajoute une à deux qui tournent déjà. */
+  if(lot.every((i)=> chantierDe(i))){
+    for(const i of lot) retirerChantier(i);
+    showHint(lot.length > 1 ? lot.length + ' CHANTIERS ARRÊTÉS'
+                            : 'CHANTIER ARRÊTÉ — PARCELLE ' + (lot[0] + 1));
+    chLot = []; planTaches = []; majPlan(); return;
   }
+  const ref = lot[0];
   const pret = chQuoi === 'culture'
     ? (!!chProduit && !!chDest[chProduit])
-    : (!!patureDe(chSel) && Object.keys(chDest).length > 0);
+    : (!!patureDe(ref) && Object.keys(chDest).length > 0);
   if(!pret) return;
-  poserChantier(chSel, {quoi:chQuoi, continu:chContinu, crop:chCrop,
-                        engrais:chEngrais, produit:chProduit, dest:chDest});
-  showHint('CHANTIER LANCÉ — PARCELLE ' + (chSel + 1)
+  for(const i of lot)
+    poserChantier(i, {quoi:chQuoi, continu:chContinu, crop:chCrop,
+                      engrais:chEngrais, produit:chProduit,
+                      // Chaque chantier a SA copie des destinations : partager l'objet
+                      // ferait qu'en retoucher un les retoucherait tous.
+                      dest:Object.assign({}, chDest)});
+  showHint((lot.length > 1 ? lot.length + ' CHANTIERS LANCÉS'
+                           : 'CHANTIER LANCÉ — PARCELLE ' + (ref + 1))
            + (chContinu ? ' · EN CONTINU' : ''));
-  fermerPlan();
+  /* ET L'ON RESTE SUR L'ÉCRAN. Il se fermait après chaque lancement, et c'est ce qui
+     donnait l'impression qu'il fallait tout reprendre depuis le début pour en ajouter un
+     second : on relâche le lot, la liste des chantiers en cours revient, et la parcelle
+     suivante est à un doigt. */
+  chLot = []; planTaches = []; majPlan();
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
