@@ -9558,3 +9558,18 @@ toute adresse sauf `three.js`, si bien qu'une image aurait « chargé » du HTML
 proteste.
 
 Les vingt-deux suites passent : **1 005 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+### Deuxième commerce : la Boucherie
+
+Le boucher — calot blanc, tablier, chemise rayée — a rejoint la table. Ajouter un commerce, une
+fois la mécanique en place, c'est **trois renommages de fichier et une ligne dans `PORTRAITS`** :
+c'était le but de n'en câbler qu'un d'abord.
+
+Le banc a grossi avec la table plutôt que de rester sur son premier commerce : il vérifie
+maintenant que **chacune des entrées** a ses trois fichiers, qu'ils font tous 192 × 240, et que
+deux commerces ne partagent jamais un chemin. Six fichiers aujourd'hui, quarante-cinq à la fin,
+et le contrôle ne changera pas d'une ligne.
+
+La mise en page tient sur une silhouette plus large : le boucher a les épaules et la main plus
+basses que le chef, et la boîte de 96 × 120 le cadre comme lui — c'est l'écart des yeux qui le
+décide, pas la carrure. **20 contrôles** pour `visages.js`.
