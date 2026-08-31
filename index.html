@@ -128,7 +128,7 @@
   @media (min-width:1100px){:root{--ui:1.3}}
   @media (min-width:1500px){:root{--ui:1.55}}
   @media (min-width:2200px){:root{--ui:1.9}}
-  #hud,#panneau,#fen,#parc,#plan,#contrat,#dose,#accueil{zoom:var(--ui)}
+  #hud,#panneau,#fen,#parc,#plan,#contrat,#dose,#acte,#accueil{zoom:var(--ui)}
   #hud{position:absolute;inset:0;pointer-events:none;z-index:10}
   .pill{position:absolute;display:flex;align-items:center;gap:10px;
     padding:7px 12px;border-radius:14px;background:rgba(20,28,33,.55);
@@ -968,6 +968,70 @@
   #choix.jaune .titre{color:#FFD21E}
   #choix.vert  .titre{color:#8BE07A}
   #choix.bleu  .titre{color:#8FD3F5}
+  /* ---------- LA FENÊTRE D'ACTION : UN VERBE, TOUT CE QU'IL PERMET, UN CURSEUR PAR LIGNE
+     La colonne du quai listait chaque geste possible comme un bouton — jusqu'à huit au
+     silo, et il fallait les faire un par un, en rouvrant la colonne entre chaque. Le
+     joueur : « simplifie les actions sur chacun des bâtiments, des élevages, des
+     entrepôts et de tous les endroits où on doit agir : un bouton pour charger, un pour
+     déposer, et suivant celui sur lequel on appuie ça ouvre une petite fenêtre avec tout
+     ce qui est possible et directement le curseur visible — une fenêtre avec le nom, la
+     capacité totale disponible, et le curseur qui dit combien on va prendre. »
+     C'est une feuille comme les autres, à ceci près qu'elle DÉFILE : au silo, cinq tas
+     font cinq lignes, et une ligne fait cinquante-huit pixels. */
+  #acte{position:absolute;inset:0;display:none;pointer-events:auto;z-index:23}
+  #actefond{position:absolute;inset:0;background:var(--voile)}
+  #acteboite{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:min(94vw,430px);max-height:calc(100% - 26px);
+    display:flex;flex-direction:column;padding:16px 18px 14px}
+  #actesur{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;
+    color:var(--sourdine);transform:rotate(-.8deg);flex:none}
+  #actetitre{font-family:var(--titre);font-size:21px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);margin:2px 0 8px;flex:none;
+    transform:scaleY(1.14) rotate(-1.2deg);transform-origin:left center}
+  #acteliste{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:0;
+    padding:3px;margin:-3px}
+  /* UNE LIGNE PORTE TOUT CE QU'IL FAUT POUR DÉCIDER : le nom, ce qu'on va prendre, ce
+     qui est disponible, et le curseur. Rien de plus — le prix ne s'ajoute que pour une
+     livraison, où il est la question. */
+  .al{background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb);
+    padding:8px 12px 4px}
+  .al:nth-child(odd){transform:rotate(.4deg)}
+  .al:nth-child(even){transform:rotate(-.4deg)}
+  .al .alt{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .al .alt b{font-family:var(--titre);font-size:15px;letter-spacing:.4px;
+    text-transform:uppercase;color:#3B4A2E}
+  .al .alt .q{font-family:var(--titre);font-size:18px;color:var(--titreC);white-space:nowrap}
+  .al .ald{font-size:10px;color:var(--sous);margin-top:1px}
+  .al .ald .pr{color:var(--titreC);font-weight:bold}
+  /* Un geste sans quantité : un bouton pleine largeur, penché comme les lignes. */
+  #acteliste .db.ag{width:100%;padding:10px 12px;white-space:normal;line-height:1.25}
+  #acteliste .db.ag:nth-child(odd){transform:rotate(.4deg)}
+  #acteliste .db.ag:nth-child(even){transform:rotate(-.4deg)}
+  #acteliste .db.ag:active{transform:translateY(2px)}
+  .al input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;
+    background:none;margin:2px 0 0;touch-action:pan-x;pointer-events:auto}
+  .al input[type=range]::-webkit-slider-runnable-track{height:9px;border-radius:6px;
+    background:var(--paleOmb)}
+  .al input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:24px;height:24px;border-radius:50%;background:var(--or);margin-top:-8px;
+    box-shadow:0 3px 0 var(--orOmb)}
+  .al input[type=range]::-moz-range-track{height:9px;border-radius:6px;background:var(--paleOmb)}
+  .al input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;
+    border-radius:50%;background:var(--or);box-shadow:0 3px 0 var(--orOmb)}
+  /* LE TOTAL D'UNE LIVRAISON : bande dorée, chiffre nettement plus grand. C'est la ligne
+     que le joueur doit voir en premier — elle ne peut pas être traitée comme les autres. */
+  #actetotal{background:var(--or);border-radius:11px;box-shadow:0 4px 0 var(--orOmb);
+    padding:8px 12px;margin-top:9px;display:none;flex:none;
+    justify-content:space-between;align-items:baseline;gap:10px;transform:rotate(-.5deg)}
+  #actetotal .l{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+    color:#7A5C15;font-weight:bold}
+  #actetotal .v{font-family:var(--titre);font-size:24px;color:#5A3E0B;letter-spacing:-.3px}
+  #actebtns{display:flex;gap:7px;margin-top:10px;flex:none}
+  #actebtns .db{flex:1}
+  #actebtns #actego{flex:1.6}
+  #actebtns .db:nth-child(1){transform:rotate(-1.4deg)}
+  #actebtns .db:nth-child(2){transform:rotate(.8deg)}
+  #actebtns .db:active{transform:translateY(2px)}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
     --act:#E8B44A;--actOmb:#B4861A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
@@ -1137,8 +1201,9 @@
       </div>
       <div id="dosebtns2">
         <div class="db ann" id="doseann">Annuler</div>
-        <!-- Le libellé est réécrit à chaque ouverture par `ouvrirQuantite` : voir
-             SENS_BOUTON. Celui-ci n'est plus qu'un repli, et celui de l'atelier. -->
+        <!-- Le libellé est réécrit à chaque ouverture par `ouvrirQuantite`, qui reçoit
+             le verbe de celui qui l'appelle. Celui-ci n'est plus qu'un repli, et celui
+             de l'atelier — le seul endroit où l'on « lance une production ». -->
         <div class="db pri" id="dosego">Lancer la production</div>
       </div>
     </div>
@@ -1191,6 +1256,21 @@
     <div class="rgb pic" data-p="prix" style="color:#8BE07A" aria-label="Prix des commerces"></div>
   </div>
   <div id="choix"></div>
+  <!-- LA FENÊTRE D'ACTION. Un verbe, la liste de tout ce qu'il permet ici, un curseur par
+       ligne. Voir `ouvrirActes`. -->
+  <div id="acte">
+    <div id="actefond"></div>
+    <div id="acteboite">
+      <div id="actesur"></div>
+      <div id="actetitre"></div>
+      <div id="acteliste"></div>
+      <div id="actetotal"></div>
+      <div id="actebtns">
+        <div class="db ann" id="acteann">Retour</div>
+        <div class="db pri" id="actego">Valider</div>
+      </div>
+    </div>
+  </div>
   <div id="service"></div>
   <div id="stick"><div id="knob"></div></div>
   <div id="thr"><div class="lab up">AV</div><div class="lab dn">AR</div><div id="thrknob"></div></div>
@@ -20716,7 +20796,17 @@ function empechementsIci(m){
     // embarquer des bêtes
     if(E.prixBete > 0){
       const cap = capaciteBetail(m), prets = betesAdultes(P);
-      if(cap <= 0) dit('EMBARQUER UNE BÊTE', 'IL FAUT LE PICK-UP OU LE FOURGON');
+      /* DEUX RAISONS DE NE PAS POUVOIR EMBARQUER, ET UNE SEULE ÉTAIT DITE.
+         `capaciteBetail` rend zéro dans DEUX cas : l'engin n'est pas fait pour ça, ou sa
+         caisse porte déjà de la marchandise — on ne met pas une vache sur quatre-vingts
+         kilos de blé. Le message ne connaissait que le premier, si bien qu'au volant du
+         fourgon, benne chargée, on lisait « il faut le pick-up ou le fourgon ». Depuis
+         que l'empêchement figure dans la fenêtre de l'enclos, à côté des gestes qui
+         marchent, ce conseil impossible à suivre se lit dix fois plus. */
+      const caisse = caisseDe(m);
+      if(cap <= 0 && caisse && caisse.load > 1)
+        dit('EMBARQUER UNE BÊTE', 'LA BENNE PORTE DÉJÀ ' + kg(caisse.load).toUpperCase());
+      else if(cap <= 0) dit('EMBARQUER UNE BÊTE', 'IL FAUT LE PICK-UP OU LE FOURGON');
       else if(prets <= 0) dit('EMBARQUER UNE BÊTE',
         P.betes.length ? 'AUCUNE N\'EST ENCORE ADULTE' : 'L\'ENCLOS EST VIDE');
       else if((v.betail || 0) >= cap) dit('EMBARQUER UNE BÊTE', 'LE CHARGEMENT EST COMPLET');
@@ -20789,9 +20879,17 @@ function chargePortee(m){
 }
 /* Le maximum transférable ici et maintenant, pour proposer un curseur qui ne ment pas.
    Chaque cas reprend la borne que `executer` s'impose déjà, sans le débit. */
+/* CE QU'ON PORTE DE CETTE NATURE-LÀ, ET NON CE QU'ON PORTE EN TOUT.
+   `porte` valait `T.load` : la somme de tous les lots de la caisse. Tant que le nombre ne
+   servait qu'à borner un curseur qu'on poussait à fond, personne ne l'a vu ; la fenêtre
+   d'action l'ÉCRIT, ligne par ligne, et une benne portant 120 kg de blé et 60 d'orge
+   annonçait « Blé — jusqu'à 180 kg » sur les deux lignes. `executer` n'a jamais eu ce
+   défaut — il borne à `chargeDe(T, A.cle)` — si bien que le transfert s'arrêtait au bon
+   endroit et que seul l'affichage mentait. */
 function quantiteMax(m, A){
   const T = caisseDe(m);
-  const place = T ? T.capacite - T.load : 0, porte = T ? T.load : 0;
+  const place = T ? T.capacite - T.load : 0;
+  const porte = T ? chargeDe(T, A.cle) : 0;
   switch(A.sens){
     case 'tremie': return Math.min(hopper, siloMax() - siloTotal());
     case 'tremieVente': case 'tremieLivraison': return hopper;
@@ -20826,51 +20924,45 @@ const SENS_OBJECTIF = {charger:'remplir', collecter:'remplir', vider:'vider'};
 /* `modeDe` sert encore au pilote automatique, qui raisonne toujours en « je viens
    vider » ou « je viens remplir ». La colonne, elle, ne pose plus la question : elle
    montre tout. */
-/* DOSER OU DÉPOSER. Le curseur s'ouvrait pour TOUT transfert de plus de deux kilos :
-   rentrer une benne au silo demandait deux appuis — l'action, puis « valider » sur un
-   curseur déjà poussé au maximum — pour un geste où il n'y a rien à choisir. On ne
-   dépose pas les trois quarts d'une benne dans la grille du silo, on la vide.
-   Le dosage n'a de sens que quand la quantité change ce qu'on emporte ou ce qu'on
-   gagne : ce qu'on RÉCUPÈRE d'un stock, parce qu'on ne vient chercher que deux cents
-   kilos d'orge et qu'une caisse entamée n'accepte plus d'autre nature ; ce qu'on VEND,
-   parce que l'étal a un plafond et qu'on garde le reste pour le mieux-disant ; et les
-   bêtes qu'on embarque, parce qu'on vient parfois en chercher une, pas tout l'enclos.
-   Tout le reste — silo, entrepôt, auge, trémie d'usine — part d'un seul appui et en
-   entier : personne n'y est payé au kilo versé, et rien n'y est plafonné qu'on puisse
-   ménager. Le curseur de `verser` mentait d'ailleurs, faute de borner par la place
-   restante dans la trémie de l'usine : il annonçait toute la benne pour trente de place.
-   Cette table est SÉPARÉE de SENS_VIDER : celle-là dit dans quel sens la matière
-   circule et sert au pilote automatique, celle-ci dit seulement si l'on pose une
-   question au joueur. Les confondre remettrait le curseur sur « ranger » et
-   l'enlèverait à « prendre » — les deux tables se croisent, elles ne se complètent
-   pas : `traire` et `prendre` remplissent, `vendre` vide, et les trois se dosent. */
-const SENS_DOSABLE = {prendre:1, prendreEntrepot:1, reprendre:1, traire:1, traire2:1,
-                      vendre:1, tremieVente:1};
-/* LE BOUTON DU CURSEUR DIT LE GESTE, ET PAS « LANCER LA PRODUCTION ».
-   Le libellé était écrit en dur dans le HTML — c'est celui de l'atelier, le premier
-   endroit qui a eu un curseur — et `ouvrirQuantite` sait depuis longtemps le remplacer
-   par `o.action`. Seuls l'achat de semence et celui d'engrais s'en servaient : partout
-   ailleurs, on demandait au fermier de « lancer la production » pour charger une benne
-   de blé ou pour vendre son lait. Le joueur : « ce nom ne doit être que pour produire,
-   pour le reste ça doit porter le nom de ce qu'on veut faire ».
-   Un sens absent de cette table n'est de toute façon pas dosable — c'est la même liste,
-   mot pour mot, et c'est voulu : le jour où l'on rendra un sens dosable, il faudra lui
-   donner son verbe ici, faute de quoi il retombera sur le libellé de l'atelier. */
-const SENS_BOUTON = {prendre:'Charger', prendreEntrepot:'Charger', reprendre:'Charger',
-                     traire:'Collecter', traire2:'Collecter',
-                     vendre:'Vendre', tremieVente:'Déposer'};
+/* LES DEUX TABLES DU CURSEUR ONT DISPARU AVEC LUI.
+   `SENS_DOSABLE` disait quels gestes méritaient qu'on demande une quantité, et
+   `SENS_BOUTON` le verbe à écrire sur le bouton du curseur. Elles répondaient à une
+   question qui ne se pose plus : TOUT se dose maintenant, parce que chaque ligne de la
+   fenêtre d'action porte son curseur, et le verbe est celui du bouton qui l'a ouverte.
+   Le curseur d'atelier, lui, reste — `ouvrirQuantite` sert encore à produire, à acheter
+   au comptoir et à embarquer des bêtes — mais il n'a plus besoin qu'on lui dise quels
+   sens de transfert le méritent : il n'en voit plus aucun. */
 /* RIEN NE DÉMARRE TOUT SEUL. Un transfert partait dès qu'il n'y avait qu'une seule
    possibilité : on arrivait au silo avec une benne pleine et elle se vidait sans qu'on
    ait rien demandé. Désormais on répond toujours — mais une seule fois quand il n'y a
    qu'une possibilité dans le sens choisi. */
+/* LA FILE DES GESTES VALIDÉS, ET C'EST TOUT CE QUE LA FENÊTRE D'ACTION AJOUTE AU MOTEUR.
+   Le transfert n'a jamais su faire qu'UNE chose à la fois : `choixEnCours` porte l'action,
+   `choixLimite` ce qu'il en reste à faire, et `executer` grignote quarante kilos par
+   seconde. La fenêtre, elle, valide plusieurs lignes d'un coup — trois tas au silo, deux
+   marchandises chez le même client. On ne touche donc pas au moteur : on lui donne une
+   FILE, et il la déroule dans l'ordre, une ligne après l'autre.
+   Une ligne devenue impossible entre-temps est SAUTÉE, pas attendue : on a pu remplir la
+   benne avec la précédente, ou le client a pu saturer. C'est la même règle que pour
+   `choixEnCours`, qui s'oublie dès que son action disparaît de la liste du lieu. */
+const fileActes = [];
+function viderFileActes(){ fileActes.length = 0; }
 function actionRetenue(m){
   const L = actionsIci(m);
-  if(!L.length){ choixEnCours = null; choixLimite = null; return null; }
+  if(!L.length){ choixEnCours = null; choixLimite = null; viderFileActes(); return null; }
   // Une action commencée va jusqu'au bout : elle ne se laisse pas interrompre parce
   // qu'une autre devient possible en cours de route.
   const t = L.find((A)=> memeAction(A, choixEnCours));
   if(t) return t;
   choixEnCours = null; choixLimite = null;   // finie, ou devenue impossible : on redemande
+  while(fileActes.length){
+    const e = fileActes.shift();
+    const A = L.find((B)=> B.sens === e.sens && B.cle === e.cle && B.lieu === e.lieu
+                           && !B.commande === !e.commande);
+    if(!A) continue;
+    choixEnCours = A; choixLimite = e.q;
+    return A;
+  }
   return null;
 }
 /* Les engins en pilotage automatique ne peuvent pas être interrogés : ils prennent la
@@ -21698,6 +21790,167 @@ servEl.addEventListener('pointerdown', ()=>{ if(servEl._f) servEl._f(); refreshS
 const choixEl = document.getElementById('choix');
 const hintEl2 = document.getElementById('hint');
 let choixSignature = '';
+/* ---------- LA FENÊTRE D'ACTION ----------
+   Un VERBE, la liste de tout ce qu'il permet ici, un curseur par ligne, et un seul
+   « valider » au bas. La colonne du quai listait chaque geste comme un bouton — jusqu'à
+   huit au silo — et il fallait les faire un par un, en rouvrant la colonne entre chaque.
+
+   TROIS VERBES ET UN QUATRIÈME, et ils se déduisent du `sens` de l'action, pas d'une
+   liste écrite à côté :
+     CHARGER ..... on prend quelque chose (silo, entrepôt, étal d'un commerce)
+     DÉPOSER ..... on rend quelque chose (silo, entrepôt) sans être payé
+     LIVRER ...... on donne quelque chose à un commerce, et l'on est payé
+     INTERAGIR ... tout ce qui se passe à un enclos, quel qu'en soit le sens
+   Un enclos échappe donc au découpage général, et c'est demandé : « pour les élevages, je
+   veux que le seul bouton qui apparaisse soit "interagir", et quand on clique dessus on a
+   plusieurs lignes — remplir la mangeoire, récupérer la production, acheter une bête,
+   emporter une bête, avec des curseurs. » Remplir l'auge est un dépôt et traire un
+   chargement, mais on ne vient pas à l'enclos pour « déposer » : on vient s'en occuper. */
+const VERBE_ACTE = {
+  prendre:'charger', prendreEntrepot:'charger', reprendre:'charger',
+  traire:'charger', traire2:'charger',
+  tremie:'deposer', ranger:'deposer', rangerEntrepot:'deposer', auge:'deposer',
+  vendre:'livrer', verser:'livrer', tremieVente:'livrer', tremieLivraison:'livrer'
+};
+const MOT_VERBE = {charger:'Charger', deposer:'Déposer', livrer:'Livrer', elevage:'Interagir'};
+/* ET LE MOT DU GESTE, LÀ OÙ LE NOM SEUL NE SUFFIT PAS. Sous les trois verbes ordinaires,
+   une ligne n'a qu'un sens possible — « Blé » sous CHARGER ne peut vouloir dire qu'une
+   chose. Sous INTERAGIR, non : « Blé » remplit la mangeoire et « Lait » vide le tank, et
+   rien dans le nom ne le dit. Ces trois-là portent donc leur verbe dans le détail. */
+const MOT_ACTE = {auge:'Remplir la mangeoire', traire:'Récupérer la production',
+                  traire2:'Récupérer la production'};
+// `A.P` est la pâture : elle ne figure que sur les actions d'enclos, et c'est elle qui
+// range les quatre gestes de l'élevage sous le même verbe.
+const verbeActe = (A)=> A.P ? 'elevage' : (VERBE_ACTE[A.sens] || 'charger');
+
+const acteEl = document.getElementById('acte');
+const acteListeEl = document.getElementById('acteliste');
+const acteTotalEl = document.getElementById('actetotal');
+poserFeuille(document.getElementById('acteboite'));
+let acteLignes = [];              // {A, max, q, maj}
+let acteLivraison = null;         // le lieu, quand la fenêtre est une livraison
+function fermerActes(){
+  acteEl.style.display = 'none';
+  acteLignes = []; acteLivraison = null; acteListeEl.innerHTML = '';
+}
+/* CE QU'UNE LIGNE DIT, ET DANS QUEL ORDRE. Le nom d'abord — c'est ce qu'on cherche —,
+   puis la quantité réglée en gros, puis ce qui est disponible en petit, puis le curseur.
+   Le prix ne s'ajoute que pour une livraison, où il est la question posée. */
+function ligneActe(e, livraison){
+  const d = document.createElement('div'); d.className = 'al';
+  const t = document.createElement('div'); t.className = 'alt';
+  const b = document.createElement('b'); b.textContent = e.nom;
+  const q = document.createElement('span'); q.className = 'q';
+  const det = document.createElement('div'); det.className = 'ald';
+  const c = document.createElement('input');
+  c.type = 'range'; c.min = 0; c.max = 1000; c.step = 1; c.value = 1000;
+  t.appendChild(b); t.appendChild(q);
+  d.appendChild(t); d.appendChild(det); d.appendChild(c);
+  e.maj = ()=>{
+    q.textContent = qteHaut(e.A.cle, e.q);
+    det.innerHTML = e.dispo + (livraison
+      ? '  ·  <span class="pr">' + eur(e.q*e.prix) + '</span>' : '');
+  };
+  c.addEventListener('input', ()=>{
+    e.q = e.max*(+c.value)/1000;
+    e.maj(); majTotalActes();
+  });
+  e.q = e.max; e.maj();
+  return d;
+}
+function majTotalActes(){
+  if(!acteLivraison){ acteTotalEl.style.display = 'none'; return; }
+  let t = 0, kg = 0;
+  for(const e of acteLignes){ t += e.q*e.prix; kg += e.q; }
+  acteTotalEl.style.display = 'flex';
+  acteTotalEl.innerHTML = '<span class="l">Ce que ça rapporte</span>' +
+                          '<span class="v">' + eur(t) + '</span>';
+  return {t:t, kg:kg};
+}
+/* Un geste QUI N'EST PAS UN TRANSFERT — acheter une bête, agrandir l'enclos, ouvrir un
+   écran. Il n'a pas de curseur : c'est un bouton posé sur la feuille, dans une ligne de
+   la même famille que les autres pour que la fenêtre reste une seule liste. */
+/* UN GESTE OCCUPE TOUTE LA LIGNE, et c'est un bouton, pas une ligne PLUS un bouton.
+   La première version posait le libellé dans une ligne beige et le bouton dessous : deux
+   fois la même phrase, et une hauteur double pour un geste qui n'a rien à régler.
+   « Acheter une vache · 3 500 € » EST le bouton. */
+function gesteActe(G){
+  const bt = document.createElement('div');
+  bt.className = 'db ag' + (G.ok ? '' : ' no');
+  bt.textContent = G.txt;
+  if(G.ok) bt.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation(); fermerActes(); G.f();
+    refreshChoix(); refreshService();
+  });
+  return bt;
+}
+document.getElementById('acteann').addEventListener('pointerdown', (e)=>{
+  e.stopPropagation(); fermerActes(); });
+document.getElementById('actefond').addEventListener('pointerdown', (e)=>{
+  e.stopPropagation(); fermerActes(); });
+document.getElementById('actego').addEventListener('pointerdown', (e)=>{
+  e.stopPropagation(); validerActes(); });
+function ouvrirActes(o){
+  acteLignes = o.lignes || [];
+  acteLivraison = o.livraison || null;
+  document.getElementById('actesur').textContent = o.sur || '';
+  document.getElementById('actetitre').textContent = o.titre || '';
+  acteListeEl.innerHTML = '';
+  for(const e of acteLignes) acteListeEl.appendChild(ligneActe(e, !!acteLivraison));
+  for(const G of (o.gestes || [])) acteListeEl.appendChild(gesteActe(G));
+  majTotalActes();
+  const go = document.getElementById('actego');
+  go.textContent = o.mot || 'Valider';
+  go.style.display = acteLignes.length ? '' : 'none';
+  acteEl.style.display = 'block';
+}
+/* LA VALIDATION POSE LA FILE, ET RIEN D'AUTRE. Aucun kilo ne bouge ici : c'est
+   `executer` qui transfère, à son rythme, sous les yeux du joueur — et c'est ce qui fait
+   qu'on voit la cargaison descendre au sol pendant qu'elle part. */
+function validerActes(){
+  const T = acteLivraison ? majTotalActes() : null;
+  viderFileActes();
+  choixEnCours = null; choixLimite = null;
+  let n = 0;
+  for(const e of acteLignes){
+    if(e.q <= 0.05) continue;
+    fileActes.push({sens:e.A.sens, cle:e.A.cle, lieu:e.A.lieu,
+                    commande:!!e.A.commande,
+                    q:(e.q >= e.max - 0.05) ? null : e.q});
+    n++;
+  }
+  /* LE BILAN D'UNE LIVRAISON S'OUVRE QUAND TOUT EST PARTI, PAS AVANT. On note l'argent
+     d'avant et ce qu'on a promis ; la fenêtre du gain s'ouvrira toute seule quand la file
+     sera vide et que plus rien ne se transfère — voir `veillerLivraison`. */
+  bilanLivraison = (acteLivraison && n) ? {lieu:acteLivraison, argent0:money,
+                                           kg:T ? T.kg : 0, attente:0} : null;
+  fermerActes();
+  refreshChoix(); refreshService();
+}
+/* ET LE GAIN SE DIT, EN GRAND, UNE FOIS LA CARGAISON ARRIVÉE. « Quand on valide, on
+   revient sur l'écran de jeu où on voit la cargaison arriver au sol, et une fois que tout
+   est livré, une information claire et nette par une petite fenêtre pop-up qui dit ce
+   qu'on a gagné, et directement notre compte en banque qui monte d'autant. »
+   LA CAISSE MONTE DÉJÀ PENDANT LE TRANSFERT — `executer` encaisse kilo par kilo, et c'est
+   ce qui fait monter le compteur du bandeau sous les yeux du joueur. La fenêtre ne
+   rejoue donc pas le paiement : elle en fait le TOTAL, à la fin.
+   UN TIERS DE SECONDE D'ATTENTE avant de l'ouvrir : entre deux lignes de la file, la
+   file est vide et `choixEnCours` est nul pendant une image — sans ce délai, une
+   livraison à deux marchandises ouvrirait sa fenêtre au milieu. */
+let bilanLivraison = null;
+function veillerLivraison(dt){
+  if(!bilanLivraison) return;
+  if(fileActes.length || choixEnCours){ bilanLivraison.attente = 0; return; }
+  bilanLivraison.attente += dt;
+  if(bilanLivraison.attente < 0.34) return;
+  const B = bilanLivraison; bilanLivraison = null;
+  const gagne = money - B.argent0;
+  if(gagne < 0.005) return;                 // rien n'est parti : rien à annoncer
+  annoncerFenetre({titre:'LIVRAISON FAITE', duree:5.0,
+    sous:'Marchandise remise à ' + B.lieu + '.',
+    gains:['+ ' + eur(gagne)],
+    suite:'La caisse est à ' + eur(money)});
+}
 function refreshChoix(){
   const m = MACHINES[cur];
   // C'est le même appel qui tient les comptes pour la simulation : la colonne et le
@@ -21853,36 +22106,69 @@ function refreshChoix(){
                  cls:'ch on', f:null});
   } else {
     titreTxt = 'Que faire ici ?';
+    /* UN VERBE PAR BOUTON, ET LA FENÊTRE DIT LE RESTE.
+       La colonne portait une ligne par geste — huit au silo, une par tas et par sens —
+       et il fallait les faire un par un, en la rouvrant entre chaque. Elle porte
+       maintenant au plus quatre boutons, et chacun ouvre la liste de ce qu'il permet,
+       curseur compris. Le nombre est écrit dessus : « CHARGER · 5 » dit d'un coup d'œil
+       qu'il y a cinq tas là-dedans, ce que huit boutons empilés ne disaient pas mieux.
+       LA COULEUR RESTE CELLE DE LA MISSION. Si l'un des gestes du verbe est celui que la
+       mission attend, le bouton est jaune — c'est la seule chose que le joueur cherche
+       en arrivant, et elle ne doit pas se perdre dans le regroupement. */
+    const parVerbe = {};
     for(const A of tri){
-      /* UN DÉPÔT NE SE DOSE PAS. Le curseur s'ouvrait pour tout transfert de plus de
-         deux kilos, y compris pour rentrer une benne au silo : deux appuis — l'action,
-         puis « valider » sur un curseur déjà poussé au maximum — pour un geste où il
-         n'y avait rien à choisir, et une benne qui ne bougeait pas d'un kilo tant que
-         la fenêtre restait ouverte. Seuls les sens de SENS_DOSABLE la posent encore, et
-         seulement s'il y a plus de deux kilos en jeu : en dessous, il n'y a rien à
-         régler. Un dépôt, lui, garde `choixLimite` à null — c'est ce qui le laisse
-         aller jusqu'au dernier kilo au lieu de s'arrêter en route. Et l'on peut encore
-         n'en déposer qu'une partie : le bouton ⏹ de la ligne « En cours » arrête le
-         transfert où il en est. */
-      const max = quantiteMax(m, A);
-      lignes.push({txt:A.txt, cls:'ch' + (estMission(A) ? ' jaune' : ''), f:()=>{
-        // Une COMMANDE ne se dose pas : sa quantité est celle qu'on lui doit, ni plus
-        // ni moins. Ouvrir un curseur dessus serait demander au joueur de retrouver un
-        // chiffre que le client vient de lui donner.
-        if(SENS_DOSABLE[A.sens] && !A.commande && max >= 2)
-          ouvrirQuantite({
-            max: max, titre: A.txt, action: SENS_BOUTON[A.sens],
-            sortie: (q)=> qteHaut(A.cle, q),
-            detail: (q)=> 'Sur ' + qteHaut(A.cle, max) + ' possibles' +
-                          (A.S && A.sens === 'vendre' ? '<br>Soit ' + eur(q*prixChez(A.S, A.cle)) : ''),
-            valider: (q)=>{ choixEnCours = A; choixLimite = (q >= max - 0.5) ? null : q; }
-          });
-        else { choixEnCours = A; choixLimite = null; }
-      }});
+      const vb = verbeActe(A);
+      (parVerbe[vb] = parVerbe[vb] || []).push(A);
     }
-    for(const S2 of serv) lignes.push({txt:S2.txt, cls:'ch' + (S2.ok ? '' : ' no'),
-                                       f: S2.ok ? S2.f : null});
-    for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:null});
+    const nomLieu = (A)=> A.S ? A.S.nom
+                        : A.lieu === 'silo' ? 'Silo'
+                        : A.lieu === 'entrepot' ? 'Entrepôt'
+                        : A.P ? (ESPECES[A.P.espece] || ESPECES.vache).pluriel
+                        : A.lieu;
+    const lignesDe = (L2)=> L2.map((A)=>{
+      const max = quantiteMax(m, A);
+      return {A:A, max:max, q:max,
+              nom:(A.cle && PRODUITS[A.cle]) ? nomDe(A.cle) : A.txt,
+              dispo:(MOT_ACTE[A.sens] ? MOT_ACTE[A.sens] + '  ·  ' : '')
+                    + 'jusqu\u2019à ' + qteHaut(A.cle, max)
+                    + (A.commande ? '  ·  commande' : ''),
+              prix:A.S ? prixChez(A.S, A.cle) : 0};
+    });
+    /* À L'ENCLOS, LES GESTES DE SERVICE REJOIGNENT LE VERBE. Acheter une bête, en
+       embarquer, agrandir le pré : ce sont des gestes d'élevage, et les laisser dehors
+       aurait redonné la colonne à cinq lignes qu'on vient de retirer. « Le seul bouton
+       qui apparaisse : interagir. » */
+    const patIci = patureProche(m.v);
+    if(patIci && serv.length && !parVerbe.elevage) parVerbe.elevage = [];
+    for(const vb of ['elevage', 'livrer', 'charger', 'deposer']){
+      const L2 = parVerbe[vb];
+      if(!L2) continue;
+      const gestes = (vb === 'elevage')
+        ? serv.map((S2)=> ({txt:S2.txt, ok:S2.ok, f:S2.f}))
+              .concat(emp.map((E3)=> ({txt:E3.txt, ok:false})))
+        : [];
+      const n = L2.length + gestes.length;
+      if(!n) continue;
+      const jaune = L2.some(estMission);
+      const lieu = L2.length ? nomLieu(L2[0])
+                 : (patIci ? (ESPECES[patIci.P.espece] || ESPECES.vache).pluriel : '');
+      lignes.push({txt:MOT_VERBE[vb].toUpperCase() + (n > 1 ? '  ·  ' + n : ''),
+                   cls:'ch' + (jaune ? ' jaune' : ''),
+                   f:()=> ouvrirActes({
+                     sur:lieu, titre:MOT_VERBE[vb],
+                     lignes:lignesDe(L2), gestes:gestes,
+                     mot:vb === 'elevage' ? 'Valider' : MOT_VERBE[vb],
+                     livraison:vb === 'livrer' ? lieu : null})});
+    }
+    // Hors enclos, les services gardent leur ligne : ce sont des gestes d'un lieu, pas
+    // d'une marchandise, et ils n'ont ni quantité ni curseur.
+    if(!patIci)
+      for(const S2 of serv) lignes.push({txt:S2.txt, cls:'ch' + (S2.ok ? '' : ' no'),
+                                         f: S2.ok ? S2.f : null});
+    // Les empêchements d'un enclos sont entrés dans sa fenêtre avec le reste : les
+    // laisser aussi dans la colonne aurait redonné les cinq lignes qu'on vient d'ôter.
+    if(!patIci)
+      for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:null});
   }
   // La proposition passe AVANT tout le reste, y compris pendant un transfert : c'est la
   // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
@@ -26202,7 +26488,7 @@ function loop(now){
     hudEl.classList.toggle('robot', !!(MACHINES[cur] && MACHINES[cur].v.auto));
     enginsEl.classList.toggle('appel', !!enginTuto());
     refreshRegie();
-    refreshChoix(); refreshService(); refreshJauges();
+    refreshChoix(); refreshService(); refreshJauges(); veillerLivraison(dt);
   }
   /* LES FLÈCHES SUIVENT LA CAMÉRA, PAS L'INTERFACE. Elles étaient rafraîchies avec le
      reste du bandeau, vingt fois par seconde : la caméra, elle, bouge à soixante, et

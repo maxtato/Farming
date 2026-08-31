@@ -8756,3 +8756,116 @@ serait invisible mais toujours là, et il rendrait deux pixels de moins au texte
 `background-color`, transparent par construction : il regarde la **feuille** — un `svg.fond`
 présent, qui couvre la boîte, qui porte bien la turbulence et le déplacement — et vérifie en plus
 que le titre y est écrit à l'encre verte du papier. Les vingt suites passent.
+
+## Un verbe par bouton, une fenêtre par verbe, un curseur par ligne
+
+*« Simplifie les actions sur chacun des bâtiments, des élevages, des entrepôts et de tous les
+endroits où on doit agir : un bouton pour charger, un pour déposer, et suivant celui sur lequel
+on appuie ça ouvre une petite fenêtre avec tout ce qui est possible et directement le curseur
+visible — une fenêtre avec le nom, la capacité totale disponible, et le curseur qui dit combien
+on va prendre. »*
+
+La colonne du quai listait **chaque geste** comme un bouton — jusqu'à huit au silo, un par tas et
+par sens — et il fallait les faire un par un, en la rouvrant entre chaque. Elle porte maintenant
+au plus **quatre boutons**, et chacun ouvre la liste de ce qu'il permet.
+
+| verbe | ce qu'il regroupe |
+|---|---|
+| **CHARGER** | prendre au silo, à l'entrepôt, reprendre chez un commerce |
+| **DÉPOSER** | vider la trémie, rentrer une benne au silo ou à l'entrepôt |
+| **LIVRER** | vendre, verser chez une usine, vider la trémie chez un client |
+| **INTERAGIR** | tout ce qui se passe à un enclos, quel qu'en soit le sens |
+
+Le verbe se **déduit du sens de l'action**, pas d'une liste écrite à côté. Un enclos échappe au
+découpage, et c'est demandé : remplir l'auge est un dépôt et traire un chargement, mais **on ne
+vient pas à l'enclos pour « déposer » — on vient s'en occuper.**
+
+Mesuré au silo avec trois tas dedans et deux marchandises à bord : la colonne passe de **cinq
+lignes à deux boutons**, `CHARGER · 3` et `DÉPOSER · 2`. Le nombre est écrit dessus — il dit d'un
+coup d'œil ce qu'il y a là-dedans, ce que huit boutons empilés ne disaient pas mieux. Et **la
+couleur reste celle de la mission** : si l'un des gestes du verbe est celui que la mission attend,
+le bouton est jaune.
+
+### Ce qu'une ligne dit
+
+Le **nom** d'abord — c'est ce qu'on cherche —, puis la **quantité réglée** en gros, puis **ce qui
+est disponible** en petit, puis le **curseur**, poussé au maximum d'entrée. Le **prix** ne
+s'ajoute que pour une livraison, où il est la question posée.
+
+Sous les trois verbes ordinaires, une ligne n'a qu'un sens possible — « Blé » sous CHARGER ne peut
+vouloir dire qu'une chose. Sous INTERAGIR, non : « Blé » remplit la mangeoire et « Lait » vide le
+tank. Ces trois-là portent donc leur verbe dans le détail.
+
+**Un défaut d'affichage est apparu en écrivant le chiffre.** `quantiteMax` bornait un dépôt à
+`T.load` — la somme de **tous** les lots de la caisse. Tant que le nombre ne servait qu'à borner
+un curseur qu'on poussait à fond, personne ne l'avait vu ; la fenêtre l'écrit ligne par ligne, et
+une benne portant 120 kg de blé et 60 d'orge annonçait « **180 kg** » sur les deux. `executer` n'a
+jamais eu ce défaut — il borne à `chargeDe(T, cle)` — si bien que le transfert s'arrêtait au bon
+endroit et que **seul l'affichage mentait**.
+
+### Ce que la validation change au moteur : une file, et rien d'autre
+
+Le transfert n'a jamais su faire qu'**une** chose à la fois : `choixEnCours` porte l'action,
+`choixLimite` ce qu'il en reste, et `executer` grignote quarante kilos par seconde. La fenêtre
+valide plusieurs lignes d'un coup. On ne touche donc pas au moteur : **on lui donne une file**, et
+il la déroule dans l'ordre. Une ligne devenue impossible entre-temps est **sautée**, pas attendue
+— on a pu remplir la benne avec la précédente, ou le client a pu saturer.
+
+Mesuré : curseur poussé au quart sur 70 kg, le transfert part avec une limite de **18 kg**, et la
+seconde ligne attend son tour dans la file.
+
+### Livrer : les prix, le total, la cargaison, puis le gain
+
+*« On arrive à l'endroit où on doit livrer, on appuie sur livrer, ça ouvre la fenêtre avec tous
+les produits livrables ; on choisit les quantités, ça affiche automatiquement le prix. Et quand on
+valide on revient sur l'écran de jeu où on voit la cargaison arriver au sol, et une fois que tout
+est livré, une petite fenêtre dit ce qu'on a gagné, et le compte monte d'autant. »*
+
+Chaque ligne porte son prix, et une **bande dorée** au bas porte le total — la seule ligne traitée
+autrement que les autres, parce que c'est celle qu'on regarde. Elle se recalcule à chaque
+mouvement de curseur.
+
+La cargaison qui descend au sol **existait déjà** : `updateCargo` pose un colis toutes les
+quarante-cinq centièmes pendant tout déchargement de marchandise. Rien à ajouter — il fallait
+seulement que la file ne l'interrompe pas. Mesuré : **2 colis posés en 80 images** pour soixante
+kilos.
+
+La fenêtre du gain s'ouvre quand **tout est parti**, pas avant : un tiers de seconde d'attente,
+sans quoi une livraison à deux marchandises l'ouvrirait au milieu — entre deux lignes de la file,
+la file est vide pendant une image. Elle ne rejoue pas le paiement : `executer` encaisse kilo par
+kilo, et c'est ce qui fait monter le compteur du bandeau sous les yeux du joueur. Elle en fait le
+**total**.
+
+Le total annoncé est celui de la **marchandise**. Une prime de contrat s'ajoute par-dessus à
+l'achèvement — c'est ce qu'elle a toujours été, un bonus — si bien qu'on peut recevoir plus que
+promis, jamais moins.
+
+### L'enclos : un seul bouton
+
+Un seul `INTERAGIR`, et tout dedans : remplir la mangeoire et récupérer la production avec leur
+curseur, puis acheter une bête, en embarquer, agrandir l'enclos — chacun un bouton pleine largeur.
+Les **empêchements** de l'enclos y sont entrés aussi : les laisser dans la colonne aurait redonné
+les cinq lignes qu'on venait d'ôter.
+
+Un message y est devenu faux à force d'être lu. `capaciteBetail` rend zéro dans **deux** cas —
+l'engin n'est pas fait pour ça, ou sa caisse porte déjà de la marchandise — et le message ne
+connaissait que le premier : au volant du fourgon, benne chargée, on lisait « il faut le pick-up
+ou le fourgon ». Il dit maintenant « la benne porte déjà 80 kg ».
+
+### Deux tables mortes
+
+`SENS_DOSABLE` disait quels gestes méritaient qu'on demande une quantité, `SENS_BOUTON` le verbe à
+écrire sur le curseur. Elles répondaient à une question qui ne se pose plus : **tout se dose**,
+chaque ligne portant le sien, et le verbe est celui du bouton qui a ouvert la fenêtre.
+
+### Les bancs
+
+`ecrans.js` passe de 64 à **71 contrôles**. Sept mesurent la nouvelle chaîne : la colonne réduite
+à deux boutons, les trois tas ouverts avec leur curseur, le dépôt borné à ce que chaque nature
+porte, le curseur qui mène vraiment le transfert, la file qui garde la seconde ligne, les prix et
+le total de la livraison, les colis qui descendent, et la fenêtre du gain. Six contrôles qui
+mesuraient les deux tables mortes sont remplacés par trois qui mesurent ce qui les remplace.
+
+`guidage.js` garde ses 87 : trois contrôles y lisaient la quantité **sur le bouton**, où elle
+n'est plus ; ils ouvrent maintenant la fenêtre et la lisent dedans — et vérifient toujours que le
+mot « mission » n'apparaît nulle part. Les vingt suites passent.
