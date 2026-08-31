@@ -8196,3 +8196,126 @@ précisément ce qu'il faut garantir ici.
 
 C'était une **régression** du jour où le bord a ondulé : avant cela le chemin était un simple
 rectangle, carré par construction.
+
+## Le silo et l'entrepôt allégés une seconde fois, et l'atelier pour la première
+
+Le joueur : « confirme-moi que les travaux pour alléger le silo et l'entrepôt ont bien été
+faits, si c'est le cas je ne vois aucune diminution physique ; tu peux encore aller un peu
+plus loin et faire pareil pour les ateliers. »
+
+**C'est fait, et ne rien voir était le but.** Vérifié en rebâtissant les deux modèles depuis
+le commit d'avant :
+
+| | avant | après le premier passage |
+|---|---|---|
+| silo | 2 108 tri, 101 maillages | **1 748 tri, 95 maillages** |
+| entrepôt | 3 640 tri, 244 maillages | **3 088 tri, 212 maillages** |
+
+L'atelier, lui, n'avait jamais eu de passage : 1 888 triangles au dernier palier, inchangés.
+
+### Un banc de vérité en pixels, avant d'écrire une ligne
+
+Le premier passage avait raisonné pièce par pièce. Cette fois on a bâti un banc qui tranche :
+chaque bâtiment est construit **deux fois dans la même page**, tel quel et allégé, rendu
+depuis dix-huit points de vue — quatre azimuts sur trois hauteurs, du ras du sol au plongé —
+**ombres portées comprises**, et l'on compte les pixels qui diffèrent. Dix-huit essais ont
+été passés à la question. Le verdict trie tout seul :
+
+| essai | triangles rendus | pixels changés |
+|---|---|---|
+| atelier : les 4 tanks | 96 | **0** |
+| atelier : les fûts des 2 trémies | 40 | **0** |
+| atelier : les cônes de vidange | 40 | **0** |
+| silo : la toiture conique | 32 | 146 (0,004 %) |
+| entrepôt : les petites pièces à 10 pans → 6 | 80 | 336 (0,009 %) |
+| atelier : bidons et buses, 8 pans → 6 | 64 | 683 (0,019 %) |
+| silo : les arceaux de crinoline → anneaux | 112 | 1 239 (0,034 %) |
+| silo : la jupe évasée | 32 | 12 502 (0,35 %) |
+| silo : le couronnement | 32 | 24 838 (0,69 %) |
+| silo : le socle | 32 | **45 674 (1,26 %)** |
+
+**On prend les six premiers, on laisse les autres.** Et l'on apprend au passage que trois
+« évidences » n'en étaient pas : le socle, la jupe et le couronnement du silo ont des
+couronnes visibles qu'on aurait ôtées à l'aveugle.
+
+**Les arceaux de crinoline restent pleins**, bien qu'ils soient le plus gros gain isolé du
+silo. Rendus en anneaux ouverts ils sont plus justes — une crinoline EST un cerceau — mais
+la capture montre qu'ils disparaissent presque : la cage de l'échelle cesse de se lire à
+vingt mètres. 112 triangles ne valent pas ça.
+
+### `virole` prend les deux rayons
+
+Une virole retirait les deux disques d'une **bande**. Le procédé vaut pour tout cylindre dont
+les deux fonds sont enterrés : un fût de cuve posé au sol et coiffé d'un couvercle plus large,
+un cône de vidange coincé entre son fût et le bitume. `virole` prend donc maintenant les mêmes
+rayons que `cyl`, et les six fûts de l'atelier deviennent des viroles — **176 triangles pour
+zéro pixel**.
+
+### `degraisser` : ce qu'on ne verra jamais ne se paie pas
+
+Le même raisonnement vaut pour les six faces d'une boîte, mais on ne le tient pas à la main
+sur 430 boîtes. `degraisser` le tient tout seul, une fois, à la construction du bâtiment :
+pour chaque face, **vingt-cinq points**, et la question « chacun est-il strictement à
+l'intérieur d'un autre solide, ou posé sur le sol ? ». Test sévère — marge de 1,5 mm, un
+prisme à n pans compté par son **apothème** et non par son rayon, un seul solide doit couvrir
+le point (jamais deux bout à bout).
+
+**Et une seconde règle, qui vient des ombres, et qu'il a fallu mesurer pour trouver.** La
+carte d'ombre est dessinée avec les faces **arrière** — c'est le réglage par défaut de
+three.js, et c'est ce qui évite le moirage. Une face cachée peut donc être celle qui porte la
+profondeur d'ombre : la retirer ne change rien à l'image directe mais décale l'ombre.
+Bisecté famille par famille :
+
+| ce qu'on retire | triangles | pixels |
+|---|---|---|
+| entrepôt, les 11 familles ordinaires | 344 | **0** |
+| entrepôt, les flancs de 48 m² des nervures | 80 | 3 023 |
+| silo, les 10 familles ordinaires | 90 | **0** |
+| silo, les deux bouts de la goulotte | 8 | 792 |
+
+Ce sont les **grandes** faces qui coûtent. D'où `DEG_AIRE = 0,20 m²` : au-delà, on garde.
+On a aussi essayé de changer la politique d'ombre (`shadowSide` en face avant, ce qui rendrait
+le dégraissage exactement gratuit) — **elle coûte 0,9 à 1,3 % de l'image à elle seule**,
+quinze fois plus que ce qu'elle économise. Elle ne bouge pas.
+
+Cinq boîtes sont **entièrement** enterrées et perdent leurs six faces. Leur objet reste dans
+l'arbre, vide mais présent, **avec ses bornes d'origine** : ce sont elles qui portent les
+emprises de collision de l'atelier et son point de quai. Vérifié — la boîte englobante des
+trois bâtiments est identique au millimètre, et l'emprise de l'atelier au centième.
+
+### Le compte
+
+| | départ | 1er passage | aujourd'hui | total |
+|---|---|---|---|---|
+| silo | 2 108 | 1 748 | **1 618** | **−23,2 %** |
+| entrepôt | 3 640 | 3 088 | **2 784** | **−23,5 %** |
+| atelier, dernier palier | 1 888 | 1 888 | **1 576** | **−16,5 %** |
+| atelier, palier 6 | 1 612 | 1 612 | **1 310** | −18,7 % |
+| atelier, palier 0 | 396 | 396 | **330** | −16,7 % |
+| **les trois** | **7 636** | 6 724 | **5 978** | **−21,7 %** |
+
+**Ce que ça change à l'écran : 89 pixels sur 3 662 080**, soit 0,0024 %, sur douze points de
+vue par bâtiment et ombres comprises. Contrôlé une seconde fois d'un fichier à l'autre, sur
+trois vues à carte d'ombre pleine : 117 pixels sur 1 919 904, **0,0061 %**.
+
+Le prix : le dégraissage coûte 8,4 ms au silo et 10,0 ms à l'entrepôt, **une fois au
+chargement**, et 3,5 ms à l'atelier **à chaque module acheté** — un moment où le bâtiment est
+de toute façon rebâti et refondu.
+
+**Et il faut dire la place que ça prend.** Les trois bâtiments font 6 % de la scène : ce
+passage lui retire 430 triangles au palier où en est le joueur, jusqu'à 750 quand l'atelier
+est complet. Le même outil passé sur les seize modèles du village ne rendrait que **456
+triangles sur 16 814, soit 2,7 %** — mesuré, pas appliqué : un commerce est fait de surfaces,
+pas de volumes emboîtés, et il n'y a presque rien d'enterré dedans.
+
+`decor.js` gagne cinq contrôles, dont le seul qui compte vraiment : *ce qu'on retire ne doit
+pas se voir*, et il est vérifié en pixels rendus à chaque exécution du banc.
+
+> **Un contrôle du banc `trafic` a été rendu ferme au passage.** « Les trois modèles à dôme
+> sont tous nés » se vérifiait sur les véhicules ENCORE VIVANTS après 1 200 pas — c'est un
+> tirage, pas un relevé. Avec l'attelage passé de 7 à 10 % il occupe une place de plus dans
+> le vivier, et il arrivait qu'un des trois vienne juste de sortir du champ : un échec sur
+> trois exécutions. Ce qu'on veut savoir est *sont-ils tous nés*, et cela se note à la
+> naissance. Trois exécutions de suite au vert depuis.
+
+Les vingt suites passent.
