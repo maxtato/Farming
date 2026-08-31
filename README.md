@@ -8450,3 +8450,165 @@ aussi ce qu'ils voulaient éprouver depuis le début.
 étapes portent chacune un cercle jaune, le cercle va de l'outil au champ, après la vente il ne
 reste **ni étape, ni cercle, ni liste**, et l'on vend bien à tous les commerces qui prennent la
 culture. Les vingt suites passent.
+
+## L'achat sur la parcelle, le champ fini, et la charge qui redescend sur la machine
+
+Cinq demandes du même souffle, et elles se répondent : *« pour l'achat de parcelles, fais qu'on
+doive se positionner sur la parcelle » ; « le message comme quoi le champ était bien labouré,
+ça commence quand on est à 80 %, c'est trop tôt — fais-le au moment où on a fini » ; « je veux
+la même étiquette que quand le blé pousse, pour le labourage et la semée, qu'on sache si on a
+bien labouré 100 % du champ » ; « rajoute une petite jauge sur la moissonneuse qui indique si
+elle est pleine ou pas — pareil pour la jauge de blé et la jauge d'engrais, au-dessus des
+remorques » ; « du coup enlève la chose qui est en haut à droite de l'écran, en dessous du type
+de céréales qu'on veut planter ».*
+
+### On achète une terre en se posant dessus
+
+Le bouton s'allumait dans un rayon de **quatorze mètres autour de la pancarte**. Elle est
+plantée dans un coin de la friche, à 7,4 m du centre sur chaque axe : le disque déborde donc
+largement sur la route qui longe le champ et sur la terre du voisin. Relevé en balayant le
+disque au pas d'un mètre et de cinq degrés — **1 008 points, dont 543 hors de la friche, soit
+53,9 %** : plus de la moitié du rayon d'achat ne touchait pas la parcelle qu'il vendait.
+
+Le critère est maintenant le **rectangle de la parcelle**, le même test que `parcelleDe()` fait
+pour savoir quelle terre un engin travaille — donc la même vérité pour acheter et pour
+labourer, et plus de rayon écrit à la main puisque la parcelle porte ses cotes.
+
+| position de l'engin | avant | après |
+|---|---|---|
+| au centre de la friche | bouton | **bouton** |
+| dans un coin, au pied du panneau | bouton | **bouton** |
+| un mètre au-delà du bord | bouton | **rien** |
+| six mètres au-delà | bouton | **rien** |
+| treize mètres du panneau, sur la route | bouton | **rien** |
+
+Il faut toujours être **arrêté** : la friche traversée en diagonale, c'est deux secondes de
+terre, et « PALIER ATTEINT — 3 PARCELLES » n'aurait pas le temps d'être lu.
+
+### Le champ fini, et non les trois quarts
+
+`PART_ETAPE` passe de **0,75 à 1** : pas une cellule de reste. C'est le genre de seuil qui
+enferme un joueur si la machine du jeu ne sait pas l'atteindre — on l'a donc mesuré avant de le
+poser. L'escargot du plan de travail couvre **552 cellules sur 552, 100,00 %**, et sème ensuite
+les 552.
+
+| ce que le tutoriel attendait | avant (0,75) | après (1) |
+|---|---|---|
+| labour de la parcelle | 3 030 images — 50,5 s | **3 825 images — 63,8 s** |
+| semis de ce qui est labouré | 6 525 images | **7 275 images** |
+
+**Treize secondes de plus**, et ce sont les treize qui manquaient : le quart de champ qu'on
+laissait en jachère en partant chercher le semoir.
+
+La chaîne entière a été rejouée au seuil plein, chantier de culture en pilotage automatique, du
+premier sillon à la benne chargée :
+
+| marche | franchie à |
+|---|---|
+| labour | 3 825 images |
+| semis | 7 272 |
+| pousse | 7 275 |
+| récolte (30 kg rentrés) | 10 617 |
+| silo (30 kg déchargés) | 11 820 |
+| chargement du pick-up | 12 984 |
+
+La septième — la vente — se solde en campagne *en prenant* la mission à la Coopérative, un geste
+d'écran et non de terrain. **La moisson garde sa seconde porte** : `recolte` se solde sur le
+champ entier **ou** sur une trémie pleine, et cette seconde porte devient la principale au seuil
+plein, une parcelle de blé rendant plus que les 150 kg de la trémie neuve.
+
+### Les trois âges du champ, sur la même plaque
+
+L'étiquette qui flotte au-dessus d'une parcelle ne parlait que de la **pousse**, et restait
+éteinte pendant tout le labour et tout le semis — c'est-à-dire pendant les deux moments où le
+tutoriel attend désormais le champ entier. Elle en porte trois, dans l'ordre du calendrier :
+
+| état du champ | ce que la plaque dit |
+|---|---|
+| jachère, ou chaume | *rien* — pas d'ouvrage en cours |
+| 40 % labouré | **Labour** · 40 % labouré |
+| 551 cellules sur 552 | **Labour** · 99 % labouré |
+| tout labouré | **Labour** · 100 % labouré — à semer |
+| moitié semé | **Blé** · 50 % semé |
+| tout semé | **Blé** · 62 % de pousse |
+| mûr | **Blé** · à moissonner |
+
+Le pourcentage est **tronqué et non arrondi** : `Math.round` afficherait « 100 % » à 99,6 % d'un
+champ qui n'est pas fini, et l'on chercherait pourquoi l'étape ne passe pas. Tronqué, « 100 % »
+veut dire cent pour cent — et c'est exactement le seuil du tutoriel, qui compte de la même
+façon : 0,9982 à une cellule près, 1 quand il n'en reste aucune.
+
+Le relevé coûte **zéro** : le balayage qui compte la pousse passait déjà sur toutes les cellules
+du rectangle, une fois par seconde, pour en écarter quatre états sur cinq. Deux compteurs de
+plus dans la même boucle.
+
+### La charge redescend sur la machine
+
+Cette plaque-là a existé, et elle avait été **retirée comme doublon** : à la livraison, trois
+choses disaient le même poids de blé dans le même coin de l'écran — l'enseigne du commerce, la
+barre du bandeau, et elle. Le doublon est levé **par l'autre bout** : c'est la barre du bandeau
+qui part, et la plaque qui revient.
+
+| ce qu'on pilote | plaque de l'engin, à 6,2 m | plaque de l'outil, à 5,0 m |
+|---|---|---|
+| moissonneuse, trémie vide | Trémie · 0 kg — **VIDE** | — |
+| moissonneuse, à moitié | Trémie · Blé 75 kg | — |
+| moissonneuse pleine | Trémie · Blé 150 kg — **TRÉMIE PLEINE** | — |
+| tracteur + benne vide | — | *rien* |
+| tracteur + benne à 60 % | — | Benne · Blé 120 kg |
+| tracteur + benne mêlée | — | Benne · Blé 140 · Orge 60 — **PLEINE** |
+| tracteur + épandeur vide | — | Épandeur · Engrais 0 kg — **À REMPLIR** |
+| tracteur + épandeur plein | — | Épandeur · Engrais 30 kg — **CUVE PLEINE** |
+| tracteur + charrue | — | *rien* : une charrue ne porte rien |
+| pick-up, deux bêtes à bord | Bétail · 2 bêtes sur 2 | — |
+
+**La moissonneuse parle même à vide** — *« indique si elle est pleine ou pas »* : une jauge qui
+ne s'allume qu'une fois pleine ne répond pas à la question. Les caisses, elles, se taisent quand
+elles sont vides ; les cuves du semoir et de l'épandeur disent « À REMPLIR », parce qu'on ne
+s'en aperçoit qu'au milieu du champ.
+
+Ce sont de **petites** plaques : **7,2 m** de large contre 11,0 m pour une étiquette de lieu, le
+même canevas mis à l'échelle. Et l'étiquette de la parcelle est montée de **8,0 à 10,5 m** :
+celle de l'engin monte jusqu'à 7,73 m, les deux se touchaient dès qu'on travaillait le milieu de
+son champ — c'est-à-dire tout le temps. À 10,5 il reste quatre décimètres de ciel entre elles.
+
+**L'engrais n'est pas un produit, et c'est la seule exception.** Il ne figure pas dans `PRODUITS`
+— ni prix de vente, ni ligne de silo, ni recette : c'est un *intrant*, qui vit dans
+`STOCK.engrais`. La cuve de l'épandeur s'annonçait donc « Charge 30 kg ». Deux mots dans une
+petite table valent mieux qu'une entrée de plus dans celle des produits, qui lui donnerait un
+prix et une place au silo qu'il n'a pas.
+
+### Ce qui part du bandeau
+
+La barre de chargement du bord droit et la ligne de capitales qui la surmontait — « BLÉ 80 KG »,
+« 3 BÊTES », « TRÉMIE 92 KG » — sont **supprimées**, pas cachées : un élément qu'on garde caché
+revient au premier réglage distrait. Le pictogramme de poids de balance part avec.
+
+Le **gazole reste** exactement où il était, à 8 px au-dessus de la pédale d'accélérateur, avec
+sa pompe, son suivi de réservoir et son clignotement sous 15 %. Entre le bouton de culture, en
+haut à droite, et lui : **plus rien du tout**, mesuré élément par élément sur la bande de
+130 px contre le bord droit.
+
+### Les bancs
+
+`hud.js` passe de 36 à **40 contrôles** — la barre de charge n'existe plus, rien ne subsiste
+entre le bouton de culture et le gazole, les six plaques de machine disent ce qu'il faut, et
+l'achat de parcelle est mesuré position par position. `etiquettes.js` passe de 34 à **42** : les
+deux plaques mobiles forment une **troisième famille**, ni enseigne ni lieu, et les trois âges du
+champ y sont relevés état par état. `ecrans.js` passe de 58 à **63**, avec la chaîne entière du
+tutoriel rejouée au seuil plein.
+
+`campagne30.js` passe de 61 à **63**, et c'est le seul banc dont un contrôle a changé de
+**verdict** : il peignait exactement le cas qui ne doit plus passer — quatre cinquièmes du champ
+labouré — et affirmait que le tutoriel avançait. Il affirme maintenant l'inverse, mesure à
+l'appui (0,801 du champ, étape `labour`), puis vérifie que le champ entier fait passer au semoir.
+Deux contrôles s'ajoutent au passage : quatre cinquièmes semés ne soldent rien non plus, et
+quatre cinquièmes moissonnés trémie vide non plus.
+
+Au passage, un contrôle qui mesurait l'équerre des étiquettes à l'écran n'en cadrait plus que
+deux au quai de la Coopérative — où il n'y a que des enseignes, les plaques de lieu étant toutes
+à la ferme, à plus de 62 m. Défaut du contrôle et non du jeu : vérifié sur la version d'avant,
+qui donnait deux étiquettes elle aussi. Il relève maintenant depuis **deux postes**, le quai et
+la cour, et mesure les **deux familles** : 4 étiquettes, 90,00° partout.
+
+Les vingt suites passent.

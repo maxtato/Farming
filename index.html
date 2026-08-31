@@ -562,14 +562,16 @@
   .ped{transition:transform .07s;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65))}
   .ped svg{display:block}
   .ped.on{transform:translateY(3px) scale(.97)}
-  /* LES DEUX JAUGES DE DROITE. Deux traits de huit pixels, nus, l'un sur l'autre : rien
-     ne disait lequel comptait le gazole et lequel la charge, et il fallait les vider
-     une fois pour l'apprendre. Chacune porte maintenant son signe — une pompe, un poids
-     de balance — et le GAZOLE passe en bas, contre la pédale d'accélérateur : c'est la
-     jauge qu'on surveille en roulant, elle se lit sans quitter le pouce des yeux. Le
-     pédalier et le manche ne montent pas à la même hauteur, d'où les deux jeux de
-     cotes ; l'écart de huit pixels entre les rangées est le même dans les deux modes. */
-  #fuel,#hopper{position:absolute;right:calc(26px + env(safe-area-inset-right));
+  /* LA JAUGE DE DROITE, ET IL N'EN RESTE QU'UNE. Elles ont été deux — le gazole et la
+     charge —, deux traits de huit pixels l'un sur l'autre dont rien ne disait lequel
+     comptait quoi ; chacune a reçu son signe, une pompe et un poids de balance, et le
+     GAZOLE est passé en bas, contre la pédale d'accélérateur, parce que c'est celle
+     qu'on surveille en roulant. LA CHARGE EST PARTIE DANS LE PAYSAGE : elle se lit
+     maintenant sur une plaque posée au-dessus de la trémie et au-dessus de la remorque,
+     là où l'œil est déjà (voir `jaugesEngin`). Le joueur : « du coup enlève la chose qui
+     est en haut à droite de l'écran, en dessous du type de céréales qu'on veut planter. »
+     Le pédalier et le manche ne montent pas à la même hauteur, d'où les deux cotes. */
+  #fuel{position:absolute;right:calc(26px + env(safe-area-inset-right));
     display:flex;align-items:center;gap:6px}
   /* Une barre claire à vingt pour cent sur un champ de blé au soleil ne se voit pas.
      Un liseré sombre d'un pixel la détache de n'importe quel fond, et le pictogramme
@@ -579,7 +581,7 @@
     background:rgba(255,255,255,.22);overflow:hidden;flex:none;
     box-shadow:0 0 0 1px rgba(0,0,0,.4)}
   .jic{display:block;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
-  #fuelfill,#hopfill{display:block;height:100%}
+  #fuelfill{display:block;height:100%}
   #fuel{bottom:calc(182px + env(safe-area-inset-bottom));color:#8BE07A}
   #fuelfill{width:100%;background:#8BE07A;transition:width .2s,background .3s}
   /* SOUS QUINZE POUR CENT, ELLE CLIGNOTE. Le rouge seul se confond avec l'orange du
@@ -686,15 +688,7 @@
   #bravo.on #brgains div:nth-child(3){animation-delay:.40s}
   #bravo.on #brgains div:nth-child(4){animation-delay:.50s}
   #bravo.on #brsuite{animation-delay:.62s}
-  #hopper{bottom:calc(208px + env(safe-area-inset-bottom));color:#FFAE2E;
-    opacity:0;transition:opacity .3s}
-  #hopfill{width:0%;background:#FFAE2E}
-  #chargetxt{position:absolute;bottom:calc(234px + env(safe-area-inset-bottom));right:calc(26px + env(safe-area-inset-right));
-    font-size:9px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .3s;
-    text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap}
   #hud.btn #fuel{bottom:calc(167px + env(safe-area-inset-bottom))}
-  #hud.btn #hopper{bottom:calc(193px + env(safe-area-inset-bottom))}
-  #hud.btn #chargetxt{bottom:calc(219px + env(safe-area-inset-bottom))}
   /* La rangée de choix : même place et même costume que le bouton de service, dont
      le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
   /* La colonne porte maintenant TOUTES les possibilités du lieu, empêchements compris :
@@ -947,8 +941,6 @@
     <div id="dirs"><div class="dir" id="dirg"></div><div class="dir" id="dird"></div></div>
     <div id="pedales"><div class="ped" id="pacc"></div><div class="ped" id="pfre"></div></div>
   </div>
-  <div id="chargetxt"></div>
-  <div id="hopper"><span class="jic"></span><span class="jtrack"><i id="hopfill"></i></span></div>
   <div id="fuel"><span class="jic"></span><span class="jtrack"><i id="fuelfill"></i></span></div>
 </div>
 <div id="plan">
@@ -16187,11 +16179,10 @@ function picto(nom, taille){
    fonction de rafraîchissement, et seulement quand le signe change vraiment. */
 for(const [id, nom] of [['menuBtn','menu'], ['engins','garage'], ['auto','auto']])
   document.getElementById(id).innerHTML = picto(nom);
-// Les jauges de droite : la pompe pour le gazole, le poids pour ce qu'on transporte.
-// Dix-huit pixels — la hauteur d'une barre de huit plus ce qu'il faut pour que le
-// tracé se lise, sans faire de la vignette un bouton qu'on aurait envie de toucher.
-for(const [id, nom] of [['fuel','pompe'], ['hopper','poids']])
-  document.querySelector('#' + id + ' .jic').innerHTML = picto(nom, 18);
+// La jauge de droite : la pompe du gazole. Dix-huit pixels — la hauteur d'une barre de
+// huit plus ce qu'il faut pour que le tracé se lise, sans faire de la vignette un bouton
+// qu'on aurait envie de toucher. Le poids de balance est parti avec la barre de charge.
+document.querySelector('#fuel .jic').innerHTML = picto('pompe', 18);
 for(const b of document.querySelectorAll('#regie .rgb'))
   b.innerHTML = picto(b.dataset.p === 'stockage' ? 'stocks' : b.dataset.p);
 
@@ -17263,12 +17254,26 @@ atelEl.addEventListener('pointerdown', ()=>{
 
 /* --- achat de parcelle : on s'approche du panneau, le bouton apparaît --- */
 const buyEl = document.getElementById('buy');
-const BUY_R = 14;
+/* ON ACHÈTE UNE TERRE EN SE POSANT DESSUS, ET NON EN PASSANT À CÔTÉ DU PANNEAU.
+   Le bouton s'allumait dans un rayon de QUATORZE MÈTRES autour de la pancarte — un
+   disque de 615 m² dont la plus grande part tombe hors de la friche, sur la route qui
+   la longe et sur la parcelle voisine. Le joueur : « quand on est à plusieurs mètres du
+   panneau, on voit déjà le message s'afficher. »
+   Le critère est maintenant le RECTANGLE de la parcelle : on y est, ou l'on n'y est pas.
+   C'est le même test que `parcelleDe()` fait pour savoir quelle terre un engin travaille,
+   donc la même vérité pour acheter et pour labourer — et il n'y a plus besoin d'un rayon
+   écrit à la main, puisque la parcelle porte ses cotes. Le panneau reste planté dans son
+   coin : il se voit de loin, il s'achète de près.
+   DEUX PARCELLES NE PEUVENT PAS SE DISPUTER LE POINT — elles ne se recouvrent pas — mais
+   la boucle garde une comparaison : c'est elle qui choisit la plus INTÉRIEURE si jamais
+   deux friches se touchaient au bord. */
 function parcelForSale(v){
-  let best = null, bd = BUY_R;
+  let best = null, bd = 0;
   for(const p of PARCELS){
     if(p.owned || !p.signPos) continue;
-    const d = Math.hypot(v.pos.x - p.signPos.x, v.pos.z - p.signPos.z);
+    // Distance signée aux deux bords : négative dedans, positive dehors.
+    const dx = Math.abs(v.pos.x - p.x) - p.w/2, dz = Math.abs(v.pos.z - p.z) - p.h/2;
+    const d = Math.max(dx, dz);
     if(d < bd){ bd = d; best = p; }
   }
   return best;
@@ -17276,10 +17281,10 @@ function parcelForSale(v){
 function refreshBuyButton(){
   const v = MACHINES[cur].v;
   const p = parcelForSale(v);
-  /* COMME LE BANDEAU DE SERVICE : on s'arrête dessus, ou l'on ne lit rien. Le panneau
-     « à vendre » se voit à quatorze mètres, c'est-à-dire deux secondes de route : le
-     bouton s'allumait et s'éteignait au passage, et « PALIER ATTEINT — 3 PARCELLES »
-     n'avait pas le temps d'être lu qu'il était déjà parti. */
+  /* COMME LE BANDEAU DE SERVICE : on s'arrête dessus, ou l'on ne lit rien. La friche
+     traversée en diagonale, c'est deux secondes de terre : le bouton s'allumait et
+     s'éteignait au passage, et « PALIER ATTEINT — 3 PARCELLES » n'avait pas le temps
+     d'être lu qu'il était déjà parti. Il faut donc être DEDANS et ARRÊTÉ, les deux. */
   if(!p || v.speed > ARRET){ buyEl.style.display = 'none'; return; }
   buyEl.style.display = 'block';
   const permis = peutAcheterParcelle();
@@ -17336,8 +17341,7 @@ const el = {
   money: document.getElementById('money'),
   bar: document.getElementById('barfill'), hint: document.getElementById('hint'),
   goal: document.getElementById('goaltxt'),
-  ctr: document.getElementById('ctr'),
-  hopper: document.getElementById('hopper'), hopfill: document.getElementById('hopfill')
+  ctr: document.getElementById('ctr')
 };
 let hintT = 0;
 // Le son est branché plus bas (chapitre 26) et ne l'est qu'une fois prêt : une
@@ -18286,27 +18290,42 @@ function appelMenu(){
 }
 // L'ancien nom, gardé pour ce qui ne regarde que le tutoriel.
 function menuTuto(){ return appelMenu(); }
-/* LES TROIS QUARTS DU TRAVAIL, ET NON LE PREMIER SILLON.
-   Le tutoriel se soldait au premier geste : deux mètres de labour et la fenêtre s'ouvrait
-   déjà pour dire d'aller chercher le semoir, sur un champ qu'on venait à peine d'entamer.
-   On croyait avoir fini quelque chose qu'on n'avait pas commencé, et l'on repartait au
-   parc à outils en laissant les trois quarts de la parcelle en jachère.
-   Une étape de travail se solde donc aux TROIS QUARTS : assez pour que le geste soit
-   compris et que la fin ne soit plus qu'une formalité, pas assez pour qu'on attende le
-   dernier coin — un angle oublié ne doit pas retenir tout le tutoriel.
+/* LE CHAMP FINI, ET NON LES TROIS QUARTS.
+   Le tutoriel s'est soldé au premier geste, puis aux trois quarts — et les trois quarts
+   sont encore trop tôt. Le joueur : « le message comme quoi le champ était bien labouré
+   et qu'on pouvait passer se voir, ça commence quand on est à 80 %, mais c'est trop tôt ;
+   fais-le au moment où on a fini. » Il a raison, et c'est le mot FINI qui compte : à
+   0,75 la fenêtre s'ouvre sur un quart de parcelle en jachère, on part chercher le semoir
+   en croyant avoir labouré, et l'on sème un champ troué.
+   Une étape de travail se solde donc au CHAMP ENTIER, et le seuil n'a plus de marge du
+   tout : `>= 1` sur un rapport de deux entiers, c'est-à-dire pas une cellule de reste.
+
+   ET C'EST ATTEIGNABLE, C'EST MESURÉ. L'escargot du plan de travail couvre 552 cellules
+   sur 552 — 100,00 % — en 3 825 images, et sème les 552 en 3 450 de plus. Aux trois
+   quarts il en était à 3 030 : le message arrive donc treize secondes plus tard, et ce
+   sont les treize qui manquaient. Le seuil ne demande rien que la machine du jeu ne
+   sache faire ; et pour celui qui laboure à la main, l'étiquette de la parcelle dit
+   maintenant le pourcentage à chaque instant, ce qui est précisément ce qu'il faut pour
+   aller chercher le coin qui manque.
 
    CHACUNE SE MESURE SUR CE QUE LA PRÉCÉDENTE A LAISSÉ, et non sur la parcelle entière.
-   Semer les trois quarts d'un champ labouré aux trois quarts, c'est avoir semé tout ce
-   qu'on pouvait semer : rapporter ce semis à la surface totale donnerait 56 % et l'étape
-   ne passerait jamais. Le labour se compte donc sur la parcelle, le semis sur ce qui est
-   travaillé, la pousse sur ce qui est semé, la moisson sur ce qui était mûr.
+   Semer tout un champ labouré à moitié, c'est avoir semé tout ce qu'on pouvait semer :
+   rapporter ce semis à la surface totale donnerait 50 % et l'étape ne passerait jamais.
+   Le labour se compte donc sur la parcelle, le semis sur ce qui est travaillé, la pousse
+   sur ce qui est semé, la moisson sur ce qui était mûr. À 1, les deux façons de compter
+   se rejoignent : un champ labouré en entier puis semé en entier est semé en entier.
 
    CE QUE ÇA COÛTE. `resumeParcelle` rebalaie la grille d'une parcelle — neuf cents
    cellules — et c'est le SEUL moyen du fichier de distinguer une terre labourée d'une
    jachère : `parcelleDe()` ne rend jamais 'labourer'. Le cliquet n'appelle QUE l'étape
    courante, vingt fois par seconde, et seulement tant que le tutoriel tourne : une seule
    parcelle est possédée à ce moment-là. */
-const PART_ETAPE = 0.75;
+/* ET LA MOISSON GARDE SA SECONDE PORTE. `recolte` se solde sur `partParcelle('moisson')`
+   OU sur une trémie pleine, et cette seconde porte devient la principale au seuil plein :
+   une parcelle de blé rend plus que les 150 kg de la trémie neuve, si bien qu'on est
+   forcé d'aller vider avant d'avoir fini le champ. Sans elle, le tutoriel enfermerait le
+   joueur dans un champ qu'il ne peut pas terminer d'une traite. */
+const PART_ETAPE = 1;
 function partParcelle(quoi){
   let best = 0;
   for(const p of PARCELS){
@@ -21785,7 +21804,7 @@ function refreshViseurs(){
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
 const jaugeEl = {
   fuel: document.getElementById('fuelfill'), fuelBox: document.getElementById('fuel'),
-  heure: document.getElementById('heure'), charge: document.getElementById('chargetxt')
+  heure: document.getElementById('heure')
 };
 function refreshJauges(){
   const m = MACHINES[cur], v = m.v;
@@ -21800,17 +21819,10 @@ function refreshJauges(){
   jaugeEl.fuelBox.classList.toggle('bas', k < 0.15);
   const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
   jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
-  // ce que porte l'engin courant, en clair : la nature compte autant que la quantité
-  const T = toolOf(m);
-  const caisse = (T && T.cargo) ? T : (v.cargo || null);
-  let txt = '';
-  if(v.betail) txt = v.betail + ' bête' + (v.betail>1?'s':'');
-  else if(caisse && caisse.load > 1)
-    txt = PRODUITS[caisse.type] ? nomQte(caisse.type, caisse.load)
-                                : 'Charge ' + kg(caisse.load);
-  else if(m.key === 'moisson' && hopper > 1) txt = 'Trémie ' + Math.round(hopper) + ' kg';
-  jaugeEl.charge.textContent = txt;
-  jaugeEl.charge.style.opacity = txt ? 0.75 : 0;
+  /* ET LA LIGNE DE CHARGEMENT N'EST PLUS ICI. Elle écrivait « BLÉ 80 KG » en petites
+     capitales sous le bouton de culture, au-dessus de la barre de charge, et les deux
+     sont parties ensemble : la nature et le poids se lisent maintenant sur la plaque
+     posée au-dessus de la machine et au-dessus de la remorque — voir `jaugesEngin`. */
 }
 
 /* ---------- LES ÉTIQUETTES DE LIEU ---------- */
@@ -21957,7 +21969,7 @@ function detailTas(lire, cles, nom, nLignes){
   return li.join('\n');
 }
 const PANNEAUX = [];
-function creerJauge(lignes){
+function creerJauge(lignes, large){
   const nL = Math.max(1, lignes || 1);
   const cv = document.createElement('canvas');
   cv.width = PAN_W; cv.height = panHaut(nL);
@@ -21985,7 +21997,8 @@ function creerJauge(lignes){
      appartient au paysage, elle rapetisse avec lui. */
   const m = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
     depthWrite:false, depthTest:false, fog:false, opacity:0}));
-  m.scale.set(PAN_LARGE, PAN_LARGE*cv.height/PAN_W, 1);
+  const LG = large || PAN_LARGE;
+  m.scale.set(LG, LG*cv.height/PAN_W, 1);
   m.renderOrder = 5;                       // au-dessus des cercles (3), sous les enseignes (6)
   m.visible = false;
   /* Le drapeau `anime` reste, et il ne sert plus au rattrapage : il sert à la FUSION de
@@ -22001,6 +22014,9 @@ function peindreJauge(J, nom, sous, k, coul){
   // arrondi au centième : c'est le pas visible sur une barre de 480 pixels
   const kk = k === null ? null : Math.round(Math.max(0, Math.min(1, k))*100)/100;
   if(J.k === kk && J.txt === nom && J.sous === sous && J.coul === coul) return;
+  // Ce que la plaque dit, lisible de l'extérieur : c'est par là qu'un banc distingue
+  // le silo de la réserve d'engrais sans avoir à relire le canevas pixel par pixel.
+  J.sp.userData.nom = nom;
   J.k = kk; J.txt = nom; J.sous = sous; J.coul = coul;
   peindrePanneauCv(J.ctx, nom, coul || '#8A9298', sous, kk !== null, kk || 0,
                    coul || '#8A9298', J.lignes);
@@ -22033,6 +22049,12 @@ function cacherJauge(J, dt){
    dès qu'elle sort du champ de vision. */
 let jaugeSilo = null, jaugeAtelier = null, jaugeEntrepot = null;
 let jaugeCuve = null, jaugeGraine = null, jaugeEngrais = null;
+/* ET LES DEUX QUI SUIVENT LA MACHINE. Elles nomment ce qu'on TRANSPORTE, pas un lieu :
+   l'une au-dessus de l'engin, l'autre au-dessus de ce qu'il traîne. Sept mètres vingt au
+   lieu de onze — « une petite jauge », et une plaque de lieu au-dessus d'un tracteur
+   couvrirait la moitié de la parcelle. */
+let jaugeEngin = null, jaugeOutil = null;
+const PAN_MOBILE = 7.2;
 const jaugesLibres = [];
 function poserJauges(){
   // Deux lignes de détail pour les deux tas qu'on veut voir en nature : le silo et la
@@ -22041,6 +22063,7 @@ function poserJauges(){
   jaugeAtelier = creerJauge(); jaugeEntrepot = creerJauge();
   jaugeCuve = creerJauge();
   jaugeGraine = creerJauge(3); jaugeEngrais = creerJauge();
+  jaugeEngin = creerJauge(1, PAN_MOBILE); jaugeOutil = creerJauge(1, PAN_MOBILE);
 }
 function prendreJauge(p){
   if(p.jauge) return p.jauge;
@@ -22095,24 +22118,118 @@ function resumeParcelle(p){
   return R;
 }
 let pousseT = 0;
+/* ET LE MÊME BALAYAGE COMPTE LA TERRE TRAVAILLÉE, PAS SEULEMENT CELLE QUI POUSSE.
+   Il ne retenait que les cellules SEMÉ et MÛR : une parcelle qu'on laboure n'avait donc
+   rien à dire, et son étiquette restait éteinte jusqu'au premier grain semé. Le joueur :
+   « je veux la même étiquette que quand le blé pousse, pour le labourage et pour la
+   semée — qu'on sache si on a bien labouré 100 % du champ et semé sur 100 % du champ. »
+   Deux compteurs de plus dans la boucle qui existe déjà — `labN`, les cellules labourées,
+   et `nCell`, les cellules de la parcelle — et l'étiquette peut dire les trois âges du
+   champ. C'est GRATUIT : le balayage passait déjà sur toutes les cellules du rectangle
+   pour en écarter quatre états sur cinq, une fois par seconde. */
 function majPousseParcelles(dt){
   pousseT -= dt;
   if(pousseT > 0) return;
   pousseT = 1.0;
   for(const p of PARCELS){
-    p.pousse = 0; p.pousseN = 0; p.murN = 0;
+    p.pousse = 0; p.pousseN = 0; p.murN = 0; p.labN = 0; p.nCell = 0;
     if(!p.owned || p.pature) continue;
     const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
     const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
-    let somme = 0, n = 0, murs = 0, crop = 0;
+    let somme = 0, n = 0, murs = 0, crop = 0, lab = 0, tot = 0;
     for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
-      const id = j*GNX+i;
-      if(state[id] !== ST.SEME && state[id] !== ST.MUR) continue;
+      const id = j*GNX+i, e = state[id];
+      if(e === ST.HORS) continue;
+      tot++;
+      if(e === ST.LABOURE) lab++;
+      if(e !== ST.SEME && e !== ST.MUR) continue;
       somme += growth[id]; n++; crop = cropCell[id];
-      if(state[id] === ST.MUR) murs++;
+      if(e === ST.MUR) murs++;
     }
+    p.labN = lab; p.nCell = tot;
     p.pousse = n ? somme/n : 0; p.pousseN = n; p.murN = murs; p.pousseCrop = crop;
   }
+}
+
+/* ---------- CE QUE LA MACHINE PORTE, AU-DESSUS DE LA MACHINE ----------
+   Cette étiquette-là a existé, et elle a été retirée comme DOUBLON : elle répétait, dans
+   le paysage, la barre de chargement que le bandeau tenait en bas à droite, et à la
+   livraison les deux venaient se poser à côté de l'enseigne du commerce — trois fois le
+   même poids de blé dans le même coin de l'écran.
+   LE DOUBLON EST LEVÉ PAR L'AUTRE BOUT. Le joueur : « rajoute une petite jauge sur la
+   moissonneuse qui indique si elle est pleine ou pas — cette jauge existait dans le passé,
+   je veux que tu la remettes ; pareil pour la jauge de blé et la jauge d'engrais, qui
+   doivent être au-dessus des remorques ; du coup enlève la chose en haut à droite de
+   l'écran. » C'est la barre du bandeau qui part, et non celle-ci : une jauge posée SUR la
+   trémie qui se remplit se lit sans quitter des yeux l'andain qu'on est en train de
+   couper, ce qu'une barre au bord de l'écran ne fait pas.
+
+   DEUX PLAQUES, JAMAIS PLUS : l'engin, et ce qu'il traîne. Elles ne parlent que de la
+   machine qu'on PILOTE — une étiquette au-dessus de chaque machine de la cour ferait
+   six pancartes sur un parking, et ce serait le tableau de bord que les étiquettes de
+   lieu ont justement cessé d'être.
+
+   ET LA MOISSONNEUSE PARLE MÊME À VIDE. « Indique si elle est pleine ou pas » : une jauge
+   qui ne s'allume qu'une fois pleine ne répond pas à la question. Les caisses, elles, se
+   taisent quand elles sont vides — une benne vide n'est pas une information, c'est le cas
+   général — sauf les cuves du semoir et de l'épandeur, qui disent « À REMPLIR » parce
+   qu'on ne s'en aperçoit qu'au milieu du champ. */
+const PLEIN_A = 0.995;
+/* L'ENGRAIS N'EST PAS UN PRODUIT, ET C'EST LA SEULE EXCEPTION. Il ne figure pas dans
+   `PRODUITS` — il n'a ni prix de vente, ni ligne de silo, ni recette : c'est un INTRANT,
+   qui vit dans `STOCK.engrais` et nulle part ailleurs. `nomDe` rendait donc « Charge »,
+   et la cuve de l'épandeur s'annonçait « Charge 30 kg ». Deux mots ici valent mieux
+   qu'une entrée de plus dans la table des produits, qui donnerait à l'engrais un prix
+   et une place au silo qu'il n'a pas. Le vert est celui de la réserve d'engrais. */
+const INTRANTS = {engrais:{nom:'Engrais', couleur:'#8BE07A'}};
+const nomCharge = (c)=> ((PRODUITS[c] || INTRANTS[c] || {}).nom) || 'Charge';
+function direCharge(J, x, y, z, nom, q, max, cles, lire, motPlein, motVide, dt){
+  const k = max > 0 ? Math.min(1, q/max) : 0;
+  // Une caisse peut porter plusieurs natures : on les nomme comme le silo les nomme.
+  const detail = cles.length > 1 ? detailTas(lire, cles, nomCharge, 1)
+               : !cles.length ? kg(q)
+               : PRODUITS[cles[0]] ? nomQte(cles[0], q)
+                                   : nomCharge(cles[0]) + ' ' + kg(q);
+  const plein = k > PLEIN_A, vide = q <= 0.01;
+  const coul = plein ? '#E8563F' : vide ? '#8A9298'
+             : ((PRODUITS[cles[0]] || INTRANTS[cles[0]] || {}).couleur || '#E6F0F8');
+  const mot = plein ? ' — ' + motPlein : (vide && motVide ? ' — ' + motVide : '');
+  montrerJauge(J, x, y, z, nom, detail + mot, k, coul, dt);
+}
+function jaugesEngin(dt){
+  const m = MACHINES[cur], v = m.v, T = toolOf(m);
+  /* — L'ENGIN. Six mètres vingt : le toit d'une moissonneuse culmine à 3,9 m et la
+       plaque fait 3,1 m de haut, elle flotte donc au-dessus de la cabine sans la
+       toucher. C'est la cote de l'ancienne étiquette d'engin, inchangée. */
+  if(v.betail){
+    /* LE BÉTAIL AUSSI : il partageait la ligne de chargement du bandeau, qui disait
+       « 3 BÊTES » là où elle disait « BLÉ 80 KG », et il serait parti avec elle. */
+    const cap = capaciteBetail(m) || v.betail;
+    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z, 'Bétail',
+      v.betail + ' bête' + (v.betail > 1 ? 's' : '') + ' sur ' + cap,
+      v.betail/cap, v.betail >= cap ? '#E8563F' : '#E8B44A', dt);
+  } else if(m.key === 'moisson'){
+    const c = CROPS[hopCrop];
+    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, 'Trémie', hopper, HOP_MAX,
+               (hopper > 0.01 && c) ? [c.cle] : [], ()=> hopper,
+               'TRÉMIE PLEINE', 'VIDE', dt);
+  } else if(v.cargo && v.cargo.load > 0.01){
+    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, m.nom, v.cargo.load, v.cargo.capacite,
+               naturesDe(v.cargo), (k)=> chargeDe(v.cargo, k), 'PLEINE', null, dt);
+  } else cacherJauge(jaugeEngin, dt);
+  /* — CE QU'IL TRAÎNE. `toolOf` rend aussi la coupe et le tunnel, qui ne sont pas des
+       outils du parc : ils n'ont ni modèle, ni position, et ce qu'ils récoltent est déjà
+       dit par la plaque du dessus. Cinq mètres : un outil ne dépasse pas 2,2 m de haut. */
+  const traine = T && T.group && T !== MOISSON && T !== VENDANGE ? T : null;
+  if(traine && traine.cargo && traine.load > 0.01)
+    direCharge(jaugeOutil, traine.x, 5.0, traine.z, traine.nom, traine.load, traine.capacite,
+               naturesDe(traine), (k)=> chargeDe(traine, k), 'PLEINE', null, dt);
+  else if(traine && traine.cuveMax){
+    const k = cuveCleDe(traine);
+    direCharge(jaugeOutil, traine.x, 5.0, traine.z, traine.nom, cuveDe(traine, k),
+               traine.cuveMax, k ? [k] : [], (c)=> cuveDe(traine, c),
+               'CUVE PLEINE', 'À REMPLIR', dt);
+  } else cacherJauge(jaugeOutil, dt);
 }
 
 /* Ce que chaque jauge raconte, une fois par image. Tout est relu dans l'état du jeu :
@@ -22323,20 +22440,56 @@ function majJauges(dt){
     }
   }
 
-  // — les parcelles semées : où en est la pousse, et quand tout est mûr
+  /* — LES PARCELLES : LES TROIS ÂGES DU CHAMP, SUR LA MÊME PLAQUE.
+     Elle ne parlait que de la POUSSE — « Blé · 62 % de pousse » — et se taisait tant
+     qu'il n'y avait pas un grain en terre, c'est-à-dire pendant tout le labour et tout
+     le semis. Or c'est exactement là qu'on a besoin d'un chiffre : depuis que l'étape du
+     tutoriel demande le champ ENTIER, il faut pouvoir lire qu'il reste 4 % à faire, et
+     savoir lesquels des deux travaux est en cours.
+     TROIS ÉTATS, UNE SEULE ÉTIQUETTE, dans l'ordre du calendrier agricole :
+       rien de semé ................ « Labour · 87 % labouré »
+       semé, mais pas partout ...... « Blé · 87 % semé »
+       tout semé ................... « Blé · 62 % de pousse », puis « à moissonner »
+     Les deux premières se comptent comme le tutoriel les compte, et pour la même raison :
+     le labour sur la parcelle, le semis sur ce qui est labouré (voir PART_ETAPE). Les
+     deux chiffres se rejoignent à 100 %, qui est le seul endroit où l'on regarde.
+     ET LE POURCENTAGE EST TRONQUÉ, JAMAIS ARRONDI. `Math.round` afficherait « 100 % » à
+     99,6 % d'un champ qui n'est pas fini, et le joueur chercherait pourquoi l'étape ne
+     passe pas. Tronqué, « 100 % » veut dire cent pour cent. */
   for(const p of PARCELS){
     const proche = Math.hypot(v.pos.x - p.x, v.pos.z - p.z) < JAUGE_PORTEE + 2;
-    if(!p.owned || p.pature || !p.pousseN || !proche){
+    // La terre travaillée : labourée, semée ou mûre. À zéro, la parcelle est en jachère
+    // ou en chaume — il n'y a pas d'ouvrage en cours, et donc rien à dire.
+    const trav = (p.labN || 0) + (p.pousseN || 0);
+    if(!p.owned || p.pature || !trav || !proche){
       if(p.jauge){ cacherJauge(p.jauge, dt); if(p.jauge.sp.material.opacity < 0.03) rendreJauge(p); }
       continue;
     }
     const C2 = CROPS[p.pousseCrop] || CROPS[0];
-    const mur = p.murN >= p.pousseN;
-    // 8,0 : un olivier mûr monte à 4,59 m, et l'étiquette descendait dans son houppier.
-    montrerJauge(prendreJauge(p), p.x, 8.0, p.z, C2.nom,
-      mur ? 'à moissonner' : Math.round(p.pousse*100) + ' % de pousse',
-      p.pousse, mur ? '#FFD21E' : '#8BE07A', dt);
+    const pc = (x)=> Math.floor(Math.min(1, x)*100) + ' %';
+    let nom, dit, part, teinte;
+    if(!p.pousseN){                                   // on laboure
+      part = p.nCell ? trav/p.nCell : 0;
+      nom = 'Labour'; dit = pc(part) + ' labouré' + (part >= 1 ? ' — à semer' : '');
+      teinte = part >= 1 ? '#C9A66B' : '#9A8468';
+    } else if(p.pousseN < trav){                      // on sème ce qui est labouré
+      part = p.pousseN/trav;
+      nom = C2.nom; dit = pc(part) + ' semé'; teinte = '#C9A66B';
+    } else {                                          // tout est semé : ça pousse
+      const mur = p.murN >= p.pousseN;
+      part = p.pousse; nom = C2.nom;
+      dit = mur ? 'à moissonner' : Math.round(p.pousse*100) + ' % de pousse';
+      teinte = mur ? '#FFD21E' : '#8BE07A';
+    }
+    /* 10,5, ET C'EST LA PLAQUE DE L'ENGIN QUI L'A FAIT MONTER. Elle était à 8,0 —
+       assez haut pour un olivier mûr, qui culmine à 4,59 m — et l'étiquette de la
+       machine, à 6,2, monte jusqu'à 7,73 : les deux se touchaient dès que l'engin
+       travaillait le milieu de sa parcelle, c'est-à-dire tout le temps. À 10,5 la
+       plaque du champ commence à 8,16 et laisse quatre décimètres de ciel entre elles,
+       comme la mangeoire et le tank d'un enclos en laissent entre eux. */
+    montrerJauge(prendreJauge(p), p.x, 10.5, p.z, nom, dit, part, teinte, dt);
   }
+  jaugesEngin(dt);
 }
 poserJauges();
 
@@ -24681,15 +24834,11 @@ function refreshHUD(){
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
   const part = acheve ? 1 : (b1 > b0 ? (CAMPAGNE.xp - b0)/(b1 - b0) : 1);
   el.bar.style.width = Math.max(0, Math.min(100, part*100)) + '%';
-  const Tc = toolOf(MACHINES[cur]);
-  const vc = MACHINES[cur].v.cargo;
-  const chargeur = vc ? {v:vc.load, max:vc.capacite}
-                  : (Tc && Tc.cargo) ? {v:Tc.load, max:Tc.capacite}
-                  : {v:hopper, max:HOP_MAX};
-  el.hopper.style.opacity = chargeur.v > 1 ? 1 : 0;
-  el.hopfill.style.width = (chargeur.v/chargeur.max*100) + '%';
-  const nat = NATURES[(Tc && Tc.cargo) ? Tc.type : (vc ? vc.type : null)];
-  el.hopfill.style.background = nat ? nat.couleur : '#FFAE2E';
+  /* LA BARRE DE CHARGEMENT N'EST PLUS ICI. Elle vivait sous le bouton de culture, contre
+     le bord droit, et disait ce que la plaque posée au-dessus de la trémie et au-dessus
+     de la remorque dit maintenant dans le paysage — voir `jaugesEngin`. Un chiffre de
+     chargement au bord de l'écran oblige à quitter des yeux l'andain qu'on coupe ; la
+     même barre au-dessus de la machine se lit sans détourner le regard. */
 }
 function ouvrirFin(){
   sauvegarder(false);
