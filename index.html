@@ -306,6 +306,13 @@
   /* LE TITRE DE FENÊTRE : capitales, vert profond, légèrement de travers. Pas d'ombre —
      elle alourdissait un texte déjà gras, et la capitale suffit à le poser comme titre. */
   #fentete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
+  /* LE VISAGE DU GUICHET, DANS LE BANDEAU DE TITRE ET NON PAR-DESSUS LA LISTE.
+     64 x 80, soit le TIERS EXACT de la fiche : une réduction entière, donc sans pixel
+     coupé en travers, et un bandeau qui reste haut de quatre-vingts pixels — sur un
+     téléphone couché, la fenêtre n'en fait que trois cent trente. Posé en absolu dans le
+     coin, il aurait mordu sur les onglets et sur la première ligne du rayon. */
+  #fenface{width:64px;height:80px;object-fit:contain;object-position:bottom center;
+    flex:none;margin:-2px 0 -8px}
   #fentitre{font-family:var(--titre);font-size:20px;letter-spacing:1.2px;
     text-transform:uppercase;color:var(--titreC);flex:1;
     transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
@@ -1214,6 +1221,7 @@
     <div id="fenfond"></div>
     <div id="fenboite">
       <div id="fentete">
+        <img id="fenface" class="face" alt="">
         <div id="fentitre"></div>
         <div id="fenargent">0 €</div>
         <div id="fenfermer">✕</div>
@@ -3516,12 +3524,27 @@ const PORTRAITS = {
   'Marché':         'marche',
   'Supermarché':     'supermarche',
   'Atelier textile': 'atelier_textile',
-  'Coopérative':     'cooperative'
+  'Coopérative':     'cooperative',
+  // Le comptoir n'a qu'un visage, et il ne paraît qu'à son propre guichet.
+  'Comptoir agricole': {r:'comptoir', h:['neutre']}
 };
 const HUMEURS = ['neutre', 'bravo', 'refus'];
-const visageDe = (nom, humeur)=>
-  (PORTRAITS[nom] && HUMEURS.indexOf(humeur) >= 0)
-    ? 'portraits/' + PORTRAITS[nom] + '-' + humeur + '.png' : null;
+/* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
+   ne refuse jamais un achat — il vend, il n'achète pas : il n'a ni pouce levé ni refus à
+   montrer, et lui en réclamer trois ferait demander au navigateur deux fichiers qui
+   n'existent pas. Une entrée peut donc être un RADICAL SEUL, qui vaut les trois humeurs,
+   ou `{r, h}` qui dit lesquelles. `visageDe` rend null pour les autres, comme pour un
+   commerce sans fiche : une absence voulue et une absence tout court se traitent pareil,
+   et c'est ce qui fait qu'aucune des deux ne casse quoi que ce soit. */
+const ficheDe = (nom)=>{
+  const p = PORTRAITS[nom];
+  if(!p) return null;
+  return (typeof p === 'string') ? {r: p, h: HUMEURS} : p;
+};
+const visageDe = (nom, humeur)=>{
+  const f = ficheDe(nom);
+  return (f && f.h.indexOf(humeur) >= 0) ? 'portraits/' + f.r + '-' + humeur + '.png' : null;
+};
 function poserVisage(el, nom, humeur){
   if(!el) return false;
   const src = visageDe(nom, humeur);
@@ -15854,7 +15877,11 @@ const FENETRES = {
                                          {id:'metiers',  nom:'Métiers'},
                                          {id:'reglages', nom:'Améliorations'}]},
   prix:       {titre:'Prix des commerces'},
-  comptoir:   {titre:'Comptoir agricole',
+  /* LE COMPTOIR A UN VISAGE, ET C'EST LA FENÊTRE QUI LE DIT. Le joueur : « cette image
+     s'affichera lorsqu'on voudra acheter du consommable. » Ce n'est ni une mission, ni un
+     gain, ni un refus — les trois moments d'un portrait jusqu'ici : c'est un GUICHET. La
+     fenêtre nomme donc son tenancier, et n'importe laquelle pourra en nommer un. */
+  comptoir:   {titre:'Comptoir agricole', visage:'Comptoir agricole',
                                    vues:[{id:'semences', nom:'Semences'},
                                          {id:'consos',   nom:'Engrais & gazole'},
                                          {id:'cuves',    nom:'Remplir les cuves'}]},
@@ -15879,6 +15906,7 @@ function rendreFenetre(){
   const F = FENETRES[fenActive];
   if(!F){ fermerFenetre(); return; }
   fentitre.textContent = F.titre;
+  poserVisage(document.getElementById('fenface'), F.visage, 'neutre');
   fenargent.textContent = eur(money);
   const vues = F.vues || null;
   fenonglets.innerHTML = '';

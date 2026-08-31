@@ -9775,3 +9775,51 @@ Et c'était le pire moment pour un échec silencieux : la Coopérative est le **
 jeu**, celui du tutoriel, et son visage est le premier qu'un joueur voit.
 
 Trente-six fiches, **354 Ko**. Douze commerces sur quinze.
+
+### Treizième : le Comptoir agricole, une seule humeur et une quatrième place
+
+*« Cette image s'affichera lorsqu'on voudra acheter du consommable. »*
+
+Deux choses neuves d'un coup, et aucune n'était prévue par la mécanique posée au début.
+
+**Une seule humeur.** Le comptoir ne donne pas de mission et ne refuse jamais un achat : il vend,
+il n'achète pas. Il n'a donc ni pouce levé ni refus à montrer, et lui en réclamer trois ferait
+demander au navigateur deux fichiers qui n'existent pas — un 404 par ouverture de fenêtre,
+invisible à l'écran et bien visible dans le journal. Une entrée de la table peut désormais être un
+radical seul, qui vaut les trois humeurs, ou `{r, h}` qui dit lesquelles :
+
+```js
+'Comptoir agricole': {r:'comptoir', h:['neutre']}
+```
+
+`visageDe` rend `null` pour les autres, exactement comme pour un commerce sans fiche : **une
+absence voulue et une absence tout court se traitent pareil**, et c'est ce qui fait qu'aucune des
+deux ne casse quoi que ce soit.
+
+**Une quatrième place.** Ce n'est ni une proposition de mission, ni un gain, ni un refus — les
+trois moments d'un portrait jusqu'ici. C'est un **guichet**. La fenêtre nomme donc son tenancier,
+et n'importe laquelle pourra en nommer un :
+
+```js
+comptoir: {titre:'Comptoir agricole', visage:'Comptoir agricole', vues:[…]}
+```
+
+Il paraît à **64 × 80**, le tiers exact de la fiche — troisième réduction entière après le demi de
+la fenêtre de contrat et le un-pour-un de l'écran de gain. Posé en absolu dans le coin il aurait
+mordu sur les onglets et sur la première ligne du rayon ; dans le bandeau de titre, il coûte
+quatre-vingts pixels de hauteur sur une fenêtre qui en fait trois cent trente.
+
+### Un piège tendu par le banc lui-même
+
+Le contrôle « un commerce sans fiche n'affiche rien » cherchait un site qui n'en avait pas. Il
+n'en reste bientôt plus — treize sur quinze en ont une — et le contrôle allait finir sans rien à
+comparer. Il retire donc l'entrée le temps d'un rendu, puis la remet.
+
+Écrit avec `delete`, ce retrait **remettait la clé à la fin de l'objet**. La section suivante
+prenait « le premier commerce de la table » : elle s'est retrouvée sur la Boucherie — un abattoir,
+dont le rayon d'achat est vide — et quatre contrôles sont tombés pour une raison qui n'avait rien
+à voir avec ce qu'ils vérifient. Deux corrections : annuler l'entrée plutôt que la supprimer, et
+demander à la section du refus **un commerce qui achète vraiment** au lieu du premier venu.
+
+Trente-sept fiches, **363 Ko**. `visages.js` passe de 20 à **26 contrôles**. Les vingt-deux
+suites : **1 012 contrôles**, zéro échec, zéro erreur de page, zéro 404.

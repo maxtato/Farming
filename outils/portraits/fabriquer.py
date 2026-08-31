@@ -58,9 +58,16 @@ def fabriquer():
     tot = 0; n = 0; parkes = 0
     for rad in sorted(T):
         jeu = bool(T[rad].get('site'))
+        # UN COMMERCE PEUT N AVOIR QU UNE HUMEUR, ET CE N EST PAS UN OUBLI. Le comptoir
+        # agricole ne donne pas de mission et ne refuse jamais un achat : il n a ni pouce
+        # leve ni refus a montrer. `humeurs` dit lesquelles il DOIT avoir, pour qu une
+        # absence voulue ne se lise pas comme un fichier perdu.
+        voulues = T[rad].get('humeurs') or HUMEURS
         for h in HUMEURS:
             reg = T[rad].get(h)
-            if not reg: print('%-12s %-7s MANQUE' % (rad, h)); continue
+            if not reg:
+                if h in voulues: print('%-12s %-7s MANQUE' % (rad, h))
+                continue
             c, inf = une(reg)
             q, m = png8(c)
             f = os.path.join(DEST if jeu else ATTENTE, rad + '-' + h + '.png')
@@ -82,6 +89,9 @@ def planche(sortie='30_production.png'):
     for r, rad in enumerate(rads):
         for cI, h in enumerate(HUMEURS):
             reg = T[rad].get(h)
+            if not reg and h not in (T[rad].get('humeurs') or HUMEURS):
+                x = 20+cI*(cw+20); y = 20+r*(ch+32)
+                d.text((x+8, y+ch//2), 'sans objet', fill=(178,168,150)); continue
             x = 20+cI*(cw+20); y = 20+r*(ch+32)
             d.rectangle([x-1,y-1,x+cw,y+ch], outline=(216,206,188))
             if reg:
