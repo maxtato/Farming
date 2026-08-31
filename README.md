@@ -9823,3 +9823,23 @@ demander à la section du refus **un commerce qui achète vraiment** au lieu du 
 
 Trente-sept fiches, **363 Ko**. `visages.js` passe de 20 à **26 contrôles**. Les vingt-deux
 suites : **1 012 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+### Quatorzième : le Garage, deux fenêtres et un seul tenancier
+
+Même forme que le comptoir, et pour la même raison : le garage **vend**. Il vend des engins et des
+améliorations, aucune des trente missions ne s'y passe, et il n'achète rien au quai — ni pouce
+levé à montrer, ni refus à opposer. Une seule humeur, une seule place.
+
+À ceci près qu'il a **deux fenêtres** : Acheter et Améliorer sont deux guichets du même atelier,
+et le mécanicien tient les deux. C'est le premier cas où deux fenêtres nomment la même personne —
+et la table le permettait déjà, il n'y a rien eu à changer pour cela. Seul son cadrage a demandé
+un cran d'échelle (×1,28) : son buste source est plus large que les autres.
+
+**Un contrôle qui a tenu un commit.** `visages.js` affirmait « une seule fenêtre nomme un
+tenancier, et c'est le comptoir ». Vrai hier, faux aujourd'hui — et compter les fenêtres
+n'apprenait rien de toute façon. Il demande maintenant ce qui compte vraiment : **qu'aucune
+fenêtre n'appelle un nom absent de la table**, ce qui serait une fenêtre réclamant un fichier qui
+n'existe pas.
+
+Trente-huit fiches, **371 Ko**. `visages.js` passe à **27 contrôles**. Quatorze commerces sur
+quinze : il ne manque que la Boulangerie.
