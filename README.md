@@ -8612,3 +8612,71 @@ qui donnait deux étiquettes elle aussi. Il relève maintenant depuis **deux pos
 la cour, et mesure les **deux familles** : 4 étiquettes, 90,00° partout.
 
 Les vingt suites passent.
+
+## Un bouton d'action est plein, de la couleur de son action
+
+*« Je veux pas qu'on fasse des boutons transparents gris avec un contour de couleur, je veux
+qu'on fasse un bouton plein de la couleur de l'action — de la même couleur du coup que le
+contour utilise actuellement, mais un bouton plein comme sur l'image jointe. »*
+
+Ils étaient des rectangles gris translucides bordés d'un filet de deux pixels. Sur un champ de
+blé au soleil ou sur une façade claire, c'est le **filet seul** qui portait la couleur, et le mot
+au milieu se lisait dans la teinte du décor.
+
+**Le modèle existait déjà dans le fichier**, et c'est celui que l'image montre : le transfert en
+cours (`ch.on`) et le bouton principal de l'accueil sont pleins depuis toujours, encre sombre sur
+aplat. C'est cette forme-là qui devient la règle. Le gris translucide devient l'exception —
+l'état **empêché**, qui doit justement ne pas ressembler à une action.
+
+**Dix-huit boutons d'action** passent à l'aplat, relevés un par un sur la couleur calculée :
+
+| bouton | aplat |
+|---|---|
+| bandeau de service — ambre, jaune, vert, bleu, appelé | `#E8B44A` `#FFD21E` `#62D84E` `#4AA8E0` `#FAD201` |
+| colonne du quai — bleu, jaune, vert, en cours | `#4AA8E0` `#FFD21E` `#62D84E` `#E8B44A` |
+| achat de parcelle | `#4AA8E0` |
+| amélioration au garage | `#7FD1E8` |
+| achat de véhicule — vert, jaune | `#8BE07A` `#FFD21E` |
+| bouton de culture — plein, cuve vide | `#F0C24A` `#E8563F` |
+| attelage accroché · plan de travail en cours | `#FAD201` `#8BE07A` |
+| bouton du parc quand il appelle | `#FAD201` |
+
+**Une seule variable porte la couleur.** `--act` est posée par le bouton et par son état ;
+l'aplat, le filet et l'ombre la lisent. C'est ce qui évite d'écrire trois fois la même teinte par
+bouton et par état, comme c'était le cas — et donc de les voir diverger. Au passage, les
+`:not(.no)` qui traînaient sur chaque teinte disparaissent : le gris de l'empêché passe **après**
+les trois couleurs et les écrase par l'ordre.
+
+**L'encre est la même partout, et elle est mesurée.** `#10171B` sur les dix-huit aplats donne de
+**5,0** (le rouge de la cuve vide) à **12,5** (le jaune vif) de rapport de contraste, pour un
+seuil de lisibilité de 4,5. Une encre claire aurait échoué sur le jaune.
+
+**L'ombre portée n'est pas une coquetterie** : un aplat clair posé sur un ciel clair n'a plus de
+bord. Elle est fixe — aucun de ces boutons ne l'anime —, donc elle ne coûte qu'une peinture, une
+fois.
+
+### Ce qui n'est pas une action reste translucide
+
+Cinq états gardent le gris : le service empêché, l'achat impossible, la ligne empêchée de la
+colonne, le retour, et l'attelage éteint. C'est ce qui les distingue d'un seul coup d'œil,
+maintenant que toutes les actions sont pleines — la distinction est même **plus** nette qu'avant,
+où empêché et possible partageaient le même fond.
+
+**Et le transfert en cours respire.** C'était sa marque : seul de la colonne, il avait un aplat.
+Maintenant qu'ils en ont tous un, il lui faut autre chose — et le mouvement dit « ça tourne »
+mieux qu'aucune teinte ne le dirait. Une **opacité** qui va et vient, 1 → 0,72 en 1,15 s : le
+compositeur la traite sans repasser par la peinture, comme le halo des boutons appelés. C'est la
+seule ligne de la colonne qui porte une animation.
+
+**La jauge du bouton de culture s'inverse avec lui.** Sur un aplat ambre, une barre ambre sur
+fond blanc translucide ne se voyait plus : c'est l'encre qui remplit la piste, et la piste qui se
+creuse en sombre. Même barre, même largeur, lecture retrouvée.
+
+### Le banc
+
+`hud.js` passe de 40 à **46 contrôles**. Il relève, état par état, le fond calculé, le filet et
+l'encre, puis vérifie ce qui ne peut pas se deviner : que les dix-huit fonds sont **opaques**,
+que chacun vaut **exactement** la couleur que son filet portait, que le pire couple encre/fond
+tient 5,0 de contraste, que chacun porte son ombre, que les cinq états non-actions sont restés
+translucides, et que l'animation du transfert en cours est la seule de la colonne. Les vingt
+suites passent.

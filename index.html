@@ -342,8 +342,15 @@
     transform:translateX(-50%);display:flex;gap:12px;align-items:center}
   #engbar > div{pointer-events:auto;padding:11px;border-radius:14px;
     background:rgba(20,28,33,.62);border:2px solid rgba(255,255,255,.3)}
-  #hitch.on{border-color:#FAD201;color:#FAD201}
-  #auto.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.6)}
+  /* LES DEUX BASCULES DE LA RANGÉE SUIVENT LA MÊME RÈGLE QUE LES BOUTONS D'ACTION :
+     allumées, elles sont PLEINES de leur couleur, encre sombre. Ce sont les deux seuls
+     boutons de la rangée qui disent un état du monde — un outil est accroché, un plan
+     tourne — et un filet de deux pixels ne le disait pas d'assez loin. Le troisième, le
+     parc, ne bascule pas : il reste gris tant qu'il n'appelle pas. */
+  #hitch.on{background:#FAD201;border-color:#FAD201;color:#10171B;
+    box-shadow:0 2px 9px rgba(0,0,0,.42)}
+  #auto.on{background:#8BE07A;border-color:#8BE07A;color:#10171B;
+    box-shadow:0 2px 9px rgba(0,0,0,.42)}
   /* LE BOUTON DU PARC APPELLE. Pendant le tutoriel, quand l'étape demande une autre
      machine que celle qu'on pilote : il prend le jaune du guidage et bat lentement,
      comme les cercles au sol. Un halo qui s'écarte, pas un clignotement — on doit
@@ -358,8 +365,13 @@
      quatre-là n'est coupé par un conteneur : ils peuvent porter le cadre qui GRANDIT,
      qui est le plus visible des deux appels. */
   #engins,#regie .rgb{position:relative}
+  /* ET LE BOUTON QUI APPELLE EST PLEIN, LUI AUSSI. C'est l'action que le jeu demande à
+     l'instant : s'il restait le seul bordé de jaune au milieu de boutons pleins, il
+     aurait l'air de celui qu'on ne peut pas toucher. Le halo qui s'écarte reste par-
+     dessus, et il se détache mieux d'un aplat que d'un fond sombre. */
   #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel{
-    border-color:#FAD201;color:#FAD201}
+    background:#FAD201;border-color:#FAD201;color:#10171B;--act:#FAD201;
+    box-shadow:0 2px 9px rgba(0,0,0,.42)}
   #engins.appel::after,#regie .rgb.appel::after,#service.appel::after,
   #atelier.appel::after,#veh.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:15px;border:3px solid #FAD201;pointer-events:none;
@@ -448,35 +460,37 @@
      mieux vaut qu'une flèche passe derrière un libellé que par-dessus. */
   #crop{position:absolute;top:calc(56px + env(safe-area-inset-top));
     right:calc(12px + env(safe-area-inset-right));pointer-events:auto;z-index:7;
-    padding:6px 11px;border-radius:12px;background:rgba(20,28,33,.62);
+    padding:6px 11px;border-radius:12px;--act:#F0C24A;
     font-size:10px;font-weight:bold;letter-spacing:1.4px;gap:7px;
-    border:2px solid #F0C24A;color:#F0C24A;white-space:nowrap;display:none}
+    border:2px solid var(--act);white-space:nowrap;display:none}
   /* Cuve vide : le bouton passe au rouge. C'est la seule chose qu'on regarde en semant,
-     et c'est là qu'on doit apprendre qu'il faut rentrer. */
-  #crop.no{border-color:#E8563F;color:#E8563F}
+     et c'est là qu'on doit apprendre qu'il faut rentrer. Ici le rouge n'est PAS un
+     empêché — on peut toujours changer de culture — c'est une alerte, et elle reste donc
+     un aplat comme les autres, le seul rouge de la rangée. */
+  #crop.no{--act:#E8563F}
   /* ET CE QU'IL RESTE SE LIT EN JAUGE, PLUS EN CHIFFRES. « BLÉ 47 », « BLÉ 46 »,
      « BLÉ 45 » : le nombre défilait à chaque cellule semée, et c'est justement ce qu'on
      ne peut pas lire en conduisant. Une barre dit la même chose sans qu'on ait à la
      lire — et elle dit en plus la PART de cuve, ce que le chiffre nu ne disait pas. */
+  /* ET LA JAUGE S'INVERSE AVEC LE BOUTON. Sur un aplat ambre, une barre ambre sur fond
+     blanc translucide ne se voyait plus du tout : c'est l'encre qui remplit la piste,
+     et la piste qui se creuse en sombre. Même barre, même largeur, lecture retrouvée. */
   #crop i{display:block;width:36px;height:7px;border-radius:4px;
-    background:rgba(255,255,255,.18);overflow:hidden;flex:none}
-  #crop i b{display:block;height:100%;width:0;border-radius:4px;background:#F0C24A;
+    background:rgba(16,23,27,.28);overflow:hidden;flex:none}
+  #crop i b{display:block;height:100%;width:0;border-radius:4px;background:#10171B;
     transition:width .2s linear}
-  #crop.no i b{background:#E8563F}
   /* Le panneau « à vendre » n'a pas de cercle au sol — c'est un bord de champ, pas un
      quai — mais il obéit à la même règle que les autres : acheter une parcelle est une
      emplette ordinaire, jamais une étape de mission. Donc bleu, comme le garage hors
      mission et comme le comptoir quand on y va de soi-même. */
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid #4AA8E0;color:#8FD3F5;white-space:nowrap;display:none}
-  #buy.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+    --act:#4AA8E0;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid var(--act);white-space:nowrap;display:none}
   #atelier{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid #7FD1E8;color:#7FD1E8;white-space:nowrap;display:none}
-  #atelier.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+    --act:#7FD1E8;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid var(--act);white-space:nowrap;display:none}
   /* L'achat de véhicule et l'amélioration s'affichent ensemble, au garage : ils ne
      peuvent pas partager la rangée des 104 px. Celle des 146 px est libre là-bas —
      le garage n'a ni transfert ni action de service. */
@@ -514,9 +528,8 @@
     border:2px solid rgba(255,255,255,.26)}
   #veh{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid #8BE07A;color:#8BE07A;white-space:nowrap;display:none}
-  #veh.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+    --act:#8BE07A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid var(--act);white-space:nowrap;display:none}
   #stick{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:calc(24px + env(safe-area-inset-left));
     width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.08);
     border:2px solid rgba(255,255,255,.18);pointer-events:auto;touch-action:none}
@@ -710,18 +723,55 @@
        JAUNE  — une action de la mission EN COURS. C'est ce qu'on est venu faire.
        BLEU   — le jeu continu : acheter, améliorer, vendre librement, charger, ranger.
      Le gris de l'empêché et le plein de ce qui est en cours restent des ÉTATS. */
-  #choix .ch{padding:7px 15px;border-radius:11px;background:rgba(20,28,33,.86);
-    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid #4AA8E0;
-    color:#8FD3F5;white-space:nowrap;flex:none}
-  #choix .ch.jaune{border-color:#FFD21E;color:#FFD21E}
-  #choix .ch.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
-  /* Le transfert en cours : plein, pour qu'on voie d'un coup d'œil ce qui tourne.
-     Cliquer dessus l'arrête. Le retour, lui, s'efface : c'est une sortie, pas un choix. */
-  #choix .ch.on{background:#E8B44A;color:#1B2429;border-color:#E8B44A}
+  /* ET UN BOUTON D'ACTION EST PLEIN, DE LA COULEUR DE SON ACTION.
+     Ils étaient des rectangles gris translucides bordés d'un filet de couleur : sur un
+     champ de blé au soleil ou sur une façade claire, c'est le FILET seul qui portait la
+     couleur, deux pixels de large, et le mot au milieu se lisait dans la teinte du
+     décor. Le joueur : « je veux pas qu'on fasse des boutons transparents gris avec un
+     contour de couleur, je veux un bouton PLEIN de la couleur de l'action — la même
+     couleur que le contour utilise actuellement. »
+     LE MODÈLE EXISTAIT DÉJÀ DANS LE FICHIER : le transfert en cours (`ch.on`) et le
+     bouton principal de l'accueil sont pleins depuis toujours, encre sombre sur aplat.
+     C'est cette forme-là qui devient la règle, et le gris translucide devient l'exception
+     — l'état EMPÊCHÉ, qui doit justement ne pas ressembler à une action.
+
+     UNE SEULE VARIABLE PORTE LA COULEUR. `--act` est posée par le bouton et par son état
+     ; l'aplat, le filet et l'ombre la lisent. C'est ce qui évite d'écrire trois fois la
+     même teinte par bouton et par état, comme c'était le cas — et donc de les voir
+     diverger.
+
+     L'ENCRE EST LA MÊME PARTOUT, ET ELLE EST MESURÉE. #10171B sur les dix aplats du jeu
+     donne de 5,0 (le rouge de la cuve vide) à 12,5 (le jaune vif) de rapport de
+     contraste ; le seuil lisible est 4,5. Une encre claire aurait échoué sur le jaune.
+
+     ET L'OMBRE PORTÉE N'EST PAS UNE COQUETTERIE : un aplat clair posé sur un ciel clair
+     n'a plus de bord. Elle est FIXE — aucun de ces boutons ne l'anime —, donc elle ne
+     coûte qu'une peinture, une fois. */
+  #service, #buy, #atelier, #veh, #choix .ch, #crop{
+    background:var(--act);border-color:var(--act);color:#10171B;
+    box-shadow:0 2px 9px rgba(0,0,0,.42)}
+  #choix .ch{padding:7px 15px;border-radius:11px;--act:#4AA8E0;
+    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid var(--act);
+    white-space:nowrap;flex:none}
+  #choix .ch.jaune{--act:#FFD21E}
   /* Le VERT dans la colonne : un contrat n'est pas un geste de plus sur la benne, et
      il ne doit pas se confondre avec ce qu'on charge ou décharge ici. */
-  #choix .ch.vert{border-color:#62D84E;color:#8BE07A}
-  #choix .ch.retour{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.55);
+  #choix .ch.vert{--act:#62D84E}
+  /* LE TRANSFERT EN COURS RESPIRE, PUISQU'IL NE PEUT PLUS ÊTRE « CELUI QUI EST PLEIN ».
+     C'était sa marque : seul de la colonne, il avait un aplat. Maintenant qu'ils en ont
+     tous un, il lui faut autre chose — et le mouvement dit « ça tourne » mieux qu'aucune
+     teinte ne le dirait. Une OPACITÉ qui va et vient : le compositeur la traite sans
+     repasser par la peinture, contrairement à une ombre ou à un filtre, et c'est la même
+     règle que pour le halo des boutons appelés. Cliquer dessus l'arrête. */
+  #choix .ch.on{--act:#E8B44A;animation:actEnCours 1.15s ease-in-out infinite}
+  @keyframes actEnCours{0%,100%{opacity:1}50%{opacity:.72}}
+  /* L'EMPÊCHÉ ET LE RETOUR NE SONT PAS DES ACTIONS. Le premier dit « je ne peux pas »,
+     le second est une sortie : ils gardent le gris translucide que les actions viennent
+     de quitter, et c'est ce qui les distingue d'un seul coup d'œil. */
+  #choix .ch.no{background:rgba(20,28,33,.86);border-color:rgba(255,255,255,.28);
+    color:rgba(255,255,255,.5);box-shadow:none}
+  #choix .ch.retour{background:rgba(20,28,33,.86);border-color:rgba(255,255,255,.22);
+    color:rgba(255,255,255,.55);box-shadow:none;
     font-size:10px;letter-spacing:1.1px;padding:6px 16px}
   #choix .titre{font-size:9px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
     padding-bottom:2px}
@@ -741,20 +791,22 @@
   #choix.bleu  .titre{color:#8FD3F5}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    background:rgba(20,28,33,.72);font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid #E8B44A;color:#E8B44A;white-space:nowrap;display:none}
-  #service.no{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.5)}
+    --act:#E8B44A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    border:2px solid var(--act);white-space:nowrap;display:none}
   /* Le bandeau de service, l'achat et l'amélioration du garage suivent la même règle
      que la colonne. `:not(.no)` parce que le grisé est un ÉTAT — « je ne peux pas » —
      et non la couleur d'un lieu : il doit rester gris sur un cercle jaune comme sur un
      bleu, sinon on perd la seule distinction qui compte au moment d'appuyer. */
-  #service.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
-  #service.vert:not(.no){border-color:#62D84E;color:#8BE07A}
-  #service.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
-  #veh.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
-  #veh.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
-  #atelier.jaune:not(.no){border-color:#FFD21E;color:#FFD21E}
-  #atelier.bleu:not(.no){border-color:#4AA8E0;color:#8FD3F5}
+  #service.jaune, #veh.jaune, #atelier.jaune{--act:#FFD21E}
+  #service.vert,  #veh.vert,  #atelier.vert {--act:#62D84E}
+  #service.bleu,  #veh.bleu,  #atelier.bleu {--act:#4AA8E0}
+  /* LE GRIS DE L'EMPÊCHÉ PASSE APRÈS LES TROIS COULEURS, et c'est pour cela qu'il n'a
+     plus besoin du `:not(.no)` qui traînait sur chacune : il les écrase par l'ordre.
+     Il reste un ÉTAT — « je ne peux pas » — et doit donc rester gris sur un cercle jaune
+     comme sur un bleu, sinon on perd la seule distinction qui compte au moment d'appuyer. */
+  #service.no, #buy.no, #atelier.no, #veh.no{
+    background:rgba(20,28,33,.72);border-color:rgba(255,255,255,.28);
+    color:rgba(255,255,255,.5);box-shadow:none}
   /* écran d'accueil : il recueille aussi le premier geste, sans lequel aucun
      navigateur n'autorise le son */
   #accueil{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
