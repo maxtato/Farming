@@ -7969,3 +7969,75 @@ ajoutant une parcelle à deux qui tournent déjà.
 > `plan.js` passe de 28 à **36**.
 
 Les vingt suites passent.
+
+## Le petit fourgon quitte la route, et la moissonneuse cesse de traverser le silo
+
+### Quinze véhicules au lieu de seize
+
+> « Supprime ce véhicule du trafic. » — puis, précisé : « supprime le petit fourgon. »
+
+C'était le **sosie de son propre fourgon** — même silhouette, même caisse fermée — et en
+croiser un revenait à voir passer sa machine sans l'avoir envoyée. Le modèle part en entier :
+la carrosserie, sa place dans la planche, et son cran dans les **cinq tables positionnelles**
+retaillées ensemble — parts du tirage, allures, ressorts, tailles, robes. Tout ce qui suivait
+son indice a reculé d'un cran, le banc `trafic` compris.
+
+| | avant | après |
+|---|---|---|
+| modèles | 16 | **15** |
+| géométries (robes comprises) | 43 | **40** |
+| somme des parts | 100 | **92** |
+
+**Et la somme ne fait plus cent, à dessein.** Le fourgon pesait huit parts ; on aurait pu les
+redistribuer pour retomber rond. On ne le fait pas : `tirerModele` divise par le total de la
+table, donc laisser les quinze autres **intacts** garde à chacun sa fréquence relative exacte.
+Une berline reste aussi fréquente qu'avant vis-à-vis d'une citadine, et l'on n'a pas déguisé
+un retrait en rééquilibrage. Le contrôle du banc est plus fort qu'un « ça fait cent » : il
+exige exactement cent moins les huit du fourgon, ce qui échoue aussi bien si l'on a oublié de
+retirer une entrée que si l'on a retouché les autres en douce.
+
+Vérifié à la mesure : les huit tables à quinze, `I_LOURD` à quinze, aucun tirage hors bornes,
+aucun modèle jamais tiré, aucune géométrie au gabarit du fourgon, et **le Fourgon du joueur
+intact** — 9 000 €, 600 kg. Ce sont deux objets sans rapport, et c'est le premier contrôle.
+
+### La moissonneuse traversait la tour du silo
+
+Défaut trouvé en réparant les réserves : en retirant les quinze secondes perdues contre la
+cuve, la moisson démarrait 870 images plus tôt et **tombait sur celui-ci**.
+
+Après avoir vidé sa trémie, la moissonneuse repartait vers son champ **sans aucun
+itinéraire** — `routeBut` nul — donc en ligne droite, à travers le silo, où elle restait
+**4 742 images à 0,1 m/s**, plus d'une minute, pour 826 m parcourus au lieu de 419.
+
+**La cause tient en une garde qui ne disait pas ce qu'elle croyait dire.** `quitterLieu` note
+le point de reprise là où se trouve l'engin, sous la condition `plan.entre && !plan.sorti`,
+censée signifier « on est encore dans le champ ». Or `entre` reste **vrai pendant tout
+l'aller-retour au silo**, et `quitterLieu` est appelée *à l'arrivée*, trémie vidée : la
+reprise était donc notée **aux coordonnées du silo**. Au tour suivant, `suivreRoute` vers un
+point où l'on se tient déjà rend `null` sur-le-champ, `entre` repasse à vrai, et
+`piloteChamp` — le pilote de *champ*, qui vise en ligne droite sans itinéraire ni obstacle —
+prend la main **depuis le silo**.
+
+Deux corrections, et aucune ne touche au pilotage :
+
+1. le point de reprise se note **au moment où la trémie déborde**, dans la terre : le seul
+   instant où la machine est à l'endroit qu'il faut retenir ;
+2. `quitterLieu` **n'en note plus un hors de sa parcelle** — quatre mètres de tolérance pour
+   la fourrière.
+
+| parcelle 7, moissonneuse | avant | après |
+|---|---|---|
+| images à ramper | **4 742** | **145** |
+| distance parcourue | 826 m | **706 m** |
+
+Le contrôle qui protège la correction est direct : trémie vidée **au silo**, aucun point de
+reprise ne doit être posé ; interrompue **dans sa terre**, il doit l'être. Il échoue sur la
+version d'avant, qui posait les coordonnées du silo. `pilote.js` passe de 31 à **33**
+contrôles, `trafic.js` en garde 62.
+
+> Le contrôle de cadence du trafic a échoué une fois dans un lot lancé en parallèle
+> (27,3 s pour une fourchette de 12 à 26). Relancé seul cinq fois de suite : vert à chaque
+> fois, 14,3 à 21,4 s. C'était la contention de la machine, pas le retrait du modèle — mais
+> comme j'avais justement touché au trafic, je ne me suis pas contenté d'un passage.
+
+Les vingt suites passent.

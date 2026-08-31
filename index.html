@@ -12088,8 +12088,23 @@ function quitterLieu(v){
   /* ET L'ON REVIENT LÀ OÙ L'ON S'EST ARRÊTÉ, PAS AU BOUT DE LA LIGNE. La passe reprenait
      au POINT COURANT du plan, c'est-à-dire à la fin du tronçon interrompu : tout ce qui
      restait de cette ligne — jusqu'à trente mètres — était sauté. On note donc l'endroit
-     exact où la trémie s'est remplie, et c'est là qu'on redescend. */
-  if(v.plan && v.plan.entre && !v.plan.sorti) v.plan.reprise = {x:v.pos.x, z:v.pos.z};
+     exact où le travail s'est interrompu, et c'est là qu'on redescend.
+
+     MAIS SEULEMENT SI L'ON EST ENCORE DANS SA TERRE, et c'est la correction. La garde
+     disait `plan.entre && !plan.sorti` en croyant dire « on est dans le champ » ; or
+     `entre` reste VRAI pendant tout l'aller-retour au silo. `quitterLieu` étant appelée
+     à l'arrivée — trémie vidée, machine sur la grille — elle notait donc comme point de
+     reprise LES COORDONNÉES DU SILO. Au tour suivant, `suivreRoute` vers un point où l'on
+     se tient déjà rend `null` sur-le-champ, `entre` repasse à vrai, et `piloteChamp`
+     prend la main DEPUIS LE SILO : il vise en ligne droite, sans itinéraire et sans rien
+     savoir des obstacles, et la moissonneuse s'en va traverser la tour.
+     Relevé sur un chantier complet : 4 742 images à 0,1 m/s — plus d'une minute — plaquée
+     contre le fût, et 826 m parcourus au lieu de 419. On exige donc que la machine soit
+     réellement dans sa parcelle, avec quatre mètres de tolérance pour la fourrière. */
+  const _P = v.plan && v.plan.p;
+  if(_P && v.plan.entre && !v.plan.sorti
+     && Math.abs(v.pos.x - _P.x) < _P.w/2 + 4 && Math.abs(v.pos.z - _P.z) < _P.h/2 + 4)
+    v.plan.reprise = {x:v.pos.x, z:v.pos.z};
   /* ET L'ON REGAGNE SON CHANTIER PAR LA ROUTE. Le plan de travail garde son point
      courant, mais le drapeau « déjà entré » retombe : sans lui, la moissonneuse qui
      vient de vider sa trémie visait sa passe suivante EN LIGNE DROITE depuis la grille
@@ -12150,7 +12165,14 @@ function missionDrive(m, dt){
   if(t.quoi === 'parcelle'){
     v.cleVoulue = null;
     // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
-    if(m.key === 'moisson' && hopper >= HOP_MAX) v.goSilo = true;
+    /* ET LE POINT DE REPRISE SE NOTE ICI, DANS LA TERRE — au moment précis où la trémie
+       déborde et où la passe s'interrompt. C'est le seul instant où la machine est encore
+       à l'endroit qu'il faut retenir. */
+    if(m.key === 'moisson' && hopper >= HOP_MAX){
+      if(!v.goSilo && v.plan && v.plan.entre && !v.plan.sorti)
+        v.plan.reprise = {x:v.pos.x, z:v.pos.z};
+      v.goSilo = true;
+    }
     if(v.goSilo){
       if(hopper <= 0.5){ v.goSilo = false; quitterLieu(v); }
       else {
@@ -12636,7 +12658,7 @@ function viser(v, tx, tz, rayon, vTour){
 }
 
 /* --- circulation : voitures et camions sur la rocade --- */
-/* ---------- LES SEIZE VÉHICULES DU TRAFIC ----------
+/* ---------- LES QUINZE VÉHICULES DU TRAFIC ----------
    Ils viennent de la planche du joueur, portés tels quels : mêmes cotes, mêmes couleurs,
    même façon de bâtir un habitacle. Cinq boîtes empilées ne font pas une voiture ; ce qui
    la fait, c'est le SANDWICH — ceinture de caisse, bandeau vitré, pavillon, tous
@@ -12906,17 +12928,6 @@ const TRAFIC_MODELES = (function(){
     return P;
   }
   // 8 — Fourgon de livraison : caisse haute nervurée, marquage latéral.
-  function fourgon(){
-    const C = robe(0xF2EAD8), P = [];
-    P.push(B(2.0, 0.3, 5.4, CHASSIS, 0, 0.5, 0));
-    cabine(P, 2.0, 1.5, 1.9, C, 0.62, 1.7);
-    caisseFermee(P, 2.06, 2.0, 3.5, C, 0.62, -0.85, 4);
-    P.push(B(1.3, 0.5, 0.12, BLEU, 0, 1.9, -2.64));
-    P.push(B(2.06, 0.18, 0.4, 0x2A2E32, 0, 0.42, 2.72));
-    feux(P, 0.74, 0.74, 2.74, -2.66);
-    roues(P, 0.9, 1.75, -1.75, 0.38, 0.28);
-    return P;
-  }
   /* 9 — Camion à caisse : cabine bleue, CAISSE BLANCHE, jumelage arrière.
      Le joueur : « fais que la caisse reste toujours blanche, peu importe la couleur de la
      cabine. » Elle ne changeait déjà jamais — le système de variantes ne remplace que les
@@ -13133,8 +13144,13 @@ const TRAFIC_MODELES = (function(){
     roues(P, 0.96, 1.9, -1.7, 0.42, 0.3, true);
     return P;
   }
+  /* QUINZE, DEPUIS QUE LE PETIT FOURGON EST PARTI. Le joueur l'a montré du doigt sur une
+     capture : « supprime ce véhicule du trafic. » C'était le sosie de son propre fourgon —
+     même silhouette, même caisse fermée — et en croiser un sur la route revenait à voir
+     passer sa machine sans l'avoir envoyée. Tout ce qui suit son indice a reculé d'un cran :
+     les cinq tables positionnelles ont été retaillées ensemble, et le banc `trafic` avec. */
   const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace,
-                   pickup, fourgon, camionCaisse, cerealier, benne, autocar,
+                   pickup, camionCaisse, cerealier, benne, autocar,
                    campingCar, pompiers, postale, depanneuse];
   const geos = [], optiques = [], robes = [];
   for(const f of modeles){
@@ -13146,11 +13162,11 @@ const TRAFIC_MODELES = (function(){
 })();
 const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux;
 /* ---------- LES ROBES ----------
-   Seize modèles, c'est seize voitures. Or on ne croise pas seize voitures dans un
+   Quinze modèles, c'est quinze voitures. Or on ne croise pas quinze voitures dans un
    village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
    Chaque modèle reçoit donc des robes de plus, et la sienne est tirée à la naissance.
    Le compte exact, pour qui vient vérifier : douze modèles en reçoivent deux, le camion à
-   caisse trois, et trois n'en reçoivent aucune — quarante-trois géométries en tout.
+   caisse trois, et trois n'en reçoivent aucune — quarante géométries en tout.
 
    ET PLUS UN SEUL ROUGE SUR LA ROCADE. Le joueur pilote un tracteur rouge : « je veux
    plus de rouge, puisque moi je l'ai en tant que véhicule perso, je veux pas qu'on
@@ -13170,8 +13186,8 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux;
    troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
    d'attribut dans deux géométries, et le processeur graphique ne téléverse le sommet
    qu'une fois. Une robe coûte un tiers d'un modèle, et non un modèle entier — mesuré,
-   1 302 Kio d'attributs pour les seize carrosseries et 2 032 pour les quarante-trois
-   géométries, là où quarante-trois géométries pleines en pèseraient 3 492.
+   1 302 Kio d'attributs pour les carrosseries et 2 032 pour les quarante géométries, là
+   où autant de géométries pleines en pèseraient plus du double.
 
    La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
    les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
@@ -13193,10 +13209,6 @@ const ROBES_TRAFIC = [
   [0x2F6B8E, 0xB08A2E],           // plateau à bottes : bleu, moutarde
   [0x37474F, 0xBFC6CC],           // monospace : anthracite, argent
   [0x1E2A30, 0xC26A2A],           // pick-up : noir bleuté, orange
-  /* Le bleu de la variante VALAIT celui du marquage latéral (0x3E7CB8) : sur un fourgon
-     sur trois, les trente-six sommets du bandeau fusionnaient dans la tôle et le van
-     roulait tout nu. Une couleur, un rôle — jusque dans les variantes. */
-  [0x2F6B8E, 0xD9DDE0],           // fourgon : bleu pétrole, blanc gris
   // Le camion à caisse en a une de plus que tout le monde : le joueur les voulait
   // « toutes les couleurs, sauf en rouge, qui était la couleur originale ».
   /* LA TROISIÈME EST CRÈME, ET ELLE RESTE — mais il a fallu le vérifier plutôt que le
@@ -13258,16 +13270,25 @@ const TRAFIC_ROBES = (function(){
     return liste;
   });
 })();
-/* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Seize modèles tirés à égalité feraient passer un
-   camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les seize
-   voitures : une rocade de village n'a pas cette allure. Les poids se lisent comme un
-   pourcentage — ils font cent — et ils tiennent dans l'esprit des deux autres tirages du
-   trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts écrites en clair.
+/* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Quinze modèles tirés à égalité feraient passer un
+   camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les quinze
+   voitures : une rocade de village n'a pas cette allure. Les poids se lisaient comme un
+   pourcentage — ils faisaient cent — et depuis le retrait du petit fourgon ils font
+   quatre-vingt-douze, pour la raison dite plus bas : on préfère qu'aucun autre véhicule
+   n'ait bougé à ce que la somme soit ronde. Ils tiennent dans l'esprit des deux autres
+   tirages du trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts en clair.
    Et les gros roulent MOINS. Sur une route de campagne on croise des voitures ; un
    camion-benne, un autocar, une dépanneuse sont des événements. Voitures 64 %,
    utilitaires 10 %, camions de travail 18 %, car et camping-car 6 %, secours 2 %. */
+/* ET LA SOMME NE FAIT PLUS CENT, MAIS QUATRE-VINGT-DOUZE — À DESSEIN. Le petit fourgon
+   pesait huit parts ; en le retirant, on aurait pu redistribuer ses huit points pour
+   retomber sur cent ronds. On ne le fait pas : `tirerModele` divise par le total de la
+   table, donc laisser les quinze autres INTACTS garde à chacun sa fréquence relative
+   exacte — une berline reste aussi fréquente qu'avant vis-à-vis d'une citadine, et l'on
+   n'a pas déguisé un retrait en rééquilibrage. Ce qu'on perd est la lecture directe en
+   pourcentage ; ce qu'on gagne est qu'aucun autre véhicule n'a bougé. */
 const POIDS_TRAFIC = [17, 13, 16,  4,  4,  9,      // berline, break, citadine, bétaillère, bottes, monospace
-                       9,  8,  4,  3,  3,  3,      // pick-up, fourgon, caisse, citerne, benne, autocar
+                       9,  4,  3,  3,  3,          // pick-up, caisse, céréalier, benne, autocar
                        3,  1,  2,  1];             // camping-car, pompiers, postale, dépanneuse
 /* ET L'ALLURE DE CHACUN. Un autocar, un camping-car et un camion-benne ne roulent pas
    comme une citadine — mais L'ÉVENTAIL RESTE ÉTROIT, entre 0,90 et 1,05, et c'est une
@@ -13275,12 +13296,12 @@ const POIDS_TRAFIC = [17, 13, 16,  4,  4,  9,      // berline, break, citadine, 
    rattrape immanquablement une voiture lente, si loin devant soit-elle, et le créneau
    n'existe alors pour personne. Quinze pour cent d'écart se voient sans rien casser. */
 const ALLURE_TRAFIC = [1.05, 1.00, 1.04, 0.92, 0.92, 1.00,
-                       1.02, 0.98, 0.92, 0.92, 0.90, 0.90,
+                       1.02, 0.92, 0.92, 0.90, 0.90,
                        0.90, 0.95, 0.96, 0.94];
 // Un PORTEUR est un camion rigide : il roule sur le ressort long, celui de l'attelage,
 // et non sur celui d'une voiture. C'est ce qui fait qu'une caisse haute dodeline.
 const PORTEUR_TRAFIC = [false, false, false, true, true, false,
-                        false, false, true, true, true, true,
+                        false, true, true, true, true,
                         false, true, false, true];
 /* ET LES DIX DERNIERS ARRIVÉS PÈSENT UN PEU PLUS. Les six modèles d'origine avaient été
    dessinés à une échelle qui leur est propre : leurs deux camions font 3,81 m de large,
@@ -13297,7 +13318,7 @@ const PORTEUR_TRAFIC = [false, false, false, true, true, false,
    Le facteur est donc RABOTÉ modèle par modèle par la hauteur libre, au lieu d'être écrit
    à la main : c'est un calcul, il se refait tout seul si un modèle grandit ou si les
    lampadaires bougent. La réserve de 45 cm couvre les 30 cm de suspension mesurés et
-   laisse 15 cm de jeu au pire. Sur les seize, TROIS sont rabotés — le camion à caisse
+   laisse 15 cm de jeu au pire. Sur les quinze, TROIS sont rabotés — le camion à caisse
    (1,0659), la citerne à lait (1,0628) et l'autocar (1,0754), qui montent à six ou sept
    pour cent au lieu de huit.
    ILS ÉTAIENT QUATRE, et cette phrase l'a écrit trop longtemps : le camping-car en est
@@ -13305,7 +13326,7 @@ const PORTEUR_TRAFIC = [false, false, false, true, true, false,
    haut est tombé de 3,59 à 3,19, son plafond est passé à 1,1327, et il tient largement
    ses 1,08. Il lui reste 43 cm sous l'ampoule, là où l'autocar n'en garde que 16. */
 const TAILLE_TRAFIC = [1, 1, 1, 1, 1, 1,
-                       1.08, 1.08, 1.08, 1.08, 1.08, 1.08,
+                       1.08, 1.08, 1.08, 1.08, 1.08,
                        1.08, 1.08, 1.08, 1.08];
 const POIDS_TOTAL = POIDS_TRAFIC.reduce((a, b)=> a + b, 0);
 function tirerModele(){
