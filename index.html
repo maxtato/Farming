@@ -491,6 +491,12 @@
   #regie{position:absolute;bottom:calc(152px + env(safe-area-inset-bottom));
     left:calc(24px + env(safe-area-inset-left));pointer-events:auto;
     display:flex;gap:6px;align-items:center}
+  /* L'ENGIN QUE LE PILOTE CONDUIT NE RÉPOND PLUS AU DOIGT, ET SES COMMANDES LE DISENT.
+     Elles restent en place — les cacher ferait sauter la mise en page sous le pouce du
+     joueur — mais elles s'éteignent, et cessent de recevoir le toucher : un manche qu'on
+     pousse sans effet est plus inquiétant qu'un manche visiblement au repos. */
+  #hud.robot #stick, #hud.robot #thr, #hud.robot #boutons{
+    opacity:.3;filter:grayscale(1);pointer-events:none}
   #hud.btn #regie{bottom:calc(108px + env(safe-area-inset-bottom))}
   /* SAUF SUR UN ÉCRAN ÉTROIT, où il n'y a pas la place des deux. La régie descendue
      occupe la bande des 108-152 px, que la rangée du bouton d'achat de parcelle traverse
@@ -16201,7 +16207,8 @@ function ouvrirParc(){
                                          + m.v.cargo.capacite + ' kg'
               : m.v.cargo ? 'Transport ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
               : (T ? T.nom : 'sans outil'))
-      + (i === cur ? ' · à bord' : (m.v.mission ? ' · en mission' : ' · à ' + d + ' m'));
+      + (i === cur ? (m.v.mission ? ' · à bord, en automatique' : ' · à bord')
+                   : (m.v.mission ? ' · en mission' : ' · à ' + d + ' m'));
     const l = document.createElement('div');
     // `enginTuto()` rend déjà null quand c'est la machine où l'on est assis : la ligne
     // en cours ne peut donc pas battre et être allumée à la fois.
@@ -16256,9 +16263,16 @@ function nearestFreeTool(v){
   return best;
 }
 const hitchEl = document.getElementById('hitch');
+/* L'ATTELAGE SE VERROUILLE PENDANT L'AUTOMATISATION. Depuis que le pilote peut prendre le
+   volant de l'engin où se tient le joueur, celui-ci pourrait DÉTELER la charrue en pleine
+   passe : le chantier partirait chercher un outil qui n'est plus là, et l'on retrouverait
+   le blocage que `enginPourOutil` a mis cent secondes à révéler la dernière fois. Le
+   bouton disparaît donc, comme il disparaît déjà pour la moissonneuse, qui n'en a pas. */
 function refreshHitchButton(){
   const m = MACHINES[cur];
-  if(m.key === 'moisson' || m.v.cargo){ hitchEl.style.display = 'none'; return; }
+  if(m.key === 'moisson' || m.v.cargo || m.v.auto || m.v.mission){
+    hitchEl.style.display = 'none'; return;
+  }
   hitchEl.style.display = 'flex';
   const T = toolOf(m);
   // On ne refabrique le tracé que lorsque le signe change : cette fonction passe
@@ -17289,6 +17303,11 @@ buyEl.addEventListener('pointerdown', ()=>{
 hitchEl.addEventListener('pointerdown', ()=>{
   const m = MACHINES[cur];
   if(m.key === 'moisson') return;
+  // Le bouton est déjà caché ; un doigt encore posé dessus au moment où le pilote prend
+  // le volant pourrait tout de même le déclencher.
+  if(m.v.auto || m.v.mission){
+    showHint('ENGIN EN AUTOMATIQUE — ARRÊTEZ-LE DANS LE PLAN DE TRAVAIL'); return;
+  }
   const T = toolOf(m);
   if(T){
     detachTool(m.v);
@@ -24797,8 +24816,33 @@ function blocageEtape(C, et){
 }
 const classeDe = (m)=> EST_TRACTEUR(m) ? 'tracteur'
                      : (m.key === 'moisson' || m.key === 'enjambeuse') ? m.key : 'porteur';
-/* UN ENGIN EST LIBRE S'IL NE FAIT RIEN ET QUE LE JOUEUR N'EST PAS DEDANS. On ne lui
-   prend jamais celui qu'il conduit : le pilote reprendrait la main sous ses doigts. */
+/* UN ENGIN EST LIBRE S'IL NE FAIT RIEN — MÊME SI LE JOUEUR EST DEDANS.
+   Il ne l'était pas : `enginLibre` écartait `cur`, l'engin au volant duquel se tient le
+   joueur, « pour que le pilote ne reprenne pas la main sous ses doigts ».
+   LE JOUEUR A TRANCHÉ, ET IL A RAISON : « quand on a sélectionné un véhicule, qu'on le
+   conduit et qu'on va dans les paramètres d'automatisation, même si on a le véhicule en
+   question, l'automatisation se lance. On est donc plus maître du véhicule, et pour
+   arrêter l'automatisation il faut rerentrer dans le menu. Aujourd'hui l'automatisation
+   ne commence pas tant qu'on n'a pas quitté le véhicule. »
+   C'ÉTAIT MESURABLE, ET MESURÉ. Ferme de départ, un seul tracteur, le joueur dedans, un
+   chantier de labour posé sur sa parcelle : au bout de SIX CENTS IMAGES le chantier n'a
+   toujours désigné personne et affiche « LABOUR — EN ATTENTE D'UN ENGIN », alors que le
+   seul tracteur de la ferme est là, moteur tournant, à l'arrêt. Le joueur descend : UNE
+   image, et le tracteur part. Rien ne le disait à l'écran — le chantier attendait un
+   engin qui n'existe pas, et le joueur attendait un chantier qui ne partira jamais.
+   LA BAGARRE POUR LE VOLANT N'EXISTE PAS, et c'est ce qui rend le retrait sûr. La boucle
+   principale REMPLACE déjà les commandes du joueur par celles du pilote dès que `v.auto`
+   est vrai — « if(v.auto){ const r = autoDrive(m, dt); steerM = r[0]; … } » —, et c'est
+   le cas depuis toujours : monter dans un engin DÉJÀ automatisé donnait déjà exactement
+   ce comportement. Il ne manquait que le droit de le désigner.
+   TROIS CHOSES ACCOMPAGNENT LE RETRAIT, parce qu'un volant qui cesse de répondre sans
+   rien dire se lit comme une panne : l'engin le DIT quand on lui prend le volant (voir
+   `armerEngin`), ses commandes se GRISENT (classe `robot` sur le HUD), et son attelage se
+   VERROUILLE — dételer la charrue sous le pilote casserait le chantier.
+   CE QUI RESTE AU JOUEUR : `libererEngins` et `rentrerAuParc` gardent, eux, leur garde sur
+   `cur`. Un engin qu'aucun chantier ne tient et dans lequel le joueur est assis n'est
+   donc jamais renvoyé au parc tout seul — l'automatisation prend le volant, elle ne
+   ramène pas le joueur à la maison. */
 /* UN ENGIN QUI RENTRE AU PARC RESTE DISPONIBLE, et c'est indispensable depuis qu'il rentre
    tout seul. `armerEngin` pose une mission, et `enginLibre` refusait toute machine qui en a
    une : le retour au parc rendait donc l'engin INTOUCHABLE jusqu'à ce qu'il soit garé.
@@ -24817,13 +24861,20 @@ const rentreAuParc = (v)=> !!v.mission && !v.mission.boucle
   && (v.mission.taches || []).every((t)=> t.quoi === 'parc');
 const enginLibre = (m)=> { const i = MACHINES.indexOf(m);
   const rentre = rentreAuParc(m.v);
-  return !m.verrou && (rentre || (!m.v.mission && !m.v.auto)) && cur !== i
+  return !m.verrou && (rentre || (!m.v.mission && !m.v.auto))
          && !CHANTIERS.some((C)=> C.enginTerre === i || C.enginPort === i); };
 /* ARMER UN ENGIN. Le lanceur de l'ancien écran oubliait la moitié de ces champs — il ne
    remettait ni `finMoisson` ni l'itinéraire — et comptait sur la première tâche pour
    nettoyer derrière lui. Ici tout part de zéro, une fois, au même endroit. */
 function armerEngin(m, taches){
   const v = m.v;
+  /* ET S'IL PREND LE VOLANT DES MAINS DU JOUEUR, IL LE DIT — une fois, au moment où il le
+     prend. Un engin qui cesse de répondre sans un mot se lit comme une panne, et le
+     joueur chercherait le défaut au lieu du bouton d'arrêt. On ne le répète pas à chaque
+     tâche : `v.auto` est déjà vrai à la deuxième, et le message ne repart donc qu'après
+     un arrêt franc. */
+  if(!v.auto && m === MACHINES[cur])
+    showHint('L’AUTOMATISATION PREND LE VOLANT — ARRÊTEZ-LA DANS LE PLAN DE TRAVAIL');
   v.mission = {taches:taches, i:0, etape:0, boucle:false, attente:0};
   v.plan = null; v.goSilo = false; v.finMoisson = false;
   v.sensVoulu = null; v.cleVoulue = null;
@@ -25636,6 +25687,8 @@ function loop(now){
     refreshCommandes();
     veillerBulles();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
+    // Le volant est-il au pilote ? Les commandes s'éteignent, et ne prennent plus le doigt.
+    hudEl.classList.toggle('robot', !!(MACHINES[cur] && MACHINES[cur].v.auto));
     enginsEl.classList.toggle('appel', !!enginTuto());
     refreshRegie();
     refreshChoix(); refreshService(); refreshJauges();

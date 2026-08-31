@@ -8319,3 +8319,53 @@ pas se voir*, et il est vérifié en pixels rendus à chaque exécution du banc.
 > naissance. Trois exécutions de suite au vert depuis.
 
 Les vingt suites passent.
+
+## L'automatisation prend le volant, même quand on est dedans
+
+Le joueur : « quand on a sélectionné un véhicule, qu'on le conduit et qu'on va dans les
+paramètres d'automatisation, même si on a le véhicule en question, l'automatisation se lance.
+On est donc plus maître du véhicule, et pour l'arrêter il faut rerentrer dans le menu.
+Aujourd'hui l'automatisation ne commence pas tant qu'on n'a pas quitté le véhicule. »
+
+**Le défaut tenait en cinq caractères**, `cur !== i` dans `enginLibre` : le répartiteur écartait
+l'engin au volant duquel se tient le joueur, « pour que le pilote ne reprenne pas la main sous
+ses doigts ».
+
+| ferme de départ, UN seul tracteur, le joueur dedans | avant | après |
+|---|---|---|
+| images avant que le chantier ne désigne un engin | **jamais** (600 mesurées) | **24** |
+| ce que le bandeau affiche | *LABOUR — EN ATTENTE D'UN ENGIN* | l'étape en cours |
+| après être descendu | 1 image | — |
+
+Le tracteur était là, moteur tournant, à l'arrêt sous les yeux du joueur, et le chantier
+attendait un engin qui n'existait pas.
+
+**La bagarre pour le volant n'existe pas, et c'est ce qui rend le retrait sûr.** La boucle
+principale REMPLACE déjà les commandes du joueur par celles du pilote dès que `v.auto` est
+vrai, et c'est le cas depuis toujours : monter dans un engin *déjà* automatisé donnait déjà
+exactement ce comportement. Il ne manquait que le droit de le désigner.
+
+Mesuré en rejouant la boucle à l'identique, **le joueur poussant à fond en marche arrière et
+braqué à gauche d'un bout à l'autre** : l'engin avance pendant 4 886 images et jamais en
+arrière, attelle la charrue tout seul, parcourt 156 m et laboure la parcelle. Sur une ferme
+neuve, 223 cellules sur 225.
+
+**Trois choses accompagnent le retrait**, parce qu'un volant qui cesse de répondre sans rien
+dire se lit comme une panne :
+
+- l'engin le **dit** au moment où on lui prend le volant — *« L'AUTOMATISATION PREND LE VOLANT
+  — ARRÊTEZ-LA DANS LE PLAN DE TRAVAIL »* — une seule fois, au passage en automatique ;
+- ses commandes se **grisent** et cessent de prendre le doigt (classe `robot` sur le HUD) ;
+- son attelage se **verrouille** : dételer la charrue sous le pilote enverrait le chantier
+  chercher un outil qui n'est plus là, et c'est le blocage qui avait coûté cent secondes
+  d'immobilité la dernière fois.
+
+**Et le bouton rouge rend la main sur-le-champ** : chantier arrêté, 240 images sur 240 où c'est
+la commande du joueur qui passe.
+
+Ce qui ne change pas : `libererEngins` et `rentrerAuParc` gardent leur garde sur `cur`. Un
+engin qu'aucun chantier ne tient et dans lequel le joueur est assis n'est jamais renvoyé au
+parc tout seul — **l'automatisation prend le volant, elle ne ramène pas le joueur à la
+maison.**
+
+`chantiers.js` passe de 37 à **44 contrôles**. Les vingt suites passent.
