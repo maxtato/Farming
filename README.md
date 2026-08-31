@@ -9647,3 +9647,24 @@ détecteur d'yeux mord trois fois sur trois. Seul son refus demandait un cran d'
 elle y est cadrée plus loin que sur ses deux autres.
 
 Douze fiches dans le jeu, **125 Ko**, plus trois planches en attente de commerce.
+
+### Cinquième commerce : la Laiterie, et une planche qui a corrigé l'œil
+
+Le laitier est arrivé, sur la planche d'ensemble, visiblement **plus petit** que les quatre
+autres. J'ai corrigé d'un tiers — et la correction l'a rendu, cette fois, visiblement plus
+**gros**. Ni l'un ni l'autre jugement ne valait : il fallait regarder la bonne chose.
+
+Deux proxys avaient été essayés avant d'y arriver, et tous deux mentent :
+
+- **la hauteur de tête** mesurée sur la silhouette livrée — elle rend 28 px pour la fromagère,
+  dont la chevelure fait bondir la largeur dès la première ligne du crâne ;
+- **l'œil sur la fiche entière** — une blouse blanche sur un fond clair et des épaules coupées
+  court font paraître un personnage petit quand son visage ne l'est pas.
+
+La bonne planche est celle des **visages seuls** : la bande autour de la ligne d'yeux, agrandie
+deux fois, tous les commerces côte à côte. Elle dit tout de suite que le laitier **sans
+correction** tombait en plein milieu de la fourchette. La correction a donc été retirée, et il
+ne reste de lui que deux ancrages posés à la main — ses deux premières planches sont des JPEG
+où aucun détecteur ne mord.
+
+Quinze fiches dans le jeu, **151 Ko**. Cinq commerces sur quinze.
