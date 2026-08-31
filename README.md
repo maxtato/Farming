@@ -8680,3 +8680,79 @@ que chacun vaut **exactement** la couleur que son filet portait, que le pire cou
 tient 5,0 de contraste, que chacun porte son ombre, que les cinq états non-actions sont restés
 translucides, et que l'animation du transfert en cours est la seule de la colonne. Les vingt
 suites passent.
+
+## Le style papier, et plus un seul contour
+
+*« Pour le style de l'interface du jeu, du menu et de toutes les fenêtres qui vont s'ouvrir, je
+veux que tu utilises ce style » — une planche de trois fenêtres sur fond de papier. Et : « sur
+tous les boutons de jeu, sur l'interface de jeu, ne mets pas de contour ; comme sur le bouton
+d'automatisation ou de changement de véhicule, ils n'ont pas de contour — fais pareil pour tous. »*
+
+Toutes les fenêtres du jeu étaient des boîtes **anthracite** bordées d'un filet blanc à 12 % : la
+même matière que le HUD, si bien qu'ouvrir une fenêtre ne se voyait qu'au voile posé derrière.
+Elles deviennent des **feuilles de papier**, et le jeu reste sombre — c'est le contraste des deux
+qui fait qu'une fenêtre s'ouvre.
+
+### La feuille
+
+Le bord n'est pas dessiné : c'est un rectangle passé dans un **filtre de turbulence**
+(`feTurbulence` à quatre octaves, puis `feDisplacementMap`), ce qui lui donne un contour
+irrégulier, **jamais deux fois le même** — la graine change à chaque appel. Une bordure tracée à
+la main aurait l'air régulière, et c'est précisément ce qu'on quittait. Le SVG déborde de dix
+pixels de sa boîte et se peint **une fois**, à l'ouverture : rien ne l'anime, rien ne le
+redimensionne en continu.
+
+Sept fenêtres la portent : la boutique, la fenêtre à onglets, le dosage, le contrat, le parc, le
+plan de travail et l'annonce.
+
+### Trois familles de jetons, et rien d'autre écrit en dur
+
+| | |
+|---|---|
+| la feuille | `--pap1/2/3` le dégradé du papier, `--ligne` et `--ligneOmb` ce qu'on pose dessus |
+| les encres | `--titreC` vert profond, `--texte`, `--sous`, `--sourdine`, `--encre` |
+| les boutons | `--or`, `--vert`, `--rouge`, `--pale`, chacun avec son ombre assombrie |
+
+Une couleur écrite en dur dans une règle, c'est une couleur qui divergera — c'est déjà arrivé
+trois fois dans ce fichier. Le voile posé sur le jeu, `--voile`, remplace les cinq
+`rgba(10,15,18,.7x)` et les trois `backdrop-filter:blur()` qui coûtaient cher sur mobile.
+
+### Deux écritures
+
+Une **condensée très haute** pour les titres, les boutons de fenêtre et les chiffres qui comptent
+(`Haettenschweiler`, `Arial Narrow`, `Impact`, `Oswald`) ; une **linéale lisible** pour le reste
+(`Trebuchet MS`, `Verdana`). Aucune police n'est téléchargée — le jeu tient en un fichier et n'a
+pas de réseau : ce sont des piles de familles système, du plus caractérisé au plus répandu, et le
+repli final est `sans-serif`.
+
+### Plus un seul contour
+
+Le filet de deux pixels est remplacé partout par le **relief** de la planche : un aplat, son
+ombre dure de trois pixels dessous, une ombre douce qui le détache du paysage, et un enfoncement
+de deux pixels au doigt. Le rembourrage gagne les deux pixels que le filet rendait, **si bien
+qu'aucun bouton ne change de taille**.
+
+| famille | avant | après |
+|---|---|---|
+| les 18 boutons d'action | aplat + filet de 2 px | aplat + `0 3px 0` de sa teinte assombrie |
+| la rangée de l'engin, la régie, le menu, la pause | fond translucide + filet blanc | fond translucide + relief |
+| les flèches de conduite | filet blanc, jaune translucide à l'appui | aplat sombre, **plein jaune** enfoncé à l'appui |
+| les boutons de fenêtre, onglets, lignes d'article | filets de couleur | aplats pleins à ombre portée |
+
+L'appel — le bouton que le jeu désigne — passe désormais **après** les trois teintes de lieu, et
+il le fallait : un bouton appelé porte presque toujours déjà une couleur (la régie du garage est
+bleue, le service de la Coopérative est vert), et sa règle, écrite bien plus haut avec celle du
+halo, se faisait écraser sa variable. Le fond restait jaune mais **l'ombre prenait la teinte du
+lieu** : un aplat jaune sur une ombre bleue.
+
+### Les bancs
+
+`hud.js` passe de 46 à **47 contrôles** : le contrôle qui comparait le fond au filet compare
+maintenant le fond à la couleur que le bouton **déclare**, et un contrôle de plus mesure la
+**largeur** du filet sur les 18 actions et les 5 états — un filet de la même teinte que le fond
+serait invisible mais toujours là, et il rendrait deux pixels de moins au texte.
+
+`ecrans.js` passe de 63 à **64**. Le contrôle « c'est une vraie boîte » ne pouvait plus regarder
+`background-color`, transparent par construction : il regarde la **feuille** — un `svg.fond`
+présent, qui couvre la boîte, qui porte bien la turbulence et le déplacement — et vérifie en plus
+que le titre y est écrit à l'encre verte du papier. Les vingt suites passent.

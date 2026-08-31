@@ -12,8 +12,96 @@
      sans que rien ne devienne illisible. */
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#1B2429;
-    font-family:"Trebuchet MS",Verdana,system-ui,sans-serif;color:#fff;
+    font-family:var(--corps);color:#fff;
     -webkit-user-select:none;user-select:none;touch-action:none}
+  /* ==========================================================================
+     LE STYLE PAPIER, ET C'EST LA PLANCHE DU JOUEUR QUI LE DONNE.
+     Toutes les fenêtres du jeu étaient des boîtes ANTHRACITE bordées d'un filet blanc
+     à 12 % : la même matière que le HUD, si bien qu'ouvrir une fenêtre ne se voyait
+     qu'au voile posé derrière. Elles deviennent des FEUILLES DE PAPIER — crème, bord
+     déchiré, lignes beiges posées dessus, boutons pleins à ombre portée — et le jeu,
+     lui, reste sombre : c'est le contraste des deux qui fait qu'une fenêtre s'ouvre.
+
+     TROIS FAMILLES DE JETONS, ET RIEN D'AUTRE NE DOIT ÊTRE ÉCRIT EN DUR :
+       — la FEUILLE et ce qu'on pose dessus (papier, ligne, ombre de ligne) ;
+       — les ENCRES (titre vert profond, texte, sourdine, encre claire des boutons) ;
+       — les QUATRE COULEURS DE BOUTON, chacune avec son ombre assombrie.
+     Une couleur écrite en dur dans une règle, c'est une couleur qui divergera.
+
+     DEUX ÉCRITURES. Une CONDENSÉE très haute pour les titres, les boutons de fenêtre et
+     les chiffres qui comptent ; une linéale lisible pour le reste. Aucune police n'est
+     téléchargée — le jeu tient en un fichier et n'a pas de réseau : ce sont des piles de
+     familles système, du plus caractérisé au plus répandu, et le repli final est
+     `sans-serif`. Sur un appareil qui n'a aucune des quatre, le ton se perd mais rien
+     ne casse : c'est le prix d'un jeu sans dépendance. */
+  :root{
+    --titre:"Haettenschweiler","Arial Narrow","Impact","Oswald",sans-serif;
+    --corps:"Trebuchet MS",Verdana,system-ui,sans-serif;
+    /* la feuille */
+    --pap1:#F6F0DF; --pap2:#F1E9D4; --pap3:#E7DEC6;
+    --ligne:#E4DAC0; --ligneOmb:#C9BE9E;
+    --ligne2:#E8DCC6; --ligne2Omb:#CDBE9E;
+    /* les encres */
+    --titreC:#2F5233; --texte:#4A4636; --sous:#7C7458; --sourdine:#8A8266;
+    --encre:#F6F1E1; --encreOr:#33301F;
+    /* les boutons : une couleur, son ombre, son encre */
+    --or:#E8B33A;   --orOmb:#B4861A;
+    --vert:#5C8C3F; --vertOmb:#3F6A2A;
+    --rouge:#C2503E;--rougeOmb:#8E3428;
+    --pale:#CFC3A4; --paleOmb:#A99C7C; --paleEncre:#4F4936;
+    /* le voile qu'on pose sur le jeu quand une fenêtre s'ouvre : il assombrit sans
+       masquer, et la feuille claire s'y détache seule, sans avoir besoin d'ombre */
+    --voile:rgba(32,35,38,.82);
+  }
+  /* LA FEUILLE. Le bord n'est pas dessiné : c'est un rectangle passé dans un filtre de
+     turbulence, ce qui lui donne un contour irrégulier, jamais deux fois le même. Une
+     bordure tracée à la main aurait l'air régulière. Le SVG est posé en fond ABSOLU,
+     débordant de dix pixels, et le contenu passe au-dessus. */
+  .feuille{position:relative;background:none;border:none}
+  .feuille > svg.fond{position:absolute;inset:-10px;width:calc(100% + 20px);
+    height:calc(100% + 20px);z-index:0;pointer-events:none}
+  .feuille > *:not(svg){position:relative;z-index:1}
+  /* CE QU'ON POSE SUR LA FEUILLE : une ligne beige, légèrement plus foncée qu'elle,
+     avec son ombre portée de trois pixels. C'est la seule façon de séparer deux blocs
+     sur du papier — un filet ferait un tableau, un aplat sombre ferait un trou. */
+  .pl{background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb)}
+  /* LE BOUTON DE FENÊTRE : plein, sans contour, avec son ombre portée dans sa propre
+     teinte assombrie — c'est le relief qui le détache du papier, pas un filet. Il
+     s'enfonce de deux pixels au doigt et son ombre se réduit d'autant : le geste se
+     voit sans qu'on ait à changer de couleur. */
+  .bt{text-align:center;padding:8px 10px;border-radius:9px;font-family:var(--titre);
+    font-size:12px;font-weight:bold;letter-spacing:.9px;text-transform:uppercase;
+    white-space:nowrap;border:none;position:relative}
+  .bt.pale {background:var(--pale); color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb)}
+  .bt.vert {background:var(--vert); color:var(--encre);    box-shadow:0 3px 0 var(--vertOmb)}
+  .bt.rouge{background:var(--rouge);color:var(--encre);    box-shadow:0 3px 0 var(--rougeOmb)}
+  .bt.or   {background:var(--or);   color:var(--encreOr);  box-shadow:0 3px 0 var(--orOmb)}
+  .bt:active{transform:translateY(2px)}
+  .bt.pale:active {box-shadow:0 1px 0 var(--paleOmb)}
+  .bt.vert:active {box-shadow:0 1px 0 var(--vertOmb)}
+  .bt.rouge:active{box-shadow:0 1px 0 var(--rougeOmb)}
+  .bt.or:active   {box-shadow:0 1px 0 var(--orOmb)}
+  /* Un bouton impossible n'est pas d'une autre couleur : il est ÉTEINT. Le papier ne
+     supporte pas le gris translucide qui sert d'empêché sur le HUD sombre. */
+  .bt.no{background:var(--pale);color:var(--sourdine);box-shadow:0 3px 0 var(--paleOmb);
+    opacity:.5}
+  .bt.no:active{transform:none;box-shadow:0 3px 0 var(--paleOmb)}
+  /* `.db` EST LE MÊME BOUTON SOUS SON ANCIEN NOM. Trois fenêtres l'écrivent — le
+     dosage, le contrat, et bientôt les fenêtres d'action — et renommer les classes dans
+     le JavaScript aurait touché une trentaine d'endroits pour rien. Les quatre rôles se
+     lisent pareil : `pri` et `oui` sont le vert de ce qu'on valide, `non` le rouge de ce
+     qu'on refuse, `ann` et le bouton nu sont le pâle de ce qui ne décide de rien. */
+  .db{text-align:center;padding:9px 8px;border-radius:9px;font-family:var(--titre);
+    font-size:12px;letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;
+    border:none;background:var(--pale);color:var(--paleEncre);
+    box-shadow:0 3px 0 var(--paleOmb)}
+  .db:active{box-shadow:0 1px 0 var(--paleOmb)}
+  .db.pri,.db.oui{background:var(--vert);color:var(--encre);box-shadow:0 3px 0 var(--vertOmb)}
+  .db.pri:active,.db.oui:active{box-shadow:0 1px 0 var(--vertOmb)}
+  .db.non{background:var(--rouge);color:var(--encre);box-shadow:0 3px 0 var(--rougeOmb)}
+  .db.non:active{box-shadow:0 1px 0 var(--rougeOmb)}
+  .db.no{background:var(--pale);color:var(--sourdine);opacity:.5}
+  .db.no:active{transform:none;box-shadow:0 3px 0 var(--paleOmb)}
   canvas{display:block;position:absolute;inset:0;image-rendering:pixelated;image-rendering:crisp-edges}
   /* L'INTERFACE SUIT LA TAILLE DE L'ÉCRAN. Tout était calibré au pixel pour un téléphone
      en paysage — 568 à 900 px de large — et se retrouvait minuscule sur un écran de PC :
@@ -133,8 +221,11 @@
   #viseurs .vis .nm{font-size:7px;font-weight:bold;letter-spacing:.7px;text-transform:uppercase;
     color:currentColor;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
-    width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);pointer-events:auto;
-    display:flex;align-items:center;justify-content:center;gap:4px}
+    width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.72);pointer-events:auto;
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 5px 11px rgba(0,0,0,.3)}
+  #pause:active{transform:translateY(2px);
+    box-shadow:0 1px 0 rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3)}
   #pause i{width:4px;height:14px;background:#fff;border-radius:1px;display:block}
   /* Le bandeau d'information passe AU-DESSUS des boutons contextuels : à 96 px il
      recouvrait le bouton d'achat, et les deux devenaient illisibles ensemble. */
@@ -156,25 +247,42 @@
      aria-label, et dans la liste qu'il ouvre. */
   /* La fenêtre rapide du parc : rien que les engins qu'on possède, un par ligne. */
   #parc{position:absolute;inset:0;display:none;z-index:22}
-  #parcfond{position:absolute;inset:0;background:rgba(10,15,18,.66);pointer-events:auto}
+  #parcfond{position:absolute;inset:0;background:var(--voile);pointer-events:auto}
+  /* ET LA PILE NE SORT PLUS PAR LE HAUT. Les lignes de papier sont plus hautes que les
+     anciennes — 11 px de nom au lieu de 8,5, et le double de rembourrage — et six engins
+     dépassaient du bord supérieur d'un téléphone en paysage, titre compris. La feuille
+     est donc bornée à la hauteur libre au-dessus des commandes, et c'est la LISTE qui
+     défile : le titre reste, le bord déchiré reste, seule la pile glisse. */
   #parcboite{position:absolute;bottom:calc(60px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;width:min(88vw,340px);
-    background:#1B2429;border:2px solid rgba(255,255,255,.16);border-radius:16px;
-    padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-  #parctitre{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;opacity:.45;
-    padding:2px 4px 8px}
-  #parcliste{display:flex;flex-direction:column;gap:5px}
-  .pe{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:10px;
-    background:rgba(255,255,255,.05);font-size:8.5px;font-weight:bold;letter-spacing:.6px}
-  .pe .pt{width:4px;height:24px;border-radius:2px;flex:none}
-  .pe .pn{flex:1}
-  .pe .pd{font-size:7.5px;opacity:.55;letter-spacing:.6px;font-weight:normal;margin-top:1px}
-  .pe.on{background:#FAD201;color:#1B2429}
-  .pe.on .pd{opacity:.65}
+    max-height:calc(100% - 84px - env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;padding:14px 16px 12px}
+  #parctitre{font-family:var(--titre);font-size:11px;letter-spacing:1.8px;
+    text-transform:uppercase;color:var(--sous);padding:0 2px 8px;transform:rotate(-.8deg)}
+  #parcliste{display:flex;flex-direction:column;gap:7px;overflow-y:auto;
+    min-height:0;padding:3px 3px 5px;margin:-3px -3px -5px}
+  /* UNE LIGNE D'ENGIN EST UNE ÉTIQUETTE POSÉE SUR LA FEUILLE, et elle penche : une pile
+     de rectangles parfaitement alignés n'aurait plus rien de papier. L'alternance des
+     deux sens vient de la planche du joueur. */
+  .pe{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;
+    background:var(--ligne);box-shadow:0 3px 0 var(--ligneOmb);
+    font-size:11px;font-weight:bold;letter-spacing:.3px;color:var(--texte)}
+  .pe:nth-of-type(odd){transform:rotate(-.7deg)}
+  .pe:nth-of-type(even){transform:rotate(.6deg)}
+  .pe .pt{width:7px;height:26px;border-radius:4px;flex:none}
+  .pe .pn{flex:1;font-family:var(--titre);font-size:14px;letter-spacing:.4px;
+    text-transform:uppercase;color:#3B4A2E}
+  .pe .pd{font-family:var(--corps);font-size:10.5px;color:var(--sous);letter-spacing:.2px;
+    font-weight:normal;margin-top:2px;text-transform:none}
+  .pe.on{background:var(--or);box-shadow:0 5px 0 #C08F22;transform:rotate(0deg) scale(1.03)}
+  .pe.on .pn{color:#3A3010}
+  .pe.on .pd{color:#6B571C}
   #menuBtn{position:absolute;top:calc(10px + env(safe-area-inset-top));
     right:calc(58px + env(safe-area-inset-right));pointer-events:auto;
-    width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.55);
-    border:2px solid rgba(255,255,255,.25)}
+    width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.72);border:none;
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 5px 11px rgba(0,0,0,.3)}
+  #menuBtn:active{transform:translateY(2px);
+    box-shadow:0 1px 0 rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3)}
   /* UNE FENÊTRE PAR ACTION. Les trois boutons de régie ouvraient le menu général sur
      un onglet : on arrivait dans une barre de huit onglets, au milieu de choses qui
      n'avaient rien à voir avec le geste demandé. Chacun ouvre maintenant SA fenêtre —
@@ -182,15 +290,20 @@
      d'article, parce que le joueur en connaît déjà la forme, mais elle n'a ni onglets
      ni voisins. */
   #fen{position:absolute;inset:0;display:none;pointer-events:auto;z-index:21}
-  #fenfond{position:absolute;inset:0;background:rgba(10,15,18,.72);backdrop-filter:blur(3px)}
-  #fenboite{position:absolute;inset:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-    max-width:680px;margin:auto;background:#1B2429;border-radius:18px;overflow:hidden;
-    display:flex;flex-direction:column;border:2px solid rgba(255,255,255,.12)}
-  #fentete{display:flex;align-items:center;gap:10px;padding:8px 11px;background:rgba(255,255,255,.06)}
-  #fentitre{font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1}
-  #fenargent{font-size:13px;font-weight:bold;color:#FAD201}
-  #fenfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
-    display:flex;align-items:center;justify-content:center;font-size:13px}
+  #fenfond{position:absolute;inset:0;background:var(--voile)}
+  #fenboite{position:absolute;inset:calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)) 14px;
+    max-width:680px;margin:auto;display:flex;flex-direction:column;padding:12px 14px 12px}
+  /* LE TITRE DE FENÊTRE : capitales, vert profond, légèrement de travers. Pas d'ombre —
+     elle alourdissait un texte déjà gras, et la capitale suffit à le poser comme titre. */
+  #fentete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
+  #fentitre{font-family:var(--titre);font-size:20px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);flex:1;
+    transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
+  #fenargent{font-family:var(--titre);font-size:17px;color:#5A3E0B;letter-spacing:.4px}
+  #fenfermer{width:30px;height:30px;border-radius:9px;background:var(--pale);
+    color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold}
+  #fenfermer:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
   /* LA FENÊTRE A DES ONGLETS, ELLE AUSSI. Elle n'en avait pas — « un titre, une liste,
      une croix, rien d'autre » — et c'était juste tant qu'elle ne portait qu'un sujet.
      Le stockage en porte deux (ce qu'on a, ce qu'on peut en faire), la production deux
@@ -201,85 +314,108 @@
   #fenliste{flex:1;overflow-y:auto;padding:2px 9px 10px}
   /* Le chiffre qui décide : ce qu'on a en magasin et ce qu'on peut en sortir. Il doit
      se lire sans lire la phrase autour — d'où la graisse, la taille et la couleur. */
-  .art .det .q{font-weight:bold;font-size:8.5px;letter-spacing:.3px;color:#8BE07A}
-  .art .det .q.court{color:#E8563F}
-  .art .det .q.neutre{color:#9FD8E8}
+  .art .det .q{font-weight:bold;font-size:10.5px;letter-spacing:.2px;color:var(--titreC)}
+  .art .det .q.court{color:#A83A28}
+  .art .det .q.neutre{color:#2E6BA8}
   /* Une SECONDE ligne de détail, sous une première : la conversion chiffrée d'un
      débouché, sous le débouché lui-même. Plus petite et plus pâle encore, pour qu'un
      bloc de trois débouchés reste un bloc et non une liste de six lignes égales. */
-  .art .det .det2{font-size:7px;opacity:.72}
+  .art .det .det2{font-size:9.5px;color:var(--sourdine)}
   /* LE CURSEUR DE QUANTITÉ. « Produire » ne lance plus tout le stock : il demande
      combien. Un peu, la moitié, tout — au doigt. */
   #dose{position:absolute;inset:0;display:none;pointer-events:auto;z-index:23}
-  #dosefond{position:absolute;inset:0;background:rgba(10,15,18,.78)}
+  #dosefond{position:absolute;inset:0;background:var(--voile)}
   #doseboite{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    width:min(92vw,420px);background:#1B2429;border:2px solid rgba(255,255,255,.16);
-    border-radius:16px;padding:16px 16px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
-  #dosetitre{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;opacity:.5;
-    margin-bottom:10px}
-  #dosesortie{font-size:22px;font-weight:bold;letter-spacing:.5px;color:#8BE07A}
-  #dosecout{font-size:11px;opacity:.62;margin-top:5px;line-height:1.5}
+    width:min(92vw,400px);padding:18px 18px 16px}
+  #dosetitre{font-family:var(--titre);font-size:20px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);margin-bottom:9px;
+    transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
+  /* LE CHIFFRE QU'ON RÈGLE : posé sur une ligne beige, dans l'écriture des titres, gros.
+     C'est la seule chose qu'on regarde en poussant le curseur. */
+  #dosesortie{font-family:var(--titre);font-size:26px;letter-spacing:.4px;
+    color:var(--titreC);background:var(--ligne);border-radius:11px;
+    box-shadow:0 3px 0 var(--ligneOmb);padding:8px 12px;text-align:center;
+    transform:rotate(.5deg)}
+  #dosecout{font-size:11.5px;color:var(--texte);margin-top:9px;line-height:1.75}
+  #dosecout b{color:var(--titreC)}
   #dosecurseur{-webkit-appearance:none;appearance:none;width:100%;height:34px;
     background:none;margin:12px 0 4px;touch-action:pan-x;pointer-events:auto}
-  #dosecurseur::-webkit-slider-runnable-track{height:10px;border-radius:5px;
-    background:rgba(255,255,255,.18)}
+  #dosecurseur::-webkit-slider-runnable-track{height:12px;border-radius:9px;
+    background:var(--pale);box-shadow:inset 0 2px 0 var(--paleOmb)}
   #dosecurseur::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
-    width:30px;height:30px;border-radius:50%;background:#8BE07A;margin-top:-10px;
-    box-shadow:0 2px 8px rgba(0,0,0,.5)}
-  #dosecurseur::-moz-range-track{height:10px;border-radius:5px;background:rgba(255,255,255,.18)}
-  #dosecurseur::-moz-range-thumb{width:30px;height:30px;border:none;border-radius:50%;background:#8BE07A}
+    width:30px;height:30px;border-radius:50%;background:var(--or);margin-top:-9px;
+    box-shadow:0 3px 0 var(--orOmb)}
+  #dosecurseur::-moz-range-track{height:12px;border-radius:9px;background:var(--pale)}
+  #dosecurseur::-moz-range-thumb{width:30px;height:30px;border:none;border-radius:50%;
+    background:var(--or);box-shadow:0 3px 0 var(--orOmb)}
   #dosebtns{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
-  #dosebtns2{display:flex;gap:7px;margin-top:7px}
+  #dosebtns2{display:flex;gap:7px;margin-top:9px}
   #dosebtns2 #dosego{flex:2}
-  #dosebtns .db, #dosebtns2 .db{flex:1;text-align:center;padding:10px 8px;border-radius:11px;
-    font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;
-    border:2px solid rgba(255,255,255,.26);white-space:nowrap}
-  #dosebtns2 .db.pri{border-color:#8BE07A;color:#8BE07A;background:rgba(40,70,45,.5)}
-  #dosebtns2 .db.ann{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.5)}
+  #dosebtns .db, #dosebtns2 .db{flex:1}
+  #dosebtns .db:nth-child(1),#dosebtns2 .db:nth-child(1){transform:rotate(-1.4deg)}
+  #dosebtns .db:nth-child(2),#dosebtns2 .db:nth-child(2){transform:rotate(.8deg)}
+  #dosebtns .db:nth-child(3){transform:rotate(-.6deg)}
+  #dosebtns .db:active,#dosebtns2 .db:active{transform:translateY(2px)}
   /* La fenêtre du contrat : le gabarit de la fenêtre de dosage, en vert. */
   #contrat{position:absolute;inset:0;display:none;pointer-events:auto;z-index:24}
-  #ctfond{position:absolute;inset:0;background:rgba(10,15,18,.78)}
+  #ctfond{position:absolute;inset:0;background:var(--voile)}
   #ctboite{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    width:min(92vw,420px);background:#1B2429;border:2px solid rgba(98,216,78,.30);
-    border-radius:16px;padding:16px 16px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
-  #cttitre{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;opacity:.5}
-  #ctlieu{font-size:19px;font-weight:bold;letter-spacing:.5px;color:#8BE07A;margin-top:5px}
+    width:min(92vw,400px);padding:18px 18px 16px}
+  /* LA SUSCRIPTION, en haut à gauche, comme sur un bon de commande : ce que c'est,
+     avant de dire de qui ça vient. Le retrait à droite laisse la place au tampon. */
+  #cttitre{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;
+    color:var(--sourdine);padding-right:74px;transform:rotate(-.8deg)}
+  #ctlieu{font-family:var(--titre);font-size:21px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);margin:2px 0 3px;padding-right:74px;
+    transform:scaleY(1.14) rotate(-1.2deg);transform-origin:left center}
   /* CE QUE LE CLIENT DIT. Chaque mission portait déjà sa réplique — trente phrases
      écrites une par une — et elle ne s'affichait QUE dans l'onglet Campagne du menu,
      c'est-à-dire nulle part au moment où on la prend. C'est pourtant là qu'elle a un
      sens : on entre chez quelqu'un, il demande quelque chose, et il le dit avec ses
      mots. Retrait à gauche et barre verte : c'est quelqu'un qui parle, pas l'interface. */
-  #cttexte{font-size:12px;line-height:1.55;opacity:.9;margin-top:10px;padding:2px 0 2px 11px;
-    border-left:3px solid rgba(98,216,78,.45);font-style:italic}
-  #ctlignes{margin-top:11px;display:flex;flex-direction:column;gap:5px}
-  #ctlignes .cl{display:flex;justify-content:space-between;gap:10px;font-size:12px;
-    padding:6px 9px;border-radius:9px;background:rgba(255,255,255,.05)}
-  #ctlignes .cl b{font-weight:bold;opacity:.9;white-space:nowrap}
-  #ctlignes .cl.fini{color:#8BE07A;background:rgba(60,110,60,.22)}
-  #ctpaie{font-size:11px;opacity:.72;margin-top:10px;line-height:1.55}
-  #ctrenom{font-size:10px;opacity:.45;margin-top:6px;letter-spacing:.6px}
+  #cttexte{font-size:11.5px;line-height:1.7;color:var(--texte);margin-top:10px;
+    padding:2px 0 2px 11px;border-left:3px solid var(--ligneOmb);font-style:italic}
+  #ctlignes{margin-top:11px;display:flex;flex-direction:column;gap:7px}
+  #ctlignes .cl{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb);
+    padding:8px 12px;color:#3B4A2E;font-size:14px;transform:rotate(.4deg)}
+  #ctlignes .cl:nth-child(even){transform:rotate(-.4deg)}
+  #ctlignes .cl b{font-family:var(--titre);font-size:16px;letter-spacing:.4px;
+    color:var(--titreC);white-space:nowrap}
+  #ctlignes .cl.fini{background:#BFD5A2;box-shadow:0 3px 0 #9DB77F;color:#33551F}
+  #ctpaie{font-size:11.5px;color:var(--texte);margin-top:11px;line-height:1.8}
+  #ctpaie b{color:var(--titreC)}
+  #ctrenom{font-size:10.5px;color:var(--sourdine);margin-top:8px;line-height:1.5}
   #ctbtns{display:flex;gap:7px;margin-top:13px}
-  #ctbtns .db{flex:1;text-align:center;padding:10px 8px;border-radius:11px;
-    font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;
-    border:2px solid rgba(255,255,255,.26);white-space:nowrap}
-  #ctbtns .db.oui{flex:1.5;border-color:#62D84E;color:#8BE07A;background:rgba(40,70,45,.5)}
-  #ctbtns .db.non{border-color:rgba(232,86,63,.55);color:#E8563F}
-  #ctbtns .db.ann{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.5)}
+  #ctbtns .db{flex:1}
+  #ctbtns .db.oui{flex:1.5}
+  #ctbtns .db:nth-child(1){transform:rotate(-1.6deg)}
+  #ctbtns .db:nth-child(2){transform:rotate(.9deg)}
+  #ctbtns .db:nth-child(3){transform:rotate(-.7deg)}
+  #ctbtns .db:active{transform:translateY(2px)}
   /* panneau plein écran : boutique, améliorations et réglages */
   #panneau{position:absolute;inset:0;display:none;pointer-events:auto;z-index:20}
-  #pfond{position:absolute;inset:0;background:rgba(10,15,18,.72);backdrop-filter:blur(3px)}
-  #pboite{position:absolute;inset:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-    max-width:760px;margin:auto;background:#1B2429;border-radius:18px;overflow:hidden;
-    display:flex;flex-direction:column;border:2px solid rgba(255,255,255,.12)}
-  #ptete{display:flex;align-items:center;gap:10px;padding:8px 11px;background:rgba(255,255,255,.06)}
-  #ptitre{font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1}
-  #pargent{font-size:13px;font-weight:bold;color:#FAD201}
-  #pfermer{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);
-    display:flex;align-items:center;justify-content:center;font-size:13px}
-  #ponglets,#fenonglets{display:flex;gap:5px;padding:7px 10px;overflow-x:auto;flex-shrink:0}
-  .ong{padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.07);font-size:9px;
-    font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;opacity:.55}
-  .ong.on{opacity:1;background:#FAD201;color:#1B2429}
+  #pfond{position:absolute;inset:0;background:var(--voile)}
+  #pboite{position:absolute;inset:calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)) 14px;
+    max-width:760px;margin:auto;display:flex;flex-direction:column;padding:12px 14px 12px}
+  #ptete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
+  #ptitre{font-family:var(--titre);font-size:20px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);flex:1;
+    transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
+  #pargent{font-family:var(--titre);font-size:17px;color:#5A3E0B;letter-spacing:.4px}
+  #pfermer{width:30px;height:30px;border-radius:9px;background:var(--pale);
+    color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold}
+  #pfermer:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
+  #ponglets,#fenonglets{display:flex;gap:6px;padding:2px 2px 8px;overflow-x:auto;flex-shrink:0}
+  /* UN ONGLET EST UN PETIT BOUTON PÂLE ; CELUI OÙ L'ON EST PASSE À L'OR. Même relief que
+     les autres boutons de la feuille, en plus fin : c'est une barre de navigation, pas
+     une rangée d'actions. */
+  .ong{padding:6px 11px;border-radius:9px;background:var(--pale);color:var(--paleEncre);
+    box-shadow:0 3px 0 var(--paleOmb);font-family:var(--titre);font-size:12px;
+    letter-spacing:1px;text-transform:uppercase;white-space:nowrap;flex:none}
+  .ong.on{background:var(--or);color:var(--encreOr);box-shadow:0 3px 0 var(--orOmb)}
+  .ong:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
   #pliste{flex:1;overflow-y:auto;padding:2px 9px 10px}
   /* LES LISTES SE RESSERRENT. Une ligne prenait 58 px de haut pour trois mots et un
      bouton : quatre lignes par écran de téléphone, et l'on passait son temps à faire
@@ -294,17 +430,28 @@
      8,5 px, et le détail à 7,5. Une rangée descend de 44 à 36 px : trois lignes de plus
      par écran de téléphone, et sur un PC l'échelle de l'interface les rend de toute
      façon à leur taille d'avant. */
-  .art{display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:3px;
-    background:rgba(255,255,255,.055);border-radius:10px;
-    border:1px solid rgba(255,255,255,.045)}
+  /* UNE LIGNE D'ARTICLE EST UNE ÉTIQUETTE POSÉE SUR LA FEUILLE. Elle était un rectangle
+     blanc à 5,5 % bordé d'un filet à 4,5 % : sur du papier, ni l'un ni l'autre ne se
+     voit. C'est la même ligne beige que partout ailleurs, avec son ombre de trois
+     pixels — et elle ne penche PAS, contrairement à celles du parc : une liste de vingt
+     articles qui alternent la gauche et la droite devient illisible passé cinq lignes. */
+  .art{display:flex;align-items:center;gap:9px;padding:7px 10px;margin-bottom:7px;
+    background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb);
+    color:var(--texte)}
   .art .txt{flex:1;min-width:0}
-  .art .nom{font-size:8.5px;font-weight:bold;letter-spacing:.5px}
-  .art .det{font-size:7.5px;opacity:.66;margin-top:1px;line-height:1.4}
-  .art .act{padding:5px 9px;border-radius:9px;font-size:8px;font-weight:bold;
-    letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border:2px solid #FAD201;color:#FAD201}
-  .art .act.no{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.35)}
-  .art .act.ok{background:#FAD201;color:#1B2429}
-  .art .act.vert{border-color:#8BE07A;color:#8BE07A}
+  .art .nom{font-family:var(--titre);font-size:13px;letter-spacing:.4px;
+    text-transform:uppercase;color:#3B4A2E}
+  .art .det{font-size:10px;color:var(--sous);margin-top:2px;line-height:1.45}
+  /* Le bouton d'une ligne : même relief que ceux du bas de fenêtre, en plus petit. */
+  .art .act{padding:6px 10px;border-radius:9px;font-family:var(--titre);font-size:11px;
+    letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;border:none;flex:none;
+    background:var(--or);color:var(--encreOr);box-shadow:0 3px 0 var(--orOmb)}
+  .art .act:active{transform:translateY(2px);box-shadow:0 1px 0 var(--orOmb)}
+  .art .act.no{background:var(--pale);color:var(--sourdine);
+    box-shadow:0 3px 0 var(--paleOmb);opacity:.6}
+  .art .act.no:active{transform:none;box-shadow:0 3px 0 var(--paleOmb)}
+  .art .act.vert{background:var(--vert);color:var(--encre);box-shadow:0 3px 0 var(--vertOmb)}
+  .art .act.vert:active{box-shadow:0 1px 0 var(--vertOmb)}
   .pastille{width:4px;height:26px;border-radius:2px;flex-shrink:0}
   /* UN ARTICLE À CURSEUR. Certains réglages ne sont pas un bouton qui bascule mais une
      quantité qu'on cherche à l'œil — le zoom, d'abord. Le bloc garde le gabarit de
@@ -314,20 +461,22 @@
   .art.cur .tete .pastille{height:21px}
   .art.cur input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;
     background:none;margin:2px 0 0;touch-action:pan-x;pointer-events:auto}
-  .art.cur input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;
-    background:rgba(255,255,255,.18)}
+  .art.cur input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:5px;
+    background:var(--paleOmb)}
   .art.cur input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
-    width:20px;height:20px;border-radius:50%;background:#FAD201;margin-top:-7px;
-    box-shadow:0 2px 6px rgba(0,0,0,.5)}
-  .art.cur input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:rgba(255,255,255,.18)}
-  .art.cur input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:#FAD201}
-  .art.cur .reperes{display:flex;justify-content:space-between;font-size:7px;opacity:.35;
-    letter-spacing:1.1px;margin-top:-2px}
+    width:22px;height:22px;border-radius:50%;background:var(--or);margin-top:-7px;
+    box-shadow:0 3px 0 var(--orOmb)}
+  .art.cur input[type=range]::-moz-range-track{height:8px;border-radius:5px;background:var(--paleOmb)}
+  .art.cur input[type=range]::-moz-range-thumb{width:22px;height:22px;border:none;
+    border-radius:50%;background:var(--or);box-shadow:0 3px 0 var(--orOmb)}
+  .art.cur .reperes{display:flex;justify-content:space-between;font-size:9px;
+    color:var(--sourdine);letter-spacing:.8px;margin-top:-2px}
   /* Un titre de rayon suivi d'un filet : le groupe se voit avant d'être lu, et l'on
      retrouve où l'on en est d'un coup d'œil au lieu de relire les intitulés. */
-  .sect{font-size:7.5px;letter-spacing:2.2px;text-transform:uppercase;opacity:.5;
-    margin:9px 3px 5px;display:flex;align-items:center;gap:9px}
-  .sect::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.12)}
+  .sect{font-family:var(--titre);font-size:11px;letter-spacing:1.8px;
+    text-transform:uppercase;color:var(--sous);
+    margin:11px 3px 6px;display:flex;align-items:center;gap:9px}
+  .sect::after{content:'';flex:1;height:2px;border-radius:2px;background:var(--ligneOmb)}
   #stick::before{content:'◀     ▶';position:absolute;left:0;right:0;top:50%;margin-top:-7px;
     text-align:center;font-size:10px;letter-spacing:2px;opacity:.3}
   /* LA RANGÉE DE L'ENGIN. Trois boutons qui parlent tous de la machine qu'on pilote :
@@ -340,17 +489,29 @@
      pas, assez peu pour qu'on lise la rangée. */
   #engbar{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);display:flex;gap:12px;align-items:center}
-  #engbar > div{pointer-events:auto;padding:11px;border-radius:14px;
-    background:rgba(20,28,33,.62);border:2px solid rgba(255,255,255,.3)}
+  /* PLUS UN SEUL CONTOUR SUR LES BOUTONS DU JEU. Le joueur : « sur tous les boutons de
+     jeu, sur l'interface de jeu, ne mets pas de contour ; comme sur le bouton
+     d'automatisation ou de changement de véhicule, ils n'ont pas de contour — fais pareil
+     pour tous. » Le filet de deux pixels est remplacé par le RELIEF de la planche papier :
+     un aplat, son ombre dure de trois pixels dessous, et une ombre douce qui le détache
+     du paysage. Le rembourrage gagne les deux pixels que le filet rendait, si bien
+     qu'aucun bouton ne change de taille. */
+  #engbar > div{pointer-events:auto;padding:13px;border-radius:14px;border:none;
+    background:rgba(20,28,33,.72);
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 5px 11px rgba(0,0,0,.3)}
+  #engbar > div:active{transform:translateY(2px);
+    box-shadow:0 1px 0 rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3)}
   /* LES DEUX BASCULES DE LA RANGÉE SUIVENT LA MÊME RÈGLE QUE LES BOUTONS D'ACTION :
      allumées, elles sont PLEINES de leur couleur, encre sombre. Ce sont les deux seuls
      boutons de la rangée qui disent un état du monde — un outil est accroché, un plan
      tourne — et un filet de deux pixels ne le disait pas d'assez loin. Le troisième, le
      parc, ne bascule pas : il reste gris tant qu'il n'appelle pas. */
-  #hitch.on{background:#FAD201;border-color:#FAD201;color:#10171B;
-    box-shadow:0 2px 9px rgba(0,0,0,.42)}
-  #auto.on{background:#8BE07A;border-color:#8BE07A;color:#10171B;
-    box-shadow:0 2px 9px rgba(0,0,0,.42)}
+  #hitch.on{background:#FAD201;color:#10171B;
+    box-shadow:0 3px 0 #B49700, 0 5px 11px rgba(0,0,0,.3)}
+  #hitch.on:active{box-shadow:0 1px 0 #B49700, 0 3px 8px rgba(0,0,0,.3)}
+  #auto.on{background:#8BE07A;color:#10171B;
+    box-shadow:0 3px 0 #5C9E4E, 0 5px 11px rgba(0,0,0,.3)}
+  #auto.on:active{box-shadow:0 1px 0 #5C9E4E, 0 3px 8px rgba(0,0,0,.3)}
   /* LE BOUTON DU PARC APPELLE. Pendant le tutoriel, quand l'étape demande une autre
      machine que celle qu'on pilote : il prend le jaune du guidage et bat lentement,
      comme les cercles au sol. Un halo qui s'écarte, pas un clignotement — on doit
@@ -370,8 +531,8 @@
      aurait l'air de celui qu'on ne peut pas toucher. Le halo qui s'écarte reste par-
      dessus, et il se détache mieux d'un aplat que d'un fond sombre. */
   #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel{
-    background:#FAD201;border-color:#FAD201;color:#10171B;--act:#FAD201;
-    box-shadow:0 2px 9px rgba(0,0,0,.42)}
+    background:#FAD201;color:#10171B;--act:#FAD201;--actOmb:#B49700;
+    box-shadow:0 3px 0 #B49700, 0 5px 11px rgba(0,0,0,.3)}
   #engins.appel::after,#regie .rgb.appel::after,#service.appel::after,
   #atelier.appel::after,#veh.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:15px;border:3px solid #FAD201;pointer-events:none;
@@ -460,14 +621,14 @@
      mieux vaut qu'une flèche passe derrière un libellé que par-dessus. */
   #crop{position:absolute;top:calc(56px + env(safe-area-inset-top));
     right:calc(12px + env(safe-area-inset-right));pointer-events:auto;z-index:7;
-    padding:6px 11px;border-radius:12px;--act:#F0C24A;
+    padding:8px 13px;border-radius:12px;--act:#F0C24A;--actOmb:#B48A1E;
     font-size:10px;font-weight:bold;letter-spacing:1.4px;gap:7px;
-    border:2px solid var(--act);white-space:nowrap;display:none}
+    white-space:nowrap;display:none}
   /* Cuve vide : le bouton passe au rouge. C'est la seule chose qu'on regarde en semant,
      et c'est là qu'on doit apprendre qu'il faut rentrer. Ici le rouge n'est PAS un
      empêché — on peut toujours changer de culture — c'est une alerte, et elle reste donc
      un aplat comme les autres, le seul rouge de la rangée. */
-  #crop.no{--act:#E8563F}
+  #crop.no{--act:#E8563F;--actOmb:#A03526}
   /* ET CE QU'IL RESTE SE LIT EN JAUGE, PLUS EN CHIFFRES. « BLÉ 47 », « BLÉ 46 »,
      « BLÉ 45 » : le nombre défilait à chaque cellule semée, et c'est justement ce qu'on
      ne peut pas lire en conduisant. Une barre dit la même chose sans qu'on ait à la
@@ -485,12 +646,12 @@
      mission et comme le comptoir quand on y va de soi-même. */
   #buy{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    --act:#4AA8E0;font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid var(--act);white-space:nowrap;display:none}
+    --act:#4AA8E0;--actOmb:#2E6BA8;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    white-space:nowrap;display:none}
   #atelier{position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    --act:#7FD1E8;font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid var(--act);white-space:nowrap;display:none}
+    --act:#7FD1E8;--actOmb:#4E96AC;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    white-space:nowrap;display:none}
   /* L'achat de véhicule et l'amélioration s'affichent ensemble, au garage : ils ne
      peuvent pas partager la rangée des 104 px. Celle des 146 px est libre là-bas —
      le garage n'a ni transfert ni action de service. */
@@ -524,12 +685,14 @@
   }
   /* La pastille de couleur qui précédait le mot n'a plus lieu d'être : c'est le tracé
      lui-même qui porte la teinte de l'écran qu'il ouvre. */
-  #regie .rgb{padding:9px;border-radius:11px;background:rgba(20,28,33,.62);
-    border:2px solid rgba(255,255,255,.26)}
+  #regie .rgb{padding:11px;border-radius:11px;background:rgba(20,28,33,.72);border:none;
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 5px 11px rgba(0,0,0,.3)}
+  #regie .rgb:active{transform:translateY(2px);
+    box-shadow:0 1px 0 rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3)}
   #veh{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    --act:#8BE07A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid var(--act);white-space:nowrap;display:none}
+    --act:#8BE07A;--actOmb:#5C9E4E;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    white-space:nowrap;display:none}
   #stick{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:calc(24px + env(safe-area-inset-left));
     width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.08);
     border:2px solid rgba(255,255,255,.18);pointer-events:auto;touch-action:none}
@@ -561,11 +724,13 @@
   #dirs{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
     left:calc(18px + env(safe-area-inset-left));display:flex;gap:6px;pointer-events:auto;
     touch-action:none}
-  .dir{width:72px;height:72px;border-radius:20px;background:rgba(20,28,33,.62);
-    border:2px solid rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;
-    transition:transform .07s,background .07s;color:#FFFFFF}
+  .dir{width:72px;height:72px;border-radius:20px;background:rgba(20,28,33,.72);border:none;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .07s,background .07s;color:#FFFFFF;
+    box-shadow:0 4px 0 rgba(0,0,0,.45), 0 6px 12px rgba(0,0,0,.3)}
   .dir svg{width:40px;height:40px;display:block}
-  .dir.on{transform:scale(.93);background:rgba(250,210,1,.28);border-color:#FAD201}
+  .dir.on{transform:translateY(3px) scale(.97);background:#FAD201;color:#10171B;
+    box-shadow:0 1px 0 #B49700, 0 3px 8px rgba(0,0,0,.3)}
   #pedales{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));
     right:calc(26px + env(safe-area-inset-right));display:flex;flex-direction:column;
     align-items:flex-end;gap:5px;pointer-events:auto;touch-action:none}
@@ -617,10 +782,10 @@
      jaune près, qui est la couleur du guidage. Elle n'attrape PAS le doigt ailleurs que
      sur elle-même (#bravo reste `pointer-events:none`) : on continue de conduire. */
   #brboite{display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:auto;
-    width:min(92vw,420px);background:#1B2429;border:2px solid rgba(250,210,1,.32);
-    border-radius:16px;padding:18px 20px 15px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
-  #brtitre{font-size:26px;font-weight:bold;letter-spacing:11px;margin-right:-11px;
-    color:#FAD201;line-height:1.15}
+    width:min(92vw,400px);padding:18px 20px 16px}
+  #brtitre{font-family:var(--titre);font-size:24px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--titreC);line-height:1.15;
+    transform:scaleY(1.14) rotate(-1deg)}
   /* UNE ÉTAPE DE TUTORIEL PORTE UNE PHRASE, PAS UN MOT. « PRÉPARER LA PARCELLE » à
      vingt-six pixels et onze d'interlettrage déborde d'un écran de téléphone en
      paysage : les pages d'étape passent à quinze, et l'interlettrage à quatre. */
@@ -635,15 +800,20 @@
      de 0,18 sur les bords à 0,06. */
   #bravo.etape{justify-content:flex-start;padding-top:min(15vh,104px);
     background:radial-gradient(ellipse at center, rgba(12,18,22,.30), rgba(12,18,22,.06) 70%)}
-  #bravo.etape #brboite{background:rgba(27,36,41,.80);
-    box-shadow:0 8px 22px rgba(0,0,0,.42)}
-  #brsous{font-size:12px;letter-spacing:1.2px;opacity:.9;line-height:1.6}
-  /* Ce que le client répond en payant : plus clair que le titre de la mission, pour
-     qu'on voie d'un coup d'œil que c'est quelqu'un qui parle. */
-  #brsous i{font-style:italic;color:#CFE6C6;opacity:.95}
-  #brgains{display:flex;flex-direction:column;gap:5px;margin-top:4px}
-  #brgains div{font-size:15px;font-weight:bold;letter-spacing:1.4px;color:#FFE7A6}
-  #brsuite{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;opacity:.55;margin-top:6px}
+  #brsous{font-size:11.5px;line-height:1.7;color:var(--sous);text-align:center}
+  /* Ce que le client répond en payant : c'est quelqu'un qui parle, et sur du papier
+     cela se dit par l'italique et par l'encre du texte, pas par un vert plus clair. */
+  #brsous i{font-style:italic;color:var(--texte)}
+  /* LE DÉTAIL DU GAIN : chaque ligne sur sa propre bande dorée, comme la rémunération de
+     la planche. C'est la ligne que le joueur doit voir en premier. */
+  #brgains{display:flex;flex-direction:column;gap:7px;margin-top:2px;align-self:stretch}
+  #brgains div{font-family:var(--titre);font-size:18px;letter-spacing:.6px;
+    color:#5A3E0B;background:var(--or);border-radius:11px;box-shadow:0 4px 0 var(--orOmb);
+    padding:7px 12px;text-align:center}
+  #brgains div:nth-child(even){transform:rotate(.6deg)}
+  #brgains div:nth-child(odd){transform:rotate(-.5deg)}
+  #brsuite{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--sourdine);margin-top:6px;text-align:center}
   /* Une seule animation, et seulement opacity + transform : le compositeur s'en charge
      sans remise en page. Les lignes de gain entrent l'une après l'autre — c'est ce qui
      fait « le détail de ce qu'on a gagné » plutôt qu'un bloc de texte. */
@@ -667,9 +837,13 @@
      repeindre. `inset:0` et `border-radius:inherit` : il ne déborde jamais du cadre. */
   @keyframes brallume{0%{opacity:0}18%{opacity:.55}100%{opacity:0}}
   #bravo.on #brboite{animation:brsaut .52s cubic-bezier(.22,1.3,.36,1) both}
-  #brboite{position:relative;overflow:hidden}
-  #brboite::before{content:'';position:absolute;inset:0;border-radius:inherit;
-    pointer-events:none;opacity:0;
+  /* `overflow:hidden` A DISPARU AVEC LA BOÎTE. La feuille de papier déborde de dix
+     pixels de son conteneur — c'est son bord déchiré — et le recadrer le retaillerait
+     au carré, ce qui est exactement ce qu'on cherchait à quitter. Le voile d'éclat est
+     donc borné par sa propre boîte, avec le même débord et le même rayon. */
+  #brboite{position:relative}
+  #brboite::before{content:'';position:absolute;inset:-10px;border-radius:16px;
+    pointer-events:none;opacity:0;z-index:2;
     background:radial-gradient(ellipse at 50% 0%, rgba(250,210,1,.55), rgba(250,210,1,0) 68%)}
   #bravo.on #brboite::before{animation:brallume 1.05s ease-out both}
   /* LE BOUTON QUI FAIT AVANCER. Il n'y en avait aucun : on touchait la boîte, ou l'on
@@ -684,7 +858,8 @@
     38%{transform:translateX(-1px)}}
   #brgo{align-self:flex-end;margin-top:2px;width:38px;height:38px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
-    background:rgba(250,210,1,.14);border:2px solid #FAD201;color:#FAD201;
+    background:var(--vert);border:none;color:var(--encre);
+    box-shadow:0 4px 0 var(--vertOmb);
     pointer-events:auto;animation:brpousse 1.6s ease-in-out infinite;
     transition:transform .08s}
   #brgo svg{width:22px;height:22px;display:block}
@@ -748,31 +923,35 @@
      n'a plus de bord. Elle est FIXE — aucun de ces boutons ne l'anime —, donc elle ne
      coûte qu'une peinture, une fois. */
   #service, #buy, #atelier, #veh, #choix .ch, #crop{
-    background:var(--act);border-color:var(--act);color:#10171B;
-    box-shadow:0 2px 9px rgba(0,0,0,.42)}
-  #choix .ch{padding:7px 15px;border-radius:11px;--act:#4AA8E0;
-    font-size:10px;font-weight:bold;letter-spacing:1.1px;border:2px solid var(--act);
+    background:var(--act);border:none;color:#10171B;
+    box-shadow:0 3px 0 var(--actOmb), 0 5px 11px rgba(0,0,0,.34)}
+  #service:active, #buy:active, #atelier:active, #veh:active, #choix .ch:active,
+  #crop:active{transform:translateY(2px);
+    box-shadow:0 1px 0 var(--actOmb), 0 3px 8px rgba(0,0,0,.34)}
+  #choix .ch{padding:9px 17px;border-radius:11px;--act:#4AA8E0;--actOmb:#2E6BA8;
+    font-size:10px;font-weight:bold;letter-spacing:1.1px;
     white-space:nowrap;flex:none}
-  #choix .ch.jaune{--act:#FFD21E}
+  #choix .ch.jaune{--act:#FFD21E;--actOmb:#C79E0A}
   /* Le VERT dans la colonne : un contrat n'est pas un geste de plus sur la benne, et
      il ne doit pas se confondre avec ce qu'on charge ou décharge ici. */
-  #choix .ch.vert{--act:#62D84E}
+  #choix .ch.vert{--act:#62D84E;--actOmb:#3F8F32}
   /* LE TRANSFERT EN COURS RESPIRE, PUISQU'IL NE PEUT PLUS ÊTRE « CELUI QUI EST PLEIN ».
      C'était sa marque : seul de la colonne, il avait un aplat. Maintenant qu'ils en ont
      tous un, il lui faut autre chose — et le mouvement dit « ça tourne » mieux qu'aucune
      teinte ne le dirait. Une OPACITÉ qui va et vient : le compositeur la traite sans
      repasser par la peinture, contrairement à une ombre ou à un filtre, et c'est la même
      règle que pour le halo des boutons appelés. Cliquer dessus l'arrête. */
-  #choix .ch.on{--act:#E8B44A;animation:actEnCours 1.15s ease-in-out infinite}
+  #choix .ch.on{--act:#E8B44A;--actOmb:#B4861A;
+    animation:actEnCours 1.15s ease-in-out infinite}
   @keyframes actEnCours{0%,100%{opacity:1}50%{opacity:.72}}
   /* L'EMPÊCHÉ ET LE RETOUR NE SONT PAS DES ACTIONS. Le premier dit « je ne peux pas »,
      le second est une sortie : ils gardent le gris translucide que les actions viennent
      de quitter, et c'est ce qui les distingue d'un seul coup d'œil. */
-  #choix .ch.no{background:rgba(20,28,33,.86);border-color:rgba(255,255,255,.28);
-    color:rgba(255,255,255,.5);box-shadow:none}
-  #choix .ch.retour{background:rgba(20,28,33,.86);border-color:rgba(255,255,255,.22);
-    color:rgba(255,255,255,.55);box-shadow:none;
-    font-size:10px;letter-spacing:1.1px;padding:6px 16px}
+  #choix .ch.no{background:rgba(20,28,33,.86);color:rgba(255,255,255,.5);
+    box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  #choix .ch.no:active{transform:none;box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  #choix .ch.retour{background:rgba(20,28,33,.86);color:rgba(255,255,255,.55);
+    box-shadow:0 3px 0 rgba(0,0,0,.45);font-size:10px;letter-spacing:1.1px;padding:8px 18px}
   #choix .titre{font-size:9px;letter-spacing:1.6px;opacity:.55;text-transform:uppercase;
     padding-bottom:2px}
   /* LA COULEUR D'UN BOUTON EST CELLE DU CERCLE SOUS LES ROUES, ET C'EST TOUT.
@@ -791,89 +970,118 @@
   #choix.bleu  .titre{color:#8FD3F5}
   #service{position:absolute;bottom:calc(146px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);pointer-events:auto;padding:9px 20px;border-radius:12px;
-    --act:#E8B44A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
-    border:2px solid var(--act);white-space:nowrap;display:none}
+    --act:#E8B44A;--actOmb:#B4861A;font-size:11px;font-weight:bold;letter-spacing:1.4px;
+    white-space:nowrap;display:none}
   /* Le bandeau de service, l'achat et l'amélioration du garage suivent la même règle
      que la colonne. `:not(.no)` parce que le grisé est un ÉTAT — « je ne peux pas » —
      et non la couleur d'un lieu : il doit rester gris sur un cercle jaune comme sur un
      bleu, sinon on perd la seule distinction qui compte au moment d'appuyer. */
-  #service.jaune, #veh.jaune, #atelier.jaune{--act:#FFD21E}
-  #service.vert,  #veh.vert,  #atelier.vert {--act:#62D84E}
-  #service.bleu,  #veh.bleu,  #atelier.bleu {--act:#4AA8E0}
+  #service.jaune, #veh.jaune, #atelier.jaune{--act:#FFD21E;--actOmb:#C79E0A}
+  #service.vert,  #veh.vert,  #atelier.vert {--act:#62D84E;--actOmb:#3F8F32}
+  #service.bleu,  #veh.bleu,  #atelier.bleu {--act:#4AA8E0;--actOmb:#2E6BA8}
+  /* L'APPEL PASSE APRÈS LES TROIS TEINTES, et il le faut : un bouton appelé porte
+     presque toujours DÉJÀ une couleur de lieu — la régie du garage est bleue, le service
+     de la Coopérative est vert — et la règle de l'appel, écrite bien plus haut avec celle
+     du halo, se faisait écraser sa variable par la teinte du lieu. Le fond restait jaune
+     (elle le pose en dur, pour les boutons à pictogramme qui n'ont pas de `--act`) mais
+     l'OMBRE prenait la teinte du lieu : un aplat jaune sur une ombre bleue. */
+  #service.appel, #veh.appel, #atelier.appel{--act:#FAD201;--actOmb:#B49700}
   /* LE GRIS DE L'EMPÊCHÉ PASSE APRÈS LES TROIS COULEURS, et c'est pour cela qu'il n'a
      plus besoin du `:not(.no)` qui traînait sur chacune : il les écrase par l'ordre.
      Il reste un ÉTAT — « je ne peux pas » — et doit donc rester gris sur un cercle jaune
      comme sur un bleu, sinon on perd la seule distinction qui compte au moment d'appuyer. */
   #service.no, #buy.no, #atelier.no, #veh.no{
-    background:rgba(20,28,33,.72);border-color:rgba(255,255,255,.28);
-    color:rgba(255,255,255,.5);box-shadow:none}
+    background:rgba(20,28,33,.82);color:rgba(255,255,255,.5);
+    box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  #service.no:active, #buy.no:active, #atelier.no:active, #veh.no:active{
+    transform:none;box-shadow:0 3px 0 rgba(0,0,0,.45)}
   /* écran d'accueil : il recueille aussi le premier geste, sans lequel aucun
      navigateur n'autorise le son */
   #accueil{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;
     pointer-events:auto;background:rgba(12,18,22,.78);backdrop-filter:blur(5px)}
-  #acctitre{font-size:28px;font-weight:bold;letter-spacing:12px;margin-right:-12px}
+  #acctitre{font-family:var(--titre);font-size:38px;letter-spacing:9px;
+    margin-right:-9px;color:#F6F0DF;transform:scaleY(1.14)}
   #accbaseline{font-size:9px;letter-spacing:4px;opacity:.45;text-transform:uppercase}
   #accsous{font-size:11px;line-height:1.7;opacity:.68;max-width:440px}
   #accbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px}
-  .accbtn{padding:12px 26px;border-radius:13px;font-size:11px;font-weight:bold;
-    letter-spacing:1.8px;text-transform:uppercase;border:2px solid rgba(255,255,255,.3);white-space:nowrap}
-  .accbtn.pri{background:#FAD201;color:#1B2429;border-color:#FAD201}
+  .accbtn{padding:11px 24px;border-radius:9px;font-family:var(--titre);font-size:14px;
+    letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;border:none;
+    background:var(--pale);color:var(--paleEncre);box-shadow:0 4px 0 var(--paleOmb)}
+  .accbtn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--paleOmb)}
+  .accbtn.pri{background:var(--or);color:var(--encreOr);box-shadow:0 4px 0 var(--orOmb)}
+  .accbtn.pri:active{box-shadow:0 2px 0 var(--orOmb)}
   #accaide{font-size:9px;line-height:1.9;opacity:.4;letter-spacing:.8px;max-width:520px;margin-top:10px}
   /* ---- LE PLAN DE TRAVAIL : la carte en grand, et ce qu'on veut y faire faire ----
      Trois rangées de pastilles au-dessus d'une carte vue de dessus. On choisit un
      engin, ce qu'on lui demande, puis on touche la carte : des parcelles à travailler,
      ou deux lieux entre lesquels faire la navette. La file se lit en bas. */
-  #plan{position:absolute;inset:0;display:none;z-index:24;background:rgba(10,15,18,.84);
-    backdrop-filter:blur(3px)}
-  #planboite{position:absolute;inset:calc(8px + env(safe-area-inset-top)) 8px
-    calc(8px + env(safe-area-inset-bottom)) 8px;max-width:820px;margin:auto;
-    background:#1B2429;border:2px solid rgba(255,255,255,.16);border-radius:16px;
-    display:flex;flex-direction:column;overflow:hidden}
-  #plantete{display:flex;align-items:center;gap:10px;padding:8px 12px;
-    border-bottom:1px solid rgba(255,255,255,.08);flex:none}
-  #plantitre{font-size:11px;font-weight:bold;letter-spacing:1.8px;text-transform:uppercase;flex:1}
-  #planfermer{width:26px;height:26px;border-radius:9px;background:rgba(255,255,255,.08);
-    display:flex;align-items:center;justify-content:center;font-size:12px;pointer-events:auto}
-  #planleg{display:flex;gap:12px;padding:4px 12px 2px;flex:none;font-size:8px;
-    letter-spacing:.7px;text-transform:uppercase;opacity:.72}
+  #plan{position:absolute;inset:0;display:none;z-index:24;background:var(--voile)}
+  #planboite{position:absolute;inset:calc(12px + env(safe-area-inset-top)) 12px
+    calc(12px + env(safe-area-inset-bottom)) 12px;max-width:820px;margin:auto;
+    display:flex;flex-direction:column;padding:12px 14px 10px}
+  #plantete{display:flex;align-items:center;gap:10px;padding:0 2px 7px;flex:none}
+  #plantitre{font-family:var(--titre);font-size:19px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--titreC);flex:1;
+    transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
+  #planfermer{width:28px;height:28px;border-radius:9px;background:var(--pale);
+    color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:13px;
+    font-weight:bold;pointer-events:auto}
+  #planfermer:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
+  #planleg{display:flex;gap:12px;padding:2px 2px 4px;flex:none;font-size:9px;
+    letter-spacing:.7px;text-transform:uppercase;color:var(--sous)}
   #planleg span{display:flex;align-items:center;gap:4px;white-space:nowrap}
   #planleg i{width:6px;height:6px;border-radius:3px;display:block;flex:none}
   /* Le mot du point vert change avec le mode : la balise n'est là que pour le viser. */
   #planleg b{font-weight:inherit}
-  #plan .rang{display:flex;gap:5px;padding:6px 10px;overflow-x:auto;flex:none;
+  #plan .rang{display:flex;gap:6px;padding:5px 2px;overflow-x:auto;flex:none;
     scrollbar-width:none}
   #plan .rang::-webkit-scrollbar{display:none}
-  #plan .pc{padding:5px 11px;border-radius:9px;font-size:9px;font-weight:bold;
-    letter-spacing:1px;text-transform:uppercase;white-space:nowrap;opacity:.5;
-    background:rgba(255,255,255,.06);pointer-events:auto;display:flex;align-items:center;gap:6px}
-  #plan .pc.on{opacity:1;background:#FAD201;color:#1B2429}
+  #plan .pc{padding:6px 11px;border-radius:9px;font-family:var(--titre);font-size:12px;
+    letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;flex:none;
+    background:var(--pale);color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);
+    pointer-events:auto;display:flex;align-items:center;gap:6px}
+  #plan .pc:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
+  #plan .pc.on{background:var(--or);color:var(--encreOr);box-shadow:0 3px 0 var(--orOmb)}
   #plan .pc .pt{width:8px;height:8px;border-radius:2px;flex:none}
-  #plan .pc.tache{opacity:1;background:rgba(250,210,1,.16);color:#FAD201}
+  #plan .pc.tache{background:#BFD5A2;color:#33551F;box-shadow:0 3px 0 #9DB77F}
   /* La croix déborde sur les marges de la puce : sa zone de touche fait la hauteur du
      bouton, alors qu'un glyphe de neuf pixels n'en ferait pas le tiers. */
-  #plan .pc .xx{margin:-5px -11px -5px 0;padding:5px 11px 5px 7px;opacity:.75}
-  #plan .pc.vide{opacity:.35;background:none;font-weight:normal;text-transform:none;
+  #plan .pc .xx{margin:-6px -11px -6px 0;padding:6px 11px 6px 7px;opacity:.8}
+  #plan .pc.vide{background:none;box-shadow:none;color:var(--sourdine);
+    font-family:var(--corps);font-size:10px;text-transform:none;
     letter-spacing:.4px;pointer-events:none}
-  #plancarte{flex:1;min-height:0;position:relative;margin:0 10px;border-radius:12px;
-    overflow:hidden;background:#26332B}
+  /* LA CARTE RESTE SOMBRE, ET C'EST VOULU. C'est une vue du terrain, pas un formulaire :
+     elle porte la terre, l'herbe et les bâtiments dans leurs vraies couleurs, et un fond
+     crème la ferait passer pour un plan cadastral. Elle est simplement POSÉE sur la
+     feuille, comme une photographie collée, avec le même relief que les lignes. */
+  #plancarte{flex:1;min-height:0;position:relative;margin:3px 2px;border-radius:12px;
+    overflow:hidden;background:#26332B;box-shadow:0 3px 0 var(--ligneOmb)}
   /* touch-action:none — sans quoi le navigateur s'empare du pincement pour zoomer la
      PAGE, et la carte ne voit jamais le second doigt. */
   #plancv{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;
     image-rendering:auto;touch-action:none}
-  #planaide{font-size:8px;letter-spacing:.8px;opacity:.45;padding:5px 12px 0;flex:none;
-    text-align:center}
-  #planpied{display:flex;gap:8px;padding:8px 10px;flex:none}
-  #plan .pb{flex:1;text-align:center;padding:9px 14px;border-radius:11px;font-size:10px;
-    font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;pointer-events:auto;
-    border:2px solid rgba(255,255,255,.22);color:rgba(255,255,255,.6)}
-  #plan .pb.on{border-color:#8BE07A;color:#8BE07A;background:rgba(30,60,35,.5)}
-  #plan .pb.pri{border-color:#FAD201;background:#FAD201;color:#1B2429}
-  #plan .pb.pri.stop{border-color:#D8442F;background:#D8442F;color:#FFF1EC}
+  #planaide{font-size:9.5px;letter-spacing:.5px;color:var(--sourdine);
+    padding:6px 4px 0;flex:none;text-align:center}
+  #planpied{display:flex;gap:8px;padding:8px 2px 2px;flex:none}
+  #plan .pb{flex:1;text-align:center;padding:9px 14px;border-radius:9px;
+    font-family:var(--titre);font-size:13px;letter-spacing:1px;text-transform:uppercase;
+    pointer-events:auto;border:none;
+    background:var(--pale);color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb)}
+  #plan .pb:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
+  #plan .pb.on{background:var(--vert);color:var(--encre);box-shadow:0 3px 0 var(--vertOmb)}
+  #plan .pb.on:active{box-shadow:0 1px 0 var(--vertOmb)}
+  #plan .pb.pri{background:var(--or);color:var(--encreOr);box-shadow:0 3px 0 var(--orOmb)}
+  #plan .pb.pri:active{box-shadow:0 1px 0 var(--orOmb)}
+  #plan .pb.pri.stop{background:var(--rouge);color:var(--encre);
+    box-shadow:0 3px 0 var(--rougeOmb)}
+  #plan .pb.pri.stop:active{box-shadow:0 1px 0 var(--rougeOmb)}
   #plan .pcx{display:inline-block;margin-left:8px;padding:0 5px;border-radius:7px;
-    color:#D8442F;font-weight:700;opacity:.85}
-  #plan .pb.pri.no{border-color:rgba(255,255,255,.18);background:none;
-    color:rgba(255,255,255,.35)}
+    color:#8E3428;font-weight:700}
+  #plan .pb.pri.no{background:var(--pale);color:var(--sourdine);
+    box-shadow:0 3px 0 var(--paleOmb);opacity:.55}
+  #plan .pb.pri.no:active{transform:none;box-shadow:0 3px 0 var(--paleOmb)}
   #rot{position:absolute;inset:0;background:#1B2429;display:none;align-items:center;justify-content:center;
     flex-direction:column;gap:14px;text-align:center;padding:30px;pointer-events:auto;z-index:40}
   #rot b{font-size:13px;letter-spacing:3px}
@@ -16219,6 +16427,50 @@ const PICTOS = {
    de la taille demandée pour que le trait rendu soit toujours celui de la pompe : 2,00 à
    dix-huit pixels, 1,64 à vingt-deux. Le dessin reste écrit une seule fois. */
 const TRAIT_PICTO = 2*18;                 // épaisseur × taille de référence, en px·px
+/* ---------- LA FEUILLE DE PAPIER ----------
+   Le fond d'une fenêtre n'est pas un rectangle : c'est un rectangle PASSÉ DANS UNE
+   TURBULENCE, ce qui lui donne un bord irrégulier — jamais deux fois le même, puisque la
+   graine change à chaque appel. Une bordure tracée à la main aurait l'air régulière, et
+   c'est précisément ce qu'on cherche à quitter : les fenêtres du jeu étaient des boîtes
+   anthracite bordées d'un filet blanc, de la même matière que le HUD.
+
+   `preserveAspectRatio="none"` : le rectangle de 400 × 300 s'étire à la boîte, quelle
+   qu'elle soit. Le bord déchiré s'étire avec lui — une feuille très haute a des dents
+   plus longues qu'une feuille large, ce qui est exactement ce qu'on veut d'un papier.
+
+   ET C'EST PEINT UNE FOIS. Le filtre de turbulence est cher — c'est un bruit fractal à
+   quatre octaves —, mais il ne s'exécute qu'au moment où le navigateur peint la couche,
+   c'est-à-dire à l'ouverture de la fenêtre. Rien ne l'anime, rien ne le redimensionne en
+   continu ; le jeu tourne derrière un voile, pas derrière un filtre. */
+let _nFeuille = 0;
+function papierSVG(){
+  const id = 'pap' + (++_nFeuille);
+  return '<svg class="fond" viewBox="0 0 400 300" preserveAspectRatio="none">' +
+    '<defs><filter id="' + id + '" x="-12%" y="-12%" width="124%" height="124%">' +
+      '<feTurbulence type="fractalNoise" baseFrequency="0.022 0.05" numOctaves="4" ' +
+        'seed="' + (_nFeuille*7 + 3) + '" result="b"/>' +
+      '<feDisplacementMap in="SourceGraphic" in2="b" scale="9" ' +
+        'xChannelSelector="R" yChannelSelector="G"/>' +
+    '</filter>' +
+    '<linearGradient id="g' + id + '" x1="0" y1="0" x2="0.4" y2="1">' +
+      '<stop offset="0" stop-color="#F6F0DF"/><stop offset="0.55" stop-color="#F1E9D4"/>' +
+      '<stop offset="1" stop-color="#E7DEC6"/></linearGradient></defs>' +
+    // un seul aplat, sans trait de contour : le bord déchiré suffit à découper la feuille
+    '<rect x="6" y="6" width="388" height="288" rx="12" fill="url(#g' + id + ')" ' +
+      'filter="url(#' + id + ')"/></svg>';
+}
+/* Poser la feuille sous une boîte, une fois pour toutes. On la met en TÊTE des enfants —
+   le CSS la remet en position absolue derrière, et le contenu, qui est en `position
+   relative`, passe au-dessus sans qu'on ait à toucher un seul z-index de plus. */
+function poserFeuille(el){
+  if(!el || el.classList.contains('feuille')) return;
+  el.classList.add('feuille');
+  el.insertAdjacentHTML('afterbegin', papierSVG());
+}
+for(const id of ['fenboite', 'pboite', 'doseboite', 'ctboite', 'parcboite',
+                 'planboite', 'brboite'])
+  poserFeuille(document.getElementById(id));
+
 function picto(nom, taille){
   const t = taille || 22;
   const ep = Math.round(TRAIT_PICTO/t*100)/100;
