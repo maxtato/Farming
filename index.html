@@ -23329,8 +23329,9 @@ function majPousseParcelles(dt){
    ET LA MOISSONNEUSE PARLE MÊME À VIDE. « Indique si elle est pleine ou pas » : une jauge
    qui ne s'allume qu'une fois pleine ne répond pas à la question. Les caisses, elles, se
    taisent quand elles sont vides — une benne vide n'est pas une information, c'est le cas
-   général — sauf les cuves du semoir et de l'épandeur, qui disent « À REMPLIR » parce
-   qu'on ne s'en aperçoit qu'au milieu du champ. */
+   général — sauf les cuves du semoir et de l'épandeur, qui restent allumées à zéro parce
+   qu'on ne s'aperçoit qu'au milieu du champ qu'on n'a plus rien à semer. Elles ne disent
+   RIEN D'AUTRE que leur nombre : voir `direCuve`. */
 const PLEIN_A = 0.995;
 /* L'ENGRAIS N'EST PAS UN PRODUIT, ET C'EST LA SEULE EXCEPTION. Il ne figure pas dans
    `PRODUITS` — il n'a ni prix de vente, ni ligne de silo, ni recette : c'est un INTRANT,
@@ -23340,6 +23341,22 @@ const PLEIN_A = 0.995;
    et une place au silo qu'il n'a pas. Le vert est celui de la réserve d'engrais. */
 const INTRANTS = {engrais:{nom:'Engrais', couleur:'#8BE07A'}};
 const nomCharge = (c)=> ((PRODUITS[c] || INTRANTS[c] || {}).nom) || 'Charge';
+/* LA CUVE NE DIT QUE SON NOMBRE. Le joueur : « pour les informations du niveau de
+   remplissage du semoir, etc., mais juste la quantité c'est tout ; pareil pour l'engrais. »
+   Elle disait « Blé 0 kg — À REMPLIR » : trois choses là où l'on n'en cherche qu'une, et
+   les deux autres sont déjà à l'écran — la CULTURE est écrite en capitales sur le bouton
+   d'en haut à droite, avec sa propre jauge, et « à remplir » se voit à la barre qui est
+   au plancher comme il se lit au chiffre qui est à zéro.
+   RIEN N'EST PERDU DE CE QUI PRÉVIENT : le bouton de culture passe en gris sous le kilo,
+   et la leçon « REMPLIR LE SEMOIR » se lève la première fois qu'on attelle une cuve vide.
+   La couleur de la plaque reste, elle : vert de la matière, rouge à ras bord, gris à sec —
+   ce n'est pas une information de plus, c'est la même, dite sans un mot. */
+function direCuve(J, x, y, z, nom, q, max, cle, dt){
+  const k = max > 0 ? Math.min(1, q/max) : 0;
+  const coul = k > PLEIN_A ? '#E8563F' : q <= 0.01 ? '#8A9298'
+             : ((PRODUITS[cle] || INTRANTS[cle] || {}).couleur || '#E6F0F8');
+  montrerJauge(J, x, y, z, nom, kg(q), k, coul, dt);
+}
 function direCharge(J, x, y, z, nom, q, max, cles, lire, motPlein, motVide, dt){
   const k = max > 0 ? Math.min(1, q/max) : 0;
   // Une caisse peut porter plusieurs natures : on les nomme comme le silo les nomme.
@@ -23383,9 +23400,8 @@ function jaugesEngin(dt){
                naturesDe(traine), (k)=> chargeDe(traine, k), 'PLEINE', null, dt);
   else if(traine && traine.cuveMax){
     const k = cuveCleDe(traine);
-    direCharge(jaugeOutil, traine.x, 5.0, traine.z, traine.nom, cuveDe(traine, k),
-               traine.cuveMax, k ? [k] : [], (c)=> cuveDe(traine, c),
-               'CUVE PLEINE', 'À REMPLIR', dt);
+    direCuve(jaugeOutil, traine.x, 5.0, traine.z, traine.nom,
+             cuveDe(traine, k), traine.cuveMax, k, dt);
   } else cacherJauge(jaugeOutil, dt);
 }
 

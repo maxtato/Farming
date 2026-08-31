@@ -9151,3 +9151,38 @@ surfaces, le plafond des flèches et les trois cas de la sauvegarde.
 libre, dernière marche, trente kilos à bord, garé à la Coopérative — et exigent le bouton.
 
 Les vingt-et-une suites passent : **951 contrôles**, zéro erreur de page.
+
+## Une cuve ne dit que son nombre
+
+*« Pour les informations du niveau de remplissage du semoir, etc., mais juste la quantité
+c'est tout. Pareil pour l'engrais. »*
+
+La plaque flottante d'un outil à cuve disait `Blé 0 kg — À REMPLIR` : trois choses là où l'on
+n'en cherche qu'une. Elle dit maintenant `0 kg`, et rien d'autre.
+
+| | avant | maintenant |
+|---|---|---|
+| semoir vide | `Blé 0 kg — À REMPLIR` | **`0 kg`** |
+| semoir à moitié | `Blé 25 kg` | **`25 kg`** |
+| semoir plein | `Blé 50 kg — CUVE PLEINE` | **`50 kg`** |
+| épandeur vide | `Engrais 0 kg — À REMPLIR` | **`0 kg`** |
+| épandeur à 40 % | `Engrais 12 kg` | **`12 kg`** |
+| épandeur plein | `Engrais 30 kg — CUVE PLEINE` | **`30 kg`** |
+
+Les deux mots retirés étaient déjà à l'écran, ailleurs et mieux : la **culture** est écrite en
+capitales sur le bouton d'en haut à droite, avec sa propre jauge, et **« à remplir »** se voit
+à la barre qui est au plancher comme il se lit au chiffre qui est à zéro. Rien de ce qui
+prévient n'est perdu — le bouton de culture passe en gris sous le kilo, et la leçon *REMPLIR LE
+SEMOIR* se lève la première fois qu'on attelle une cuve vide.
+
+**La couleur reste**, parce que ce n'est pas une information de plus : c'est la même, dite sans
+un mot. Mesuré aux trois niveaux : gris `#8A9298` à sec, la teinte de la matière entre deux,
+rouge `#E8563F` à ras bord — et la barre à 0 %, 50 %, 100 %.
+
+**Ce qui n'a pas bougé** : la trémie de la moissonneuse (`Blé 150 kg — TRÉMIE PLEINE`) et les
+bennes (`Blé 120 kg`). La règle ne vaut que pour les deux cuves de consommable — celles que la
+demande nomme, le semoir et l'engrais.
+
+`hud.js` passe de 47 à **51 contrôles** : les deux cuves y sont relevées à trois niveaux
+chacune, et deux contrôles exigent que ni la nature, ni « à remplir », ni « cuve pleine » ne
+reparaissent. Les vingt-et-une suites passent : **955 contrôles**, zéro erreur de page.
