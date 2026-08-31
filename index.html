@@ -2683,7 +2683,14 @@ let MODE_LIBRE = false;
    était fausse — la trentième mission soldée, la vallée devenait muette. La condition est
    ici et nulle part ailleurs, comme le mode libre. */
 const campagneFinie = ()=> !MODE_LIBRE && CAMPAGNE.mission >= MISSIONS.length;
-const contratsOuverts = ()=> MODE_LIBRE || campagneFinie();
+/* ET LE MODE LIBRE N'EN A AUCUN. Il les ouvrait comme la fin de campagne : le village
+   proposait des contrats, la pastille verte tombait sur une enseigne, et il fallait aller
+   les décliner. Le joueur : « pour le mode libre ne mets aucun contrat. » Le mode libre
+   est le mode où l'on fait ce qu'on veut ; un contrat est un rendez-vous, et un rendez-vous
+   qu'on n'a pas demandé est une corvée. `remplirCommandes` efface alors ce qu'une partie
+   plus ancienne aurait laissé et ne repose plus rien — c'est déjà ce qu'il fait pendant la
+   campagne, on ne fait qu'y ranger un mode de plus. */
+const contratsOuverts = ()=> !MODE_LIBRE && campagneFinie();
 function resteContrat(nom, cle){
   let t = 0;
   for(const C of CONTRATS){
@@ -14848,7 +14855,11 @@ const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel
               oeufs:0, laine:0, huile:0, fromage:0,
               // Deux compteurs que la campagne interroge : les porcs vendus à la
               // boucherie, et l'aliment premium jamais sorti de l'atelier.
-              porcs:0, alimentPlus:0};
+              porcs:0, alimentPlus:0,
+              // Ce qu'on a vendu, tous commerces et toutes marchandises confondus. Il ne
+              // sert qu'à une chose : savoir que la PREMIÈRE vente a eu lieu, ce qui solde
+              // la dernière étape du tutoriel en mode libre.
+              ventes:0};
 // La trémie ne mélange pas : une culture à la fois, comme une caisse entamée
 // n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
 let hopCrop = 0;
@@ -18181,9 +18192,15 @@ const TUTO = [
    txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
    quoi:'charger', prod:'ble',
    fait:()=> bleABord() >= 29.9},
+  /* LA DERNIÈRE ÉTAPE SE SOLDE DE DEUX FAÇONS, SELON LE MODE.
+     En campagne elle se solde en PRENANT la mission — il n'y a rien à tester, l'écran de
+     la Coopérative s'en charge. En mode libre il n'y a pas de mission à prendre : elle se
+     solde à la PREMIÈRE VENTE, où qu'elle ait lieu. Le cercle jaune montre la Coopérative
+     parce que c'est l'acheteur qui prend tout, mais rien n'oblige à y aller : vendre son
+     blé à l'usine céréales solde l'étape aussi bien. */
   {cle:'vendre', ou:'Coopérative', engin:'pickup', titre:'PREMIÈRE VENTE',
    txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
-   fait:()=> false}          // elle se solde en prenant la mission, pas par un test
+   fait:()=> MODE_LIBRE && STAT.ventes > 0.01}
 ];
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
@@ -18196,8 +18213,23 @@ const TUTO = [
    Les préambules NE BLOQUENT RIEN : ils indiquent. Livrer les cent cinquante kilos sans
    avoir acheté l'épandeur solde quand même la mission — l'engrais reste facultatif, et
    le cahier des charges le dit expressément dès la mission suivante. */
+/* ET LE MODE LIBRE GARDE LE TUTORIEL, LUI SEUL.
+   Le joueur : « laisse juste le tuto de départ — la sélection du tracteur, l'équipement de
+   la charrue, puis l'accès au champ, puis après labourage l'accès au semoir, et ainsi de
+   suite jusqu'à la vente ; à chaque fois un cercle jaune qui indique où aller. Une fois le
+   tuto terminé, complètement libre. »
+   C'EST EXACTEMENT LA TABLE `TUTO`, ET ELLE EXISTAIT DÉJÀ : sept étapes, du premier
+   attelage à la première vente, chacune avec son engin à prendre, son outil à atteler et
+   son lieu — et c'est `objectifMission` qui en fait le cercle jaune au sol, la flèche du
+   bord et la ligne du bandeau. Elle ne tournait simplement PAS en mode libre : la première
+   ligne de cette fonction rendait `null` sans rien regarder, si bien qu'un joueur qui
+   commence en libre n'a jamais vu le tutoriel du jeu.
+   APRÈS, PLUS RIEN. `CAMPAGNE.tuto` ne recule jamais ; une fois la septième étape soldée,
+   cette fonction rend `null` pour toujours, `missionVisible` rend déjà `null` en mode
+   libre, et il ne reste aucun objectif d'aucune sorte — c'est le « complètement libre »
+   demandé, et il n'a pas d'autre mécanique que celle-là. */
 function listeEtapes(){
-  if(MODE_LIBRE) return null;
+  if(MODE_LIBRE) return CAMPAGNE.tuto < TUTO.length ? TUTO : null;
   const M = MISSIONS[CAMPAGNE.mission];
   if(!M) return null;
   if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise) return TUTO;
@@ -18356,6 +18388,15 @@ function veillerTuto(){
     CAMPAGNE.tuto++;
     const E = L[CAMPAGNE.tuto];
     if(E) annoncerEtape(E);
+    /* ET LA DERNIÈRE MARCHE SE DIT, EN MODE LIBRE. En campagne il n'y a rien à annoncer —
+       la Coopérative enchaîne sur la première mission, et c'est elle qui parle. En libre,
+       la septième étape soldée, tout s'éteint : plus de cercle jaune, plus de flèche, plus
+       de ligne de bandeau. Sans un mot, le joueur croirait avoir perdu quelque chose. */
+    else if(MODE_LIBRE && L === TUTO)
+      annoncerFenetre({titre:'TUTORIEL TERMINÉ', etape:true, duree:6.0, gains:[],
+        sous:'Vous avez fait le tour complet : préparer la terre, semer, laisser pousser, '
+           + 'moissonner, stocker au silo, charger et vendre. La ferme est à vous.',
+        suite:'Plus aucun objectif — cultivez, élevez, transformez et vendez comme vous voulez'});
   }
 }
 function objectifMission(){
@@ -20647,7 +20688,8 @@ function executer(m, A, dt){
       const q = Math.min(lent, chargeDe(T, A.cle), placeChez(A.S, A.cle),
                          A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
-      retirerCharge(T, A.cle, q); encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
+      retirerCharge(T, A.cle, q); encaisser(q*prixChez(A.S, A.cle)); STAT.ventes += q;
+      gainContinu(A.S.dropX, A.S.dropZ);
       entamerEtal(A.S, A.cle, q);
       livraison(A.S.nom, A.cle, q);
       compter(A.cle, q);
@@ -20657,16 +20699,30 @@ function executer(m, A, dt){
         showHint(nomDe(A.cle).toUpperCase() + ' VENDU — ' + Math.floor(money) + ' €');
       return;
     }
+    /* ON VERSE CHEZ UNE USINE, ET ON EST PAYÉ — CE QUI N'ÉTAIT PAS LE CAS.
+       Le joueur : « laisse la possibilité de vendre à tous les commerces qui acceptent la
+       culture qu'on leur propose. » Il a raison, et le défaut était plus large qu'un
+       manque de confort : une usine ACCEPTE une matière première (l'usine céréales prend
+       le blé, la laiterie le lait) mais ne l'ACHÈTE pas, et `verser` n'appelait pas
+       `encaisser`. Le seul paiement était la PRIME d'un contrat, versée à l'achèvement.
+       Retirez les contrats — ce que le mode libre fait maintenant — et verser trente kilos
+       de blé à l'usine céréales ne rapportait plus RIEN DU TOUT : la marchandise partait,
+       la caisse ne bougeait pas. Mesuré : sur les quinze commerces, un seul achetait le
+       blé, et cinq usines l'acceptaient sans le payer.
+       LA MARCHANDISE SE PAIE DONC AU PRIX DU COMMERCE, comme à la vente, et la prime d'un
+       contrat reste ce qu'elle a toujours été : un BONUS à l'achèvement, par-dessus. */
     case 'verser': {
       const q = Math.min(debit, chargeDe(T, A.cle), TREMIE_SITE_MAX - totalTremieSite(A.S),
                          A.commande ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
+      encaisser(q*prixChez(A.S, A.cle)); STAT.ventes += q; gainContinu(A.S.dropX, A.S.dropZ);
       livraison(A.S.nom, A.cle, q); compter(A.cle, q);
       if(siSouvent(0.3)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.35, 0.3);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
-        showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase());
+        showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()
+                 + ' — ' + Math.floor(money) + ' €');
       return;
     }
     case 'reprendre': {
@@ -20682,8 +20738,10 @@ function executer(m, A, dt){
       const q = Math.min(hopper, 47*dt, vente ? placeChez(A.S, A.cle) : Infinity);
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; livraison(A.S.nom, A.cle, q); compter(A.cle, q);
-      if(vente){ encaisser(q*prixChez(A.S, A.cle)); gainContinu(A.S.dropX, A.S.dropZ);
-                 entamerEtal(A.S, A.cle, q); }
+      // La trémie qu'on vide chez une usine se paie elle aussi : c'est la même
+      // marchandise que celle qu'on y verserait depuis une benne.
+      encaisser(q*prixChez(A.S, A.cle)); STAT.ventes += q; gainContinu(A.S.dropX, A.S.dropZ);
+      if(vente) entamerEtal(A.S, A.cle, q);
       else A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       if(siSouvent(0.6))
         puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,

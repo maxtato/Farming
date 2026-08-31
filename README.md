@@ -8369,3 +8369,84 @@ parc tout seul — **l'automatisation prend le volant, elle ne ramène pas le jo
 maison.**
 
 `chantiers.js` passe de 37 à **44 contrôles**. Les vingt suites passent.
+
+## Le mode libre : aucun contrat, le tutoriel de départ, et la vente ouverte
+
+Le joueur : « pour le mode libre ne mets aucun contrat, laisse la possibilité de vendre à tous
+les commerces qui acceptent la culture qu'on leur propose. Laisse juste le tuto de départ : la
+sélection du tracteur, l'équipement de la charrue, puis l'accès au champ, puis après labourage
+l'accès au semoir… jusqu'à la vente, à chaque fois avec un cercle jaune qui indique où aller.
+Une fois le tuto terminé, complètement libre. »
+
+### Aucun contrat
+
+`contratsOuverts()` valait `MODE_LIBRE || campagneFinie()` : le mode libre les ouvrait d'office,
+le village proposait, la pastille verte tombait sur une enseigne, et il fallait aller décliner.
+Le mode libre est le mode où l'on fait ce qu'on veut ; un contrat est un rendez-vous, et un
+rendez-vous qu'on n'a pas demandé est une corvée. **Seule la campagne finie les ouvre
+désormais.** `remplirCommandes` faisait déjà le ménage pour la campagne — on ne fait qu'y ranger
+un mode de plus.
+
+### Vendre à tous les commerces qui acceptent la culture
+
+**Le défaut était plus large qu'un manque de confort.** Une usine *accepte* une matière première
+— l'usine céréales prend le blé, la laiterie le lait — mais ne l'*achète* pas, et l'action
+`verser` n'appelait **pas** `encaisser` : le seul paiement était la **prime** d'un contrat,
+versée à l'achèvement. Retirez les contrats, et verser trente kilos de blé à l'usine céréales ne
+rapportait plus **rien du tout** : la marchandise partait, la caisse ne bougeait pas.
+
+Mesuré sur les quinze commerces : **un seul achetait le blé**, et l'usine céréales l'acceptait
+sans le payer. La marchandise se paie donc maintenant au prix du commerce, comme à la vente, et
+la prime d'un contrat reste ce qu'elle a toujours été — un bonus par-dessus.
+
+| trente kilos de blé | action | avant | après |
+|---|---|---|---|
+| Coopérative | `vendre` | 14,99 € | 14,99 € |
+| Usine céréales | `verser` | **0 €** | **17,64 €** |
+
+L'usine paie mieux que la coopérative, et c'est juste : la coopérative *« n'est pas celle qui
+paie le mieux, mais elle prend ce que vous avez »*.
+
+### Le tutoriel de départ, et lui seul
+
+**Il existait déjà, complet, et ne tournait pas.** La table `TUTO` porte sept étapes — du premier
+attelage à la première vente — chacune avec son engin à prendre, son outil à atteler et son
+lieu, et c'est `objectifMission` qui en fait le cercle jaune au sol, la flèche du bord et la
+ligne du bandeau. Seulement, la première ligne de `listeEtapes` rendait `null` en mode libre :
+**un joueur qui commence en libre n'avait jamais vu le tutoriel du jeu.**
+
+| # | étape | engin désigné | cercle jaune |
+|---|---|---|---|
+| 1 | PRÉPARER LA PARCELLE | Tracteur | la **charrue** au parc, puis le **champ** dès qu'elle est attelée |
+| 2 | SEMER DU BLÉ | Tracteur | le **semoir**, puis le champ |
+| 3 | LAISSER POUSSER | — | le champ |
+| 4 | PREMIÈRE RÉCOLTE | Moissonneuse | le champ |
+| 5 | STOCKER LA RÉCOLTE | Moissonneuse | le **silo** |
+| 6 | PRÉPARER LA LIVRAISON | Pick-up | le silo |
+| 7 | PREMIÈRE VENTE | Pick-up | la **Coopérative** |
+
+Le cercle se pose sur l'**outil** tant qu'il n'est pas attelé, puis part au champ tout seul —
+*« quand on commence avec la charrue, on ne sait pas où est la charrue »*.
+
+**La dernière étape se solde de deux façons, selon le mode.** En campagne elle se solde en
+*prenant* la mission ; en libre il n'y a pas de mission à prendre, elle se solde donc à la
+**première vente, où qu'elle ait lieu** — le cercle montre la Coopérative, mais vendre son blé à
+l'usine céréales la solde aussi bien.
+
+**Et après, plus rien.** `CAMPAGNE.tuto` ne recule jamais : la septième étape soldée, plus
+d'étape, plus de cercle, plus de flèche, plus de ligne de bandeau, et `missionVisible` rendait
+déjà `null` en mode libre. C'est le « complètement libre » demandé, et il n'a pas d'autre
+mécanique que celle-là. Une fenêtre le dit, sans quoi le joueur croirait avoir perdu quelque
+chose.
+
+### Trois bancs remis d'aplomb
+
+Huit contrôles asseyaient l'ancienne règle, et deux d'entre eux se servaient du mode libre
+comme d'un **raccourci pour « contrats ouverts »** — un raccourci qui ne dit plus ce qu'il
+croyait dire. Ils passent par l'état qui les ouvre vraiment, la **campagne finie**, ce qui est
+aussi ce qu'ils voulaient éprouver depuis le début.
+
+`ecrans.js` passe de 54 à **58 contrôles**, dont les quatre qui tiennent la demande : les sept
+étapes portent chacune un cercle jaune, le cercle va de l'outil au champ, après la vente il ne
+reste **ni étape, ni cercle, ni liste**, et l'on vend bien à tous les commerces qui prennent la
+culture. Les vingt suites passent.
