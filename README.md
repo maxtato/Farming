@@ -9733,3 +9733,20 @@ Le **poids du fichier** l'avait dit avant la planche, une fois de plus : 5,8 Ko 
 petite, contre 9 à 10 pour une fiche correcte.
 
 Vingt-sept fiches, **265 Ko**. Neuf commerces sur quinze, seize planches encore en attente.
+
+### Dixième commerce : le Supermarché, et la règle vérifiée dans l'autre sens
+
+Passé sans une correction. Et c'est ce qui achève de tenir la règle du couvre-chef, parce qu'elle
+se vérifie maintenant **dans les deux sens** :
+
+| | détection | corrections |
+|---|---|---|
+| Usine avoine, Usine céréales, Supermarché — tête nue | 3 planches sur 3 | aucune |
+| Épicerie, Marché — casquette plate | 1 sur 3 | 2 ancrages à la main chacun |
+| Fromagerie — foulard et chevelure | 3 sur 3, mais **fausses** | 2 passes d'échelle |
+
+Le dernier cas est le plus instructif : la fromagère est *détectée*, et mal. Une détection qui
+réussit n'est donc pas une détection juste, et c'est pour cela que la planche de contrôle passe
+après chaque groupe, même quand les trois lignes disent `[yeux]`.
+
+Trente fiches, **293 Ko**. Dix commerces sur quinze.
