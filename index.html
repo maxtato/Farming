@@ -535,15 +535,21 @@
      le moulin, et le joueur cherchait la fenêtre sans que rien la désigne. Aucun de ces
      quatre-là n'est coupé par un conteneur : ils peuvent porter le cadre qui GRANDIT,
      qui est le plus visible des deux appels. */
-  #engins,#regie .rgb{position:relative}
+  #engins,#regie .rgb,#hitch{position:relative}
   /* ET LE BOUTON QUI APPELLE EST PLEIN, LUI AUSSI. C'est l'action que le jeu demande à
      l'instant : s'il restait le seul bordé de jaune au milieu de boutons pleins, il
      aurait l'air de celui qu'on ne peut pas toucher. Le halo qui s'écarte reste par-
      dessus, et il se détache mieux d'un aplat que d'un fond sombre. */
-  #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel{
+  /* ET LE BOUTON D'ATTELAGE EN EST, DEPUIS QUE LE TUTORIEL LE DÉSIGNE. Il savait déjà
+     s'allumer PLEIN quand un outil est à portée (`#hitch.on`) ; ce qu'il ne savait pas
+     dire, c'est « c'est CELUI-CI que l'étape attend, maintenant ». Même halo que le
+     bouton du parc, et pour la même raison : ce sont les deux gestes que la première
+     demi-heure de jeu demande sans qu'on puisse les deviner. */
+  #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel,#hitch.appel{
     background:#FAD201;color:#10171B;--act:#FAD201;--actOmb:#B49700;
     box-shadow:0 3px 0 #B49700, 0 5px 11px rgba(0,0,0,.3)}
   #engins.appel::after,#regie .rgb.appel::after,#service.appel::after,
+  #hitch.appel::after,
   #atelier.appel::after,#veh.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:15px;border:3px solid #FAD201;pointer-events:none;
     animation:appel 1.05s ease-out infinite}
@@ -579,7 +585,7 @@
     23%{transform:translateX(-50%) rotate(2.4deg)}
     37%{transform:translateX(-50%) rotate(-1.4deg)}
     48%{transform:translateX(-50%) rotate(.7deg)}}
-  #engins.appel,#regie .rgb.appel{animation:appelDodeline 2.1s ease-in-out infinite}
+  #engins.appel,#regie .rgb.appel,#hitch.appel{animation:appelDodeline 2.1s ease-in-out infinite}
   #service.appel,#atelier.appel,#veh.appel{animation:appelDodelineC 2.1s ease-in-out infinite}
   /* ET LE MÊME APPEL SE POURSUIT DANS LES MENUS. Le bouton du parc bat, on l'ouvre, et
      la LIGNE de la machine à prendre bat à son tour ; au garage, l'onglet des outils bat,
@@ -3441,6 +3447,15 @@ const MISSIONS = [
    village, et le rang 9 à l'Épicerie, qui ouvre un rayon de produits de la ferme.
    AJOUTER une mission à la fin, elle, ne coûte rien : les rangs d'avant ne bougent
    pas. C'est INSÉRER ou RÉÉCRIRE qui se paie ici. */
+/* LE RANG DE LA TABLE DU TUTORIEL. `CAMPAGNE.tuto` est un INDICE dans `TUTO`, et l'on
+   vient d'y INSÉRER une marche — « ranger la moissonneuse », en sixième position. Une
+   partie enregistrée au chargement du pick-up portait `tuto: 5` ; relue telle quelle, elle
+   se retrouverait à la marche du parking, c'est-à-dire une marche en arrière. Le cliquet
+   la franchirait d'ailleurs tout seul si la moissonneuse est à sa place, mais pas si elle
+   dort au silo — et le joueur repartirait la garer sans savoir pourquoi.
+   C'est la règle que ce fichier s'impose partout : « des champs, jamais des lignes ». On
+   en a ajouté une, on paie donc le remappage — quatre lignes, et une fois pour toutes. */
+const TUTO_V = 2, TUTO_INSERE = 5;
 const MISSIONS_V = 2;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
@@ -3789,6 +3804,11 @@ function chargerCampagne(S){
        repart à zéro à chaque mission finie, si bien qu'une vieille partie ne saute que
        les étapes de la mission où elle dormait. */
     CAMPAGNE.tuto = C.tuto === undefined ? 99 : Math.max(0, Math.min(99, C.tuto | 0));
+    /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
+       la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
+       après a glissé d'un cran. `99` — « tout franchi » — ne bouge pas. */
+    if((C.tv | 0) < TUTO_V && CAMPAGNE.tuto >= TUTO_INSERE && CAMPAGNE.tuto < 99)
+      CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
     /* MÊME RÈGLE POUR LES LEÇONS, ET POUR LA MÊME RAISON QUE LE TUTORIEL. Le champ
        n'existait pas : son absence vaut « tout appris ». Sans ce défaut, une partie en
        cours depuis trois heures se verrait expliquer comment acheter un tracteur, remplir
@@ -14990,7 +15010,14 @@ const MACHINES = [
      place : elles sortent avec 2,29 m à 4,48 m de marge. Celle-ci était la seule à
      racler, et elle est la seule à bouger. */
   {key:'pickup', nom:'Pick-up', teinte:0x3E7CB8, prix:0, timbre:'voiture', ton:1.06, v:new Vehicle({
-      x:placeCentre(11), z:51.1, cap:Math.PI/2, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
+      /* GARÉ LE LONG DES DEUX CUVES, ET NON EN TRAVERS. Le joueur : « je veux que le
+         pick-up soit positionné perpendiculairement à ce qu'il est aujourd'hui, garé le
+         long des deux cuves. » À `Math.PI/2` il pointait vers l'est — cap donne l'avant
+         par (sin, cos) — donc EN TRAVERS de la voie des réserves : les deux cercles sont
+         à x 31,5, z 46,5 et 56,9, et un pick-up couché est-ouest s'étalait de 31,45 à
+         35,95, c'est-à-dire les roues DANS la voie. À `Math.PI` il est dans l'axe des
+         deux cuves, comme tout ce qui est garé dans la cour, et la voie est libre. */
+      x:placeCentre(11), z:51.1, cap:Math.PI, vmax:17, accel:13, turn:2.2, grip:6.4, trackW:1.42,
       susp:{k:34, d:5.6, roll:0.038, pitch:0.024, rough:0.8},
       build:buildPickup
     })},
@@ -15236,7 +15263,13 @@ function prixCranSuivant(cle, niv){
    première chose qu'on voit d'un jeu qu'on ne connaît pas : un engin encombrant qu'on
    ne sait pas manœuvrer. Le pick-up est court, rapide, sans outil, et c'est avec lui
    qu'on va voir le village. */
-let cur = MACHINES.findIndex(m => m.key === 'pickup');
+/* ON COMMENCE DANS LE TRACTEUR VERT. Le joueur : « je veux qu'au début du jeu, tu nous
+   fasses commencer avec le tracteur vert directement. » On démarrait au pick-up, et la
+   toute première marche du tutoriel — atteler la charrue — commençait donc par un
+   changement d'engin que rien n'avait demandé : le bouton du parc appelait, on ouvrait la
+   liste, on prenait le tracteur. Trois gestes avant le premier. `t1` EST le tracteur vert
+   (robe:'vert', 0x3B9440), et c'est celui que la marche désigne. */
+let cur = MACHINES.findIndex(m => m.key === 't1');
 const GOAL = 3000;
 let money = 0, hopper = 0, delivered = 0, breadKg = 0;
 /* Le silo n'est plus un tas de « grain » : il tient un tas par céréale. C'est ce qui
@@ -16793,7 +16826,14 @@ function machineLabel(i){
 }
 
 /* --- attelage : bouton d'accrochage / décrochage --- */
-const PICKUP_R = 11;                 // portée pour reprendre un outil au sol
+/* ON ATTELLE DE PLUS PRÈS. Le joueur : « limite un peu plus le champ où le bouton
+   d'attelage apparaît ; il faut qu'on soit plus proche de la remorque pour que le bouton
+   passe en jaune. » Onze mètres, c'était DEUX PLACES de parc : les outils sont espacés de
+   6,13 m, et le bouton s'allumait au milieu du parking sans qu'on sache lequel des quatre
+   il allait prendre. Cinq mètres, c'est se ranger le long de l'outil — moins que l'écart
+   entre deux places, donc jamais deux prétendants à égalité. L'automate, lui, n'a jamais
+   utilisé cette portée : il demande l'attelage à son chantier, pas au bouton. */
+const PICKUP_R = 5;                  // portée pour reprendre un outil au sol
 function nearestFreeTool(v){
   let best = null, bd = PICKUP_R;
   for(const T of TOOLS){
@@ -16809,6 +16849,32 @@ const hitchEl = document.getElementById('hitch');
    passe : le chantier partirait chercher un outil qui n'est plus là, et l'on retrouverait
    le blocage que `enginPourOutil` a mis cent secondes à révéler la dernière fois. Le
    bouton disparaît donc, comme il disparaît déjà pour la moissonneuse, qui n'en a pas. */
+/* CE QUE L'ÉTAPE ATTEND DE L'ATTELAGE, ET À QUEL MOMENT.
+   Le joueur : « au moment où il faut accrocher la charrue, le bouton pour accrocher pulse
+   en jaune, comme tu l'as fait pour le bouton de changement de véhicule. Et une fois qu'il
+   faut changer la charrue pour le semoir, fais pulser le bouton pour détacher la charrue,
+   et un nouveau pulse quand on est à côté du semoir pour l'accrocher. »
+   DEUX MOMENTS, ET UNE SEULE CONDITION DE DISTANCE. Tant qu'on est loin de l'outil, le
+   bouton ne dit rien : c'est le CERCLE JAUNE qui mène jusqu'à lui — `lieuTuto` pose
+   l'objectif sur l'outil tant qu'il n'est pas au crochet, et deux appels pour le même
+   trajet en feraient un de trop. Arrivé à portée, le bouton prend le relais : « pose ce
+   que tu traînes » s'il y a déjà quelque chose au crochet, « prends celui-là » sinon.
+   ET IL NE MENT PAS SUR CE QU'IL FERA : la branche « attacher » demande que l'outil de
+   l'étape soit bien celui que `nearestFreeTool` prendrait — le même juge que le clic. */
+function outilTuto(){
+  const E = etapeTuto();
+  if(!E || !E.outil) return null;
+  const m = MACHINES[cur];
+  if(m.key === 'moisson' || m.v.cargo || m.v.auto || m.v.mission) return null;
+  const T = TOOLS.find((x)=> x.key === E.outil);
+  if(!T || T.verrou) return null;
+  const porte = toolOf(m);
+  if(porte === T) return null;                       // c'est fait
+  const d = Math.hypot(m.v.pos.x - T.group.position.x, m.v.pos.z - T.group.position.z);
+  if(d > PICKUP_R) return null;                      // trop loin : le cercle jaune d'abord
+  if(porte) return 'detacher';
+  return nearestFreeTool(m.v) === T ? 'attacher' : null;
+}
 function refreshHitchButton(){
   const m = MACHINES[cur];
   if(m.key === 'moisson' || m.v.cargo || m.v.auto || m.v.mission){
@@ -16825,6 +16891,7 @@ function refreshHitchButton(){
     hitchEl.setAttribute('aria-label', T ? 'Dételer' : 'Atteler');
   }
   hitchEl.classList.toggle('on', !T && !!nearestFreeTool(m.v));
+  hitchEl.classList.toggle('appel', !!outilTuto());
 }
 /* --- le garage : chaque engin, chaque outil s'améliore SEUL --- */
 /* On pose l'état d'un matériel à partir du barème, et non par accumulation de facteurs :
@@ -18729,14 +18796,22 @@ const TUTO = [
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
    txt:'LAISSER POUSSER — le blé mûrit, la moisson vient',
    fait:()=> partParcelle('pousse') >= PART_ETAPE},
+  /* LA MOISSON SE SOLDE COMME LE LABOUR ET LE SEMIS : AU CHAMP ENTIER.
+     Le joueur : « pour les messages du tutoriel qui apparaissent pendant le travail de la
+     terre, fais pareil pour la moisson : fais apparaître le message pour aller livrer au
+     silo une fois que tout le champ est moissonné. »
+     LA SECONDE PORTE A ÉTÉ RETIRÉE, ET IL LE FALLAIT. Elle laissait passer une TRÉMIE
+     PLEINE — une parcelle rend 248 kg pour une trémie de 100, on doit donc aller vider
+     deux ou trois fois AVANT la fin — et la marche suivante partait alors sur un champ
+     moissonné à 40 %. Elle existait pour une bonne raison : sans elle, le joueur à trémie
+     pleine au milieu de son champ n'a rien qui lui dise d'aller la vider. Cette
+     raison-là a maintenant son propre outil, et c'est le bon : une LEÇON, `tremie`, qui
+     se lève dès que la trémie est pleine et s'éteint au premier déchargement. Une marche
+     de tutoriel dit où l'on en est dans le tour ; une leçon dit ce qu'on ne pouvait pas
+     deviner. Ce n'était pas la même chose. */
   {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
-   txt:'PREMIÈRE RÉCOLTE — moissonne au moins 30 kg de blé',
-   /* Les trois quarts de ce qui était mûr, OU une trémie pleine : dans les deux cas il
-      est temps d'aller au silo, et c'est justement ce que dit l'étape suivante. Sans la
-      seconde porte, un champ qui rend plus que la trémie enfermerait le joueur — il
-      devrait aller vider sans que rien le lui ait dit. */
-   fait:()=> bleRentre() >= 30
-             && (partParcelle('moisson') >= PART_ETAPE || hopper >= HOP_MAX - 0.5)},
+   txt:'PREMIÈRE RÉCOLTE — moissonne toute la parcelle',
+   fait:()=> bleRentre() >= 30 && partParcelle('moisson') >= PART_ETAPE},
   /* ET CES DEUX ÉTAPES-LÀ DISENT QUEL BOUTON ELLES DÉSIGNENT. Elles envoient toutes deux
      sur la grille du silo, où l'on trouve jusqu'à sept lignes — rentrer sa trémie, rentrer
      sa benne, charger l'un des cinq tas. L'anneau y est jaune, mais l'objectif du tutoriel
@@ -18746,10 +18821,38 @@ const TUTO = [
      `quoi` et `prod` sont FACULTATIFS et posés sur des lignes existantes : `CAMPAGNE.tuto`
      est un indice dans cette table, et ajouter ou déplacer une ligne renverrait une partie
      sauvegardée à la mauvaise étape. Des champs, jamais des lignes. */
+  /* ET ELLE SE SOLDE SUR UNE TRÉMIE VIDE, PAS SUR UN SILO PLEIN. « Trente kilos au silo »
+     pouvait être déjà vrai au moment où la marche s'ouvre : on va vider une première fois
+     à mi-champ — une parcelle rend deux fois et demie la trémie — puis on retourne finir,
+     et le cliquet trouvait alors la marche DÉJÀ FRANCHIE. Le joueur se voyait demander de
+     ranger la moissonneuse avec le dernier andain encore dans le ventre, et le blé de la
+     fin du champ restait à bord. La marche demande donc ce qu'elle dit : DÉCHARGE — la
+     trémie vide, et du blé dans la tour. */
   {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
    txt:'STOCKER LA RÉCOLTE — décharge ton blé dans le silo',
    quoi:'vider', prod:'ble',
-   fait:()=> siloStock.ble >= 29.9},
+   fait:()=> siloStock.ble >= 29.9 && hopper < 0.5},
+  /* RANGER LA MOISSONNEUSE, ET C'EST UNE MARCHE À PART ENTIÈRE.
+     Le joueur : « ensuite ramener la moissonneuse au parking avec un rond jaune au niveau
+     du parking, et une fois qu'on est au parking, indique le changement de véhicule pour
+     prendre le pick-up et aller récupérer la marchandise au silo. »
+     ELLE APPREND CE QUE RIEN N'APPRENAIT : qu'on ne livre pas avec la moissonneuse. Le
+     tutoriel passait du silo au chargement du pick-up sans dire d'où sortait le pick-up,
+     et le joueur repartait au village dans la machine qui venait de vider sa trémie. La
+     marche l'envoie SE GARER — cercle jaune sur sa place, celle d'où elle est partie — et
+     la marche suivante, qui demande le pick-up, y fait battre le bouton du parc.
+     SIX MÈTRES : les places du parc sont espacées de 6,13 m, on est donc sur la sienne et
+     sur aucune autre. On ne demande pas l'arrêt — on ne passe pas à six mètres de sa place
+     par hasard quand on revient du silo. */
+  /* SA PLACE EXISTAIT DÉJÀ, ET ELLE PORTE MÊME SON CAP : `v.parc` est posé par le
+     constructeur du véhicule, et c'est par lui que le moteur de chantier renvoie un engin
+     au repos une fois son travail fini — au même rayon de six mètres. On réutilise donc
+     le nombre du jeu plutôt que d'en écrire un second qui pourrait diverger. */
+  {cle:'parking', ou:'parc', engin:'moisson', titre:'RANGER LA MOISSONNEUSE',
+   txt:'RANGER LA MOISSONNEUSE — le champ est fait : ramène-la à sa place au parc',
+   fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
+     return !!(M && M.v.parc
+       && Math.hypot(M.v.pos.x - M.v.parc.x, M.v.pos.z - M.v.parc.z) < 6); }},
   {cle:'charger', ou:'silo', engin:'pickup', titre:'PRÉPARER LA LIVRAISON',
    txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
    quoi:'charger', prod:'ble',
@@ -18853,6 +18956,16 @@ const LECONS = [
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.cuveMax && cuveTotal(T) < 0.5
                && (T.key === 'engrais' ? STOCK.engrais : grainesTotal()) > 0.5); }},
+
+  /* LA TRÉMIE PLEINE, ET C'EST LA MARCHE DE LA MOISSON QUI L'A CÉDÉE. Elle se soldait
+     sur une trémie pleine autant que sur un champ fini, pour que le joueur bloqué au
+     milieu de son andain ait quelque chose à lire. Cette porte-là faussait la marche —
+     la suivante partait sur un champ à 40 % — et ce qu'elle disait vraiment n'était pas
+     « tu as fini », c'était « tu ne peux plus avancer ». C'est une leçon, mot pour mot :
+     elle se lève à la première trémie pleine et ne revient jamais. */
+  {cle:'tremie', ou:'silo', tot:true, titre:'LA TRÉMIE EST PLEINE',
+   txt:'LA TRÉMIE EST PLEINE — elle ne ramasse plus rien : va la vider au silo, puis reviens finir',
+   quand:()=> hopper >= HOP_MAX - 0.5},
 
   {cle:'gazole', ou:'gazole', tot:true, titre:'LE PLEIN DE GAZOLE',
    txt:'LE PLEIN — arrête-toi sur le cercle de la citerne, dans la cour : ça coule tout seul, et c’est gratuit',
@@ -19257,6 +19370,12 @@ function lieuTuto(E){
     return p ? {lieu:'champ', x:p.x, z:p.z} : null;
   }
   if(ou === 'silo') return {lieu:'silo', x:SILO.x, z:SILO.z};
+  /* LA PLACE DE L'ENGIN DE L'ÉTAPE, au parc de la ferme. `E.engin` la nomme déjà — c'est
+     le champ qui dit quelle machine prendre — et chaque engin retient d'où il est parti. */
+  if(ou === 'parc'){
+    const M = MACHINES.find((x)=> x.key === E.engin);
+    return (M && M.v.parc) ? {lieu:'parc', x:M.v.parc.x, z:M.v.parc.z} : null;
+  }
   // CHEZ SOI : le point d'herbe où le cercle des missions est posé, à côté de la maison.
   if(ou === 'ferme') return {lieu:'Ferme', x:MAISON.x, z:MAISON.z};
   const S = SITES.find((x)=> x.nom === ou);
@@ -21561,6 +21680,7 @@ function executer(m, A, dt){
       const q = Math.min(hopper, 47*dt, siloMax() - siloTotal());
       if(q <= 0.0001) return;
       hopper -= q; delivered += q; siloStock[A.cle] += q;
+      solderLecon('tremie');
       livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
       if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
@@ -25318,6 +25438,8 @@ function etatJeu(){
                // longueur de la table : une partie déjà commencée ne se voit pas
                // expliquer comment labourer.
                tuto: CAMPAGNE.tuto,
+               // Quelle TABLE a écrit ce rang : voir `TUTO_V`. Facultatif, `v` ne bouge pas.
+               tv: TUTO_V,
                /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
                   `v` ne bouge toujours pas : une sauvegarde d'avant les leçons n'a pas
                   ce champ, et son absence vaut « toutes apprises ». */

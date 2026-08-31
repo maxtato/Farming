@@ -9186,3 +9186,138 @@ demande nomme, le semoir et l'engrais.
 `hud.js` passe de 47 à **51 contrôles** : les deux cuves y sont relevées à trois niveaux
 chacune, et deux contrôles exigent que ni la nature, ni « à remplir », ni « cuve pleine » ne
 reparaissent. Les vingt-et-une suites passent : **955 contrôles**, zéro erreur de page.
+
+## Le tour du fermier va jusqu'au bout, et l'attelage se dit
+
+Sept demandes d'un coup, toutes autour de la première demi-heure de jeu.
+
+### On commence dans le tracteur vert
+
+*« Je veux qu'au début du jeu, tu nous fasses commencer avec le tracteur vert directement. »*
+
+On démarrait au pick-up, et la première marche du tutoriel — atteler la charrue — commençait
+donc par un changement d'engin que rien n'avait demandé : le bouton du parc appelait, on
+ouvrait la liste, on prenait le tracteur. Trois gestes avant le premier. `t1` **est** le
+tracteur vert, et c'est celui que la marche désigne : `enginTuto` se tait désormais à
+l'ouverture, ce qui est exactement ce qu'il doit faire quand la machine demandée est celle où
+l'on est assis.
+
+### Le bouton d'attelage appelle, et de plus près
+
+| | avant | maintenant |
+|---|---|---|
+| portée du bouton | **11 m** — deux places de parc | **5 m** — moins que l'écart entre deux outils |
+| à 3 m / 4,5 m de la charrue | allumé | allumé |
+| à 6 m / 9 m | allumé | **éteint** |
+| l'étape veut la charrue, on est à côté | rien | **il bat sur ATTACHER** |
+| l'étape veut le semoir, la charrue au crochet | rien | **il bat sur DÉTACHER** |
+| loin de l'outil | — | rien : c'est le cercle jaune qui mène |
+
+Onze mètres, c'étaient deux places : le bouton s'allumait au milieu du parking sans qu'on
+sache lequel des quatre outils il allait prendre. Cinq mètres, c'est se ranger le long de
+l'outil.
+
+Le battement suit **deux moments et une seule condition de distance**. Tant qu'on est loin, le
+bouton ne dit rien — `lieuTuto` pose déjà l'objectif sur l'outil, et deux appels pour le même
+trajet en feraient un de trop. À portée, il prend le relais : *pose ce que tu traînes*, puis
+*prends celui-là*. Et il ne ment pas sur ce qu'il fera : la branche « attacher » demande que
+l'outil de l'étape soit bien celui que `nearestFreeTool` prendrait — le même juge que le clic.
+
+Une correction au passage : `ligneAmelioration` était **la seule ligne de menu du fichier à ne
+pas donner sa clé**, si bien que la cascade bouton → onglet → ligne s'arrêtait à l'onglet pour
+les améliorations.
+
+### La moisson se solde au champ entier, comme le labour et le semis
+
+*« Pour les messages du tutoriel qui apparaissent pendant le travail de la terre, fais pareil
+pour la moisson : fais apparaître le message pour aller livrer au silo une fois que tout le
+champ est moissonné. »*
+
+La marche se franchissait aussi sur une **trémie pleine** — une parcelle rend 248 kg pour une
+trémie de 100, on doit donc aller vider deux ou trois fois avant la fin — et la marche suivante
+partait alors sur un champ moissonné à 40 %. Cette porte existait pour une bonne raison : sans
+elle, le joueur à trémie pleine au milieu de son andain n'a rien qui lui dise d'aller la vider.
+
+Cette raison a maintenant son propre outil, et c'est le bon : une **vingtième leçon**, `tremie`,
+qui se lève à la première trémie pleine et s'éteint au premier déchargement. Une marche de
+tutoriel dit où l'on en est dans le tour ; une leçon dit ce qu'on ne pouvait pas deviner. Ce
+n'était pas la même chose. Mesuré : trémie pleine à 40 % du champ → la marche reste sur
+`recolte`, et c'est la leçon qui parle.
+
+La marche du silo a bougé aussi. « Trente kilos au silo » pouvait être **déjà vrai** au moment
+où elle s'ouvre — on a vidé une première fois à mi-champ — et le cliquet la trouvait franchie :
+le joueur se voyait demander de ranger la moissonneuse avec le dernier andain encore dans le
+ventre. Elle demande donc ce qu'elle dit : **décharge** — la trémie vide, et du blé dans la tour.
+
+### Ranger la moissonneuse, et alors seulement prendre le pick-up
+
+*« Ensuite ramener la moissonneuse au parking avec un rond jaune au niveau du parking, et une
+fois qu'on est au parking, indique le changement de véhicule pour prendre le pick-up et aller
+récupérer la marchandise au silo. »*
+
+Une huitième marche s'intercale entre le silo et le chargement. Elle apprend ce que rien
+n'apprenait : **qu'on ne livre pas avec la moissonneuse**. Le tutoriel passait du silo au
+chargement du pick-up sans dire d'où sortait le pick-up.
+
+```
+labour → semis → pousse → récolte → silo → parking → charger → appel
+```
+
+Sa place existait déjà et porte même son cap : `v.parc`, posé par le constructeur du véhicule,
+et c'est par lui que le moteur de chantier renvoie un engin au repos — **au même rayon de six
+mètres**. On réutilise le nombre du jeu plutôt que d'en écrire un second qui pourrait diverger.
+
+Mesuré de bout en bout, avec le pilote du jeu aux commandes : labour 3 825 images, semis 7 272,
+pousse 7 275, récolte 10 617, silo 11 934, **parking franchi à 0,4 m du centre de sa case** — et
+là le bouton du parc bat pour le pick-up, cap sur le silo.
+
+### La table du tutoriel a grandi, et la sauvegarde le dit
+
+`CAMPAGNE.tuto` est un **indice** dans `TUTO`, et l'on vient d'y insérer une marche en sixième
+position. Une partie enregistrée au chargement du pick-up portait `tuto: 5` ; relue telle
+quelle, elle se retrouverait à la marche du parking, une marche en arrière. C'est la règle que
+ce fichier s'impose partout — *des champs, jamais des lignes* — et on en a ajouté une : on paie
+donc le remappage, `tv: TUTO_V`, quatre lignes, une fois pour toutes. `v` ne bouge pas.
+
+### Le pick-up se range le long des deux cuves
+
+*« Je veux que le pick-up soit positionné perpendiculairement à ce qu'il est aujourd'hui, garé
+le long des deux cuves. »*
+
+| | avant | maintenant |
+|---|---|---|
+| angle avec l'axe de la voie des réserves | **90°** | **0°** |
+| avant du véhicule | (1, 0) — vers l'est | (0, −1) — dans l'axe |
+
+À `Math.PI/2` il pointait vers l'est, donc **en travers** de la voie qui dessert les deux
+réserves : les deux cercles sont à x 31,5 (z 46,5 et 56,9), et un pick-up couché est-ouest
+s'étalait de 31,45 à 35,95 — les roues dans la voie. À `Math.PI` il est dans l'axe, à 2,24 m à
+l'est, entre les deux cercles, et la voie est libre.
+
+L'emprise n'est pas mesurée par sa boîte englobante : celle d'un véhicule de ce jeu contient les
+**cônes de phares**, neuf mètres de long, et ne dit donc rien de la place qu'il occupe. C'est
+l'angle qu'on mesure, et c'est ce que la demande nomme.
+
+### Les bancs
+
+`guidage.js` passe de 100 à **107 contrôles** — la portée d'attelage à cinq distances, les deux
+moments du battement, le silence à distance, et l'engin de départ relevé à la toute première
+lecture du fichier, avant qu'aucune section n'ait bougé quoi que ce soit. Cinq de ces sept
+échouent sur la version d'avant.
+
+`campagne30.js` passe de 65 à **69** : la trémie pleine qui ne franchit plus rien, le champ
+entier qui fait passer au silo, le silo qui attend la trémie vide, le cercle jaune sur la case,
+et le pick-up demandé une fois la machine rangée. `decor.js` passe de 32 à **36** (les deux
+contrôles d'angle échouent sur la version d'avant), `ecrans.js` de 74 à **75** — la marche du
+parking franchie par le pilote du jeu, et non à la main.
+
+Trois bancs corrigeaient une hypothèse devenue fausse plutôt qu'une régression : `guidage`,
+`chantiers` et `ecrans` supposaient que la partie commence dans le pick-up. `rentrerAuParc` ne
+renvoie jamais la machine où le joueur est assis — *le joueur au volant suspend la dette, il ne
+l'efface pas* — et le tracteur vert est maintenant celle-là.
+
+Un contrôle de la sonnerie a été rendu robuste au passage : quatorze relevés espacés de 45 ms
+pouvaient tous tomber dans le silence d'une dent de scie qui ne secoue que 42 % de son cycle.
+Quarante relevés à 30 ms couvrent cinq cycles.
+
+Les vingt-et-une suites passent : **971 contrôles**, zéro erreur de page.
