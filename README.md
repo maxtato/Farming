@@ -8992,3 +8992,162 @@ sections qui veulent faire sonner le téléphone doivent donc poser `CAMPAGNE.tu
 qu'on a demandé au jeu de faire.
 
 Les vingt suites passent : **923 contrôles**, zéro erreur de page.
+
+## Le tutoriel en mode libre pouvait ne pas se solder
+
+*« Pour le tutoriel en mode libre, quand on va livrer à la Coopérative, on n'arrive pas à
+livrer : on se met sur le cercle mais il n'y a pas le bouton pour livrer. »*
+
+La colonne retire la vente libre **là où la mission envoie** — sans quoi elle braderait à
+moitié prix la marchandise que la commande paie plein. Elle lisait `etapeIci`, c'est-à-dire
+« l'étape courante désigne ce commerce » ; **une étape de tutoriel en est une**. En mode libre
+la dernière marche envoie précisément vendre ses trente kilos à la Coopérative : le filtre
+retirait donc l'unique bouton capable de la solder, et le joueur se garait sur le cercle sans
+rien trouver à toucher — le tutoriel ne pouvait plus finir.
+
+La règle demande maintenant qu'une mission **prise** attende vraiment de la marchandise ici :
+
+```js
+const missionAttendIci = !!(Mv && Mv.lignes && Sic && Mv.lieu === Sic.nom
+  && Mv.lignes.some((l, i)=> l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01));
+```
+
+Mesuré, à la Coopérative avec trente kilos à bord : `[]` avant, `["LIVRER"]` après, et la
+fenêtre porte « Blé 30 KG ». Les deux cas que le filtre protège ne bougent pas : en campagne,
+mission prise, le client ne propose que la livraison en jaune ; mission pas encore prise, la
+vente libre n'est de toute façon pas débloquée.
+
+## Un tutoriel par geste neuf, et jamais deux fois le même
+
+*« J'aimerais que tu analyses chaque nouvelle étape, comme l'achat d'un nouveau véhicule au
+garage, l'achat d'une nouvelle semence au comptoir agricole, la première production, les
+premières améliorations, etc. Je veux que tout ça, tu l'affiches dans un tutoriel. Le tutoriel
+ne doit pas faire deux fois la même action : une fois qu'on a fait une amélioration d'un
+véhicule, pas la peine d'en faire un pour la deuxième ; pareil pour les cultures. Mais au moins
+une étape de tutoriel pour chaque nouvelle action. »*
+
+### Les dix-neuf gestes du jeu
+
+Le recensement a été fait sur les surfaces, pas sur l'intuition : les six fenêtres et leurs
+quinze onglets, les huit boutons flottants, les quatre verbes de la colonne d'action, et les
+services de chaque quai. Il en sort **dix-neuf gestes distincts** — dix-neuf, et pas un de
+plus, parce que deux chemins vers le même geste ne font qu'une leçon :
+
+| | la leçon | quand elle arrive | ce qui la solde |
+|---|---|---|---|
+| 1 | **REMPLIR LE SEMOIR** | un outil à cuve attelé, cuve vide, du stock au hangar | `remplirCuve` |
+| 2 | **LE PLEIN DE GAZOLE** | un engin sous 40 % de réservoir | `remplir`, au « plein fait » |
+| 3 | **FAIRE SES COURSES** | hangar bas, ou pas d'engrais, ou cuve de gazole au quart | `acheterIntrant`, `commanderVrac` |
+| 4 | **ACHETER DU MATÉRIEL** | la vitrine du garage a un article payable | l'achat d'un engin **ou** d'un outil |
+| 5 | **AMÉLIORER SON MATÉRIEL** | un cran payable existe | `ameliorerItem` |
+| 6 | **UNE CULTURE DE PLUS** | une culture au palier et payable | `acquerirCulture` |
+| 7 | **CHANGER DE CULTURE** | le semoir attelé, deux cultures acquises | le bouton `#crop` |
+| 8 | **ACHETER UNE PARCELLE** | une friche payable, et le palier le permet | le bouton `#buy` |
+| 9 | **LE PLAN DE TRAVAIL** | un outil de travail et une parcelle à soi | le lancement d'un chantier |
+| 10 | **AGRANDIR LE SILO** | la tour à 85 %, et le cran payable | `agrandirSilo` |
+| 11 | **ACHETER UN MÉTIER** | un métier au palier et payable | `ameliorerAtelier` |
+| 12 | **LANCER UN LOT** | un métier monté et de la matière | `lancerProduction` |
+| 13 | **RANGER À L'ENTREPÔT** | une benne qui porte un produit fini | le transfert `rangerEntrepot` |
+| 14 | **RÉGLER L'ATELIER** | un métier monté, un cran payable | `acheterUp` |
+| 15 | **MONTER UN ÉLEVAGE** | aucune pâture, une espèce ouverte et payable | `creerPature` |
+| 16 | **ACHETER UNE BÊTE** | un enclos avec de la place | `acheterBete` |
+| 17 | **REMPLIR LA MANGEOIRE** | des bêtes, et l'auge sous un tiers | le transfert `auge` |
+| 18 | **RÉCUPÉRER LA PRODUCTION** | un tank non vide | le transfert `traire` |
+| 19 | **PRENDRE UN CONTRAT** | les contrats ouverts, une proposition en attente | `accepterOffre` |
+
+Les regroupements sont volontaires et se lisent dans le code : un **engin** et un **outil**
+s'achètent au même endroit et de la même façon — une seule leçon ; les **graines**,
+l'**engrais** et le **gazole en gros** sont trois rayons du même comptoir — une seule leçon ;
+le **lait** et la **laine** sortent du même bouton — une seule leçon ; les **trois réglages**
+de l'atelier sont un seul geste — une seule leçon.
+
+### Ce n'est pas une chaîne
+
+Les sept marches de `TUTO` ont un ordre — on ne sème pas avant d'avoir labouré — et un cliquet
+qui compte les marches franchies. Un geste neuf, lui, arrive **quand il arrive** : on achète
+son deuxième tracteur au bout d'une heure ou jamais. Les leçons ne sont donc pas numérotées.
+Chacune porte sa condition d'apparition, et le registre des apprises est une **liste de clés**,
+jamais un indice — insérer une leçon au milieu de la table ne doit pas renvoyer toutes les
+parties en cours à une autre leçon que la leur.
+
+### Et c'est le geste lui-même qui la solde
+
+On aurait pu déduire « c'est fait » de l'état du monde, et pour la moitié des leçons cela
+marcherait. Pour l'autre moitié, non : **un plein de gazole ne laisse aucune trace** une fois
+le réservoir revidé, une mangeoire remplie se vide, un contrat pris se solde et s'efface.
+`solderLecon` est donc appelée là où le geste est écrit — vingt-trois appels d'une ligne pour
+dix-neuf clés — et la leçon ne peut pas se tromper sur ce qu'elle observe.
+
+Deux gardes en découlent :
+
+- **La ferme qui se construit ne fait aucun geste.** Le monde se bâtit avant l'accueil, et il
+  remplit lui-même le semoir en passant par `remplirCuve` : sans garde, une partie neuve
+  commençait avec la leçon de la cuve déjà soldée, pour un geste que personne n'avait fait.
+  `solderLecon` ne compte rien tant que `demarre` est faux. Mesuré : **0 leçon apprise** au
+  premier tour de roue.
+- **Une leçon ne revient jamais.** Mesuré : on remplit la cuve, on la revide — la condition
+  redevient vraie mot pour mot — et la leçon ne reparle pas.
+
+### Le tour du fermier passe avant, sauf pour deux
+
+`TUTO` enseigne déjà labourer, semer, moissonner, stocker, charger et vendre : y superposer
+« achète une parcelle » dès la première image, ce serait les deux tutoriels à la fois. Les
+leçons attendent donc la fin du tour — mesuré avec **900 000 €** en poche, aucune ne s'invite.
+
+Deux exceptions, marquées `tot` dans la table, et ce sont celles dont le tour a besoin sans
+les dire : **la cuve du semoir**, qui se vide au milieu du premier champ, et **le plein de
+gazole**. Sans elles, le débutant s'arrête au milieu de sa parcelle sans savoir pourquoi.
+
+### Trois surfaces, et pas une de plus
+
+Une leçon s'annonce dans la fenêtre du tutoriel (**une seule fois par partie** — une condition
+peut clignoter), tient une ligne de bandeau tant qu'elle dure, et fait battre le bouton, puis
+l'onglet, puis la ligne de menu. Elle n'allume **pas** de cercle jaune au sol et ne repeint pas
+le village : le jaune est la mission en cours, et une leçon n'en est pas une — c'est une chose
+qu'on **peut** faire, elle se dit donc en **bleu**, comme tout ce qui est ouvert.
+
+Sa flèche paraît **à côté** de la flèche jaune, et il le faut : la leçon de la cuve arrive au
+milieu du premier champ, la jaune dit où l'on allait et la bleue ce qui manque pour y arriver.
+Elle **prend une place aux contrats** au lieu d'en ajouter une : mesuré, 3 propositions au
+village donnent 3 vignettes bleues sans leçon et 3 avec — la leçon passe devant, un geste
+jamais fait valant mieux qu'une affaire de plus.
+
+La cascade complète est mesurée sur la leçon du métier : bouton `production` → onglet
+`metiers` → ligne `farine`. Elle a demandé une correction au passage — `ligneAmelioration`
+était **la seule ligne de menu du jeu à ne pas donner sa clé**, si bien que la cascade
+s'arrêtait à l'onglet pour les améliorations. C'était sans conséquence tant que rien ne
+désignait une amélioration : aucune mission n'en demande jamais.
+
+Quatre leçons savent nommer **leur** ligne, et par une fonction : une marche de tutoriel sait
+laquelle elle attend, une leçon non — « achète un métier », et lequel dépend de ce qui est
+ouvert et de ce qu'on a en caisse ce jour-là. `appelMenu` la résout, et le reste du fichier ne
+voit qu'une chaîne.
+
+### La sauvegarde
+
+`lecons` est un champ **facultatif** du bloc campagne, et `v` ne bouge pas — la garde de
+relecture est une égalité stricte. Trois comportements mesurés :
+
+| la sauvegarde | ce qu'on relit |
+|---|---|
+| `lecons: ['cuve','garage','metier']` | les trois, dans l'ordre |
+| une clé qui a quitté la table | filtrée à la relecture, pas gardée à vie |
+| **pas de champ `lecons`** (partie d'avant) | **les 19 apprises** |
+
+Le dernier cas est la même règle que `tuto: 99`, et pour la même raison : on n'explique pas à
+un joueur de trois heures comment acheter un tracteur.
+
+### Les bancs
+
+Un vingt-et-unième banc, `lecons.js`, **25 contrôles**. Le contrôle central fabrique pour
+chacune des dix-neuf l'état où elle est mûre, vérifie que c'est bien **elle** qui parle, fait
+le geste **par le chemin du jeu** — la fenêtre du garage et son bouton, le bouton `#crop`, le
+bouton `#buy`, le bouton du plan, les transferts de `executer` — et regarde qu'elle s'éteint :
+**19 mûres, 19 soldées, 0 qui reparle**. Les autres mesurent la table, la garde du tutoriel,
+la priorité (deux conditions vraies, c'est la première de la table qui parle), les trois
+surfaces, le plafond des flèches et les trois cas de la sauvegarde.
+
+`ecrans.js` passe de 71 à **74** : trois contrôles peignent la scène exacte du joueur — mode
+libre, dernière marche, trente kilos à bord, garé à la Coopérative — et exigent le bouton.
+
+Les vingt-et-une suites passent : **951 contrôles**, zéro erreur de page.

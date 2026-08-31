@@ -174,6 +174,16 @@
     box-shadow:inset 0 0 0 1px rgba(255,210,30,.28)}
   #ctr .tuto .tf{opacity:.8;font-weight:normal;text-transform:none;letter-spacing:.3px;
     font-size:9px;white-space:normal;line-height:1.4}
+  /* LA LEÇON A LA MÊME FORME QUE LE TUTORIEL, ET UNE AUTRE COULEUR. La forme, parce que
+     c'est la même chose — une consigne d'une ligne, avec sa distance. La couleur, parce
+     que ce n'en est pas la même sorte : le jaune est la mission en cours, le bleu ce
+     qu'on peut faire — et une leçon est toujours une chose qu'on PEUT faire. */
+  #ctr .lecon{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#4AA8E0;
+    background:rgba(10,22,30,.66);border-radius:9px;padding:6px 10px;align-self:flex-start;
+    display:flex;flex-direction:column;gap:3px;max-width:100%;
+    box-shadow:inset 0 0 0 1px rgba(74,168,224,.28)}
+  #ctr .lecon .tf{opacity:.8;font-weight:normal;text-transform:none;letter-spacing:.3px;
+    font-size:9px;white-space:normal;line-height:1.4}
   #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
   #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
   #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
@@ -3136,7 +3146,12 @@ function acheteursDe(cle, sauf, quantite){
    graines, outils, engins, parcelles, espèces, modules, commerces — peuvent donc
    l'interroger sans se soucier de l'ordre des déclarations. */
 // `tuto` est l'index de l'étape du tutoriel — voir TUTO. Il ne recule jamais.
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0};
+/* `lecons` : LES GESTES NEUFS DÉJÀ APPRIS, par clé. Il n'y a pas de compteur ni
+   d'indice — les leçons n'ont pas d'ordre obligé, et une clé ne se déplace pas quand on
+   en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
+   RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
+   expliquer comment acheter un tracteur au bout de trois heures de jeu. */
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[]};
 
 /* Ce que chaque palier ouvre. Une famille par colonne, la clé de l'objet dans la
    famille. `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder — un
@@ -3774,6 +3789,16 @@ function chargerCampagne(S){
        repart à zéro à chaque mission finie, si bien qu'une vieille partie ne saute que
        les étapes de la mission où elle dormait. */
     CAMPAGNE.tuto = C.tuto === undefined ? 99 : Math.max(0, Math.min(99, C.tuto | 0));
+    /* MÊME RÈGLE POUR LES LEÇONS, ET POUR LA MÊME RAISON QUE LE TUTORIEL. Le champ
+       n'existait pas : son absence vaut « tout appris ». Sans ce défaut, une partie en
+       cours depuis trois heures se verrait expliquer comment acheter un tracteur, remplir
+       une mangeoire et agrandir un silo — dix-neuf fois de suite, pour des gestes qu'elle
+       a déjà tous faits. On ne garde que les clés qui EXISTENT : une leçon retirée de la
+       table ne doit pas rester dans la sauvegarde d'un joueur pour toujours. */
+    CAMPAGNE.lecons = Array.isArray(C.lecons)
+      ? C.lecons.filter((k)=> LECONS.some((L)=> L.cle === k))
+      : LECONS.map((L)=> L.cle);
+    leconActive = null; leconsDites.length = 0;
     MODE_LIBRE = !!C.libre;
     CAMPAGNE.niveau = Math.max(niveauPourXp(CAMPAGNE.xp),
                                Math.max(1, Math.min(NIVEAUX.length, C.niveau | 0)));
@@ -11171,6 +11196,7 @@ function accepterOffre(S){
   S.offre = null;
   S.offreT = attenteRenom(S);
   CONTRATS.push(C);
+  solderLecon('contrat');
   showHint('CONTRAT ACCEPTÉ — ' + S.nom.toUpperCase());
   rafraichirEcran();
   return true;
@@ -11392,6 +11418,23 @@ function refreshCommandes(){
       + (L ? '  ·  ' + Math.round(Math.hypot(vt.pos.x - L.x, vt.pos.z - L.z)) + ' m' : '');
     tu.appendChild(n0); tu.appendChild(f0);
     el.ctr.appendChild(tu);
+  }
+  /* ET LA LEÇON DU MOMENT A SA LIGNE, sous celle du tutoriel et sous la pilule de la
+     mission. Elle porte sa propre classe et non `.tuto` : ce n'est pas la même chose —
+     l'une est une marche d'une chaîne obligée, l'autre une chose qu'on peut faire — et
+     trois bancs comptent les `.tuto` du premier tour de jeu pour vérifier que le bandeau
+     ne dit qu'UNE chose à ce moment-là. */
+  const LC = leconCourante();
+  if(LC){
+    const PL = lieuLecon(LC);
+    const le = document.createElement('div'); le.className = 'lecon';
+    const n1 = document.createElement('span'); n1.textContent = LC.titre;
+    const f1 = document.createElement('span'); f1.className = 'tf';
+    const v1 = MACHINES[cur].v;
+    f1.textContent = LC.txt.replace(/^[^—]*—\s*/, '')
+      + (PL ? '  ·  ' + Math.round(Math.hypot(v1.pos.x - PL.x, v1.pos.z - PL.z)) + ' m' : '');
+    le.appendChild(n1); le.appendChild(f1);
+    el.ctr.appendChild(le);
   }
   /* LE SERVICE SOUS LES ROUES SE NOMME. Les trois services permanents sont bleus au sol
      et bleus sur la carte, mais leur anneau ne dit pas ce qu'on y fait : on s'arrête au
@@ -15245,6 +15288,7 @@ function agrandirSilo(){
   const c = coutSilo();
   if(c <= 0 || money < c) return false;
   money -= c; SILO.cran = (SILO.cran || 1) + 1;
+  solderLecon('silo');
   showHint('SILO AGRANDI — ' + Math.round(siloMax()) + ' KG');
   rafraichirEcran();
   return true;
@@ -15968,7 +16012,12 @@ function ligneAmelioration(cle, couleur){
           : '<br>Au maximum de son échelle.'),
     suiv ? (ok ? eur(prix) : 'Trop cher') : 'Max', ok ? 'vert' : 'no',
     ok ? ()=>{ if(ameliorerItem(cle)){ showHint(P.nom.toUpperCase() + ' — NIVEAU ' +
-                 niveauMateriel(cle)); rafraichirEcran(); } } : null);
+                 niveauMateriel(cle)); rafraichirEcran(); } } : null,
+    /* ET ELLE PORTE SA CLÉ. Elle était la seule ligne de menu du jeu à ne pas la donner,
+       et c'était sans conséquence tant que rien ne désignait une amélioration — aucune
+       mission n'en demande jamais, « une mission ne demande jamais un confort ». Une
+       leçon, si : la cascade bouton → onglet → ligne s'arrêtait à l'onglet. */
+    cle);
 }
 
 function ongletOutils(){
@@ -16061,6 +16110,7 @@ function vueAchatEngins(){
                   f:()=>{ money -= (m.prix || 0);
                           m.verrou = false;
                           m.v.group.visible = true;
+                          solderLecon('garage');
                           showHint(nomEngin(m).toUpperCase() + ' ACHETÉ');
                           setMachine(MACHINES.indexOf(m)); fermerFenetre(); }});
   }
@@ -16089,6 +16139,9 @@ function vueAchatOutils(){
                   f:()=>{ money -= (T.prix || 0);
                           T.verrou = false;
                           T.group.visible = true;
+                          // Un outil et un engin s'achètent au MÊME endroit, de la même
+                          // façon : une seule leçon pour les deux, sinon on l'apprend deux fois.
+                          solderLecon('garage');
                           /* L'OUTIL ACHETÉ ARRIVE SUR LE PARKING DE LA FERME, pas
                              devant le garage : c'est là que sont les autres, et c'est
                              là qu'on va chercher un outil. Le livrer sous les roues de
@@ -16166,6 +16219,7 @@ function ameliorationsPossibles(){
 function acquerirCulture(c){
   if(!c.verrou || !auNiveau(niveauDe('cultures', c.cle)) || money < c.cout) return false;
   money -= c.cout; c.verrou = false;
+  solderLecon('culture');
   showHint(c.nom.toUpperCase() + ' DISPONIBLE AU SEMOIR');
   return true;
 }
@@ -16857,6 +16911,9 @@ function ameliorerItem(cle){
   if(niv >= cransMax(cle) || money < prix) return false;
   money -= prix;
   appliquerPalier(cle, niv + 1);
+  // Le premier cran suffit : « une fois qu'on a fait une amélioration d'un véhicule,
+  // pas la peine de faire un tutoriel pour une deuxième ».
+  solderLecon('amelio');
   return true;
 }
 const cropEl = document.getElementById('crop');
@@ -16875,6 +16932,7 @@ cropEl.addEventListener('pointerdown', ()=>{
      qu'on n'arrivait plus à sélectionner. Chaque graine a maintenant son casier : on
      change de sac, et les deux restent à bord. */
   T.crop = n;
+  solderLecon('semoirCulture');
   const resteN = cuveDe(T, CROPS[n].cle);
   showHint('SEMOIR RÉGLÉ SUR ' + CROPS[n].nom.toUpperCase() +
            (CROPS[n].perenne ? '' : ' — ' + kg(resteN).toUpperCase() + ' EN CUVE'));
@@ -17616,6 +17674,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
                       // Chaque chantier a SA copie des destinations : partager l'objet
                       // ferait qu'en retoucher un les retoucherait tous.
                       dest:Object.assign({}, chDest)});
+  solderLecon('plan');
   showHint((lot.length > 1 ? lot.length + ' CHANTIERS LANCÉS'
                            : 'CHANTIER LANCÉ — PARCELLE ' + (ref + 1))
            + (chContinu ? ' · EN CONTINU' : ''));
@@ -17729,6 +17788,11 @@ function refreshAtelier(){
      ferait battre deux boutons de la même couleur pour deux choses différentes : celle
      que la mission attend, et celle qu'on se paie. */
   teindre(atelEl, 'bleu');
+  /* IL BAT QUAND LA LEÇON L'ATTEND. Aucune mission ne demande jamais une amélioration —
+     « une mission ne demande jamais un confort » — si bien que ce bouton-ci n'avait
+     aucune raison de battre. Une leçon, si : c'est un geste qu'on n'a jamais fait. */
+  const AA = appelMenu();
+  atelEl.classList.toggle('appel', !!(AA && AA.fen === 'amelio' && fenActive !== 'amelio' && n));
   atelEl.classList.toggle('no', !n);
   atelEl.textContent = n ? 'AMÉLIORER  ·  ' + n + ' CRAN' + (n > 1 ? 'S' : '')
                          : 'MATÉRIEL AU MAXIMUM';
@@ -17797,6 +17861,7 @@ buyEl.addEventListener('pointerdown', ()=>{
   p.signPos = null;
   activateParcel(p);
   flushTiles();
+  solderLecon('parcelle');
   showHint('PARCELLE ACHETÉE');
   refreshBuyButton();
 });
@@ -18275,7 +18340,8 @@ function remplir(v, dt, source){
     money -= q*CARBU.prixPompe;
   }
   v.fuel += q;
-  if(v.fuel >= v.resMax - 0.05){ v.fuel = v.resMax; v.sec = false; showHint('PLEIN FAIT'); }
+  if(v.fuel >= v.resMax - 0.05){ v.fuel = v.resMax; v.sec = false;
+                                 solderLecon('gazole'); showHint('PLEIN FAIT'); }
   return q;
 }
 
@@ -18454,12 +18520,15 @@ function remplirCuve(T, cle){
     if(q <= 0.001) return 0;
     STOCK.engrais -= q;
     poserDansCuve(T, k, cuveDe(T, k) + q);
+    solderLecon('cuve');
     return q;
   }
   const q = Math.min(placeCuve(T, k), STOCK.graines[k] || 0);
   if(q <= 0.001) return 0;
   STOCK.graines[k] -= q;
   poserDansCuve(T, k, cuveDe(T, k) + q);
+  // Le premier sac transvasé suffit : le geste est appris, quelle que soit la graine.
+  solderLecon('cuve');
   return q;
 }
 /* ACHETER AU COMPTOIR, C'EST REMPLIR LA CUVE — ET DE LOIN.
@@ -18507,6 +18576,7 @@ function acheterIntrant(clef, kg){
   const q = Math.min(kg, place, Math.floor(money/prix));
   if(q <= 0) return 0;
   money -= q*prix;
+  solderLecon('courses');
   if(eng) STOCK.engrais += q;
   else STOCK.graines[clef] = (STOCK.graines[clef] || 0) + q;
   // La cuve se sert dans la foulée, où qu'elle soit. `cuveServie` dit combien y est allé,
@@ -18734,6 +18804,293 @@ const TUTO = [
    cette fonction rend `null` pour toujours, `missionVisible` rend déjà `null` en mode
    libre, et il ne reste aucun objectif d'aucune sorte — c'est le « complètement libre »
    demandé, et il n'a pas d'autre mécanique que celle-là. */
+/* ---------- LES LEÇONS : UNE PAR GESTE NEUF, ET JAMAIS DEUX FOIS LE MÊME ----------
+   Le joueur : « j'aimerais que tu analyses chaque nouvelle étape, comme l'achat d'un
+   nouveau véhicule au garage, l'achat d'une nouvelle semence au comptoir agricole, la
+   première production, les premières améliorations, etc. Je veux que tout ça, tu
+   l'affiches dans un tutoriel. Le tutoriel ne doit pas faire deux fois la même action :
+   une fois qu'on a fait une amélioration d'un véhicule, pas la peine de faire un tutoriel
+   pour une deuxième amélioration de véhicule ; pareil pour les cultures. Mais au moins
+   une étape de tutoriel pour chaque nouvelle action. »
+
+   LES SEPT MARCHES DE `TUTO` SONT UNE CHAÎNE ; CES DIX-NEUF LEÇONS N'EN SONT PAS UNE.
+   Le tour du fermier a un ordre — on ne sème pas avant d'avoir labouré — et un cliquet qui
+   compte les marches franchies. Un geste neuf, lui, arrive QUAND IL ARRIVE : on achète son
+   deuxième tracteur au bout d'une heure ou jamais, on monte un poulailler avant ou après
+   avoir agrandi son silo. Les leçons ne sont donc pas numérotées. Chacune porte sa
+   condition d'apparition — « ce geste est possible MAINTENANT, et on ne l'a jamais fait »
+   — et disparaît pour toujours dès qu'il est fait une fois.
+
+   ET C'EST LE GESTE LUI-MÊME QUI LA SOLDE. On aurait pu déduire « c'est fait » de l'état
+   du monde — un niveau de matériel supérieur à un, un module dans l'atelier — et pour la
+   moitié des leçons cela marcherait. Pour l'autre moitié, non : un plein de gazole ne
+   laisse aucune trace une fois le réservoir revidé, une mangeoire remplie se vide, un
+   contrat pris se solde et s'efface. `solderLecon` est donc appelée là où le geste est
+   ÉCRIT — dans `remplir`, dans `acheterBete`, dans `accepterOffre` — et la leçon ne peut
+   pas se tromper sur ce qu'elle observe. Dix-neuf appels d'une ligne, à dix-neuf endroits
+   qui disent chacun quel geste ils enseignent.
+
+   TROIS SURFACES, ET PAS UNE DE PLUS. Une leçon s'annonce dans la fenêtre du tutoriel,
+   tient une ligne de bandeau tant qu'elle dure, et fait battre le bouton, l'onglet et la
+   ligne de menu qu'elle désigne. Elle n'allume PAS de cercle jaune au sol et ne repeint
+   pas le village : le jaune est la couleur de la mission en cours, et une leçon n'en est
+   pas une — c'est une chose qu'on PEUT faire, elle se dit donc en BLEU, comme tout ce qui
+   est ouvert. Sa flèche de bord ne paraît que lorsque la mission n'en demande aucune :
+   deux consignes à la fois, ce serait deux fois rien.
+
+   ORDRE DE LA TABLE = ORDRE D'ENSEIGNEMENT. Quand deux leçons sont mûres en même temps,
+   c'est la première écrite qui parle ; l'autre attendra son tour. On les a rangées comme
+   une exploitation grandit : d'abord de quoi travailler, puis de quoi acheter, puis de
+   quoi transformer, puis les bêtes, et le village pour finir. */
+const LECONS = [
+  /* --- CE QU'IL FAUT POUR TRAVAILLER, ET QUI MANQUE DÈS LA PREMIÈRE HEURE --- */
+  /* LE SEMOIR VIDE EST LE PREMIER MUR DU JEU. Le hangar part avec 68 kg de blé et la cuve
+     du semoir part VIDE : la deuxième marche du tutoriel dit « attelle le semoir et sème
+     ta première parcelle » à quelqu'un qui n'a rien à semer, et rien ne le lui dit. Cette
+     leçon-là arrive donc au moment exact où l'on accroche l'outil. */
+  {cle:'cuve', ou:'reserve', tot:true, titre:'REMPLIR LE SEMOIR',
+   txt:'REMPLIR LA CUVE — un semoir vide ne sème rien : sers-toi à la cuve verte de la cour, ou au comptoir',
+   quand:()=>{ const T = toolOf(MACHINES[cur]);
+     return !!(T && T.cuveMax && cuveTotal(T) < 0.5
+               && (T.key === 'engrais' ? STOCK.engrais : grainesTotal()) > 0.5); }},
+
+  {cle:'gazole', ou:'gazole', tot:true, titre:'LE PLEIN DE GAZOLE',
+   txt:'LE PLEIN — arrête-toi sur le cercle de la citerne, dans la cour : ça coule tout seul, et c’est gratuit',
+   quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
+
+  {cle:'courses', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
+   titre:'FAIRE SES COURSES', 
+   txt:'LE COMPTOIR AGRICOLE — les graines, l’engrais et le gazole en gros s’achètent là',
+   quand:()=> comptoirServable()
+              && (grainesTotal() < 25
+                  || (!outilVerrou('engrais') && STOCK.engrais < 1)
+                  || (CARBU.cuveMax > 0 && CARBU.cuve < CARBU.cuveMax*0.25))},
+
+  /* --- CE QU'ON ACHÈTE, ET QUI CHANGE LA FERME --- */
+  {cle:'garage', ou:'Garage', fen:'achat', onglet:'engins',
+   // La moins chère de la vitrine : c'est celle qu'on prend en premier, et c'est l'ordre
+   // dans lequel `articlesAVendre` les range déjà.
+   art:()=>{ const A = articlesAVendre()[0]; return A ? A.cle : null; },
+   titre:'ACHETER DU MATÉRIEL',
+   txt:'LE GARAGE — un engin de plus, ou un outil : deux onglets, une seule fenêtre',
+   quand:()=> articlesAVendre().some((A)=> money >= A.prix)},
+
+  {cle:'amelio', ou:'Garage', fen:'amelio', onglet:'engins',
+   art:()=> ameliorationsPossibles()
+              .filter((c)=> money >= prixCranSuivant(c, niveauMateriel(c)))
+              .sort((a, b)=> prixCranSuivant(a, niveauMateriel(a))
+                           - prixCranSuivant(b, niveauMateriel(b)))[0] || null,
+   titre:'AMÉLIORER SON MATÉRIEL',
+   txt:'AMÉLIORER — au garage aussi : plus large, plus vite, plus de charge, cran par cran',
+   quand:()=> ameliorationsPossibles().some((c)=>
+                money >= prixCranSuivant(c, niveauMateriel(c)))},
+
+  {cle:'culture', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
+   art:()=>{ const c = CROPS.filter((x)=> x.verrou && auNiveau(niveauDe('cultures', x.cle))
+                                       && money >= x.cout)
+                           .sort((a, b)=> a.cout - b.cout)[0];
+             return c ? c.cle : null; },
+   titre:'UNE CULTURE DE PLUS',
+   txt:'UNE NOUVELLE CULTURE — le droit de la semer s’achète une fois pour toutes, au comptoir',
+   quand:()=> CROPS.some((c)=> c.verrou && auNiveau(niveauDe('cultures', c.cle))
+                                        && money >= c.cout)},
+
+  {cle:'semoirCulture', ou:null, titre:'CHANGER DE CULTURE',
+   txt:'LE BOUTON DE CULTURE — en haut à droite : il fait défiler ce que le semoir sait semer',
+   quand:()=>{ const T = toolOf(MACHINES[cur]);
+     return !!(T && T.key === 'semis' && CROPS.filter((c)=> !c.verrou).length >= 2); }},
+
+  {cle:'parcelle', ou:'parcelle', titre:'ACHETER UNE PARCELLE',
+   txt:'UNE TERRE DE PLUS — pose-toi DESSUS, à l’arrêt, et le prix s’affiche',
+   quand:()=>{ if(!peutAcheterParcelle()) return false;
+     return PARCELS.some((q)=> !q.owned && q.signPos && money >= q.price); }},
+
+  /* --- LE PLAN DE TRAVAIL : LA MACHINE TRAVAILLE SEULE --- */
+  {cle:'plan', ou:null, titre:'LE PLAN DE TRAVAIL',
+   txt:'LE PLAN — le bouton en bas à gauche ouvre la carte : désigne une parcelle, un engin, et il travaille seul',
+   quand:()=> TOOLS.some((T)=> !T.verrou && T.from)
+              && PARCELS.some((q)=> q.owned && !q.pature)},
+
+  {cle:'silo', ou:'silo', fen:'stockage', onglet:'agrandir',
+   titre:'AGRANDIR LE SILO',
+   txt:'LE SILO SATURE — il s’agrandit par l’onglet « Agrandir » du bouton Stockage',
+   quand:()=> siloTotal() > siloMax()*0.85 && !!coutSilo() && money >= coutSilo()},
+
+  /* --- L'ATELIER : LA MATIÈRE DEVIENT UN PRODUIT --- */
+  {cle:'metier', ou:'atelier', fen:'production', onglet:'metiers',
+   art:()=>{ const M = ATELIER_MODULES.filter((X)=> !atelierA(X.cle)
+                         && auNiveau(niveauDe('modules', X.cle)) && money >= X.prix)
+                       .sort((a, b)=> a.prix - b.prix)[0];
+             return M ? M.cle : null; },
+   titre:'ACHETER UN MÉTIER',
+   txt:'L’ATELIER — un métier transforme ce qu’on récolte : le moulin fait la farine, et la farine se vend le double',
+   quand:()=> ATELIER_MODULES.some((M)=> !atelierA(M.cle)
+                && auNiveau(niveauDe('modules', M.cle)) && money >= M.prix)},
+
+  {cle:'produire', ou:'atelier', fen:'production', onglet:'produire',
+   titre:'LANCER UN LOT',
+   txt:'PRODUIRE — verse la matière à l’atelier, puis lance le lot par l’onglet « Produire »',
+   quand:()=> HALLE.modules.length > 0 && !HALLE.file.length
+              && ATELIER_MODULES.some((M)=> atelierA(M.cle) && potentiel(M.cle).sortie >= 1)},
+
+  {cle:'entrepot', ou:'entrepot', titre:'RANGER À L’ENTREPÔT',
+   txt:'L’ENTREPÔT — le silo garde le grain, l’entrepôt garde ce que l’atelier a fabriqué',
+   quand:()=>{ const T = caisseDe(MACHINES[cur]);
+     return !!(ENTREPOT.quai && T && naturesDe(T).some((k)=> entrepotAccepte(k))); }},
+
+  {cle:'reglages', ou:'atelier', fen:'production', onglet:'reglages',
+   titre:'RÉGLER L’ATELIER',
+   txt:'LES TROIS RÉGLAGES — plus gros lots, plus vite, plusieurs à la file : l’onglet « Améliorations »',
+   quand:()=> HALLE.modules.length > 0
+              && ['capa', 'vite', 'queue'].some((q)=> !!coutUp(q) && money >= coutUp(q))},
+
+  /* --- LES BÊTES --- */
+  {cle:'elevage', ou:'champ', titre:'MONTER UN ÉLEVAGE',
+   txt:'UN ENCLOS — arrête-toi sur une parcelle à toi : le bandeau propose de la clôturer',
+   quand:()=> PATURES.length === 0
+              && ESP_CLES.some((c, k)=> ouvert('especes', c) && money >= prixPature(c))
+              && PARCELS.some((q)=> q.owned && !q.pature)},
+
+  {cle:'bete', ou:'pature', titre:'ACHETER UNE BÊTE',
+   txt:'UNE BÊTE — devant l’enclos, le bouton INTERAGIR ouvre tout ce qui s’y fait',
+   quand:()=> PATURES.some((P)=> P.betes.length < P.places
+                && money >= (ESPECES[P.espece] || ESPECES.vache).prix)},
+
+  {cle:'mangeoire', ou:'pature', titre:'REMPLIR LA MANGEOIRE',
+   txt:'LA MANGEOIRE — une bête qui mange produit ; charge du grain au silo et verse-le à l’enclos',
+   quand:()=> PATURES.some((P)=> P.betes.length > 0 && P.grain < P.grainMax*0.35)},
+
+  {cle:'traire', ou:'pature', titre:'RÉCUPÉRER LA PRODUCTION',
+   txt:'LE TANK EST PLEIN — reviens avec une benne vide : INTERAGIR, et la production monte à bord',
+   quand:()=> PATURES.some((P)=> P.produit > 0.5 || P.produit2 > 0.5)},
+
+  /* --- ET LE VILLAGE, QUI FINIT PAR PROPOSER SES PROPRES AFFAIRES --- */
+  {cle:'contrat', ou:null, titre:'PRENDRE UN CONTRAT',
+   txt:'UN CONTRAT — un commerce en propose un : sa pastille est bleue, et le bouton aussi',
+   quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)}
+];
+/* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
+   le tutoriel de départ ne connaît que le champ, le silo, la ferme et les commerces, là où
+   une leçon envoie aussi à la cuve à gazole, à la réserve de graines, à l'atelier, à
+   l'entrepôt, à un enclos ou sur une friche à vendre. `ou:null` veut dire « ce geste n'a
+   pas de lieu » — le bouton de culture et le plan de travail se font depuis n'importe où.
+
+   ET LES DEUX RÉSOLVEURS RESTENT SÉPARÉS. Fondre celui-ci dans `lieuTuto` aurait donné une
+   fonction à onze branches dont sept ne servent qu'à un seul appelant, et surtout : une
+   marche de tutoriel qui écrirait `ou:'pature'` par mégarde enverrait le débutant devant
+   un enclos qui n'existe pas encore. Deux vocabulaires, deux publics. */
+function lieuLecon(L){
+  const ou = L && L.ou;
+  if(!ou) return null;
+  if(ou === 'silo')     return {lieu:'silo', x:SILO.x, z:SILO.z};
+  if(ou === 'entrepot') return ENTREPOT.quai
+    ? {lieu:'entrepot', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z} : null;
+  if(ou === 'atelier')  return HALLE.quai
+    ? {lieu:'atelier', x:HALLE.quai.x, z:HALLE.quai.z} : null;
+  if(ou === 'gazole')   return {lieu:'cuve', x:quaiCuve.x, z:quaiCuve.z};
+  if(ou === 'reserve'){
+    // Chaque cuve sert ce qu'elle contient : l'épandeur va à la blanche, le semoir à la verte.
+    const T = toolOf(MACHINES[cur]);
+    const R = (T && T.key === 'engrais') ? RES_ENGRAIS : RES_GRAINE;
+    return {lieu:'réserve', x:R.quai.x, z:R.quai.z};
+  }
+  if(ou === 'pature'){
+    // Le plus proche : on en a rarement cinq, et jamais deux au même endroit.
+    const v = MACHINES[cur].v;
+    let best = null, bd = 1e9;
+    for(const P of PATURES){
+      const d = Math.hypot(P.quai.x - v.pos.x, P.quai.z - v.pos.z);
+      if(d < bd){ bd = d; best = P; }
+    }
+    return best ? {lieu:'enclos', x:best.quai.x, z:best.quai.z} : null;
+  }
+  if(ou === 'parcelle'){
+    const v = MACHINES[cur].v;
+    let best = null, bd = 1e9;
+    for(const q of PARCELS){
+      if(q.owned || !q.signPos) continue;
+      const d = Math.hypot(q.x - v.pos.x, q.z - v.pos.z);
+      if(d < bd){ bd = d; best = q; }
+    }
+    return best ? {lieu:'parcelle', x:best.x, z:best.z} : null;
+  }
+  if(ou === 'champ'){
+    const q = PARCELS.find((r)=> r.owned && !r.pature);
+    return q ? {lieu:'champ', x:q.x, z:q.z} : null;
+  }
+  const S = SITES.find((x)=> x.nom === ou);
+  return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ} : null;
+}
+/* LE REGISTRE DE CE QU'ON A DÉJÀ APPRIS. Une LISTE DE CLÉS, et non un indice : les leçons
+   n'ont pas d'ordre obligé, et un numéro dans une table est exactement le piège qu'on
+   s'interdit ailleurs dans ce fichier — ajouter une leçon au milieu renverrait toutes les
+   parties en cours à une autre leçon que la leur. Une clé ne se déplace pas. */
+const leconFaite = (cle)=> CAMPAGNE.lecons.indexOf(cle) >= 0;
+function solderLecon(cle){
+  /* LE MONDE QUI SE CONSTRUIT NE FAIT AUCUN GESTE. La ferme se bâtit avant l'accueil :
+     elle remplit le semoir, elle emplit la citerne, elle pose les outils au parc — et
+     chacun de ces appels passe par la MÊME fonction que le joueur. Sans cette garde, une
+     partie neuve commençait avec la leçon du remplissage déjà soldée, pour un geste que
+     personne n'avait fait. `demarre` est le drapeau de l'accueil : à partir de lui, et de
+     lui seul, ce qui arrive est arrivé par le joueur. */
+  if(!demarre) return;
+  if(leconFaite(cle)) return;
+  CAMPAGNE.lecons.push(cle);
+  // Elle disparaît du bandeau à la prochaine relecture, sans autre cérémonie : le geste
+  // vient d'être fait, le joueur en a déjà le résultat sous les yeux.
+  if(leconActive && leconActive.cle === cle) leconActive = null;
+}
+/* LA LEÇON DU MOMENT, RELUE HUIT FOIS PAR SECONDE ET PAS DAVANTAGE.
+   Dix-neuf conditions qui balaient chacune les machines, les outils, les parcelles ou les
+   enclos, c'est trop cher pour la boucle des flèches, qui tourne à soixante images. Elle
+   est donc calculée par `veillerLecons` et LUE partout ailleurs — même mécanique et même
+   cadence que la couleur des anneaux. */
+let leconActive = null, leconT = 0;
+const LECON_PERIODE = 0.125;
+// Ce que TOUT LE RESTE lit : le bandeau, la flèche du bord, le battement des menus.
+// Jamais la table, jamais les conditions — une seule lecture, huit fois par seconde.
+const leconCourante = ()=> leconActive;
+/* ET ELLES ATTENDENT QUE LE TOUR DU FERMIER SOIT FAIT — SAUF DEUX.
+   Les sept marches de `TUTO` enseignent déjà labourer, semer, moissonner, stocker,
+   charger et vendre : y superposer « achète une parcelle » et « lance un plan de
+   travail » dès la première image, ce serait exactement les deux tutoriels à la fois que
+   le joueur ne veut pas. Les leçons attendent donc la fin du tour.
+   LES DEUX EXCEPTIONS SONT CELLES DONT LE TOUR A BESOIN et qu'il ne dit pas : la cuve du
+   semoir, qui se vide au milieu du premier champ, et le plein de gazole, qui arrive quand
+   il arrive. Sans elles, le débutant s'arrête au milieu de sa parcelle sans savoir
+   pourquoi — et c'est le pire moment du jeu pour ne rien avoir à lire. */
+function calculerLecon(){
+  const enTuto = !!etapeTuto();
+  for(const L of LECONS){
+    if(leconFaite(L.cle)) continue;
+    if(enTuto && !L.tot) continue;
+    if(!L.quand()) continue;
+    return L;
+  }
+  return null;
+}
+function veillerLecons(dt){
+  leconT -= dt;
+  if(leconT > 0) return;
+  leconT = LECON_PERIODE;
+  const av = leconActive;
+  leconActive = calculerLecon();
+  if(!leconActive || (av && av.cle === leconActive.cle)) return;
+  /* ELLE NE S'ANNONCE QU'UNE FOIS PAR PARTIE. `quand` peut clignoter — un réservoir qui
+     passe et repasse sous les quarante pour cent, un outil qu'on dételle et rattelle — et
+     rouvrir la fenêtre à chaque fois serait insupportable. La ligne de bandeau, elle,
+     revient et repart avec la condition : c'est un rappel, pas une leçon. */
+  if(leconsDites.indexOf(leconActive.cle) >= 0) return;
+  leconsDites.push(leconActive.cle);
+  const L = leconActive, P = lieuLecon(L);
+  annoncerFenetre({titre:L.titre, sous:L.txt.split(' — ').slice(1).join(' — ') || L.txt,
+    gains:[], etape:true, duree:5.5,
+    suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
+            : 'Le bouton bat en jaune tant que ce n’est pas fait'});
+}
+// Dites CETTE SESSION-CI. Volontairement hors sauvegarde : relire une partie et revoir
+// une fenêtre déjà lue ne coûte rien, l'oublier coûterait la leçon.
+const leconsDites = [];
 function listeEtapes(){
   if(MODE_LIBRE) return CAMPAGNE.tuto < TUTO.length ? TUTO : null;
   const M = MISSIONS[CAMPAGNE.mission];
@@ -18778,17 +19135,32 @@ function enginTuto(){
    qu'il cherche (`quoi`) et sur quoi (`cle`) —, et le reste du fichier ne voit qu'une
    fonction. Le bouton de régie, l'onglet et la ligne la lisent tous les trois : s'ils
    divergeaient, ce serait exactement le défaut qu'on corrige. */
+/* ET LA LEÇON DU MOMENT EN EST LE DERNIER RECOURS. Elle ne passe qu'APRÈS le tutoriel et
+   après la mission : quand ni l'un ni l'autre n'attend quelque chose dans un menu, c'est
+   elle qui fait battre le bouton, puis l'onglet, puis la ligne — la même cascade, avec la
+   même fonction, donc sans qu'aucun des quatre puisse désigner autre chose que les trois
+   autres. */
 function appelMenu(){
   const E = etapeTuto();
   if(E) return E.fen ? E : null;        // pendant le tutoriel, lui seul décide
   const O = objectifMission();
-  if(!O) return null;
-  if(O.quoi === 'module')   return {fen:'production', onglet:'metiers',  art:O.cle};
-  if(O.quoi === 'produire') return {fen:'production', onglet:'produire', art:O.cle};
-  if(O.quoi === 'acheter')  return {fen:'comptoir',   onglet:'semences', art:O.cle};
-  if(O.quoi === 'materiel' && O.art)
-    return {fen:'achat', onglet:O.onglet || 'engins', art:O.art};
-  return null;
+  if(O){
+    if(O.quoi === 'module')   return {fen:'production', onglet:'metiers',  art:O.cle};
+    if(O.quoi === 'produire') return {fen:'production', onglet:'produire', art:O.cle};
+    if(O.quoi === 'acheter')  return {fen:'comptoir',   onglet:'semences', art:O.cle};
+    if(O.quoi === 'materiel' && O.art)
+      return {fen:'achat', onglet:O.onglet || 'engins', art:O.art};
+    return null;
+  }
+  /* ET L'ARTICLE D'UNE LEÇON SE CALCULE. Une marche de tutoriel nomme SA ligne — le
+     moulin, l'épandeur — parce qu'elle sait laquelle elle attend. Une leçon, non : elle
+     dit « achète un métier », et lequel dépend de ce qui est ouvert et de ce qu'on a en
+     caisse ce jour-là. Elle porte donc une fonction, résolue ici, et le reste du fichier
+     ne voit qu'une chaîne — exactement ce que `article()` compare. */
+  const L = leconCourante();
+  if(!L || !L.fen) return null;
+  return {fen:L.fen, onglet:L.onglet,
+          art:(typeof L.art === 'function') ? L.art() : L.art};
 }
 // L'ancien nom, gardé pour ce qui ne regarde que le tutoriel.
 function menuTuto(){ return appelMenu(); }
@@ -20159,6 +20531,7 @@ function creerPature(p, espece){
                {coulDyn: ()=> couleurPoste(clePature, agirPature)});
   if(E.decor) E.decor(P);
   PATURES.push(P);
+  solderLecon('elevage');
   return P;
 }
 /* --- l'aménagement, espèce par espèce --- */
@@ -20592,6 +20965,7 @@ function acheterBete(P){
   const E = ESPECES[P && P.espece] || ESPECES.vache;
   if(!P || !ouvert('especes', P.espece) || money < E.prix || P.betes.length >= P.places) return false;
   money -= E.prix;
+  solderLecon('bete');
   ajouterBete(P, 0.25);
   // Une bête de plus, c'est une mangeoire et un tank plus grands : c'est tout le sens
   // d'une capacité dimensionnée sur le cheptel.
@@ -20664,6 +21038,8 @@ function commanderVrac(lots){
     if(q <= 0.5 || money < cout) break;
     money -= cout; CARBU.cuve += q; n += q;
   }
+  // Le gazole en gros est du même rayon que les graines et l'engrais : une seule leçon.
+  if(n > 0) solderLecon('courses');
   return n;
 }
 /* LE CERCLE DU PLEIN EST SUR LE FLANC DE LA CUVE, PAS DANS SON AXE. Il était posé au
@@ -21219,6 +21595,8 @@ function executer(m, A, dt){
       if(q <= 0.0001) return;
       ajouterCharge(T, A.cle, q);
       if(deux) P.produit2 -= q; else P.produit -= q;
+      // Le lait et la laine sortent du même bouton : une leçon pour les deux tanks.
+      solderLecon('traire');
       if(siSouvent(0.3)) puff(P.quai.x, 2.2, P.quai.z, teinteDe(A.cle), 0.3, 0.25);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
@@ -21230,6 +21608,7 @@ function executer(m, A, dt){
       const q = Math.min(lent, chargeDe(T, A.cle), (P.grainMax - P.grain)/rend);
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); P.grain += q*rend;
+      solderLecon('mangeoire');
       if(siSouvent(0.4)) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
       viderType(T);
       if(P.grain >= P.grainMax - 0.01) showHint('AUGE REMPLIE');
@@ -21239,6 +21618,7 @@ function executer(m, A, dt){
       const q = Math.min(debit, chargeDe(T, A.cle), entrepotPlace());
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); entrepotRange(A.cle, q); livraison('entrepot', A.cle, q);
+      solderLecon('entrepot');
       if(siSouvent(0.3))
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.28);
       viderType(T);
@@ -21515,6 +21895,7 @@ function lancerProduction(cle, kgSortie){
   const P = PRODUITS[cle];
   const q = Math.max(1, Math.round(Math.min(kgSortie, halleLotMax()*P.rendement)));
   HALLE.file.push({cle: cle, reste: q, total: q});
+  solderLecon('produire');
   showHint('ATELIER — ' + qteNom(cle, q).toUpperCase()
            + (HALLE.file.length > 1 ? '  ·  ' + HALLE.file.length + ' LOTS EN FILE' : ''));
   return true;
@@ -21533,6 +21914,8 @@ function acheterUp(quoi){
   const c = coutUp(quoi);
   if(c <= 0 || money < c) return false;
   money -= c; HALLE[quoi]++;
+  // Les trois réglages sont le même geste : le premier cran acheté les enseigne tous.
+  solderLecon('reglages');
   showHint('ATELIER — ' + ATELIER_UP[quoi].nom.toUpperCase() + ' '
            + '★'.repeat(HALLE[quoi] - 1));
   rafraichirEcran();
@@ -21557,6 +21940,7 @@ function ameliorerAtelier(cle){
   // la lui donne, faute de quoi la halle reste muette jusqu'au relancement du jeu.
   if(!HALLE.recette) HALLE.recette = HALLE.modules[0];
   poserAtelier();
+  solderLecon('metier');
   showHint('ATELIER — ' + M.module.toUpperCase());
   return true;
 }
@@ -22185,11 +22569,21 @@ function refreshChoix(){
   // Les trois fournisseurs gardent leur jeu continu, même quand la mission y envoie :
   // `LIEUX_SERVICE` les nomme, une fois pour tout le fichier.
   const gardeTout = !Sic || LIEUX_SERVICE.indexOf(Sic.nom) >= 0;
+  /* ET « LÀ OÙ LA MISSION ENVOIE » VEUT DIRE : LÀ OÙ ELLE ATTEND DE LA MARCHANDISE.
+     Le filtre lisait `etapeIci`, c'est-à-dire « l'étape courante désigne ce commerce » —
+     et une étape de TUTORIEL en est une. En mode libre, la dernière marche envoie vendre
+     ses trente kilos à la Coopérative : le filtre retirait donc l'unique bouton capable
+     de la solder, et le joueur se garait sur le cercle sans rien trouver à toucher.
+     La seule raison de cacher la vente libre est qu'elle braderait, à moitié prix, ce
+     qu'une commande paie plein. On demande donc exactement cela — une mission PRISE, dont
+     une ligne non soldée attend ici — et l'on ne le déduit plus d'un lieu. */
+  const missionAttendIci = !!(Mv && Mv.lignes && Sic && Mv.lieu === Sic.nom
+    && Mv.lignes.some((l, i)=> l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0) > 0.01));
   const L = actionsIci(m)
     .filter((A)=> !memeAction(A, dOffice))
     // la vente libre n'existe pas avant d'avoir été débloquée
     .filter((A)=> !(A.sens === 'vendre' && !A.commande && !venteLibreOuverte()))
-    .filter((A)=> !(etapeIci && A.sens === 'vendre' && !A.commande))
+    .filter((A)=> !(missionAttendIci && A.sens === 'vendre' && !A.commande))
     // là où la mission envoie, il n'y a que la mission — sauf chez les trois fournisseurs
     .filter((A)=> !(etapeIci && !gardeTout && !estMission(A)));
   // actionService() rend un bouton, plusieurs, ou rien : on ramène tout à une liste.
@@ -22423,6 +22817,17 @@ function ciblesGuidage(){
     out.push({nom:'LE TÉLÉPHONE SONNE  ·  LA FERME', x:MAISON.x, z:MAISON.z,
               coul:'#62D84E'});
   const v = MACHINES[cur].v;
+  /* ET LA LEÇON DU MOMENT A LA SIENNE, EN BLEU. Bleue parce qu'une leçon désigne une
+     chose qu'on PEUT faire, et que le jaune ne dit qu'une chose : la mission en cours.
+     ELLE PARAÎT MÊME À CÔTÉ DE LA FLÈCHE JAUNE, et il le faut : la leçon de la cuve
+     arrive au milieu du premier champ, quand le semoir tombe à sec — la flèche jaune dit
+     alors où l'on allait, et la bleue ce qui manque pour y arriver. Deux couleurs, deux
+     phrases, deux endroits : c'est lisible.
+     ELLE PREND UNE PLACE AUX CONTRATS, ET NON UNE DE PLUS. Le bord ne porte jamais plus
+     de trois vignettes bleues — « un écran cerné de vignettes ne dit plus rien » — et un
+     geste qu'on n'a jamais fait passe avant une affaire de plus. */
+  const LG = leconCourante(), PG = LG ? lieuLecon(LG) : null;
+  if(PG) out.push({nom:LG.titre, x:PG.x, z:PG.z, coul:'#4AA8E0'});
   // Les contrats d'un commerce gardent leur flèche, en bleu : ce sont des affaires
   // ouvertes, pas la mission de la campagne.
   const bleus = SITES.filter((S)=> aQuelqueChoseADire(S) && (!O || O.lieu !== S.nom))
@@ -22430,7 +22835,7 @@ function ciblesGuidage(){
                  coul:'#4AA8E0',
                  d:Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ)}))
     .sort((a2, b2)=> a2.d - b2.d)
-    .slice(0, MAX_VERTES);
+    .slice(0, MAX_VERTES - (PG ? 1 : 0));
   return out.concat(bleus);
 }
 /* ---------- LE CERCLE MOBILE DE L'ÉTAPE DU MOMENT ----------
@@ -24897,6 +25302,10 @@ function etatJeu(){
                // longueur de la table : une partie déjà commencée ne se voit pas
                // expliquer comment labourer.
                tuto: CAMPAGNE.tuto,
+               /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
+                  `v` ne bouge toujours pas : une sauvegarde d'avant les leçons n'a pas
+                  ce champ, et son absence vaut « toutes apprises ». */
+               lecons: CAMPAGNE.lecons.slice(),
                contrats: CONTRATS.map((C)=> ({type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps,
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
@@ -26667,6 +27076,7 @@ function loop(now){
     // Le cliquet du tutoriel AVANT le bandeau, sans quoi la ligne d'objectif porterait
     // l'étape d'avant pendant un vingtième de seconde à chaque franchissement.
     veillerTuto();
+    veillerLecons(dt || 0.016);
     refreshHUD();
     refreshCommandes();
     veillerBulles();
