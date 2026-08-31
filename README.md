@@ -8869,3 +8869,126 @@ mesuraient les deux tables mortes sont remplacés par trois qui mesurent ce qui 
 `guidage.js` garde ses 87 : trois contrôles y lisaient la quantité **sur le bouton**, où elle
 n'est plus ; ils ouvrent maintenant la fenêtre et la lisent dedans — et vérifient toujours que le
 mot « mission » n'apparaît nulle part. Les vingt suites passent.
+
+## Les missions se prennent à la maison, et le téléphone sonne
+
+*« Je veux que les missions se prennent toutes au même endroit, à côté de la maison, sur le
+terrain en herbe où se situe la maison ; je veux que tu places le cercle vert où apparaîtront
+toutes les missions. Il fera apparaître un effet de sonnerie de téléphone au-dessus de la maison,
+et le cercle qui se mettra en vert lorsqu'une mission apparaîtra. On continue à conserver les
+cercles jaunes pour toutes les actions liées à la mission, et les cercles bleus pour toutes les
+actions disponibles, peu importe la mission ou hors mission. »*
+
+### Un rendez-vous fixe
+
+Une mission se prenait **chez son client** : la Coopérative, puis l'Usine céréales, puis la
+Laiterie — trente adresses différentes, qu'il fallait deviner à la couleur d'une pastille. Elle se
+prend maintenant à un seul endroit, et cet endroit ne bouge jamais.
+
+Le point a été choisi en balayant un anneau de 28 positions par pas de 2 m autour de la maison :
+**(−50, 57)**, à **8 m** du pignon, hors route, sur l'herbe, et le premier obstacle est à
+**5,6 m** — la remise de la cour. Le cercle y a le rayon de tous les autres (3,05 m) : *« toutes
+les marques du sol ont exactement la même forme »*. `MAISON.r` ne sert qu'à la portée du bouton,
+et n'a pas à être le même nombre.
+
+### Trois couleurs, trois questions, et plus une exception
+
+| | avant | maintenant |
+|---|---|---|
+| la chaîne de la mission en cours | jaune | jaune |
+| la ferme, quand une mission attend | — | **vert** |
+| un commerce qui propose un contrat | vert | **bleu** |
+| les trois services permanents | 2 bleus, 1 vert | **3 bleus** |
+| un poste où il y a quelque chose à faire, hors mission | jaune | **bleu** |
+
+Le vert n'a plus qu'une adresse dans toute la vallée. Mesuré au premier tour de jeu : **1 pastille
+verte** sur les 18 cercles de la carte, **0** chez les 15 commerces, et c'est celle de la ferme.
+Les boutons suivent : `VOIR LE CONTRAT` et `CONTRAT EN COURS` étaient verts, ils sont bleus comme
+leur pastille — le bleu étant la teinte par défaut de la colonne, c'est une classe retirée, pas
+une classe posée.
+
+Une conséquence se lit dans `poserOffre` : l'interdiction de poser une proposition chez le
+commerce où une mission attendait n'a plus d'objet — les deux ne se disputent plus la même
+pastille. Mesuré : une offre tombe bien chez le client de la mission zéro, **bleue** au comptoir
+pendant que la ferme est **verte**.
+
+### Le combiné au-dessus du toit
+
+Un objet du monde, pas une icône : 2,00 × 3,20 × 0,62 m, un écran clair, deux groupes d'ondes qui
+s'écartent en s'effaçant. Il **tremble en dents de scie** — une sonnerie sonne puis se tait, elle
+n'oscille pas doucement : `bat = (t × 4,5) mod 1`, secousse tant que `bat < 0,42`, repos ensuite.
+Mesuré : l'inclinaison du corps balaie **0,34 rad** (0,03 à 0,36) et **retombe** à sa valeur de
+repos (0,22) entre deux salves ; l'opacité des ondes va de 0 à 0,89.
+
+Sa hauteur est celle que la caméra laisse voir, et non celle qui fait joli. Le jeu se regarde de
+haut :
+
+| distance à la maison | le toit | le combiné (à 10,6 m) | le combiné (à 9,2 m) |
+|---|---|---|---|
+| 10 m | 103 px du bord | 37 px | **55 px** |
+| 16 m | 44 px | **−23 px, hors cadre** | −3 px (la pointe de l'onde) |
+| 26 m | −38 px, hors cadre | −102 px | −84 px |
+
+À 10,6 m il sortait de l'écran par le haut **alors qu'on voyait encore le toit**. Posé à 9,2 m il
+y tient, et la pente qu'il surplombe est à 6,36 m : **1,06 m de vide** sous lui — il flotte, il ne
+s'y pose pas. Au-delà de vingt-cinq mètres c'est la maison entière qui quitte le cadre, et c'est
+la flèche verte du bord qui prend le relais : *« LE TÉLÉPHONE SONNE · LA FERME · 127 m »*, une
+seule, là où le bord en portait jusqu'à trois.
+
+### La septième marche du tutoriel
+
+Le téléphone **ne sonne pas pendant qu'on apprend le métier**. Un cercle vert allumé chez soi dès
+la première image tirerait le joueur hors de son champ pour un rendez-vous dont il ne saurait rien
+faire — il n'a pas encore un kilo de blé. `missionAPrendre` rend donc `null` tant qu'une marche de
+tutoriel antérieure est en cours, et la sonnerie **est** la septième marche.
+
+C'est la seule marche du tutoriel qui se dédouble, et c'est le mode qui tranche :
+
+| | campagne | mode libre |
+|---|---|---|
+| titre | LE TÉLÉPHONE SONNE | PREMIÈRE VENTE |
+| cercle | la ferme | la Coopérative |
+| soldée par | `CAMPAGNE.prise` | `STAT.ventes > 0.01` |
+
+En mode libre il n'y a aucune mission et il n'y en aura jamais : *« une fois le tuto terminé,
+complètement libre. »* La marche s'y solde sur la première vente, chez l'acheteur. Trois champs
+(`ou`, `titre`, `txt`) se lisent à travers un accès de deux lignes, `champEtape`, qui accepte
+indifféremment une chaîne ou une fonction ; les six autres marches ne changent pas d'un caractère.
+
+La séquence complète, mesurée en trois arrêts :
+
+| où | ce que la colonne propose |
+|---|---|
+| chez le client, avant | *rien* — la mission ne s'y prend plus, et la vente libre n'est pas ouverte |
+| chez soi | **RÉPONDRE AU TÉLÉPHONE**, verte, et seule |
+| chez le client, après | **LIVRER**, jaune, et seule — la fenêtre dit « Blé 30 KG » |
+
+Le chargement du pick-up est déjà à bord : on décroche, et la mission envoie livrer ce qu'on
+transporte. Cette marche n'apprend plus à vendre — elle apprend le seul mécanisme neuf du jeu, au
+moment exact où il sert.
+
+`couleurLieu` juge la ferme **avant** la chaîne, et c'est nécessaire : à cet instant la ferme
+*est* l'étape courante, et la boucle la peindrait en jaune vif par-dessus le seul vert de la
+carte. Le rendez-vous prime.
+
+### Les bancs
+
+`guidage.js` passe de 87 à **100 contrôles**. Sept mesurent le combiné : qu'il n'existe que
+lorsqu'on appelle, qu'il flotte au-dessus de ce qu'il surplombe (rayon tiré vers le bas, le
+combiné lui-même écarté), qu'il tient dans le cadre tant que le toit y est, sa taille à l'écran,
+son tremblement, son retour au repos, l'effacement des ondes. Six autres suivent la séquence de la
+septième marche et la disparition du vert du village.
+
+`contrat.js` garde ses 94 : sa section 10 cherchait la pastille chez `SITES.find(x => x.nom ===
+M.lieu)`, elle la cherche à `MAISON` ; sa section 11 mesurait jusqu'à trois flèches vertes, elle
+mesure **une** verte et jusqu'à trois **bleues**. `campagne30.js` passe de 63 à **65** : le
+téléphone y est relevé aux trois instants — gris au premier tour de roue, vert à la dernière
+marche, éteint dès qu'on a décroché — et la dernière marche doit porter ses deux libellés, un par
+mode.
+
+Un piège de banc mérite d'être noté : la marche `appel` se solde sur `CAMPAGNE.prise`, et les
+sections qui veulent faire sonner le téléphone doivent donc poser `CAMPAGNE.tuto = TUTO.length −
+1`. Sans cela `missionAPrendre` rend `null` et tout le vert disparaît — ce qui est exactement ce
+qu'on a demandé au jeu de faire.
+
+Les vingt suites passent : **923 contrôles**, zéro erreur de page.

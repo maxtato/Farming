@@ -932,8 +932,9 @@
     font-size:10px;font-weight:bold;letter-spacing:1.1px;
     white-space:nowrap;flex:none}
   #choix .ch.jaune{--act:#FFD21E;--actOmb:#C79E0A}
-  /* Le VERT dans la colonne : un contrat n'est pas un geste de plus sur la benne, et
-     il ne doit pas se confondre avec ce qu'on charge ou décharge ici. */
+  /* Le VERT dans la colonne : il n'y reste qu'une ligne, « RÉPONDRE AU TÉLÉPHONE »,
+     devant la maison. C'est la seule chose de tout le jeu qui se dise en vert, au sol
+     comme dans la colonne — et elle ne se confond donc avec rien. */
   #choix .ch.vert{--act:#62D84E;--actOmb:#3F8F32}
   /* LE TRANSFERT EN COURS RESPIRE, PUISQU'IL NE PEUT PLUS ÊTRE « CELUI QUI EST PLEIN ».
      C'était sa marque : seul de la colonne, il avait un aplat. Maintenant qu'ils en ont
@@ -3540,7 +3541,18 @@ const missionCourante = ()=> MODE_LIBRE ? null : (MISSIONS[CAMPAGNE.mission] || 
 // La mission du moment, si elle attend encore d'être prise chez quelqu'un.
 function missionAPrendre(){
   const M = missionCourante();
-  return (M && !M.faire && M.lieu && !CAMPAGNE.prise) ? M : null;
+  if(!(M && !M.faire && M.lieu && !CAMPAGNE.prise)) return null;
+  /* ET LE TÉLÉPHONE NE SONNE PAS PENDANT QU'ON APPREND LE MÉTIER. Le tutoriel de la
+     première mission tourne AVANT qu'on la prenne : six marches, du premier attelage au
+     pick-up chargé. Un cercle vert allumé chez soi dès la première image tirerait le
+     joueur hors de son champ pour un rendez-vous dont il ne saurait rien faire — il n'a
+     pas encore un kilo de blé. La sonnerie est donc la SEPTIÈME marche, et elle attend
+     les six autres.
+     Les missions suivantes ne passent pas par là : `etapeTuto` ne rend une étape, hors
+     mission zéro, que pour un PRÉAMBULE — et un préambule ne tourne qu'une fois la
+     mission prise, donc jamais ici. */
+  const E = etapeTuto();
+  return (E && E.cle !== 'appel') ? null : M;
 }
 // Ce que le joueur doit voir : une mission prise, ou une mission qu'on ne prend nulle part.
 function missionVisible(){
@@ -5506,6 +5518,28 @@ function flushTint(){
 
 /* ---------- 9. PROPS ---------- */
 let chimney = null;     // sortie de cheminée, source de la fumée
+/* LE TÉLÉPHONE QUI SONNE AU-DESSUS DE LA MAISON. Il est posé avec elle et animé par la
+   boucle ; il ne se voit que lorsqu'une mission attend qu'on vienne la prendre. */
+let sonnerie = null;
+/* ---------- LA FERME : LA MAISON, ET LE SEUL ENDROIT OÙ L'ON PREND UNE MISSION ----------
+   Elles se prenaient CHEZ LE CLIENT : la Coopérative pour la première, puis l'Épicerie, la
+   Boulangerie, la Laiterie — un cercle vert qui se déplaçait de commerce en commerce et
+   qu'il fallait aller chercher au hasard de la vallée. Le joueur : « je veux que les
+   missions se prennent toutes au même endroit, à côté de la maison sur le terrain en
+   herbe ; place là le cercle vert où apparaîtront toutes les missions, avec un effet de
+   sonnerie de téléphone au-dessus de la maison, et le cercle qui se met en vert lorsqu'une
+   mission apparaît. »
+   C'est aussi ce qui rend les trois couleurs lisibles d'un coup : le VERT n'a plus qu'un
+   seul lieu dans toute la vallée — chez soi — et tout le reste se partage entre le JAUNE de
+   la chaîne en cours et le BLEU de ce qui est ouvert.
+   HUIT MÈTRES DE LA MAISON, SUR L'HERBE : relevé au pas de deux mètres sur une couronne de
+   vingt-huit points, c'est le point libre le plus proche — ni obstacle à moins de 3,2 m, ni
+   route à moins de 3, ni cellule de champ. Il est entre la maison et la cour, donc sur le
+   chemin qu'on prend de toute façon en sortant du parc.
+   `hx`/`hz` sont la maison elle-même ; `x`/`z` le cercle. Les deux sont ici parce que le
+   guidage, la colonne d'actions et la carte du plan de travail les lisent tous les trois,
+   et qu'un lieu déclaré dans la fonction qui le bâtit n'aurait été visible de personne. */
+const MAISON = {hx:-58, hz:57, x:-50, z:57, r:4.2, nom:'Ferme'};
 const obstacles = [];   // cercles {x,z,r} ; ceux marqués `soft` sont renversables
 // Décor renversable : on le bouscule, il tombe, reste au sol quelques secondes, clignote
 // puis se relève. Il ne bloque jamais la machine, qui reçoit seulement un renvoi.
@@ -7545,6 +7579,8 @@ function buildFarm(){
                ()=> couleurPoste('silo', agirSilo) !== GUIDE.GRIS,
                {y: 0.32, coulDyn: ()=> couleurPoste('silo', agirSilo)});
 
+  /* La maison, à l'écart de la cour. Son point de mission — le cercle vert et le
+     téléphone — est déclaré tout en haut avec `MAISON` : trois écrans le lisent. */
   // maison, à l'écart de la cour
   const h = new THREE.Group();
   h.add(slab({w:9.2,h:3.8,d:8.2, tw:8.5,td:7.5, dx:0.1, c:0xE8D6BC, y:0}));
@@ -7576,7 +7612,7 @@ function buildFarm(){
   // point qui en dépende, la souche de cheminée, est relevé deux lignes plus bas par
   // getWorldPosition et suit donc tout seul.
   h.scale.setScalar(BAT_ECHELLE);
-  h.position.set(-58,0,57); h.rotation.y = 0.4 - Math.PI/2 + Math.PI;
+  h.position.set(MAISON.hx, 0, MAISON.hz); h.rotation.y = 0.4 - Math.PI/2 + Math.PI;
   scene.add(h);
   h.updateMatrixWorld(true);
   chimney = new THREE.Vector3(); cm.getWorldPosition(chimney);
@@ -7588,6 +7624,70 @@ function buildFarm(){
      documenté dans `fusionnerGroupe`. */
   fusionnerGroupe(h);
 
+  /* LE CERCLE DES MISSIONS, ET LE TÉLÉPHONE QUI SONNE AU-DESSUS DU TOIT.
+     Le cercle ne s'allume QUE lorsqu'une mission attend : un anneau vert permanent devant
+     chez soi dirait « il y a quelque chose ici » tout le temps, c'est-à-dire jamais.
+     LE TÉLÉPHONE EST UN OBJET DU MONDE, pas une icône d'interface : il flotte au-dessus
+     du faîtage, il tremble, et deux ondes s'en écartent en s'effaçant. On le voit du bout
+     de la vallée sans avoir à lire quoi que ce soit — c'est ce qui remplace le cercle vert
+     qui se promenait de commerce en commerce. */
+  // `GUIDE` est déclaré au chapitre du guidage, bien après la construction du monde :
+  // la couleur se donne donc en clair ici, et se relit par la fonction — qui, elle, est
+  // appelée une fois le fichier entier chargé.
+  /* IL A LE RAYON DE TOUS LES AUTRES, et c'est une règle du jeu : « toutes les marques du
+     sol ont exactement la même forme ». `MAISON.r` ne sert qu'à la PORTÉE — jusqu'où l'on
+     est considéré comme arrivé chez soi — et les deux n'ont pas à être le même nombre. */
+  /* ET SA COULEUR SE DEMANDE AU GUIDAGE, comme celle de tous les autres cercles : verte
+     tant qu'une mission attend, grise sitôt qu'on l'a prise. Rendre `GUIDE.VERT` en dur
+     aurait fait mentir tout ce qui recense les couleurs du sol — le cercle aurait compté
+     comme vert même éteint. */
+  anneauAction(MAISON.x, MAISON.z, 1.7, ()=> !!missionAPrendre(),
+               {coul: 0x62D84E, coulDyn: ()=> couleurLieu('Ferme')});
+  sonnerie = new THREE.Group();
+  {
+    const CORPS = 0x2F3A40, ECRAN = 0xBFE8FF, ONDE = 0x8BE07A;
+    // Le combiné : un corps sombre, un écran clair, deux ondes de part et d'autre.
+    /* LA TAILLE EST CELLE DE LA MAISON, PAS CELLE D'UNE ICÔNE. Un combiné d'un mètre de
+       haut au-dessus d'un pignon de neuf mètres de large disparaissait dès qu'on
+       s'éloignait de vingt mètres — et c'est justement de loin qu'il doit se voir. Deux
+       mètres de large sur trois vingt : la moitié de la hauteur du toit, ce qui le pose
+       comme un objet et non comme une décoration de faîtage. */
+    const t = new THREE.Group();
+    t.add(box(2.00, 3.20, 0.62, CORPS, 0, 0, 0));
+    t.add(box(1.48, 2.10, 0.10, ECRAN, 0, 0.22, 0.35));
+    t.add(box(0.64, 0.18, 0.10, ECRAN, 0, -1.14, 0.35));
+    t.rotation.z = 0.22;
+    sonnerie.add(t);
+    sonnerie.userData.corps = t;
+    sonnerie.userData.ondes = [];
+    for(const c of [-1, 1]){
+      const o = new THREE.Group();
+      for(let k = 0; k < 2; k++){
+        const a = box(0.22, 0.80 + k*0.62, 0.22, ONDE, c*(1.45 + k*0.62), 0.45 + k*0.10, 0);
+        a.material = a.material.clone();
+        a.material.transparent = true;
+        o.add(a);
+      }
+      sonnerie.add(o);
+      sonnerie.userData.ondes.push(o);
+    }
+  }
+  /* AU-DESSUS DU FAÎTAGE, ET DEVANT LUI. Le toit culmine à (3,8 + 2,5) × 1,18 = 7,43 m,
+     et le décalage de deux mètres vers la cour pose le combiné du côté d'où l'on arrive
+     au lieu de le cacher derrière la crête.
+     LA HAUTEUR EST CELLE QUE LA CAMÉRA LAISSE VOIR, et non celle qui « fait joli ». Le
+     jeu se regarde de haut : à seize mètres de la maison le faîtage est déjà à 44 px du
+     bord supérieur de l'écran, et un combiné posé à 10,6 m en sortait par le haut
+     (−23 px) alors qu'on voyait encore le toit. À 9,2 m il y tient (−3 px, la pointe de
+     l'onde extérieure et rien d'autre), et la pente qu'il surplombe est à 6,36 m —
+     un mètre six de vide sous lui : il flotte, il ne s'y pose pas. Passé vingt-cinq
+     mètres c'est la maison ENTIÈRE qui quitte le cadre, et c'est la flèche verte du bord
+     qui prend le relais. */
+  sonnerie.position.set(MAISON.hx + 2.0, 9.2, MAISON.hz);
+  sonnerie.visible = false;
+  sonnerie.traverse((o)=>{ if(o.isMesh){ o.castShadow = false; o.receiveShadow = false;
+                                         o.userData.anime = true; } });
+  scene.add(sonnerie);
 
   // Le puits de la cour : margelle de pierre, deux montants, un petit toit et le seau
   // au bout de sa corde. Il ne sert à rien qu'à dire que la maison est habitée.
@@ -11045,13 +11145,14 @@ function poserOffre(){
     const C = tirerCommande(T.cle);
     if(!C) continue;
     const S = SITES.find((x)=> x.nom === C.lieu);
-    // Ni deux offres au même endroit, ni une offre par-dessus un contrat en cours, ni
-    // rien du tout chez qui l'on vient d'éconduire : son délai n'est pas passé. Ni,
-    // surtout, par-dessus une mission de campagne qui attend ici : deux choses derrière
-    // la même pastille verte, on n'en verrait qu'une.
+    /* Ni deux offres au même endroit, ni une offre par-dessus un contrat en cours, ni
+       rien du tout chez qui l'on vient d'éconduire : son délai n'est pas passé.
+       IL Y AVAIT UNE QUATRIÈME INTERDICTION, et elle n'a plus lieu d'être : une offre ne
+       pouvait pas se poser chez le commerce où une mission de campagne attendait, sous
+       peine de mettre deux choses derrière la même pastille verte. La mission se prend
+       maintenant CHEZ SOI, devant le téléphone : le commerce ne porte plus qu'une seule
+       chose, son contrat, et il le porte en bleu. */
     if(!S || S.offre || S.offreT > 0 || contratChez(S.nom)) continue;
-    const M0 = missionAPrendre();
-    if(M0 && M0.lieu === S.nom) continue;
     C.prime = Math.max(20, Math.round(C.prime*coefRenom(S)/5)*5);
     C.xp = Math.max(3, Math.round(C.xp*coefRenom(S)));
     // Une proposition n'attend pas éternellement : trois minutes, puis il passe à autre
@@ -11284,10 +11385,10 @@ function refreshCommandes(){
   if(ET){
     const L = lieuTuto(ET);
     const tu = document.createElement('div'); tu.className = 'tuto';
-    const n0 = document.createElement('span'); n0.textContent = ET.titre;
+    const n0 = document.createElement('span'); n0.textContent = champEtape(ET, 'titre');
     const f0 = document.createElement('span'); f0.className = 'tf';
     const vt = MACHINES[cur].v;
-    f0.textContent = ET.txt.replace(/^[^—]*—\s*/, '')
+    f0.textContent = champEtape(ET, 'txt').replace(/^[^—]*—\s*/, '')
       + (L ? '  ·  ' + Math.round(Math.hypot(vt.pos.x - L.x, vt.pos.z - L.z)) + ' m' : '');
     tu.appendChild(n0); tu.appendChild(f0);
     el.ctr.appendChild(tu);
@@ -18457,11 +18558,14 @@ function quelqueChoseAFaire(S){
   }
   return actionsAuSite(m, S).length > 0;
 }
-// Ce commerce a-t-il quelque chose à proposer : une offre, ou la mission du moment.
+/* CE COMMERCE A-T-IL QUELQUE CHOSE À PROPOSER — ET LA MISSION N'EN EST PLUS.
+   Il en a proposé une : `missionAPrendre().lieu === S.nom` allumait le commerce chez qui
+   il fallait aller signer. On la prend maintenant CHEZ SOI, devant le téléphone ; laisser
+   cette ligne aurait mis une flèche sur le client et une autre sur la maison, pour un même
+   coup de fil. Il ne reste que l'OFFRE — le contrat qu'un commerce propose de lui-même,
+   après la campagne — et elle se prend bien chez lui. */
 function aQuelqueChoseADire(S){
-  if(S.offre) return true;
-  const M = missionAPrendre();
-  return !!(M && M.lieu === S.nom);
+  return !!S.offre;
 }
 /* ---------- LE GUIDAGE : QUATRE COULEURS, UN SEUL JUGE ---------- */
 /* Le joueur doit comprendre en quelques secondes où prendre une mission, quoi faire
@@ -18580,15 +18684,29 @@ const TUTO = [
    txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
    quoi:'charger', prod:'ble',
    fait:()=> bleABord() >= 29.9},
-  /* LA DERNIÈRE ÉTAPE SE SOLDE DE DEUX FAÇONS, SELON LE MODE.
-     En campagne elle se solde en PRENANT la mission — il n'y a rien à tester, l'écran de
-     la Coopérative s'en charge. En mode libre il n'y a pas de mission à prendre : elle se
-     solde à la PREMIÈRE VENTE, où qu'elle ait lieu. Le cercle jaune montre la Coopérative
-     parce que c'est l'acheteur qui prend tout, mais rien n'oblige à y aller : vendre son
-     blé à l'usine céréales solde l'étape aussi bien. */
-  {cle:'vendre', ou:'Coopérative', engin:'pickup', titre:'PREMIÈRE VENTE',
-   txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
-   fait:()=> MODE_LIBRE && STAT.ventes > 0.01}
+  /* LA DERNIÈRE MARCHE EST LA SEULE DU TUTORIEL QUI SE DÉDOUBLE, ET C'EST LE MODE QUI
+     TRANCHE.
+     EN CAMPAGNE, LE TÉLÉPHONE SONNE. La mission se prenait chez le CLIENT, au moment
+     même où l'on vendait ses trente kilos : deux gestes en un, à un seul endroit, et cet
+     endroit changeait à chaque mission. Le joueur : « je veux que les missions se
+     prennent toutes au même endroit, à côté de la maison, sur le terrain en herbe, où je
+     veux que tu places le cercle vert. » Le geste et le lieu se sont donc séparés — on
+     rentre chez soi, on décroche, et c'est la mission elle-même qui envoie livrer le
+     chargement DÉJÀ à bord. Cette marche-là n'apprend plus à vendre : elle apprend le
+     seul mécanisme neuf du jeu, et elle le fait au moment exact où il sert.
+     EN MODE LIBRE IL N'Y A PAS DE MISSION, et il n'y en aura jamais : « laisse juste le
+     tuto de départ […] jusqu'à la vente ; une fois le tuto terminé, complètement libre. »
+     La marche se solde alors sur la PREMIÈRE VENTE — la vente libre y est ouverte
+     d'office — et le tour du fermier se termine où il doit, chez l'acheteur. Le cercle
+     jaune montre la Coopérative parce que c'est elle qui prend tout, mais rien n'oblige
+     à y aller : vendre son blé à l'usine céréales solde l'étape aussi bien. */
+  {cle:'appel', engin:'pickup',
+   ou:   ()=> MODE_LIBRE ? 'Coopérative' : 'ferme',
+   titre:()=> MODE_LIBRE ? 'PREMIÈRE VENTE' : 'LE TÉLÉPHONE SONNE',
+   txt:  ()=> MODE_LIBRE
+     ? 'PREMIÈRE VENTE — rends-toi à la Coopérative agricole'
+     : 'LE TÉLÉPHONE SONNE — rentre à la ferme, on veut de ton blé',
+   fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : CAMPAGNE.prise}
 ];
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
@@ -18741,6 +18859,12 @@ function bleABord(){
   }
   return t;
 }
+/* UN CHAMP D'ÉTAPE PEUT ÊTRE UNE FONCTION. La dernière marche du tutoriel ne dit pas la
+   même chose dans les deux modes — en campagne le téléphone sonne à la ferme, en mode
+   libre où il n'y a aucune mission elle se solde sur la première vente. Trois champs
+   (`ou`, `titre`, `txt`) se lisent donc à travers ce petit accès ; les six autres étapes
+   ne changent pas d'un caractère, et une chaîne reste une chaîne. */
+const champEtape = (E, k)=> (typeof E[k] === 'function') ? E[k]() : E[k];
 function lieuTuto(E){
   /* L'OUTIL AVANT LE CHAMP. « Quand on commence avec la charrue, on ne sait pas où est
      la charrue » : le premier cercle jaune du jeu se posait sur la parcelle, à cent
@@ -18755,12 +18879,15 @@ function lieuTuto(E){
     if(T && !T.verrou && T.attached !== MACHINES[cur].v)
       return {lieu:'outil', x:T.x, z:T.z};
   }
-  if(E.ou === 'champ'){
+  const ou = champEtape(E, 'ou');
+  if(ou === 'champ'){
     const p = PARCELS.find((q)=> q.owned && !q.pature);
     return p ? {lieu:'champ', x:p.x, z:p.z} : null;
   }
-  if(E.ou === 'silo') return {lieu:'silo', x:SILO.x, z:SILO.z};
-  const S = SITES.find((x)=> x.nom === E.ou);
+  if(ou === 'silo') return {lieu:'silo', x:SILO.x, z:SILO.z};
+  // CHEZ SOI : le point d'herbe où le cercle des missions est posé, à côté de la maison.
+  if(ou === 'ferme') return {lieu:'Ferme', x:MAISON.x, z:MAISON.z};
+  const S = SITES.find((x)=> x.nom === ou);
   return S ? {lieu:S.nom, x:S.dropX, z:S.dropZ} : null;
 }
 /* LE CLIQUET. Relu au tic de l'interface, vingt fois par seconde. La boucle `while`
@@ -18773,14 +18900,18 @@ function lieuTuto(E){
    phrase qui explique quoi faire — et le bandeau du bas garde la consigne tout du long,
    pour quand on l'a fermée. Le titre du texte est retiré : il est déjà au-dessus. */
 function annoncerEtape(E){
-  const detail = (E.txt || '').split(' — ').slice(1).join(' — ');
+  const txt = champEtape(E, 'txt'), ou = champEtape(E, 'ou');
+  const detail = (txt || '').split(' — ').slice(1).join(' — ');
   // La phrase du bas dit où va le cercle, et le cercle peut être sur l'outil.
   const L0 = lieuTuto(E);
   const suite = (L0 && L0.lieu === 'outil')
     ? 'Le cercle jaune est sur l\'outil, au parc de la ferme'
-    : (E.ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
-                        : 'Suis le cercle jaune — ' + E.ou);
-  annoncerFenetre({titre:E.titre, sous:detail || E.txt || '', gains:[], etape:true,
+    // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions, et il ne
+    // ressemble à aucun autre. La phrase doit dire la bonne couleur.
+    : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
+    : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
+                      : 'Suis le cercle jaune — ' + ou));
+  annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', gains:[], etape:true,
                    duree:5.0, suite:suite});
 }
 function veillerTuto(){
@@ -18817,7 +18948,7 @@ function objectifMission(){
        de tout le monde. Les autres — labourer, semer, attendre que ça pousse — gardent
        `quoi:'tuto'` : il n'y a pas de bouton à désigner sur un champ. */
     if(L0) return {lieu:L0.lieu, x:L0.x, z:L0.z,
-                   quoi: E.quoi || 'tuto', cle: E.prod, txt:E.txt};
+                   quoi: E.quoi || 'tuto', cle: E.prod, txt:champEtape(E, 'txt')};
   }
   const M = missionVisible();
   if(!M) return null;
@@ -19266,12 +19397,32 @@ function etapesMission(){
 const enMission = ()=> etapesMission().length > 0;
 /* LA COULEUR D'UN LIEU, ET C'EST LE SEUL ENDROIT QUI TRANCHE. `nom` est un nom de
    commerce ou une clé de poste — 'silo', 'entrepot', 'atelier', 'champ', 'pature0'. */
+/* LE VERT N'A PLUS QU'UN SEUL LIEU DANS TOUTE LA VALLÉE : CHEZ SOI.
+   Il se promenait de commerce en commerce — la Coopérative, puis l'Épicerie, puis la
+   Laiterie — et il fallait le chercher. Le joueur : « je veux que les missions se prennent
+   toutes au même endroit, à côté de la maison » ; « on continue à conserver les cercles
+   jaunes pour toutes les actions liées à la mission, et les cercles bleus pour toutes les
+   actions disponibles, peu importe la mission ou hors mission ».
+   Trois couleurs, trois questions, et plus une seule exception :
+     JAUNE  la chaîne de la mission en cours — c'est ce qu'on est en train de faire
+     VERT   la ferme, quand une mission attend qu'on vienne la prendre
+     BLEU   tout ce qui est ouvert, mission ou pas
+   Le gris ne reste que pour ce dont il n'y a vraiment rien à faire à cet instant. */
 function couleurLieu(nom){
+  /* LA FERME SE JUGE AVANT LA CHAÎNE, et c'est nécessaire : la dernière marche du
+     tutoriel ENVOIE chez soi décrocher le téléphone. Elle est donc, à cet instant,
+     l'étape courante de la chaîne — et la boucle ci-dessous la peindrait en jaune vif,
+     par-dessus le seul vert de la carte. Le rendez-vous prime : c'est lui que le cercle
+     annonce, et le joueur ne doit avoir qu'une couleur à reconnaître. */
+  if(nom === 'Ferme') return missionAPrendre() ? GUIDE.VERT : GUIDE.GRIS;
   const E = etapesMission();
   for(let i = 0; i < E.length; i++)
     if(E[i].lieu === nom) return i === 0 ? GUIDE.JAUNE : GUIDE.JAUNE_DOUX;
   const S = SITES.find((x)=> x.nom === nom);
-  if(S && aQuelqueChoseADire(S)) return GUIDE.VERT;
+  // Un contrat proposé par un commerce reste à prendre chez lui — mais en BLEU : c'est
+  // une affaire qu'on peut saisir, pas la mission de la campagne, et le vert ne dit
+  // plus qu'une seule chose.
+  if(S && aQuelqueChoseADire(S)) return GUIDE.BLEU;
   if(SERVICES[nom]) return GUIDE.BLEU;
   return GUIDE.GRIS;
 }
@@ -19280,10 +19431,16 @@ function couleurGuide(nom){ return couleurLieu(nom); }
    d'autre » est une règle, pas une préférence. Hors mission — en mode libre, ou avant
    d'avoir pris la première — le cercle retrouve son rôle d'origine et dit ce qu'on peut
    faire ici, maintenant. */
+/* ET CE QU'ON PEUT FAIRE ICI EST BLEU, MISSION OU PAS. Hors mission, le cercle d'un
+   poste où il y a quelque chose à faire passait au JAUNE : il empruntait la couleur de la
+   chaîne à un moment où il n'y avait pas de chaîne. Le joueur : « les cercles bleus pour
+   toutes les actions disponibles, peu importe la mission ou hors mission. » Le jaune
+   redevient donc ce qu'il n'aurait jamais dû cesser d'être — la mission, et rien qu'elle —
+   et « il y a quelque chose à faire » se dit en bleu, comme partout ailleurs. */
 function couleurPoste(cle, agir){
   const c = couleurLieu(cle);
   if(c !== GUIDE.GRIS) return c;
-  return (!enMission() && agir && agir()) ? GUIDE.JAUNE : GUIDE.GRIS;
+  return (agir && agir()) ? GUIDE.BLEU : GUIDE.GRIS;
 }
 function couleurAnneau(S){ return couleurPoste(S.nom, ()=> quelqueChoseAFaire(S)); }
 /* LA COULEUR DU CERCLE SOUS LES ROUES, POUR QUE LES BOUTONS LA REPRENNENT.
@@ -21974,39 +22131,17 @@ function refreshChoix(){
      Une LIVRAISON de contrat (`A.commande`) n'est pas une vente libre : c'est le geste
      que la mission attend, et c'est justement celui qu'on garde. */
   const Sic = siteIci(m.v);
-  /* ---------- ON NE DEMANDE PAS DE SIGNER LA MISSION QUE LE TUTORIEL VIENT DE FAIRE FAIRE
-     LA RÈGLE, EN UNE PHRASE : à la PREMIÈRE mission, et à elle seule, arriver chez le client
-     avec la marchandise déjà à bord la signe toute seule.
-     Le joueur : « comme on est déjà dans une phase de jeu et qu'on va livrer les 30 kg, il
-     faut qu'on passe direct, il faut pas qu'on voie le bouton prendre la mission, il faut
-     qu'on passe direct au bouton jaune pour vendre nos 30 kg. »
-     Il a raison, et le tutoriel le dit lui-même : il a envoyé labourer, semer, moissonner
-     et charger trente kilos de blé POUR cette mission. Arriver à la Coopérative et se voir
-     demander si l'on veut bien la prendre, c'est demander une signature au bout du travail.
-     Le récit du marchand n'est pas perdu : il se lit dans la fenêtre de fin, celle qui paie.
-     Et si l'on arrive les mains vides, rien ne change — le bouton vert est là, avec son
-     texte.
-
-     ET SEULEMENT LA PREMIÈRE. Le raccourci valait pour les trente missions, et le joueur
-     l'a vu tout de suite : « après la mission de la coopérative, j'avais encore du
-     chargement avec moi, j'ai été à la deuxième mission à l'usine de céréales et là pareil
-     ça n'a pas demandé de valider la mission. C'est valable uniquement pour la première
-     mission de la coopérative. Après il faut rejouer la mission du début à chaque fois. »
-     C'est la bonne règle, et pas seulement par goût : le tutoriel ne fait charger que la
-     PREMIÈRE commande. Aux suivantes, le blé qui reste dans la benne est un reliquat, pas
-     une intention — mesuré, UN kilo oublié après la Coopérative suffisait à signer les
-     quatre-vingts kilos de l'Usine céréales, et le joueur n'avait jamais lu ce que le
-     client lui demandait. Une mission qu'on n'a pas lue n'est pas une mission qu'on a
-     prise. */
-  {
-    const M0 = missionAPrendre();
-    if(CAMPAGNE.mission === 0 && M0 && M0.lignes && Sic && M0.lieu === Sic.nom){
-      const Tc = caisseDe(m);
-      const aBord = M0.lignes.some((l)=> chargeDe(Tc, l.cle) > 0.01
-        || (hopper > 0.01 && CROPS[hopCrop] && CROPS[hopCrop].cle === l.cle));
-      if(aBord) CAMPAGNE.prise = true;
-    }
-  }
+  /* ---------- LE RACCOURCI DE LA PREMIÈRE MISSION A DISPARU AVEC SON LIEU ----------
+     Il existait pour une raison précise : le tutoriel envoyait labourer, semer, moissonner
+     et charger trente kilos de blé POUR la première mission, et l'on arrivait à la
+     Coopérative — là même où elle se prenait — avec la marchandise déjà à bord. Se voir
+     demander une signature au bout de ce travail-là n'avait aucun sens, et le joueur
+     l'avait dit : « il faut qu'on passe direct au bouton jaune pour vendre nos 30 kg ».
+     LES DEUX GESTES SE SONT SÉPARÉS. La mission ne se prend plus chez le client mais CHEZ
+     SOI, devant le téléphone : arriver à la Coopérative avec sa benne n'y ressemble plus à
+     une signature, c'est une vente, et c'est tout ce qu'on y fait. Le raccourci n'a plus
+     de lieu où s'appliquer, et son cas limite — un kilo oublié qui signait la commande
+     suivante sans qu'on l'ait lue — disparaît avec lui. */
   const E0 = etapesMission()[0] || null;
   const etapeIci = !!(E0 && Sic && E0.lieu === Sic.nom);
   /* ---------- CE QUI RELÈVE DE LA MISSION EN COURS, ET CE QUI N'EN RELÈVE PAS ----------
@@ -22068,9 +22203,16 @@ function refreshChoix(){
      allumé, et l'on n'a rien à y livrer encore. */
   const offreIci = (Sic && Sic.offre) ? Sic : null;
   const encoursIci = Sic ? contratChez(Sic.nom) : null;
-  const misIci = (()=>{ const M0 = missionAPrendre();
-                        return (Sic && M0 && M0.lieu === Sic.nom) ? M0 : null; })();
+  /* ET LA MISSION SE PREND CHEZ SOI, DEVANT LA MAISON. Elle se prenait chez le CLIENT —
+     `Sic && M0.lieu === Sic.nom` —, c'est-à-dire à un endroit différent à chaque fois. Le
+     cercle vert est maintenant devant la maison, et c'est là, et là seulement, qu'on
+     répond au téléphone. Le rayon est celui du cercle plus deux mètres : on doit pouvoir
+     s'arrêter dessus, pas dedans au centimètre. */
+  const chezSoi = prochePoint(m.v, MAISON.x, MAISON.z, MAISON.r + 2);
+  const misIci = chezSoi ? missionAPrendre() : null;
   if(!L.length && !serv.length && !emp.length && !offreIci && !encoursIci && !misIci){
+    // (la garde ci-dessus tient compte de `misIci` : devant la maison, il n'y a rien
+    //  d'autre à faire, et c'est pourtant là que la colonne doit s'ouvrir)
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = '';
                         choixEl.className = ''; choixSignature = ''; }
     return false;
@@ -22174,19 +22316,23 @@ function refreshChoix(){
   // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
   // mission de campagne passe avant elle, parce qu'elle mène le jeu.
   if(misIci){
-    /* PENDANT LE TUTORIEL, LE BOUTON DIT LE GESTE, PAS LE MOT « MISSION ». On ne sait pas
-       encore qu'il existe des missions : on est venu vendre trente kilos de blé, et c'est
-       en les vendant que le marchand se présente et propose la première commande. Le
-       libellé annonce donc la vente ; la fenêtre qui s'ouvre derrière est la même. */
-    const l0 = tutoActif() && misIci.lignes ? misIci.lignes[0] : null;
-    lignes.unshift({txt: l0 ? 'VENDRE ' + qteHaut(l0.cle, l0.need) + ' DE ' + nomHaut(l0.cle)
-                            : 'VOIR LA MISSION',
-                    cls:'ch vert',
-                    f:()=> ouvrirContrat(missionEnContrat(misIci), Sic, true, misIci)});
+    /* LE TÉLÉPHONE SONNE, ON DÉCROCHE. Le bouton n'a plus à ménager le tutoriel — la
+       première mission ne se prend plus chez le client, à la place de la vente, mais
+       chez soi, une fois le tour du fermier terminé. Un seul libellé suffit donc, et il
+       dit ce qu'il fait. */
+    lignes.unshift({txt:'RÉPONDRE AU TÉLÉPHONE', cls:'ch vert',
+                    f:()=> ouvrirContrat(missionEnContrat(misIci), null, true, misIci)});
   }
-  else if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch vert',
+  /* ET LE CONTRAT D'UN COMMERCE EST BLEU, comme sa pastille. Il était vert, du temps où
+     le vert voulait dire « il y a quelque chose à prendre ici » et se promenait de
+     commerce en commerce. Le joueur : « les cercles bleus pour toutes les actions
+     disponibles, peu importe la mission ou hors mission. » Un contrat qui attend au
+     comptoir en est une : on peut le saisir, ou passer son chemin. Le bleu est la teinte
+     par défaut de la colonne — il n'y a donc pas de classe à poser, il y en a une à
+     retirer, et le bouton s'accorde tout seul à l'anneau sous les roues. */
+  else if(offreIci) lignes.unshift({txt:'VOIR LE CONTRAT', cls:'ch',
                                f:()=> ouvrirContrat(offreIci.offre, offreIci, true)});
-  else if(encoursIci) lignes.push({txt:'CONTRAT EN COURS', cls:'ch vert',
+  else if(encoursIci) lignes.push({txt:'CONTRAT EN COURS', cls:'ch',
                                    f:()=> ouvrirContrat(encoursIci, Sic, false)});
   if(!lignes.length){
     if(choixSignature){ choixEl.style.display = 'none'; choixEl.innerHTML = '';
@@ -22261,15 +22407,31 @@ const MAX_VERTES = 3;
 function ciblesGuidage(){
   const out = [];
   const O = objectifMission();
-  if(O) out.push({nom:O.txt, x:O.x, z:O.z, coul:'#FFD21E'});
+  const APrendre = missionAPrendre();
+  /* UNE SEULE VIGNETTE PAR POINT DE LA CARTE. La dernière marche du tutoriel envoie chez
+     soi décrocher : son objectif JAUNE et le téléphone VERT désignent alors le même mètre
+     carré d'herbe, et le bord de l'écran portait deux flèches superposées. C'est le vert
+     qui reste — c'est lui qui dit ce qui attend. */
+  const memeCible = O && APrendre && Math.hypot(O.x - MAISON.x, O.z - MAISON.z) < 0.5;
+  if(O && !memeCible) out.push({nom:O.txt, x:O.x, z:O.z, coul:'#FFD21E'});
+  /* LA FLÈCHE VERTE MÈNE CHEZ SOI, ET NULLE PART AILLEURS. Elle désignait le commerce qui
+     proposait la mission — un endroit différent à chaque fois — et il y en avait jusqu'à
+     trois à l'écran. Le téléphone sonne maintenant au-dessus de la maison, et c'est la
+     seule flèche verte de la vallée : sans elle, un joueur à l'autre bout de la carte ne
+     verrait ni le cercle ni le combiné, et ne saurait pas qu'on l'appelle. */
+  if(APrendre)
+    out.push({nom:'LE TÉLÉPHONE SONNE  ·  LA FERME', x:MAISON.x, z:MAISON.z,
+              coul:'#62D84E'});
   const v = MACHINES[cur].v;
-  const verts = SITES.filter((S)=> aQuelqueChoseADire(S) && (!O || O.lieu !== S.nom))
-    .map((S)=> ({nom:'MISSION  ·  ' + S.nom.toUpperCase(), x:S.dropX, z:S.dropZ,
-                 coul:'#62D84E',
+  // Les contrats d'un commerce gardent leur flèche, en bleu : ce sont des affaires
+  // ouvertes, pas la mission de la campagne.
+  const bleus = SITES.filter((S)=> aQuelqueChoseADire(S) && (!O || O.lieu !== S.nom))
+    .map((S)=> ({nom:'CONTRAT  ·  ' + S.nom.toUpperCase(), x:S.dropX, z:S.dropZ,
+                 coul:'#4AA8E0',
                  d:Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ)}))
     .sort((a2, b2)=> a2.d - b2.d)
     .slice(0, MAX_VERTES);
-  return out.concat(verts);
+  return out.concat(bleus);
 }
 /* ---------- LE CERCLE MOBILE DE L'ÉTAPE DU MOMENT ----------
    Un pictogramme d'action a été essayé à cet endroit — une caisse, une flèche, un épi —
@@ -26356,6 +26518,31 @@ function loop(now){
        d'une image. */
     for(const B of BULLES)
       B.m.position.y = B.y0 + Math.sin(now/1000*0.65 + B.ph)*0.05;
+    /* LE TÉLÉPHONE SONNE, ET IL NE SONNE QUE QUAND IL Y A QUELQU'UN AU BOUT.
+       Trois mouvements, tous en `position`, `rotation` et `scale` — jamais un matériau
+       recréé ni une géométrie touchée : il flotte, il tremble par saccades de deux
+       dixièmes de seconde, et deux ondes s'écartent de lui en s'effaçant. Le tremblement
+       est en DENTS DE SCIE et non en sinus : une sonnerie n'oscille pas doucement, elle
+       secoue. Quand aucune mission n'attend, le groupe entier est invisible — c'est un
+       objet de moins à parcourir, pas un objet transparent. */
+    if(sonnerie){
+      const sonne = !!missionAPrendre();
+      sonnerie.visible = sonne;
+      if(sonne){
+        const t = now/1000;
+        sonnerie.position.y = 9.2 + Math.sin(t*1.5)*0.22;
+        const bat = (t*4.5) % 1;                       // le cycle d'une sonnerie
+        const fort = bat < 0.42;                       // elle sonne, puis se tait
+        sonnerie.userData.corps.rotation.z =
+          0.22 + (fort ? Math.sin(t*46)*0.20 : 0);
+        for(let i = 0; i < sonnerie.userData.ondes.length; i++){
+          const o = sonnerie.userData.ondes[i];
+          const k = fort ? bat/0.42 : 1;
+          o.scale.setScalar(0.55 + k*0.7);
+          for(const a of o.children) a.material.opacity = fort ? (1 - k)*0.95 : 0;
+        }
+      }
+    }
     // Anneaux d'action : jaune et pulsant quand l'action est possible, blanc et fixe
     // sinon. La bascule est amortie (A.k) plutôt qu'immédiate — sans ça, rouler le long
     // d'une rangée de commerces ou finir de charger une benne fait clignoter la carte.
