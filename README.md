@@ -9750,3 +9750,13 @@ réussit n'est donc pas une détection juste, et c'est pour cela que la planche 
 après chaque groupe, même quand les trois lignes disent `[yeux]`.
 
 Trente fiches, **293 Ko**. Dix commerces sur quinze.
+
+### Onzième commerce : l'Atelier textile
+
+Passé sans correction, lunettes rondes comprises — ce qui vaut d'être noté, puisque les lunettes
+rondes du caviste avaient mis les deux détecteurs en échec sur ses trois planches. La monture
+n'est donc pas la cause : chez lui, c'est la tignasse qui noyait le contour du crâne, et les
+lunettes n'y étaient pour rien. Une explication qu'on croyait tenir, et qui tombe au premier
+contre-exemple.
+
+Trente-trois fiches, **326 Ko**. Onze commerces sur quinze.
