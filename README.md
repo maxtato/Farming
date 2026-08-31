@@ -8041,3 +8041,158 @@ contrôles, `trafic.js` en garde 62.
 > comme j'avais justement touché au trafic, je ne me suis pas contenté d'un passage.
 
 Les vingt suites passent.
+
+## Le camion américain de la planche, l'atelier qui pousse, et le bout des chemins
+
+Trois demandes du joueur, dont deux qu'il avait déjà faites et que je n'avais pas tenues.
+
+### « Enlève ton céréalier et mets ce type de camion »
+
+**J'étais passé à côté trois fois, et il vaut mieux l'écrire que le taire.** Le joueur avait
+joint une planche de camions américains en demandant qu'on remplace *le camion américain
+citerne*. J'avais retiré du trafic léger un porteur-citerne à lait — qui n'était pas lui —,
+puis posé à sa place un **céréalier de mon invention**, qui ne ressemblait à aucun camion de
+sa planche. L'attelage américain, lui, n'avait jamais été touché : il roulait toujours, avec
+sa cabine orange dessinée ici. Le joueur a joint une seconde planche et tranché.
+
+**Le céréalier part**, et c'est l'attelage qui est refait **d'après la planche**, cote pour
+cote : capot court, calandre chromée à huit barres, phares et clignotants posés sur la face
+avant, ailes au-dessus des roues directrices, couchette, deux cheminées, réservoirs de flanc
+dans l'axe, sellette reportée à 3,40 derrière le milieu du tracteur. **Trois attelages au lieu
+d'un** — citerne bleue, caisse verte, frigorifique blanc *sans couchette* — parce que la
+cabine vient avec sa remorque, comme sur la planche.
+
+| | avant | après |
+|---|---|---|
+| modèles légers | 15 | **14** |
+| géométries légères (robes comprises) | 40 | **37** |
+| somme des parts | 92 | **89** |
+| attelages | 1 | **3** |
+| part de l'attelage | 7 % | **10 %** |
+
+**Les trois parts du céréalier ne se perdent pas : elles vont à l'attelage.** Le céréalier
+pesait 3 parts sur 92 et ne roulait que sur les 93 % de tirages légers, soit **3,03 %** du
+trafic. 7,00 + 3,03 = **10,03**, arrondi à dix : le joueur retire un camion et en voit passer
+exactement autant qu'avant, mais c'est le bon. Les quatorze autres poids restent **intacts**,
+comme au retrait du fourgon — la somme ne fait plus cent, et c'est le prix pour qu'aucune
+fréquence relative n'ait bougé.
+
+**Trois choses seulement ont été changées à la planche, et le code les nomme :**
+
+1. **les cheminées passent de 4,00 à 3,00.** Sur la planche elles montent à 4,85 quand le
+   pavillon est à 3,80 : un mètre de tuyau au-dessus du toit. Or c'est la **hauteur libre sous
+   les lampadaires** qui borne l'attelage, et ce tuyau — lui seul — aurait décidé de la taille
+   de tout le camion ;
+2. **le groupe froid du frigorifique descend de 6 cm**, pour affleurer le pavillon au lieu de
+   le dépasser de 23. Même raison, et c'est aussi ce que fait un vrai ;
+3. **les béquilles des remorques sont relevées.** La planche les pose au sol — juste pour une
+   remorque dételée sur un plateau tournant, ruineux pour une qui roule à quatre-vingts.
+
+**Deux constantes cessent d'être écrites à la main, et une troisième disparaît.**
+
+`ECH_LOURD` **se calcule** : la pièce la plus haute de la famille vient affleurer le dessous
+des lampadaires, réserve de toit déduite, et tout suit dans le même rapport. Mesuré, la plus
+haute est le pavillon du frigorifique, à **5,420 m pour un plafond de 5,42** — il l'affleure,
+et le banc exige les deux sens : que rien ne dépasse **et** qu'une pièce touche, sinon
+l'attelage aurait rapetissé pour rien.
+
+`LARG_LOURD` **se calcule** aussi, et il vaut **1** : l'ancien camion faisait 5,58 m de
+carrosserie et il fallait le pincer de treize pour cent pour que deux se croisent sans se
+traverser ; celui de la planche fait **4,18 m** pour 5,20 m entre les deux files, soit
+**1,02 m de jeu**. Il roule donc à sa taille pleine.
+
+`SELLETTE_TRAFIC` et `TIMON_TRAFIC` se **lisent sur le dessin** au lieu d'être deux nombres
+ajustés à la main : un camion qu'on redessinerait emporterait son pivot et son timon avec lui.
+
+| l'attelage sur la route | avant | après |
+|---|---|---|
+| longueur hors tout | 26,61 m | **25,52 m** |
+| largeur | 4,85 m | **4,18 m** |
+| hauteur | 5,40 m | 5,42 m |
+| sellette derrière le milieu | 3,53 m | **4,13 m** |
+| triangles du plus lourd | 1 284 | **2 880** |
+| attributs des géométries | 135 Kio | **829 Kio** |
+
+**Il coûte plus cher, et c'est écrit.** Deux fois et quart les triangles, six fois la mémoire —
+pour trois attelages détaillés au lieu d'un simple. Ce qui pouvait être rendu sans perdre un
+pixel l'a été : les **cerclages sont des viroles**, cylindres sans leurs deux disques, puisque
+ceux-ci sont enfouis dans le fût qu'ils ceignent ; le **moyeu chromé** n'est posé que sur la
+roue extérieure d'un jumelage, celui de la roue intérieure étant pris entre un pneu et le
+châssis. 428 triangles par attelage, et pas un pixel de différence.
+
+Le dégagement entre la couchette et la remorque, lui, ne se plaide plus : le coin avant de la
+caisse est à 1,30 de l'axe, il avance de 1,30·sin θ quand l'attelage se plie, et il faut
+**θ = 45°** pour qu'il vienne toucher — l'ancien tenait jusqu'à vingt-trois degrés.
+
+`trafic.js` passe de 62 à **68 contrôles** : trois remorques distinctes comptées **en sommets**
+et non en longueur (la citerne et le frigorifique ne diffèrent que de 5 cm), deux cabines et
+non trois, le rabotage qui affleure dans les deux sens, le croisement de deux attelages, les
+béquilles à 0,80 m du sol, et les feux arrière au bout de **chaque** remorque, qui n'ont pas
+la même longueur.
+
+### « Pour l'atelier, fais au mieux sans bouger le reste »
+
+**On avait d'abord essayé de l'agrandir en échelle, et ça ne donne rien.** Huit pour cent,
+invisibles. La raison est mesurée et sans appel : au dernier palier le bâtiment occupe déjà
+**x 67,61 à 97,03**, soit 29,42 m, entre l'anneau du silo à l'ouest et la citerne à gazole à
+l'est. Il reste **2,75 m** d'un côté et **1,77 m** de l'autre, et ces deux couloirs ne sont pas
+du vide : ce sont les accès. **En largeur, c'est plein**, et l'échelle de pose ne peut pas
+monter d'un cheveu sans manger un accès ou déplacer un voisin — ce que le joueur a
+explicitement exclu.
+
+**Mais il reste de la place devant, derrière, et au-dessus** : 10,95 m de dégagement au nord,
+17,41 m au sud, rien du tout au-dessus. C'est donc là qu'il grandit — le corps s'étire de
+**trente pour cent en profondeur et en hauteur**, à tous les paliers.
+
+**Et c'est le modèle qu'on étire, pas la pose.** Une échelle de pose non uniforme aurait fait
+le même volume, mais elle aurait **ovalisé les vingt-quatre cylindres verticaux** du bâtiment —
+trémies, cuves, tanks, cheminée : un fût de 2,81 m serait devenu 2,81 sur 3,65. Ici ce sont `D`
+et `H` qui changent dans le dessin : les fûts restent ronds et gardent leur diamètre, les
+palettes gardent leur taille de palette, et seul le bâtiment s'allonge et se dresse. Tout ce
+qui en dépend suit tout seul, parce que tout est écrit en fonction de `W`, `D` et `H` :
+l'emprise de collision, le point de quai, l'auvent, l'étage technique et la cheminée.
+
+| l'atelier au dernier palier | avant | après |
+|---|---|---|
+| largeur | 29,42 m | 29,42 m |
+| profondeur | 19,10 m | **21,61 m** |
+| hauteur | 11,89 m | **14,25 m** |
+| dégagement au nord | 10,95 m | 10,00 m |
+| dégagement au sud | 17,41 m | 8,71 m |
+| voie libre au nord du bâtiment | 20,25 m | 19,25 m |
+| voie libre au sud | 17,50 m | 15,75 m |
+
+Trente-six pour cent de silhouette en plus, et l'on croise toujours deux engins de front des
+deux côtés. **Il reste de la marge, et elle est dite** : à 1,50 au lieu de 1,30 le bâtiment
+monterait à 16,4 m et il resterait encore 8,5 m au nord. On s'arrête à 1,30 parce qu'au-delà
+l'atelier dépasserait la moitié de la hauteur du silo et cesserait de se lire comme une halle
+de ferme. Ce n'est pas la place qui manque, c'est la mesure.
+
+### Le bout des chemins de sable était en biais
+
+Le joueur, il y a plusieurs tours : « les chemins en sable ne sont pas bien droits à l'endroit
+où ils arrivent perpendiculairement à la route en bitume. » Le **fondu de l'ondulation** avait
+ramené les deux *bords* d'équerre. Il restait le *bout*, et c'était le vrai défaut.
+
+On échantillonnait le bord tous les 1,20 m : `for(t = -l/2; t <= l/2; t += 1.2)`. Si la
+longueur n'est pas un multiple de 1,20 — et **aucune des huit ne l'est** —, le dernier point
+tombe avant `l/2`. Le bord aller s'arrêtait donc court quand le bord retour partait exactement
+de `l/2` : le polygone se refermait par une **diagonale** d'un bord à l'autre, et il manquait
+au bout du chemin un coin d'herbe en triangle. Deux par chemin, un à chaque extrémité.
+
+| les bouts de chemin | avant | après |
+|---|---|---|
+| manque au pire | **0,70 m** | **0** |
+| triangle d'herbe au pire | 2,24 m² | 0 |
+| herbe restée nue en tout | 20,5 m² | 0 |
+| bouts en biais | **16 sur 16** | **0 sur 16** |
+
+**Le pas se calcule pour tomber juste** : on prend le nombre entier de sections le plus proche
+de 1,20 m et l'on divise la longueur par lui. Le pas vaut alors entre **1,1966 et 1,2027 m**
+selon le chemin — l'ondulation ne s'en aperçoit pas — et les deux bords commencent et finissent
+aux mêmes abscisses, à ±`l/2` pile. On compte en **indice** et non en accumulant le pas :
+additionner cent quarante-neuf fois un flottant ne retombe pas exactement sur `l/2`, et c'est
+précisément ce qu'il faut garantir ici.
+
+C'était une **régression** du jour où le bord a ondulé : avant cela le chemin était un simple
+rectangle, carré par construction.

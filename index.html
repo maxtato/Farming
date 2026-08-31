@@ -3882,16 +3882,39 @@ function paintStaticGround(){
        LE FONDU EST LINÉAIRE SUR QUATRE MÈTRES : au-delà, l'ondulation est pleine et rien
        ne change ; en deçà, elle se referme jusqu'à zéro, et la dernière section fait
        exactement PATH_W de large, centrée sur l'axe. */
+    /* ET LE BOUT EST CARRÉ, PAS EN BIAIS — c'est l'autre moitié du même défaut, et
+       l'ondulation en était la cause elle aussi. Le joueur : « les chemins en sable ne
+       sont pas bien droits à l'endroit où ils arrivent perpendiculairement à la route. »
+       Le fondu ci-dessus a ramené les deux BORDS d'équerre ; il restait le BOUT.
+       On échantillonnait le bord tous les 1,20 m : `for(t = -l/2; t <= l/2; t += 1.2)`.
+       Si la longueur n'est pas un multiple de 1,20 — et aucune des seize ne l'est —, le
+       dernier point tombe AVANT l/2, jusqu'à 1,19 m avant. Le bord aller s'arrêtait donc
+       court quand le bord retour, lui, partait exactement de l/2 : le polygone se
+       refermait par une DIAGONALE d'un bord à l'autre, et il manquait au bout du chemin
+       un coin d'herbe en triangle. Et il y en avait DEUX par chemin, un à chaque bout :
+       le bord aller s'arrête court en haut, le bord retour s'arrête court en bas. Mesuré
+       sur les huit chemins : 70 cm de manque au pire, 2,24 m² de triangle au pire et
+       20,5 m² en tout, aux SEIZE bouts sur seize. C'était une régression du jour où le
+       bord a ondulé — avant cela le chemin était un simple rectangle, carré par
+       construction.
+       LE PAS SE CALCULE DONC POUR TOMBER JUSTE : on prend le nombre entier de sections le
+       plus proche de 1,20 m et l'on divise la longueur par lui. Le pas vaut alors entre
+       1,1966 et 1,2027 m selon le chemin — l'ondulation ne s'en aperçoit pas — et les deux
+       bords commencent et finissent aux MÊMES abscisses, à ±l/2 pile. On compte en INDICE
+       et non en accumulant le pas : additionner cent quarante-neuf fois un flottant ne
+       retombe pas exactement sur l/2, et c'est précisément ce qu'il faut garantir ici. */
     const AMP = w*0.12, ECH = 9, FONDU = 4;
     const dec = (t, cote)=> ondul(t + cote*53 + (vert?x:z)*7, AMP, ECH)
                           * Math.max(0, Math.min(1, (l/2 - Math.abs(t))/FONDU));
+    const NP = Math.max(1, Math.round(l/1.2));
+    const abs = (k)=> -l/2 + k*l/NP;
     const pts = [];
     if(vert){
-      for(let t = -l/2; t <= l/2; t += 1.2) pts.push([x - w/2 + dec(t, 0), z + t]);
-      for(let t = l/2; t >= -l/2; t -= 1.2) pts.push([x + w/2 + dec(t, 1), z + t]);
+      for(let k = 0; k <= NP; k++){ const t = abs(k); pts.push([x - w/2 + dec(t, 0), z + t]); }
+      for(let k = NP; k >= 0; k--){ const t = abs(k); pts.push([x + w/2 + dec(t, 1), z + t]); }
     } else {
-      for(let t = -l/2; t <= l/2; t += 1.2) pts.push([x + t, z - w/2 + dec(t, 0)]);
-      for(let t = l/2; t >= -l/2; t -= 1.2) pts.push([x + t, z + w/2 + dec(t, 1)]);
+      for(let k = 0; k <= NP; k++){ const t = abs(k); pts.push([x + t, z - w/2 + dec(t, 0)]); }
+      for(let k = NP; k >= 0; k--){ const t = abs(k); pts.push([x + t, z + w/2 + dec(t, 1)]); }
     }
     fillPoly(pts, C.sand);
     // éclats dispersés : gravillons clairs et creux sombres, aucun trait continu
@@ -8510,9 +8533,43 @@ function enseigneAtl(g, x, z, c, ry){
    pris. Ce qui change, c'est qu'on la voit grandir huit fois au lieu de cinq. Le
    niveau 0 existe : une halle nue, sans un seul métier, telle qu'on la trouve au
    premier jour. */
+/* IL POUSSE OÙ IL RESTE DE LA PLACE, PARCE QU'IL N'EN RESTE QUE LÀ.
+   Le joueur, deux fois : « les différentes évolutions d'atelier, je voulais les voir
+   agrandies en échelle », puis « pour l'atelier fais au mieux SANS BOUGER LE RESTE ».
+   ON A D'ABORD CHERCHÉ À L'AGRANDIR EN ÉCHELLE, ET ÇA NE DONNE RIEN — huit pour cent,
+   invisibles. La raison est mesurée et elle est sans appel : au dernier palier le
+   bâtiment occupe déjà x 67,61..97,03, soit 29,42 m de large, entre l'anneau du silo à
+   l'ouest et la citerne à gazole à l'est. Il reste 2,75 m d'un côté et 1,77 m de l'autre,
+   et ces deux couloirs ne sont pas du vide : ce sont les accès. EN LARGEUR, C'EST PLEIN,
+   et l'échelle de pose ne peut pas monter d'un cheveu sans manger un accès ou déplacer un
+   voisin — ce que le joueur a explicitement exclu.
+   MAIS IL RESTE DE LA PLACE DEVANT ET DERRIÈRE, ET AU-DESSUS : 10,95 m de dégagement au
+   nord, 17,41 m au sud, et rien du tout au-dessus. C'est donc là qu'il grandit — le corps
+   s'étire de trente pour cent en PROFONDEUR et en HAUTEUR, à tous les paliers.
+   ET C'EST LE MODÈLE QU'ON ÉTIRE, PAS LA POSE. Une échelle de pose non uniforme aurait
+   fait le même volume, mais elle aurait OVALISÉ les vingt-quatre cylindres verticaux du
+   bâtiment — trémies, cuves, tanks, cheminée : un fût de 2,81 m serait devenu 2,81 sur
+   3,65. Ici ce sont D et H qui changent, dans le dessin : les fûts restent ronds et
+   gardent leur diamètre, les palettes et les sacs gardent leur taille de palette et de
+   sac, et seul le BÂTIMENT s'allonge et se dresse. Tout ce qui en dépend suit tout seul,
+   parce que tout est écrit en fonction de W, D et H : l'emprise de collision, le point de
+   quai, l'auvent, l'étage technique et la cheminée.
+   MESURÉ AU DERNIER PALIER : l'encombrement passe de 19,10 à 21,61 m de profondeur et de
+   11,89 à 14,25 m de haut, soit trente-six pour cent de silhouette en plus. Il reste
+   alors 10,00 m de dégagement au nord et 8,71 m au sud — de quoi croiser deux engins de
+   front des deux côtés —, et la largeur n'a pas bougé d'un millimètre : 29,42 m avant,
+   29,42 m après, les mêmes 2,75 m jusqu'au silo et 1,77 m jusqu'à la citerne. C'est la
+   seule cote qui n'avait pas le choix, et c'est pour cela qu'elle n'a pas changé.
+   IL RESTE DE LA MARGE, ET ELLE EST DITE : à 1,50 au lieu de 1,30 le bâtiment monterait à
+   16,4 m et il resterait encore 8,5 m au nord. On s'arrête à 1,30 parce qu'au-delà l'ate-
+   lier dépasserait la moitié de la hauteur du silo et cesserait de se lire comme une halle
+   de ferme ; ce n'est pas la place qui manque, c'est la mesure. */
+const ATL_ETIRE = 1.30;
 function modeleAtelier(niveau){
   const g = new THREE.Group();
-  const W = 9.4 + niveau*0.50, D = 6.6 + niveau*0.19, H = 3.9 + niveau*0.26;
+  const W = 9.4 + niveau*0.50,
+        D = (6.6 + niveau*0.19)*ATL_ETIRE,
+        H = (3.9 + niveau*0.26)*ATL_ETIRE;
   g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:ATL.BARDAGE, y:0}));
   g.add(slab({w:W + 0.6, h:0.5, d:D + 0.6, tw:W + 0.1, td:D + 0.1, c:ATL.VERT, y:H}));
   for(let k = -3; k <= 3; k++)
@@ -12958,42 +13015,16 @@ const TRAFIC_MODELES = (function(){
     roues(P, 1.02, 2.3, -1.9, 0.46, 0.34, true);
     return P;
   }
-  /* 10 — Céréalier : nez court, benne haute à flancs évasés, deux trémies de vidange.
-     LA CITERNE A LAISSÉ LA PLACE À UN CÉRÉALIER. Le joueur : « supprime le camion avec la
-     citerne du trafic et remplace-le par un de ceux-là », en joignant une planche de cinq
-     camions et de sept ensembles articulés. C'est le CÉRÉALIER qu'on retient : un village
-     de ferme croise du grain, pas du lait en vrac, et c'est le seul de la planche qui
-     n'existe pas déjà sur la route — le camion à caisse tient le fourgon, le plateau à
-     bottes tient la marchandise ouverte, la benne tient le vrac lourd.
-     IL EST BÂTI AU GABARIT DU JEU, ET NON RECOPIÉ. Les ensembles articulés de la planche
-     font dix-neuf unités de long : trente mètres sur la route, quand le plus long
-     véhicule du trafic — l'autocar — en fait 13,55. On reprend donc la SILHOUETTE du
-     modèle 3 — nez court, benne haute à flancs évasés, et surtout les deux trémies
-     coniques de vidange qui pendent sous le châssis, à quoi se reconnaît un céréalier —
-     sur l'empattement de 7,20 que portait la citerne. Rien d'autre ne change : mêmes
-     feux, mêmes roues jumelées, même place dans la table. */
-  function cerealier(){
-    const CAB = robe(0x2F7D46), P = [];                  // vert de coopérative
-    P.push(B(2.2, 0.34, 7.2, CHASSIS, 0, 0.62, 0));
-    cabine(P, 2.24, 1.9, 2.1, CAB, 0.79, 2.4);
-    P.push(B(2.3, 0.22, 0.5, GRIS, 0, 0.64, 3.5));
-    // la benne : flancs évasés vers le haut, d'où le prisme à dessus élargi
-    P.push(slab({w:2.3, h:2.24, d:6.0, tw:2.62, td:6.1, c:0xD8B24A, y:0.96, z:-0.7}));
-    P.push(B(2.68, 0.2, 6.2, 0x9E7C24, 0, 3.30, -0.7));  // margelle de gueule
-    for(const dz of [-3.1, -1.5, 0.1, 1.7])              // raidisseurs de flanc
-      P.push(B(2.72, 0.13, 0.17, 0xB08F2C, 0, 2.1, dz));
-    /* LES DEUX TRÉMIES : c'est la signature, et elles sont LARGES EN HAUT. Un premier jet
-       les avait posées à l'envers — 2,20 au sol pour 0,85 sous la benne —, ce qui donnait
-       deux socles évasés qui dépassaient du châssis. Une trémie recueille : elle prend
-       toute la largeur de la caisse et se resserre sur sa vanne. */
-    for(const dz of [-2.5, 0.6])
-      P.push(slab({w:0.85, h:0.86, d:0.85, tw:2.2, td:2.0, c:0xC9A23E, y:0.10, z:dz}));
-    P.push(B(2.34, 2.24, 0.18, 0xC9A23E, 0, 0.96 + 1.12, -3.78));  // hayon arrière
-    P.push(B(0.3, 0.3, 1.1, INOX, 1.0, 2.6, 2.3));                  // pot d'échappement
-    feux(P, 0.82, 0.86, 3.52, -3.96);
-    roues(P, 1.02, 2.4, -1.9, 0.46, 0.34, true);
-    return P;
-  }
+  /* 10 — Céréalier : PARTI, ET C'ÉTAIT UNE ERREUR DE MA PART. Le joueur avait joint une
+     planche de camions américains en demandant qu'on remplace « le camion américain
+     citerne » par l'un d'eux ; j'avais retiré du trafic léger un porteur-citerne à lait
+     qui n'était pas celui-là, et posé à sa place un céréalier de mon invention, qui ne
+     ressemblait à rien de sa planche. Il a tranché : « enlève ton céréalier et mets ce
+     type de camion ». Il est donc retiré, et c'est l'ATTELAGE — le vrai camion américain,
+     plus bas — qui est refait d'après la planche. Ses trois parts de fréquence ne sont
+     pas redistribuées aux autres : elles vont à l'attelage, qui passe de sept à dix pour
+     cent, si bien que la part de gros véhicules sur la rocade ne bouge pas d'un cheveu
+     (voir PART_LOURD). */
   /* 11 — Camion-benne : caisse basculante, vérin, chargement de gravier.
      LES CINQ BLOCS DE GRAVIER SONT ÉCRITS, PAS TIRÉS AU SORT. La planche appelait
      Math.random() en les posant : deux ouvertures du jeu n'auraient pas donné le même
@@ -13144,13 +13175,16 @@ const TRAFIC_MODELES = (function(){
     roues(P, 0.96, 1.9, -1.7, 0.42, 0.3, true);
     return P;
   }
-  /* QUINZE, DEPUIS QUE LE PETIT FOURGON EST PARTI. Le joueur l'a montré du doigt sur une
-     capture : « supprime ce véhicule du trafic. » C'était le sosie de son propre fourgon —
-     même silhouette, même caisse fermée — et en croiser un sur la route revenait à voir
-     passer sa machine sans l'avoir envoyée. Tout ce qui suit son indice a reculé d'un cran :
-     les cinq tables positionnelles ont été retaillées ensemble, et le banc `trafic` avec. */
+  /* QUATORZE, DEPUIS QUE LE PETIT FOURGON ET LE CÉRÉALIER SONT PARTIS. Le fourgon
+     d'abord : le joueur l'a montré du doigt sur une capture — « supprime ce véhicule du
+     trafic » —, c'était le sosie de son propre fourgon, même silhouette et même caisse
+     fermée, et en croiser un revenait à voir passer sa machine sans l'avoir envoyée. Le
+     céréalier ensuite, qui n'aurait jamais dû être là : je l'avais inventé en croyant
+     remplacer un camion américain qu'il n'a jamais remplacé (voir plus bas). Tout ce qui
+     suit un départ recule d'un cran : les six tables positionnelles sont retaillées
+     ensemble, et le banc `trafic` avec. */
   const modeles = [berline, breakFamilial, citadine, betaillere, plateauBottes, monospace,
-                   pickup, camionCaisse, cerealier, benne, autocar,
+                   pickup, camionCaisse, benne, autocar,
                    campingCar, pompiers, postale, depanneuse];
   const geos = [], optiques = [], robes = [];
   for(const f of modeles){
@@ -13162,11 +13196,11 @@ const TRAFIC_MODELES = (function(){
 })();
 const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux;
 /* ---------- LES ROBES ----------
-   Quinze modèles, c'est quinze voitures. Or on ne croise pas quinze voitures dans un
-   village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
+   Quatorze modèles, c'est quatorze voitures. Or on ne croise pas quatorze voitures dans
+   un village : on en croise cinquante, dont beaucoup se ressemblent sans être identiques.
    Chaque modèle reçoit donc des robes de plus, et la sienne est tirée à la naissance.
-   Le compte exact, pour qui vient vérifier : douze modèles en reçoivent deux, le camion à
-   caisse trois, et trois n'en reçoivent aucune — quarante géométries en tout.
+   Le compte exact, pour qui vient vérifier : dix modèles en reçoivent deux, le camion à
+   caisse trois, et trois n'en reçoivent aucune — trente-sept géométries en tout.
 
    ET PLUS UN SEUL ROUGE SUR LA ROCADE. Le joueur pilote un tracteur rouge : « je veux
    plus de rouge, puisque moi je l'ai en tant que véhicule perso, je veux pas qu'on
@@ -13186,8 +13220,8 @@ const TRAFIC_GEOS = TRAFIC_MODELES.geos, TRAFIC_FEUX = TRAFIC_MODELES.feux;
    troisième. On PARTAGE donc les deux premiers : `setAttribute` accepte le même objet
    d'attribut dans deux géométries, et le processeur graphique ne téléverse le sommet
    qu'une fois. Une robe coûte un tiers d'un modèle, et non un modèle entier — mesuré,
-   1 302 Kio d'attributs pour les carrosseries et 2 032 pour les quarante géométries, là
-   où autant de géométries pleines en pèseraient plus du double.
+   1 302 Kio d'attributs pour les carrosseries et 2 032 pour les quarante géométries de
+   l'époque, là où autant de géométries pleines en pèseraient plus du double.
 
    La variante ne remplace QUE la robe : les vitres, les pneus, les jantes, le chrome,
    les feux, la paille du plateau et le gravier de la benne gardent leur couleur. Et
@@ -13221,7 +13255,6 @@ const ROBES_TRAFIC = [
      Le joueur a demandé une caisse blanche, pas une cabine de moins : on ne lui retire pas
      une couleur qu'il n'a pas mise en cause. */
   [0x4A5560, 0x6B7040, 0xD8D2C0], // camion à caisse : ardoise, kaki, crème
-  [0xD8D2C0, 0x9AA2A7],           // céréalier : crème, inox
   [0xE07B24, 0x7A6A52],           // benne : orange, brun-taupe
   [],                             // autocar : il reste JAUNE, et rien d'autre
   [0xE4DCC0, 0xCFD6DA],           // camping-car : sable, gris perle
@@ -13270,25 +13303,28 @@ const TRAFIC_ROBES = (function(){
     return liste;
   });
 })();
-/* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Quinze modèles tirés à égalité feraient passer un
-   camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les quinze
-   voitures : une rocade de village n'a pas cette allure. Les poids se lisaient comme un
-   pourcentage — ils faisaient cent — et depuis le retrait du petit fourgon ils font
-   quatre-vingt-douze, pour la raison dite plus bas : on préfère qu'aucun autre véhicule
+/* CE QUI PASSE, ET À QUELLE FRÉQUENCE. Quatorze modèles tirés à égalité feraient passer
+   un camion de pompiers aussi souvent qu'une berline, et une dépanneuse toutes les
+   quatorze voitures : une rocade de village n'a pas cette allure. Les poids se lisaient
+   comme un pourcentage — ils faisaient cent — et après deux retraits ils font
+   quatre-vingt-neuf, pour la raison dite plus bas : on préfère qu'aucun autre véhicule
    n'ait bougé à ce que la somme soit ronde. Ils tiennent dans l'esprit des deux autres
    tirages du trafic, PART_LOURD et PART_VIRAGE, qui sont eux aussi des parts en clair.
    Et les gros roulent MOINS. Sur une route de campagne on croise des voitures ; un
-   camion-benne, un autocar, une dépanneuse sont des événements. Voitures 64 %,
-   utilitaires 10 %, camions de travail 18 %, car et camping-car 6 %, secours 2 %. */
-/* ET LA SOMME NE FAIT PLUS CENT, MAIS QUATRE-VINGT-DOUZE — À DESSEIN. Le petit fourgon
-   pesait huit parts ; en le retirant, on aurait pu redistribuer ses huit points pour
-   retomber sur cent ronds. On ne le fait pas : `tirerModele` divise par le total de la
-   table, donc laisser les quinze autres INTACTS garde à chacun sa fréquence relative
-   exacte — une berline reste aussi fréquente qu'avant vis-à-vis d'une citadine, et l'on
-   n'a pas déguisé un retrait en rééquilibrage. Ce qu'on perd est la lecture directe en
-   pourcentage ; ce qu'on gagne est qu'aucun autre véhicule n'a bougé. */
+   camion-benne, un autocar, une dépanneuse sont des événements. Sur les quatre-vingt-neuf
+   parts : voitures 62 %, utilitaires 12 %, camions de travail 17 %, car et camping-car
+   7 %, secours 2 %. */
+/* ET LA SOMME NE FAIT PLUS CENT, MAIS QUATRE-VINGT-NEUF — À DESSEIN. Le petit fourgon
+   pesait huit parts, le céréalier trois ; en les retirant, on aurait pu redistribuer
+   leurs onze points pour retomber sur cent ronds. On ne le fait pas : `tirerModele`
+   divise par le total de la table, donc laisser les quatorze autres INTACTS garde à
+   chacun sa fréquence relative exacte — une berline reste aussi fréquente qu'avant
+   vis-à-vis d'une citadine, et l'on n'a pas déguisé un retrait en rééquilibrage. Ce qu'on
+   perd est la lecture directe en pourcentage ; ce qu'on gagne est qu'aucun autre véhicule
+   n'a bougé. Les trois parts du céréalier, elles, ne se perdent pas non plus : elles vont
+   à l'ATTELAGE, qui passe de sept à dix pour cent — voir PART_LOURD. */
 const POIDS_TRAFIC = [17, 13, 16,  4,  4,  9,      // berline, break, citadine, bétaillère, bottes, monospace
-                       9,  4,  3,  3,  3,          // pick-up, caisse, céréalier, benne, autocar
+                       9,  4,  3,  3,              // pick-up, caisse, benne, autocar
                        3,  1,  2,  1];             // camping-car, pompiers, postale, dépanneuse
 /* ET L'ALLURE DE CHACUN. Un autocar, un camping-car et un camion-benne ne roulent pas
    comme une citadine — mais L'ÉVENTAIL RESTE ÉTROIT, entre 0,90 et 1,05, et c'est une
@@ -13296,12 +13332,12 @@ const POIDS_TRAFIC = [17, 13, 16,  4,  4,  9,      // berline, break, citadine, 
    rattrape immanquablement une voiture lente, si loin devant soit-elle, et le créneau
    n'existe alors pour personne. Quinze pour cent d'écart se voient sans rien casser. */
 const ALLURE_TRAFIC = [1.05, 1.00, 1.04, 0.92, 0.92, 1.00,
-                       1.02, 0.92, 0.92, 0.90, 0.90,
+                       1.02, 0.92, 0.90, 0.90,
                        0.90, 0.95, 0.96, 0.94];
 // Un PORTEUR est un camion rigide : il roule sur le ressort long, celui de l'attelage,
 // et non sur celui d'une voiture. C'est ce qui fait qu'une caisse haute dodeline.
 const PORTEUR_TRAFIC = [false, false, false, true, true, false,
-                        false, true, true, true, true,
+                        false, true, true, true,
                         false, true, false, true];
 /* ET LES DIX DERNIERS ARRIVÉS PÈSENT UN PEU PLUS. Les six modèles d'origine avaient été
    dessinés à une échelle qui leur est propre : leurs deux camions font 3,81 m de large,
@@ -13318,15 +13354,15 @@ const PORTEUR_TRAFIC = [false, false, false, true, true, false,
    Le facteur est donc RABOTÉ modèle par modèle par la hauteur libre, au lieu d'être écrit
    à la main : c'est un calcul, il se refait tout seul si un modèle grandit ou si les
    lampadaires bougent. La réserve de 45 cm couvre les 30 cm de suspension mesurés et
-   laisse 15 cm de jeu au pire. Sur les quinze, TROIS sont rabotés — le camion à caisse
-   (1,0659), la citerne à lait (1,0628) et l'autocar (1,0754), qui montent à six ou sept
-   pour cent au lieu de huit.
+   laisse 15 cm de jeu au pire. Sur les quatorze, DEUX sont rabotés — le camion à caisse
+   (1,0659) et l'autocar (1,0754), qui montent à six ou sept pour cent au lieu de huit.
    ILS ÉTAIENT QUATRE, et cette phrase l'a écrit trop longtemps : le camping-car en est
    sorti le jour où sa couchette a cessé de flotter au-dessus de sa cabine — son point
    haut est tombé de 3,59 à 3,19, son plafond est passé à 1,1327, et il tient largement
-   ses 1,08. Il lui reste 43 cm sous l'ampoule, là où l'autocar n'en garde que 16. */
+   ses 1,08. Il lui reste 43 cm sous l'ampoule, là où l'autocar n'en garde que 16.
+   ILS SONT DEUX AUJOURD'HUI : le céréalier était le troisième, et il est parti. */
 const TAILLE_TRAFIC = [1, 1, 1, 1, 1, 1,
-                       1.08, 1.08, 1.08, 1.08, 1.08,
+                       1.08, 1.08, 1.08, 1.08,
                        1.08, 1.08, 1.08, 1.08];
 const POIDS_TOTAL = POIDS_TRAFIC.reduce((a, b)=> a + b, 0);
 function tirerModele(){
@@ -13334,102 +13370,304 @@ function tirerModele(){
   for(let k = 0; k < POIDS_TRAFIC.length; k++){ r -= POIDS_TRAFIC[k]; if(r < 0) return k; }
   return 0;
 }
-/* CAMION DE LIVRAISON : UN TRACTEUR ROUTIER ET SA CITERNE, ET RIEN D'AUTRE.
-   Il avait trois remorques interchangeables — citerne, plateau à tracteur sanglé,
-   fourgon. On n'en garde qu'une, à la demande : la citerne. Le plateau et le fourgon
-   restent écrits ci-dessous parce qu'ils ne coûtent rien tant qu'on ne les fabrique
-   pas — la fonction n'est jamais appelée — et qu'ils diraient, si on les rappelait un
-   jour, comment était bâtie la famille.
-   Tout est fusionné en une géométrie par attelage — un seul appel de rendu chacun. */
+/* L'ATTELAGE AMÉRICAIN, REPRIS DE LA PLANCHE DU JOUEUR.
+   Il a d'abord été un camion orange dessiné ici, puis on a cru le remplacer en retirant
+   du trafic léger un porteur-citerne qui n'était pas lui, puis on a mis à sa place un
+   céréalier inventé. Trois fois à côté. Le joueur a joint une planche — sept ensembles
+   articulés, tracteur américain à cheminées, sellette reculée, remorques citerne, caisse
+   et frigorifique — et a écrit : « enlève ton céréalier et mets ce type de camion ».
+   C'EST DONC LA PLANCHE QUI EST RECOPIÉE, cote pour cote, et non une silhouette qu'on en
+   aurait tirée. Le tracteur est celui de la planche — capot court, calandre chromée à
+   huit barres, phares et clignotants posés sur la face avant, ailes au-dessus des roues
+   directrices, couchette, deux cheminées, réservoirs de flanc dans l'axe, et surtout la
+   SELLETTE REPORTÉE À 3,40 DERRIÈRE LE MILIEU, ce qui laisse la remorque pivoter sans
+   venir taper la couchette. Les trois remorques de route de la planche le suivent.
+   TROIS REMORQUES, ET NON QUATRE. La planche en montre une quatrième, le grumier :
+   il n'y a pas de forêt sur cette carte, et sa cabine brun-rouge tomberait sous la règle
+   du joueur — plus une seule carrosserie rouge sur la rocade hors le camion de pompiers.
+   Les trois retenues sont celles qu'on croise en pays de culture.
+   TROIS CHOSES SEULEMENT ONT ÉTÉ CHANGÉES, et les voici en clair :
+   — LES CHEMINÉES SONT RACCOURCIES de 4,00 à 3,00. Sur la planche elles montent à 4,85
+     quand le pavillon de la cabine est à 3,80 : un mètre de tuyau au-dessus du toit. Sur
+     un plateau tournant cela se regarde ; sur la rocade, c'est ce tuyau — et rien
+     d'autre — qui aurait décidé de la taille de tout l'attelage, puisque la hauteur libre
+     sous les lampadaires est ce qui rabote (voir ECH_LOURD plus bas). Le camion aurait
+     rétréci d'un cinquième pour loger un tube.
+   — LE GROUPE FROID DU FRIGORIFIQUE DESCEND de 6 cm, pour affleurer le pavillon de la
+     caisse au lieu de le dépasser de 23. Même raison, et c'est aussi ce que fait un vrai.
+   — LES BÉQUILLES DES REMORQUES SONT RELEVÉES : voir `beequille` plus bas.
+   Tout est fusionné en une géométrie par pièce — un appel de rendu pour le tracteur, un
+   pour la remorque, quelle que soit la remorque tirée. */
 const CAMIONS_GEOS = (function(){
-  const B = (w,h,d,x,y,z,c)=>({g:new THREE.BoxGeometry(w,h,d),
-    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
-  const CY = (r,h,seg,x,y,z,c,rx,rz)=>({g:new THREE.CylinderGeometry(r,r,h,seg),
-    m:new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx||0,0,rz||0)).setPosition(x,y,z), c});
-  const rou = (x,z,dbl)=>{
-    const a = [CY(0.72,0.42,10, x,0.72,z, 0x2A2622, 0,Math.PI/2)];
-    if(dbl) a.push(CY(0.72,0.42,10, x + (x<0?-0.5:0.5),0.72,z, 0x2A2622, 0,Math.PI/2));
-    return a;
+  const NOIR = 0x2A2622, VITRE = 0x22303A, CREME = 0xF2E7D2, INOX = 0xC9CFD3,
+        CHROME = 0xE4EAEE, GRIS = 0x8A9298, GRIS2 = 0x6E767C, CHASSIS = 0x3A3630,
+        BLEU = 0x2E6BA8, CITERNE = 0xD8DEE2, CAISSE = 0xEFEAE0,
+        /* Le rouge des feux ne sert QU'aux feux, comme dans le trafic léger : c'est la
+           règle qui a déjà sauvé le camion à caisse d'avoir des feux bleus. */
+        ROUGE_FEU = 0xC0392B, AMBRE = 0xE8A62E;
+  const T = (x,y,z)=> new THREE.Matrix4().makeTranslation(x||0, y||0, z||0);
+  const B = (w,h,d, c, x,y,z)=>({g:new THREE.BoxGeometry(w,h,d), m:T(x,y,z), c});
+  const CY = (r,h,seg, c, x,y,z, rx,rz)=>({g:new THREE.CylinderGeometry(r,r,h,seg),
+    m:new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx||0,0,rz||0))
+                         .setPosition(x||0,y||0,z||0), c});
+  /* UNE VIROLE EST UN CYLINDRE SANS SES DEUX DISQUES. Un cerclage serre un fût ou un
+     réservoir : ses deux faces plates sont enfouies dans le volume qu'il ceint, et on ne
+     les verra jamais. Un cylindre fermé à quatorze côtés coûte cinquante-six triangles,
+     ouvert vingt-huit : la moitié, pour exactement les mêmes pixels. Neuf cerclages sur
+     un attelage — quatre sur les réservoirs du tracteur, cinq sur le fût de la citerne —,
+     c'est 220 triangles rendus sans qu'un seul point de l'image change. */
+  const VIR = (r,h,seg, c, x,y,z, rx,rz)=>({
+    g:new THREE.CylinderGeometry(r,r,h,seg,1,true),
+    m:new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx||0,0,rz||0))
+                         .setPosition(x||0,y||0,z||0), c});
+  // Le prisme à dessus rétréci de la planche : ici, le capot. Enroulement du trafic —
+  // la matière n'a qu'une face, un prisme retourné se verrait de l'intérieur.
+  function slab(o){
+    const w = o.w, h = o.h, d = o.d;
+    const tw = o.tw === undefined ? w : o.tw, td = o.td === undefined ? d : o.td;
+    const dx = o.dx || 0, dz = o.dz || 0;
+    const x0 = -w/2, x1 = w/2, z0 = -d/2, z1 = d/2;
+    const X0 = dx - tw/2, X1 = dx + tw/2, Z0 = dz - td/2, Z1 = dz + td/2;
+    const v = [x0,0,z0, x1,0,z0, x1,0,z1, x0,0,z1, X0,h,Z0, X1,h,Z0, X1,h,Z1, X0,h,Z1];
+    const f = [[0,1,2],[0,2,3],[4,6,5],[4,7,6],[0,5,1],[0,4,5],
+               [1,6,2],[1,5,6],[2,7,3],[2,6,7],[3,4,0],[3,7,4]];
+    const pos = [];
+    for(const t of f) for(const i of t) pos.push(v[i*3], v[i*3+1], v[i*3+2]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    return {g, m:T(o.x, o.y, o.z), c:o.c};
+  }
+  /* LES ROUES DE LA PLANCHE : pneu et moyeu chromé, jumelage VERS L'INTÉRIEUR, et une
+     barre d'essieu entre les deux pneus jumelés. Le pneu est à huit côtés et le moyeu à
+     six — la planche les tourne à dix et huit, mais un attelage porte DIX-HUIT roues, et
+     dix-huit roues à dix côtés avec leur moyeu pèsent 1 296 triangles, soit près de la
+     moitié de l'attelage. À la taille où on les croise sur la rocade, huit côtés ne se
+     distinguent pas de dix : on en descend à 816. */
+  function roues(P, ecart, positions, r, l, jumele){
+    for(const z of positions) for(const s of [-1, 1]){
+      const liste = jumele ? [ecart, ecart - l*1.15] : [ecart];
+      for(let i = 0; i < liste.length; i++){
+        P.push(CY(r, l, 8, NOIR, s*liste[i], r, z, 0, Math.PI/2));
+        // Le moyeu chromé, sur la roue EXTÉRIEURE seulement : celui de la roue
+        // intérieure a sa face dehors enfouie dans le pneu d'à côté et sa face dedans
+        // contre le châssis. Vingt-quatre triangles chacun, huit roues par attelage.
+        if(i === 0) P.push(CY(r*0.52, l + 0.05, 6, CHROME, s*liste[i], r, z, 0, Math.PI/2));
+      }
+      if(jumele) P.push(CY(0.08, l*1.2, 6, GRIS, s*(ecart - l*0.58), r, z, 0, Math.PI/2));
+    }
+  }
+  // La rampe de feux de gabarit : cinq billes en ligne, sur le pavillon et sur la couchette.
+  function feuxGabarit(P, w, y, z, n, c){
+    for(let k = 0; k < n; k++)
+      P.push(B(0.16, 0.1, 0.12, c || AMBRE, -w/2 + (k + 0.5)*(w/n), y, z));
+  }
+  // Les feux arrière d'une remorque, à l'aplomb du dernier longeron.
+  function feuxArriere(P, w, y, z){
+    for(const sx of [-w, w]){
+      P.push(B(0.34, 0.26, 0.12, 0x2A2E32, sx, y, z));
+      P.push(B(0.26, 0.18, 0.1, ROUGE_FEU, sx, y, z - 0.05));
+    }
+  }
+  /* LES BÉQUILLES SONT RELEVÉES, et c'est la troisième chose changée à la planche. Elle
+     les pose au sol, ce qui est juste pour une remorque dételée sur un plateau tournant ;
+     sur la rocade, elles labouraient le bitume à quatre-vingts à l'heure. Elles pendent
+     donc sous le châssis, à quatre-vingts centimètres du sol une fois l'attelage à
+     l'échelle — ce que fait un semi qui roule. */
+  const beequille = (P, z)=>{
+    for(const sx of [-0.8, 0.8]){
+      P.push(B(0.18, 0.62, 0.18, GRIS2, sx, 1.0, z));
+      P.push(B(0.34, 0.12, 0.34, GRIS, sx, 0.72, z));
+    }
   };
-  const CAB = 0xE07B24, CAB2 = 0xB35F17, SOMBRE = 0x22303A, CREME = 0xF2E7D2, CHASSIS = 0x453D34;
-  const tracteur = ()=>{
-    let P = [
-      B(2.3,0.34,7.4, 0,0.86,0.9, CHASSIS),
-      B(2.2,1.25,3.0, 0,1.65,3.5, CAB),                 // capot
-      B(2.05,1.0,0.3, 0,1.15,5.05, CREME),              // calandre
-      B(2.45,0.22,0.7, 0,0.72,4.95, CREME),
-      /* LES PHARES POSÉS SUR LA CALANDRE, NON ENFONCÉS DEDANS. Ils étaient à z = 5,08 sur
-         une épaisseur de 0,16, donc de 5,00 à 5,16 — quand la calandre, elle, avance
-         jusqu'à 5,20. La face avant du phare était DERRIÈRE celle de la calandre : il n'en
-         dépassait que deux liserés de vingt centimètres sur les côtés, et le camion
-         paraissait n'avoir pas de phares du tout. C'est le patron du monospace qu'on
-         reprend — entourage sombre, lentille par-dessus —, calé pour rester en deçà du
-         pare-chocs (5,30) : le porte-à-faux avant ne bouge donc pas, et avec lui la ligne
-         d'arrêt aux carrefours. */
-      B(0.46,0.34,0.12, -1.02,1.5,5.20, 0x2A2E32), B(0.46,0.34,0.12, 1.02,1.5,5.20, 0x2A2E32),
-      B(0.38,0.26,0.10, -1.02,1.5,5.26, 0xFFF3C4), B(0.38,0.26,0.10, 1.02,1.5,5.26, 0xFFF3C4),
-      B(2.3,1.95,2.4, 0,2.15,1.3, CAB),                 // cabine
-      B(2.2,0.95,0.16, 0,2.4,2.48, SOMBRE),             // pare-brise
-      B(0.14,0.85,1.5, -1.17,2.45,1.35, SOMBRE),        // vitres latérales
-      B(0.14,0.85,1.5,  1.17,2.45,1.35, SOMBRE),
-      B(0.14,0.6,0.9, -1.17,2.35,-0.9, SOMBRE),         // hublots de couchette
-      B(0.14,0.6,0.9,  1.17,2.35,-0.9, SOMBRE),
-      B(2.3,1.8,2.2, 0,2.1,-0.9, CAB),                  // couchette
-      B(2.4,0.5,2.3, 0,3.1,-0.8, CAB2),
-      CY(0.19,3.4,8, -1.24,1.9,0.1, CREME), CY(0.19,3.4,8, 1.24,1.9,0.1, CREME),
-      CY(0.55,2.6,10, -1.25,0.85,0.4, CREME, Math.PI/2), CY(0.55,2.6,10, 1.25,0.85,0.4, CREME, Math.PI/2),
-      B(1.4,0.18,1.6, 0,1.12,-1.6, CHASSIS)
-    ];
-    return P.concat(rou(-1.15,3.7), rou(1.15,3.7),
-                    rou(-1.15,-0.4,true), rou(1.15,-0.4,true),
-                    rou(-1.15,-1.8,true), rou(1.15,-1.8,true));
+  const bavette = (P, x, z, c)=>{
+    P.push(B(0.62, 0.5, 0.06, 0x22262A, x, 0.28, z));
+    P.push(B(0.5, 0.16, 0.08, c || CHROME, x, 0.44, z - 0.02));
   };
-  const citerne = ()=> [
-    B(2.5,0.3,10.0, 0,1.05,-6.6, CHASSIS),
-    CY(1.42,9.4,14, 0,2.4,-6.6, 0xEDE4CE, Math.PI/2),
-    CY(1.44,0.3,14, 0,2.4,-2.0, 0xC2B189, Math.PI/2),
-    CY(1.44,0.3,14, 0,2.4,-11.2, 0xC2B189, Math.PI/2),
-    B(2.9,0.14,9.2, 0,1.35,-6.6, 0xC2B189)
-  ].concat(rou(-1.2,-9.4,true), rou(1.2,-9.4,true), rou(-1.2,-10.8,true), rou(1.2,-10.8,true));
-  const plateau = ()=> [
-    B(2.6,0.34,10.4, 0,1.02,-6.8, 0x5C5042),
-    B(2.0,1.0,3.0, 0,1.8,-6.5, 0x2F7D46),               // tracteur de ferme sanglé
-    B(1.7,1.1,1.5, 0,2.75,-6.0, SOMBRE),
-    B(1.8,0.3,1.7, 0,3.35,-6.0, 0x2F7D46),
-    B(2.7,0.1,0.14, 0,2.0,-4.6, 0xF0C24A), B(2.7,0.1,0.14, 0,2.0,-8.4, 0xF0C24A)
-  ].concat(rou(-1.2,-9.8,true), rou(1.2,-9.8,true), rou(-1.2,-11.2,true), rou(1.2,-11.2,true));
-  const fourgon = ()=> [
-    B(2.5,0.3,10.0, 0,1.0,-6.5, CHASSIS),
-    B(2.6,3.2,9.8, 0,2.9,-6.5, 0xF0EADA),
-    B(2.66,0.28,9.86, 0,4.5,-6.5, 0xC2B189),
-    B(1.4,1.6,0.12, 0,2.6,-11.46, CAB)
-  ].concat(rou(-1.2,-9.3,true), rou(1.2,-9.3,true), rou(-1.2,-10.7,true), rou(1.2,-10.7,true));
-  // Tracteur et remorques restent DEUX objets distincts : c'est ce qui permet à la
-  // remorque de suivre en pivotant au lieu d'être soudée à la cabine.
-  const DEC = 1.6;                                   // la sellette devient l'origine
+  // Le pivot de sellette, porté par la remorque : c'est là que l'ensemble s'articule.
+  const cheville = (P, yS, zSel)=>{
+    P.push(CY(0.16, 0.3, 8, GRIS2, 0, yS - 0.16, zSel));
+    P.push(B(2.3, 0.18, 1.6, 0x2E2A26, 0, yS - 0.02, zSel - 0.1));
+  };
+  /* LE TRACTEUR. Le vitrage est UNE SEULE TRANCHE qui fait le tour : pare-brise et
+     vitres latérales ont donc forcément la même hauteur, et les montants d'angle se
+     posent par-dessus. La ceinture monte au-dessus du capot, sinon le capot masque le
+     bas du pare-brise et celui-ci paraît plus court que les côtés. */
+  const Y_SELLETTE = 1.22, Z_SELLETTE = -3.4;
+  function tracteur(couleur, couchette){
+    const P = [], zCab = 0.4, wCab = 2.5, dCab = 1.95;
+    const y0 = 1.35, hC = 1.16, hV = 0.95, hT = 0.34;
+    P.push(B(2.4, 0.4, 9.2, CHASSIS, 0, 0.72, -1.2));
+    for(const sx of [-1, 1]) P.push(B(0.22, 0.5, 9.0, 0x2E2A26, sx*0.92, 0.72, -1.2));
+    for(let k = 0; k < 5; k++) P.push(B(2.2, 0.16, 0.22, 0x2E2A26, 0, 0.62, -3.6 + k*1.2));
+    P.push(slab({w:2.3, h:1.55, d:2.45, tw:2.1, td:2.2, dz:-0.1, c:couleur, y:0.92, z:2.5}));
+    P.push(B(1.9, 1.3, 0.16, CHROME, 0, 1.66, 3.7));                    // calandre
+    for(let k = 0; k < 8; k++) P.push(B(1.62, 0.07, 0.1, 0x9BA3A8, 0, 1.14 + k*0.16, 3.78));
+    P.push(B(2.44, 0.34, 0.5, CHROME, 0, 0.9, 3.76));                   // pare-chocs
+    for(const sx of [-1, 1]){
+      P.push(B(0.5, 0.42, 0.16, couleur, sx*1.06, 1.62, 3.72));
+      P.push(B(0.42, 0.34, 0.12, 0x2A2E32, sx*1.06, 1.62, 3.8));
+      P.push(B(0.34, 0.26, 0.1, 0xFFF6CC, sx*1.06, 1.62, 3.85));        // optique
+      P.push(B(0.4, 0.14, 0.1, AMBRE, sx*1.06, 1.3, 3.83));             // clignotant
+      P.push(B(0.72, 0.18, 2.0, couleur, sx*1.2, 1.5, 2.8));            // ailes
+      P.push(B(0.72, 0.55, 0.14, couleur, sx*1.2, 1.24, 3.78));
+    }
+    P.push(B(wCab, hC, dCab, couleur, 0, y0 + hC/2, zCab));
+    P.push(B(wCab, hV, dCab, VITRE, 0, y0 + hC + hV/2, zCab));
+    P.push(B(wCab + 0.16, hT, dCab + 0.16, couleur, 0, y0 + hC + hV + hT/2, zCab));
+    for(const sx of [-1, 1]) for(const sz of [-1, 1])
+      P.push(B(0.15, hV, 0.15, couleur, sx*(wCab/2 - 0.075), y0 + hC + hV/2,
+               zCab + sz*(dCab/2 - 0.075)));
+    for(const yy of [y0 + hC + 0.03, y0 + hC + hV - 0.03])
+      P.push(B(wCab + 0.02, 0.06, dCab + 0.02, couleur, 0, yy, zCab));
+    if(couchette){
+      P.push(B(wCab, 2.3, 2.1, couleur, 0, y0 + 1.15, zCab - 2.05));
+      P.push(B(wCab + 0.14, 0.24, 2.2, couleur, 0, y0 + 2.4, zCab - 2.05));
+      for(const sx of [-1, 1])
+        P.push(B(0.1, 0.7, 0.6, VITRE, sx*(wCab/2 + 0.02), y0 + 1.7, zCab - 1.6));
+      feuxGabarit(P, 1.8, y0 + 2.58, zCab - 1.05, 5);
+    }
+    feuxGabarit(P, 1.9, y0 + hC + hV + hT + 0.06, zCab + dCab/2 + 0.06, 5);
+    const HCHEM = 3.0;                                                  // 4,00 sur la planche
+    for(const sx of [-1, 1]){
+      P.push(CY(0.15, HCHEM, 8, CHROME, sx*(wCab/2 + 0.28), 0.8 + HCHEM/2,
+                zCab - (couchette ? 2.5 : 1.1)));
+      P.push(CY(0.19, 0.3, 8, GRIS2, sx*(wCab/2 + 0.28), 0.8 + HCHEM - 0.1,
+                zCab - (couchette ? 2.5 : 1.1)));
+    }
+    // Réservoirs : l'axe suit la LONGUEUR du camion — rotation autour de X, pas de Z.
+    for(const sx of [-1, 1]){
+      P.push(CY(0.42, 2.2, 10, CHROME, sx*1.16, 0.85, 0.2, Math.PI/2));
+      for(const dz of [-0.75, 0.75])
+        P.push(VIR(0.45, 0.12, 10, GRIS2, sx*1.16, 0.85, 0.2 + dz, Math.PI/2));
+      P.push(B(0.62, 0.08, 0.5, GRIS2, sx*1.18, 0.98, 1.75));
+      P.push(B(0.62, 0.08, 0.5, GRIS2, sx*1.18, 0.66, 1.75));
+    }
+    P.push(B(1.8, 0.24, 1.7, GRIS2, 0, 1.02, Z_SELLETTE));              // sellette
+    P.push(B(1.9, 0.12, 1.8, GRIS, 0, 1.16, Z_SELLETTE));
+    P.push(B(0.26, 0.5, 0.26, GRIS2, 0, 0.77, Z_SELLETTE));
+    for(const sx of [-1, 1])
+      P.push(B(0.16, 0.1, 1.3, GRIS, sx*0.8, 1.22, Z_SELLETTE - 0.3));
+    roues(P, 1.12, [2.85], 0.62, 0.36, false);
+    roues(P, 1.12, [-2.9, -4.3], 0.62, 0.36, true);
+    return P;
+  }
+  /* LES REMORQUES. Chacune se cale sur la sellette : son nez démarre 0,35 derrière le
+     pivot, et sa cheville se pose dessus. Elles sont décrites dans les coordonnées du
+     TRACTEUR — c'est ainsi que la planche les écrit —, puis `decale` reporte l'origine
+     sur la sellette, parce que c'est là que le jeu accroche le maillage de la remorque. */
+  const yS = Y_SELLETTE;
+  function citerne(){
+    const P = [], R = 1.35, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    P.push(CY(R, L, 14, CITERNE, 0, yS + R + 0.1, zc, Math.PI/2));      // le fût, dans l'axe
+    for(let k = 0; k < 5; k++)                                          // cerclages
+      P.push(VIR(R + 0.05, 0.16, 14, 0xA8B0B5, 0, yS + R + 0.1,
+                 zc - L/2 + 1.4 + k*(L - 2.8)/4, Math.PI/2));
+    P.push(CY(R*0.98, 0.2, 14, 0xB9C1C6, 0, yS + R + 0.1, zc + L/2 + 0.06, Math.PI/2));
+    for(const dz of [-3.2, 0.4]){                                       // trous d'homme
+      P.push(CY(0.42, 0.22, 8, GRIS, 0, yS + R + 1.4, zc + dz));
+      P.push(CY(0.3, 0.1, 6, GRIS2, 0, yS + R + 1.52, zc + dz));
+    }
+    P.push(B(0.3, 0.3, L - 1.0, GRIS, 0, yS + R + 1.36, zc));           // passerelle
+    for(const sx of [-1, 1]) for(let k = 0; k < 9; k++)                 // garde-corps
+      P.push(B(0.06, 0.4, 0.06, GRIS2, sx*0.42, yS + R + 1.6, zc - 4.8 + k*1.2));
+    P.push(B(0.5, 0.9, 0.5, GRIS2, 0, yS + 0.4, zc - L/2 + 0.6));       // vannes de vidange
+    for(const sx of [-1, 1])
+      P.push(B(0.16, 1.6, 1.2, GRIS2, sx*1.15, yS + 0.5, zc + 1.2));    // coffres latéraux
+    cheville(P, yS, Z_SELLETTE);
+    beequille(P, zc + L/2 - 2.2);
+    roues(P, 1.12, [zc - L/2 + 3.0, zc - L/2 + 1.6], 0.55, 0.34, true);
+    feuxArriere(P, 0.9, 0.9, zc - L/2 - 0.1);
+    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 0.95, ROUGE_FEU);
+    return {P:P, feux:{w:0.9, y:0.9, zAr:zc - L/2 - 0.15},
+            essieu:Z_SELLETTE - (zc - L/2 + 2.3)};
+  }
+  function caisse(){
+    const P = [], W = 2.6, H = 2.9, L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    P.push(B(W, H, L, CAISSE, 0, yS + 0.05 + H/2, zc));
+    P.push(B(W + 0.12, 0.24, L + 0.12, 0xD8D2C4, 0, yS + 0.05 + H, zc));   // pavillon
+    P.push(B(W + 0.1, 0.22, L + 0.1, 0xD8D2C4, 0, yS + 0.16, zc));         // ceinture basse
+    for(let k = 0; k < 9; k++)                                             // nervures
+      P.push(B(W + 0.05, H - 0.4, 0.09, 0xE2DCD0, 0, yS + 0.05 + H/2,
+               zc - L/2 + 0.8 + k*(L - 1.6)/8));
+    P.push(B(W - 0.1, H - 0.3, 0.14, 0xE4DED2, 0, yS + 0.05 + H/2, zc - L/2 - 0.03));
+    P.push(B(0.08, H - 0.3, 0.16, 0xC9C0B0, 0, yS + 0.05 + H/2, zc - L/2 - 0.09));
+    for(const sx of [-0.85, -0.4, 0.4, 0.85])                              // barres de fermeture
+      P.push(CY(0.07, H - 0.5, 6, GRIS, sx, yS + 0.05 + H/2, zc - L/2 - 0.12));
+    P.push(B(1.5, 0.6, 0.14, BLEU, 0, yS + 2.4, zc + L/2 + 0.02));         // marquage
+    cheville(P, yS, Z_SELLETTE);
+    beequille(P, zc + L/2 - 2.4);
+    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
+    feuxGabarit(P, 2.0, yS + 0.05 + H + 0.2, zc - L/2 - 0.05, 5, ROUGE_FEU);
+    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
+    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+            essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
+  }
+  function frigo(){
+    const P = [], W = 2.6, H = 2.9, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    P.push(B(W, H, L, CREME, 0, yS + 0.05 + H/2, zc));
+    P.push(B(W + 0.12, 0.24, L + 0.12, 0xD8D2C4, 0, yS + 0.05 + H, zc));
+    for(let k = 0; k < 7; k++)
+      P.push(B(W + 0.05, H - 0.5, 0.09, 0xE8E2D6, 0, yS + 0.05 + H/2,
+               zc - L/2 + 1.0 + k*(L - 2)/6));
+    // Le groupe froid coiffe l'avant de la caisse : sur la planche il la dépasse de 23 cm,
+    // ici il l'affleure — c'est ce que fait un vrai, et c'est 23 cm rendus à tout l'attelage.
+    P.push(B(2.0, 1.5, 0.6, INOX, 0, yS + H - 0.41, zc + L/2 + 0.3));
+    P.push(B(1.7, 0.16, 0.1, GRIS2, 0, yS + H + 0.09, zc + L/2 + 0.62));
+    for(let k = 0; k < 4; k++)
+      P.push(B(1.5, 0.08, 0.12, GRIS, 0, yS + H - 0.81 + k*0.2, zc + L/2 + 0.62));
+    P.push(CY(0.42, 0.16, 10, GRIS2, 0, yS + H - 0.56, zc + L/2 + 0.64, Math.PI/2));
+    P.push(B(W - 0.1, H - 0.3, 0.14, 0xEDE7DB, 0, yS + 0.05 + H/2, zc - L/2 - 0.03));
+    P.push(B(1.4, 0.5, 0.14, 0x3E7CB8, 0, yS + 1.9, zc + L/2 - 0.2));
+    cheville(P, yS, Z_SELLETTE);
+    beequille(P, zc + L/2 - 2.4);
+    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
+    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
+    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+            essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
+  }
+  // L'origine de la remorque se reporte sur la sellette : c'est là que le jeu l'accroche.
   const decale = (P)=> P.map(o=>{
     const m = o.m.clone();
-    m.elements[14] += DEC;                           // translation en Z
+    m.elements[14] -= Z_SELLETTE;
     return {g:o.g, m, c:o.c};
   });
-  /* LES OPTIQUES DU CAMION, notées comme celles des voitures. Le tracteur porte déjà
-     ses deux verres crème sur la calandre, à 1,02 m de l'axe et 1,50 m de haut ; la
-     citerne, elle, n'avait pas de feux arrière sculptés — on les pose ici, au bout du
-     châssis, pour qu'il y ait quelque chose à allumer. */
-  const FEUX_TRACTEUR = {w:1.02, y:1.50, zAv:5.31, zAr:null};
-  const ROUGE_REM = 0xC0392B;
-  const citerneEclairee = ()=> citerne().concat([
-    B(0.34,0.2,0.12, -0.95,1.15,-11.62, ROUGE_REM),
-    B(0.34,0.2,0.12,  0.95,1.15,-11.62, ROUGE_REM)
-  ]);
+  /* CHAQUE REMORQUE VIENT AVEC SA CABINE, comme sur la planche : la citerne est bleue,
+     la caisse verte, le frigorifique blanc et sans couchette. La cabine se tire donc
+     avec la remorque, et l'on ne croise pas deux fois le même attelage. */
+  const ATTELAGES = [{f:citerne, cab:BLEU,      couchette:true},
+                     {f:caisse,  cab:0x2F6B52,  couchette:true},
+                     {f:frigo,   cab:0xE4E8EA,  couchette:false}];
+  const remorques = [], feuxRem = [], tracteurs = [];
+  let essieu = 0;
+  for(const A of ATTELAGES){
+    const r = A.f();
+    tracteurs.push(mergeParts(tracteur(A.cab, A.couchette)));
+    remorques.push(mergeParts(decale(r.P)));
+    feuxRem.push({w:r.feux.w, y:r.feux.y, zAr:r.feux.zAr - Z_SELLETTE});
+    essieu += r.essieu/ATTELAGES.length;
+  }
   return {
-    tracteur: mergeParts(tracteur()),
-    // Une seule remorque, mais le tableau reste un TABLEAU : tout ce qui l'indexe
-    // continue de marcher, et l'on pourrait en remettre une sans rien réécrire.
-    remorques: [citerneEclairee].map(r => mergeParts(decale(r()))),
-    feux: FEUX_TRACTEUR,
-    // après `decale`, le châssis de la citerne va de z = -10 à z = 0
-    feuxRem: {w:0.95, y:1.15, zAr:-10.02}
+    // Un tracteur par attelage : ils ne diffèrent pas que par la couleur — le
+    // frigorifique n'a pas de couchette —, et une géométrie de plus coûte moins qu'un
+    // mécanisme de robes pour trois carrosseries.
+    tracteurs: tracteurs,
+    remorques: remorques,
+    // Les phares du tracteur sont sur la face avant, à 1,06 de l'axe et 1,62 de haut.
+    feux: {w:1.06, y:1.62, zAv:3.90, zAr:null},
+    feuxRem: feuxRem,
+    // Ce que le reste du trafic a besoin de savoir de l'attelage, en unités de la
+    // planche : où est la sellette derrière le milieu du tracteur, et à quelle distance
+    // d'elle roule l'essieu de la remorque — c'est ce timon qui décide de combien elle
+    // coupe le virage. Les deux étaient écrits à la main ; ils se lisent maintenant sur
+    // la géométrie, et suivraient un dessin qu'on changerait.
+    sellette: -Z_SELLETTE,
+    timon: essieu
   };
 })();
 const traficMat = MAT_FUSION;
@@ -13500,6 +13738,38 @@ for(let k = 0; k < TAILLE_TRAFIC.length; k++){
   const h = g.boundingBox.max.y*ECH_TRAFIC;
   TAILLE_TRAFIC[k] = Math.min(TAILLE_TRAFIC[k], (HAUT_LIBRE - RESERVE_TOIT)/h);
 }
+/* ET L'ATTELAGE EST RABOTÉ DE LA MÊME FAÇON, MAIS D'UN SEUL COUP. Les quinze modèles
+   légers sont taillés chacun à sa hauteur ; l'attelage américain, lui, est repris d'une
+   planche dessinée à SON échelle, où le tracteur et la citerne sont plus hauts que le
+   plus haut véhicule du trafic. Un seul facteur suffit donc, et il se CALCULE : la pièce
+   la plus haute de la famille — tracteur ou remorque — vient affleurer le dessous des
+   lampadaires, réserve de toit déduite, et tout le reste suit dans le même rapport, la
+   sellette et le timon compris. Un dessin qu'on changerait se remettrait à l'échelle tout
+   seul, au lieu d'aller traverser une ampoule. */
+const ECH_LOURD = (function(){
+  let h = 0;
+  for(const g of CAMIONS_GEOS.tracteurs.concat(CAMIONS_GEOS.remorques)){
+    g.computeBoundingBox(); h = Math.max(h, g.boundingBox.max.y);
+  }
+  return Math.min(1, (HAUT_LIBRE - RESERVE_TOIT)/(h*ECH_TRAFIC));
+})();
+(function(){
+  for(const g of CAMIONS_GEOS.tracteurs.concat(CAMIONS_GEOS.remorques)){
+    g.scale(ECH_LOURD, ECH_LOURD, ECH_LOURD);
+    g.computeBoundingBox(); g.computeBoundingSphere();
+  }
+  // Les cotes des optiques suivent la carrosserie : elles sont notées sur le dessin,
+  // pas retrouvées après coup sur la boîte englobante.
+  const ech = (o)=>{
+    o.w *= ECH_LOURD; o.y *= ECH_LOURD;
+    if(o.zAv || o.zAv === 0) o.zAv *= ECH_LOURD;
+    if(o.zAr || o.zAr === 0) o.zAr *= ECH_LOURD;
+  };
+  ech(CAMIONS_GEOS.feux);
+  for(const f of CAMIONS_GEOS.feuxRem) ech(f);
+  CAMIONS_GEOS.sellette *= ECH_LOURD;
+  CAMIONS_GEOS.timon *= ECH_LOURD;
+})();
 /* SAUF EN LARGEUR, POUR LES POIDS LOURDS. Les camions du modèle sont taillés large : cinq
    mètres soixante-treize de carrosserie une fois grandis d'une moitié, sur une chaussée
    de dix. Deux files de deux mètres soixante de part et d'autre de l'axe laissent cinq
@@ -13509,7 +13779,16 @@ for(let k = 0; k < TAILLE_TRAFIC.length; k++){
    files sans sortir du bitume. On affine donc le camion de treize pour cent EN LARGEUR
    SEULEMENT : sa longueur et sa hauteur restent à une fois et demie — c'est là que se lit
    la taille —, et deux camions se croisent enfin sans se pénétrer. */
-const LARG_LOURD = 0.87;
+const LARG_LOURD = (function(){
+  let l = 0;
+  for(const g of CAMIONS_GEOS.tracteurs.concat(CAMIONS_GEOS.remorques))
+    l = Math.max(l, Math.abs(g.boundingBox.min.x), Math.abs(g.boundingBox.max.x));
+  // 50 cm de jeu entre deux carrosseries qui se croisent, sur les 5,20 qui séparent les
+  // deux essieux de file. Le facteur se CALCULE lui aussi : le camion de la planche est
+  // moins large que celui qu'il remplace, et il n'y a pas de raison de l'affiner de
+  // treize pour cent s'il tient à sa taille pleine.
+  return Math.min(1, (2*VOIE_TRAFIC - 0.5)/2/(l*ECH_TRAFIC));
+})();
 /* LEUR SUSPENSION EST CELLE DES ENGINS DU JOUEUR, à la mollesse près : une voiture est
    plus ferme qu'un tracteur, un camion plus mou et plus lent à répondre. */
 const SUSP_TRAFIC = {
@@ -13720,23 +13999,27 @@ function conflitTrafic(R2, v, t0, avant, arriere, u){
   }
   return false;
 }
-/* LA SELLETTE ET LE TIMON. `TIMON_TRAFIC` est la distance de la sellette à l'essieu de la
-   remorque : c'est lui qui décide de combien elle coupe le virage.
-   LA SELLETTE RECULE, PARCE QUE LA CITERNE ENTRAIT DANS LA CABINE. Mesuré sur la
-   géométrie : le dos de la cabine est à z = −3,00 et le nez du fût à −2,78 une fois la
-   sellette déduite — VINGT-DEUX CENTIMÈTRES, et les deux caisses n'ont pas la même
-   suspension : elles tanguent chacune de son côté et se traversent au premier dos d'âne.
-   Il en faut assez pour que le coin avant du fût passe même quand l'attelage se plie :
-   ce coin est à 2,50 m de l'axe, il avance donc de 2,50·sin θ quand la remorque prend
-   un angle θ. À un mètre de jeu, l'attelage tient jusqu'à vingt-trois degrés. */
-const SELLETTE_TRAFIC = 2.35*ECH_TRAFIC;
-let TIMON_TRAFIC = 8.0*ECH_TRAFIC;
+/* LA SELLETTE ET LE TIMON, ET ILS NE S'ÉCRIVENT PLUS À LA MAIN. `TIMON_TRAFIC` est la
+   distance de la sellette à l'essieu de la remorque : c'est lui qui décide de combien
+   elle coupe le virage ; `SELLETTE_TRAFIC` est celle du milieu du tracteur au pivot.
+   Les deux étaient deux nombres écrits ici — 2,35 et 8,00 —, ajustés à la main le jour où
+   la citerne entrait dans la cabine. Ils se LISENT maintenant sur le dessin de l'attelage,
+   qui les publie : un camion qu'on redessinerait emporterait son pivot et son timon avec
+   lui, au lieu de laisser deux constantes mentir en silence.
+   ET LE DÉGAGEMENT NE SE PLAIDE PLUS, IL SE MESURE. La planche du joueur recule la
+   sellette à 3,40 derrière le milieu du tracteur — trente-huit centimètres de plus que
+   l'ancienne —, et le nez de la remorque démarre 0,35 derrière le pivot, quand le dos de
+   la couchette s'arrête 0,70 devant. Le coin avant de la caisse est à 1,30 de l'axe : il
+   avance de 1,30·sin θ quand l'attelage se plie, et il faut θ = 45° pour qu'il vienne
+   toucher la couchette, là où l'ancien attelage tenait jusqu'à vingt-trois degrés. */
+const SELLETTE_TRAFIC = CAMIONS_GEOS.sellette*ECH_TRAFIC;
+let TIMON_TRAFIC = CAMIONS_GEOS.timon*ECH_TRAFIC;
 // Un objet de travail pour la remorque : la suspension lit et écrit `roll`, `pitch`…
 const _susRem = {roll:0, rollV:0, pitch:0, pitchV:0, heave:0, heaveV:0, bump:0};
 /* ---------- LE VIVIER, ET CE QUI L'ALIMENTE ----------
    Les places sont créées une fois pour toutes et RECYCLÉES : une place inoccupée est
    simplement invisible et ne coûte rien au rendu. On change la géométrie du maillage à
-   chaque naissance — c'est ce qui permet d'avoir dix-huit places pour dix-sept modèles
+   chaque naissance — c'est ce qui permet d'avoir dix-huit places pour dix-sept géométries
    sans fabriquer dix-huit carrosseries.
    ET LE VIVIER SUIT LA CADENCE. Il en tenait vingt-huit, calibré sur une rocade qui
    sortait une voiture toutes les onze secondes ; à trente-quatre, mesuré sur dix minutes,
@@ -13749,10 +14032,10 @@ const POOL_TRAFIC = 18;
    seize secondes sur chacune des quatre routes, et un attelage articulé sur six : dix-huit
    véhicules en vue en permanence, ce qui est le trafic d'une rocade urbaine aux heures de
    pointe. On divise la cadence PAR TROIS — vingt et une à quarante-huit secondes — et l'on
-   raréfie le semi d'autant : un sur quatorze au lieu d'un sur six. Ce qui reste est ce
+   raréfie le semi d'autant : un sur dix au lieu d'un sur six. Ce qui reste est ce
    qu'on voit d'une ferme : une voiture qui passe de temps en temps, et un camion qu'on
    remarque parce qu'il est rare. */
-const PART_LOURD = 0.07;                        // un attelage tous les quatorze véhicules
+const PART_LOURD = 0.10;                        // un attelage sur dix
 const CADENCE_MIN = 21, CADENCE_MAX = 48;       // secondes entre deux départs sur UNE file
 /* LE JAUNE D'UN PHARE ALLUMÉ. Les optiques du trafic brillaient d'un crème 0xFFEFC0 —
    la couleur du VERRE, pas celle de la lumière : de loin, ça se lit comme un phare
@@ -13774,11 +14057,22 @@ const DIM_LEGER = [];
 for(let k = 0; k < TRAFIC_GEOS.length; k++)
   DIM_LEGER.push(dimsTrafic(TRAFIC_GEOS[k], ECH_TRAFIC*TAILLE_TRAFIC[k]));
 // L'attelage compte pour un modèle de plus, le dernier : sa longueur est celle du
-// tracteur PLUS la citerne, mesurée depuis la sellette.
+// tracteur PLUS sa remorque, mesurée depuis la sellette.
+/* UN SEUL ENCOMBREMENT POUR LES TROIS ATTELAGES, ET C'EST LE PLUS GRAND. Les trois
+   remorques ne font pas la même longueur — la caisse dépasse la citerne d'un mètre vingt
+   sur la route —, et l'on pourrait tenir un encombrement par attelage. On ne le fait pas :
+   la cote sert à RÉSERVER de la place dans le temps, et réserver un peu trop n'a jamais
+   fait entrer deux camions l'un dans l'autre, tandis que réserver un peu trop peu, si. */
 const DIM_LOURD = (function(){
-  const a = dimsTrafic(CAMIONS_GEOS.tracteur, ECH_TRAFIC);
-  const r = dimsTrafic(CAMIONS_GEOS.remorques[0], ECH_TRAFIC);
-  return {avant:a.avant, arriere:SELLETTE_TRAFIC + r.arriere, larg:a.larg, haut:a.haut};
+  const a = dimsTrafic(CAMIONS_GEOS.tracteurs[0], ECH_TRAFIC);
+  let arr = 0, larg = 0, haut = 0;
+  for(const g of CAMIONS_GEOS.tracteurs.concat(CAMIONS_GEOS.remorques)){
+    const d = dimsTrafic(g, ECH_TRAFIC);
+    larg = Math.max(larg, d.larg); haut = Math.max(haut, d.haut);
+  }
+  for(const g of CAMIONS_GEOS.remorques)
+    arr = Math.max(arr, dimsTrafic(g, ECH_TRAFIC).arriere);
+  return {avant:a.avant, arriere:SELLETTE_TRAFIC + arr, larg:larg, haut:haut};
 })();
 const I_LOURD = TRAFIC_GEOS.length;
 const TRAFIC = [];
@@ -13847,9 +14141,15 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.avant = D.avant; t.arriere = D.arriere;
   t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
   // La robe se tire avec le modèle : deux berlines de la même minute ne sont pas jumelles.
+  // Et pour un attelage, c'est L'ATTELAGE ENTIER qui se tire — citerne bleue, caisse
+  // verte, frigorifique blanc sans couchette : la cabine vient avec sa remorque, comme
+  // sur la planche du joueur.
   const robes = lourd ? null : TRAFIC_ROBES[modele];
-  t.m.geometry = lourd ? CAMIONS_GEOS.tracteur
+  const iAtt = lourd ? (Math.random()*CAMIONS_GEOS.remorques.length)|0 : 0;
+  t.att = iAtt;
+  t.m.geometry = lourd ? CAMIONS_GEOS.tracteurs[iAtt]
                        : robes[(Math.random()*robes.length)|0];
+  if(lourd) t.rem.geometry = CAMIONS_GEOS.remorques[iAtt];
   const ech = ECH_TRAFIC*(lourd ? 1 : TAILLE_TRAFIC[modele]);
   t.m.scale.set(ech*(lourd ? LARG_LOURD : 1), ech, ech);
   t.rem.scale.set(ECH_TRAFIC*LARG_LOURD, ECH_TRAFIC, ECH_TRAFIC);
@@ -13864,7 +14164,7 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.avD.position.set( F.w, F.y, F.zAv);
   // Les feux arrière d'un attelage sont au bout de la CITERNE, pas de la cabine : on les
   // raccroche donc à l'une ou à l'autre à la naissance.
-  const AR = lourd ? CAMIONS_GEOS.feuxRem : F;
+  const AR = lourd ? CAMIONS_GEOS.feuxRem[iAtt] : F;
   const porteur = lourd ? t.rem : t.m;
   for(const h of [t.arG, t.arD]) if(h.parent !== porteur) porteur.add(h);
   t.arG.position.set(-AR.w, AR.y, AR.zAr);
@@ -13961,7 +14261,7 @@ function updateTrafic(dt){
     m.castShadow = true; m.visible = false; scene.add(m);
     const rem = new THREE.Mesh(CAMIONS_GEOS.remorques[0], traficMat);
     rem.castShadow = true; rem.visible = false; scene.add(rem);
-    const t = {m:m, rem:rem, actif:false, lourd:false, modele:0,
+    const t = {m:m, rem:rem, actif:false, lourd:false, modele:0, att:0,
                route:null, v:0, vEff:0, vit:0, t0:0, s:0,
                avant:0, arriere:0, susp:SUSP_TRAFIC.leger,
                cap:0, tcap:0, fx:0, fz:1,
@@ -20368,12 +20668,21 @@ function updateAtelier(dt){
     if(q > 0){
       C2.reste = Math.max(0, C2.reste - q*P.rendement);
       if(C2.cle === 'farine') STAT.mill += q;
-      // La bouffée sort de la souche de cheminée, qui vit DANS le groupe mis à l'échelle
-      // et a donc monté avec lui : ces trois cotes étaient calées à la main en mètres
-      // bruts, et la fumée naissait sous la ligne de toiture — l'atelier fumait par le
-      // milieu de sa façade.
-      if(siSouvent(0.12))
-        puff(HALLE.x + 3.2*BAT_ECHELLE, 6.4*BAT_ECHELLE, HALLE.z - 2.0*BAT_ECHELLE,
+      /* LA BOUFFÉE SORT DE LA SOUCHE, ET SA PLACE SE LIT SUR LE BÂTIMENT.
+         C'étaient trois nombres calés à la main — et calés avec la mauvaise échelle, celle
+         du village (1,18) et non celle de la halle (1,26) : le panache partait déjà un
+         peu sous le couronnement. Le jour où le corps s'est étiré en hauteur, il serait
+         parti franchement au milieu de la façade.
+         La cheminée est posée en W·0,34 / H+1,6 / −D/2+1,2 dans le dessin, et elle monte
+         de 3,20 : le panache part donc de H+3,20, aux mêmes abscisses, et à l'échelle de
+         pose de la halle. Un atelier qu'on redessinerait fumerait encore par sa cheminée.
+         AVANT LE PALIER SIX il n'y a pas de cheminée : la bouffée passe alors juste
+         au-dessus de la ligne de toit, à quoi elle se tenait déjà. */
+      const _u = atelierMesh && atelierMesh.userData;
+      if(siSouvent(0.12) && _u)
+        puff(HALLE.x + _u.W*0.34*ATL_POSE,
+             (_u.H + (HALLE.niveau >= 6 ? 3.2 : 0.9))*ATL_POSE,
+             HALLE.z + (1.2 - _u.D/2)*ATL_POSE,
              0xD8DEE2, 0.5, 0.5, 2.4, -0.24, 0.36, 0.5);
       if(C2.reste <= 0.01) commandeFinie('ATELIER — ' + P.nom.toUpperCase() + ' TERMINÉ');
       C2.bloque = 0;
