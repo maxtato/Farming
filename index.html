@@ -11989,6 +11989,10 @@ function marcheArriere(v, tx, tz, rayon){
    ressort par où l'on est entré. Neuf mètres, c'est la longueur d'un attelage plus de
    quoi braquer sans que la remorque touche ce qu'on vient de quitter. */
 const SORTIE_AVANT = 9;
+/* De combien on s'écarte de l'axe de la voie des cuves en sortant : assez pour que la
+   machine soit hors du couloir et que sa remorque suive, sans mordre le chemin de sable,
+   dont la bande commence à 36,8 — la voie étant à 31,49, sept mètres tombent à 38,5. */
+const RES_DEGAGE = 7;
 function sortieDeQuai(v, cle){
   const arriere = (v.routeSortieCle === cle) ? v.routeSortie : null;
   /* D'UNE IMPASSE, ON RESSORT PAR OÙ L'ON EST ENTRÉ. SANS CHERCHER AILLEURS.
@@ -12010,6 +12014,40 @@ function sortieDeQuai(v, cle){
     const ex = arriere.x - v.pos.x, ez = arriere.z - v.pos.z, EL = Math.hypot(ex, ez) || 1;
     const court = Math.max(0, EL - (SORTIE_LOIN - SORTIE_IMPASSE));
     return {x:v.pos.x + ex/EL*court, z:v.pos.z + ez/EL*court};
+  }
+  /* ---------- LES DEUX RÉSERVES SORTENT PAR L'EST, ET PAR OÙ ELLES SONT ENTRÉES ----------
+     Le joueur : « quand les tracteurs vont remplir l'engrais et les graines dans les
+     citernes, qu'ils arrivent par le haut : après avoir rempli, il tourne vers la droite,
+     du coup il se bloque dans la citerne ; il faudrait qu'il tourne vers la gauche pour
+     faire demi-tour et emprunter le chemin en sable. Et s'ils arrivent par en bas par la
+     route du bas et doivent repartir vers le bas, là il faudrait qu'il tourne vers la
+     droite pour emprunter là aussi le chemin en sable, et non pas aller vers la citerne. »
+
+     LES DEUX CAS DISENT LA MÊME CHOSE : on ressort du côté OPPOSÉ aux cuves, et l'on
+     repart par où l'on est venu. Et la règle générale ne pouvait pas y arriver, parce
+     qu'elle tâte NEUF MÈTRES DROIT DEVANT et n'a aucune idée de la suite : la voie des
+     cuves est ouverte à ses deux bouts, donc devant est toujours libre, donc on avançait
+     toujours — même quand il fallait repartir en sens inverse. L'engin se retrouvait alors
+     neuf mètres plus loin, à hauteur des cuves, avec son but EXACTEMENT DANS LE DOS ; le
+     demi-tour qui suit choisit son côté sur le signe d'un angle qui vaut ±π, c'est-à-dire
+     sur du bruit, et une fois sur deux c'était du côté des cuves.
+     Mesuré sur un chantier complet, parcelle 7 : le tracteur à l'engrais restait 892 IMAGES
+     — quinze secondes — à 0,1 m/s, plaqué contre le cercle de la cuve à 3,56 m de son axe,
+     soit exactement le rayon d'obstacle plus la demi-machine. Au contact.
+
+     ON NE TOUCHE DONC PAS AU DEMI-TOUR, ON FAIT EN SORTE QU'IL N'Y EN AIT PLUS. La sortie
+     se décale vers l'EST — le côté du chemin de sable, dégagé jusqu'à la bande de 36,8 —
+     et remonte vers le bout par lequel on est arrivé, que le coude retient déjà. L'engin
+     décrit un quart de tour dans la cour au lieu d'un demi-tour contre une cuve, et il est
+     ressorti de la voie avant même que l'itinéraire suivant soit calculé.
+     Essayé d'abord au niveau du dessous — choisir le côté du demi-tour par la place — et
+     le banc a dit non : cela répare les cuves et casse le silo, où la moissonneuse est
+     passée de 116 à 4 742 images lentes. Un demi-tour n'est pas un problème de géométrie
+     locale, c'est un problème d'itinéraire ; on le règle donc là où l'itinéraire se décide. */
+  if(cle === 'rGra' || cle === 'rEng'){
+    const sens = arriere ? (Math.sign(arriere.z - v.pos.z) || 1) : -1;
+    const ex = RES_VOIE + RES_DEGAGE, ez = v.pos.z + sens*RES_DEGAGE;
+    if(voieLibre(v.pos.x, v.pos.z, ex, ez)) return {x:ex, z:ez, avant:true};
   }
   const f = {x:Math.sin(v.cap), z:Math.cos(v.cap)};
   const ax = v.pos.x + f.x*SORTIE_AVANT, az = v.pos.z + f.z*SORTIE_AVANT;

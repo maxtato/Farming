@@ -7837,3 +7837,66 @@ Aucune pièce n'a disparu ; ce sont les PAS qui s'allongent, et chaque forme res
 Vérifié à la distance du jeu, avant et après côte à côte : les cinq ceintures, la cage
 d'échelle, la goulotte, le caillebotis, le rideau nervuré et les viroles des cuves sont
 tous encore là. Les vingt suites passent.
+
+## Les réserves : on ressort par où l'on est venu, du côté opposé aux cuves
+
+> « Attention pour l'automatisation : quand les tracteurs vont remplir l'engrais et les
+> graines dans les citernes, qu'ils arrivent par le haut — après avoir rempli il tourne vers
+> la droite, du coup il se bloque dans la citerne. Il faudrait qu'il tourne vers la gauche
+> pour faire demi-tour et emprunter le chemin en sable. Et s'ils arrivent par en bas par la
+> route du bas et qu'ils doivent repartir vers le bas, dans ce cas-là il faudrait qu'il
+> tourne vers la droite pour emprunter là aussi le chemin en sable, et non pas aller vers la
+> citerne. »
+
+Les deux cas disent la même chose : **on ressort du côté opposé aux cuves, et l'on repart par
+où l'on est venu.**
+
+Reproduit au banc, sur un chantier complet de la parcelle 7. Le tracteur à l'engrais repart
+de la cuve, doit remonter la voie plein nord, et reste **892 images — quinze secondes — à
+0,1 m/s**, plaqué contre le cercle de la cuve à **3,56 m de son axe**, c'est-à-dire le rayon
+d'obstacle plus la demi-machine : au contact.
+
+| parcelle 7, tracteur à l'engrais | avant | après |
+|---|---|---|
+| approche de la cuve | **3,56 m** (au contact) | **5,00 m** |
+| images à ramper | **892** | **0** |
+| images du côté des cuves | 1 079 | 60 |
+| machines passant sous 4,20 m d'une cuve | 1 | **aucune** |
+
+### Pourquoi la règle générale ne pouvait pas y arriver
+
+La sortie d'un lieu **tâte neuf mètres droit devant** et repart en marche avant si c'est
+libre. C'est juste pour le silo, dont la cour s'ouvre sur dix-neuf mètres de bitume. Mais la
+voie des cuves est **ouverte à ses deux bouts** — le chemin de sable au nord, la route au sud
+— donc devant est toujours libre, donc on avançait toujours : même quand il fallait repartir
+en sens inverse. L'engin se retrouvait alors neuf mètres plus loin, **à hauteur des cuves**,
+avec son but exactement dans le dos.
+
+Et un but dans le dos, c'est un `dd` qui vaut +π à une image et −π à la suivante. Le côté du
+demi-tour se décidait donc **sur le signe d'un angle qui est du bruit** — une fois sur deux,
+du côté des cuves.
+
+### Ce qu'on a essayé d'abord, et pourquoi le banc a dit non
+
+Le réflexe était de corriger le demi-tour : tâter les deux côtés et pivoter du côté libre.
+Cela **répare les cuves et casse le silo** — la moissonneuse y est passée de 116 à 4 742
+images lentes, et de 419 à 826 m parcourus. Restreint au hors-champ, même résultat.
+
+Un demi-tour n'est pas un problème de géométrie locale, c'est un problème d'**itinéraire** :
+on le règle donc là où l'itinéraire se décide, et l'on fait en sorte qu'il n'y ait plus de
+demi-tour du tout. La sortie des deux réserves se décale de sept mètres vers **l'est** — le
+côté du chemin de sable, dégagé jusqu'à la bande de 36,8 — et remonte vers le bout par lequel
+on est arrivé, que le coude retient déjà. L'engin décrit un quart de tour dans la cour au lieu
+d'un demi-tour contre une cuve, et il est sorti de la voie avant même que l'itinéraire suivant
+soit calculé.
+
+> **Un défaut de la même famille reste ouvert, au silo.** En retirant les quinze secondes
+> perdues à la cuve, la moisson démarre 870 images plus tôt et tombe sur lui. Après avoir vidé
+> sa trémie en (62 ; 47), la moissonneuse sort neuf mètres plein sud, puis repart vers son
+> champ **sans aucun itinéraire** — `routeBut` est nul — donc en ligne droite, à travers la
+> tour, où elle rame plus d'une minute. Ce n'est pas nouveau : à HEAD, la parcelle 3 montre
+> déjà 1 290 images lentes au labour et 516 à la moisson. C'est le même genre de défaut que
+> celui des cuves, mais il se joue ailleurs — dans la reprise du plan après un déchargement —
+> et il se traitera pour lui-même.
+
+Les vingt suites passent.
