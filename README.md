@@ -9448,3 +9448,113 @@ image, sur trois secondes : aucune image ratée, un seul aller-retour. Sous Swif
 dix-neuf images pour treize cycles, et une amplitude mesurée de 0,36 rad pour un seuil de 0,15.
 
 Les vingt-et-une suites passent : **986 contrôles**, zéro échec, zéro erreur de page.
+
+## Un visage par commerce
+
+*« Je veux qu'il y ait des personnages pour chacun des commerces et pour les points de vente.
+[…] une image neutre qui servira à illustrer lorsque le personnage propose la mission du
+commerce, une image de félicitations où il a le pouce vers le haut qui apparaîtra lorsque la
+mission est remplie et validée, et une image avec une attitude de refus qui servira lorsqu'on
+veut vendre quelque chose mais que la capacité d'achat du commerce est dépassée. »*
+
+Premier commerce branché : le **Restaurant**. Les quatorze autres suivront le même chemin, et
+c'est tout l'intérêt d'en câbler un seul d'abord — la mécanique se valide sur un cas avant de
+renommer quarante-cinq fichiers.
+
+### La chaîne de conversion
+
+Une planche de personnage entre, un portrait de jeu sort : **192 × 240 pixels, 32 couleurs, PNG
+indexé, 9,6 Ko en moyenne**. Cinq étapes, chacune jugée sur une planche de contrôle.
+
+Le **détourage** marche seul sur les trente-sept planches déposées. On inonde depuis les bords
+plutôt que de seuiller sur le blanc : les dents d'un rire ressemblent au fond mais sont
+enfermées, elles restent. Et la couleur du fond se lit sur le **pourtour entier**, pas sur les
+quatre coins — trois planches ont le buste qui déborde par le bas, leurs deux coins inférieurs
+sont dans la veste, et une médiane de quatre coins tombait à mi-chemin entre le beige du fond et
+le brun du vêtement.
+
+Le **cadrage** s'ancre sur **l'écart entre les yeux**. Trois ancrages ont été essayés avant, et
+chacun tombe sur un cas du lot :
+
+| ancrage | ce qui le casse |
+|---|---|
+| la boîte englobante | un bras tendu la double en largeur |
+| la « tête » mesurée par les largeurs | une casquette plate la rallonge, une coiffure volumineuse la double, un cadrage serré fait commencer les épaules tout de suite |
+| la boîte de visage de Haar, seule | elle **situe** mais ne **mesure** pas : tantôt le visage, tantôt tout le crâne |
+
+D'où trois étages, du plus sûr au plus grossier :
+
+| étage | ce qu'il mesure | planches |
+|---|---|---|
+| `yeux` | les deux yeux, cherchés **dans** la boîte de visage | 17 / 37 |
+| `visage` | la boîte × 0,41 — rapport étalonné sur les 17 ci-dessus, qui tient à ±8 % | 13 / 37 |
+| `largeur` | le profil des largeurs, faute de mieux | 7 / 37 |
+
+Les deux derniers étages se corrigent dans `outils/portraits/reglages.json` : seize planches
+réglées à la main sur planche de contrôle, dont le caviste, pour qui le détecteur visait la
+bouteille de vin et non le visage.
+
+La **coupe** du buste est une ligne brisée à quatre segments, posée aux mêmes fractions du cadre
+pour tous : c'est elle, avec l'écart des yeux et la hauteur du regard, qui donne aux fiches leur
+air de famille.
+
+### Trois humeurs, trois moments
+
+La table ne nomme pas des fichiers, elle nomme **un radical par commerce** ; les trois humeurs
+s'en déduisent, et il n'y a donc aucun moyen d'en oublier une pour un commerce et pas pour un
+autre. Un commerce sans fiche reste jouable : l'image se cache et la mise en page reprend sa
+largeur.
+
+| moment | humeur | où | taille |
+|---|---|---|---|
+| le commerce propose sa mission | **neutre** | fenêtre de contrat, en haut à droite | 96 × 120 — la moitié exacte |
+| la mission est remplie et validée | **pouce levé** | écran de fin de mission, au-dessus du gain | 192 × 240, `pixelated` |
+| son étal ne peut plus rien prendre | **refus** | fenêtre de refus, avec les autres débouchés | 192 × 240, `pixelated` |
+
+**96 et 192, et rien entre les deux.** Une fiche de 192 px montrée à 140 px passerait par un
+rééchantillonnage non entier : un pixel d'art sur deux serait coupé en travers, et le grain qu'on
+a fabriqué disparaîtrait. La moitié exacte, elle, se réduit proprement.
+
+### Le refus n'existait pas à l'écran
+
+C'est la seule mécanique neuve. `acheteMaintenant` exige `placeChez > 0` : un étal plein ne
+produisait pas un bouton refusé, il ne produisait **aucun bouton**. On se garait sur l'anneau
+d'un commerce, la benne pleine de ce qu'il achète, et la colonne restait muette — ce qui se lit
+comme « ce commerce n'achète pas ça », et non comme « il n'en veut plus aujourd'hui ». Ce sont
+deux choses très différentes quand on décide d'une tournée.
+
+La colonne le dit maintenant, en gris : *VENDRE ŒUFS — L'ÉTAL EST PLEIN, VOIR OÙ L'ÉCOULER*. La
+toucher ouvre le refus. C'est le premier empêchement du jeu à porter un geste : tous les autres
+disent une raison sur laquelle on ne peut rien.
+
+La liste des débouchés existait déjà — `acheteursDe` la calcule pour l'automate, **triée par ce
+que la cargaison rapporterait** et non par le prix, parce que le mieux-disant qui n'a plus que
+trois kilos de place n'est pas le bon choix pour en écouler cent. On la montre, trois lignes :
+
+> Épicerie — 1 000 œufs · 236 €
+> Marché — 1 000 œufs · 218 €
+> Supermarché — 1 000 œufs · 200 €
+
+Le titre dit **« COMPLET — RESTAURANT »** et non « Restaurant est complet » : quinze commerces,
+deux genres, et accorder demanderait une table de genres pour un seul titre.
+
+### Un défaut de français corrigé au passage
+
+`dNom` posait l'article sur une classe de voyelles qui ignorait la ligature : le jeu écrivait
+« prendre **de** œufs ». Les trois articles — `dNom`, `lNom`, `lHaut` — lisent maintenant `œ` et
+`æ`. Laisser la moitié d'une règle est ce qui la fait retomber au prochain produit.
+
+### Les bancs
+
+`visages.js`, **19 contrôles** neufs : la table et les trois chemins qui s'en déduisent, les
+trois fichiers qui se chargent en 192 × 240, le visage neutre à 96 × 120 dans la fenêtre de
+contrat avec son retrait de 104 px, l'absence d'image et de retrait pour un commerce sans fiche,
+le pouce levé sur la page du gain **et sur elle seule** — pas sur les pages de déblocage, pas sur
+une annonce de tutoriel —, la ligne d'étal plein qui apparaît, le refus qu'elle ouvre, les
+débouchés qu'il propose, et la ligne qui disparaît dès que la place revient.
+
+Le serveur des bancs sert désormais le dossier `portraits/` : il rendait la page du jeu pour
+toute adresse sauf `three.js`, si bien qu'une image aurait « chargé » du HTML sans que rien ne
+proteste.
+
+Les vingt-deux suites passent : **1 005 contrôles**, zéro échec, zéro erreur de page, zéro 404.

@@ -371,6 +371,24 @@
   #ctfond{position:absolute;inset:0;background:var(--voile)}
   #ctboite{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     width:min(92vw,400px);padding:18px 18px 16px}
+  /* ---------- LES VISAGES DU VILLAGE ----------
+     Une fiche de personnage fait 192 x 240 pixels d'art. Elle se montre À LA MOITIÉ dans
+     la fenêtre de contrat — 96 px, une division EXACTE par deux, donc sans pixel coupé en
+     travers — et À TAILLE RÉELLE sur l'écran de fin de mission, où le personnage est le
+     sujet et non la vignette. `pixelated` n'est mis QUE sur la seconde : à 1:1 il garde le
+     grain du pixel art, à 96 il ferait de l'escalier là où la réduction lisse. */
+  .face{display:none;image-rendering:auto}
+  #ctface{position:absolute;top:8px;right:10px;width:96px;height:120px;
+    object-fit:contain;object-position:bottom right;pointer-events:none}
+  /* LE RETRAIT VAUT AUSSI POUR LA RÉPLIQUE. Il ne portait que sur les deux lignes de
+     titre, et la phrase du client passait DERRIÈRE le visage : on lisait « il me faut
+     36 œufs et 40 kg de fa… » avec le reste sous une barbe rousse. Les trois blocs que
+     le portrait longe se retirent donc ensemble ; les lignes de marchandise, elles,
+     commencent plus bas que lui et gardent toute la largeur. */
+  #ctboite.avecFace #cttitre, #ctboite.avecFace #ctlieu{padding-right:104px}
+  #ctboite.avecFace #cttexte{padding-right:104px}
+  #brface{width:192px;height:240px;object-fit:contain;object-position:bottom center;
+    image-rendering:pixelated;margin-bottom:-10px;pointer-events:none}
   /* LA SUSCRIPTION, en haut à gauche, comme sur un bon de commande : ce que c'est,
      avant de dire de qui ça vient. Le retrait à droite laisse la place au tampon. */
   #cttitre{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;
@@ -1232,6 +1250,7 @@
   <div id="contrat">
     <div id="ctfond"></div>
     <div id="ctboite">
+      <img id="ctface" class="face" alt="">
       <div id="cttitre"></div>
       <div id="ctlieu"></div>
       <div id="cttexte"></div>
@@ -1335,6 +1354,7 @@
      met le jeu en PAUSE, ce qui gèlerait les pièces et le décompte, et il porte des
      boutons `.accbtn.pri` par lesquels toute la suite de bancs entre dans le jeu. -->
 <div id="bravo"><div id="brboite">
+  <img id="brface" class="face" alt="">
   <div id="brtitre">BRAVO</div>
   <div id="brsous"></div>
   <div id="brgains"></div>
@@ -3464,6 +3484,38 @@ const MISSIONS_REECRITS = [8, 9];
    Un commerce qui change de nom perdrait donc en silence tout ce qu'un joueur avait
    bâti avec lui. La table se lit « nom d'aujourd'hui : nom d'hier ». */
 const SITES_ANCIENS_NOMS = {'Épicerie': 'Brasserie'};
+/* ---------- LES VISAGES DU VILLAGE ----------
+   Le joueur : « je veux qu'il y ait des personnages pour chacun des commerces et pour les
+   points de vente. [...] une image neutre qui servira à illustrer lorsque le personnage
+   propose la mission du commerce, une image de félicitations où il a le pouce vers le
+   haut qui apparaîtra lorsque la mission est remplie et validée, et une image avec une
+   attitude de refus qui servira lorsqu'on veut vendre quelque chose mais que la capacité
+   d'achat du commerce est dépassée. »
+
+   TROIS HUMEURS, TROIS MOMENTS, ET AUCUN AUTRE. La table ne nomme pas des fichiers, elle
+   nomme un RADICAL par commerce : les trois humeurs s'en déduisent, et il n'y a donc
+   aucun moyen d'en oublier une pour un commerce et pas pour un autre.
+
+   ET UN COMMERCE SANS VISAGE RESTE JOUABLE. `poserVisage` rend faux et cache l'image :
+   les quinze fiches arrivent par groupes de métier, et le jeu doit tourner pendant qu'il
+   en manque quatorze. C'est la seule raison pour laquelle rien ici n'est obligatoire. */
+const PORTRAITS = {
+  'Restaurant': 'restaurant'
+};
+const HUMEURS = ['neutre', 'bravo', 'refus'];
+const visageDe = (nom, humeur)=>
+  (PORTRAITS[nom] && HUMEURS.indexOf(humeur) >= 0)
+    ? 'portraits/' + PORTRAITS[nom] + '-' + humeur + '.png' : null;
+function poserVisage(el, nom, humeur){
+  if(!el) return false;
+  const src = visageDe(nom, humeur);
+  if(!src){ el.removeAttribute('src'); el.style.display = 'none'; return false; }
+  // On ne réécrit pas un `src` identique : le navigateur relancerait le décodage, et la
+  // fenêtre de contrat se repeint à chaque tic de l'interface.
+  if(el.getAttribute('src') !== src) el.setAttribute('src', src);
+  el.style.display = 'block';
+  return true;
+}
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
    réglées à la main finissent toujours par se contredire : un palier qu'on n'atteint pas
@@ -3697,6 +3749,10 @@ function ouvrirBravo(M, suite, niv0){
     titre: 'BRAVO',
     sous: titreMission(M) + (M.fin ? '<br><i>\u00ab\u00a0' + M.fin + '\u00a0\u00bb</i>' : ''),
     gains: g,
+    /* LE POUCE LEVÉ, ET SUR CETTE PAGE SEULEMENT. Les pages qui suivent — la vente libre
+       débloquée, la clôture de campagne — ne sont plus le client qui remercie : c'est le
+       jeu qui parle. Un visage y resterait affiché sans que personne ne l'ait dit. */
+    face: {nom: M.lieu, humeur: 'bravo'},
     suite: suite ? (suite.lieu ? 'Prochaine mission — ' + suite.lieu : 'Prochaine mission')
                  : 'La campagne est finie'
   }];
@@ -3721,6 +3777,8 @@ function peindreBravo(){
   document.getElementById('brgains').innerHTML =
     (P.gains || []).map((t)=> '<div>' + t + '</div>').join('');
   document.getElementById('brsuite').textContent = P.suite || '';
+  poserVisage(document.getElementById('brface'),
+              P.face ? P.face.nom : null, P.face ? P.face.humeur : null);
   bravoEl.classList.toggle('etape', !!P.etape);
   montrerBravo(P.duree || (bravoI === 0 ? 5.0 : 6.0));
 }
@@ -15724,12 +15782,17 @@ const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
    cher — ils tombaient tous sur cinq. En dessous de dix euros on garde les centimes. */
 const euroFin = (v)=> v < 10 ? dec(v) + ' €' : eur(v);
 // « 30 kg de orge » se lit mal : l'élision est une politesse qui coûte une ligne.
-const dNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'd\u2019' : 'de ') + n;
+/* ET LA LIGATURE COMPTE COMME UNE VOYELLE. « œufs » commençait par un caractère absent
+   de la classe, et le jeu écrivait « prendre de œufs ». Les trois articles la lisent
+   maintenant, ainsi que « æ » — il n'y en a pas dans le jeu, mais laisser la moitié d'une
+   règle est ce qui la fait retomber au prochain produit. */
+const VOYELLE = /^[aeiouyhàâéèêîôùûœæ]/i;
+const dNom = (n)=> (VOYELLE.test(n) ? 'd\u2019' : 'de ') + n;
 // La même politesse pour l'article défini, sur un libellé de bouton en capitales :
 // « REMPLIR LE SEMOIR », mais « REMPLIR L'ÉPANDEUR ».
-const lHaut = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'L\u2019' : 'LE ') + n.toUpperCase();
+const lHaut = (n)=> (VOYELLE.test(n) ? 'L\u2019' : 'LE ') + n.toUpperCase();
 // Et en minuscules, au fil d'une phrase : « agrandir l'étable », « agrandir le poulailler ».
-const lNom = (n)=> (/^[aeiouyhàâéèêîôùû]/i.test(n) ? 'l\u2019' : 'le ') + n;
+const lNom = (n)=> (VOYELLE.test(n) ? 'l\u2019' : 'le ') + n;
 
 /* Les lignes d'article vont dans la surface OUVERTE : le menu, ou l'une des trois
    fenêtres dédiées. Un seul jeu de fonctions dessine les deux. */
@@ -21434,10 +21497,55 @@ function actionsAuSite(m, S){
    un tracteur nu, on ne voyait pas « charger le lait », et rien ne disait qu'il fallait
    une benne — on en concluait que le jeu ne le permettait pas. Ces empêchements
    s'affichent donc en gris, avec leur raison. Ils ne se cliquent pas ; ils se lisent. */
+/* ---------- « IL N'EN PREND PLUS » : LE REFUS A UN NOM, UN VISAGE ET UNE SUITE ----------
+   Le joueur : « une image avec une attitude de refus qui servira lorsqu'on veut vendre
+   quelque chose mais que la capacité d'achat du commerce est dépassée. »
+   CE MOMENT N'EXISTAIT PAS À L'ÉCRAN. `acheteMaintenant` exige `placeChez > 0` : un étal
+   plein ne faisait pas apparaître de bouton refusé, il ne faisait apparaître AUCUN
+   bouton. On se garait sur l'anneau d'un commerce, la benne pleine de ce qu'il achète, et
+   la colonne restait muette — ce qui se lit comme « ce commerce n'achète pas ça », et non
+   comme « il n'en veut plus aujourd'hui ». Ce sont deux choses très différentes quand on
+   décide d'une tournée.
+   La liste des débouchés existait déjà, elle : `acheteursDe` la calcule pour l'automate,
+   triée par ce que la cargaison rapporterait — le mieux-disant qui n'a plus que trois
+   kilos de place n'est pas le bon choix pour en écouler cent. On la montre. */
+function montrerRefus(S, cle, q){
+  const autres = acheteursDe(cle, S.nom, q).slice(0, 4);
+  const l = autres.map((a)=> a.nom + ' — ' + qte(cle, a.prend) + '  ·  ' + eur(a.gain));
+  annoncerFenetre({
+    /* « COMPLET — BOULANGERIE », ET NON « BOULANGERIE EST COMPLET ». Quinze commerces,
+       deux genres et deux nombres : « Épicerie est complet » est faux, « complète » est
+       faux pour le Restaurant, et accorder demanderait une table de genres pour un seul
+       titre. Le mot d'abord, le nom ensuite : ça se lit pour les quinze. */
+    titre: 'COMPLET \u2014 ' + S.nom.toUpperCase(),
+    // `dNom` pose l'article : « d'œufs », « de blé », « de l'huile ». Écrit à la main,
+    // on lisait « prendre de œufs ».
+    sous: 'Son étal ne peut plus prendre ' + dNom(nomDe(cle).toLowerCase()) +
+          ' aujourd\'hui.' +
+          (l.length ? '<br><br>Qui en veut encore, et ce que ça ferait&nbsp;:<br>'
+                      + l.join('<br>')
+                    : '<br><br>Personne d\'autre n\'en achète pour l\'instant.'),
+    gains: [], suite: 'Toucher pour continuer',
+    face: {nom: S.nom, humeur: 'refus'}, duree: 9
+  });
+}
 function empechementsIci(m){
   const v = m.v, T = caisseDe(m), out = [];
   if(v.speed > 2.5) return out;
   const dit = (quoi, raison)=> out.push({txt: quoi + ' — ' + raison});
+  /* L'ÉTAL PLEIN, DIT AU LIEU D'ÊTRE TU. On ne le dit que pour ce que le commerce achète
+     VRAIMENT et qu'on porte VRAIMENT : autrement chaque quai afficherait la liste de tout
+     ce qu'il ne prend pas. */
+  {
+    const S = siteIci(v);
+    if(S && T && S.achete)
+      for(const cle of naturesDe(T)){
+        if(S.achete.indexOf(cle) < 0 || placeChez(S, cle) > 0.01) continue;
+        const q = chargeDe(T, cle);
+        out.push({txt: 'VENDRE ' + nomHaut(cle) + ' — L\'ÉTAL EST PLEIN, VOIR OÙ L\'ÉCOULER',
+                  f: ()=> montrerRefus(S, cle, q)});
+      }
+  }
   const pat = patureProche(v);
   if(pat){
     const P = pat.P, E = ESPECES[P.espece] || ESPECES.vache;
@@ -22371,6 +22479,11 @@ function rendreContrat(){
     ? 'Mission de campagne'
     : ((offre ? 'Proposition · ' : 'Contrat en cours · ') + T.nom);
   document.getElementById('ctlieu').textContent = C.lieu;
+  /* ET LE COMMERÇANT EST LÀ QUAND IL PROPOSE. C'est ici que se lit ce que le client
+     demande, avec ses mots ; c'est donc ici que va son visage neutre. Le retrait de
+     104 px ne se met QUE s'il y a une image : sans elle, le titre reprend sa largeur. */
+  document.getElementById('ctboite').classList.toggle('avecFace',
+    poserVisage(document.getElementById('ctface'), C.lieu, 'neutre'));
   /* `mission` porte MAINTENANT la mission elle-même, plus un booléen : missionEnContrat()
      n'en garde que les lignes et le prix, et jetait la réplique avec le reste. On la lit
      donc à la source. Tout le code qui suit teste la vérité de `mission`, ce qu'un objet
@@ -22841,7 +22954,10 @@ function refreshChoix(){
     // Les empêchements d'un enclos sont entrés dans sa fenêtre avec le reste : les
     // laisser aussi dans la colonne aurait redonné les cinq lignes qu'on vient d'ôter.
     if(!patIci)
-      for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:null});
+      // UN EMPÊCHEMENT PEUT PORTER UN GESTE. Ils étaient tous inertes — ils disent une
+      // raison, on n'y peut rien. L'étal plein, lui, ouvre la liste des autres débouchés :
+      // c'est le seul cas où la raison mène quelque part.
+      for(const E2 of emp) lignes.push({txt:E2.txt, cls:'ch no', f:E2.f || null});
   }
   // La proposition passe AVANT tout le reste, y compris pendant un transfert : c'est la
   // seule ligne qui expire, et la seule qu'on ne retrouvera pas en repassant. Et la
