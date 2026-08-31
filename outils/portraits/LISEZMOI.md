@@ -4,8 +4,36 @@ Une planche de personnage entre, un portrait de jeu sort : 192 × 240 pixels, pa
 32 couleurs, fond transparent, buste coupé sur une ligne brisée. Cinq étapes, et une
 planche de contrôle après chacune — c'est la planche qui décide, pas le code.
 
-    python3 rendre.py 15_controle.png     # la planche de contrôle
-    python3 -c "import rendre; rendre.sortir('sortie')"   # les fichiers
+    python3 fabriquer.py              # fabrique les fiches du jeu, et dit leur poids
+    python3 fabriquer.py --planche    # la planche de contrôle, pour juger le cadrage
+    python3 rendre.py 15_controle.png # balaie un lot NON TRIÉ, pour voir ce qu'il contient
+
+**Deux scripts, et ils ne servent pas à la même chose.** `rendre.py` balaie un dossier
+d'images pour voir ce qu'il contient — c'est ce qu'on lance quand un lot arrive et qu'on ne
+sait pas encore quel personnage va à quel métier. `fabriquer.py` produit les fiches du
+JEU, et il part de `commerces.json` : un commerce, trois humeurs, un fichier source par
+humeur. C'est la seule façon d'être sûr qu'on ne livre pas le pouce levé d'un métier à la
+place du refus d'un autre, et c'est ce qui rend le travail **reproductible** — les réglages
+faits à la main sont dans le fichier, pas dans une séance de mise au point.
+
+## La table de production
+
+```json
+"caviste": {"site": "Caviste",
+  "neutre": {"src": "52aeef1c-image.jpg", "ancre": [77, 394, 170]},
+  "bravo":  {"src": "04056996-image.jpg", "ancre": [83, 353, 202]},
+  "refus":  {"src": "dc312b7f-image.png", "ancre": [85, 348, 195]}}
+```
+
+Trois réglages facultatifs par humeur, dans l'ordre où l'on y a recours : `ech`, `dx`, `dy`
+corrigent ce que les détecteurs ont trouvé ; `ancre` — `[écart, x, y]` — impose les yeux
+quand aucun détecteur ne mord. Le caviste a eu droit à la troisième sur ses trois planches :
+ses lunettes rondes et sa tignasse ont tenu les deux détecteurs en échec, et le détecteur de
+visage visait la bouteille de vin.
+
+**Où vivent les images.** `portraits/`, à côté d'`index.html`, ne contient QUE ce que le jeu
+charge. Les planches normalisées dont on ne connaît pas encore le métier attendent dans
+`outils/portraits/attente/`.
 
 ## Ce que fait la chaîne
 

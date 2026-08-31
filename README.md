@@ -9573,3 +9573,33 @@ et le contrôle ne changera pas d'une ligne.
 La mise en page tient sur une silhouette plus large : le boucher a les épaules et la main plus
 basses que le chef, et la boîte de 96 × 120 le cadre comme lui — c'est l'écart des yeux qui le
 décide, pas la carrure. **20 contrôles** pour `visages.js`.
+
+### Troisième commerce : le Caviste, et une table de production
+
+Le caviste a fait tomber le repérage automatique sur ses **trois** planches — lunettes rondes,
+tignasse, et un détecteur de visage qui visait la bouteille de vin. Ses trois ancrages sont
+posés à la main, yeux relevés sur une grille. Deux de ses planches sont par ailleurs des JPEG,
+et l'une est **plus large que haute** : le balayage par glob les avait écartées sans rien dire.
+
+C'est ce silence qui a fait remplacer le glob par une **table explicite**,
+`outils/portraits/commerces.json` — un commerce, trois humeurs, un fichier source par humeur,
+et les réglages faits à la main écrits à côté :
+
+```json
+"caviste": {"site": "Caviste",
+  "neutre": {"src": "52aeef1c-image.jpg", "ancre": [77, 394, 170]},
+  "bravo":  {"src": "04056996-image.jpg", "ancre": [83, 353, 202]},
+  "refus":  {"src": "dc312b7f-image.png", "ancre": [85, 348, 195]}}
+```
+
+Deux scripts, désormais, et ils ne servent pas à la même chose. `rendre.py` **balaie** un lot
+non trié, pour voir ce qu'il contient quand il arrive. `fabriquer.py` **produit** les fiches du
+jeu depuis la table. C'est la seule façon d'être sûr qu'on ne livre pas le pouce levé d'un
+métier à la place du refus d'un autre — et le travail devient reproductible : les réglages sont
+dans un fichier, plus dans une séance de mise au point.
+
+**`portraits/` ne contient que ce que le jeu charge** : neuf fiches, 93 Ko. Les trente-et-une
+planches normalisées dont on ne connaît pas encore le métier attendent dans
+`outils/portraits/attente/` — les laisser à côté d'`index.html` ferait voyager trois cents
+kilo-octets que rien n'affiche, et les laisser hors du dépôt reviendrait à parier que le
+conteneur de la séance survivra au groupement. Les sources, elles, n'y survivront pas.
