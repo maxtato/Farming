@@ -9715,3 +9715,21 @@ premier signe qu'un cadrage a échoué : un sujet trop petit laisse plus de tran
 maigrit. Deux ancrages posés à la main, et il rejoint les sept autres.
 
 Vingt-quatre fiches, **235 Ko**. Huit commerces sur quinze.
+
+### Neuvième commerce : le Marché, ou la casquette plate confirmée
+
+Deuxième personnage à casquette plate, et le même échec, en pire : deux planches sur trois
+tombent au repli par les largeurs, l'une sort **deux fois trop petite** et l'autre **deux fois
+trop grande** — un gros plan où le crâne déborde du cadre. La visière allonge le crâne vers
+l'avant, donc la mesure des largeurs place les « épaules » n'importe où, et le facteur d'échelle
+qui en sort peut se tromper dans les deux sens.
+
+Ce n'est plus une surprise, c'est une **règle** : un couvre-chef à visière horizontale coûte deux
+ancrages posés à la main. Elle vaut la peine d'être écrite, parce qu'elle dit d'avance combien un
+groupe va coûter — trois planches détectées, c'est cinq minutes ; trois planches à casquette,
+c'est une grille et deux relevés.
+
+Le **poids du fichier** l'avait dit avant la planche, une fois de plus : 5,8 Ko pour la fiche trop
+petite, contre 9 à 10 pour une fiche correcte.
+
+Vingt-sept fiches, **265 Ko**. Neuf commerces sur quinze, seize planches encore en attente.
