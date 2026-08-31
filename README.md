@@ -7782,3 +7782,58 @@ très dense cela revient à remplir près de trois fois la définition de l'écr
 positions : maximale (ce qui existait), élevée (plafonnée à deux fois la définition
 CSS), douce (une fois et demie, le plus fluide). Sur un écran ordinaire, aucune des
 trois ne change quoi que ce soit.
+
+## Deux bâtiments plus légers, sans rien perdre
+
+> « Essaye de réduire un tout petit peu les détails sur le silo et l'entrepôt. Sans perdre
+> l'âme du bâtiment mais pour supprimer des triangles. »
+
+On ne coupe pas au jugé : on relève d'abord OÙ sont les triangles, en regroupant les
+maillages par famille — même type de géométrie, mêmes cotes. C'est la famille répétée qui
+coûte, jamais la pièce unique, et le classement rend le verdict tout de suite.
+
+| | maillages | triangles |
+|---|---|---|
+| silo | 101 → **95** | 2 108 → **1 748** (−17 %) |
+| entrepôt | 244 → **212** | 3 640 → **3 088** (−15 %) |
+| les deux | 345 → **307** | 5 748 → **4 836** (−16 %) |
+
+### Une ceinture n'a pas de fonds
+
+Le gain le plus net ne se voit pas du tout, et c'est le meilleur genre. Une bande qui serre
+un fût — les cinq ceintures du silo, les sept viroles des deux cuves de l'entrepôt — est un
+cylindre plaqué contre une paroi plus large que lui n'est haut : **ses deux disques
+d'extrémité sont entièrement enterrés dans ce qu'elle serre**, et sur un cylindre à seize
+pans ils coûtent exactement autant que le tube. Cinq ceintures de silo, 320 triangles, dont
+**160 que personne n'a jamais vus**. `openEnded` les retire et il ne se passe rien à l'écran.
+Douze pièces traitées ainsi, **328 triangles rendus, zéro pixel changé**.
+
+La règle a une limite, et elle a servi tout de suite : la collerette du couvercle, posée à
+plat sur le cône du toit, n'est enterrée dans rien et la caméra du jeu la regarde
+par-dessus. Elle garde ses fonds. Une virole ne vaut que là où les fonds sont aveugles.
+
+### Le reste : desserrer, pas supprimer
+
+Aucune pièce n'a disparu ; ce sont les PAS qui s'allongent, et chaque forme reste lisible.
+
+- **L'échelle à crinoline des cuves était la pièce la plus chère de tout l'entrepôt** :
+  720 triangles, **vingt pour cent du bâtiment**, pour deux échelles hautes comme un homme
+  et demi. Chaque arceau est fait de cinq bâtonnets — et c'est la bonne façon de faire, un
+  arc ouvert laisse voir les barreaux là où un disque plein les cacherait. On garde le
+  principe et l'on desserre : quatre segments par arc, un arceau tous les 1,05 m au lieu de
+  0,75, un barreau tous les 42 cm au lieu de 30.
+- **La crinoline du silo** était sa famille la plus lourde à elle seule — 360 triangles,
+  dix-sept pour cent de la tour, pour des disques de 68 cm le long d'une échelle. Pas de
+  1,20 → 1,60 m, dix pans → huit : sept arceaux au lieu de neuf, et la cage se lit toujours
+  comme une cage.
+- **Les lames des rideaux métalliques** passent du pas de 22 cm à 30. Ce sont elles qui
+  distinguent un rideau d'une porte à panneaux, et elles restent — mais deux portes en
+  portaient trente-quatre, soit 408 triangles, **plus que le fût du silo entier**. À 30 cm
+  elles sont encore vingt-cinq, et de la cour on ne compte pas les lames d'un rideau : on
+  voit qu'il est nervuré.
+- **Le caillebotis de la trappe** garde neuf barreaux au lieu d'onze, **les paliers de
+  l'élévateur** un tous les 2,20 m au lieu de 1,60, et le couvercle du silo passe à dix pans.
+
+Vérifié à la distance du jeu, avant et après côte à côte : les cinq ceintures, la cage
+d'échelle, la goulotte, le caillebotis, le rideau nervuré et les viroles des cuves sont
+tous encore là. Les vingt suites passent.

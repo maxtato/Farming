@@ -1244,6 +1244,20 @@ function slab(o){
   m.castShadow = projette(w, d); m.receiveShadow=true;
   return m;
 }
+/* UNE CEINTURE N'A PAS DE FONDS. Une bande qui serre un fût, une virole autour d'une cuve,
+   un cerclage : le cylindre est plaqué contre une paroi plus large que lui n'est haut, et
+   ses deux disques d'extrémité sont ENTIÈREMENT enterrés dans ce qu'elle serre. On les
+   payait quand même — sur un cylindre à seize pans, les deux fonds coûtent exactement
+   autant que le tube. Mesuré sur les cinq ceintures du silo : 320 triangles dont 160 que
+   personne n'a jamais vus. `openEnded` les retire, et il ne se passe RIEN à l'écran. */
+function virole(r,h,seg,hex,x,y,z,rx,ry,rz){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||8,1,true), mat(hex));
+  m.position.set(x||0,y||0,z||0);
+  if(rx) m.rotation.x = rx; if(ry) m.rotation.y = ry; if(rz) m.rotation.z = rz;
+  m.castShadow = projette(r*2, (rx || rz) ? h : 0);
+  m.receiveShadow = true;
+  return m;
+}
 function cyl(rt,rb,h,seg,hex,x,y,z,rx,ry,rz){
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||8), mat(hex));
   m.position.set(x||0,y||0,z||0);
@@ -6483,16 +6497,20 @@ const SIL = {BETON:0x9BA3A8, BETON2:0x848C91, FUT:0xC8CDCF, TOIT:0x8A9298,
 function siloEchelle(g, x, z, h){
   for(const sx of [-0.22, 0.22]) g.add(box(0.07, h, 0.07, SIL.GRIS, x + sx, h/2, z));
   for(let k = 0; k*0.64 < h; k++) g.add(box(0.5, 0.05, 0.05, SIL.INOX, x, 0.25 + k*0.64, z));
-  for(let k = 0; k < Math.floor(h/1.2); k++)
-    g.add(cyl(0.34, 0.34, 0.05, 10, SIL.GRIS2, x, 0.8 + k*1.2, z - 0.16, Math.PI/2));
+  /* LA CRINOLINE : SEPT ARCEAUX A HUIT PANS, ET NON NEUF A DIX. Ce sont les pieces les plus
+     chères du silo — 360 triangles à elles seules, dix-sept pour cent de la tour, pour des
+     disques de 68 cm posés le long d'une échelle. Le pas passe de 1,20 m à 1,60 et les pans
+     de dix à huit : la cage se lit toujours comme une cage, et l'on rend 136 triangles. */
+  for(let k = 0; k < Math.floor(h/1.6); k++)
+    g.add(cyl(0.34, 0.34, 0.05, 8, SIL.GRIS2, x, 0.8 + k*1.6, z - 0.16, Math.PI/2));
 }
 /* TRAPPE : un caillebotis INTÉGRÉ AU SOL, sans margelle ni couvercle. Seul le cadre
    affleure, la grille est en léger creux — le camion roule dessus. */
 function siloTrappe(g, x, z, r){
   g.add(box(r*2.5, 0.12, r*2.5, SIL.BETON2, x, 0.06, z));
   g.add(box(r*2.2, 0.1, r*2.2, SIL.FOSSE, x, 0.09, z));
-  for(let k = 0; k < 11; k++)
-    g.add(box(r*2.1, 0.07, 0.09, SIL.GRIS2, x, 0.13, z - r + 0.18 + k*(2*r - 0.36)/10));
+  for(let k = 0; k < 9; k++)
+    g.add(box(r*2.1, 0.07, 0.09, SIL.GRIS2, x, 0.13, z - r + 0.18 + k*(2*r - 0.36)/8));
   /* Les entretoises courent PERPENDICULAIREMENT aux barreaux : leur décalage se fait
      donc en X. Décalées en Z, elles glissaient le long de leur propre longueur et
      sortaient de la grille par les deux bouts. */
@@ -6504,8 +6522,8 @@ function siloTrappe(g, x, z, r){
 }
 function siloElevateur(g, x, h){
   g.add(box(0.8, h, 0.8, SIL.TOIT, x, h/2, 0));
-  for(let k = 0; k < Math.floor(h/1.6); k++)
-    g.add(box(0.88, 0.1, 0.88, SIL.GRIS2, x, 0.8 + k*1.6, 0));
+  for(let k = 0; k < Math.floor(h/2.2); k++)
+    g.add(box(0.88, 0.1, 0.88, SIL.GRIS2, x, 0.8 + k*2.2, 0));
   g.add(box(1.1, 1.0, 1.1, SIL.GRIS, x, h + 0.4, 0));
   const t = box(Math.abs(x) + 0.4, 0.34, 0.46, SIL.GRIS2, x/2, h + 0.15, 0);
   t.rotation.z = 0.12*Math.sign(x); g.add(t);
@@ -6600,11 +6618,13 @@ function modeleSilo(){
   g.add(cyl(R + 1.1, R + 1.1, 0.6, 16, SIL.BETON2, 0, 0.3, 0));
   g.add(cyl(R + 0.35, R, 2.2, 16, SIL.BETON, 0, 1.7, 0));               // jupe évasée
   g.add(cyl(R, R, H - 2.2, 16, SIL.FUT, 0, 2.8 + (H - 2.2)/2, 0));
-  for(let k = 0; k < 5; k++) g.add(cyl(R + 0.06, R + 0.06, 0.16, 16, SIL.BETON2, 0, 3.6 + k*1.8, 0));
+  for(let k = 0; k < 5; k++) g.add(virole(R + 0.06, 0.16, 16, SIL.BETON2, 0, 3.6 + k*1.8, 0));
   g.add(cyl(R + 0.25, R + 0.25, 0.5, 16, SIL.BETON2, 0, H + 0.9, 0));   // couronnement
   g.add(cyl(0.4, R + 0.1, 1.6, 16, SIL.TOIT, 0, H + 1.9, 0));           // toiture conique
-  g.add(cyl(0.62, 0.62, 0.24, 12, SIL.ORANGE, 0, H + 2.82, 0));         // couvercle
-  g.add(cyl(0.68, 0.68, 0.1, 12, SIL.ORANGE2, 0, H + 2.68, 0));
+  g.add(cyl(0.62, 0.62, 0.24, 10, SIL.ORANGE, 0, H + 2.82, 0));         // couvercle
+  /* La collerette garde ses fonds : posée à plat sur le cône du toit, elle n'est enterrée
+     dans rien, et la caméra du jeu la regarde par-dessus. Une virole s'y verrait percée. */
+  g.add(cyl(0.68, 0.68, 0.1, 10, SIL.ORANGE2, 0, H + 2.68, 0));
   g.add(box(0.5, 0.12, 0.16, SIL.ORANGE2, 0, H + 2.98, 0.44));          // charnière
   g.add(box(0.16, 0.16, 0.34, SIL.GRIS2, 0, H + 3.02, -0.34));          // poignée
   siloEchelle(g, 0, R + 0.12, H + 0.6);
@@ -6679,7 +6699,11 @@ function entPorteQuai(g, x, y, z, w, h, num){
   const e = -1;
   g.add(box(w + 0.3, h + 0.3, 0.14, ENT.ACIER2, x, y + h/2, z - e*0.05));
   g.add(box(w, h, 0.16, ENT.SOMBRE, x, y + h/2, z));
-  const nl = Math.max(12, Math.round(h/0.22));
+  /* LE PAS DES LAMES PASSE DE 22 A 30 CM. Ce sont elles qui distinguent un rideau d'une
+     porte à panneaux, et elles restent — mais deux portes en portaient trente-quatre, soit
+     408 triangles, plus que le fût du silo. À 30 cm elles sont encore vingt-cinq, et de la
+     cour on ne compte pas les lames d'un rideau : on voit qu'il est nervuré. */
+  const nl = Math.max(9, Math.round(h/0.30));
   for(let k = 0; k < nl; k++)
     g.add(box(w - 0.1, h/nl*0.72, 0.19, ENT.LAME, x, y + h*(k + 0.5)/nl, z + e*0.03));
   for(const sx of [-1, 1])
@@ -6771,13 +6795,19 @@ function entTranspalette(g, x, z, ry, avecPalette){
 /* ÉCHELLE À CRINOLINE des cuves. Les arceaux ne sont pas des cylindres pleins — de face
    ils feraient des disques opaques — mais des arcs en cinq segments, ouverts côté
    échelon, ce qui laisse voir les barreaux. */
+/* ET C'ETAIT LA PIECE LA PLUS CHERE DE TOUT LE BATIMENT. Deux échelles de cuve, hautes
+   comme un homme et demi, coûtaient 720 triangles — VINGT POUR CENT de l'entrepôt — parce
+   que chaque arceau est fait de cinq bâtonnets et qu'il y en avait un tous les 75 cm, avec
+   des barreaux tous les 30. On garde la façon de faire, qui est la bonne — un arc ouvert
+   laisse voir les barreaux, un disque plein les cacherait — et l'on desserre : quatre
+   segments par arc, un arceau tous les 1,05 m, un barreau tous les 42 cm. */
 function entEchelleCuve(g, x, z, h){
   const e = new THREE.Group(), L = 0.26;
   for(const sx of [-L, L]) e.add(box(0.06, h, 0.06, ENT.GRIS, sx, h/2, 0));
-  for(let k = 0; k*0.3 < h - 0.2; k++) e.add(box(L*2, 0.045, 0.045, ENT.INOX, 0, 0.25 + k*0.3, 0));
-  const R = 0.36, N = 5;
-  for(let k = 0; k < Math.floor((h - 0.6)/0.75); k++){
-    const y = 1.0 + k*0.75;
+  for(let k = 0; k*0.42 < h - 0.2; k++) e.add(box(L*2, 0.045, 0.045, ENT.INOX, 0, 0.25 + k*0.42, 0));
+  const R = 0.36, N = 4;
+  for(let k = 0; k < Math.floor((h - 0.6)/1.05); k++){
+    const y = 1.0 + k*1.05;
     for(let i = 0; i < N; i++){
       const a1 = Math.PI*(i/N) - Math.PI/2, a2 = Math.PI*((i + 1)/N) - Math.PI/2;
       const x1 = Math.sin(a1)*R, z1 = -Math.cos(a1)*R;
@@ -6813,7 +6843,7 @@ function entCuveGraine(g0, X, Z, ry){
      ce qui est la première des deux solutions que le joueur propose pour le quai. */
   g.add(cyl(1.12, 1.12, 3.78, 12, ENT.VERT, X, 1.89, Z));
   g.add(cyl(1.12, 0.5, 0.55, 12, ENT.VERT, X, 4.05, Z));                    // dôme
-  for(let k = 0; k < 4; k++) g.add(cyl(1.18, 1.18, 0.1, 12, ENT.VERT2, X, 0.7 + k*1.0, Z));
+  for(let k = 0; k < 4; k++) g.add(virole(1.18, 0.1, 12, ENT.VERT2, X, 0.7 + k*1.0, Z));
   for(let k = 0; k < 6; k++){                                                // armature
     const a = k*Math.PI/3;
     g.add(box(0.09, 3.78, 0.09, ENT.ACIER2, X + Math.cos(a)*1.16, 1.89, Z + Math.sin(a)*1.16));
@@ -6843,7 +6873,7 @@ function entCuveEngrais(g0, X, Z, ry, ech){
   g.add(box(2.0, 0.16, 2.0, ENT.GRIS, X, 2.4, Z));
   g.add(cyl(0.85, 0.85, 3.0, 12, ENT.BLANC, X, 4.0, Z));
   g.add(cyl(0.85, 0.28, 0.55, 12, ENT.BLANC, X, 5.75, Z));
-  for(let k = 0; k < 3; k++) g.add(cyl(0.9, 0.9, 0.1, 12, ENT.BLEU, X, 3.1 + k*0.9, Z));
+  for(let k = 0; k < 3; k++) g.add(virole(0.9, 0.1, 12, ENT.BLEU, X, 3.1 + k*0.9, Z));
   entEchelleCuve(g, X, Z - 1.0, 5.4);
   entVanne(g, X, 2.7, Z - 1.25);
   g.add(cyl(0.18, 0.18, 1.0, 8, ENT.ACIER2, X, 2.0, Z - 0.9));              // descente
