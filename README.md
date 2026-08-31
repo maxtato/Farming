@@ -9603,3 +9603,22 @@ planches normalisées dont on ne connaît pas encore le métier attendent dans
 `outils/portraits/attente/` — les laisser à côté d'`index.html` ferait voyager trois cents
 kilo-octets que rien n'affiche, et les laisser hors du dépôt reviendrait à parier que le
 conteneur de la séance survivra au groupement. Les sources, elles, n'y survivront pas.
+
+### Quatrième commerce : la Fromagerie, et ce que la table permet de voir
+
+Elle est arrivée **trop petite et sous la ligne d'yeux**, alors que ses trois réglages venaient
+d'un lot où elle passait. La raison se lit sur la planche : sa chevelure et son foulard font une
+masse que le détecteur de visage englobe, si bien que la boîte commence trop haut — le repère
+d'yeux qu'on en déduit tombe au-dessus des vrais, et la poser sur la ligne enfonce le visage.
+
+C'est exactement ce qu'une planche de contrôle sert à attraper, et exactement ce qu'une **table**
+sert à réparer : deux passes de correction écrites dans `commerces.json`, et non deux passes
+refaites de mémoire au prochain lot.
+
+| | échelle | décalage vertical |
+|---|---|---|
+| neutre, félicitations | ×0,44 | −0,065 |
+| refus | ×1,08 | −0,012 |
+
+Douze fiches, **122 Ko**. Les vingt contrôles de `visages.js` passent, dont les douze fichiers
+qui se chargent tous en 192 × 240.
