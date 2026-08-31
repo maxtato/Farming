@@ -9668,3 +9668,14 @@ ne reste de lui que deux ancrages posés à la main — ses deux premières plan
 où aucun détecteur ne mord.
 
 Quinze fiches dans le jeu, **151 Ko**. Cinq commerces sur quinze.
+
+### Sixième commerce : l'Usine avoine, et un nom de fichier sans espace
+
+Elle est passée sans une correction : ses trois planches font partie des rares où le détecteur
+d'yeux mord trois fois sur trois. Le seul point à trancher était son nom — le site s'appelle
+`Usine avoine`, avec une espace, et le radical est `usine_avoine`. Un nom de fichier ne porte pas
+d'espace sans qu'une adresse ait à l'encoder, et une adresse encodée se relit mal ; la table du
+jeu fait donc la traduction, une fois, à l'endroit où elle se voit.
+
+Dix-huit fiches dans le jeu, **182 Ko**. Six commerces sur quinze, vingt-deux planches encore en
+attente de métier.
