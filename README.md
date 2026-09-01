@@ -9463,8 +9463,10 @@ renommer quarante-cinq fichiers.
 
 ### La chaîne de conversion
 
-Une planche de personnage entre, un portrait de jeu sort : **192 × 240 pixels, 32 couleurs, PNG
-indexé, 9,6 Ko en moyenne**. Cinq étapes, chacune jugée sur une planche de contrôle.
+Une planche de personnage entre, un portrait de jeu sort : **192 × 240 pixels, PNG indexé sur une
+palette de 67 couleurs partagée par tout le casting, 6,7 Ko en moyenne**. Cinq étapes, chacune
+jugée sur une planche de contrôle. (Les chiffres de palette et de poids sont ceux d'aujourd'hui ;
+le chapitre « Du pixel art, et non une image réduite » dit d'où ils viennent.)
 
 Le **détourage** marche seul sur les trente-sept planches déposées. On inonde depuis les bords
 plutôt que de seuiller sur le blanc : les dents d'un rire ressemblent au fond mais sont
@@ -9494,7 +9496,7 @@ Les deux derniers étages se corrigent dans `outils/portraits/reglages.json` : s
 réglées à la main sur planche de contrôle, dont le caviste, pour qui le détecteur visait la
 bouteille de vin et non le visage.
 
-La **coupe** du buste est une ligne brisée à quatre segments, posée aux mêmes fractions du cadre
+La **coupe** du buste est une ligne brisée de cinq cordes, posée aux mêmes fractions du cadre
 pour tous : c'est elle, avec l'écart des yeux et la hauteur du regard, qui donne aux fiches leur
 air de famille.
 
@@ -9843,3 +9845,126 @@ n'existe pas.
 
 Trente-huit fiches, **371 Ko**. `visages.js` passe à **27 contrôles**. Quatorze commerces sur
 quinze : il ne manque que la Boulangerie.
+
+### La coupe du bas : convexe, et non dentée
+
+> « Pour le découpage en bas des images, fais un arrondi légèrement octogonal, pas des dents de
+> scie comme tu as fait. Regarde à nouveau l'image à prendre en référence, mais tu ne dois pas
+> faire exactement la même découpe : il faut que ce soit cohérent par rapport à l'image. »
+
+La première coupe était cinq points qui montaient et redescendaient tour à tour : 0,906 puis
+0,858 puis 0,947. C'était bien une denture, et la raison en est **géométrique** — une ligne brisée
+qui alterne les deux sens *est* une scie, quelle que soit la longueur des dents. Ce qui fait la
+coupe de l'image de référence, c'est qu'elle est **convexe de bout en bout** : elle descend, elle
+court à plat, elle remonte, et pas une fois elle ne rebrousse.
+
+Six points, cinq cordes : deux biseaux courts aux angles, un fond presque plat au milieu, deux
+montées vers les bords. Le bas d'un octogone dont on aurait adouci les angles — assez droit pour
+rester dans le style facetté du jeu, assez ouvert pour ne pas mordre. Ni le fond horizontal ni les
+deux biseaux égaux : une symétrie parfaite se lirait comme un gabarit et non comme une coupe. Et
+elle n'est vue que sur `[0,15 ; 0,85]` — aux bords du cadre le buste est déjà fini, les deux points
+extrêmes ne servent qu'à fermer le polygone.
+
+`coupeConvexe()` vérifie la propriété : la ligne descend jusqu'à son point bas puis remonte, sans
+jamais changer de sens deux fois. C'est un contrôle, pas un commentaire — l'ancienne coupe le fait
+échouer.
+
+### Du pixel art, et non une image réduite
+
+> « Attention, les fichiers pixel art doivent être des vrais pixel art, pas juste un retravail
+> en png. »
+
+Il a raison, et **cela se mesure**. L'étape « pixels » tenait en deux lignes — `resize(LANCZOS)`
+puis `quantize(32)` —, et le chiffre qui la condamne est le **taux de pixels orphelins** : la part
+des pixels dont aucun des quatre voisins n'a la couleur. Sur `restaurant-neutre`, **15,9 %**. Un
+pixel isolé est la signature d'un rééchantillonnage ; personne n'en pose un seul à la main.
+
+| | avant | après |
+|---|---|---|
+| pixels orphelins | 15,9 % | **0,2 %** en moyenne, 0,4 % au pire |
+| palette | 32 couleurs trouvées **dans chaque image** | 67 rangées en **11 gammes**, une pour tout le casting |
+| réduction | LANCZOS, sujet moyenné avec le fond blanc | moyenne d'aire pondérée par l'alpha, cadre = 3 × la fiche |
+| poids | 9,8 Ko en moyenne, 371 Ko | **6,7 Ko en moyenne, 253 Ko** |
+
+**La palette est décidée, partagée, et rangée en gammes.** C'est le levier principal, et il n'est
+pas cosmétique : trente-deux couleurs trouvées par statistique *dans chaque image* laissent chaque
+facette du rendu low-poly garder sa nuance, et l'on obtient un dégradé en trente-deux marches, pas
+des aplats. La palette est maintenant **une** pour les trente-huit fiches, bâtie en gammes — une
+famille de teinte, six marches de clarté — et les marches sont régularisées. Un commerce n'en
+touche qu'une trentaine : le reste devient de l'aplat tout seul, parce que deux facettes voisines
+tombent sur la même marche.
+
+Trois réglages ont demandé une correction, et chacun s'est vu sur le nuancier :
+
+- **L'échelle de clarté est à moitié mesurée, à moitié régulière.** Six quantiles des clartés de
+  la famille : toutes les gammes avaient trois marches quasi noires, parce qu'un rendu facetté
+  passe l'essentiel de sa surface dans l'ombre et que les quantiles suivent la masse. Six marches
+  à pas constant : le teint n'avait plus que deux marches pour tout un visage, la peau vivant
+  entre 0,65 et 0,82 de clarté. La moyenne des deux serre les marches là où la couleur existe
+  sans laisser un bout de gamme sans marche.
+- **Aucune gamme de couleur ne descend au noir.** Avec un plancher à 0,17 de clarté, les dix
+  familles posaient chacune une marche presque noire : dix cases de palette pour dix noirs
+  indiscernables. Un dessinateur n'en peint qu'un et le partage. Le plancher est à 0,27, et ce qui
+  est plus sombre tombe sur la gamme des neutres, qui est là pour ça.
+- **Les neutres ne se mesurent pas, ils se posent.** Mesurés, ils suivaient la masse eux aussi :
+  le tableau d'ardoise du Restaurant et les vestes sombres donnaient cinq gris presque noirs et un
+  blanc, sans rien entre les deux — donc pas de quoi peindre une blouse blanche ni un reflet de
+  peau. Sept marches à pas constant du presque-noir au blanc, et le problème n'existe plus.
+
+**Une étoffe, une gamme.** Accrochée pixel par pixel, une facette sur deux de la chemise rouge du
+Restaurant tombait dans la famille orange et l'autre dans la rouge : un damier de deux couleurs
+franches là où il n'y a qu'un tissu — exactement le défaut que le pixel art ne fait pas. Une passe
+regarde, autour de chaque pixel, quelle **famille** domine, et l'y ramène si la meilleure marche de
+cette famille n'est pas plus loin que 0,075 en Oklab. La marche de clarté, elle, reste libre :
+c'est le modelé qui doit survivre, pas la teinte accidentelle.
+
+**La réduction est une moyenne d'aire pondérée par l'alpha.** LANCZOS sonne — il invente des pixels
+plus clairs que tout ce qui les entoure au bord d'un contraste — et il moyenne le sujet **avec le
+fond blanc** sur tout le pourtour, ce qui pose un liseré pâle autour du personnage. Le cadre fait
+donc exactement trois fois la fiche (576 × 720 pour 192 × 240) et chaque pixel livré est la moyenne
+honnête de neuf, en ne regardant que ce qui est opaque. Les cotes en fraction — écart des yeux,
+ligne des yeux, corrections `dx`/`dy` — n'ont pas bougé d'un poil : elles sont toutes relatives au
+cadre.
+
+**Le dessin est nettoyé, puis cerné.** On efface les pixels orphelins, on bouche les trous d'un
+pixel dans la silhouette, et l'on assombrit d'**une marche de sa propre gamme** le liseré
+extérieur : la manche bleue est cernée de bleu sombre, la joue de brun. Un noir plaqué tout autour
+ferait un autocollant.
+
+**Tout se compare en Oklab.** En RVB, le bleu marine est « plus proche » du noir que le brun clair
+ne l'est du beige : le regroupement en familles, l'accrochage à la palette et le choix du voisin de
+remplacement s'y tromperaient tous les trois.
+
+`palette.json` est **versionné**, et c'est délibéré : c'est la décision de couleur du jeu, et
+refabriquer les fiches deux fois de suite doit rendre les mêmes octets. On ne la rebat qu'en le
+demandant (`fabriquer.py --palette`), et l'on regarde le nuancier avant de la garder.
+
+Trente-huit fiches, **253 Ko** au lieu de 371. Les vingt-deux suites : **1 013 contrôles**, zéro
+échec, zéro erreur de page, zéro 404.
+
+### Et les triangles des deux cuves
+
+> « Est-ce que tu peux aussi me confirmer que quand tu as réduit les triangles sur l'entrepôt, tu
+> as aussi inclus de réduire les triangles sur les deux cuves à engrais et à graines ? »
+
+Oui, et c'est même là que le gros du gain a été pris. Mesuré, cuve par cuve :
+
+| | cuve à graines | cuve à engrais | entrepôt entier |
+|---|---|---|---|
+| avant | 588 tri | 1 280 tri | 3 640 tri |
+| après | **476 tri** | **916 tri** | **2 784 tri** |
+
+Les deux cuves rendent **476 triangles sur les 856** gagnés par tout le bâtiment, soit **56 % de
+l'allègement**. Trois pièces, toutes les trois dans les cuves :
+
+- **l'échelle à crinoline** de la cuve blanche — « la pièce la plus chère du bâtiment » : quatre
+  segments par arc au lieu de cinq, un arceau tous les 1,05 m au lieu de 0,75, un barreau tous les
+  42 cm au lieu de 30. Quatre-vingt-six maillages, puis soixante-trois.
+- **les sept viroles** (quatre sur la verte, trois sur la blanche) passées en `openEnded` : une
+  bande qui serre un fût a ses deux disques enterrés dans ce qu'elle serre. 168 triangles rendus,
+  zéro pixel changé.
+- **le volant de vanne**, dix pans puis six, sur les deux cuves.
+
+Ce qui n'a **pas** bougé : les fûts et les dômes restent à douze pans. Là c'est la silhouette qui
+est en jeu et non du remplissage caché — descendre à huit se verrait sur un fût de 2,24 m de large
+regardé à dix mètres.

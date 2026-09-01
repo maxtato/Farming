@@ -13,8 +13,15 @@ Cinq etapes, chacune verifiable a l oeil sur une planche de controle :
   3. COUPE          le buste se termine sur une ligne brisee, dans le style facette du
                     jeu. La meme pour tous : c est la mise en page qui doit etre
                     identique, pas seulement la taille.
-  4. PIXELS         reduction a la grille demandee, puis quantification en aplats. Pas de
-                    tramage : le tramage est ce qui fait qu un pixel art compresse mal.
+  4. PIXELS         LA SUITE EST DANS `pixels.py`. L etape tenait ici en deux lignes —
+                    `resize(LANCZOS)` puis `quantize(32)` — et ces deux lignes rendaient
+                    une image reduite, pas un pixel art : 15,9 % des pixels livres
+                    n avaient aucun voisin de leur couleur. Le module voisin fait le
+                    travail pour de bon — palette partagee rangee en gammes, reduction
+                    par moyenne d aire ponderee par l alpha, aplats, cerne — et il MESURE
+                    ce taux d orphelins, qui est le chiffre qui distingue les deux.
+                    `pixeliser` ci-dessous reste pour `rendre.py`, qui balaie un lot pour
+                    voir ce qu il contient et n a pas besoin d une palette de casting.
   5. POIDS          on encode et on mesure. Rien ne rentre dans le jeu sans son chiffre.
 """
 import io, os, sys, json
@@ -196,16 +203,39 @@ def cadrerAncre(im, alpha, W, H, ecartCible=0.150, yYeux=0.318, dx=0.0, dy=0.0, 
     return out, dict(ecart=ecart, cx=cx, cy=cy, source=org, k=k)
 
 # ---------- 3. LA COUPE ANGULAIRE ---------------------------------------------
-# La ligne brisee du bas, en fractions du cadre. Elle est la MEME pour tous : c est
-# elle qui donne aux quinze portraits leur air de famille.
-COUPE = [(0.000, 0.842), (0.215, 0.906), (0.470, 0.858), (0.700, 0.947), (1.000, 0.884)]
+# LA LIGNE DU BAS EST CONVEXE, ET ELLE NE REVIENT JAMAIS SUR ELLE-MEME.
+# Premiere version : cinq points qui montaient et redescendaient tour a tour, 0,906 puis
+# 0,858 puis 0,947. Le joueur : « fait un arrondi legerement octogonal, pas des dents de
+# scie. » Il a raison, et la raison est geometrique : une ligne brisee qui alterne les deux
+# sens EST une denture, quelle que soit la longueur des dents. Ce qui fait la coupe de
+# l image de reference, c est qu elle est CONVEXE de bout en bout — elle descend, elle
+# court a plat, elle remonte, et pas une fois elle ne rebrousse.
+# Six points, cinq cordes : deux biseaux courts aux angles, un fond presque plat au milieu,
+# deux montees vers les bords. C est le bas d un octogone dont on aurait adouci les angles
+# — assez droit pour rester dans le style facette du jeu, assez ouvert pour ne pas mordre.
+# Le fond n est pas horizontal et les deux biseaux n ont pas la meme largeur : une symetrie
+# parfaite se lirait comme un gabarit, pas comme une coupe.
+# ELLE N EST VUE QUE SUR [0,15 ; 0,85]. Aux bords du cadre le buste est deja fini : les deux
+# points extremes ne servent qu a fermer le polygone, et leur hauteur ne se voit pas.
+COUPE = [(0.000, 0.836), (0.122, 0.902), (0.345, 0.945), (0.630, 0.951),
+         (0.868, 0.914), (1.000, 0.843)]
 
 def masqueCadre(W, H, coupe=COUPE):
+    """Le masque garde TOUT ce qui est au-dessus de la ligne : on ferme le polygone par
+       les deux coins du haut, et la ligne se parcourt de droite a gauche pour que le
+       contour tourne dans un seul sens."""
     m = Image.new('L', (W, H), 0)
-    d = ImageDraw.Draw(m)
-    pts = [(x*W, y*H) for x, y in coupe] + [(W, H), (0, H)]
-    d.polygon([(0, 0), (W, 0)] + [(x*W, y*H) for x, y in reversed(coupe)], fill=255)
+    ImageDraw.Draw(m).polygon([(0, 0), (W, 0)] + [(x*W, y*H) for x, y in reversed(coupe)],
+                              fill=255)
     return m
+
+def coupeConvexe(coupe=COUPE):
+    """Le controle qui empeche la denture de revenir : la ligne descend jusqu a son point
+       bas puis remonte, sans jamais changer de sens deux fois."""
+    y = [p[1] for p in coupe]
+    bas = y.index(max(y))
+    return (all(y[i] <= y[i+1] for i in range(bas)) and
+            all(y[i] >= y[i+1] for i in range(bas, len(y)-1)))
 
 def cadrer(im, alpha, W, H, hVisage=0.255, yVisage=0.300, dx=0.0, dy=0.0, ech=1.0,
            boite=None):
