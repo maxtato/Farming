@@ -9561,6 +9561,72 @@ trois kilos de place n'est pas le bon choix pour en écouler cent. On la montre,
 Le titre dit **« COMPLET — RESTAURANT »** et non « Restaurant est complet » : quinze commerces,
 deux genres, et accorder demanderait une table de genres pour un seul titre.
 
+## Le pixel art est un réglage
+
+> « Fais les modifications que je puisse visualiser dans le jeu, mais garde une trace que je
+> puisse revenir en arrière si j'aime pas. »
+
+Alors le jeu s'ouvre exactement comme avant, et deux interrupteurs des réglages — section
+**Pixel art** — le font basculer. Ils partent éteints, ils sont indépendants l'un de l'autre, et
+les remettre à zéro rend l'état de départ **au chiffre près** : le banc le vérifie sur treize
+grandeurs à la fois, définition de rendu, angles, ombres, flous, filtrage des textures et zoom
+de l'interface.
+
+### Grain de l'image
+
+Le moteur avait déjà tout ce qu'il fallait : le canevas du monde est agrandi au plus proche
+voisin depuis le premier jour, et une constante `PX` disait combien de pixels d'écran couvre un
+pixel de rendu. Elle valait 1,1 en dur. Elle est devenue un réglage à quatre crans.
+
+| cran | `px` | rendu sur un écran de 900 × 520 | pixels à remplir |
+|---|---|---|---|
+| **D'origine** | 1,1 | 818 × 473 | 387 k |
+| **Fin** | 2 | 450 × 260 | 117 k |
+| **Moyen** | 3 | 300 × 173 | 52 k |
+| **Gros** | 4 | 225 × 130 | 29 k |
+
+**Et le plancher avalait le réglage.** La définition était bornée par `Math.max(0.45, …)` — un
+garde-fou pour qu'elle ne devienne jamais absurde. Sur un écran à un point par pixel CSS,
+« Moyen » demandait 0,333 et recevait 0,45 ; « Gros » demandait 0,25 et recevait 0,45 aussi. Les
+deux crans rendaient **la même image**, et rien à l'écran ne l'aurait dit. Le plancher suit
+maintenant le grain demandé : il vaut 0,45 tant que le grain reste fin, et descend avec lui.
+Accessoirement, « Moyen » remplit **sept fois moins de pixels** que le réglage d'origine — le
+gros grain est aussi le mode le plus économe du jeu.
+
+### Interface sur la grille
+
+Un pixel d'art a une taille ; tout ce qui se pose *entre* deux de ces tailles casse la grille. Le
+jeu en avait cinq familles, comptées et non estimées :
+
+- **74 rayons d'angle** — un coin arrondi est un dégradé d'anticrénelage, aucun rayon ne tombe
+  juste sur une grille de pixels. Ils passent à zéro.
+- **23 ombres floues sur 96.** Les 73 autres étaient *déjà* franches — `0 3px 0`, le relief de
+  bouton du jeu — et ne bougent pas. Seules celles qui portaient un rayon de flou sont
+  réécrites : on garde l'ombre dure, on jette l'ombre d'ambiance.
+- **4 `backdrop-filter: blur()`** et **2 `drop-shadow()` floues.**
+- **Le zoom de l'interface.** `--ui` vaut 1,3 / 1,55 / 1,9 sur un grand écran : trois facteurs
+  qui coupent le pixel en travers. En grille il ne prend que des entiers.
+- **Les textures peintes** du monde — le panneau « à vendre », les enseignes, les deux plaques
+  d'étiquette — passent au plus proche voisin. Le **sol** non : il est toujours vu *réduit*, et
+  un filtrage au plus proche y ferait grouiller le grain à chaque mouvement de caméra. On ne
+  touche qu'au grossissement, jamais à la réduction.
+
+**Un `!important`, et un seul.** Les trois visages sont nommés par identifiant et portent leur
+propre `image-rendering: auto` ; un identifiant l'emporte sur `body.grille .face` quoi qu'on
+écrive. Sans ce mot-là, les portraits restaient lisses pendant que tout le reste passait au
+carré.
+
+**`imageSmoothingEnabled` ne change rien, et c'est mesuré.** Le jeu ne pose *aucune* image par
+`drawImage` — les portraits sont des balises du document, le monde est en WebGL. Le drapeau est
+mis quand même, pour le jour où une planche de tuiles arrivera ; il ne fait pas nombre.
+
+### Les deux réglages se sauvegardent, et une vieille partie ne les voit pas
+
+`pixel` et `pixelUi` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la garde de
+relecture est une égalité stricte, l'incrémenter rejetterait d'un coup toutes les parties en
+cours. Une sauvegarde d'avant ce réglage — ou marquée mais sans les deux champs — repart du jeu
+d'origine. `pixelart.js`, **24 contrôles**.
+
 ### Un défaut de français corrigé au passage
 
 `dNom` posait l'article sur une classe de voyelles qui ignorait la ligature : le jeu écrivait

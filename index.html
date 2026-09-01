@@ -1218,6 +1218,60 @@
   #rot b{font-size:13px;letter-spacing:3px}
   #rot span{font-size:11px;opacity:.5;letter-spacing:1px}
   @media (orientation:portrait){#rot{display:flex}}
+  /* ======================= L'INTERFACE SUR LA GRILLE =========================
+     LE JOUEUR : « fais les modifications que je puisse visualiser dans le jeu, mais garde
+     une trace que je puisse revenir en arrière si j'aime pas. » Alors rien de tout ceci ne
+     s'applique tant qu'on ne l'a pas demandé : le corps du document ne porte la classe
+     `grille` que si le réglage « Interface sur la grille » est mis. Sans elle, l'octet
+     pour octet d'avant.
+
+     CE QUE ÇA CHANGE, ET POURQUOI CHAQUE POINT Y EST.
+     Un pixel d'art a une taille. Tout ce qui, à l'écran, se pose ENTRE deux de ces
+     tailles-là casse la grille — et le jeu en avait cinq familles, comptées :
+       · 74 rayons d'angle. Un coin arrondi est un dégradé d'anticrénelage : il n'existe
+         aucun rayon qui tombe juste sur une grille de pixels. Ils passent à zéro.
+       · 23 ombres floues sur 96. Les 73 autres étaient DÉJÀ franches — `0 3px 0`, le
+         relief de bouton du jeu — et ne bougent pas. Seules celles qui portaient un
+         rayon de flou sont réécrites : on garde l'ombre dure et l'on jette l'ombre
+         d'ambiance. Quand il n'y avait QUE l'ombre floue, c'est son flou qu'on met à
+         zéro, pour ne pas perdre le relief.
+       · 4 `backdrop-filter: blur()` — un flou d'arrière-plan est le contraire d'une
+         grille.
+       · 2 `drop-shadow()` floues, sur les pédales et les pictogrammes de jauge.
+       · Le zoom de l'interface. `--ui` vaut 1,3 / 1,55 / 1,9 sur un grand écran : trois
+         facteurs qui coupent le pixel en travers. En grille, il ne prend que des
+         entiers — 1 en dessous de 1 500 px de large, 2 au-dessus.
+     Et les images du document passent en `pixelated` : c'est le seul endroit où l'on
+     veut voir le carré plutôt que de le lisser. */
+  body.grille *{border-radius:0!important;
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  /* `!important` PARCE QUE LES TROIS VISAGES SONT NOMMES PAR IDENTIFIANT. `#brface` porte
+     son propre `image-rendering:auto`, et un identifiant l emporte sur `body.grille .face`
+     quoi qu on ecrive : sans ce mot-la, les portraits restaient lisses pendant que tout le
+     reste passait au carre. C est le seul endroit du fichier qui en a besoin. */
+  body.grille img,body.grille #plancv,body.grille .face{image-rendering:pixelated!important}
+  body.grille{--ui:1}
+  @media (min-width:1500px){body.grille{--ui:2}}
+  body.grille #goaltxt{text-shadow:0 1px 0 rgba(0,0,0,.6)}
+  body.grille #viseurs .vis .nm{text-shadow:0 1px 0 rgba(0,0,0,.85)}
+  body.grille #pause{box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  body.grille #pause:active{box-shadow:0 1px 0 rgba(0,0,0,.45)}
+  body.grille #menuBtn{box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  body.grille #menuBtn:active{box-shadow:0 1px 0 rgba(0,0,0,.45)}
+  body.grille #engbar > div{box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  body.grille #engbar > div:active{box-shadow:0 1px 0 rgba(0,0,0,.45)}
+  body.grille #hitch.on{box-shadow:0 3px 0 #B49700}
+  body.grille #hitch.on:active{box-shadow:0 1px 0 #B49700}
+  body.grille #auto.on{box-shadow:0 3px 0 #5C9E4E}
+  body.grille #auto.on:active{box-shadow:0 1px 0 #5C9E4E}
+  body.grille #engins.appel,body.grille #regie .rgb.appel,body.grille #service.appel,body.grille #atelier.appel,body.grille #veh.appel,body.grille #hitch.appel{box-shadow:0 3px 0 #B49700}
+  body.grille #regie .rgb{box-shadow:0 3px 0 rgba(0,0,0,.45)}
+  body.grille #regie .rgb:active{box-shadow:0 1px 0 rgba(0,0,0,.45)}
+  body.grille .dir{box-shadow:0 4px 0 rgba(0,0,0,.45)}
+  body.grille .dir.on{box-shadow:0 1px 0 #B49700}
+  body.grille #service,body.grille #buy,body.grille #atelier,body.grille #veh,body.grille #choix .ch,body.grille #crop{box-shadow:0 3px 0 var(--actOmb)}
+  body.grille #service:active,body.grille #buy:active,body.grille #atelier:active,body.grille #veh:active,body.grille #choix .ch:active,body.grille #crop:active{box-shadow:0 1px 0 var(--actOmb)}
+  body.grille .ped,body.grille .jic{filter:none}
 </style>
 </head>
 <body>
@@ -1436,7 +1490,33 @@ const C = {
 // ce qui donne l'escalier de pixels sur tous les contours (comme les références)
 // PX = taille d'un pixel de rendu, exprimée en pixels PHYSIQUES de l'écran.
 // C'est le seul curseur à toucher : 1 = net, 2 = escalier fin, 3 = gros pixels.
-const PX = 1.1;
+/* ET CE CURSEUR EST DEVENU UN RÉGLAGE, PARCE QU'IL SE JUGE À L'ŒIL ET PAS SUR LE PAPIER.
+   Le joueur : « fais les modifications que je puisse visualiser dans le jeu, mais garde
+   une trace que je puisse revenir en arrière si j'aime pas. » Le grain de l'image est
+   exactement ce genre de décision : elle ne se démontre pas, elle se regarde, et l'on
+   change d'avis en la regardant. `PIXEL.i` vaut 0 au démarrage — 1,1, c'est-à-dire
+   l'image que le jeu a toujours eue — et les trois autres crans sont là pour être
+   essayés puis abandonnés d'une touche.
+   CE QUE `px` VEUT DIRE. C'est le nombre de pixels d'écran que couvre UN pixel de rendu.
+   À 1, le jeu dessine à la définition de l'écran. À 3, il dessine trois fois moins large
+   et trois fois moins haut, et le navigateur agrandit d'un bloc — le canevas porte
+   `image-rendering: pixelated` depuis toujours, c'est ce qui donne l'escalier franc
+   plutôt qu'un flou. À 3 on remplit donc NEUF FOIS moins de pixels : le gros grain est
+   aussi, accessoirement, le réglage le plus économe du jeu. */
+const PIXEL = {i: 0, ui: false, choix: [
+  {nom: "D'origine", px: 1.1,
+   det: 'Le grain d\'origine du jeu : un pixel de rendu pour un peu plus d\'un pixel '
+      + 'd\'écran. Les contours sont nets, l\'escalier ne se voit qu\'en cherchant.'},
+  {nom: 'Fin',   px: 2,
+   det: 'Un pixel de rendu pour deux pixels d\'écran. L\'escalier devient visible sur '
+      + 'les toits et les roues, sans que rien ne devienne illisible.'},
+  {nom: 'Moyen', px: 3,
+   det: 'Un pixel de rendu pour trois pixels d\'écran — la grille du pixel art des '
+      + 'visages, appliquée au monde. Le jeu remplit neuf fois moins de pixels.'},
+  {nom: 'Gros',  px: 4,
+   det: 'Un pixel de rendu pour quatre pixels d\'écran. Le parti pris est franc : on ne '
+      + 'lit plus une forme, on lit des carrés.'}
+]};
 /* LE PLAFOND DE NETTETÉ.
    Sur un téléphone à trois pixels physiques par pixel CSS, on rendait 2,7 fois la
    définition de l'écran — trois millions de pixels à remplir soixante fois par seconde
@@ -1460,12 +1540,49 @@ renderer.setPixelRatio(1);
 function applyResolution(){
   const w = innerWidth, h = innerHeight;
   const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
-  const k = Math.max(0.45, Math.min(dpr, dpr/PX));   // k = pixels de rendu par pixel CSS
+  const px = PIXEL.choix[PIXEL.i].px;
+  /* LE PLANCHER SUIT LE GRAIN, ET C EST LE PIEGE QU ON Y A TROUVE. Il valait 0,45 en dur
+     — un garde-fou pour qu une definition ne devienne jamais absurdement basse — et il
+     AVALAIT le reglage : sur un ecran a un point par pixel CSS, « Moyen » (px = 3)
+     demandait 0,333 et recevait 0,45, « Gros » demandait 0,25 et recevait 0,45 aussi. Les
+     deux crans rendaient la meme image, et le joueur n aurait vu aucune difference entre
+     eux. Le plancher ne peut donc pas etre plus haut que la grille demandee : il vaut
+     0,45 tant que le grain reste fin, et descend avec lui des qu on le grossit. */
+  const k = Math.max(Math.min(0.45, 1/px), Math.min(dpr, dpr/px));   // k = pixels de rendu par pixel CSS
   renderer.setSize(Math.round(w*k), Math.round(h*k), false);
   const st = renderer.domElement.style;
   st.width = w+'px'; st.height = h+'px';
 }
 applyResolution();
+/* METTRE LE JEU SUR LA GRILLE, OU L'EN SORTIR — ET C'EST UNE BASCULE, PAS UN ALLER SIMPLE.
+   Trois choses tombent d'un coup, et l'on peut toutes les défaire :
+     1. le corps du document prend la classe `grille`, qui commande la feuille de style
+        plus haut — angles carrés, ombres franches, aucun flou d'arrière-plan ;
+     2. les textures PEINTES du monde passent au plus proche voisin. Ce sont les seules
+        qu'on voit AGRANDIES : le panneau « à vendre », les enseignes des commerces et les
+        deux plaques d'étiquette. Le sol, lui, est toujours vu RÉDUIT — un filtrage au plus
+        proche y ferait grouiller le grain à chaque mouvement de caméra, et pas du pixel
+        art. On ne touche donc qu'au grossissement, jamais à la réduction ;
+     3. la définition de rendu suit le cran choisi.
+   `imageSmoothingEnabled` est mis à faux sur les canevas au passage. Mesuré : le jeu ne
+   pose AUCUNE image par `drawImage` — les portraits sont des balises du document et le
+   monde est en WebGL —, donc ce drapeau ne change rien à ce qui s'affiche aujourd'hui.
+   Il est là pour le jour où une planche de tuiles arrivera, et pas pour faire nombre. */
+const TEX_GRILLE = [];
+function pixTex(t){ TEX_GRILLE.push(t); return t; }
+function lisserCanevas(c){
+  if(!c) return c;
+  c.imageSmoothingEnabled = !PIXEL.ui;
+  return c;
+}
+function appliquerPixel(){
+  if(document.body) document.body.classList.toggle('grille', !!PIXEL.ui);
+  const f = PIXEL.ui ? THREE.NearestFilter : THREE.LinearFilter;
+  for(const t of TEX_GRILLE){
+    if(t.magFilter !== f){ t.magFilter = f; t.needsUpdate = true; }
+  }
+  applyResolution();
+}
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -5963,7 +6080,7 @@ function signTexture(price){
   c.font = 'bold 40px "Trebuchet MS", Verdana, sans-serif';
   c.fillText(price.toLocaleString('fr-FR') + ' €', 128, 98);
   const t = new THREE.CanvasTexture(cv);
-  t.anisotropy = 4; return t;
+  t.anisotropy = 4; return pixTex(t);
 }
 function addSign(p, x, z){
   const g = new THREE.Group();
@@ -6054,7 +6171,7 @@ function enseigneTex(nom, fond, style, picto){
   const dec = picto ? 34 : 0;
   c.fillText(nom.toUpperCase(), 160 + dec, 50);
   if(picto) dessinePicto(c, picto, 52, 48, 28, c.fillStyle);
-  const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; return tex;
+  const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; return pixTex(tex);
 }
 // Bordure de parking : trois côtés, jamais celui qui donne sur la route. Trois styles
 // selon l'enseigne — muret plein, grillage industriel, ou simple trottoir.
@@ -6208,7 +6325,7 @@ function bulleTex(nom, toit, sous){
   tex.anisotropy = 8;
   tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
-  return {tex, ratio: LH/LW};
+  return {tex: pixTex(tex), ratio: LH/LW};
 }
 /* UNE ÉTIQUETTE EST PLATE, ET C'EST LE JOUEUR QUI A TRANCHÉ.
    Quatre états successifs, et l'on est revenu au deuxième :
@@ -17633,7 +17750,7 @@ function dessinerCarte(){
   // a vraiment changé, sinon chaque image de pincement repart d'une allocation.
   const cw = Math.round(L*dpr), ch = Math.round(H*dpr);
   if(planCv.width !== cw || planCv.height !== ch){ planCv.width = cw; planCv.height = ch; }
-  const c = planCv.getContext('2d');
+  const c = lisserCanevas(planCv.getContext('2d'));
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   // même échelle sur les deux axes : la carte du monde est carrée
   const base = Math.min(L/WX, H/WZ);
@@ -23477,6 +23594,7 @@ function creerJauge(lignes, large){
   // reconstruit toute la pyramide à chaque kilo chargé.
   tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
+  pixTex(tex);
   tex.anisotropy = 8;
   /* ET C'EST UN SPRITE, DONC PARFAITEMENT PLAT. Il a été un PLAN VERTICAL le temps d'une
      version — posé au cap de la caméra, avec un rattrapage de raccourci pour lui rendre
@@ -25055,6 +25173,45 @@ function ongletReglages(){
       showHint('NETTETÉ — ' + NETTETE.choix[NETTETE.i].nom.toUpperCase());
     });
 
+  /* ======================= PIXEL ART =======================================
+     LE JOUEUR : « fais les modifications que je puisse visualiser dans le jeu, mais garde
+     une trace que je puisse revenir en arrière si j'aime pas. »
+     Ce bloc EST cette trace. Chaque parti pris de la conversion en pixel art y est un
+     interrupteur, tous partent éteints — le jeu qu'on connaît, à l'octet près —, et l'on
+     revient en arrière d'une touche sans recharger ni perdre sa partie. Les trois
+     réglages se sauvegardent en champs FACULTATIFS : une partie d'avant ce bloc les
+     ignore, et `v` ne bouge pas.
+     Ils sont indépendants exprès. Le grain de l'image et l'interface carrée ne se jugent
+     pas ensemble : on peut vouloir un monde en gros pixels dans une interface qui reste
+     douce, et l'inverse se défend aussi. */
+  titre('Pixel art');
+  const PXC = PIXEL.choix[PIXEL.i];
+  const rend = Math.round(renderer.domElement.width) + ' × '
+             + Math.round(renderer.domElement.height);
+  article(0xE87FA8, 'Grain de l\'image — ' + PXC.nom,
+    PXC.det + '<br>Rendu actuel : ' + rend + ' pixels'
+    + (PIXEL.i ? '  ·  soit ' + (PXC.px*PXC.px).toFixed(1)
+                 + ' fois moins de pixels à remplir qu\'à 1' : ''),
+    'Changer', PIXEL.i ? 'ok' : '', ()=>{
+      PIXEL.i = (PIXEL.i + 1) % PIXEL.choix.length;
+      appliquerPixel();
+      showHint('GRAIN — ' + PIXEL.choix[PIXEL.i].nom.toUpperCase());
+    });
+  article(0xE87FA8, 'Interface sur la grille — ' + (PIXEL.ui ? 'oui' : 'non'),
+    PIXEL.ui
+      ? 'Les angles sont carrés, les ombres franches, les flous d\'arrière-plan coupés, '
+      + 'et les enseignes comme les étiquettes sont grossies au plus proche voisin : on '
+      + 'voit le carré au lieu de le lisser. Le zoom de l\'interface ne prend plus que '
+      + 'des valeurs entières.'
+      : 'L\'interface garde ses 74 angles arrondis, ses ombres douces et ses flous '
+      + 'd\'arrière-plan — le style « papier » du jeu. Rien n\'est sur la grille, et '
+      + 'c\'est le réglage d\'origine.',
+    PIXEL.ui ? 'Revenir' : 'Mettre', PIXEL.ui ? 'ok' : '', ()=>{
+      PIXEL.ui = !PIXEL.ui;
+      appliquerPixel();
+      showHint(PIXEL.ui ? 'INTERFACE SUR LA GRILLE' : 'INTERFACE D\'ORIGINE');
+    });
+
   titre('Son');
   article(0x7FD1E8, 'Ambiance sonore',
     AUDIO.on ? 'Moteur, livraisons et notifications' : 'Coupé',
@@ -25718,6 +25875,11 @@ function etatJeu(){
        UNE fois, puis reçoit la marque — après quoi ce qu'il choisit au menu tient. */
     reglagesV: 1,
     nettete: NETTETE.i,
+    /* LE PIXEL ART, EN DEUX CHAMPS FACULTATIFS. Absents, ils valent zero et faux,
+       c est-a-dire le jeu d avant ce reglage : une partie deja commencee ne voit
+       aucune difference tant qu elle n a rien demande. `v` ne bouge pas. */
+    pixel: PIXEL.i,
+    pixelUi: PIXEL.ui,
     zoom: ZOOM.pc,
     commandes: COMMANDES.mode,
     // Facultatif comme le reste des réglages : absent, il vaut soixante, c'est-à-dire
@@ -26146,7 +26308,12 @@ function chargerPartie(S){
        sauvegarde suivante, et le menu redevient maître. */
     const usine = !S.reglagesV;
     if(!usine && S.nettete !== undefined && NETTETE.choix[S.nettete]) NETTETE.i = S.nettete;
-    applyResolution();
+    /* LE PIXEL ART REPART D USINE COMME LES TROIS AUTRES. Une sauvegarde sans la marque
+       — donc d avant les reglages — reprend le grain d origine et l interface arrondie,
+       une fois. Ensuite, ce que le joueur choisit au menu tient. */
+    PIXEL.i  = (!usine && PIXEL.choix[S.pixel|0]) ? (S.pixel|0) : 0;
+    PIXEL.ui = !usine && !!S.pixelUi;
+    appliquerPixel();
     // Absent, le zoom vaut cent pour cent : le cadrage qu'avaient toutes les parties
     // d'avant ce réglage, et celui d'usine.
     ZOOM.pc = usine ? 100
