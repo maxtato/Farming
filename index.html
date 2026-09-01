@@ -13312,17 +13312,26 @@ function missionDrive(m, dt){
   if(rec) return rec;
   if(t.quoi === 'parcelle'){
     v.cleVoulue = null;
-    // trémie pleine : la moissonneuse va d'abord vider au silo, puis reprend sa passe
+    // trémie pleine, OU pleine de la mauvaise chose : la moissonneuse va d'abord vider
+    // au silo, puis reprend sa passe. Le second cas est `changeDeCulture` — voir là-bas
+    // pourquoi un fond de trémie de trois cents grammes suffit à bloquer un champ.
     /* ET LE POINT DE REPRISE SE NOTE ICI, DANS LA TERRE — au moment précis où la trémie
        déborde et où la passe s'interrompt. C'est le seul instant où la machine est encore
        à l'endroit qu'il faut retenir. */
-    if(m.key === 'moisson' && hopper >= HOP_MAX){
+    const change = (m.key === 'moisson') && changeDeCulture(m, PARCELS[t.p]);
+    if(m.key === 'moisson' && (hopper >= HOP_MAX || change)){
       if(!v.goSilo && v.plan && v.plan.entre && !v.plan.sorti)
         v.plan.reprise = {x:v.pos.x, z:v.pos.z};
       v.goSilo = true;
     }
     if(v.goSilo){
-      if(hopper <= 0.5){ v.goSilo = false; quitterLieu(v); }
+      /* ON NE REPART QUE QUAND LE VOYAGE N'A PLUS DE RAISON D'ÊTRE, et il y en a deux.
+         La trémie n'a plus de quoi valoir un déplacement — c'est le seuil du pilote — ET
+         ce qu'il en reste ne gêne plus la culture à couper. Sans la seconde, un fond de
+         trémie parti vider par désaccord faisait demi-tour AVANT d'avoir versé : trois
+         cents grammes sont déjà sous le demi-kilo, la sortie était vraie dès la première
+         image, et la machine repartait au champ toujours bloquée. */
+      if(hopper <= VIDE_TREMIE && !change){ v.goSilo = false; quitterLieu(v); }
       else {
         v.sensVoulu = 'vider';
         const r = suivreRoute(v, SILO.x, SILO.z, 'silo', 4.0);
@@ -13346,7 +13355,7 @@ function missionDrive(m, dt){
       /* ET LA MOISSONNEUSE VIDE AVANT DE PASSER À LA TÂCHE SUIVANTE. Le plan remis à zéro,
          `goSilo` reprend la main au tour d'après : elle va verser, puis `planAuto` ne
          trouve plus rien à faire sur cette parcelle et la file avance toute seule. */
-      if(m.key === 'moisson' && hopper > 0.5){ v.goSilo = true; v.plan = null; return [0, 0.5]; }
+      if(m.key === 'moisson' && hopper > VIDE_TREMIE){ v.goSilo = true; v.plan = null; return [0, 0.5]; }
       tacheSuivante(m); return [0, 0];
     }
     // On rejoint le premier point du travail PAR LES CHEMINS. Sans ça, l'engin part en
@@ -13513,10 +13522,16 @@ function autoDrive(m, dt){
      la main pour les verser. « Après avoir moissonné un champ, la moissonneuse est livrée
      au silo » : `finMoisson` est ce drapeau-là, posé quand le plan n'a plus de point et
      que la trémie n'est pas vide. */
-  if(m.key === 'moisson' && (hopper >= HOP_MAX || (v.finMoisson && hopper > 0.5)))
+  /* ET L'AUTRE BOUT ENCORE : LA MAUVAISE CULTURE. Même règle qu'en mission, et elle se
+     lit sur la parcelle du plan — ici l'engin n'a pas de tâche qui lui dise où il va,
+     c'est `planAuto` qui choisit. Tant que le plan n'existe pas, il n'y a pas de champ à
+     comparer : le test tombe alors à l'image suivante, avant la moindre coupe. */
+  const change = (m.key === 'moisson') && changeDeCulture(m, v.plan ? v.plan.p : null);
+  if(m.key === 'moisson' && (hopper >= HOP_MAX || (v.finMoisson && hopper > VIDE_TREMIE)
+                             || change))
     v.goSilo = true;
   if(v.goSilo){
-    if(hopper <= 0.5){
+    if(hopper <= VIDE_TREMIE && !change){
       v.goSilo = false; quitterLieu(v);
       // vidée après la fin du champ : c'est fini pour de bon, on ne repart pas
       if(v.finMoisson){
@@ -13545,7 +13560,7 @@ function autoDrive(m, dt){
     if(finDePlan(m)) return [0, 0.5];
     noterReliquat(m, v.plan && v.plan.p);
     // le champ est fait : s'il reste du grain, on va le verser avant de s'arrêter
-    if(m.key === 'moisson' && hopper > 0.5){
+    if(m.key === 'moisson' && hopper > VIDE_TREMIE){
       v.finMoisson = true; v.plan = null; return [0, 0.5];
     }
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
@@ -15820,6 +15835,17 @@ const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel
 // n'accepte plus qu'une seule nature. `hopCrop` est l'indice de ce qu'elle contient.
 let hopCrop = 0;
 let HOP_MAX = 100;
+/* CE QUE LE PILOTE APPELLE UNE TRÉMIE VIDE. Un demi-kilo : en dessous, le voyage au
+   silo coûterait plus que ce qu'il y verse. Le seuil vivait quatorze mille lignes plus
+   bas, au milieu du répartiteur, alors qu'il ne parle que de cette trémie-ci ; il est
+   remonté auprès d'elle, et `chargeA` le lit toujours de là-bas.
+   IL NE DIT PAS « IL N'Y A RIEN DEDANS », et c'est toute la nuance : la règle de
+   contenant, elle, tient la trémie pour occupée dès 0,01 kg (voir `reservoirRecolte`).
+   Les deux ont raison chacune dans son ordre — l'une pèse un déplacement, l'autre pèse
+   un mélange — mais tant qu'on décidait du déplacement sur la seule QUANTITÉ, il restait
+   entre elles une bande où la machine ne partait pas vider et refusait pourtant
+   l'andain. C'est `changeDeCulture` qui ferme cette bande. */
+const VIDE_TREMIE = 0.5;
 // Durée pour qu'un semis arrive à maturité, en secondes. Réglage isolé :
 // une parcelle fertilisée pousse 1,8 fois plus vite.
 const GROW_TIME = 210;
@@ -15866,6 +15892,59 @@ function reservoirRecolte(m, T){
       if(was < K.capacite - 0.01 && K.load >= K.capacite - 0.01) showHint('BENNE PLEINE');
       return K.load - was;
     }};
+}
+/* ---------- ON VIDE AVANT DE CHANGER DE CULTURE ----------
+   Le joueur : « j'ai lancé la culture de deux champs en parallèle et la moissonneuse
+   moissonne, mais sans enlever la récolte parce que sa trémie est déjà occupée par
+   quelque chose. Ça ne devrait pas se produire : si la trémie est occupée par du blé,
+   elle doit vider le blé au silo avant de commencer à moissonner le maïs. »
+
+   ET CE N'ÉTAIT PAS UNE TRÉMIE PLEINE, C'ÉTAIT UN FOND DE TRÉMIE. Deux règles disaient
+   « vide » et ne disaient pas la même chose : le pilote ne part verser qu'au-delà d'un
+   demi-kilo, la règle de contenant tient la trémie pour occupée dès dix grammes. Entre
+   les deux il restait une bande où la machine ne partait PAS vider et refusait pourtant
+   tout andain d'une autre nature.
+   OR CE FOND-LÀ EST LA NORME, PAS L'EXCEPTION. La passe finie, la moissonneuse va
+   verser, revient couper le reliquat que les virages ont laissé, et termine son chantier
+   avec quelques centaines de grammes : mesuré sur un chantier complet, 0,30 kg de blé
+   après une parcelle de 225 cellules. C'est ce fond-là qui part sur le champ suivant.
+   MESURÉ SUR LE CHAMP SUIVANT, semé de maïs : TREIZE traversées complètes en sept
+   minutes, 225 cellules mûres sur 225 encore debout à la fin, zéro kilo au silo, et
+   « TRÉMIE OCCUPÉE PAR DU BLÉ » à chaque image. La machine ne s'arrête jamais d'elle-même
+   — le chantier la réarme aussitôt que sa mission retombe — et rien ne tombe jamais.
+
+   LE VOYAGE AU SILO NE SE DÉCIDE DONC PLUS SUR UNE QUANTITÉ, MAIS SUR UN DÉSACCORD. Ce
+   n'est pas un troisième seuil : c'est la question que `work()` se pose déjà pour refuser
+   l'andain — « ce que je porte est-il ce que je coupe ? » — posée un cran plus tôt, à la
+   porte du champ. Trois cents grammes de blé valent le déplacement dès lors qu'ils
+   empêchent de moissonner ; ils n'en valent aucun tant qu'on moissonne du blé.
+
+   ON SORT À LA PREMIÈRE CELLULE QUI VA. Le balayage coûte donc à peu près rien dans le
+   cas courant — on moissonne ce qu'on porte, la première tige mûre répond — et ne se
+   paie en entier que sur un champ qui n'a plus rien de cette nature-là, c'est-à-dire
+   juste avant de partir vider. */
+function changeDeCulture(m, p){
+  const T = toolOf(m);
+  if(!T || !T.recolte || !p) return false;
+  const RES = reservoirRecolte(m, T);
+  if(!RES) return false;
+  const nat = RES.nature();
+  if(nat < 0) return false;                    // rien dedans : rien ne peut gêner
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  let autre = false;
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i;
+    if(state[id] !== ST.MUR) continue;
+    const c = cropCell[id];
+    // La même famille que `work()`, et pas une seconde : une coupe ne passe pas dans une
+    // vigne, une enjambeuse n'a rien à faire dans un blé. Ce qu'on ne peut pas récolter
+    // ne peut pas non plus justifier un aller-retour au silo.
+    if(!!(CROPS[c] || {}).perenne !== !!T.perennes) continue;
+    if(c === nat) return false;                // il y a de quoi remplir : on reste
+    autre = true;
+  }
+  return autre;
 }
 // Vitesse en dessous de laquelle l'outil ne marque plus. Nommée, parce qu'un contrôle
 // doit pouvoir mesurer la couverture avec exactement le même seuil que le jeu.
@@ -27815,7 +27894,6 @@ function armerPorteur(C, champ, ou, faire){
 const ARENTRER = [];            // rangs des engins qui doivent un retour au parc
 const REPOS = {};               // depuis combien de temps chacun ne sert plus, en secondes
 const RETOUR_DELAI = 3;         // ce qu'il faut d'inutilité CONTINUE avant de faire rouler
-const VIDE_TREMIE = 0.5;        // le seuil du pilote, pas celui des anneaux
 const aRentrer = (i)=>{ if(i >= 0 && ARENTRER.indexOf(i) < 0){ ARENTRER.push(i); REPOS[i] = 0; } };
 const chargeA = (m)=>{ const K = caisseDe(m);
   return (K && K.load > 0.01) || (m.key === 'moisson' && hopper > VIDE_TREMIE); };

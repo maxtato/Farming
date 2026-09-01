@@ -11230,3 +11230,64 @@ vingt-sept suites : **1 174 contrôles**, zéro échec, zéro erreur de page, z�
 
 Il ne reste que les dix produits finis : beurre, yaourt, fromage de brebis, textile, viande,
 pain, viennoiseries, et les trois pâtisseries.
+
+## La trémie se vide avant de changer de culture
+
+Le joueur : « j'ai lancé la culture de deux champs en parallèle et la moissonneuse
+moissonne, mais sans enlever la récolte parce que sa trémie est déjà occupée par quelque
+chose. Ça ne devrait pas se produire : si la trémie est occupée par du blé, elle doit vider
+le blé au silo avant de commencer à moissonner le maïs. »
+
+**Ce n'était pas une trémie pleine, c'était un fond de trémie.** Deux règles disaient
+« vide » et ne disaient pas la même chose. Le pilote ne part verser qu'au-delà d'un
+**demi-kilo** — en dessous, le voyage coûterait plus que ce qu'il y verse. La règle de
+contenant, elle, tient la trémie pour occupée dès **dix grammes** — une trémie entamée
+n'accepte qu'une seule nature. Entre les deux il restait une bande où la machine ne partait
+**pas** vider et refusait **pourtant** tout andain d'une autre culture.
+
+**Et ce fond-là est la norme, pas l'exception.** La passe finie, la moissonneuse va verser,
+revient couper le reliquat que les virages ont laissé, et termine son chantier avec quelques
+centaines de grammes. Mesuré sur un chantier complet : **0,30 kg de blé** au fond de la
+trémie après une parcelle de 225 cellules. C'est ce fond-là qui part sur le champ suivant.
+
+**Mesuré sur le champ suivant, semé de maïs :** treize traversées complètes en sept minutes,
+**225 cellules mûres sur 225 encore debout** à la fin, **zéro kilo** au silo, et « TRÉMIE
+OCCUPÉE PAR DU BLÉ » à chaque image. La machine ne s'arrête jamais d'elle-même — le chantier
+la réarme aussitôt que sa mission retombe — et rien ne tombe jamais.
+
+**Le voyage au silo ne se décide donc plus sur une quantité, mais sur un désaccord.** Ce
+n'est pas un troisième seuil : c'est la question que `work()` se pose déjà pour refuser
+l'andain — « ce que je porte est-il ce que je coupe ? » — posée un cran plus tôt, à la porte
+du champ. Trois cents grammes de blé valent le déplacement dès lors qu'ils empêchent de
+moissonner ; ils n'en valent aucun tant qu'on moissonne du blé. Une règle, `changeDeCulture`,
+que **les deux pilotes** lisent — celui des chantiers et celui du bouton AUTO — de sorte
+qu'ils ne peuvent pas diverger.
+
+**La sortie du voyage a demandé le même soin que l'entrée.** Le pilote quittait son voyage
+dès que la trémie passait sous le demi-kilo : trois cents grammes y étant déjà, la machine
+faisait demi-tour **sur place** et repartait au champ, toujours bloquée. On ne rentre
+maintenant que lorsque le voyage n'a plus de raison d'être — plus rien à verser **et** plus
+rien qui gêne la culture à couper.
+
+| | avant | après |
+|---|---|---|
+| cellules de maïs moissonnées | 0 sur 225 | **225 sur 225** |
+| au silo | 0 kg | **57,1 kg de maïs + 0,3 kg de blé, chacun sur son tas** |
+| « TRÉMIE OCCUPÉE » | à chaque image | **jamais** |
+| le chantier se solde | jamais | **126 s** |
+
+**Et rien n'a changé quand tout va bien.** Une moisson ordinaire, trémie vide au départ,
+fait exactement le même nombre de passages au silo qu'avant — un seul pour un champ — dans
+le même temps. Le balayage qui pose la question coûte **0,0019 ms** au pire, sur une
+parcelle de 225 cellules : un centième d'image. Et il coûte moins que cela dans le cas
+courant, parce qu'on sort à la première tige de la bonne nature.
+
+`VIDE_TREMIE` a aussi déménagé. Le seuil du pilote vivait quatorze mille lignes plus bas, au
+milieu du répartiteur, alors qu'il ne parle que de cette trémie-ci : il est remonté auprès
+d'elle. Les deux fins de champ qui écrivaient `0.5` en toutes lettres le lisent maintenant.
+
+Le banc `tremie` compte **23 contrôles** : les deux seuils et leur différence assumée, la
+question posée à la porte du champ dans ses six cas (trémie vide, blé sur maïs, blé sur blé,
+champ mélangé, vigne mûre, terre nue), le cas du joueur conduit image par image, le même au
+bouton AUTO, la moisson ordinaire qui ne paie aucun voyage de plus, le coût du balayage, et
+le voyage qui ne s'annule qu'une fois la trémie réellement vide.
