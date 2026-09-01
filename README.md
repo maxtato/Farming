@@ -9772,6 +9772,47 @@ qu'elle montrait.
 les deux se ressemblent et le contrôle passerait même si la règle était fausse. On lui donne donc
 un défaut reconnaissable, et l'on remet le vrai en sortant.
 
+### Le détourage : deux fuites, et ce qui les distingue d'une dent
+
+> « Recherche les problèmes de détourage dans les personnages, il reste du blanc dans certains. »
+
+Il y en avait, de deux natures. Les deux se voient d'un coup en composant les quarante et une
+fiches **sur du magenta** — un fond que rien dans le casting ne porte.
+
+**L'inondation se faisait sur une grille sous-échantillonnée d'un facteur trois** : un pixel gardé
+sur trois, pas une réduction. Un couloir de fond large de deux pixels source disparaissait de la
+grille, et tout ce qu'il desservait restait opaque. Les composantes connexes d'OpenCV font le même
+travail à pleine résolution, en C, en quelques centièmes.
+
+**Et vingt-deux poches de fond restaient enfermées, sur douze fiches** : le fond vu *à travers le
+verre des lunettes* entre la monture et la joue, et le fond *entre le pouce et la manche*. Une
+inondation depuis le bord ne peut pas les atteindre — elles sont enfermées, par définition — et la
+règle « ce qui est enfermé reste » était écrite exprès pour protéger les dents.
+
+**On tranche donc sur la couleur et sur la taille, pas sur la forme.** Mesuré sur le casting
+entier :
+
+| ce que c'est | distance à la médiane du pourtour | aire |
+|---|---|---|
+| **poche de fond** | **0 à 4** — littéralement la même couleur | 187 à 3 864 px |
+| dent, blanc d'œil, bijou clair | 4 à 20 | 27 à 437 px |
+| blouse blanche du laitier | 20 à 24 | jusqu'à 36 093 px |
+| reflet dans une pupille | 2 à 5 | **27 à 35 px** |
+
+D'où une tolérance de couleur à **6**, au milieu du fossé entre 4 et 20, et un seuil d'aire à
+**5·10⁻⁵ de l'image** — 79 px sur une planche de 1 122 × 1 402 : deux fois plus gros que le plus
+gros reflet de pupille, deux fois plus petit que la plus petite poche. Le seuil d'aire est une
+*fraction*, pour ne pas dépendre de la taille de chargement.
+
+**Coût pour le cadrage, mesuré avant de refabriquer** — la leçon d'un chantier précédent, où
+j'avais réaligné tout le casting sur une base fausse : **zéro** étage d'ancrage changé sur 41,
+écart d'ancre maximal **0,8 px**, surface opaque **−0,23 %** — exactement le fond retiré.
+L'alignement des humeurs tient : 0,8 % d'écart moyen, 1,5 % au pire.
+
+Sur les fiches livrées, les taches blanches de plus de 140 px passent de **19 à 7**, et les sept
+qui restent sont la blouse du laitier (six) et un blanc d'œil. `controle.py --poches` refait le
+détourage et recompte à chaque fabrication ; il doit rendre zéro.
+
 ### Un défaut de français corrigé au passage
 
 `dNom` posait l'article sur une classe de voyelles qui ignorait la ligature : le jeu écrivait
