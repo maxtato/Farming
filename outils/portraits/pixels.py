@@ -61,7 +61,9 @@ def oklab(rgb):
                      1.9779984951*l - 2.4285922050*m + 0.4505937099*s,
                      0.0259040371*l + 0.7827717662*m - 0.8086757660*s], -1)
 
-def deOklab(lab):
+def _deOklabBrut(lab):
+    """Rend le RVB en 0..1 SANS le borner : c est ce qui permet de savoir si une couleur
+       tient dans le gamut, ce que la version bornee ne peut plus dire."""
     L, A, B = lab[..., 0], lab[..., 1], lab[..., 2]
     l = (L + 0.3963377774*A + 0.2158037573*B)**3
     m = (L - 0.1055613458*A - 0.0638541728*B)**3
@@ -69,7 +71,30 @@ def deOklab(lab):
     r = +4.0767416621*l - 3.3077115913*m + 0.2309699292*s
     g = -1.2684380046*l + 2.6097574011*m - 0.3413193965*s
     b = -0.0041960863*l - 0.7034186147*m + 1.7076147010*s
-    return np.clip(np.round(_delin(np.stack([r, g, b], -1))*255.0), 0, 255).astype(np.uint8)
+    return _delin(np.stack([r, g, b], -1))
+
+def deOklab(lab):
+    return np.clip(np.round(_deOklabBrut(lab)*255.0), 0, 255).astype(np.uint8)
+
+def enGamut(L, teinte, C, marge=1e-4):
+    """LA PLUS FORTE CHROMA QUI TIENNE ENCORE DANS LE sRGB, a clarte et teinte figees.
+
+       Monter la chroma sans regarder le gamut ne rend pas la couleur plus vive : elle
+       sort de l ecran, le bornage ecrase une composante sur 255 ou sur 0, et ce qui
+       revient a une teinte DIFFERENTE et une clarte fausse. Un jaune pousse devient vert,
+       un bleu sombre devient violet. On dichotomise donc sur la chroma — la teinte et la
+       clarte, elles, ne bougent pas d un iota : c est la definition meme d un repli dans
+       le gamut, et c est pour cela que le nuancier reste range en gammes apres coup."""
+    v = np.array([L, C*np.cos(teinte), C*np.sin(teinte)])
+    rgb = _deOklabBrut(v)
+    if rgb.min() >= -marge and rgb.max() <= 1 + marge: return float(C)
+    lo, hi = 0.0, float(C)
+    for _ in range(24):
+        m = (lo + hi)/2
+        rgb = _deOklabBrut(np.array([L, m*np.cos(teinte), m*np.sin(teinte)]))
+        if rgb.min() >= -marge and rgb.max() <= 1 + marge: lo = m
+        else: hi = m
+    return lo
 
 # ---------- A. LA PALETTE ------------------------------------------------------
 NFAM, NMARCHE, NGRIS = 10, 6, 7
@@ -97,6 +122,31 @@ VIRAGE     = (-0.14, -0.08, -0.03, +0.02, +0.06, +0.10)   # radians de teinte, p
 # Une ombre desaturee est morte. On tient la chroma dans le bas de la gamme et on la lache
 # dans les tres hautes lumieres, ou elle vire au blanc.
 CHROMA     = (1.02, 1.12, 1.08, 0.98, 0.84, 0.58)
+# LE PUNCH, ET IL SE MESURE. Le joueur : « change le ton des couleurs pour avoir des
+# couleurs un peu plus punchy, dans le style de couleur du reste du jeu. » Le jeu donne le
+# barème : ses trois boutons — l or #E8B33A, le vert #5C8C3F, le rouge #C2503E — tiennent
+# a 0,138 de chroma en Oklab, quand les gammes des portraits tenaient a 0,083. Il manquait
+# donc les deux tiers du chemin, et « un peu plus punchy » se chiffre : x 1,55, ce qui
+# porte la moyenne des gammes a 0,128 — le voisinage des boutons, sans les depasser.
+# CE N EST PAS UN MULTIPLICATEUR SEC : chaque marche repasse par `enGamut`, qui rend la
+# plus forte chroma tenant dans le sRGB a SA clarte et SA teinte. Sans ce repli, les
+# marches claires et les marches sombres sortent de l ecran, le bornage ecrase une
+# composante, et la gamme se tord — un jaune pousse vire au vert.
+# ET LE GAIN DEPEND DE LA CHROMA DEJA PRESENTE, sans quoi il cuit les visages. Un gain sec
+# de 1,55 reveille bien la chemise rouge du Restaurant — c est ce qu on demandait — mais il
+# porte AUSSI le teint a la meme enseigne, et une peau a 1,55 vire a l orange fluorescent.
+# La regle du dessinateur est l inverse : ce qui est deja colore devient franc, ce qui est
+# naturellement sourd — la peau, la pierre, le lin — le reste. Le gain court donc de 1,10
+# pour une famille presque grise a 2,00 pour une famille pleinement coloree, la bascule se
+# faisant a CREF, la chroma d une etoffe teinte.
+PUNCH_MIN, PUNCH_MAX, CREF = 1.10, 2.00, 0.115
+
+def punch(C):
+    return PUNCH_MIN + (PUNCH_MAX - PUNCH_MIN)*min(1.0, C/CREF)
+# ET LES NEUTRES SE RECHAUFFENT AVEC. Le jeu n a pas un seul gris pur : son papier est
+# creme (#CFC3A4, chroma 0,044) et son voile tire au bleu. Des neutres a 0,005 de chroma
+# a cote de gammes a 0,128 se lisent comme du carton photocopie.
+NEUTRE     = 3.2
 # LES NEUTRES NE SE MESURENT PAS, ILS SE POSENT. Mesures, ils suivaient eux aussi la masse :
 # le tableau d ardoise du Restaurant et les vestes sombres donnaient cinq gris presque noirs
 # et un blanc, sans rien entre les deux — donc pas de quoi peindre une blouse blanche ni un
@@ -134,7 +184,10 @@ def batir(echantillons, poids=None):
     for i, L in enumerate(GRIS_L):
         t = i/(NGRIS - 1.0)
         # le noir tire au bleu, le blanc a la creme : un gris pur a l ecran fait du carton
-        pal.append(deOklab(np.array([L, 0.005*(t - 0.35), 0.014*(t - 0.30)])))
+        a_, b_ = 0.005*(t - 0.35)*NEUTRE, 0.014*(t - 0.30)*NEUTRE
+        h = np.arctan2(b_, a_)
+        C = enGamut(L, h, float(np.hypot(a_, b_)))
+        pal.append(deOklab(np.array([L, C*np.cos(h), C*np.sin(h)])))
     gammes.append(list(range(len(pal))))
 
     ch = lab[~gris]; pch = poids[~gris]
@@ -155,7 +208,7 @@ def batir(echantillons, poids=None):
             reguliere = lo + (hi - lo)*i/(NMARCHE - 1.0)
             L = (1 - MELANGE)*mesuree + MELANGE*reguliere
             hue = ctr[k] + VIRAGE[i]
-            C = base*CHROMA[i]
+            C = enGamut(L, hue, base*CHROMA[i]*punch(base))
             idx.append(len(pal))
             pal.append(deOklab(np.array([L, C*np.cos(hue), C*np.sin(hue)])))
         gammes.append(idx)

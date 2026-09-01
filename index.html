@@ -25044,29 +25044,113 @@ function ongletReglages(){
     JOUR.sec >= 1200 ? 'Raccourcir' : 'Rallonger', '',
     ()=>{ JOUR.sec = JOUR.sec >= 1200 ? 300 : JOUR.sec*2; });
 
-  titre('Trésorerie de mise au point');
-  const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="nom">' + eur(money) + '</div>' +
-    '<div class="det">Crédite le compte pour essayer librement le contenu du jeu. ' +
-    'Ce réglage est là pour la mise au point, pas pour la partie.</div></div>';
-  hote.appendChild(d);
-  for(const v of [1000, 10000, 100000])
-    article(0x8BE07A, '+ ' + eur(v), 'Ajouter au budget', 'Créditer', 'vert', ()=>{ money += v; });
-  article(0xC4553A, 'Remettre à zéro', 'Vide la trésorerie', 'Vider', '', ()=>{ money = 0; });
+  /* ======================= DEVELOPER =======================================
+     ET C'EST LE SEUL BLOC DU JEU ÉCRIT EN ANGLAIS, à la demande du joueur : « fais-moi
+     dans les réglages en anglais développeur, dans lequel tu mettras la possibilité de
+     racheter de l'argent, de rajouter aussi à l'entrepôt et dans le silo des produits. »
+     La langue fait ici office de panneau : tout ce qui est en anglais dans cette
+     interface est un outil de mise au point, pas une mécanique de jeu. Le reste des
+     réglages — Partie, Conduite, Image, Son, Journée — reste en français.
 
-  titre('Progression');
-  const d2 = document.createElement('div'); d2.className = 'art';
-  d2.innerHTML = '<div class="txt"><div class="det">' +
-    'Parcelles : ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
-    ' · dont ' + PATURES.length + ' en pâture<br>' +
-    'Silo : ' + kg(siloTotal()) + '<br>' +
-    'Atelier : ' + HALLE.modules.length + ' / ' + ATELIER_MODULES.length + ' métiers' +
-    ' · trémie ' + kg(totalTremie(HALLE)) + '<br>' +
-    'Récolté : ' + kg(STAT.moisson) + ' · pain vendu ' + kg(STAT.pain) + '<br>' +
-    'Lait livré : ' + litres(STAT.lait) + ' · bêtes vendues : ' + Math.round(STAT.betes) +
-    '</div></div>';
-  hote.appendChild(d2);
+     LES NOMS DE PRODUITS, EUX, RESTENT CEUX DU JEU. Traduire « Blé » en « Wheat » ici
+     créerait une SECONDE table de noms, qui divergerait au premier produit ajouté ; on
+     lit donc `nomDe`, comme partout ailleurs. Seul l'habillage est en anglais.
+
+     TOUT PASSE PAR LES MÊMES BORNES QUE LE JEU. On n'écrit jamais dans `siloStock` ou
+     dans `ENTREPOT.stock` sans passer par la place disponible : un outil de mise au
+     point qui fait déborder un contenant fabrique des états qu'aucune partie ne peut
+     atteindre, et l'on passe ensuite des heures à corriger un bogue qui n'existe pas. */
+  titre('Developer');
+  {
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="nom">Debug tools</div>' +
+      '<div class="det">Credit the account, and stock the silo or the warehouse without ' +
+      'playing up to it. Everything below is free and instant. Amounts are always ' +
+      'clamped by the room actually left, so nothing here can overfill a container.' +
+      '</div></div>';
+    hote.appendChild(d);
+  }
+
+  titre('Developer — money');
+  article(0xFAD201, 'Balance', 'Currently ' + eur(money), 'Clear', '',
+    ()=>{ money = 0; showHint('BALANCE CLEARED'); });
+  for(const v of [1000, 10000, 100000])
+    article(0x8BE07A, 'Add ' + eur(v), 'Credit the account', '+ ' + eur(v), 'vert',
+      ()=>{ money += v; showHint('+ ' + eur(v)); });
+
+  /* LE CURSEUR EST PARTAGÉ PAR LE SILO ET L'ENTREPÔT, et il est en kilos parce que c'est
+     dans cette unité que les deux contenants comptent. Un produit qui s'affiche en litres
+     ou à la pièce est converti à l'affichage seulement — ajouter 100 au lait ajoute bien
+     100 kg, soit 100 L, et aux œufs 100 kg, soit 1 667 œufs. C'est la règle du jeu
+     entier : pas un nombre stocké n'est dans une autre unité que le kilo. */
+  titre('Developer — silo');
+  articleCurseur(0xFAD201, 'Amount', {
+    min: 10, max: 1000, pas: 10, unite: ' kg',
+    lire: ()=> DEV.qte,
+    ecrire: (v)=>{ DEV.qte = v; },
+    detail: (v)=> 'How much one tap adds, to the silo and to the warehouse alike.' +
+                  '<br>Silo room left&nbsp;: <b>' + kg(siloPlace()) + '</b>' +
+                  '  ·  warehouse room left&nbsp;: <b>' + kg(entrepotPlace()) + '</b>'
+  });
+  for(const k of Object.keys(siloStock))
+    article(0x8BE07A, nomDe(k), 'In the silo: ' + qte(k, siloStock[k] || 0),
+      '+ ' + DEV.qte, siloPlace() > 0.01 ? 'vert' : 'no', ()=>{
+        const q = Math.min(DEV.qte, siloPlace());
+        siloStock[k] = (siloStock[k] || 0) + q;
+        showHint('SILO  +' + qteHaut(k, q));
+      });
+  article(0x8BE07A, 'Fill the silo',
+    'Tops every grain up to an even share of the room left — ' + kg(siloPlace()) + ' free',
+    'Fill', siloPlace() > 0.01 ? 'vert' : 'no', ()=>{
+      const cles = Object.keys(siloStock), part = siloPlace()/cles.length;
+      for(const k of cles) siloStock[k] += part;
+      showHint('SILO PLEIN — ' + kg(siloTotal()));
+    });
+  article(0xC4553A, 'Empty the silo', 'Sets every grain back to zero', 'Empty',
+    siloTotal() > 0.01 ? '' : 'no', ()=>{
+      for(const k of Object.keys(siloStock)) siloStock[k] = 0;
+      showHint('SILO VIDÉ');
+    });
+
+  /* L'ENTREPÔT PREND TOUT CE QUI N'EST PAS UNE CÉRÉALE DE SILO, et la liste ne se
+     réénumère pas ici : elle se déduit de `entrepotAccepte`, exactement comme le quai.
+     Un produit ajouté demain apparaît donc dans ce panneau sans qu'on y touche. */
+  const rangeables = Object.keys(PRODUITS).filter(entrepotAccepte);
+  titre('Developer — warehouse');
+  article(0xC4553A, 'Empty the warehouse',
+    'Currently ' + kg(entrepotTotal()) + ' of ' + kg(ENTREPOT.stockMax()) + ', over ' +
+    Object.keys(ENTREPOT.stock).length + ' product(s)', 'Empty',
+    entrepotTotal() > 0.01 ? '' : 'no', ()=>{
+      ENTREPOT.stock = {}; showHint('ENTREPÔT VIDÉ');
+    });
+  for(const k of rangeables)
+    article(0x8BE07A, nomDe(k), 'In the warehouse: ' + qte(k, entrepotStock(k)),
+      '+ ' + DEV.qte, entrepotPlace() > 0.01 ? 'vert' : 'no', ()=>{
+        const pris = entrepotRange(k, DEV.qte);
+        showHint('ENTREPÔT  +' + qteHaut(k, pris));
+      });
+
+  titre('Developer — progress');
+  {
+    const d = document.createElement('div'); d.className = 'art';
+    d.innerHTML = '<div class="txt"><div class="det">' +
+      'Fields: ' + PARCELS.filter(p=>p.owned).length + ' / ' + PARCELS.length +
+      ' · ' + PATURES.length + ' of them grazed<br>' +
+      'Silo: ' + kg(siloTotal()) + ' / ' + kg(siloMax()) + '<br>' +
+      'Warehouse: ' + kg(entrepotTotal()) + ' / ' + kg(ENTREPOT.stockMax()) + '<br>' +
+      'Workshop: ' + HALLE.modules.length + ' / ' + ATELIER_MODULES.length + ' trades' +
+      ' · hopper ' + kg(totalTremie(HALLE)) + '<br>' +
+      'Harvested: ' + kg(STAT.moisson) + ' · bread sold ' + kg(STAT.pain) + '<br>' +
+      'Milk delivered: ' + litres(STAT.lait) + ' · animals sold: ' + Math.round(STAT.betes) +
+      '</div></div>';
+    hote.appendChild(d);
+  }
 }
+/* LA QUANTITÉ DU PANNEAU DÉVELOPPEUR, hors de la fonction : le panneau se repeint
+   entièrement à chaque geste — c'est `article` qui appelle `rafraichirEcran` —, et une
+   variable déclarée dedans repartirait à cent à chaque tap. Elle n'entre PAS dans la
+   sauvegarde : ce n'est pas un état de partie, c'est le dernier cran d'un outil. */
+const DEV = {qte: 100};
 let confirmeReset = false;
 
 // On remplace l'aiguillage d'origine : mêmes onglets qu'avant, plus les trois nouveaux.

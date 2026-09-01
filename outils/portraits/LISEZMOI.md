@@ -235,3 +235,36 @@ l'autre. Le refus y avait le crâne plus haut et plus large que les deux autres,
 confondaient — donc c'était `bravo > refus` qui mentait, et `neutre > refus` qui disait
 vrai. Un facteur 0,937 posé à la main, et les trois contours se superposent. Un chiffre
 agrégé n'aurait jamais dit *laquelle* des trois était en cause.
+
+## Des couleurs plus franches, et le barème vient du jeu
+
+> « Est-ce que tu peux changer le ton des couleurs pour avoir des couleurs un peu plus
+> punchy, dans le style de couleur du reste du jeu ? »
+
+« Punchy » se mesure, et le jeu donne l'étalon : ses trois boutons — l'or `#E8B33A`, le
+vert `#5C8C3F`, le rouge `#C2503E` — tiennent à **0,138 de chroma** en Oklab, quand les
+gammes des portraits tenaient à **0,083**. Il manquait les deux tiers du chemin.
+
+**Le gain dépend de la chroma déjà présente**, et c'est ce qui rend le réglage utilisable.
+Un multiplicateur sec de 1,55 réveille bien la chemise rouge du Restaurant, mais il porte
+*aussi* le teint à la même enseigne — et une peau à 1,55 vire à l'orange fluorescent. La
+règle du dessinateur est l'inverse : ce qui est déjà coloré devient franc, ce qui est
+naturellement sourd — la peau, la pierre, le lin — le reste. Le gain court donc de **1,10**
+pour une famille presque grise à **2,00** pour une famille pleinement colorée, la bascule
+se faisant à `CREF = 0,115`, la chroma d'une étoffe teinte.
+
+**Chaque marche repasse par `enGamut`**, qui rend la plus forte chroma tenant dans le sRGB
+*à sa clarté et à sa teinte*. Sans ce repli, pousser la chroma ne rend pas la couleur plus
+vive : elle sort de l'écran, le bornage écrase une composante sur 255 ou sur 0, et ce qui
+revient a une **teinte différente** et une clarté fausse — un jaune poussé vire au vert. La
+dichotomie ne touche ni la teinte ni la clarté : c'est la définition même d'un repli dans
+le gamut, et c'est pour cela que le nuancier reste rangé en gammes après coup.
+
+**Et l'on s'arrête là où la couleur cesse de payer.** Mesuré sur le casting entier : gain
+maximal 1,70 → chroma moyenne 0,099 ; 2,00 → 0,105 ; 2,30 → 0,108. Passé 2,00, le gamut
+absorbe la hausse — quinze pour cent de gain en plus rendent trois millièmes de chroma. Le
+réglage se pose donc au genou de la courbe, pas au-delà.
+
+Les neutres suivent, à `× 3,2` : le jeu n'a pas un seul gris pur — son papier est crème
+(`#CFC3A4`, chroma 0,044) et son voile tire au bleu. Des neutres à 0,005 de chroma à côté
+de gammes à 0,128 se lisent comme du carton photocopié.

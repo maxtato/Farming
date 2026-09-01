@@ -10081,3 +10081,78 @@ plus tard passerait sans personne.
 Quarante-et-une fiches, **276 Ko**, plus une seule en attente. `visages.js` passe à **28
 contrôles**. Les vingt-deux suites : **1 014 contrôles**, zéro échec, zéro erreur de page,
 zéro 404.
+
+### Des couleurs plus franches, et un panneau développeur
+
+> « Est-ce que tu peux changer le ton des couleurs pour avoir des couleurs un peu plus
+> punchy dans le style de couleur du reste du jeu ? Et fais-moi dans les réglages, en
+> anglais, développeur, dans lequel tu mettras la possibilité de racheter de l'argent, de
+> rajouter aussi à l'entrepôt et dans le silo des produits. »
+
+**« Punchy » se mesure, et c'est le jeu qui donne l'étalon.** Ses trois boutons — l'or
+`#E8B33A`, le vert `#5C8C3F`, le rouge `#C2503E` — tiennent à **0,138 de chroma** en Oklab ;
+les gammes des portraits tenaient à **0,083**. Il manquait les deux tiers du chemin.
+
+Le gain **dépend de la chroma déjà présente**, et c'est ce qui rend le réglage utilisable.
+Un multiplicateur sec de 1,55 réveille la chemise rouge du Restaurant — c'est bien ce qu'on
+demandait — mais il porte *aussi* le teint à la même enseigne, et une peau à 1,55 vire à
+l'orange fluorescent. La règle du dessinateur est l'inverse : ce qui est déjà coloré devient
+franc, ce qui est naturellement sourd le reste. Le gain court de **1,10** pour une famille
+presque grise à **2,00** pour une famille pleinement colorée.
+
+Chaque marche repasse par un **repli dans le gamut** : la plus forte chroma qui tienne
+encore dans le sRGB, à clarté et à teinte figées. Sans lui, pousser la chroma ne rend pas la
+couleur plus vive — elle sort de l'écran, le bornage écrase une composante, et ce qui revient
+a une teinte *différente*. Un jaune poussé vire au vert.
+
+**On s'arrête au genou de la courbe.** Gain maximal 1,70 → chroma moyenne 0,099 ; 2,00 →
+0,105 ; 2,30 → 0,108. Passé deux, le gamut absorbe la hausse : quinze pour cent de gain en
+plus rendent trois millièmes de chroma. Les neutres suivent à ×3,2, parce que le jeu n'a pas
+un seul gris pur — son papier est crème et son voile tire au bleu.
+
+### Le panneau développeur, et pourquoi il est en anglais
+
+C'est **le seul bloc du jeu écrit en anglais**, et la langue y fait office de panneau : tout
+ce qui est en anglais dans cette interface est un outil de mise au point, pas une mécanique
+de jeu. Les cinq sections françaises — Partie, Conduite, Image, Son, Journée — ne bougent
+pas ; les cinq nouvelles viennent après.
+
+| section | ce qu'elle donne |
+|---|---|
+| `Developer` | ce que fait ce bloc, et qu'il est gratuit |
+| `Developer — money` | **+ 1 000 / + 10 000 / + 100 000 €**, et *Clear* |
+| `Developer — silo` | un curseur de quantité, **une ligne par céréale**, *Fill* et *Empty* |
+| `Developer — warehouse` | **les 28 produits** que l'entrepôt accepte, une ligne chacun, et *Empty* |
+| `Developer — progress` | parcelles, silo, entrepôt, atelier, statistiques |
+
+**Les noms de produits, eux, restent ceux du jeu.** Traduire « Blé » en « Wheat » ici
+créerait une *seconde* table de noms, qui divergerait au premier produit ajouté ; on lit donc
+`nomDe`, comme partout ailleurs. Seul l'habillage est en anglais.
+
+**La liste de l'entrepôt ne se réénumère pas** : elle se déduit de `entrepotAccepte`,
+exactement comme le quai. Un produit ajouté demain apparaît dans ce panneau sans qu'on y
+touche — le banc le vérifie en comparant la liste affichée à `Object.keys(PRODUITS).filter(
+entrepotAccepte)`, et en s'assurant qu'aucune céréale de silo ne s'y trouve.
+
+**Rien ici ne peut fabriquer un état que le jeu ne sait pas atteindre.** Tout passe par la
+place réellement disponible : `siloPlace()` d'un côté, `entrepotRange` de l'autre. Un outil
+de mise au point qui fait déborder un contenant crée des situations qu'aucune partie ne peut
+produire, et l'on passe ensuite des heures sur un bogue qui n'existe pas. Le contrôle qui
+compte le dit : on laisse **trente kilos** de place, on demande **mille**, il en range trente.
+
+Le curseur de quantité vit **hors** de la fonction. Le panneau se repeint entièrement à
+chaque geste — c'est `article` qui appelle `rafraichirEcran` —, et une variable déclarée
+dedans repartirait à cent à chaque tap. Il n'entre pas dans la sauvegarde : ce n'est pas un
+état de partie, c'est le dernier cran d'un outil.
+
+**Un banc de plus, et une fausse alerte de moins.** `developpeur.js` apporte **14 contrôles**.
+Et `etiquettes.js` a échoué une fois sous charge en annonçant un écart d'équerre de
+**0,0000 degré** : son contrôle exige au moins quatre étiquettes des deux familles, et il
+n'en avait que trois à l'écran à l'instant du relevé. Un banc qui échoue sur la *quantité* de
+son échantillon et non sur la propriété qu'il teste est une fausse alerte — et une fausse
+alerte coûte plus cher qu'un contrôle absent, parce qu'on finit par ne plus les lire. Il
+redemande maintenant jusqu'à cinq fois, à un tiers de seconde d'intervalle. Ce n'est pas une
+tolérance sur le résultat : l'équerre reste exigée au centième de degré.
+
+Quarante-et-une fiches, **278 Ko**. Les vingt-trois suites : **1 022 contrôles**, zéro échec,
+zéro erreur de page, zéro 404.
