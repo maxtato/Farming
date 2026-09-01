@@ -9566,22 +9566,29 @@ deux genres, et accorder demanderait une table de genres pour un seul titre.
 > « Fais les modifications que je puisse visualiser dans le jeu, mais garde une trace que je
 > puisse revenir en arrière si j'aime pas. »
 
-La première version partait **éteinte** — « rien ne change tant qu'on n'a rien demandé » — et le
-joueur est revenu avec la seule phrase qui tranche :
+**Trois défauts en trois messages, et le troisième est le bon.** Le chantier s'est réglé par
+allers-retours, et chacun venait du joueur :
 
-> « Quand je lance le jeu, je vois pas les modifications qu'ont été faites sur l'interface avec
-> les boutons carrés. »
+1. Tout **éteint** — « rien ne change tant qu'on n'a rien demandé ». Réponse : *« quand je lance
+   le jeu, je vois pas les modifications qu'ont été faites sur l'interface avec les boutons
+   carrés. »* Il avait raison : un interrupteur qu'il faut aller chercher dans un menu ne montre
+   rien. La trace, c'est l'interrupteur, pas l'extinction.
+2. Tout **allumé**, grain « Moyen ». Réponse : *« trop gros pixels, à affiner beaucoup »*, dit
+   deux fois. D'où la barre, et un défaut à 1,25.
+3. Puis il a posé la seule question qui pouvait trancher — *est-ce que ça rend le jeu plus
+   léger ?* — la mesure a répondu **non** (voir plus bas), et il a conclu : *« pas d'intérêt, on
+   peut revenir comme avant et utiliser les visuels pixel. »*
 
-Il avait raison, et sa consigne disait pourtant les deux moitiés : *que je puisse visualiser dans
-le jeu*, **et** *une trace pour revenir en arrière*. Un interrupteur qu'il faut aller chercher
-dans un menu ne montre rien ; la trace, c'est l'interrupteur, pas l'extinction.
+**Le jeu s'ouvre donc comme avant** : grain 1,1, interface arrondie, ombres douces. Et l'on garde
+**les visuels pixel** — les quarante et une fiches de personnage, qui sont du *dessin livré* et
+non un effet de rendu : elles ne dépendent d'aucun de ces réglages.
 
-**Le jeu s'ouvre donc en pixel art**, et deux touches le ramènent à ce qu'il était. Trois
-interrupteurs dans les réglages, section **Pixel art**, indépendants l'un de l'autre. Deux
-partent allumés — grain « Moyen » et interface sur la grille — et le troisième, la palette des
-visages, reste sur la partagée : c'est celle que le joueur a demandée en toutes lettres deux
-messages plus tôt (« fais plus de nuances de couleurs »), et la remplacer d'office serait défaire
-ce qu'il avait décidé.
+**Tout le mécanisme reste, éteint.** La barre, l'interface sur la grille et la palette par image
+sont toujours dans les réglages, section **Pixel art** : le jour où l'envie revient, c'est un
+geste. Ce qui a été appris en chemin — le plancher de définition qui avalait le réglage,
+`appliquerPixel` appelé nulle part au démarrage, les textures nées après lui, un champ de
+sauvegarde absent qui ne vaut pas « éteint » — sont des corrections qui restent vraies quel que
+soit le défaut.
 
 Les remettre à zéro rend l'état d'avant **au chiffre près** : le banc le vérifie sur treize
 grandeurs à la fois, définition de rendu, angles, ombres, flous, filtrage des textures et zoom
@@ -9627,13 +9634,13 @@ Mesuré sur un viewport de téléphone couché (844 × 390), 90 images par posit
 | 2,00 | 422 × 195 | 82 k | 86,1 ms | 4,00× moins de pixels, 1,55× plus rapide |
 | 3,00 | 281 × 130 | 37 k | 78,5 ms | 9,01× moins de pixels, **1,70× plus rapide** |
 
-**Le gain est très inférieur à ce que le compte de pixels laisse croire, et c'est le
-renseignement utile.** Neuf fois moins de pixels ne donnent que 1,7 fois plus vite : le coût
-d'une image n'est donc pas dans le remplissage, il est dans le reste — géométrie, ombres,
-simulation, interface. Et comme cette mesure est faite en rendu *logiciel*, où le remplissage
-coûte anormalement cher, la part du remplissage sur un vrai téléphone est encore plus petite.
-**Pixelliser le jeu ne le rend pas « léger » ; ça fait gagner un tiers de temps d'image au grain
-par défaut, pas neuf fois.**
+**Le gain est très inférieur à ce que le compte de pixels laisse croire, et c'est ce
+renseignement-là qui a décidé du chantier.** Neuf fois moins de pixels ne donnent que 1,7 fois
+plus vite : le coût d'une image n'est donc pas dans le remplissage, il est dans le reste —
+géométrie, ombres, simulation, interface. Et comme cette mesure est faite en rendu *logiciel*, où
+le remplissage coûte anormalement cher, la part du remplissage sur un vrai téléphone est encore
+plus petite. **Pixelliser le jeu ne le rend pas « léger »** — et c'est en lisant ce tableau que
+le joueur a tranché : « pas d'intérêt, on peut revenir comme avant. »
 
 Le poids du jeu, lui, n'a rien à voir avec le grain — c'est un réglage, pas un fichier. Ce qui a
 grossi, ce sont les **fiches de personnage**, et il faut le dire net :
@@ -9760,7 +9767,10 @@ valeur elle-même — et l'on relit `pixel` quand il traîne encore, à travers 
 anciens crans, pour qu'une partie enregistrée pendant ces quelques heures rouvre sur le grain
 qu'elle montrait.
 
-`pixelart.js`, **40 contrôles**.
+`pixelart.js`, **40 contrôles** — dont un qui **déplace le défaut** le temps de l'essai. La règle
+à vérifier est « un champ absent vaut le défaut, pas éteint » ; tant que le défaut *est* éteint,
+les deux se ressemblent et le contrôle passerait même si la règle était fausse. On lui donne donc
+un défaut reconnaissable, et l'on remet le vrai en sortant.
 
 ### Un défaut de français corrigé au passage
 
