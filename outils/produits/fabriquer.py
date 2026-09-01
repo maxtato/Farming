@@ -33,6 +33,10 @@ COULEURS   = 64
 SEUIL_TEINTE = 0.55   # au-dessus de cette teinte normalisee, un pixel EST du fond
 LUM_MIN      = 40     # ... a condition d etre eclaire : un noir presque pur n a pas de teinte
 BANDE        = 8      # largeur, en pixels source, de la frange ou l alpha se calcule
+TOL_NEUTRE   = 6      # fond BLANC : ecart en dessous duquel un pixel est du fond
+PLEIN_NEUTRE = 60     # fond BLANC : ecart au-dela duquel un pixel est opaque
+PART_MIN     = 0.05   # une tache de sujet plus petite que ca, rapportee a la plus grande,
+                      # est un debris de planche et non un morceau du sujet
 
 
 def cleTeinte(a):
@@ -82,31 +86,68 @@ def fondLocal(a, fond, sigma):
     return num/np.maximum(den, 1e-6)[..., None], den
 
 
+def sansDebris(fond):
+    """REND AU FOND LES MIETTES DE SUJET. La planche de la vache porte, sur son bord droit,
+       une colonne de neuf pixels d un magenta delave — un bord de capture. Elle n est pas
+       de la teinte du fond, donc elle etait du sujet, donc le cadrage la prenait : la vache
+       se trouvait reduite et decentree pour loger un trait que personne ne voit.
+       Le sujet d une vignette est d un seul tenant, et la mesure le dit sur les quinze
+       sources : la plus grosse tache vaut cent, et la SUIVANTE vaut 1,5 chez la vache —
+       le bord — et 0,05 partout ailleurs, ou ce sont des pointes de barbe d orge. Un
+       cinquieme de ce bord suffit a le trancher, et rien de reel n en approche."""
+    n, lab, st, _ = cv2.connectedComponentsWithStats((~fond).astype(np.uint8), 8)
+    if n <= 2:
+        return fond
+    aires = st[1:, cv2.CC_STAT_AREA]
+    garde = 1 + np.where(aires >= PART_MIN*aires.max())[0]
+    return ~np.isin(lab, garde)
+
+
 def detourer(chemin):
     """Rend (couleur H,W,3 demelangee ; alpha H,W dans [0,1])."""
     a = np.asarray(Image.open(chemin).convert('RGB')).astype(np.float32)
     tour = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     ref = np.median(tour, axis=0)
+    # 0. DE QUELLE COULEUR EST LE FOND ? Quatorze planches sur quinze sont sur magenta ;
+    #    l abeille est sur BLANC, et sur un fond blanc la teinte ne dit plus rien — elle
+    #    vaut zero pour le fond comme pour un flanc de vache. Les deux cas se distinguent
+    #    sur le fond LUI-MEME, une fois pour toutes, et chacun a sa regle.
+    chromatique = float(teinteNormee(ref.reshape(1, 1, 3))[0, 0]) >= SEUIL_TEINTE
     # 1. LE FOND ET SON OMBRE, ENFERMES OU NON. On n inonde pas depuis le bord,
     #    contrairement aux portraits : le magenta ne se trouve NULLE PART dans le sujet,
     #    tandis que l avoine et le colza ont des poches de fond ENFERMEES entre deux tiges.
     #    Une regle de connexite les aurait gardees opaques, et elles sortaient roses.
-    fond = teinteNormee(a) >= SEUIL_TEINTE
-    # 2. LA FRANGE : ce qui est a moins de BANDE pixels du fond. Au-dela, c est du sujet
-    #    plein, et rien ne doit pouvoir l entamer — la ficelle brune d une gerbe est a
-    #    quarante unites du magenta et se serait retrouvee a demi transparente.
-    dist = cv2.distanceTransform((~fond).astype(np.uint8), cv2.DIST_L2, 3)
-    frange = (~fond) & (dist <= BANDE)
-    # 3. L ALPHA DE LA FRANGE se lit sur la teinte LINEAIRE, contre le fond QUI EST DERRIERE
-    #    ce pixel-la. La reference du sujet est la MEDIANE du plein : elle vaut ce que vaut
-    #    la matiere, et ne se devine pas.
+    fond = (teinteNormee(a) >= SEUIL_TEINTE) if chromatique \
+           else (np.abs(a - ref).max(axis=2) <= TOL_NEUTRE)
+    fond = sansDebris(fond)
     loc, den = fondLocal(a, fond, BANDE)
     loc = np.where((den > 1e-3)[..., None], loc, ref)
-    k = cleTeinte(a)
-    kf = float(np.median(k[(~fond) & (dist > BANDE)]))
-    kb = cleTeinte(loc)
-    al = np.where(fond, 0.0, 1.0)
-    al[frange] = np.clip(((kb - k)/np.maximum(kb - kf, 1))[frange], 0, 1)
+    if chromatique:
+        # 2. LA FRANGE : ce qui est a moins de BANDE pixels du fond. Au-dela, c est du sujet
+        #    plein, et rien ne doit pouvoir l entamer — la ficelle brune d une gerbe est a
+        #    quarante unites du magenta et se serait retrouvee a demi transparente.
+        dist = cv2.distanceTransform((~fond).astype(np.uint8), cv2.DIST_L2, 3)
+        frange = (~fond) & (dist <= BANDE)
+        # 3. L ALPHA DE LA FRANGE se lit sur la teinte LINEAIRE, contre le fond QUI EST
+        #    DERRIERE ce pixel-la. La reference du sujet est la MEDIANE du plein : elle vaut
+        #    ce que vaut la matiere, et ne se devine pas.
+        k = cleTeinte(a)
+        kf = float(np.median(k[(~fond) & (dist > BANDE)]))
+        kb = cleTeinte(loc)
+        al = np.where(fond, 0.0, 1.0)
+        al[frange] = np.clip(((kb - k)/np.maximum(kb - kf, 1))[frange], 0, 1)
+    else:
+        # 2 bis. SUR FOND BLANC, L ALPHA SE LIT PARTOUT ET NON DANS UNE FRANGE.
+        #    La frange repose sur une garantie que seule une teinte donne : « le sujet
+        #    n est pas de cette couleur-la, donc ce qui est loin du bord est plein ». Sur
+        #    du blanc, cette garantie n existe pas — un blanc de sujet et le fond sont la
+        #    meme chose —, et c est justement ce qu il faut ici : les AILES de l abeille
+        #    sont peintes translucides, presque blanches, avec leurs nervures. Les rendre
+        #    opaques serait aussi faux que les effacer ; la rampe leur donne l alpha
+        #    qu elles ont, 0,05 a 0,25, et l aile reste une aile.
+        d = np.abs(a - loc).max(axis=2)
+        al = np.clip((d - TOL_NEUTRE)/(PLEIN_NEUTRE - TOL_NEUTRE), 0, 1)
+        al[fond] = 0.0
     # 4. LE DEMELANGE. Un pixel de frange vaut a.C + (1-a).fond ; on rend C, sans quoi la
     #    silhouette garderait un lisere magenta une fois posee sur le papier du menu.
     A = al[..., None]

@@ -19,12 +19,24 @@ les deux jeux de clés ne se recoupent nulle part. Une table explicite, et non u
 balayé : l'orge et l'avoine sont deux gerbes jaunes, et leurs noms de fichier sont des
 empreintes. Le fichier sorti s'appelle `produits/<clé>.png`, à côté d'`index.html`.
 
+**Une planche peut servir deux clés**, et c'est `VIGNETTES` côté jeu qui le dit — elle
+associe une clé à un *nom de planche*, pas un oui. Le mouton et la brebis sont le même
+animal, la ruche se montre par son abeille : seize clés, quinze planches.
+
 **Ajouter une vignette, c'est deux lignes.** Une entrée ici, et la clé dans `VIGNETTES`
 côté jeu. Tant que la seconde manque, la ligne de menu garde son filet de couleur ; tant que
 la première manque, il n'y a pas de fichier. Le banc `vignettes` compare les deux listes
 dans les deux sens et signale l'oubli.
 
 ## Ce que fait la chaîne
+
+0. **Quel fond ?** Quatorze planches sur quinze sont sur magenta ; l'abeille est sur
+   **blanc**, et sur un fond blanc la teinte ne dit plus rien — elle vaut zéro pour le fond
+   comme pour un flanc de vache. Les deux cas se distinguent sur le fond *lui-même*, une
+   fois pour toutes, et chacun a sa règle. Sur blanc, l'alpha se lit **partout** et non dans
+   une frange : la frange repose sur une garantie que seule une teinte donne, et les ailes
+   de l'abeille sont peintes translucides — les rendre opaques serait aussi faux que les
+   effacer.
 
 1. **Détourage.** Le fond magenta part — **son ombre portée avec lui** —, le sujet reste,
    et les poches de fond *enfermées* entre deux tiges partent aussi : on n'inonde pas depuis
@@ -41,6 +53,12 @@ dans les deux sens et signale l'oubli.
    barbes de l'orge en rose. Le calcul ne se fait que dans une frange de huit pixels autour
    du fond : au-delà c'est du sujet plein, et la ficelle brune d'une gerbe s'y serait
    retrouvée à demi transparente.
+
+2 bis. **Les miettes retournent au fond.** Le sujet d'une vignette est d'un seul tenant :
+   sur les quinze sources, la plus grosse tache vaut cent et la suivante 1,51 (un bord de
+   capture sur la planche de la vache) ou 0,05 (des pointes de barbe d'orge). Les taches
+   sous 5 % de la plus grande sont donc du débris — sans quoi la vache se retrouvait réduite
+   et décentrée pour loger neuf pixels que personne ne voit.
 
 3. **Démêlage.** Un pixel de frange vaut `a·C + (1−a)·fond` ; on rend `C`, sans quoi la
    silhouette garde un liseré magenta une fois posée sur le papier du menu. Le `fond` en
@@ -68,9 +86,12 @@ dans les deux sens et signale l'oubli.
 | `COULEURS` | 64 | le poids divisé par trois et demi, sans écart visible |
 | `SEUIL_TEINTE` | 0,55 | entre le fond ombré (0,55 au pire) et le sujet le plus magenta (0,19) |
 | `LUM_MIN` | 40 | en dessous, un pixel n'a pas de teinte, il a du bruit |
+| `TOL_NEUTRE` | 6 | fond blanc : en dessous de cet écart, c'est le fond |
+| `PLEIN_NEUTRE` | 60 | fond blanc : au-delà, c'est opaque — entre les deux, une aile |
+| `PART_MIN` | 5 % | une tache de sujet plus petite que ça est un débris de planche |
 
 ## Où vivent les images
 
-`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — sept récoltes et
-trois produits de la bête, 16,7 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — sept récoltes,
+trois produits de la bête et cinq animaux, 26,6 Ko pour quinze planches. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

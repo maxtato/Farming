@@ -10963,3 +10963,59 @@ liste de `CROPS` comparée à celle des vignettes, l'écran des prix vérifié l
 contre la table plutôt que contre dix noms écrits à la main, et les deux contrôles de
 planche ci-dessus. Les vingt-sept suites : **1 162 contrôles**, zéro échec, zéro erreur de
 page, zéro 404.
+
+---
+
+## Les six bêtes, et l'abeille qui n'était pas sur le même fond
+
+Cinq rendus de plus, et l'élevage entier : une vache, une poule, un cochon, un mouton, une
+abeille. Les six espèces de la ferme portent maintenant leur dessin — les clés étaient
+posées sur ces lignes-là depuis le premier envoi, et il n'y a eu, cette fois, rien d'autre à
+écrire que la table.
+
+**La table dit un nom de planche, plus un oui.** Deux clés partagent un dessin, et il fallait
+qu'elles le puissent : le **mouton** et la **brebis** sont le même animal — l'un se tond,
+l'autre se trait, et rien ne les distingue à l'œil —, tandis que la **ruche** se montre par
+son abeille, parce que c'est la bête qu'on achète et non la caisse. Écrire `1` aurait obligé
+à livrer deux fois le même fichier sous deux noms, ou à appeler `ruche.png` une image
+d'abeille. Seize clés, **quinze planches**.
+
+### Deux fonds, deux règles
+
+**L'abeille est sur du blanc**, les quatorze autres sur du magenta. Sur un fond blanc la
+teinte ne dit plus rien : elle vaut zéro pour le fond comme pour un flanc de vache. Les deux
+cas se distinguent **sur le fond lui-même**, une fois pour toutes, et chacun a sa règle.
+
+Et la seconde n'est pas la première avec un autre seuil. Sur du magenta, la frange de huit
+pixels repose sur une garantie que seule une teinte donne : *le sujet n'est pas de cette
+couleur-là, donc ce qui est loin du bord est plein*. Sur du blanc, cette garantie n'existe
+pas — un blanc de sujet et le fond sont la même chose. **L'alpha s'y lit donc partout, et
+non dans une frange**, et c'est justement ce qu'il faut ici : les **ailes** de l'abeille sont
+peintes translucides, presque blanches, avec leurs nervures. Les rendre opaques serait aussi
+faux que les effacer ; la rampe leur donne l'alpha qu'elles ont, 0,05 à 0,25, et l'aile reste
+une aile.
+
+### Le sujet d'une vignette est d'un seul tenant
+
+La planche de la vache porte, sur son bord droit, **une colonne de neuf pixels d'un magenta
+délavé** — un bord de capture. Elle n'est pas de la teinte du fond, donc elle était du sujet,
+donc le cadrage la prenait : la vache se trouvait réduite et décentrée pour loger un trait
+que personne ne voit.
+
+La mesure tranche, et sur les quinze sources : la plus grosse tache de sujet vaut cent, et
+**la suivante vaut 1,51 chez la vache** — ce bord — et **0,05 partout ailleurs**, où ce sont
+des pointes de barbe d'orge. Un cinquième de ce bord suffit à trancher : les taches sous
+**5 %** de la plus grande retournent au fond, et rien de réel n'en approche. Les dix planches
+d'avant, refabriquées, n'ont bougé que sur l'orge — trois pointes de barbe de 0,05 %, un
+demi-millième d'alpha en moyenne.
+
+**Et le poids ne se mesure plus en tas.** Le banc comptait « les planches pèsent moins de
+vingt kilo-octets », un total qui vieillit à chaque image qui arrive. Ce qui doit rester
+vrai, c'est qu'**une** vignette ne coûte pas un portrait : la plus lourde des quinze fait
+2,2 Ko contre les treize d'une fiche de personnage. Les quinze ensemble : **26,6 Ko**.
+
+Le banc `vignettes` passe de 26 à **30 contrôles** — la table comparée au dossier dans les
+deux sens en tenant compte des clés qui partagent, les six espèces vérifiées une à une, le
+rayon de l'élevage relu ligne par ligne contre `ESPECES`, et rien dans la table qui ne soit
+ni un produit ni une espèce. Les vingt-sept suites : **1 166 contrôles**, zéro échec, zéro
+erreur de page, zéro 404.
