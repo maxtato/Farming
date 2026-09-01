@@ -11104,3 +11104,39 @@ vingt-sept suites : **1 168 contrôles**, zéro échec, zéro erreur de page, z�
 
 Restent sans image : farine, bière, fromage de brebis, beurre, yaourt, textile, céréales,
 céréales premium, viennoiseries, pâtisseries, pain, viande.
+
+---
+
+## La farine, la bière, les céréales — et le débris qui pesait quatre fois le morceau
+
+Trois transformations de plus : un sac de farine, une bière et sa chope, une boîte de
+céréales et son bol. **Huit des neuf métiers de l'atelier** montrent maintenant ce qu'ils
+sortent ; seule la fromagerie de brebis garde son filet. Les céréales premium partagent la
+boîte des céréales, comme l'aliment premium partage le sac de l'aliment : c'est leur recette
+qui est plus riche, pas leur emballage.
+
+**Et le sac de farine a renversé la règle des débris.** Elle disait : *une tache de sujet
+plus petite qu'un vingtième de la plus grande est un débris de planche*, et elle avait été
+posée pour la colonne de neuf pixels qui traîne au bord droit de la vache — 1,51 % de son
+corps. Le sac de farine a une **flouée posée à côté de lui**, qui pèse **0,36 %**. Le débris
+est **quatre fois plus gros que le morceau**, et aucun seuil d'aire ne les sépare.
+
+Ce qui les sépare se mesure autrement, et c'est net sur les vingt-six sources :
+
+> la colonne de la vache est la **seule** tache de sujet qui touche le bord de la planche,
+> et **aucun sujet n'y touche** — pas même le plus gros.
+
+Un rendu est cadré avec sa marge ; un bord de capture est, par définition, au bord. La règle
+n'a donc plus de seuil du tout : ce qui touche le bord retourne au fond. Une seule garde
+reste — **on ne retire jamais la plus grosse tache**, quoi qu'il arrive : si une planche
+arrivait un jour cadrée au ras du sujet, la règle l'effacerait tout entier.
+
+Deux planches déjà livrées y gagnent, et c'est la mesure qui le dit : l'abeille récupère
+quatre morceaux d'aile et de patte, le sac d'aliment un grain de plus — des taches de 0,01 à
+0,02 % que l'ancien seuil jetait sans raison.
+
+Vingt-six planches, **45,8 Ko**, la plus lourde à 2,3. Les vingt-sept suites : **1 168
+contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+Restent sans image, sur trente-trois produits : beurre, yaourt, fromage de brebis, textile,
+viande, pain, viennoiseries, et les trois pâtisseries.

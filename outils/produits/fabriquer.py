@@ -35,8 +35,6 @@ LUM_MIN      = 40     # ... a condition d etre eclaire : un noir presque pur n a
 BANDE        = 8      # largeur, en pixels source, de la frange ou l alpha se calcule
 TOL_NEUTRE   = 6      # fond BLANC : ecart en dessous duquel un pixel est du fond
 PLEIN_NEUTRE = 60     # fond BLANC : ecart au-dela duquel un pixel est opaque
-PART_MIN     = 0.05   # une tache de sujet plus petite que ca, rapportee a la plus grande,
-                      # est un debris de planche et non un morceau du sujet
 # LE FOND VU AU TRAVERS D UN VERRE. Trois conditions, et il en faut trois — mesurees sur
 # les vingt-trois sources, avec ce que chacune separe :
 SEUIL_VERRE  = 0.30   # teinte : sous ce seuil c est de la matiere, pas du fond attenue
@@ -97,20 +95,32 @@ def fondLocal(a, fond, sigma):
 
 
 def sansDebris(fond):
-    """REND AU FOND LES MIETTES DE SUJET. La planche de la vache porte, sur son bord droit,
-       une colonne de neuf pixels d un magenta delave — un bord de capture. Elle n est pas
-       de la teinte du fond, donc elle etait du sujet, donc le cadrage la prenait : la vache
-       se trouvait reduite et decentree pour loger un trait que personne ne voit.
-       Le sujet d une vignette est d un seul tenant, et la mesure le dit sur les quinze
-       sources : la plus grosse tache vaut cent, et la SUIVANTE vaut 1,5 chez la vache —
-       le bord — et 0,05 partout ailleurs, ou ce sont des pointes de barbe d orge. Un
-       cinquieme de ce bord suffit a le trancher, et rien de reel n en approche."""
+    """REND AU FOND CE QUI TOUCHE LE BORD DE LA PLANCHE. Celle de la vache porte, sur son
+       bord droit, une colonne de neuf pixels d un magenta delave — un bord de capture.
+       Elle n est pas de la teinte du fond, donc elle etait du sujet, donc le cadrage la
+       prenait : la vache se trouvait reduite et decentree pour loger un trait que personne
+       ne voit.
+
+       LA REGLE A D ABORD ETE UNE AIRE, ET C ETAIT FAUX. « Une tache plus petite qu un
+       vingtieme de la plus grande est un debris » tenait tant que les debris etaient plus
+       gros que les vrais morceaux ; le sac de farine a renverse cela — sa flouee posee a
+       cote pese 0,36 % du sac, la colonne de la vache 1,51 %. Le debris est quatre fois
+       plus GROS que le morceau. Aucun seuil d aire ne les separe.
+
+       CE QUI LES SEPARE SE MESURE AUTREMENT, et c est net sur les vingt-six sources : la
+       colonne de la vache est la SEULE tache de sujet qui touche le bord de la planche, et
+       aucun sujet n y touche — pas meme le plus gros. Un rendu est cadre avec sa marge ; un
+       bord de capture est, par definition, au bord.
+
+       ON NE RETIRE JAMAIS LA PLUS GROSSE, quoi qu il arrive : si une planche arrivait un
+       jour cadree au ras du sujet, la regle l effacerait tout entier."""
     n, lab, st, _ = cv2.connectedComponentsWithStats((~fond).astype(np.uint8), 8)
     if n <= 2:
         return fond
-    aires = st[1:, cv2.CC_STAT_AREA]
-    garde = 1 + np.where(aires >= PART_MIN*aires.max())[0]
-    return ~np.isin(lab, garde)
+    gros = 1 + int(st[1:, cv2.CC_STAT_AREA].argmax())
+    bords = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+    jeter = [int(i) for i in bords if i != 0 and i != gros]
+    return (fond | np.isin(lab, jeter)) if jeter else fond
 
 
 def detourer(chemin):

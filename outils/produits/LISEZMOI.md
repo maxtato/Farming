@@ -57,11 +57,14 @@ dans les deux sens et signale l'oubli.
    du fond : au-delà c'est du sujet plein, et la ficelle brune d'une gerbe s'y serait
    retrouvée à demi transparente.
 
-2 bis. **Les miettes retournent au fond.** Le sujet d'une vignette est d'un seul tenant :
-   sur les quinze sources, la plus grosse tache vaut cent et la suivante 1,51 (un bord de
-   capture sur la planche de la vache) ou 0,05 (des pointes de barbe d'orge). Les taches
-   sous 5 % de la plus grande sont donc du débris — sans quoi la vache se retrouvait réduite
-   et décentrée pour loger neuf pixels que personne ne voit.
+2 bis. **Ce qui touche le bord retourne au fond.** La planche de la vache porte au bord
+   droit une colonne de neuf pixels d'un magenta délavé — un bord de capture — et la vache
+   se retrouvait réduite et décentrée pour la loger. La règle a d'abord été une **aire**, et
+   c'était faux : la flouée posée à côté du sac de farine pèse 0,36 % du sac, la colonne de
+   la vache 1,51 %. Le débris est quatre fois plus gros que le morceau. Ce qui les sépare,
+   mesuré sur les vingt-six sources : la colonne de la vache est la *seule* tache de sujet
+   qui touche le bord, et aucun sujet n'y touche — pas même le plus gros. Plus de seuil ;
+   une seule garde, on ne retire jamais la plus grosse tache.
 
 2 ter. **Le fond vu au travers d'un verre.** Un bidon vide laisse voir le magenta, teinté
    et éclairci par la paroi — 0,44 de teinte au lieu de 0,95 —, et aucun seuil de teinte ne
@@ -100,7 +103,6 @@ dans les deux sens et signale l'oubli.
 | `LUM_MIN` | 40 | en dessous, un pixel n'a pas de teinte, il a du bruit |
 | `TOL_NEUTRE` | 6 | fond blanc : en dessous de cet écart, c'est le fond |
 | `PLEIN_NEUTRE` | 60 | fond blanc : au-delà, c'est opaque — entre les deux, une aile |
-| `PART_MIN` | 5 % | une tache de sujet plus petite que ça est un débris de planche |
 | `SEUIL_VERRE` | 0,30 | teinte : en dessous c'est de la matière, pas du fond atténué |
 | `EQ_VERRE` | 0,18 | `\|R−B\| / clarté` : le fond a R ≈ B, une olive noire non (0,28) |
 | `LUM_VERRE` | 175 | le verre du vin est à 185, le reflet de sa bouteille à 162 |
@@ -108,6 +110,6 @@ dans les deux sens et signale l'oubli.
 ## Où vivent les images
 
 `produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
-brut, cinq animaux et cinq transformations : 40,9 Ko pour vingt-trois planches, la plus
-lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+brut, cinq animaux et huit transformations : 45,8 Ko pour vingt-six planches, la plus lourde
+à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.
