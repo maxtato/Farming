@@ -10861,9 +10861,13 @@ fenêtre-contre-jeu mais **menu-contre-écran** : la fenêtre CHARGER — un ver
 curseur par ligne — est l'endroit du jeu où l'on nomme le plus souvent une récolte, et l'y
 laisser en texte seul aurait été le seul écart. Elle cale sa vignette au centre et non sur la
 ligne de base : le nom et le nombre se répondent sur leur pied commun, une image n'a pas de
-pied. Le bandeau du haut, la rangée des engins, les boutons d'action, les jauges du sol et
-les plaques en trois dimensions n'en portent aucune — mesuré fenêtres fermées, pas une seule
-vignette visible à l'écran.
+pied. **Et le nom reste collé à son image** : cette ligne-là répartit ses enfants aux deux
+bouts — le nom à gauche, la quantité à droite —, et une vignette de plus en faisait *trois*,
+si bien que le nom partait au milieu. Une marge automatique remet tout l'espace libre du
+même côté qu'avant, et ne change rien à la ligne qui n'a pas d'image. Le bandeau du haut, la
+rangée des engins, les boutons d'action, les jauges du sol et les plaques en trois
+dimensions n'en portent aucune — mesuré fenêtres fermées, pas une seule vignette visible à
+l'écran.
 
 ### Le détourage, et l'erreur qu'il a fallu deux essais pour voir
 
@@ -10898,11 +10902,12 @@ liseré sur tout son tour.
 de `PRODUITS`, et c'est la seule façon d'être sûr qu'on ne livre pas l'orge à la place de
 l'avoine : les deux sont des gerbes jaunes, et leurs noms de fichier sont des empreintes.
 
-Bancs : `vignettes` naît avec **23 contrôles** — la table du jeu comparée au contenu du
+Bancs : `vignettes` naît avec **24 contrôles** — la table du jeu comparée au contenu du
 dossier dans les deux sens, la boîte relue dans la feuille de style et la planche vérifiée à
 trois fois cette boîte, le poids, la hauteur des rangées mesurée avec et sans, les cinq
 images vraiment décodées, chaque récolte comparée à *sa* planche et non à celle du voisin,
-la vigne restée au filet, l'écran des prix, la fenêtre CHARGER, et l'absence de toute
+la vigne restée au filet, l'écran des prix, la fenêtre CHARGER et son nom resté à gauche,
+et l'absence de toute
 vignette visible fenêtres fermées. Les vingt-deux serveurs de bancs qui rendaient la page du
 jeu pour l'adresse d'une image servent maintenant `portraits/` et `produits/` depuis le
 disque. Les vingt-sept suites : **1 159 contrôles**, zéro échec, zéro erreur de page, zéro
