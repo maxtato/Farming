@@ -434,6 +434,30 @@ qui reste enfermé, à la couleur du fond, au-dessus du seuil. Il doit rendre **
 avec le contrôle d'alignement. Sur les fiches livrées, les taches blanches de plus de 140 px
 passent de 19 à 7, et les 7 qui restent sont la blouse du laitier (6) et un blanc d'œil (1).
 
+### Et une seconde espèce de poche : celle qu'on voit à travers un verre
+
+> « Il reste du blanc dans les lunettes du caviste. »
+
+Il avait raison, et la règle précédente ne pouvait pas les prendre : **le verre teinte
+légèrement ce qu'on voit au travers**. Mesuré sur ses trois humeurs, les cinq poches de verre
+sont à **8,8 à 10,5** unités du fond — au-delà des 6 de la première règle, dans la bande qu'on
+avait justement réservée aux dents.
+
+Deux choses les distinguent quand même, et toutes deux se mesurent :
+
+| | poche de verre (caviste) | à protéger |
+|---|---|---|
+| **chroma** — le verre assombrit, il ne colore pas | **2,8 à 4,6** | col blanc du supermarché **7**, reflet d'iris du comptoir **8** |
+| **distance au vide** — un verre déborde du visage | **10 à 14 px** | reflet dans l'iris du comptoir : **220 px**, au milieu de la tête |
+
+D'où `TOL_VERRE = 14`, `CHROMA_VERRE = 6` et `PRES_BORD = 0,05` du grand côté — en *fraction*,
+comme `AIRE_POCHE` est une fraction d'aire : rien ne doit dépendre de `cote`. La borne basse de
+4 px écarte les liserés d'un pixel du bord de coupe, qui ne sont pas des poches.
+
+**Trois fiches touchées sur quarante et une**, −0,01 à −0,06 % de surface opaque, **zéro** pixel
+de déplacement d'ancre. Et les trente-huit autres ressortent **octet pour octet identiques** —
+ce qui prouve au passage que la chaîne est déterministe.
+
 ### Le second jeu de fiches : une palette par image
 
     python3 fabriquer.py --14        # -> portraits14/, quatorze couleurs relevées par fiche

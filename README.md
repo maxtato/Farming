@@ -9813,6 +9813,17 @@ Sur les fiches livrées, les taches blanches de plus de 140 px passent de **19 �
 qui restent sont la blouse du laitier (six) et un blanc d'œil. `controle.py --poches` refait le
 détourage et recompte à chaque fabrication ; il doit rendre zéro.
 
+**Et une seconde espèce, que le joueur a vue après la première passe :** *« il reste du blanc
+dans les lunettes du caviste. »* La règle précédente ne pouvait pas les prendre — **le verre
+teinte légèrement ce qu'on voit au travers**, et ses cinq poches sont à 8,8–10,5 unités du fond,
+dans la bande réservée aux dents. Deux choses les distinguent quand même : elles sont **quasi
+grises** (chroma 2,8–4,6 contre 7 pour un col blanc et 8 pour un reflet d'iris), et elles sont
+**au bord de la silhouette** — un verre déborde du visage, la poche est à 10–14 px du vide, quand
+le reflet dans l'iris du comptoir en est à **220**. C'est ce seuil-là qui empêche de percer un
+œil. Trois fiches touchées, −0,06 % au plus, zéro déplacement d'ancre ; les trente-huit autres
+ressortent octet pour octet identiques, ce qui prouve au passage que la chaîne est
+déterministe.
+
 ### Un défaut de français corrigé au passage
 
 `dNom` posait l'article sur une classe de voyelles qui ignorait la ligature : le jeu écrivait
