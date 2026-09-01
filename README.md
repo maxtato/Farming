@@ -11185,3 +11185,28 @@ cinq engins nommés un par un, la flotte relue **rang par rang** (les trois trac
 le même nom, on ne peut pas apparier autrement) et le garage **par le nom** (il dit la robe),
 les outils vérifiés sans planche, et le non-recoupement des quatre tables. Les vingt-sept
 suites : **1 173 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+---
+
+## La moissonneuse, l'enjambeuse et trois outils : le parc au complet, moins la benne
+
+Cinq planches de plus, et il ne reste **plus un seul engin sans image** : la moissonneuse et
+l'enjambeuse rejoignent les cinq de la fournée précédente, et la charrue, le semoir et
+l'épandeur entrent avec elles. Seule la **benne** garde son filet.
+
+La chaîne n'a pas bougé d'une ligne — les cinq sources sont sur magenta, sans ombre portée,
+d'un seul tenant, et sans verre : aucune des trois règles ajoutées ces derniers jours n'a eu
+à s'appliquer. C'est le premier envoi qui passe tel quel.
+
+**Deux d'entre elles sont très larges**, et cela se voit : la charrue mesure 1 088 × 504
+pixels de sujet, l'épandeur 1 099 × 460. La mise à l'échelle par le **plus grand côté** les
+rend donc hautes de trente pixels d'art dans une boîte de soixante-dix-huit — une barre
+horizontale plutôt qu'une vignette carrée. C'est la règle qui veut ça, et elle a raison : la
+même stature pour tous, quelle que soit la forme. Une normalisation par l'aire aurait fait
+une charrue aussi grosse qu'un tracteur, ce qu'elle n'est pas.
+
+Trente-six planches, **59,1 Ko**, la plus lourde toujours à 2,3. Les vingt-sept suites :
+**1 173 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+Il reste sans image la benne, et dix produits finis : beurre, yaourt, fromage de brebis,
+textile, viande, pain, viennoiseries, et les trois pâtisseries.
