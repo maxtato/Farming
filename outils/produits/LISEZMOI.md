@@ -26,20 +26,27 @@ dans les deux sens et signale l'oubli.
 
 ## Ce que fait la chaîne
 
-1. **Détourage.** Le fond magenta part, le sujet reste, et les poches de fond *enfermées*
-   entre deux tiges partent aussi — on n'inonde pas depuis le bord, contrairement aux
-   portraits : le magenta ne se trouve nulle part dans le sujet.
+1. **Détourage.** Le fond magenta part — **son ombre portée avec lui** —, le sujet reste,
+   et les poches de fond *enfermées* entre deux tiges partent aussi : on n'inonde pas depuis
+   le bord, contrairement aux portraits, car le magenta ne se trouve nulle part dans le
+   sujet. La classification se fait sur la teinte **divisée par la clarté**, ce qui met le
+   fond plein et son ombre à la même valeur (0,73 à 0,97) quand le sujet reste sous 0,55 —
+   mesuré : pas un pixel de sujet plein ne l'atteint sur les dix sources. Un plancher de
+   clarté l'accompagne, sans quoi un noir presque pur (`3, 0, 4`) passerait pour du magenta.
 
-2. **Alpha.** Il se lit sur `min(R,B) − G`, qui est **linéaire dans le mélange** : le fond
-   est à +244, un blé à −134, et un pixel à moitié l'un et l'autre tombe pile au milieu. La
-   distance au fond, elle, ne l'est pas — elle vaut `a × max|C − fond|`, où le second
-   facteur dépend de la couleur du sujet, et c'est ce qui faisait sortir les barbes de
-   l'orge en rose. Le calcul ne se fait que dans une frange de huit pixels autour du fond :
-   au-delà c'est du sujet plein, et la ficelle brune d'une gerbe s'y serait retrouvée à demi
-   transparente.
+2. **Alpha.** Il se lit sur `min(R,B) − G` *non divisé*, qui est **linéaire dans le
+   mélange** : le fond est à +244, un blé à −134, et un pixel à moitié l'un et l'autre tombe
+   pile au milieu. La distance au fond, elle, ne l'est pas — elle vaut `a × max|C − fond|`,
+   où le second facteur dépend de la couleur du sujet, et c'est ce qui faisait sortir les
+   barbes de l'orge en rose. Le calcul ne se fait que dans une frange de huit pixels autour
+   du fond : au-delà c'est du sujet plein, et la ficelle brune d'une gerbe s'y serait
+   retrouvée à demi transparente.
 
 3. **Démêlage.** Un pixel de frange vaut `a·C + (1−a)·fond` ; on rend `C`, sans quoi la
-   silhouette garde un liseré magenta une fois posée sur le papier du menu.
+   silhouette garde un liseré magenta une fois posée sur le papier du menu. Le `fond` en
+   question est **local** — une moyenne gaussienne des pixels de fond voisins, pondérée par
+   eux seuls : sous une ombre portée, le fond est le même magenta en plus sombre, et le
+   démêler contre le magenta plein retirerait plus de fond qu'il n'y en a.
 
 4. **Cadrage.** Recadrage sur le sujet, mise à l'échelle par le **plus grand côté** — les
    récoltes sont toutes debout, un fromage ou une vache seront couchés —, deux pixels de
@@ -59,9 +66,11 @@ dans les deux sens et signale l'oubli.
 | `COTE` | 78 px | `BOITE / PX_JEU` — un pixel d'art sur un point d'écran de téléphone |
 | `MARGE` | 2 px d'art | le sujet ne touche jamais le bord de la boîte |
 | `COULEURS` | 64 | le poids divisé par trois et demi, sans écart visible |
+| `SEUIL_TEINTE` | 0,55 | entre le fond ombré (0,55 au pire) et le sujet le plus magenta (0,19) |
+| `LUM_MIN` | 40 | en dessous, un pixel n'a pas de teinte, il a du bruit |
 
 ## Où vivent les images
 
-`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — cinq récoltes,
-8,9 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — sept récoltes et
+trois produits de la bête, 16,7 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

@@ -10912,3 +10912,54 @@ vignette visible fenêtres fermées. Les vingt-deux serveurs de bancs qui rendai
 jeu pour l'adresse d'une image servent maintenant `portraits/` et `produits/` depuis le
 disque. Les vingt-sept suites : **1 159 contrôles**, zéro échec, zéro erreur de page, zéro
 404.
+
+---
+
+## Le raisin, l'olive, le lait et l'œuf — et l'ombre portée qui ne devait pas rester
+
+Cinq rendus de plus : une branche d'olives, une grappe de raisin, trois œufs, et deux
+bidons — le lait de vache et le lait de brebis. Avec eux, **les sept cultures de `CROPS`
+ont toutes leur image**, et trois des produits de la bête aussi. Rien à écrire côté jeu :
+les cinq clés s'ajoutent à la table, et les lignes qui les nommaient déjà — le rayon des
+semences, les plantations, le magasin, l'écran des prix, les filières — les prennent
+d'elles-mêmes.
+
+**Les deux bidons portent une ombre portée, et la règle d'avant la gardait.** Un gros pâté
+rose au pied du bidon, dans les deux cas. La raison se mesure : une ombre est le *même
+magenta multiplié par 0,6*. Elle est donc **loin de la couleur du fond** — et tout ce qui
+en était loin était du sujet.
+
+La correction est une division. `min(R,B) − G` distingue bien le magenta du reste, mais sa
+valeur suit la clarté ; divisée par `max(R,G,B)`, elle ne la suit plus :
+
+| | fond plein | son ombre | sujet le plus « magenta » |
+|---|---|---|---|
+| huit planches PNG | 0,93 à 0,97 | 0,55 à 0,97 | 0,19 (le raisin) |
+| la photo JPEG du bidon de lait | 0,73 | 0,56 | 0,07 |
+
+Le fond et son ombre tombent au même endroit, quelle que soit la lumière. Le seuil est à
+**0,55**, et la mesure sur les dix sources est nette : **pas un seul pixel de sujet plein
+ne l'atteint**. Un plancher de clarté l'accompagne, et c'est de l'arithmétique — à
+`(3, 0, 4)` la division rend 0,75, et un noir presque pur passerait pour du magenta.
+
+**Et le fond n'est plus une couleur, c'est une couleur par endroit.** Démêler la frange
+d'une zone ombrée contre le magenta *plein* reviendrait à retirer plus de fond qu'il n'y en
+a : le pied du bidon sortirait verdâtre. Une moyenne gaussienne des pixels de fond,
+pondérée par eux seuls, donne la couleur du fond derrière chaque pixel — et rend le magenta
+plein partout où il n'y a pas d'ombre, puisque tous les voisins y sont identiques.
+
+**Les cinq planches d'avant n'ont pas bougé** : refabriquées sous la nouvelle règle, l'écart
+moyen est de 0,3 à 1,0 sur 255 en alpha et de 0,6 à 3,2 en couleur, entièrement dans le
+crénelage du bord. La règle nouvelle est plus générale, pas différente.
+
+**Ce que le banc mesure maintenant, ce n'est plus la règle mais son résultat.** Chaque
+planche est décodée dans un canevas et chacun de ses pixels visibles est relu : **pas un
+seul n'a la teinte du fond**, le plus magenta d'entre tous étant à 0,19 pour un seuil de
+0,55. C'est le contrôle qui aurait attrapé l'ombre du premier coup, et il ne dépend
+d'aucune des constantes de la chaîne.
+
+Les dix planches pèsent **16,7 Ko**. Le banc `vignettes` passe de 24 à **26 contrôles** — la
+liste de `CROPS` comparée à celle des vignettes, l'écran des prix vérifié ligne par ligne
+contre la table plutôt que contre dix noms écrits à la main, et les deux contrôles de
+planche ci-dessus. Les vingt-sept suites : **1 162 contrôles**, zéro échec, zéro erreur de
+page, zéro 404.

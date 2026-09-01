@@ -30,8 +30,9 @@ BOITE      = 26       # la boite ou le jeu pose la vignette, en pixels CSS
 COTE       = round(BOITE/PX_JEU)
 MARGE      = 2        # en pixels d art : le sujet ne touche jamais le bord de la boite
 COULEURS   = 64
-TOL_FOND   = 40       # ecart au fond en dessous duquel un pixel EST le fond
-BANDE      = 8        # largeur, en pixels source, de la frange ou l alpha se calcule
+SEUIL_TEINTE = 0.55   # au-dessus de cette teinte normalisee, un pixel EST du fond
+LUM_MIN      = 40     # ... a condition d etre eclaire : un noir presque pur n a pas de teinte
+BANDE        = 8      # largeur, en pixels source, de la frange ou l alpha se calcule
 
 
 def cleTeinte(a):
@@ -47,34 +48,69 @@ def cleTeinte(a):
     return np.minimum(a[:, :, 0], a[:, :, 2]) - a[:, :, 1]
 
 
+def teinteNormee(a):
+    """LA MEME CHOSE, DIVISEE PAR LA CLARTE — et c est ce qui voit les OMBRES PORTEES.
+       Les deux bidons de lait en ont une, et la regle precedente les gardait : une ombre
+       est le meme magenta MULTIPLIE par 0,6, elle est donc loin de la couleur du fond, et
+       tout ce qui en est loin etait du sujet. Un gros pate rose restait au pied du bidon.
+
+       Diviser par `max(R,G,B)` enleve ce facteur : le fond plein et son ombre tombent a la
+       MEME valeur — 0,97 pour les huit planches PNG, 0,73 pour la photo JPEG dont le
+       magenta est plus pale —, tandis que le sujet reste sous 0,55. Mesure sur les dix
+       sources : PAS UN pixel de sujet plein n atteint 0,55, et l ombre la plus sombre
+       reste a 91 de clarte, loin du plancher.
+
+       LE PLANCHER DE CLARTE EST NECESSAIRE, et c est de l arithmetique : a (3, 0, 4) la
+       division rend 0,75 et un noir presque pur passerait pour du magenta. En dessous de
+       LUM_MIN un pixel n a pas de teinte, il a du bruit."""
+    mx = a.max(axis=2)
+    return np.where(mx >= LUM_MIN,
+                    (np.minimum(a[:, :, 0], a[:, :, 2]) - a[:, :, 1])/np.maximum(mx, 1), -1)
+
+
+def fondLocal(a, fond, sigma):
+    """LA COULEUR DU FOND DERRIERE CHAQUE PIXEL, et non une couleur pour toute l image.
+       Sous une ombre portee, le fond est le meme magenta en plus sombre : demeler la
+       frange de cette zone avec le magenta PLEIN reviendrait a retirer plus de fond qu il
+       n y en a, et le pied du bidon sortirait verdatre.
+       Une moyenne gaussienne des pixels de fond, ponderee par eux seuls, donne cette
+       couleur-la de proche en proche — et rend le fond plein partout ou il n y a pas
+       d ombre, puisque tous les voisins y sont identiques."""
+    m = fond.astype(np.float32)
+    num = cv2.GaussianBlur(a*m[..., None], (0, 0), sigma)
+    den = cv2.GaussianBlur(m, (0, 0), sigma)
+    return num/np.maximum(den, 1e-6)[..., None], den
+
+
 def detourer(chemin):
     """Rend (couleur H,W,3 demelangee ; alpha H,W dans [0,1])."""
     a = np.asarray(Image.open(chemin).convert('RGB')).astype(np.float32)
     tour = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     ref = np.median(tour, axis=0)
-    d = np.abs(a - ref).max(axis=2)
-    # 1. LE FOND, ENFERME OU NON. On n inonde pas depuis le bord, contrairement aux
-    #    portraits : le magenta ne se trouve NULLE PART dans le sujet — ni un ble, ni un
-    #    colza, ni le raisin a venir n en approchent a moins de 128 unites — tandis que
-    #    l avoine et le colza ont des poches de fond ENFERMEES entre deux tiges. Une regle
-    #    de connexite les aurait gardees opaques, et elles sortaient roses.
-    fond = d <= TOL_FOND
+    # 1. LE FOND ET SON OMBRE, ENFERMES OU NON. On n inonde pas depuis le bord,
+    #    contrairement aux portraits : le magenta ne se trouve NULLE PART dans le sujet,
+    #    tandis que l avoine et le colza ont des poches de fond ENFERMEES entre deux tiges.
+    #    Une regle de connexite les aurait gardees opaques, et elles sortaient roses.
+    fond = teinteNormee(a) >= SEUIL_TEINTE
     # 2. LA FRANGE : ce qui est a moins de BANDE pixels du fond. Au-dela, c est du sujet
     #    plein, et rien ne doit pouvoir l entamer — la ficelle brune d une gerbe est a
     #    quarante unites du magenta et se serait retrouvee a demi transparente.
     dist = cv2.distanceTransform((~fond).astype(np.uint8), cv2.DIST_L2, 3)
     frange = (~fond) & (dist <= BANDE)
-    # 3. L ALPHA DE LA FRANGE se lit sur la teinte. La reference du sujet est la MEDIANE du
-    #    plein : elle vaut ce que vaut la matiere, et ne se devine pas.
+    # 3. L ALPHA DE LA FRANGE se lit sur la teinte LINEAIRE, contre le fond QUI EST DERRIERE
+    #    ce pixel-la. La reference du sujet est la MEDIANE du plein : elle vaut ce que vaut
+    #    la matiere, et ne se devine pas.
+    loc, den = fondLocal(a, fond, BANDE)
+    loc = np.where((den > 1e-3)[..., None], loc, ref)
     k = cleTeinte(a)
     kf = float(np.median(k[(~fond) & (dist > BANDE)]))
-    kb = float(cleTeinte(ref.reshape(1, 1, 3))[0, 0])
+    kb = cleTeinte(loc)
     al = np.where(fond, 0.0, 1.0)
-    al[frange] = np.clip((kb - k[frange])/(kb - kf), 0, 1)
+    al[frange] = np.clip(((kb - k)/np.maximum(kb - kf, 1))[frange], 0, 1)
     # 4. LE DEMELANGE. Un pixel de frange vaut a.C + (1-a).fond ; on rend C, sans quoi la
     #    silhouette garderait un lisere magenta une fois posee sur le papier du menu.
     A = al[..., None]
-    C = np.where(A > 0.02, (a - (1 - A)*ref)/np.maximum(A, 0.02), a)
+    C = np.where(A > 0.02, (a - (1 - A)*loc)/np.maximum(A, 0.02), a)
     return np.clip(C, 0, 255), al
 
 
