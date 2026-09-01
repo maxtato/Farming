@@ -1502,48 +1502,44 @@ const C = {
 // ce qui donne l'escalier de pixels sur tous les contours (comme les références)
 // PX = taille d'un pixel de rendu, exprimée en pixels PHYSIQUES de l'écran.
 // C'est le seul curseur à toucher : 1 = net, 2 = escalier fin, 3 = gros pixels.
-/* ET CE CURSEUR EST DEVENU UN RÉGLAGE, PARCE QU'IL SE JUGE À L'ŒIL ET PAS SUR LE PAPIER.
-   Le joueur : « fais les modifications que je puisse visualiser dans le jeu, mais garde
-   une trace que je puisse revenir en arrière si j'aime pas. » Le grain de l'image est
-   exactement ce genre de décision : elle ne se démontre pas, elle se regarde, et l'on
-   change d'avis en la regardant. `PIXEL.i` vaut 0 au démarrage — 1,1, c'est-à-dire
-   l'image que le jeu a toujours eue — et les trois autres crans sont là pour être
-   essayés puis abandonnés d'une touche.
+/* ET CE CURSEUR EST DEVENU UN RÉGLAGE — PUIS UNE BARRE, ET C'EST LE JOUEUR QUI L'A EXIGÉ.
+   Première version : quatre crans, 1,1 · 2 · 3 · 4, qu'on faisait défiler d'une touche.
+   Sa réponse : « là les pixels, ils sont beaucoup trop gros, il faut affiner énormément. »
+   Quatre crans ne permettent pas d'affiner : entre « d'origine » et le premier cran de
+   pixel art il y avait un fossé, et rien dedans. Le grain se juge à l'œil, comme le zoom,
+   et comme le zoom il lui faut une BARRE — on la pousse d'un cran, on regarde, on
+   recommence. De 1 à 4 par vingtièmes : soixante et une positions au lieu de quatre.
    CE QUE `px` VEUT DIRE. C'est le nombre de pixels d'écran que couvre UN pixel de rendu.
    À 1, le jeu dessine à la définition de l'écran. À 3, il dessine trois fois moins large
    et trois fois moins haut, et le navigateur agrandit d'un bloc — le canevas porte
    `image-rendering: pixelated` depuis toujours, c'est ce qui donne l'escalier franc
-   plutôt qu'un flou. À 3 on remplit donc NEUF FOIS moins de pixels : le gros grain est
-   aussi, accessoirement, le réglage le plus économe du jeu. */
-/* ET LE JEU S'OUVRE DESSUS, PARCE QUE C'EST CE QUI ÉTAIT DEMANDÉ.
-   La première version partait éteinte — « rien ne change tant qu'on n'a rien demandé » —
-   et le joueur est revenu avec la seule phrase qui tranche : « quand je lance le jeu, je
-   vois pas les modifications qu'ont été faites sur l'interface avec les boutons carrés. »
-   Sa consigne disait pourtant les deux moitiés : « fais les modifications QUE JE PUISSE
-   VISUALISER DANS LE JEU, mais garde une trace que je puisse revenir en arrière si j'aime
-   pas. » Un interrupteur qu'il faut aller chercher dans un menu ne montre rien ; la trace,
-   c'est l'interrupteur, pas l'extinction. Le jeu s'ouvre donc EN PIXEL ART, et deux
-   touches le ramènent à ce qu'il était.
-   TROIS DÉFAUTS, ET PAS QUATRE. Le grain va au cran « Moyen » — trois pixels d'écran par
-   pixel de rendu, la grille même des visages, PX_JEU = 1/3 — et l'interface passe sur la
-   grille. La palette des visages, elle, RESTE la partagée : c'est celle que le joueur a
-   demandée en toutes lettres deux messages plus tôt (« fais plus de nuances de couleurs »),
-   et la remplacer d'office par quatorze couleurs serait défaire ce qu'il avait décidé. */
-const PIXEL_DEFAUT = {i: 2, ui: true, pal: false};
-const PIXEL = {i: PIXEL_DEFAUT.i, ui: PIXEL_DEFAUT.ui, pal: PIXEL_DEFAUT.pal, choix: [
-  {nom: "D'origine", px: 1.1,
-   det: 'Le grain d\'origine du jeu : un pixel de rendu pour un peu plus d\'un pixel '
-      + 'd\'écran. Les contours sont nets, l\'escalier ne se voit qu\'en cherchant.'},
-  {nom: 'Fin',   px: 2,
-   det: 'Un pixel de rendu pour deux pixels d\'écran. L\'escalier devient visible sur '
-      + 'les toits et les roues, sans que rien ne devienne illisible.'},
-  {nom: 'Moyen', px: 3,
-   det: 'Un pixel de rendu pour trois pixels d\'écran — la grille du pixel art des '
-      + 'visages, appliquée au monde. Le jeu remplit neuf fois moins de pixels.'},
-  {nom: 'Gros',  px: 4,
-   det: 'Un pixel de rendu pour quatre pixels d\'écran. Le parti pris est franc : on ne '
-      + 'lit plus une forme, on lit des carrés.'}
-]};
+   plutôt qu'un flou. Le coût suit le CARRÉ : à 2 on remplit quatre fois moins de pixels,
+   à 3 neuf fois moins. C'est aussi le réglage le plus économe du jeu, et le seul dont le
+   gain se calcule sans rien mesurer.
+   LE JEU S'OUVRE DESSUS, PARCE QUE C'EST CE QUI ÉTAIT DEMANDÉ. « Fais les modifications
+   QUE JE PUISSE VISUALISER DANS LE JEU, mais garde une trace que je puisse revenir en
+   arrière si j'aime pas. » Un interrupteur qu'il faut aller chercher dans un menu ne
+   montre rien ; la trace, c'est la barre, pas l'extinction. Le défaut est donc un grain
+   VISIBLE mais FIN — 1,25 — et non plus 3 : « trop gros pixels, à affiner beaucoup », dit
+   deux fois. On part donc tout en bas de la plage utile, à un cheveu du rendu plein, et
+   c'est la barre qui monte si l'on veut. La palette des visages, elle, reste la partagée :
+   c'est celle que le joueur a demandée en toutes lettres (« fais plus de nuances de
+   couleurs »), et la remplacer d'office serait défaire ce qu'il avait décidé. */
+const PIXEL_MIN = 1.0, PIXEL_MAX = 4.0, PIXEL_PAS = 0.05;
+const PIXEL_DEFAUT = {px: 1.25, ui: true, pal: false};
+const PIXEL = {px: PIXEL_DEFAUT.px, ui: PIXEL_DEFAUT.ui, pal: PIXEL_DEFAUT.pal};
+/* LES QUATRE ANCIENS CRANS SURVIVENT ICI, ET UNIQUEMENT POUR RELIRE LES SAUVEGARDES qui
+   portent encore l'INDICE d'avant la barre. Une partie enregistrée avec `pixel: 2` doit
+   rouvrir sur le grain qu'elle montrait, pas sur un 2 lu comme une valeur. */
+const PIXEL_CRANS = [1.1, 2, 3, 4];
+function grainNom(px){
+  return px <= 1.15 ? 'd\'origine'
+       : px < 1.6   ? 'fin'
+       : px < 2.6   ? 'moyen'
+       : px < 3.6   ? 'gros'
+       :              'très gros';
+}
+
 /* LE PLAFOND DE NETTETÉ.
    Sur un téléphone à trois pixels physiques par pixel CSS, on rendait 2,7 fois la
    définition de l'écran — trois millions de pixels à remplir soixante fois par seconde
@@ -1567,7 +1563,7 @@ renderer.setPixelRatio(1);
 function applyResolution(){
   const w = innerWidth, h = innerHeight;
   const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
-  const px = PIXEL.choix[PIXEL.i].px;
+  const px = Math.max(PIXEL_MIN, Math.min(PIXEL_MAX, PIXEL.px || PIXEL_MIN));
   /* LE PLANCHER SUIT LE GRAIN, ET C EST LE PIEGE QU ON Y A TROUVE. Il valait 0,45 en dur
      — un garde-fou pour qu une definition ne devienne jamais absurdement basse — et il
      AVALAIT le reglage : sur un ecran a un point par pixel CSS, « Moyen » (px = 3)
@@ -16265,11 +16261,17 @@ function articleCurseur(couleur, nom, o){
   const c = document.createElement('input');
   c.type = 'range'; c.min = o.min; c.max = o.max; c.step = o.pas || 1; c.value = o.lire();
   d.appendChild(c);
+  /* `format` EST FACULTATIF, ET IL A FALLU LE GRAIN POUR EN AVOIR BESOIN. La barre porte
+     des entiers — c'est ce que sait faire un `input[type=range]` — mais tout le monde ne
+     règle pas des entiers : le grain va de 1,00 à 4,00 et se stocke en centièmes, si bien
+     que le titre annonçait « Grain de l'image — 140 ». Les trois barres d'avant n'ont rien
+     à formater et ne passent rien ; elles affichent la valeur telle quelle, comme avant. */
+  const fmt = o.format || ((v)=> v + o.unite);
   const r = document.createElement('div'); r.className = 'reperes';
-  r.innerHTML = '<span>' + o.min + o.unite + '</span><span>' + o.max + o.unite + '</span>';
+  r.innerHTML = '<span>' + fmt(o.min) + '</span><span>' + fmt(o.max) + '</span>';
   d.appendChild(r);
   const peindre = ()=>{
-    t.querySelector('.nom').textContent = nom + ' — ' + c.value + o.unite;
+    t.querySelector('.nom').textContent = nom + ' — ' + fmt(+c.value);
     t.querySelector('.det').innerHTML = o.detail(+c.value);
   };
   peindre();
@@ -25251,18 +25253,31 @@ function ongletReglages(){
      pas ensemble : on peut vouloir un monde en gros pixels dans une interface qui reste
      douce, et l'inverse se défend aussi. */
   titre('Pixel art');
-  const PXC = PIXEL.choix[PIXEL.i];
-  const rend = Math.round(renderer.domElement.width) + ' × '
-             + Math.round(renderer.domElement.height);
-  article(0xE87FA8, 'Grain de l\'image — ' + PXC.nom,
-    PXC.det + '<br>Rendu actuel : ' + rend + ' pixels'
-    + (PIXEL.i ? '  ·  soit ' + (PXC.px*PXC.px).toFixed(1)
-                 + ' fois moins de pixels à remplir qu\'à 1' : ''),
-    'Changer', PIXEL.i ? 'ok' : '', ()=>{
-      PIXEL.i = (PIXEL.i + 1) % PIXEL.choix.length;
-      appliquerPixel();
-      showHint('GRAIN — ' + PIXEL.choix[PIXEL.i].nom.toUpperCase());
-    });
+  /* UNE BARRE, PAS QUATRE CRANS. « Là les pixels, ils sont beaucoup trop gros, il faut
+     affiner énormément. » Quatre crans ne permettent pas d'affiner ; une barre, si. Elle
+     va de 1 à 4 par vingtièmes, et son détail dit à chaque cran les deux seules choses
+     qu'on veut savoir : la définition qu'on rend, et ce que ça coûte par rapport à un
+     rendu plein. */
+  articleCurseur(0xE87FA8, 'Grain de l\'image', {
+    min: Math.round(PIXEL_MIN*100), max: Math.round(PIXEL_MAX*100),
+    pas: Math.round(PIXEL_PAS*100), unite: '',
+    lire: ()=> Math.round(PIXEL.px*100),
+    ecrire: (v)=>{ PIXEL.px = v/100; appliquerPixel(); },
+    format: (v)=> (v/100).toFixed(2).replace('.', ','),
+    detail: (v)=>{
+      const px = v/100;
+      const w = Math.round(innerWidth), h = Math.round(innerHeight);
+      const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
+      const k = Math.max(Math.min(0.45, 1/px), Math.min(dpr, dpr/px));
+      const rw = Math.round(w*k), rh = Math.round(h*k);
+      return 'Un pixel de rendu pour <b>' + px.toFixed(2).replace('.', ',')
+           + '</b> pixel' + (px >= 2 ? 's' : '') + ' d\'écran — grain <b>' + grainNom(px)
+           + '</b>.<br>Rendu&nbsp;: <b>' + rw + ' × ' + rh + '</b> pixels'
+           + '  ·  <b>' + (px*px).toFixed(1).replace('.', ',')
+           + ' fois moins</b> à remplir qu\'à un pour un.'
+           + (px <= 1.05 ? '<br>À un, le monde n\'est plus pixellisé du tout.' : '');
+    }
+  });
   article(0xE87FA8, 'Interface sur la grille — ' + (PIXEL.ui ? 'oui' : 'non'),
     PIXEL.ui
       ? 'Les angles sont carrés, les ombres franches, les flous d\'arrière-plan coupés, '
@@ -25961,7 +25976,11 @@ function etatJeu(){
     /* LE PIXEL ART, EN DEUX CHAMPS FACULTATIFS. Absents, ils valent zero et faux,
        c est-a-dire le jeu d avant ce reglage : une partie deja commencee ne voit
        aucune difference tant qu elle n a rien demande. `v` ne bouge pas. */
-    pixel: PIXEL.i,
+    /* LE GRAIN EST DEVENU UNE VALEUR, ET IL CHANGE DONC DE CHAMP. `pixel` portait un
+       INDICE de cran ; l'écrire encore ferait relire 1,5 comme « le cran 1 », c'est-à-dire
+       2. On écrit `pixelPx`, la valeur elle-même, et l'on ne touche plus à `pixel` — les
+       sauvegardes qui le portent restent lisibles, voir la relecture. */
+    pixelPx: PIXEL.px,
     pixelUi: PIXEL.ui,
     pixelPal: PIXEL.pal,
     zoom: ZOOM.pc,
@@ -26398,8 +26417,15 @@ function chargerPartie(S){
        sauvegarde, c'est-à-dire chez le joueur lui-même, et le jeu se serait ouvert
        exactement comme avant malgré le changement de défaut. On distingue donc l'ABSENCE
        (prends le défaut) du FAUX ÉCRIT (il a éteint, on respecte). */
-    PIXEL.i   = (!usine && S.pixel !== undefined && PIXEL.choix[S.pixel|0])
-              ? (S.pixel|0) : PIXEL_DEFAUT.i;
+    /* TROIS CAS, DANS CET ORDRE : la valeur si elle est là, l'ancien indice de cran s'il
+       traîne encore, le défaut sinon. Le deuxième cas n'est pas de la coquetterie — une
+       partie enregistrée pendant les quelques heures où le grain était un indice porte
+       `pixel: 2`, et le lire comme une valeur la rouvrirait à 2,0 au lieu de 3,0. */
+    PIXEL.px  = (!usine && typeof S.pixelPx === 'number')
+              ? Math.max(PIXEL_MIN, Math.min(PIXEL_MAX, S.pixelPx))
+              : (!usine && PIXEL_CRANS[S.pixel|0] !== undefined && S.pixel !== undefined)
+              ? PIXEL_CRANS[S.pixel|0]
+              : PIXEL_DEFAUT.px;
     PIXEL.ui  = (!usine && S.pixelUi  !== undefined) ? !!S.pixelUi  : PIXEL_DEFAUT.ui;
     PIXEL.pal = (!usine && S.pixelPal !== undefined) ? !!S.pixelPal : PIXEL_DEFAUT.pal;
     appliquerPixel();

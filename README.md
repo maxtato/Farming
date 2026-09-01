@@ -9599,26 +9599,64 @@ banc :
   filtrage linéaire, et le jeu s'ouvrait en pixel art avec les seules textures peintes restées
   lisses. Chacune se règle maintenant à son inscription au registre.
 
-### Grain de l'image
+### Grain de l'image : une barre, pas quatre crans
 
 Le moteur avait déjà tout ce qu'il fallait : le canevas du monde est agrandi au plus proche
 voisin depuis le premier jour, et une constante `PX` disait combien de pixels d'écran couvre un
-pixel de rendu. Elle valait 1,1 en dur. Elle est devenue un réglage à quatre crans.
+pixel de rendu. Elle valait 1,1 en dur. Elle est d'abord devenue un réglage à **quatre crans** —
+1,1 · 2 · 3 · 4 — et le joueur a tranché en une phrase :
 
-| cran | `px` | rendu sur un écran de 900 × 520 | pixels à remplir |
-|---|---|---|---|
-| **D'origine** | 1,1 | 818 × 473 | 387 k |
-| **Fin** | 2 | 450 × 260 | 117 k |
-| **Moyen** | 3 | 300 × 173 | 52 k |
-| **Gros** | 4 | 225 × 130 | 29 k |
+> « Là les pixels, ils sont beaucoup trop gros, il faut affiner énormément. »
+
+Quatre crans ne permettent pas d'affiner : entre « d'origine » et le premier cran de pixel art
+il y avait un fossé, et rien dedans. Le grain se juge à l'œil, comme le zoom, et comme le zoom il
+lui faut une **barre** — on la pousse d'un cran, on regarde, on recommence. **De 1,00 à 4,00 par
+vingtièmes : 61 positions au lieu de 4**, et le défaut part tout en bas de la plage utile,
+à **1,25**.
+
+### Ce que ça coûte, et ce que ça rapporte
+
+Mesuré sur un viewport de téléphone couché (844 × 390), 90 images par position, temps médian.
+*Rendu logiciel : ce ne sont pas les chiffres d'un téléphone, c'est la forme de la courbe.*
+
+| grain | rendu | pixels/image | temps médian | vs 1,00 |
+|---|---|---|---|---|
+| 1,00 | 844 × 390 | 329 k | 133,5 ms | — |
+| **1,25** | 675 × 312 | 211 k | 100,4 ms | 1,56× moins de pixels, **1,33× plus rapide** |
+| 1,50 | 563 × 260 | 146 k | 96,0 ms | 2,25× moins de pixels, 1,39× plus rapide |
+| 2,00 | 422 × 195 | 82 k | 86,1 ms | 4,00× moins de pixels, 1,55× plus rapide |
+| 3,00 | 281 × 130 | 37 k | 78,5 ms | 9,01× moins de pixels, **1,70× plus rapide** |
+
+**Le gain est très inférieur à ce que le compte de pixels laisse croire, et c'est le
+renseignement utile.** Neuf fois moins de pixels ne donnent que 1,7 fois plus vite : le coût
+d'une image n'est donc pas dans le remplissage, il est dans le reste — géométrie, ombres,
+simulation, interface. Et comme cette mesure est faite en rendu *logiciel*, où le remplissage
+coûte anormalement cher, la part du remplissage sur un vrai téléphone est encore plus petite.
+**Pixelliser le jeu ne le rend pas « léger » ; ça fait gagner un tiers de temps d'image au grain
+par défaut, pas neuf fois.**
+
+Le poids du jeu, lui, n'a rien à voir avec le grain — c'est un réglage, pas un fichier. Ce qui a
+grossi, ce sont les **fiches de personnage**, et il faut le dire net :
+
+| | `index.html` | `portraits/` |
+|---|---|---|
+| avant le pixel art | 1 643 Ko | 276 Ko |
+| pixels fins, 105 couleurs | 1 648 Ko | 821 Ko |
+| grille PX_JEU = 1/3 | 1 650 Ko | **1 144 Ko** |
+
+Plus `portraits14/` (853 Ko), qui n'est chargé **que si** le réglage « palette par image » est
+mis. Le jeu ne télécharge jamais les deux.
 
 **Et le plancher avalait le réglage.** La définition était bornée par `Math.max(0.45, …)` — un
-garde-fou pour qu'elle ne devienne jamais absurde. Sur un écran à un point par pixel CSS,
-« Moyen » demandait 0,333 et recevait 0,45 ; « Gros » demandait 0,25 et recevait 0,45 aussi. Les
-deux crans rendaient **la même image**, et rien à l'écran ne l'aurait dit. Le plancher suit
-maintenant le grain demandé : il vaut 0,45 tant que le grain reste fin, et descend avec lui.
-Accessoirement, « Moyen » remplit **sept fois moins de pixels** que le réglage d'origine — le
-gros grain est aussi le mode le plus économe du jeu.
+garde-fou pour qu'elle ne devienne jamais absurde. Sur un écran à un point par pixel CSS, 3
+demandait 0,333 et recevait 0,45 ; 4 demandait 0,25 et recevait 0,45 aussi. Les deux positions
+rendaient **la même image**, et rien à l'écran ne l'aurait dit. Le plancher suit maintenant le
+grain demandé : il vaut 0,45 tant que le grain reste fin, et descend avec lui.
+
+**Et `articleCurseur` a reçu un `format`.** La barre porte des entiers — c'est ce que sait faire
+un `input[type=range]` — mais le grain va de 1,00 à 4,00 et se stocke en centièmes : le titre
+annonçait « Grain de l'image — 140 ». Le formateur est facultatif ; les trois barres d'avant
+n'ont rien à formater et ne passent rien.
 
 ### Interface sur la grille
 
@@ -9705,7 +9743,7 @@ grille, 43 sur 43 en grille.**
 
 ### Les trois réglages se sauvegardent, et une vieille partie ne les voit pas
 
-`pixel`, `pixelUi` et `pixelPal` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la
+`pixelPx`, `pixelUi` et `pixelPal` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la
 garde de relecture est une égalité stricte, l'incrémenter rejetterait d'un coup toutes les
 parties en cours.
 
@@ -9716,7 +9754,13 @@ rouvert exactement comme avant. On distingue donc l'**absence** (prends le défa
 écrit** (il a éteint, on respecte) — et une extinction écrite tient au rechargement, sans quoi la
 trace ne servirait à rien.
 
-`pixelart.js`, **37 contrôles**.
+**Le grain a changé de champ en changeant de nature.** `pixel` portait un *indice de cran* ;
+l'écrire encore ferait relire 1,5 comme « le cran 1 », c'est-à-dire 2. On écrit `pixelPx`, la
+valeur elle-même — et l'on relit `pixel` quand il traîne encore, à travers la table des quatre
+anciens crans, pour qu'une partie enregistrée pendant ces quelques heures rouvre sur le grain
+qu'elle montrait.
+
+`pixelart.js`, **40 contrôles**.
 
 ### Un défaut de français corrigé au passage
 
