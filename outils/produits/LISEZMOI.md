@@ -121,6 +121,6 @@ dans les deux sens et signale l'oubli.
 ## Où vivent les images
 
 `produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
-brut, cinq animaux, huit transformations, les sept engins et trois outils sur quatre :
-59,1 Ko pour trente-six planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+brut, cinq animaux, huit transformations et tout le parc — sept engins, quatre outils :
+60,7 Ko pour trente-sept planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

@@ -11210,3 +11210,23 @@ Trente-six planches, **59,1 Ko**, la plus lourde toujours à 2,3. Les vingt-sept
 
 Il reste sans image la benne, et dix produits finis : beurre, yaourt, fromage de brebis,
 textile, viande, pain, viennoiseries, et les trois pâtisseries.
+
+---
+
+## La benne ferme le parc
+
+Une planche, et le parc est complet : les sept engins et les quatre outils attelables ont
+tous leur dessin. La source est sur magenta, sans ombre, d'un seul tenant, sans verre — la
+chaîne n'a rien eu à faire d'autre que son travail ordinaire.
+
+**Le banc y gagne un contrôle qui ne se réécrira plus.** Il nommait les engins un par un —
+« les trois tracteurs, le pick-up et le fourgon » — et il fallait donc le corriger à chaque
+envoi. Il lit maintenant `MACHINES` et `TOOLS` et demande que **tout** y ait sa planche :
+`MACHINES.every(...) && TOOLS.every(...)`. Le jour où un engin s'ajoute au jeu sans son
+image, le banc le dira sans qu'on ait rien écrit.
+
+Trente-sept planches, **60,7 Ko**. Le banc `vignettes` passe à **38 contrôles**. Les
+vingt-sept suites : **1 174 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+Il ne reste que les dix produits finis : beurre, yaourt, fromage de brebis, textile, viande,
+pain, viennoiseries, et les trois pâtisseries.
