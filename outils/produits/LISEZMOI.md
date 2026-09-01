@@ -63,6 +63,15 @@ dans les deux sens et signale l'oubli.
    sous 5 % de la plus grande sont donc du débris — sans quoi la vache se retrouvait réduite
    et décentrée pour loger neuf pixels que personne ne voit.
 
+2 ter. **Le fond vu au travers d'un verre.** Un bidon vide laisse voir le magenta, teinté
+   et éclairci par la paroi — 0,44 de teinte au lieu de 0,95 —, et aucun seuil de teinte ne
+   le sépare d'une olive noire à 0,42. Il faut trois mesures ensemble : teinte ≥ 0,30,
+   **équilibre** `|R−B| / clarté` ≤ 0,18 (le fond a R ≈ B ; une olive noire est à 0,28, un
+   fond de bouteille grenat à 0,60) et **clarté** ≥ 175 (le verre du vin est à 185 au plus
+   sombre, le reflet de sa bouteille à 162 au plus clair). On ne la cherche qu'au cœur du
+   sujet : au bord, un blanc à demi mélangé de fond a la même signature, et c'est la frange
+   qui s'en occupe.
+
 3. **Démêlage.** Un pixel de frange vaut `a·C + (1−a)·fond` ; on rend `C`, sans quoi la
    silhouette garde un liseré magenta une fois posée sur le papier du menu. Le `fond` en
    question est **local** — une moyenne gaussienne des pixels de fond voisins, pondérée par
@@ -92,9 +101,13 @@ dans les deux sens et signale l'oubli.
 | `TOL_NEUTRE` | 6 | fond blanc : en dessous de cet écart, c'est le fond |
 | `PLEIN_NEUTRE` | 60 | fond blanc : au-delà, c'est opaque — entre les deux, une aile |
 | `PART_MIN` | 5 % | une tache de sujet plus petite que ça est un débris de planche |
+| `SEUIL_VERRE` | 0,30 | teinte : en dessous c'est de la matière, pas du fond atténué |
+| `EQ_VERRE` | 0,18 | `\|R−B\| / clarté` : le fond a R ≈ B, une olive noire non (0,28) |
+| `LUM_VERRE` | 175 | le verre du vin est à 185, le reflet de sa bouteille à 162 |
 
 ## Où vivent les images
 
 `produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
-brut, plus cinq animaux : 33,4 Ko pour dix-huit planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+brut, cinq animaux et cinq transformations : 40,9 Ko pour vingt-trois planches, la plus
+lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

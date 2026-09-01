@@ -11051,3 +11051,56 @@ Les vingt-sept suites : **1 166 contrôles**, zéro échec, zéro erreur de page
 Restent sans image, et ce sont toutes des **transformations** : farine, huile de colza, huile
 d'olive, bière, lait d'avoine, beurre, yaourt, fromage, fromage de brebis, textile, céréales,
 viande, vin, pain, viennoiseries, pâtisseries.
+
+---
+
+## Les cinq premières transformations, et le fond vu au travers d'un verre
+
+Deux huiles, un vin, un fromage, un lait d'avoine : les cinq premières **transformations**
+entrent, et avec elles un cas que la chaîne ne savait pas traiter.
+
+**Le bidon de lait d'avoine et le verre de vin sont vides dans leur haut.** Ce qu'on y voit,
+c'est le magenta — traversé et teinté par la paroi, donc à **0,44 de teinte au lieu de
+0,95**. La règle le gardait : une bande rose en travers du verre, et des taches roses dans le
+ballon du vin.
+
+**Et le seuil de teinte ne pouvait pas descendre le chercher.** À 0,42 se trouvent les olives
+noires au fond du sac ; à 0,47 la bande du verre. Les deux se chevauchent, et il n'existe
+aucun seuil de teinte qui sépare l'une de l'autre.
+
+Ce qui les sépare tient en **deux mesures de plus**, et il fallait les deux :
+
+| | le fond vu au travers | ce qui n'en est pas |
+|---|---|---|
+| **équilibre** `\|R−B\| / clarté` — le fond a R ≈ B | verre du vin **0,11**, du bidon **0,02** | olive noire 0,28, fond de bouteille grenat 0,60, rose de mamelle 0,38 |
+| **clarté** — le fond reste clair | verre du vin **185** au plus sombre | reflet de sa bouteille **162** au plus clair |
+
+L'équilibre seul laissait un trou dans la bouteille de vin : elle est une aubergine sombre,
+et 26 000 de ses pixels sont aussi équilibrés que le verre. La clarté seule ne suffisait pas
+non plus. **Les trois ensemble** — teinte ≥ 0,30, équilibre ≤ 0,18, clarté ≥ 175 — ne
+laissent rien passer et n'emportent rien : sur les vingt-trois planches, il reste **zéro**
+pixel portant cette signature.
+
+**On ne la cherche qu'au cœur du sujet.** Au bord, un blanc à demi mélangé de fond a
+exactement la même signature qu'un verre — c'est vrai, et c'est justement ce que la frange
+sait déjà traiter. La distance décide.
+
+**Et le banc mesure la signature, plus la teinte seule.** Il comptait « aucun pixel visible
+n'a la teinte du fond », et la bouteille de vin l'a mis en défaut sans être fautive : son
+aubergine porte 0,47 de teinte. Le contrôle relit maintenant les trois termes ensemble — ce
+que la chaîne retire, exactement.
+
+### Un onglet entier ne portait aucune image
+
+La ligne d'un métier **non acheté** est une autre ligne dans le code que celle d'un métier
+acheté — deux branches, deux appels — et seule la seconde avait été câblée. Dans une partie
+neuve, où les neuf métiers sont tous à acheter, l'onglet **Métiers** n'en montrait donc
+aucun. Le banc lit désormais les deux états, et compte les métiers depuis la table plutôt que
+depuis le titre de la section — lequel annonce toujours « les huit métiers » alors qu'il y en
+a neuf, ce qui reste à corriger.
+
+Vingt-trois planches, **40,9 Ko**. Le banc `vignettes` passe de 30 à **32 contrôles**. Les
+vingt-sept suites : **1 168 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+Restent sans image : farine, bière, fromage de brebis, beurre, yaourt, textile, céréales,
+céréales premium, viennoiseries, pâtisseries, pain, viande.

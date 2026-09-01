@@ -37,6 +37,16 @@ TOL_NEUTRE   = 6      # fond BLANC : ecart en dessous duquel un pixel est du fon
 PLEIN_NEUTRE = 60     # fond BLANC : ecart au-dela duquel un pixel est opaque
 PART_MIN     = 0.05   # une tache de sujet plus petite que ca, rapportee a la plus grande,
                       # est un debris de planche et non un morceau du sujet
+# LE FOND VU AU TRAVERS D UN VERRE. Trois conditions, et il en faut trois — mesurees sur
+# les vingt-trois sources, avec ce que chacune separe :
+SEUIL_VERRE  = 0.30   # teinte : sous ce seuil c est de la matiere, pas du fond attenue
+EQ_VERRE     = 0.18   # |R-B| / clarte : le fond a R ~ B. Une olive noire (0,28), un fond
+                      # de bouteille grenat (0,60), un rose de mamelle (0,38) ne l ont pas ;
+                      # le verre du bidon d avoine est a 0,02 et celui du vin a 0,11.
+LUM_VERRE    = 175    # ... et il reste CLAIR. C est ce qui separe le VERRE du vin (185 au
+                      # plus sombre) du REFLET de sa bouteille (162 au plus clair), que ni
+                      # la teinte ni l equilibre ne distinguent : les deux sont un mauve
+                      # pale, l un est le fond derriere le verre et l autre est du verre.
 
 
 def cleTeinte(a):
@@ -120,6 +130,21 @@ def detourer(chemin):
     fond = (teinteNormee(a) >= SEUIL_TEINTE) if chromatique \
            else (np.abs(a - ref).max(axis=2) <= TOL_NEUTRE)
     fond = sansDebris(fond)
+    if chromatique:
+        # 1 bis. ET LE FOND VU AU TRAVERS D UN VERRE, qui est du fond aussi.
+        #    Le bidon de lait d avoine et le verre de vin sont vides dans leur haut : ce
+        #    qu on y voit, c est le magenta, TEINTE ET ECLAIRCI par la paroi — 0,44 de
+        #    teinte au lieu de 0,95. Le laisser opaque mettait une bande rose en travers
+        #    du verre ; le seuil de teinte, lui, ne pouvait pas descendre le chercher sans
+        #    emporter les olives noires du sac, qui sont a 0,42.
+        #    ON NE LE CHERCHE QU AU COEUR DU SUJET. Au bord, un blanc a demi melange de
+        #    fond a exactement la meme signature qu un verre : c est vrai, et c est
+        #    justement ce que la frange sait deja traiter. La distance decide.
+        dist0 = cv2.distanceTransform((~fond).astype(np.uint8), cv2.DIST_L2, 3)
+        mx = a.max(axis=2)
+        eq = np.abs(a[:, :, 0] - a[:, :, 2])/np.maximum(mx, 1)
+        fond = fond | ((~fond) & (dist0 > BANDE) & (teinteNormee(a) >= SEUIL_VERRE)
+                       & (eq <= EQ_VERRE) & (mx >= LUM_VERRE))
     loc, den = fondLocal(a, fond, BANDE)
     loc = np.where((den > 1e-3)[..., None], loc, ref)
     if chromatique:
