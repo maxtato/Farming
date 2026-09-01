@@ -1515,7 +1515,22 @@ const C = {
    `image-rendering: pixelated` depuis toujours, c'est ce qui donne l'escalier franc
    plutôt qu'un flou. À 3 on remplit donc NEUF FOIS moins de pixels : le gros grain est
    aussi, accessoirement, le réglage le plus économe du jeu. */
-const PIXEL = {i: 0, ui: false, pal: false, choix: [
+/* ET LE JEU S'OUVRE DESSUS, PARCE QUE C'EST CE QUI ÉTAIT DEMANDÉ.
+   La première version partait éteinte — « rien ne change tant qu'on n'a rien demandé » —
+   et le joueur est revenu avec la seule phrase qui tranche : « quand je lance le jeu, je
+   vois pas les modifications qu'ont été faites sur l'interface avec les boutons carrés. »
+   Sa consigne disait pourtant les deux moitiés : « fais les modifications QUE JE PUISSE
+   VISUALISER DANS LE JEU, mais garde une trace que je puisse revenir en arrière si j'aime
+   pas. » Un interrupteur qu'il faut aller chercher dans un menu ne montre rien ; la trace,
+   c'est l'interrupteur, pas l'extinction. Le jeu s'ouvre donc EN PIXEL ART, et deux
+   touches le ramènent à ce qu'il était.
+   TROIS DÉFAUTS, ET PAS QUATRE. Le grain va au cran « Moyen » — trois pixels d'écran par
+   pixel de rendu, la grille même des visages, PX_JEU = 1/3 — et l'interface passe sur la
+   grille. La palette des visages, elle, RESTE la partagée : c'est celle que le joueur a
+   demandée en toutes lettres deux messages plus tôt (« fais plus de nuances de couleurs »),
+   et la remplacer d'office par quatorze couleurs serait défaire ce qu'il avait décidé. */
+const PIXEL_DEFAUT = {i: 2, ui: true, pal: false};
+const PIXEL = {i: PIXEL_DEFAUT.i, ui: PIXEL_DEFAUT.ui, pal: PIXEL_DEFAUT.pal, choix: [
   {nom: "D'origine", px: 1.1,
    det: 'Le grain d\'origine du jeu : un pixel de rendu pour un peu plus d\'un pixel '
       + 'd\'écran. Les contours sont nets, l\'escalier ne se voit qu\'en cherchant.'},
@@ -1581,7 +1596,17 @@ applyResolution();
    monde est en WebGL —, donc ce drapeau ne change rien à ce qui s'affiche aujourd'hui.
    Il est là pour le jour où une planche de tuiles arrivera, et pas pour faire nombre. */
 const TEX_GRILLE = [];
-function pixTex(t){ TEX_GRILLE.push(t); return t; }
+/* ET UNE TEXTURE QUI ARRIVE APRÈS LA BASCULE PREND L'ÉTAT COURANT. `appliquerPixel` ne
+   peut agir que sur ce que le registre contient au moment où on l'appelle — or le monde se
+   construit APRÈS le premier appel : les enseignes, le panneau « à vendre » et les plaques
+   d'étiquette naissaient donc toutes en filtrage linéaire, et le jeu s'ouvrait en pixel art
+   avec les seules textures peintes restées lisses. On règle chacune à l'inscription. */
+function pixTex(t){
+  TEX_GRILLE.push(t);
+  const f = PIXEL.ui ? THREE.NearestFilter : THREE.LinearFilter;
+  if(t.magFilter !== f){ t.magFilter = f; t.needsUpdate = true; }
+  return t;
+}
 function lisserCanevas(c){
   if(!c) return c;
   c.imageSmoothingEnabled = !PIXEL.ui;
@@ -1610,6 +1635,12 @@ function appliquerPixel(){
   }
   applyResolution();
 }
+/* ET ON L'APPELLE UNE FOIS ICI, CE QUI N'ALLAIT PAS DE SOI. `appliquerPixel` n'était
+   appelé que par le menu et par la relecture d'une sauvegarde : une PREMIÈRE partie, qui
+   n'a rien à relire, ne passait donc jamais par lui — le corps du document ne recevait pas
+   la classe `grille` et le jeu s'ouvrait arrondi malgré `PIXEL.ui` à vrai. Un défaut qui
+   n'est appliqué nulle part n'est pas un défaut, c'est une variable. */
+appliquerPixel();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -26361,12 +26392,16 @@ function chargerPartie(S){
        sauvegarde suivante, et le menu redevient maître. */
     const usine = !S.reglagesV;
     if(!usine && S.nettete !== undefined && NETTETE.choix[S.nettete]) NETTETE.i = S.nettete;
-    /* LE PIXEL ART REPART D USINE COMME LES TROIS AUTRES. Une sauvegarde sans la marque
-       — donc d avant les reglages — reprend le grain d origine et l interface arrondie,
-       une fois. Ensuite, ce que le joueur choisit au menu tient. */
-    PIXEL.i  = (!usine && PIXEL.choix[S.pixel|0]) ? (S.pixel|0) : 0;
-    PIXEL.ui  = !usine && !!S.pixelUi;
-    PIXEL.pal = !usine && !!S.pixelPal;
+    /* UN CHAMP ABSENT VAUT LE DÉFAUT DU JEU, PAS « ÉTEINT » — ET C'EST TOUTE LA
+       DIFFÉRENCE. Une partie commencée avant ce réglage n'a ni `pixel` ni `pixelUi` ; les
+       lire comme des faux aurait forcé l'ancien rendu chez tous ceux qui ont déjà une
+       sauvegarde, c'est-à-dire chez le joueur lui-même, et le jeu se serait ouvert
+       exactement comme avant malgré le changement de défaut. On distingue donc l'ABSENCE
+       (prends le défaut) du FAUX ÉCRIT (il a éteint, on respecte). */
+    PIXEL.i   = (!usine && S.pixel !== undefined && PIXEL.choix[S.pixel|0])
+              ? (S.pixel|0) : PIXEL_DEFAUT.i;
+    PIXEL.ui  = (!usine && S.pixelUi  !== undefined) ? !!S.pixelUi  : PIXEL_DEFAUT.ui;
+    PIXEL.pal = (!usine && S.pixelPal !== undefined) ? !!S.pixelPal : PIXEL_DEFAUT.pal;
     appliquerPixel();
     rafraichirVisages();
     // Absent, le zoom vaut cent pour cent : le cadrage qu'avaient toutes les parties

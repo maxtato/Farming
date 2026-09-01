@@ -9566,11 +9566,38 @@ deux genres, et accorder demanderait une table de genres pour un seul titre.
 > « Fais les modifications que je puisse visualiser dans le jeu, mais garde une trace que je
 > puisse revenir en arrière si j'aime pas. »
 
-Alors le jeu s'ouvre exactement comme avant, et deux interrupteurs des réglages — section
-**Pixel art** — le font basculer. Ils partent éteints, ils sont indépendants l'un de l'autre, et
-les remettre à zéro rend l'état de départ **au chiffre près** : le banc le vérifie sur treize
+La première version partait **éteinte** — « rien ne change tant qu'on n'a rien demandé » — et le
+joueur est revenu avec la seule phrase qui tranche :
+
+> « Quand je lance le jeu, je vois pas les modifications qu'ont été faites sur l'interface avec
+> les boutons carrés. »
+
+Il avait raison, et sa consigne disait pourtant les deux moitiés : *que je puisse visualiser dans
+le jeu*, **et** *une trace pour revenir en arrière*. Un interrupteur qu'il faut aller chercher
+dans un menu ne montre rien ; la trace, c'est l'interrupteur, pas l'extinction.
+
+**Le jeu s'ouvre donc en pixel art**, et deux touches le ramènent à ce qu'il était. Trois
+interrupteurs dans les réglages, section **Pixel art**, indépendants l'un de l'autre. Deux
+partent allumés — grain « Moyen » et interface sur la grille — et le troisième, la palette des
+visages, reste sur la partagée : c'est celle que le joueur a demandée en toutes lettres deux
+messages plus tôt (« fais plus de nuances de couleurs »), et la remplacer d'office serait défaire
+ce qu'il avait décidé.
+
+Les remettre à zéro rend l'état d'avant **au chiffre près** : le banc le vérifie sur treize
 grandeurs à la fois, définition de rendu, angles, ombres, flous, filtrage des textures et zoom
 de l'interface.
+
+**Deux pièges se sont refermés en changeant de défaut**, et aucun des deux ne se serait vu sans
+banc :
+
+- `appliquerPixel` n'était appelé que par le menu et par la relecture d'une sauvegarde. Une
+  **première** partie, qui n'a rien à relire, ne passait donc jamais par lui : le corps du
+  document ne recevait pas la classe et le jeu s'ouvrait arrondi malgré le défaut à vrai. *Un
+  défaut qu'on n'applique nulle part n'est pas un défaut, c'est une variable.*
+- Les textures peintes sont créées **après** ce premier appel — le monde se construit ensuite.
+  Les enseignes, le panneau « à vendre » et les plaques d'étiquette naissaient toutes en
+  filtrage linéaire, et le jeu s'ouvrait en pixel art avec les seules textures peintes restées
+  lisses. Chacune se règle maintenant à son inscription au registre.
 
 ### Grain de l'image
 
@@ -9678,10 +9705,18 @@ grille, 43 sur 43 en grille.**
 
 ### Les trois réglages se sauvegardent, et une vieille partie ne les voit pas
 
-`pixel`, `pixelUi` et `pixelPal` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la garde de
-relecture est une égalité stricte, l'incrémenter rejetterait d'un coup toutes les parties en
-cours. Une sauvegarde d'avant ce réglage — ou marquée mais sans les deux champs — repart du jeu
-d'origine. `pixelart.js`, **35 contrôles**.
+`pixel`, `pixelUi` et `pixelPal` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la
+garde de relecture est une égalité stricte, l'incrémenter rejetterait d'un coup toutes les
+parties en cours.
+
+**Et un champ absent vaut le défaut du jeu, pas « éteint ».** C'est toute la différence, et elle
+décide de ce que voit le joueur : il a *déjà* une sauvegarde, sans ces champs. Les lire comme des
+faux aurait forcé l'ancien rendu chez lui malgré le changement de défaut, et le jeu se serait
+rouvert exactement comme avant. On distingue donc l'**absence** (prends le défaut) du **faux
+écrit** (il a éteint, on respecte) — et une extinction écrite tient au rechargement, sans quoi la
+trace ne servirait à rien.
+
+`pixelart.js`, **37 contrôles**.
 
 ### Un défaut de français corrigé au passage
 
