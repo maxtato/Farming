@@ -9507,15 +9507,36 @@ s'en déduisent, et il n'y a donc aucun moyen d'en oublier une pour un commerce 
 autre. Un commerce sans fiche reste jouable : l'image se cache et la mise en page reprend sa
 largeur.
 
-| moment | humeur | où | taille |
-|---|---|---|---|
-| le commerce propose sa mission | **neutre** | fenêtre de contrat, en haut à droite | 96 × 120 — la moitié exacte |
-| la mission est remplie et validée | **pouce levé** | écran de fin de mission, au-dessus du gain | 192 × 240, `pixelated` |
-| son étal ne peut plus rien prendre | **refus** | fenêtre de refus, avec les autres débouchés | 192 × 240, `pixelated` |
+| moment | humeur | où | boîte | planche |
+|---|---|---|---|---|
+| le commerce propose sa mission | **neutre** | fenêtre de contrat, en haut à droite | 96 × 120 | 288 × 360 |
+| la mission est remplie et validée | **pouce levé** | écran de fin de mission, au-dessus du gain | 192 × 240 | 576 × 720 |
+| son étal ne peut plus rien prendre | **refus** | fenêtre de refus, avec les autres débouchés | 192 × 240 | 576 × 720 |
+| le comptoir et le garage, à leur guichet | **neutre** | bandeau de titre de la fenêtre | 64 × 80 | *(la même 288 × 360)* |
 
-**96 et 192, et rien entre les deux.** Une fiche de 192 px montrée à 140 px passerait par un
-rééchantillonnage non entier : un pixel d'art sur deux serait coupé en travers, et le grain qu'on
-a fabriqué disparaîtrait. La moitié exacte, elle, se réduit proprement.
+**Une seule constante : `PX_JEU` = 1/3.** C'est la taille d'un **pixel d'art**, en pixels CSS. La
+planche ne se choisit pas, elle se calcule : la boîte où le jeu pose l'image, divisée par
+`PX_JEU`. C'est le seul montage où un pixel d'art mesure la même chose partout sur l'écran — sans
+lui, la vignette de contrat aurait un grain deux fois plus fin que l'écran de gain, ce qui se
+voit tout de suite quand on passe de l'un à l'autre.
+
+Les trois boîtes sont **mesurées, pas devinées** : une session complète pose les quarante et une
+planches dans chacune des fenêtres où le jeu les montre, et relève la boîte hors animation
+d'entrée. Trois tailles en sortent, pas une de plus.
+
+**Pourquoi un tiers.** Un téléphone moderne compte trois points d'écran par pixel CSS : à 1/3, un
+pixel d'art y tombe sur un point, au point près. À deux points la réduction vaut 1,5 — lisse, sans
+crénelage ; à un seul point elle vaut 3, une moyenne de bloc exacte. Le palier précédent (384)
+était bâti pour deux points par pixel CSS et se faisait *agrandir* de moitié sur un téléphone à
+trois.
+
+**Le seul écart, et il est assumé.** Le comptoir et le garage montrent leur visage neutre à deux
+tailles — 96 dans la fenêtre de contrat, 64 au bandeau de leur guichet. Un fichier ne peut pas
+faire à la fois 288 et 192 de large. La planche suit la boîte la plus fréquente (quinze commerces
+contre deux) ; le guichet affiche donc à 64/288, soit un pixel d'art de 0,22 px CSS au lieu de
+0,33. Le fermer demanderait de porter `#fenface` à 96 × 120 : mesuré, le bandeau passerait de 80
+à 115 px et le rayon perdrait 35 px sur les 192 d'un téléphone couché — une ligne d'article, pour
+deux fichiers sur quarante et un.
 
 ### Le refus n'existait pas à l'écran
 

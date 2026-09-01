@@ -32,10 +32,24 @@ SEUIL_ECART   = 0.04     # au-dela, les humeurs ne sont plus a la meme echelle
 SEUIL_CONFIANCE = 0.04   # au-dela, le triangle ne ferme pas : la mesure ne conclut pas
 
 def _fiches(rad):
+    """Les fiches livrees, RAMENEES A LA MEME GRILLE. Depuis que la planche se calcule sur
+       la boite ou le jeu la pose, les humeurs n ont plus la meme taille de fichier — 288
+       pour la fenetre de contrat, 576 pour l ecran de gain. Ce controle-ci ne parle pas de
+       taille a l ecran, il parle de CADRAGE : le personnage occupe-t-il la meme part de son
+       cadre dans ses trois humeurs. On remonte donc tout a 576, au plus proche voisin —
+       576 vaut exactement deux fois 288, l agrandissement ne fabrique donc aucun pixel
+       intermediaire et la silhouette est rendue au pixel pres."""
     dos = F.DEST if F.table()[rad].get('site') else F.ATTENTE
-    return {h: Image.open(os.path.join(dos, rad + '-' + h + '.png')).convert('RGBA')
-            for h in F.HUMEURS
-            if os.path.exists(os.path.join(dos, rad + '-' + h + '.png'))}
+    out = {}
+    for h in F.HUMEURS:
+        f = os.path.join(dos, rad + '-' + h + '.png')
+        if not os.path.exists(f): continue
+        im = Image.open(f).convert('RGBA')
+        if im.width != F.LARG_MAX:
+            k = F.LARG_MAX//im.width
+            im = im.resize((im.width*k, im.height*k), Image.NEAREST)
+        out[h] = im
+    return out
 
 def _bord(a):
     p = np.pad(a, 1)

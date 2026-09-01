@@ -1,10 +1,11 @@
 # La chaîne des portraits
 
-Une planche de personnage entre, un portrait de jeu sort : **384 × 480 pixels**, **palette de
-105 couleurs en 13 gammes, partagée par tout le casting**, fond transparent, buste coupé sur un arrondi
-légèrement octogonal. Cinq étapes, et une planche de contrôle après chacune — c'est la
-planche qui décide, pas le code.
+Une planche de personnage entre, un portrait de jeu sort : **288 × 360 ou 576 × 720 pixels
+selon la fenêtre qui le montre**, **palette de 105 couleurs en 13 gammes, partagée par tout
+le casting**, fond transparent, buste coupé sur un arrondi légèrement octogonal. Cinq
+étapes, et une planche de contrôle après chacune — c'est la planche qui décide, pas le code.
 
+    node    poses.js ../../index.html   # où le jeu pose ses images, et à quelle taille
     python3 fabriquer.py --palette    # (re)bat la palette du casting entier
     python3 aligner.py                # met les trois humeurs de chacun à la même échelle
     python3 aligner.py --verifier     # mesure l'écart d'échelle, sans rien corriger
@@ -274,13 +275,9 @@ de gammes à 0,128 se lisent comme du carton photocopié.
 
 > « Fais aussi des pixels plus fins. Et fais plus de nuances de couleurs. »
 
-**384 × 480, et ce palier n'est pas pris au hasard.** Le jeu montre ces fiches à trois
-tailles — 192 px sur l'écran de gain, 96 dans la fenêtre de contrat, 64 au guichet — et 384
-est le seul palier de cet ordre qui se divise *exactement* par les trois : 384 = 2 × 192 =
-4 × 96 = 6 × 64. À 288, le guichet tomberait sur 4,5 pixels source par pixel affiché, et un
-pixel d'art sur deux serait coupé en travers. Les sources font de 1 254 à 1 678 px de grand
-côté : le cadre à 1 152 demande un agrandissement de onze pour cent, ce qui n'invente
-presque rien. C'est la vraie borne — au-delà, on agrandirait du flou.
+**384 × 480**, choisi comme le seul palier qui se divise exactement par les trois tailles
+d'affichage du jeu — 2 × 192, 4 × 96, 6 × 64. Ce palier a été remplacé depuis ; voir
+*La grille commune* plus bas.
 
 **105 couleurs en 13 gammes**, contre 67 en 11 : douze familles de teinte au lieu de dix (le
 rouge et l'orange n'avaient qu'une frontière pour eux deux) et huit marches de clarté au
@@ -330,4 +327,80 @@ Une planche PNG ne suffit pas pour juger du pixel art : il faut pouvoir la voir 
 taille où le jeu l'affiche**, et aussi au point près pour compter les pixels. Trois partis
 pris : les images sont **dans le fichier** en base 64 (la page s'ouvre depuis n'importe où
 et se regarde sur un téléphone) ; les fonds sont **ceux du jeu** (un portrait détouré jugé
-sur du blanc ment) ; les tailles sont **celles du jeu et aucune autre** — 384, 192, 96, 64.
+sur du blanc ment) ; les tailles sont **celles du jeu et aucune autre**. Le bouton ne règle
+qu'un multiplicateur, parce que les trois humeurs n'ont plus la même taille de fichier : ×1
+pose chaque humeur dans sa vraie boîte (96 pour le neutre, 192 pour le pouce levé), ×3 la
+pose au pixel d'art près — et c'est aussi ce que voit un téléphone à trois points par
+pixel CSS.
+
+## La grille commune
+
+> « Ce n'est PAS une conversion image par image, c'est une grille commune à tout l'écran. »
+
+**Une seule constante : `PX_JEU` = 1/3**, la taille d'un **pixel d'art** en pixels CSS. Une
+planche ne se choisit plus, elle se calcule : la boîte où le jeu pose l'image, divisée par
+`PX_JEU`. L'écran de gain pose 192 px de large → 576 × 720. La fenêtre de contrat pose 96 →
+288 × 360. C'est le seul montage où un pixel d'art mesure la même chose partout sur l'écran ;
+à taille de fichier unique, la vignette de contrat aurait un grain deux fois plus fin que
+l'écran de gain, et ça se voit en passant de l'un à l'autre.
+
+### Les boîtes sont mesurées, pas devinées
+
+    PORTRAITS_BANCS=<dossier avec node_modules> node poses.js ../../index.html
+
+`poses.js` pilote une session complète — le contrat, l'écran de gain et le refus de chacun
+des quinze commerces, puis les guichets et leurs onglets — et relève la boîte de chaque
+`<img>` **après la fin des animations à nombre de tours fini**. Deux pièges y sont tombés :
+
+- La première version lisait `getBoundingClientRect`, donc la boîte **multipliée par la
+  matrice d'entrée** de la fenêtre, et rapportait *172 × 212* pour un visage de 192 × 240.
+  On aurait taillé quarante et une planches sur ce chiffre. On lit `offsetWidth`.
+- Elle attendait `Promise.all(document.getAnimations())` — les animations **en boucle** du
+  jeu (clignotants, respiration des appels) ne finissent jamais, et la mesure ne rendait pas
+  la main. On ne filtre que celles à nombre de tours fini, avec une demi-seconde de garde.
+- Elle laissait **sept planches jamais posées** (les refus des commerces sans liste
+  `achete`) et croyait avoir tout vu. La couverture fait partie de la mesure : 41 planches
+  livrées, 43 poses relevées.
+
+Le second instrument, `drawImage` sur les contextes 2D avec la matrice courante appliquée,
+rend **zéro source** : le jeu ne pose aucune image par cette voie — les portraits sont des
+`<img>` du document et le monde est en WebGL. Il reste en place pour le jour où une planche
+de tuiles arrivera.
+
+### Pourquoi un tiers
+
+Le jeu vise le téléphone couché, et un téléphone moderne compte trois points d'écran par
+pixel CSS : à 1/3, un pixel d'art y tombe sur un point, au point près. À deux points la
+réduction vaut 1,5 — lisse, sans crénelage ; à un seul point elle vaut 3, une moyenne de
+bloc exacte. Le palier précédent (384) était bâti pour deux points par pixel CSS et se
+faisait *agrandir* de moitié sur un téléphone à trois.
+
+**Et la source suit, c'est mesuré aussi.** Le cadre de chaque planche représente de 737 à
+1 501 pixels de la photo d'origine, 1 025 en médiane : à 576 pixels d'art, la plus pauvre
+des sources en fournit encore **1,28 par pixel d'art** et la médiane 1,78. Aucune fiche
+n'est inventée. Le cadre de travail, lui, fait trois fois la grille — c'est la marge de
+lissage exigée avant conversion, et elle est du double au moins.
+
+**Un seul cadre pour deux tailles.** 1 728 se divise par 3 et par 6 : les deux planches
+sortent de la *même* moyenne d'aire sur le *même* cadrage. 576 vaut donc exactement deux
+fois 288, et le contrôle d'alignement des humeurs continue de tenir au pixel près — il
+remonte simplement le neutre à 576 au plus proche voisin avant de comparer.
+
+**Chaque fiche pèse autant dans la palette**, et il a fallu l'écrire : une planche de 576
+porte quatre fois plus de pixels qu'une de 288, et sans correction les vingt-six pouces
+levés et refus décideraient la palette à la place des quinze visages neutres. Le pas
+d'échantillonnage suit la surface.
+
+### Le seul écart, et il est assumé
+
+Le comptoir et le garage montrent leur visage **neutre à deux tailles** : 96 dans la fenêtre
+de contrat, 64 au bandeau de leur guichet. Un fichier ne peut pas faire à la fois 288 et 192
+de large. La planche suit la boîte la plus fréquente — quinze commerces contre deux — et le
+guichet affiche donc à 64/288, soit **0,222 px CSS par pixel d'art au lieu de 0,333**. Ça ne
+se voit pas, parce que le rendu est `auto` : une réduction lisse de 4,5 est une moyenne
+pondérée, pas un pixel sur deux jeté ; le demi-pixel ne mordrait que sous `pixelated`.
+
+Le fermer demanderait de porter `#fenface` à 96 × 120. Mesuré sur un téléphone couché de
+740 × 360 : le bandeau de titre passerait de **80 à 115 px** et le rayon perdrait 35 px sur
+les 192 dont il dispose — une ligne d'article. Ça ne valait pas deux fichiers sur quarante
+et un. **41 poses sur 43 tombent exactement sur la grille.**

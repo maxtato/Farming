@@ -6,7 +6,7 @@
 Le joueur : « genere-moi un fichier HTML, on voit une fenetre avec la tete de chacun des
 perso que je puisse verifier. » Une planche PNG ne suffit pas pour juger du pixel art : il
 faut pouvoir la voir A LA TAILLE OU LE JEU L AFFICHE — 192 sur l ecran de gain, 96 dans la
-fenetre de contrat, 64 au guichet — et aussi au point pres, pour compter les pixels.
+fenetre de contrat — et aussi au point pres, pour compter les pixels.
 
 TROIS PARTIS PRIS.
 
@@ -18,9 +18,13 @@ TROIS PARTIS PRIS.
      clairs disparaissent et les sombres crient. On offre les deux fonds ou le jeu les
      pose vraiment — le voile sombre de l ecran de gain, le papier creme de la fenetre de
      contrat — plus un damier pour voir la transparence elle-meme.
-  3. LES TAILLES SONT CELLES DU JEU, ET AUCUNE AUTRE. Pas de curseur libre : les fiches
-     sont dessinees pour tomber juste a 384, 192, 96 et 64, et un affichage a 137 pixels
-     ne dirait rien de ce qu on verra.
+  3. LES TAILLES SONT CELLES DU JEU, ET AUCUNE AUTRE. Pas de curseur libre, et surtout
+     PAS UNE TAILLE COMMUNE AUX TROIS HUMEURS : depuis que la planche se calcule sur la
+     boite ou le jeu la pose, le visage neutre fait 288 pixels d art et le pouce leve 576.
+     Les montrer tous les deux a la meme largeur serait montrer un rapport que le joueur
+     ne verra jamais. Le bouton ne regle donc qu un MULTIPLICATEUR : x1 pose chaque humeur
+     dans sa vraie boite (96 et 192), x3 la pose au pixel d art pres (288 et 576), et c est
+     aussi ce que voit un telephone a trois points par pixel CSS.
 """
 import base64, json, os, sys
 from collections import Counter
@@ -28,6 +32,7 @@ from PIL import Image
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 JEU = os.path.abspath(os.path.join(ICI, '..', '..'))
+BOITE = {'neutre': 96, 'bravo': 192, 'refus': 192}
 HUMEURS = [('neutre', 'neutre', 'propose la mission'),
            ('bravo', 'pouce levé', 'mission remplie'),
            ('refus', 'refus', 'étal plein')]
@@ -61,8 +66,8 @@ def ecrire(sortie=None):
         for h, lab, quand in HUMEURS:
             f = fiche(rad, h, jeu)
             if not f:
-                cases.append('<div class="vig"><div class="case vide">'
-                             '<span>sans objet</span></div></div>')
+                cases.append('<div class="vig" style="--b:' + str(BOITE[h]) + '">'
+                             '<div class="case vide"><span>sans objet</span></div></div>')
                 continue
             m = mesurer(f); tot += m['ko']; nb += 1
             # LA LEGENDE EST HORS DE LA BOITE, ET IL A FALLU LA PLANCHE POUR LE VOIR.
@@ -103,7 +108,7 @@ MODELE = r"""<!doctype html>
     --or:#E8B33A; --orOmb:#B4861A; --vert:#5C8C3F; --jeu:#202326;
     --titre:"Haettenschweiler","Arial Narrow","Impact",sans-serif;
     --corps:"Trebuchet MS",Verdana,system-ui,sans-serif;
-    --taille:192px; --hauteur:240px;
+    --k:1;            /* le multiplicateur : x1 = la boite du jeu, x3 = un pixel d art par point */
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--jeu);color:var(--pap1);font-family:var(--corps);
@@ -131,7 +136,10 @@ MODELE = r"""<!doctype html>
   .trio{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
   .vig{display:flex;flex-direction:column}
   .case{position:relative}
-  .case img{display:block;width:var(--taille);height:var(--hauteur);object-fit:contain;
+  /* LA LARGEUR EST CELLE DE LA BOITE DU JEU, PAR HUMEUR. `--b` vient du HTML : 96 pour le
+     visage neutre, 192 pour le pouce leve et le refus. Le bouton ne change que `--k`. */
+  .vig{--l:calc(var(--b)*var(--k)*1px); --ht:calc(var(--b)*var(--k)*1.25px)}
+  .case img{display:block;width:var(--l);height:var(--ht);object-fit:contain;
             object-position:bottom center;image-rendering:pixelated}
   body.lisse .case img{image-rendering:auto}
   /* LE FOND EST CELUI DU JEU, parce qu un portrait detoure juge sur du blanc ment. */
@@ -148,11 +156,11 @@ MODELE = r"""<!doctype html>
   body.yeux .case::after{content:"";position:absolute;left:0;right:0;top:31.8%;
     height:1px;background:rgba(214,90,60,.85);pointer-events:none}
   .sous{margin-top:5px;display:flex;flex-direction:column;line-height:1.35;
-        width:var(--taille)}
+        width:var(--l)}
   .sous b{font-size:12px;color:var(--texte);text-transform:uppercase;letter-spacing:.05em}
   .sous span{font-size:11px;color:var(--sous)}
   .chiffres{font-variant-numeric:tabular-nums}
-  .vide{width:var(--taille);height:var(--hauteur);display:grid;place-items:center;
+  .vide{width:var(--l);height:var(--ht);display:grid;place-items:center;
         border:1px dashed #CFC3A4;color:#B2A98F;font-size:11px;background:none!important;
         box-sizing:border-box}
   .pal{padding:0 18px 26px}
@@ -169,9 +177,10 @@ MODELE = r"""<!doctype html>
     partagée par tout le casting</div>
   <div class="barre">
     <div class="grp"><span>Taille</span>
-      <button data-t="64">64</button><button data-t="96">96</button>
-      <button data-t="192" class="on">192</button><button data-t="384">384 · 1:1</button>
-      <button data-t="768">768 · 2:1</button></div>
+      <button data-t="1" class="on">taille du jeu</button>
+      <button data-t="2">×2</button>
+      <button data-t="3">×3 · 1 pixel d\u2019art par point</button>
+      <button data-t="6">×6</button></div>
     <div class="grp"><span>Fond</span>
       <button data-f="fjeu" class="on">jeu</button>
       <button data-f="fpapier">papier</button>
@@ -187,12 +196,12 @@ MODELE = r"""<!doctype html>
 <div class="pal"><h3>La palette</h3>@@NUANCIER@@</div>
 <script>
   var R = document.documentElement, B = document.body;
-  function poser(t){
-    R.style.setProperty('--taille', t + 'px');
-    R.style.setProperty('--hauteur', Math.round(t*1.25) + 'px');
-    R.style.setProperty('--carte', (t*3 + 60) + 'px');
+  function poser(k){
+    R.style.setProperty('--k', k);
+    /* La carte doit tenir les trois humeurs cote a cote : 96 + 192 + 192 = 480 boites. */
+    R.style.setProperty('--carte', (480*k + 70) + 'px');
   }
-  poser(192);
+  poser(1);
   function seul(g, b){ g.forEach(function(x){ x.classList.toggle('on', x === b); }); }
   document.querySelectorAll('[data-t]').forEach(function(b){
     b.onclick = function(){ poser(+b.dataset.t);

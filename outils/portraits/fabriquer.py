@@ -30,24 +30,49 @@ ICI     = os.path.dirname(os.path.abspath(__file__))
 PALETTE = os.path.join(ICI, 'palette.json')
 # LE CACHE NE VA PAS DANS LE DEPOT. Il pese quarante megaoctets et se refabrique en deux
 # minutes ; ce qui doit etre versionne, c est la table des sources et la palette.
-CACHE   = os.environ.get('PORTRAITS_CACHE', '/tmp/portraits-cadres.npz')
+# La cle du cache porte la grille : changer PX_JEU l invalide tout seul.
+CACHE   = os.environ.get('PORTRAITS_CACHE', '')
 
-# LA FICHE FAIT 384 x 480, ET CE PALIER-LA N EST PAS PRIS AU HASARD.
-# Le joueur : « fais aussi des pixels plus fins. » Le jeu montre ces fiches a TROIS tailles
-# — 192 px sur l ecran de gain, 96 dans la fenetre de contrat, 64 au guichet du comptoir —
-# et 384 est le seul palier de cet ordre qui se divise EXACTEMENT par les trois : 384 = 2 x
-# 192 = 4 x 96 = 6 x 64, et 480 = 2 x 240 = 4 x 120 = 6 x 80. A 288, le guichet tomberait
-# sur 4,5 pixels source par pixel affiche, et un pixel d art sur deux serait coupe en
-# travers. Sur un telephone a deux points par pixel CSS, la boite de 192 en fait 384 :
-# l image y tombe alors AU POINT PRES, ce qui est la definition d une image nette.
-# ET LES SOURCES SUIVENT. Elles font de 1 254 a 1 678 pixels de grand cote ; le cadre a
-# 1 152 demande un agrandissement de onze pour cent, ce qui n invente presque rien. C est
-# la vraie borne : au-dela, on agrandirait du flou.
-LARG, HAUT = 384, 480
+# LA GRILLE EST COMMUNE A TOUT L ECRAN, ET C EST UNE SEULE CONSTANTE.
+# PX_JEU est la taille d UN PIXEL D ART, en pixels CSS. Tout le reste en decoule : une
+# planche ne se choisit plus, elle se CALCULE — largeur de la boite ou le jeu la pose,
+# divisee par PX_JEU. Deux images posees a deux tailles differentes recoivent donc deux
+# planches differentes, et c est le seul moyen qu un pixel d art fasse la meme taille
+# physique partout : a 1/3, l ecran de gain (boite de 192) demande 576 pixels d art, la
+# fenetre de contrat (96) en demande 288, et dans les deux cas le carre elementaire mesure
+# un tiers de pixel CSS.
+# LES BOITES NE SONT PAS DEVINEES, ELLES SONT MESUREES. `mesurePoses.js` instrumente une
+# session entiere — les quarante et une planches posees, chacune dans chaque fenetre ou le
+# jeu la montre — et releve la boite hors animation d entree. Trois tailles en sortent, pas
+# une de plus : 192 x 240 sur l ecran de gain, 96 x 120 dans la fenetre de contrat, 64 x 80
+# au bandeau du guichet.
+# POURQUOI UN TIERS. Le jeu vise le telephone couche. Un telephone moderne compte trois
+# points d ecran par pixel CSS : a PX_JEU = 1/3, un pixel d art y tombe sur UN point, au
+# point pres, ce qui est la definition d une image nette. A deux points par pixel CSS la
+# reduction vaut 1,5 — une reduction, donc lisse et sans crenelage ; a un seul point elle
+# vaut 3, un entier, donc une moyenne de bloc exacte. Le palier precedent (384) etait bati
+# pour deux points par pixel CSS et se faisait AGRANDIR de moitie sur un telephone a trois.
+# ET LA SOURCE SUIT, C EST MESURE AUSSI. Le cadre de chaque planche represente de 737 a
+# 1 501 pixels de la photo d origine, 1 025 en median : a 576 pixels d art, la plus pauvre
+# des sources en fournit encore 1,28 par pixel d art et la mediane 1,78. Aucune fiche n est
+# donc inventee. Le cadre de travail, lui, fait trois fois la grille — c est la marge de
+# lissage demandee avant conversion, et elle est du double au moins.
+PX_JEU = 1.0/3.0
+# La boite, en pixels CSS, ou le jeu pose chaque humeur. Releve, pas suppose.
+POSES  = {'neutre': 96, 'bravo': 192, 'refus': 192}
+def largeurDe(h):
+    """La planche d une humeur : sa boite divisee par la grille. 288 ou 576."""
+    return int(round(POSES[h]/PX_JEU))
+LARG_MAX   = max(largeurDe(h) for h in ('neutre', 'bravo', 'refus'))   # 576
+HAUT_MAX   = LARG_MAX*5//4                                            # 720
 GRAIN      = 3
-W, H       = LARG*GRAIN, HAUT*GRAIN
-# On charge donc les planches plus grandes qu avant — 900 pixels suffisaient pour un cadre
-# de 576, il en faut 1 500 pour un cadre de 1 152.
+W, H       = LARG_MAX*GRAIN, HAUT_MAX*GRAIN                           # 1728 x 2160
+# LE CADRE EST UNIQUE ET C EST CE QUI PERMET LES DEUX PLANCHES. 1 728 se divise par 3 et
+# par 6 : les deux tailles livrees sortent de la MEME moyenne d aire, sur le meme cadrage,
+# donc les trois humeurs restent alignees entre elles meme quand elles ne font pas la meme
+# taille de fichier.
+# On charge les planches plus grandes qu avant — 900 pixels suffisaient pour un cadre de
+# 576, il en faut 1 500 pour un cadre de 1 728.
 COTE       = 1500
 # MAIS L ANCRAGE, LUI, SE MESURE TOUJOURS A 900, ET C EST LA LECON DE CE CHANTIER.
 # Charger les planches a 1 500 au lieu de 900 a change ce que les detecteurs de visage y
@@ -134,10 +159,14 @@ def une(reg):
 # moyen qu une gamme de peau serve a quatorze visages au lieu d etre refaite quatorze fois.
 # Detourer et cadrer trente-huit planches coute deux minutes ; on ne le refait pas a chaque
 # essai de palette, on le garde.
+def fichierCache():
+    return CACHE or ('/tmp/portraits-cadres.%d.npz' % LARG_MAX)
+
 def cadres(refaire=False):
-    """Rend {cle: (rgb (240,192,3) float, couverture (240,192) float)} pour tout le lot."""
-    if not refaire and os.path.exists(CACHE):
-        z = np.load(CACHE)
+    """Rend {cle: (rgb (h,l,3) float, couverture (h,l) float)} pour tout le lot ; la
+       taille depend de l humeur, parce que la grille de l ecran est commune."""
+    if not refaire and os.path.exists(fichierCache()):
+        z = np.load(fichierCache())
         return {k[2:]: (z[k], z['c_' + k[2:]]) for k in z.files if k.startswith('r_')}
     T = table(); out = {}
     for rad in sorted(T):
@@ -145,10 +174,13 @@ def cadres(refaire=False):
             reg = T[rad].get(h)
             if not reg: continue
             c, inf = une(reg)
-            rgb, couv = X.reduire(c, LARG)
+            # CHAQUE HUMEUR A SA TAILLE, ET LE CADRE EST LE MEME. 1 728 se divise par 6
+            # pour la fenetre de contrat et par 3 pour l ecran de gain : les deux sortent
+            # d une moyenne d aire exacte, sans reste.
+            rgb, couv = X.reduire(c, largeurDe(h))
             out[rad + '-' + h] = (rgb, couv)
             print('  cadre %-22s [%s]' % (rad + '-' + h, inf['source']))
-    np.savez_compressed(CACHE, **{('r_' + k): v[0].astype(np.float32) for k, v in out.items()},
+    np.savez_compressed(fichierCache(), **{('r_' + k): v[0].astype(np.float32) for k, v in out.items()},
                         **{('c_' + k): v[1].astype(np.float32) for k, v in out.items()})
     return out
 
@@ -161,7 +193,13 @@ def batirPalette(refaire=False):
     for k in sorted(C):
         rgb, couv = C[k]
         pix = rgb[couv > 0.5]
-        ech.append(pix[::3])                      # un pixel sur trois suffit largement
+        # CHAQUE FICHE PESE AUTANT DANS LA PALETTE, ET IL FAUT DESORMAIS L ECRIRE. Les
+        # fiches n ont plus la meme taille : une planche de 576 porte quatre fois plus de
+        # pixels qu une de 288, et sans correction les vingt-six pouces leves et refus
+        # decideraient la palette a la place des quinze visages neutres. Le pas suit donc
+        # la surface : un pixel sur trois a 288, un sur douze a 576.
+        pas = 3*(rgb.shape[1]//288)**2
+        ech.append(pix[::pas])
     ech = np.concatenate(ech, 0)
     pal, gammes = X.batir(ech)
     json.dump({'couleurs': pal.tolist(), 'gammes': gammes,
@@ -179,10 +217,12 @@ def fiche(rgb, couv, pal, gammes):
        silhouette nettoyee, orphelins effaces, cerne d une marche."""
     op = X.nettoyerAlpha(couv >= 0.5)
     idx = X.accrocher(rgb, pal)
-    # LE RAYON SUIT LA GRILLE. Il vaut trois pixels sur une fiche de 192 de large ; a 384,
-    # trois pixels ne couvrent plus que la moitie de la meme surface d etoffe, et la passe
-    # cesserait de voir la famille qui domine.
-    idx = X.unifier(rgb, idx, op, pal, gammes, rayon=3*LARG//192, tol=0.075)
+    # LE RAYON SUIT LA GRILLE, ET LA GRILLE N EST PLUS LA MEME POUR TOUTES LES FICHES.
+    # Il vaut trois pixels sur une fiche de 192 de large ; sur une fiche de 576, trois
+    # pixels ne couvriraient plus qu un neuvieme de la meme surface d etoffe, et la passe
+    # cesserait de voir la famille qui domine. On le lit donc sur la fiche qu on tient.
+    larg = rgb.shape[1]
+    idx = X.unifier(rgb, idx, op, pal, gammes, rayon=3*larg//192, tol=0.075)
     idx = X.deparasiter(idx, op, pal)
     idx = X.cerner(idx, op, gammes)
     idx = X.deparasiter(idx, op, pal, tours=1)
@@ -233,9 +273,9 @@ def fabriquer():
             teintes = len(set(idx[op].tolist()))
             if jeu: tot += t; n += 1; orphTot.append(orph)
             else: parkes += 1
-            print('%-12s %-7s %-22s %5.1f Ko  %2d teintes  %4.1f %% orphelins%s'
-                  % (rad, h, reg['src'], t/1024, teintes, 100*orph,
-                     '' if jeu else '  EN ATTENTE'))
+            print('%-12s %-7s %-22s %4dx%-4d %5.1f Ko  %2d teintes  %4.1f %% orphelins%s'
+                  % (rad, h, reg['src'], idx.shape[1], idx.shape[0], t/1024, teintes,
+                     100*orph, '' if jeu else '  EN ATTENTE'))
     print('%d fiches dans le jeu, %.0f Ko, %.1f Ko en moyenne  ·  '
           'orphelins %.1f %% en moyenne, %.1f %% au pire%s'
           % (n, tot/1024, tot/1024/max(n,1),
@@ -245,12 +285,18 @@ def fabriquer():
 def planche(sortie='30_production.png', zoom=1):
     T = table(); rads = sorted(T)
     C = cadres(); pal, gammes = palette()
-    cw, ch = LARG*zoom, HAUT*zoom
-    pl = Image.new('RGB', (3*(cw+20)+20, len(rads)*(ch+32)+20), (244,239,229))
+    # LES TROIS COLONNES N ONT PLUS LA MEME LARGEUR. On dessine chaque humeur a la taille
+    # de sa planche, multipliee par le zoom demande : la planche de controle montre alors
+    # le rapport reel entre la fenetre de contrat et l ecran de gain.
+    cols = [largeurDe(h)*zoom for h in HUMEURS]
+    hs_  = [largeurDe(h)*5//4*zoom for h in HUMEURS]
+    ch   = max(hs_)
+    pl = Image.new('RGB', (sum(cols)+20*len(cols)+20, len(rads)*(ch+32)+20), (244,239,229))
     d = ImageDraw.Draw(pl)
     for r, rad in enumerate(rads):
         for cI, h in enumerate(HUMEURS):
-            x = 20+cI*(cw+20); y = 20+r*(ch+32)
+            cw = cols[cI]; chh = hs_[cI]
+            x = 20+sum(cols[:cI])+20*cI; y = 20+r*(ch+32)+(ch-chh)
             reg = T[rad].get(h)
             if not reg:
                 d.text((x+8, y+ch//2),
@@ -258,18 +304,18 @@ def planche(sortie='30_production.png', zoom=1):
                        fill=(170,120,100) if h in (T[rad].get('humeurs') or HUMEURS)
                             else (178,168,150))
                 continue
-            d.rectangle([x-1,y-1,x+cw,y+ch], outline=(216,206,188))
+            d.rectangle([x-1,y-1,x+cw,y+chh], outline=(216,206,188))
             rgb, couv = C[rad + '-' + h]
             idx, op = fiche(rgb, couv, pal, gammes)
             orph, _ = X.orphelins(idx, op)
             v = X.dessiner(idx, op, pal, zoom)
             pl.paste(v, (x, y), v)
-            d.text((x, y+ch+6), '%s — %s  ·  %d teintes  ·  %.1f %% orphelins'
+            d.text((x, y+chh+6), '%s — %s  ·  %d teintes  ·  %.1f %% orphelins'
                    % (T[rad].get('site') or (rad + ' (en attente)'), h,
                       len(set(idx[op].tolist())), 100*orph),
                    fill=(88,74,58) if T[rad].get('site') else (150,120,96))
-        d.line([12, 20+r*(ch+32)+int(YEUX_Y*ch), pl.width-12, 20+r*(ch+32)+int(YEUX_Y*ch)],
-               fill=(206,116,86))
+        yl = 20+r*(ch+32)+ch-int((1-YEUX_Y)*ch)
+        d.line([12, yl, pl.width-12, yl], fill=(206,116,86))
     pl.save(sortie); print('->', sortie, pl.size)
 
 if __name__ == '__main__':
