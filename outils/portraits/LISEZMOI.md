@@ -1,7 +1,7 @@
 # La chaîne des portraits
 
-Une planche de personnage entre, un portrait de jeu sort : 192 × 240 pixels, **palette de
-67 couleurs partagée par tout le casting**, fond transparent, buste coupé sur un arrondi
+Une planche de personnage entre, un portrait de jeu sort : **384 × 480 pixels**, **palette de
+105 couleurs en 13 gammes, partagée par tout le casting**, fond transparent, buste coupé sur un arrondi
 légèrement octogonal. Cinq étapes, et une planche de contrôle après chacune — c'est la
 planche qui décide, pas le code.
 
@@ -10,6 +10,7 @@ planche qui décide, pas le code.
     python3 aligner.py --verifier     # mesure l'écart d'échelle, sans rien corriger
     python3 fabriquer.py              # fabrique les fiches du jeu, et dit leur poids
     python3 fabriquer.py --planche    # la planche de contrôle, pour juger le cadrage
+    python3 planche.py                # verifier.html — la planche à ouvrir dans un navigateur
     python3 rendre.py 15_controle.png # balaie un lot NON TRIÉ, pour voir ce qu'il contient
 
 **Deux scripts, et ils ne servent pas à la même chose.** `rendre.py` balaie un dossier
@@ -268,3 +269,65 @@ réglage se pose donc au genou de la courbe, pas au-delà.
 Les neutres suivent, à `× 3,2` : le jeu n'a pas un seul gris pur — son papier est crème
 (`#CFC3A4`, chroma 0,044) et son voile tire au bleu. Des neutres à 0,005 de chroma à côté
 de gammes à 0,128 se lisent comme du carton photocopié.
+
+## Pixels plus fins, plus de nuances — et la leçon du chantier
+
+> « Fais aussi des pixels plus fins. Et fais plus de nuances de couleurs. »
+
+**384 × 480, et ce palier n'est pas pris au hasard.** Le jeu montre ces fiches à trois
+tailles — 192 px sur l'écran de gain, 96 dans la fenêtre de contrat, 64 au guichet — et 384
+est le seul palier de cet ordre qui se divise *exactement* par les trois : 384 = 2 × 192 =
+4 × 96 = 6 × 64. À 288, le guichet tomberait sur 4,5 pixels source par pixel affiché, et un
+pixel d'art sur deux serait coupé en travers. Les sources font de 1 254 à 1 678 px de grand
+côté : le cadre à 1 152 demande un agrandissement de onze pour cent, ce qui n'invente
+presque rien. C'est la vraie borne — au-delà, on agrandirait du flou.
+
+**105 couleurs en 13 gammes**, contre 67 en 11 : douze familles de teinte au lieu de dix (le
+rouge et l'orange n'avaient qu'une frontière pour eux deux) et huit marches de clarté au
+lieu de six, ce qui donne trois valeurs à une joue là où elle en avait deux.
+
+**Et l'on ne colle jamais à la frontière du gamut.** Avec douze familles plus serrées, la
+chroma mesurée de chacune monte, le gain la porte au-delà du possible, et `enGamut` rendait
+alors *exactement* la frontière — qui, aux clartés basses, est l'encre pure. Toutes les
+marches sombres se retrouvaient plaquées au même endroit : `#06006C`, `#4C0007`, `#480026`.
+Des primaires, pas des ombres. On plafonne donc à **85 %** de ce que la clarté autorise, et
+les mêmes marches deviennent `#060E60`, `#470A0D`, `#410925` : il reste du gris dedans.
+
+### La leçon : la résolution de la fiche n'est pas celle de la détection
+
+C'est l'erreur qui a coûté le plus cher de tout le chantier. Pour nourrir un cadre de
+1 152 px, j'ai fait passer `charger` de 900 à 1 500 — et **les détecteurs de visage n'ont
+plus mordu au même endroit**. Écart inter-oculaire mesuré autrement, étages d'ancrage qui
+basculent (l'usine céréales passe de `yeux` à `visage`), et donc tout le cadrage absolu du
+casting qui dérive : des têtes qui remplissent le cadre, des bustes coupés aux épaules.
+
+Le pire est ce qui a suivi : l'aligneur ne sait faire que de l'accord **relatif** entre les
+trois humeurs d'un personnage — il n'a aucune idée de ce qu'est un bon cadrage. Il a donc
+consciencieusement recalé les humeurs les unes sur les autres **sur une base fausse**, et
+tout paraissait converger pendant que le résultat empirait. Il a fallu regarder la planche
+entière pour le voir.
+
+La détection se fait maintenant **toujours à 900 px**, la taille à laquelle les seize
+réglages à la main et les trois étages d'ancrage ont été étalonnés ; l'ancre est ensuite
+remise à l'échelle de l'image de travail. Les ancres écrites à la main dans la table sont
+dans ces mêmes coordonnées et suivent le même facteur. Les deux résolutions n'ont aucune
+raison d'être la même : l'une veut du détail, l'autre veut un étalon stable.
+
+**Un garde-fou en plus.** La correction d'échelle est multiplicative et itérée : une mesure
+fausse ne rate pas son coup, elle se *compose*. Sur le Marché, cinq tours ont porté le refus
+à 2,89 fois sa taille. L'aligneur retient désormais l'état de moindre écart et y revient à
+la fin : au pire il ne change rien, jamais il n'aggrave.
+
+**Et le détourage se garde sur le disque.** Il ne dépend d'aucun réglage — seulement de la
+planche et de la taille de chargement. À 1 500 px, l'aligneur qui recadre chaque planche une
+dizaine de fois dépassait les dix minutes avant d'avoir rien mesuré.
+
+## La planche de vérification
+
+    python3 planche.py     # -> verifier.html, à ouvrir dans un navigateur
+
+Une planche PNG ne suffit pas pour juger du pixel art : il faut pouvoir la voir **à la
+taille où le jeu l'affiche**, et aussi au point près pour compter les pixels. Trois partis
+pris : les images sont **dans le fichier** en base 64 (la page s'ouvre depuis n'importe où
+et se regarde sur un téléphone) ; les fonds sont **ceux du jeu** (un portrait détouré jugé
+sur du blanc ment) ; les tailles sont **celles du jeu et aucune autre** — 384, 192, 96, 64.

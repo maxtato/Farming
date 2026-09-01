@@ -97,7 +97,13 @@ def enGamut(L, teinte, C, marge=1e-4):
     return lo
 
 # ---------- A. LA PALETTE ------------------------------------------------------
-NFAM, NMARCHE, NGRIS = 10, 6, 7
+# PLUS DE NUANCES, ET PLUS DE FAMILLES. Le joueur : « fais plus de nuances de couleurs. »
+# On passe de dix familles a douze — le rouge et l orange n avaient qu une frontiere pour
+# eux deux, le vert de l atelier et celui du marche partageaient une gamme — et de six
+# marches de clarte a huit, ce qui reduit le pas d un huitieme a un onzieme de la plage :
+# un modele de joue ou de manche a trois valeurs la ou il en avait deux.
+# 12 x 8 + 9 = 105 couleurs, la ou il y en avait 67. Une palette indexee en tient 256.
+NFAM, NMARCHE, NGRIS = 12, 8, 9
 SEUIL_GRIS = 0.035            # en dessous de cette chroma, c est un neutre
 # L ECHELLE DE CLARTE EST A MOITIE MESUREE, A MOITIE REGULIERE, ET C EST LE COEUR DE
 # L AFFAIRE. Premiere tentative : six quantiles des clartes de la famille. Resultat, un
@@ -118,10 +124,10 @@ MELANGE    = 0.5              # 0 = tout mesure, 1 = tout regulier
 L_MIN, L_MAX = 0.27, 0.94
 # La marche du bas bascule vers le froid, celle du haut vers le chaud : c est ce que fait
 # la lumiere du jour, et c est la convention qui rend une gamme peinte a la main lisible.
-VIRAGE     = (-0.14, -0.08, -0.03, +0.02, +0.06, +0.10)   # radians de teinte, par marche
+VIRAGE     = (-0.14, -0.11, -0.08, -0.04, -0.01, +0.03, +0.07, +0.10)  # radians, par marche
 # Une ombre desaturee est morte. On tient la chroma dans le bas de la gamme et on la lache
 # dans les tres hautes lumieres, ou elle vire au blanc.
-CHROMA     = (1.02, 1.12, 1.08, 0.98, 0.84, 0.58)
+CHROMA     = (1.00, 1.08, 1.13, 1.11, 1.04, 0.94, 0.80, 0.55)
 # LE PUNCH, ET IL SE MESURE. Le joueur : « change le ton des couleurs pour avoir des
 # couleurs un peu plus punchy, dans le style de couleur du reste du jeu. » Le jeu donne le
 # barème : ses trois boutons — l or #E8B33A, le vert #5C8C3F, le rouge #C2503E — tiennent
@@ -139,7 +145,16 @@ CHROMA     = (1.02, 1.12, 1.08, 0.98, 0.84, 0.58)
 # naturellement sourd — la peau, la pierre, le lin — le reste. Le gain court donc de 1,10
 # pour une famille presque grise a 2,00 pour une famille pleinement coloree, la bascule se
 # faisant a CREF, la chroma d une etoffe teinte.
-PUNCH_MIN, PUNCH_MAX, CREF = 1.10, 2.00, 0.115
+PUNCH_MIN, PUNCH_MAX, CREF = 1.10, 1.55, 0.115
+# ET L ON NE COLLE JAMAIS A LA FRONTIERE DU GAMUT. `enGamut` rend la plus forte chroma
+# tenant dans le sRGB ; demander plus que cela revient donc a poser la couleur EXACTEMENT
+# sur la frontiere — et la frontiere, aux clartes basses, c est l encre pure. Avec douze
+# familles au lieu de dix, chaque famille est plus serree, sa chroma mesuree monte, le gain
+# la porte au-dela du possible, et toutes les marches sombres se retrouvaient plaquees au
+# meme endroit : #06006C, #4C0007, #480026 — des primaires, pas des ombres. On plafonne
+# donc a 85 % de ce que la clarte autorise : il reste de l air sous la frontiere, et une
+# ombre redevient une couleur choisie au lieu d une couleur saturee par accident.
+PLAFOND_GAMUT = 0.85
 
 def punch(C):
     return PUNCH_MIN + (PUNCH_MAX - PUNCH_MIN)*min(1.0, C/CREF)
@@ -152,7 +167,7 @@ NEUTRE     = 3.2
 # et un blanc, sans rien entre les deux — donc pas de quoi peindre une blouse blanche ni un
 # reflet de peau. Sept marches a pas constant du presque-noir au blanc, et le probleme
 # n existe plus.
-GRIS_L     = (0.16, 0.31, 0.45, 0.59, 0.72, 0.85, 0.98)
+GRIS_L     = (0.14, 0.25, 0.36, 0.47, 0.58, 0.69, 0.79, 0.89, 0.98)
 
 def _familles(lab, poids, n=NFAM, tours=40):
     """Regroupe les TEINTES, pas les couleurs : on travaille sur l angle, pondere par la
@@ -208,7 +223,8 @@ def batir(echantillons, poids=None):
             reguliere = lo + (hi - lo)*i/(NMARCHE - 1.0)
             L = (1 - MELANGE)*mesuree + MELANGE*reguliere
             hue = ctr[k] + VIRAGE[i]
-            C = enGamut(L, hue, base*CHROMA[i]*punch(base))
+            plafond = PLAFOND_GAMUT*enGamut(L, hue, 0.5)
+            C = enGamut(L, hue, min(base*CHROMA[i]*punch(base), plafond))
             idx.append(len(pal))
             pal.append(deOklab(np.array([L, C*np.cos(hue), C*np.sin(hue)])))
         gammes.append(idx)
@@ -243,12 +259,21 @@ def reduire(rgba, larg):
     return moy, couv
 
 # ---------- accrochage ---------------------------------------------------------
-def accrocher(rgb, pal, masque=None):
-    """Chaque pixel prend la couleur de palette la plus proche EN OKLAB."""
-    lab = oklab(rgb).reshape(-1, 3)
+def accrocher(rgb, pal, bloc=48):
+    """Chaque pixel prend la couleur de palette la plus proche EN OKLAB.
+       ON DECOUPE EN BANDES DE LIGNES, et ce n est pas de la coquetterie : le tableau des
+       distances fait hauteur x largeur x couleurs. A 192 x 240 sur 67 couleurs il pesait
+       74 Mo, ce qui passait ; a 384 x 480 sur 105 couleurs il en pese 464, ce qui ne passe
+       pas. Quarante-huit lignes a la fois en demandent quarante-six."""
+    lab = oklab(rgb)
     pl = oklab(pal.astype(np.float64))
-    d = lab[:, None, :] - pl[None, :, :]
-    return np.argmin((d*d).sum(axis=2), axis=1).reshape(rgb.shape[:2]).astype(np.int16)
+    H, W, _ = lab.shape
+    out = np.empty((H, W), np.int16)
+    for y0 in range(0, H, bloc):
+        y1 = min(H, y0 + bloc)
+        d = lab[y0:y1, :, None, :] - pl[None, None, :, :]
+        out[y0:y1] = np.argmin((d*d).sum(axis=3), axis=2)
+    return out
 
 def _boite(m, r):
     """Somme sur une fenetre carree, par sommes cumulees : le comptage de familles se fait
@@ -275,7 +300,14 @@ def unifier(rgb, idx, op, pal, gammes, rayon=2, tol=0.060, tours=3):
         for c in g: fam[c] = f
     lab = oklab(rgb)
     pl = oklab(pal.astype(np.float64))
-    d = np.sqrt(np.maximum(((lab[:, :, None, :] - pl[None, None, :, :])**2).sum(-1), 0))
+    # Meme decoupe que dans `accrocher`, et le tableau est garde en simple precision :
+    # on compare des distances entre elles, pas des millionniemes.
+    H, W, _ = lab.shape
+    d = np.empty((H, W, len(pal)), np.float32)
+    for y0 in range(0, H, 48):
+        y1 = min(H, y0 + 48)
+        dd = lab[y0:y1, :, None, :] - pl[None, None, :, :]
+        d[y0:y1] = np.sqrt(np.maximum((dd*dd).sum(-1), 0)).astype(np.float32)
     nf = len(gammes)
     idx = idx.astype(np.int64)
     for _ in range(tours):

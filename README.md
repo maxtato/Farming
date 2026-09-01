@@ -10156,3 +10156,65 @@ tolérance sur le résultat : l'équerre reste exigée au centième de degré.
 
 Quarante-et-une fiches, **278 Ko**. Les vingt-trois suites : **1 022 contrôles**, zéro échec,
 zéro erreur de page, zéro 404.
+
+### Pixels plus fins, plus de nuances, et une planche pour vérifier
+
+> « Génère-moi un fichier HTML, on voit une fenêtre avec la tête de chacun des perso que je
+> puisse vérifier. Fais aussi des pixels plus fins. Et fais plus de nuances de couleurs. »
+
+**384 × 480, et ce palier n'est pas pris au hasard.** Le jeu montre ces fiches à trois
+tailles — 192 px sur l'écran de gain, 96 dans la fenêtre de contrat, 64 au guichet du
+comptoir — et 384 est le seul palier de cet ordre qui se divise *exactement* par les trois :
+384 = 2 × 192 = 4 × 96 = 6 × 64. À 288, le guichet tomberait sur 4,5 pixels source par pixel
+affiché et un pixel d'art sur deux serait coupé en travers. Les sources font de 1 254 à
+1 678 px : le cadre à 1 152 demande onze pour cent d'agrandissement, ce qui n'invente presque
+rien. C'est la vraie borne — au-delà on agrandirait du flou.
+
+**105 couleurs en 13 gammes**, contre 67 en 11 : douze familles de teinte au lieu de dix, et
+huit marches de clarté au lieu de six — trois valeurs pour une joue là où elle en avait deux.
+
+Le rendu passe de `pixelated` à **`auto`**, et ce n'est pas un renoncement. Tant que la fiche
+faisait 192 × 240 pour une boîte de 192 × 240, `pixelated` ne changeait rien mais disait
+l'intention. À 384 dans la même boîte, l'image est toujours réduite : sur un téléphone à deux
+points par pixel CSS elle tombe **au point près** de toute façon, et sur un écran à un seul
+point `pixelated` jetterait un pixel d'art sur deux — le grain scintille et le cerne
+disparaît par endroits.
+
+**Et l'on ne colle jamais à la frontière du gamut.** Avec douze familles plus serrées, la
+chroma mesurée de chacune monte, le gain la porte au-delà du possible, et le repli rendait
+alors *exactement* la frontière — qui, aux clartés basses, est l'encre pure. Toutes les
+marches sombres se retrouvaient au même endroit : `#06006C`, `#4C0007`, `#480026`. Des
+primaires, pas des ombres. Plafonnées à 85 % de ce que la clarté autorise, elles deviennent
+`#060E60`, `#470A0D`, `#410925` : il reste du gris dedans.
+
+**La leçon du chantier : la résolution de la fiche n'est pas celle de la détection.** Pour
+nourrir un cadre de 1 152 px j'ai fait passer le chargement de 900 à 1 500 — et les
+détecteurs de visage n'ont plus mordu au même endroit. Écart inter-oculaire mesuré autrement,
+étages d'ancrage qui basculent, et tout le cadrage absolu du casting qui dérive : des têtes
+qui remplissent le cadre, des bustes coupés aux épaules. Le pire est ce qui a suivi :
+l'aligneur ne sait faire que de l'accord **relatif** entre les trois humeurs et n'a aucune
+idée de ce qu'est un bon cadrage — il a donc recalé consciencieusement les humeurs les unes
+sur les autres **sur une base fausse**, tout paraissant converger pendant que le résultat
+empirait. Il a fallu regarder la planche entière pour le voir. La détection se fait
+maintenant toujours à 900 px, la taille à laquelle les seize réglages à la main et les trois
+étages d'ancrage ont été étalonnés ; l'ancre est ensuite remise à l'échelle de l'image de
+travail.
+
+**Un garde-fou en plus.** La correction d'échelle est multiplicative et itérée : une mesure
+fausse ne rate pas son coup, elle se *compose*. Sur le Marché, cinq tours ont porté le refus
+à 2,89 fois sa taille. L'aligneur retient désormais l'état de moindre écart et y revient à la
+fin : au pire il ne change rien, jamais il n'aggrave. Écart entre humeurs sur les fichiers
+livrés : **0,6 % de moyenne, 1,3 % au pire**, la Laiterie restant le seul cas que la
+corrélation ne conclut pas — tranché au crâne, repère qu'une grimace ne déforme pas.
+
+**`verifier.html`**, généré par `outils/portraits/planche.py`, est la planche demandée : une
+fenêtre par personnage, ses trois humeurs, et une barre pour changer de taille (64 · 96 · 192
+· 384 au point près · 768), de fond (le voile sombre du jeu, le papier crème de la fenêtre de
+contrat, un damier pour voir la transparence), de rendu et pour tirer la ligne des yeux en
+travers du trio. Chaque fiche affiche ses cotes, son nombre de teintes et son poids ; la
+palette entière est en bas. **Les images sont dans le fichier**, en base 64 : la page s'ouvre
+depuis n'importe où et se regarde sur un téléphone. 1,1 Mo, et c'est le prix de cette
+indépendance.
+
+Quarante-et-une fiches, **822 Ko**. Les vingt-trois suites : **1 023 contrôles**, zéro échec,
+zéro erreur de page, zéro 404.

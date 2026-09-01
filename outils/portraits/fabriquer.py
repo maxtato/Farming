@@ -32,14 +32,36 @@ PALETTE = os.path.join(ICI, 'palette.json')
 # minutes ; ce qui doit etre versionne, c est la table des sources et la palette.
 CACHE   = os.environ.get('PORTRAITS_CACHE', '/tmp/portraits-cadres.npz')
 
-# LE CADRE FAIT EXACTEMENT TROIS FOIS LA FICHE. C est la condition de la reduction par
-# moyenne d aire : 576 = 3 x 192, 720 = 3 x 240. Chaque pixel livre est la moyenne de neuf
-# pixels du cadre, ponderee par leur alpha. Les cotes en fraction — l ecart des yeux, la
-# ligne des yeux, les corrections dx/dy — ne changent pas d un poil : elles sont toutes
-# relatives au cadre.
-LARG, HAUT = 192, 240
+# LA FICHE FAIT 384 x 480, ET CE PALIER-LA N EST PAS PRIS AU HASARD.
+# Le joueur : « fais aussi des pixels plus fins. » Le jeu montre ces fiches a TROIS tailles
+# — 192 px sur l ecran de gain, 96 dans la fenetre de contrat, 64 au guichet du comptoir —
+# et 384 est le seul palier de cet ordre qui se divise EXACTEMENT par les trois : 384 = 2 x
+# 192 = 4 x 96 = 6 x 64, et 480 = 2 x 240 = 4 x 120 = 6 x 80. A 288, le guichet tomberait
+# sur 4,5 pixels source par pixel affiche, et un pixel d art sur deux serait coupe en
+# travers. Sur un telephone a deux points par pixel CSS, la boite de 192 en fait 384 :
+# l image y tombe alors AU POINT PRES, ce qui est la definition d une image nette.
+# ET LES SOURCES SUIVENT. Elles font de 1 254 a 1 678 pixels de grand cote ; le cadre a
+# 1 152 demande un agrandissement de onze pour cent, ce qui n invente presque rien. C est
+# la vraie borne : au-dela, on agrandirait du flou.
+LARG, HAUT = 384, 480
 GRAIN      = 3
 W, H       = LARG*GRAIN, HAUT*GRAIN
+# On charge donc les planches plus grandes qu avant — 900 pixels suffisaient pour un cadre
+# de 576, il en faut 1 500 pour un cadre de 1 152.
+COTE       = 1500
+# MAIS L ANCRAGE, LUI, SE MESURE TOUJOURS A 900, ET C EST LA LECON DE CE CHANTIER.
+# Charger les planches a 1 500 au lieu de 900 a change ce que les detecteurs de visage y
+# trouvent : un ecart inter-oculaire mesure autrement, des etages d ancrage qui basculent
+# (l usine cereales est passee de « yeux » a « visage »), et donc TOUT le cadrage absolu du
+# casting qui derive — des tetes qui remplissent le cadre, des bustes coupes aux epaules.
+# On a passe une heure a recaler les humeurs les unes sur les autres SUR UNE BASE FAUSSE :
+# l aligneur ne sait faire que de l accord relatif, il n a aucune idee de ce qu est un bon
+# cadrage. La resolution de la FICHE et celle de la DETECTION n ont aucune raison d etre la
+# meme : l une veut du detail, l autre veut la taille a laquelle les seize reglages a la
+# main et les trois etages d ancrage ont ete etalonnes. On detecte donc a 900, comme avant,
+# et l on remet l ancre a l echelle de l image de travail. Les ancres ecrites a la main dans
+# la table sont dans ces memes coordonnees de 900 : elles suivent le meme facteur.
+DETECT     = 900
 YEUX_Y, ECART = 0.318, 0.150
 HUMEURS = ['neutre', 'bravo', 'refus']
 
@@ -49,19 +71,63 @@ def table(): return json.load(open(os.path.join(ICI, 'commerces.json')))
 # planche coute deux secondes ; la cadrer, deux centiemes. Aligner les trois humeurs d un
 # personnage demande de la recadrer une dizaine de fois avec des reglages qui bougent — on
 # detoure UNE fois et l on recadre autant qu il faut.
-def plaque(reg):
-    im = P.charger(U + reg['src'])
-    return im, P.detourer(im)
+# LE DETOURAGE SE GARDE SUR LE DISQUE, ET IL LE FAUT DESORMAIS. Il ne depend d aucun
+# reglage — ni de l echelle, ni du cadrage, ni de la palette : seulement de la planche et
+# de la taille a laquelle on la charge. A 900 pixels il coutait une seconde et l on pouvait
+# le refaire a chaque lancement ; a 1 500, c est trois fois plus de pixels, et l aligneur —
+# qui recadre chaque planche une dizaine de fois — depassait les dix minutes avant d avoir
+# rien mesure. La cle porte la taille : changer COTE invalide le cache tout seul.
+PLAQUES = os.environ.get('PORTRAITS_PLAQUES', '/tmp/portraits-plaques')
 
-def cadrer(im, al, reg):
-    return P.cadrerAncre(im, al, W, H, ecartCible=ECART, yYeux=YEUX_Y,
-                         ech=reg.get('ech', 1.0), dx=reg.get('dx', 0.0),
-                         dy=reg.get('dy', 0.0), oeilFn=O.reperes,
-                         ancre=reg.get('ancre'))
+def plaque(reg):
+    os.makedirs(PLAQUES, exist_ok=True)
+    f = os.path.join(PLAQUES, '%s.%d.npz' % (reg['src'], COTE))
+    if os.path.exists(f):
+        z = np.load(f)
+        return Image.fromarray(z['im']), z['al'], (z['anc'].tolist(), str(z['org']))
+    im = P.charger(U + reg['src'], COTE)
+    al = P.detourer(im)
+    anc, org = _ancre900(im, al)
+    np.savez_compressed(f, im=np.asarray(im.convert('RGB')), al=al,
+                        anc=np.asarray(anc, float), org=np.asarray(org))
+    return im, al, (anc, org)
+
+def _ancre900(im, al):
+    """L ancre mesuree sur une reduction a 900 pixels de grand cote, rendue dans les
+       coordonnees de `im`. Le facteur se lit sur les tailles reelles et non sur COTE : une
+       planche de 1 254 pixels n a pas ete agrandie a 1 500 par `charger`, qui ne fait que
+       reduire."""
+    f = max(im.size)/float(DETECT)
+    if f <= 1.0:
+        e, cx, cy, org = P.ancrer(im, al, O.reperes)
+        return [e, cx, cy], org
+    p = im.resize((max(1, int(round(im.width/f))), max(1, int(round(im.height/f)))),
+                  Image.LANCZOS)
+    pa = np.asarray(Image.fromarray(al).resize(p.size, Image.LANCZOS))
+    e, cx, cy, org = P.ancrer(p, pa, O.reperes)
+    return [e*f, cx*f, cy*f], org
+
+def cadrer(im, al, reg, anc=None):
+    """`anc` : l ancre detectee, deja remise a l echelle de `im`. Une ancre ecrite a la
+       main dans la table prend le dessus — elle est en coordonnees de 900, on la remet a
+       l echelle par le meme facteur."""
+    if reg.get('ancre'):
+        f = max(im.size)/float(DETECT)
+        ancre = [v*f for v in reg['ancre']]
+        org = 'main'
+    elif anc:
+        ancre, org = anc[0], anc[1]
+    else:
+        ancre, org = _ancre900(im, al)
+    c, inf = P.cadrerAncre(im, al, W, H, ecartCible=ECART, yYeux=YEUX_Y,
+                           ech=reg.get('ech', 1.0), dx=reg.get('dx', 0.0),
+                           dy=reg.get('dy', 0.0), ancre=ancre)
+    inf['source'] = org
+    return c, inf
 
 def une(reg):
-    im, al = plaque(reg)
-    return cadrer(im, al, reg)
+    im, al, anc = plaque(reg)
+    return cadrer(im, al, reg, anc)
 
 # ---------------------------------------------------------------------------
 # LE CORPUS. Batir la palette demande de voir TOUT le casting d un coup : c est le seul
@@ -113,7 +179,10 @@ def fiche(rgb, couv, pal, gammes):
        silhouette nettoyee, orphelins effaces, cerne d une marche."""
     op = X.nettoyerAlpha(couv >= 0.5)
     idx = X.accrocher(rgb, pal)
-    idx = X.unifier(rgb, idx, op, pal, gammes, rayon=3, tol=0.075)
+    # LE RAYON SUIT LA GRILLE. Il vaut trois pixels sur une fiche de 192 de large ; a 384,
+    # trois pixels ne couvrent plus que la moitie de la meme surface d etoffe, et la passe
+    # cesserait de voir la famille qui domine.
+    idx = X.unifier(rgb, idx, op, pal, gammes, rayon=3*LARG//192, tol=0.075)
     idx = X.deparasiter(idx, op, pal)
     idx = X.cerner(idx, op, gammes)
     idx = X.deparasiter(idx, op, pal, tours=1)
