@@ -11291,3 +11291,36 @@ question posée à la porte du champ dans ses six cas (trémie vide, blé sur ma
 champ mélangé, vigne mûre, terre nue), le cas du joueur conduit image par image, le même au
 bouton AUTO, la moisson ordinaire qui ne paie aucun voyage de plus, le coût du balayage, et
 le voyage qui ne s'annule qu'une fois la trémie réellement vide.
+
+## Le fromage de brebis a son propre dessin, et l'aliment premium quitte le sac de base
+
+Deux planches, et elles règlent deux questions restées ouvertes. Le **fromage de brebis**
+n'avait aucune image et gardait son filet de couleur ; il a maintenant sa meule pâle, entamée,
+à côté de la meule jaune du fromage de vache — deux lignes voisines dans la Fromagerie, et
+plus moyen de les confondre. L'**aliment premium**, lui, *partageait* le sac de l'aliment de
+base : c'était un choix assumé (« c'est leur recette qui est plus riche, pas leur emballage »)
+et il tombe de lui-même maintenant qu'un sac premium existe — papier plus clair, bande verte,
+médaille à l'étoile, les quatre bêtes sur l'étiquette.
+
+**Défaire un partage n'a coûté qu'un mot.** La table associe une clé à un *nom de planche* et
+non à un oui : `alimentPlus:'aliment'` devient `alimentPlus:'alimentPlus'`, et rien d'autre ne
+bouge. C'est exactement ce que cette forme-là avait été choisie pour permettre.
+
+Il reste donc **deux** partages — le mouton et la brebis, qui sont le même animal ; les
+céréales premium, qui tiennent dans la même boîte — et un renommage, la ruche qui se montre
+par son abeille.
+
+La chaîne n'a rien eu à faire d'autre que son travail ordinaire : deux sources sur magenta,
+d'un seul tenant, sans verre et sans ombre à déclarer. Le fromage pâle passait pour le cas
+délicat — un sujet crème sur un fond chromatique — et il ne l'est pas : sa teinte normée reste
+loin sous le seuil, parce que `min(R,B) − G` est **négatif** sur un crème, là où le fond est à
++244.
+
+**Quarante et une clés, trente-neuf planches, 64,5 Ko**, la plus lourde toujours à 2,3 Ko. Le
+banc `vignettes` passe à **39 contrôles** : celui qui comptait les partages a été refait, et
+il a gagné un voisin qui tient les deux couples — l'aliment premium ne vise plus le sac de
+base, le fromage de brebis ne vise pas celui de la vache. Seize bancs relancés : **751
+contrôles, zéro échec**.
+
+Il ne reste que neuf produits finis sans image : beurre, yaourt, textile, viande, pain,
+viennoiseries, et les trois pâtisseries.
