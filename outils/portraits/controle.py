@@ -109,20 +109,40 @@ def poches():
             n, lab = cv2.connectedComponents(clair.astype(np.uint8), 4)
             b = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
             fond = np.isin(lab, b[b != 0])
-            nn, ll, st, _ = cv2.connectedComponentsWithStats(
-                (clair & ~fond & (al > 127)).astype(np.uint8), 4)
             seuil = P.AIRE_POCHE*H*W
+            op = al > 127
+            nn, ll, st, _ = cv2.connectedComponentsWithStats(
+                (clair & ~fond & op).astype(np.uint8), 4)
             for i in range(1, nn):
                 ar = int(st[i, cv2.CC_STAT_AREA])
                 if ar < seuil: continue
                 m = ll == i
                 d = float(np.abs(a[m].mean(0) - ref).max())
                 if d <= P.TOL_POCHE:
-                    reste.append((rad + '-' + h, ar, d, int(st[i, 0]), int(st[i, 1])))
-    for n, ar, d, x, y in sorted(reste, key=lambda t: -t[1]):
-        print('  POCHE  %-22s %6d px  a %.1f unite(s) du fond, en (%d,%d)' % (n, ar, d, x, y))
-    print('poches de fond restantes : %d   (seuil %.0f px sur une planche de 1 122 x 1 402, '
-          'tolerance %d unites)' % (len(reste), P.AIRE_POCHE*1122*1402, P.TOL_POCHE))
+                    reste.append(('fond ', rad + '-' + h, ar, d, int(st[i, 0]), int(st[i, 1])))
+            # ET LE FOND VU A TRAVERS UN VERRE, la seconde espece : le joueur l a vue
+            # apres la premiere passe — « il reste du blanc dans les lunettes du caviste ».
+            lum = a @ np.array([0.299, 0.587, 0.114])
+            ch = a.max(axis=2) - a.min(axis=2)
+            verre = op & (lum > 220) & (ch <= P.CHROMA_VERRE)
+            if verre.any():
+                loin = cv2.distanceTransform(op.astype(np.uint8), cv2.DIST_L2, 5)
+                pres = P.PRES_BORD*max(H, W)
+                nn, ll, st, _ = cv2.connectedComponentsWithStats(verre.astype(np.uint8), 8)
+                for i in range(1, nn):
+                    ar = int(st[i, cv2.CC_STAT_AREA])
+                    if ar < seuil: continue
+                    m = ll == i
+                    d = float(np.abs(a[m].mean(0) - ref).max())
+                    dv = float(loin[m].min())
+                    if d <= P.TOL_VERRE and 4.0 <= dv <= pres:
+                        reste.append(('verre', rad + '-' + h, ar, d, int(st[i, 0]), int(st[i, 1])))
+    for t, n, ar, d, x, y in sorted(reste, key=lambda t: -t[2]):
+        print('  POCHE %s %-22s %6d px  a %.1f unite(s) du fond, en (%d,%d)'
+              % (t, n, ar, d, x, y))
+    print('poches restantes : %d   (seuil %.0f px sur une planche de 1 122 x 1 402 ; '
+          'fond a %d unites, verre a %d unites et moins de %.0f de chroma)'
+          % (len(reste), P.AIRE_POCHE*1122*1402, P.TOL_POCHE, P.TOL_VERRE, P.CHROMA_VERRE))
     return 1 if reste else 0
 
 def controler():

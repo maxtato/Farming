@@ -55,6 +55,22 @@ def charger(chemin, cote=900):
 # seuil est a cinq pour cent mille — quatre-vingts pixels sur ces planches-la : deux fois
 # plus gros que le plus gros reflet, deux fois plus petit que la plus petite poche.
 TOL_POCHE, AIRE_POCHE = 6, 5e-5
+# ET UNE SECONDE ESPECE DE POCHE : CELLE QU ON VOIT A TRAVERS UN VERRE.
+# Le joueur, apres la premiere passe : « il reste du blanc dans les lunettes du caviste. »
+# Il avait raison, et la premiere regle ne pouvait pas les prendre : le verre TEINTE
+# legerement ce qu on voit au travers. Mesure sur ses trois humeurs, les cinq poches de
+# verre sont a 8,8 a 10,5 unites du fond — au-dela des 6 de la regle precedente, dans la
+# bande qu on avait justement reservee aux dents.
+# Deux choses les distinguent quand meme, et toutes deux se mesurent :
+#   · elles sont QUASI GRISES. Le verre ne colore pas, il assombrit : chroma 2,8 a 4,6.
+#     Une dent est ivoire, un reflet de pupille est chaud — le col blanc du supermarche
+#     est a 7, le reflet d oeil du comptoir a 8.
+#   · elles sont AU BORD DE LA SILHOUETTE. Un verre deborde du visage : la poche est a
+#     10 a 14 pixels du vide. Le reflet dans l iris du comptoir en est a 220 — il est au
+#     milieu de la tete, aucun verre ne se trouve la.
+# D ou les trois seuils ci-dessous. `PRES_BORD` est en fraction du grand cote, comme
+# `AIRE_POCHE` est en fraction de l aire : rien ne doit dependre de `cote`.
+TOL_VERRE, CHROMA_VERRE, PRES_BORD = 14, 6, 0.05
 
 def detourer(im, tol=26, marge=2):
     """Rend un masque alpha (H,W) uint8. Le fond est ce qui RESSEMBLE AUX COINS *et* qui
@@ -99,13 +115,29 @@ def detourer(im, tol=26, marge=2):
     bords = bords[bords != 0]
     fond = np.isin(lab, bords)
     # 2. LES POCHES ENFERMEES QUI SONT LA COULEUR DU FOND.
+    seuil = AIRE_POCHE*H*W
     nn, ll, st, _ = cv2.connectedComponentsWithStats(
         (clair & ~fond).astype(np.uint8), 4)
-    seuil = AIRE_POCHE*H*W
     for i in range(1, nn):
         if st[i, cv2.CC_STAT_AREA] < seuil: continue
         m = ll == i
         if np.abs(a[m].mean(0) - ref).max() <= TOL_POCHE: fond |= m
+    # 3. ET LE FOND VU A TRAVERS UN VERRE, qui est legerement teinte et sort donc de la
+    #    tolerance precedente. On le reconnait a trois choses ensemble : quasi gris, tres
+    #    clair, et A PORTEE DU VIDE — un verre deborde du visage, une dent non.
+    lum = a @ np.array([0.299, 0.587, 0.114])
+    chroma = a.max(axis=2) - a.min(axis=2)
+    verre = (~fond) & (lum > 220) & (chroma <= CHROMA_VERRE)
+    if verre.any():
+        loin = cv2.distanceTransform((~fond).astype(np.uint8), cv2.DIST_L2, 5)
+        pres = PRES_BORD*max(H, W)
+        nn, ll, st, _ = cv2.connectedComponentsWithStats(verre.astype(np.uint8), 8)
+        for i in range(1, nn):
+            if st[i, cv2.CC_STAT_AREA] < seuil: continue
+            m = ll == i
+            if np.abs(a[m].mean(0) - ref).max() > TOL_VERRE: continue
+            d = loin[m].min()
+            if 4.0 <= d <= pres: fond |= m
     # les bords restent du fond quoi qu il arrive : une bordure claire non reliee serait
     # un artefact de l echantillonnage, pas un morceau de personnage.
     fond[:marge, :] = clair[:marge, :]; fond[-marge:, :] = clair[-marge:, :]
