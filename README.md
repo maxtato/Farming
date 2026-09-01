@@ -9968,3 +9968,93 @@ l'allègement**. Trois pièces, toutes les trois dans les cuves :
 Ce qui n'a **pas** bougé : les fûts et les dômes restent à douze pans. Là c'est la silhouette qui
 est en jeu et non du remplissage caché — descendre à huit se verrait sur un fût de 2,24 m de large
 regardé à dix mètres.
+
+### Les trois humeurs d'un personnage à la même échelle
+
+> « Attention, pour les personnages avec plusieurs images assure-toi que les proportions
+> soient identiques sur les 3 images. Il y a plusieurs erreurs, regarde entre autres ce qui
+> est entouré en vert. »
+
+Planche annotée à l'appui, et le défaut est **structurel** : `cadrerAncre` mesure chaque
+planche **isolément**. Les yeux, la boîte de visage, le profil des largeurs — trois
+estimateurs qui se trompent chacun de quelques pour cent, et rien dans la chaîne ne
+comparait la planche du pouce levé à celle du refus. Deux demi-erreurs de sens contraire
+font dix pour cent, et dix pour cent sur une tête se voient au premier coup d'œil quand les
+deux images se succèdent à l'écran.
+
+Le mesureur retrouve **exactement** les groupes entourés, et un que l'œil avait laissé
+passer :
+
+| personnage | écart avant | après |
+|---|---|---|
+| Supermarché | 19,9 % | 0,2 % |
+| Boucherie ⭕ | 16,9 % | 0,0 % |
+| **Laiterie** *(non entourée)* | 16,1 % | 3,1 % |
+| Fromagerie ⭕ | 15,2 % | 1,2 % |
+| Épicerie ⭕ | 14,6 % | 0,5 % |
+| Marché ⭕ | 14,0 % | 0,6 % |
+| Caviste · Coopérative ⭕ · Usine avoine | 7–10 % | ≤ 0,4 % |
+| Restaurant ⭕ · Atelier textile | 4 % | ≤ 1,3 % |
+| Usine céréales | 1,8 % | 1,4 % |
+| **moyenne** | **11,4 %** | **1,0 %** |
+
+Les chiffres d'arrivée sont mesurés par `controle.py` **sur les fichiers livrés** — pas sur
+un cache, pas sur un recadrage refait pour l'occasion. Un contrôle qui partage du code avec
+ce qu'il contrôle ne contrôle pas grand-chose : `aligner --verifier` recadre depuis les
+sources et `preuve.py` lisait le cache, les deux ont donné des chiffres différents sur la
+Laiterie, et il a fallu un troisième juge qui n'ouvre que les PNG que le jeu charge.
+
+**On ne mesure pas une taille, on mesure un rapport.** Aucun estimateur ne donne la taille
+absolue assez juste ; un rapport, si — les deux planches montrent la même tête, la même
+coiffure, le même couvre-chef, dessinés par la même main. `calage.py` cherche
+l'agrandissement et le décalage qui les font coïncider, par corrélation croisée normalisée
+pondérée par l'alpha du modèle ; `aligner.py` décide quoi en faire et l'écrit dans
+`commerces.json` comme n'importe quel autre réglage à la main. La sortie n'est pas une
+image, c'est un nombre par planche : la chaîne reste reproductible.
+
+Cinq corrections ont été nécessaires avant que la mesure soit fiable, et chacune s'est vue
+sur un chiffre. **On ne regarde que la bande de la tête** — les bras changent d'une humeur à
+l'autre. **La bande est pondérée vers son milieu** : un pouce monte parfois jusqu'au menton
+et entre par le côté, ce qui suffisait à faire mentir une des trois paires de la Laiterie.
+**L'interpolation est bilinéaire** : au plus proche voisin, deux échelles distantes d'un
+pour cent rendent souvent la même image — les arrondis tombent au même endroit — et la
+mesure plafonne à un pour cent près, ce qui laissait deux à trois pour cent d'écart après
+correction. **Les trois paires et non deux** : mesurer bravo contre neutre puis refus contre
+neutre laisse le neutre décider seul, et si c'est lui que la corrélation lit mal, les deux
+mesures héritent de son erreur sans que rien ne le signale ; les trois paires forment un
+triangle dont le produit des rapports doit valoir un, et de combien il ne se ferme pas *est*
+la confiance qu'on peut leur faire. Enfin **la cible est la médiane des trois** : si deux
+humeurs s'accordent et que la troisième dérape, la médiane est du bon côté.
+
+**Le contrôle n'est pas la première passe de la correction.** La passe large d'`aligner`
+balaie de 0,80 à 1,26 par pas de deux pour cent : sur trois personnages elle accroche un
+maximum secondaire, annonce dix pour cent, puis converge en deux tours vers les réglages qui
+étaient *déjà* dans la table. Elle se trompe d'abord et se rattrape ensuite — bon pour
+corriger, inutilisable pour constater. D'où `aligner.py --verifier`, qui dégrossit sur une
+plage étroite puis finit sur la grille fine.
+
+Trente-huit fiches, 255 Ko. Les vingt-deux suites : **1 013 contrôles**, zéro échec, zéro
+erreur de page, zéro 404.
+
+**Un cas sur treize a résisté, et c'est celui où l'instrument se trompe sans le dire.** Les
+trois rapports de la Laiterie, mesurés séparément, donnent bravo = 0,854 × neutre, refus =
+1,083 × neutre, et refus = 0,865 × bravo — alors que les deux premiers imposent 1,268. Le
+produit des trois vaut **1,57 au lieu de 1** : deux mesures sur trois sont fausses. La cause
+est dans le dessin, son bravo rit à pleines joues et son refus tend une paume qui monte dans
+la fenêtre. Quatre bandes de mesure ont été essayées, aucune ne ferme le triangle et les
+trois plus étroites dégradent les douze autres. Un estimateur de rechange — la largeur du
+crâne — donne 14 % d'écart sur le chef là où la corrélation en donne 1,8, sa tignasse
+n'étant pas dessinée pareil d'une humeur à l'autre : c'est le troisième proxy de taille de
+ce projet qui ment.
+
+Ce qui a tranché est **la planche des silhouettes** : les trois contours d'un personnage
+tirés l'un sur l'autre, neutre en cyan, bravo en magenta, refus en jaune. Le refus de la
+Laiterie y avait le crâne plus haut et plus large que les deux autres, qui se confondaient —
+donc `bravo > refus` mentait et `neutre > refus` disait vrai. Un facteur 0,937 posé à la
+main, et les trois se superposent. Un chiffre agrégé n'aurait jamais dit *laquelle* des
+trois humeurs était en cause ; c'est pourquoi `controle.py` rend la planche en même temps
+que les nombres, et pourquoi il écrit **NON CONCLUANT** au lieu d'un écart quand le triangle
+ne ferme pas. Annoncer « 4,9 % » aurait été annoncer du bruit.
+
+Trente-huit fiches, 255 Ko. Les vingt-deux suites : **1 013 contrôles**, zéro échec, zéro
+erreur de page, zéro 404.

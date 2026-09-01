@@ -6,6 +6,8 @@ légèrement octogonal. Cinq étapes, et une planche de contrôle après chacune
 planche qui décide, pas le code.
 
     python3 fabriquer.py --palette    # (re)bat la palette du casting entier
+    python3 aligner.py                # met les trois humeurs de chacun à la même échelle
+    python3 aligner.py --verifier     # mesure l'écart d'échelle, sans rien corriger
     python3 fabriquer.py              # fabrique les fiches du jeu, et dit leur poids
     python3 fabriquer.py --planche    # la planche de contrôle, pour juger le cadrage
     python3 rendre.py 15_controle.png # balaie un lot NON TRIÉ, pour voir ce qu'il contient
@@ -139,3 +141,93 @@ d'une famille.
 - *La boîte de visage de Haar, seule* : elle mord huit fois sur dix, mais rend tantôt le
   visage, tantôt toute la tête. Elle **situe**, elle ne **mesure** pas — d'où son emploi
   comme région de recherche, et non comme échelle.
+
+## Les trois humeurs d'un personnage à la même échelle
+
+Le joueur, planche annotée à l'appui : « pour les personnages avec plusieurs images,
+assure-toi que les proportions soient identiques sur les 3 images. » Le défaut était
+**structurel** : `cadrerAncre` mesure chaque planche **isolément**. Les yeux, la boîte de
+visage, le profil des largeurs — trois estimateurs qui se trompent chacun de quelques pour
+cent, et rien dans la chaîne ne comparait la planche du pouce levé à celle du refus. Deux
+demi-erreurs de sens contraire font dix pour cent, et dix pour cent sur une tête se voient
+au premier coup d'œil quand les deux images se succèdent à l'écran.
+
+**On ne mesure pas une taille, on mesure un rapport.** Aucun estimateur ne donne la taille
+absolue assez juste ; un rapport, si — les deux planches montrent la même tête, la même
+coiffure, le même couvre-chef, dessinés par la même main. `calage.py` cherche
+l'agrandissement et le décalage qui font coïncider l'une sur l'autre, par corrélation
+croisée normalisée, et rend un nombre. `aligner.py` décide quoi en faire et l'écrit dans
+`commerces.json` comme n'importe quel autre réglage à la main.
+
+Mesuré **sur les fichiers livrés**, par `controle.py` :
+
+| écart d'échelle entre humeurs | avant | après |
+|---|---|---|
+| moyenne | 11,4 % | **1,0 %** |
+| pire cas | 19,9 % (Supermarché) | **1,8 %** (le chef) |
+| personnages que la mesure ne conclut pas | — | 1 (la Laiterie) |
+
+Cinq choses ont dû être corrigées avant que la mesure soit fiable, et chacune se voyait sur
+un chiffre :
+
+1. **On ne regarde que la bande de la tête.** Les bras changent d'une humeur à l'autre — un
+   pouce levé, une paume tendue, une bouteille — et un recalage qui les prend en compte va
+   chercher un compromis entre deux poses différentes.
+2. **La bande est pondérée vers son milieu.** Un pouce monte parfois jusqu'au menton et
+   entre par le côté. Sur la Laiterie cela suffisait à faire mentir une des trois paires. Un
+   cosinus surélevé qui vaut 1 au milieu et 0,15 aux bords réduit les intrus au bruit sans
+   les exclure franchement — ce qui ferait dépendre le résultat d'une frontière arbitraire.
+3. **L'interpolation est bilinéaire.** Au plus proche voisin, deux échelles distantes d'un
+   pour cent rendent souvent *exactement* la même image — les arrondis tombent au même
+   endroit —, le score ne varie plus continûment et la mesure plafonne à un pour cent près.
+   C'est ce qui laissait deux à trois pour cent d'écart après correction.
+4. **Les trois paires, et non deux.** Mesurer bravo contre neutre puis refus contre neutre
+   laisse le neutre décider seul : si c'est *lui* que la corrélation lit mal, les deux
+   mesures héritent de son erreur et rien ne le signale. Les trois paires forment un
+   triangle dont le produit des rapports doit valoir un ; de combien il ne se ferme pas
+   **est** la mesure de la confiance qu'on peut leur faire. On résout les trois tailles aux
+   moindres carrés sur les logarithmes, ce qui répartit l'erreur au lieu de la coller sur
+   une planche.
+5. **La cible est la médiane des trois**, pas la première ni la « mieux ancrée ». Si deux
+   humeurs s'accordent et que la troisième dérape, la médiane est du bon côté ; prendre la
+   première reviendrait à corriger deux planches justes pour en suivre une fausse.
+
+**Le contrôle n'est pas la première passe de la correction**, et il a fallu s'en rendre
+compte. La passe large d'`aligner` balaie de 0,80 à 1,26 par pas de deux pour cent : sur
+trois personnages elle accroche un maximum secondaire, annonce dix pour cent d'écart, puis
+converge en deux tours vers les réglages qui étaient *déjà* dans la table. Elle se trompe
+d'abord et se rattrape ensuite — bon pour corriger, inutilisable pour constater. D'où
+`--verifier`, qui dégrossit sur une plage étroite puis finit sur la grille fine. Une plage
+étroite n'est pas une pétition de principe : si le rapport vrai était de 1,15, la recherche
+saturerait au bord et rendrait 14 %, donc l'écart se verrait quand même.
+
+**Et la table se réécrit comme elle est écrite.** `json.dump(indent=1)` éclate chaque ancre
+sur quatre lignes : une correction de trois nombres devient un diff de cinq cents lignes, et
+l'on ne voit plus ce qui a changé. Une humeur par ligne, comme à la main.
+
+### La Laiterie, que la corrélation n'a pas su mesurer
+
+Un cas sur treize a résisté, et il vaut d'être écrit parce que c'est le cas où l'instrument
+se trompe **sans le dire**. Ses trois rapports mesurés séparément :
+
+    neutre > bravo   s = 1,171      bravo est 0,854 × neutre
+    neutre > refus   s = 0,923      refus  est 1,083 × neutre
+    bravo  > refus   s = 1,156      refus  est 0,865 × bravo   ← devrait être 1,268
+
+Produit des trois : **1,57 au lieu de 1**. Deux mesures sur trois sont fausses. La cause est
+dans le dessin : son bravo rit à pleines joues — les pommettes montent, le menton descend,
+les yeux se ferment — et son refus tend une paume qui monte dans la fenêtre de mesure. Le
+postulat « c'est la même tête » n'y tient plus.
+
+Quatre bandes de mesure ont été essayées ; aucune ne ferme le triangle, et les trois plus
+étroites dégradent les douze autres personnages. Un estimateur de rechange — la largeur du
+crâne, prise sur le tronçon opaque qui contient l'axe — donne 14 % d'écart sur le chef là où
+la corrélation en donne 1,8 : sa tignasse hérissée n'est pas dessinée pareil d'une humeur à
+l'autre, et le contour n'est donc pas invariant. C'est le troisième proxy de taille de ce
+projet qui ment ; la leçon commence à être connue.
+
+Ce qui a tranché, c'est **la planche des silhouettes** : les trois contours tirés l'un sur
+l'autre. Le refus y avait le crâne plus haut et plus large que les deux autres, qui se
+confondaient — donc c'était `bravo > refus` qui mentait, et `neutre > refus` qui disait
+vrai. Un facteur 0,937 posé à la main, et les trois contours se superposent. Un chiffre
+agrégé n'aurait jamais dit *laquelle* des trois était en cause.

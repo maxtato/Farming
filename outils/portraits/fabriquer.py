@@ -45,14 +45,23 @@ HUMEURS = ['neutre', 'bravo', 'refus']
 
 def table(): return json.load(open(os.path.join(ICI, 'commerces.json')))
 
-def une(reg):
+# DETOURER ET CADRER SONT SEPARES, ET C EST LE RECALAGE QUI L A EXIGE. Detourer une
+# planche coute deux secondes ; la cadrer, deux centiemes. Aligner les trois humeurs d un
+# personnage demande de la recadrer une dizaine de fois avec des reglages qui bougent — on
+# detoure UNE fois et l on recadre autant qu il faut.
+def plaque(reg):
     im = P.charger(U + reg['src'])
-    al = P.detourer(im)
-    c, inf = P.cadrerAncre(im, al, W, H, ecartCible=ECART, yYeux=YEUX_Y,
-                           ech=reg.get('ech', 1.0), dx=reg.get('dx', 0.0),
-                           dy=reg.get('dy', 0.0), oeilFn=O.reperes,
-                           ancre=reg.get('ancre'))
-    return c, inf
+    return im, P.detourer(im)
+
+def cadrer(im, al, reg):
+    return P.cadrerAncre(im, al, W, H, ecartCible=ECART, yYeux=YEUX_Y,
+                         ech=reg.get('ech', 1.0), dx=reg.get('dx', 0.0),
+                         dy=reg.get('dy', 0.0), oeilFn=O.reperes,
+                         ancre=reg.get('ancre'))
+
+def une(reg):
+    im, al = plaque(reg)
+    return cadrer(im, al, reg)
 
 # ---------------------------------------------------------------------------
 # LE CORPUS. Batir la palette demande de voir TOUT le casting d un coup : c est le seul
