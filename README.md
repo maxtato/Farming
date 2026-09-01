@@ -9620,12 +9620,68 @@ carré.
 `drawImage` — les portraits sont des balises du document, le monde est en WebGL. Le drapeau est
 mis quand même, pour le jour où une planche de tuiles arrivera ; il ne fait pas nombre.
 
-### Les deux réglages se sauvegardent, et une vieille partie ne les voit pas
+### Visages : deux palettes, deux partis pris
 
-`pixel` et `pixelUi` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la garde de
+Le troisième interrupteur ne change pas *comment* on dessine, il change *avec quoi*. Deux jeux
+de quarante et une fiches, sur **exactement la même grille** — 288 × 360 et 576 × 720 —, si bien
+que basculer de l'un à l'autre ne déplace pas un pixel : seule la couleur change, et la
+comparaison est honnête.
+
+| | `portraits/` | `portraits14/` |
+|---|---|---|
+| palette | **105 couleurs en 13 gammes, partagées** par tout le casting | **relevée sur chaque image** |
+| par fiche | 54 couleurs en moyenne | **12,5** en moyenne, 14 au plus |
+| poids | 1 145 Ko | **853 Ko** |
+| ce qu'on gagne | quinze habitants du même village | quinze dessins, plus francs |
+
+**La palette est mesurée, pas choisie.** K-moyennes en Oklab, **déterministe de bout en bout** —
+aucun tirage au sort : une palette qui change d'une fabrication à l'autre n'est pas une décision,
+c'est un accident. Le premier centre est la couleur la plus fréquente, chacun des suivants le
+point le plus loin de ce qui est déjà pris.
+
+**Les quasi-doublons fusionnent sous 22 unités RVB — mais jamais un coloré avec un neutre.** Deux
+gris à dix-huit unités l'un de l'autre sont le même gris ; un gris et un bleu-gris à dix-huit
+unités sont deux décisions différentes, et les fondre est ce qui fait virer une chemise blanche
+au bleu **sur toute sa surface**. Un neutre est une couleur dont l'écart max−min entre canaux
+reste sous 18.
+
+**Trois places sont réservées aux couleurs rares mais lointaines.** Une couleur peut ne peser que
+quelques centièmes de pour cent et être pourtant ce qu'on regarde en premier : le vert d'une
+bouteille, l'or d'un bouton. La moyenne la noie. Elle garde sa place à la double condition d'être
+assez présente pour ne pas être du bruit (≥ 0,08 % des pixels) et assez loin de son remplaçant
+pour que la différence se voie (> 88 unités).
+
+**Et le trait gagne son bloc.** Une moyenne d'aire efface les traits fins : un cordon de tablier
+large d'un pixel source, noyé dans un bloc de trois par trois clairs, ressort à un neuvième de sa
+force et disparaît au premier accrochage. Avec quatorze couleurs au lieu de cent cinq, il ne se
+rattrape plus. On tire donc la moyenne vers le pixel **le plus sombre** du bloc, d'autant plus
+fort que l'écart est grand — au-delà de 34 niveaux, c'est qu'il y a un trait là-dedans et pas
+seulement un dégradé. Sur une étoffe unie l'écart est nul et rien ne bouge : la règle ne touche
+que ce qu'elle doit toucher. Et sa couleur est préservée, pas seulement sa noirceur : un trait
+brun reste brun.
+
+### Le dernier écart à la grille, fermé là où il se voit
+
+Le comptoir et le garage montrent leur visage neutre à deux tailles — 96 dans la fenêtre de
+contrat, 64 au bandeau de leur guichet. Une planche de 288 tombe sur 3 dans la première et sur
+**4,5** dans la seconde : quarante et une poses sur quarante-trois sur la grille, deux à côté.
+
+Hors grille, ça ne se voit pas : le rendu est `auto`, et une réduction lisse de 4,5 est une
+moyenne pondérée, pas un pixel sur deux jeté. **En grille, le rendu passe à `pixelated` et le
+demi-pixel mord** — c'est exactement là que l'écart devient visible, et donc exactement là qu'on
+le paie : le visage du guichet passe à 96 × 120, le bandeau de titre de **80 à 115 px**, et le
+rayon perd 35 px sur les 192 dont il dispose sur un téléphone couché. Une ligne d'article, dans
+le seul mode qui la réclame.
+
+`poses.js` le mesure dans les deux modes, sur une session complète : **41 poses sur 43 hors
+grille, 43 sur 43 en grille.**
+
+### Les trois réglages se sauvegardent, et une vieille partie ne les voit pas
+
+`pixel`, `pixelUi` et `pixelPal` s'ajoutent en **champs facultatifs**, et `v` ne bouge pas : la garde de
 relecture est une égalité stricte, l'incrémenter rejetterait d'un coup toutes les parties en
 cours. Une sauvegarde d'avant ce réglage — ou marquée mais sans les deux champs — repart du jeu
-d'origine. `pixelart.js`, **24 contrôles**.
+d'origine. `pixelart.js`, **35 contrôles**.
 
 ### Un défaut de français corrigé au passage
 

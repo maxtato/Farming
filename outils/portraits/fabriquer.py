@@ -25,6 +25,8 @@ from PIL import Image, ImageDraw
 
 U       = '/root/.claude/uploads/3c255efa-fd9f-5aab-a574-54544179bd6d/'
 DEST    = '/home/user/Farming/portraits'
+# Le second jeu de fiches, celui du reglage « Visages — palette par image ».
+DEST14  = '/home/user/Farming/portraits14'
 ATTENTE = '/home/user/Farming/outils/portraits/attente'
 ICI     = os.path.dirname(os.path.abspath(__file__))
 PALETTE = os.path.join(ICI, 'palette.json')
@@ -161,6 +163,67 @@ def une(reg):
 # essai de palette, on le garde.
 def fichierCache():
     return CACHE or ('/tmp/portraits-cadres.%d.npz' % LARG_MAX)
+
+def cadres14(refaire=False):
+    """LE MEME CADRAGE, MAIS LE TRAIT GAGNE LE BLOC. Deuxieme jeu de fiches, pour le
+       reglage « palette par image » : la moyenne d aire y est tiree vers le pixel le plus
+       sombre de chaque bloc, ce qui sauve les traits fins d un pixel source de large. Avec
+       quatorze couleurs au lieu de cent cinq, un trait efface ne se rattrape plus."""
+    f = '/tmp/portraits-cadres.%d.encre.npz' % LARG_MAX
+    if not refaire and os.path.exists(f):
+        z = np.load(f)
+        return {k[2:]: (z[k], z['c_' + k[2:]]) for k in z.files if k.startswith('r_')}
+    T = table(); out = {}
+    for rad in sorted(T):
+        for h in HUMEURS:
+            reg = T[rad].get(h)
+            if not reg: continue
+            c, inf = une(reg)
+            rgb, couv = X.reduire(c, largeurDe(h), encre=1.0)
+            out[rad + '-' + h] = (rgb, couv)
+    np.savez_compressed(f, **{('r_' + k): v[0].astype(np.float32) for k, v in out.items()},
+                        **{('c_' + k): v[1].astype(np.float32) for k, v in out.items()})
+    return out
+
+def fiche14(rgb, couv):
+    """UNE FICHE, SA PROPRE PALETTE. Pas de palette partagee, pas de gammes construites :
+       les quatorze couleurs sont relevees SUR CETTE IMAGE, rangees en gammes par angle de
+       teinte, et le reste de la chaine ne change pas — accrochage, unification d etoffe,
+       deparasitage, cerne."""
+    op = X.nettoyerAlpha(couv >= 0.5)
+    pal = X.paletteImage(rgb, couv)
+    gammes = X.gammesImage(pal)
+    idx = X.accrocher(rgb, pal)
+    larg = rgb.shape[1]
+    idx = X.unifier(rgb, idx, op, pal, gammes, rayon=3*larg//192, tol=0.075)
+    idx = X.deparasiter(idx, op, pal)
+    idx = X.cerner(idx, op, gammes)
+    idx = X.deparasiter(idx, op, pal, tours=1)
+    return idx, op, pal
+
+def fabriquer14():
+    """Le second jeu de fiches, dans portraits14/. Le jeu montre l un ou l autre selon le
+       reglage « Visages » ; aucun des deux n ecrase l autre."""
+    T = table(); C = cadres14()
+    os.makedirs(DEST14, exist_ok=True)
+    tot = 0; n = 0; teintes = []
+    for rad in sorted(T):
+        if not T[rad].get('site'): continue
+        for h in HUMEURS:
+            if not T[rad].get(h): continue
+            rgb, couv = C[rad + '-' + h]
+            idx, op, pal = fiche14(rgb, couv)
+            q, m = X.png8(idx, op, pal)
+            f = os.path.join(DEST14, rad + '-' + h + '.png')
+            q.save(f, 'PNG', optimize=True, transparency=m)
+            t = os.path.getsize(f); tot += t; n += 1
+            vues = len(set(idx[op].tolist())); teintes.append(vues)
+            orph, _ = X.orphelins(idx, op)
+            print('%-14s %-7s %4dx%-4d %5.1f Ko  %2d couleurs sur %2d  %4.1f %% orphelins'
+                  % (rad, h, idx.shape[1], idx.shape[0], t/1024, vues, len(pal), 100*orph))
+    print('%d fiches par image, %.0f Ko, %.1f Ko en moyenne  ·  %.1f couleurs en moyenne, '
+          '%d au plus' % (n, tot/1024, tot/1024/max(n, 1),
+                          float(np.mean(teintes)), int(np.max(teintes))))
 
 def cadres(refaire=False):
     """Rend {cle: (rgb (h,l,3) float, couverture (h,l) float)} pour tout le lot ; la
@@ -319,6 +382,7 @@ def planche(sortie='30_production.png', zoom=1):
     pl.save(sortie); print('->', sortie, pl.size)
 
 if __name__ == '__main__':
-    if '--palette' in sys.argv: batirPalette('--refaire' in sys.argv)
+    if '--14' in sys.argv: fabriquer14()
+    elif '--palette' in sys.argv: batirPalette('--refaire' in sys.argv)
     elif '--planche' in sys.argv: planche(zoom=2 if '--zoom' in sys.argv else 1)
     else: fabriquer()

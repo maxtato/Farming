@@ -1252,6 +1252,18 @@
   body.grille img,body.grille #plancv,body.grille .face{image-rendering:pixelated!important}
   body.grille{--ui:1}
   @media (min-width:1500px){body.grille{--ui:2}}
+  /* LE DERNIER ÉCART À LA GRILLE SE FERME ICI, ET SEULEMENT ICI.
+     Le comptoir et le garage montrent leur visage NEUTRE à deux tailles : 96 dans la
+     fenêtre de contrat, 64 au bandeau de leur guichet. Une planche de 288 tombe sur 3 dans
+     la première et sur 4,5 dans la seconde — quarante et une poses sur quarante-trois sur
+     la grille, deux à côté.
+     Hors grille, ça ne se voit pas : le rendu est `auto`, et une réduction lisse de 4,5
+     est une moyenne pondérée, pas un pixel sur deux jeté. En grille, le rendu passe à
+     `pixelated` et le demi-pixel MORD — c'est exactement là que l'écart devient visible,
+     et c'est donc exactement là qu'on le paie. Le visage du guichet passe à 96 × 120, le
+     bandeau de titre de 80 à 115 px, et le rayon perd 35 px sur les 192 dont il dispose
+     sur un téléphone couché : une ligne d'article, dans le seul mode qui la réclame. */
+  body.grille #fenface{width:96px;height:120px;margin:-3px 0 -12px}
   body.grille #goaltxt{text-shadow:0 1px 0 rgba(0,0,0,.6)}
   body.grille #viseurs .vis .nm{text-shadow:0 1px 0 rgba(0,0,0,.85)}
   body.grille #pause{box-shadow:0 3px 0 rgba(0,0,0,.45)}
@@ -1503,7 +1515,7 @@ const C = {
    `image-rendering: pixelated` depuis toujours, c'est ce qui donne l'escalier franc
    plutôt qu'un flou. À 3 on remplit donc NEUF FOIS moins de pixels : le gros grain est
    aussi, accessoirement, le réglage le plus économe du jeu. */
-const PIXEL = {i: 0, ui: false, choix: [
+const PIXEL = {i: 0, ui: false, pal: false, choix: [
   {nom: "D'origine", px: 1.1,
    det: 'Le grain d\'origine du jeu : un pixel de rendu pour un peu plus d\'un pixel '
       + 'd\'écran. Les contours sont nets, l\'escalier ne se voit qu\'en cherchant.'},
@@ -1574,6 +1586,21 @@ function lisserCanevas(c){
   if(!c) return c;
   c.imageSmoothingEnabled = !PIXEL.ui;
   return c;
+}
+/* CHANGER DE JEU DE FICHES REPOSE CELLES QUI SONT DEJA A L ECRAN. Les trois balises
+   gardent leur `src` tant qu on ne le réécrit pas — c est voulu, sans quoi la fenêtre de
+   contrat relancerait un décodage à chaque tic. Le revers est qu'un portrait affiché au
+   moment où l'on bascule resterait celui de l'autre dossier jusqu'à la fenêtre suivante :
+   on relit donc le nom que chacune porte déjà, et on le repose. */
+function rafraichirVisages(){
+  for(const id of ['ctface', 'brface', 'fenface']){
+    const el = document.getElementById(id);
+    if(!el) continue;
+    const src = el.getAttribute('src');
+    if(!src) continue;
+    const f = src.split('/').pop();
+    el.setAttribute('src', (PIXEL.pal ? 'portraits14/' : 'portraits/') + f);
+  }
 }
 function appliquerPixel(){
   if(document.body) document.body.classList.toggle('grille', !!PIXEL.ui);
@@ -3697,9 +3724,17 @@ const ficheDe = (nom)=>{
   if(!p) return null;
   return (typeof p === 'string') ? {r: p, h: HUMEURS} : p;
 };
+/* DEUX JEUX DE FICHES, ET UN SEUL DOSSIER QUI CHANGE. `portraits/` porte la palette
+   PARTAGÉE — 105 couleurs en 13 gammes pour tout le casting, ce qui fait que la peau du
+   boulanger est la même peau que celle du marchand et donne l'impression d'une seule
+   main. `portraits14/` porte la palette RELEVÉE SUR CHAQUE IMAGE — une quinzaine de
+   couleurs par fiche, celles qui la servent elle, et le casting cesse d'être un casting
+   pour devenir quinze dessins. Les deux se défendent, aucune ne se démontre : c'est le
+   réglage « Visages » qui tranche, et il part sur la palette partagée. */
 const visageDe = (nom, humeur)=>{
   const f = ficheDe(nom);
-  return (f && f.h.indexOf(humeur) >= 0) ? 'portraits/' + f.r + '-' + humeur + '.png' : null;
+  if(!(f && f.h.indexOf(humeur) >= 0)) return null;
+  return (PIXEL.pal ? 'portraits14/' : 'portraits/') + f.r + '-' + humeur + '.png';
 };
 function poserVisage(el, nom, humeur){
   if(!el) return false;
@@ -25211,6 +25246,23 @@ function ongletReglages(){
       appliquerPixel();
       showHint(PIXEL.ui ? 'INTERFACE SUR LA GRILLE' : 'INTERFACE D\'ORIGINE');
     });
+  article(0xE87FA8, 'Visages — ' + (PIXEL.pal ? 'palette par image' : 'palette partagée'),
+    PIXEL.pal
+      ? 'Chaque fiche reçoit les <b>quatorze couleurs relevées sur elle</b> : plus franches, '
+      + 'plus graphiques, et le trait fin y survit à la réduction parce qu\'il gagne son '
+      + 'bloc au lieu d\'y être moyenné. En échange, les quinze personnages ne partagent '
+      + 'plus rien — ce ne sont plus quinze habitants du même village, ce sont quinze '
+      + 'dessins.<br>12,5 couleurs par fiche en moyenne  ·  853 Ko pour les quarante et une.'
+      : 'Les quarante et une fiches partagent <b>une palette de 105 couleurs en 13 gammes</b>, '
+      + 'battue sur le casting entier : la peau du boulanger est la même que celle du '
+      + 'marchand, et c\'est ce qui fait qu\'ils ont l\'air dessinés par la même main. '
+      + 'C\'est le réglage d\'origine.<br>54 couleurs par fiche en moyenne  ·  1 145 Ko '
+      + 'pour les quarante et une.',
+    PIXEL.pal ? 'Revenir' : 'Essayer', PIXEL.pal ? 'ok' : '', ()=>{
+      PIXEL.pal = !PIXEL.pal;
+      rafraichirVisages();
+      showHint(PIXEL.pal ? 'VISAGES — PALETTE PAR IMAGE' : 'VISAGES — PALETTE PARTAGÉE');
+    });
 
   titre('Son');
   article(0x7FD1E8, 'Ambiance sonore',
@@ -25880,6 +25932,7 @@ function etatJeu(){
        aucune difference tant qu elle n a rien demande. `v` ne bouge pas. */
     pixel: PIXEL.i,
     pixelUi: PIXEL.ui,
+    pixelPal: PIXEL.pal,
     zoom: ZOOM.pc,
     commandes: COMMANDES.mode,
     // Facultatif comme le reste des réglages : absent, il vaut soixante, c'est-à-dire
@@ -26312,8 +26365,10 @@ function chargerPartie(S){
        — donc d avant les reglages — reprend le grain d origine et l interface arrondie,
        une fois. Ensuite, ce que le joueur choisit au menu tient. */
     PIXEL.i  = (!usine && PIXEL.choix[S.pixel|0]) ? (S.pixel|0) : 0;
-    PIXEL.ui = !usine && !!S.pixelUi;
+    PIXEL.ui  = !usine && !!S.pixelUi;
+    PIXEL.pal = !usine && !!S.pixelPal;
     appliquerPixel();
+    rafraichirVisages();
     // Absent, le zoom vaut cent pour cent : le cadrage qu'avaient toutes les parties
     // d'avant ce réglage, et celui d'usine.
     ZOOM.pc = usine ? 100

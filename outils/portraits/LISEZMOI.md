@@ -391,6 +391,45 @@ porte quatre fois plus de pixels qu'une de 288, et sans correction les vingt-six
 levés et refus décideraient la palette à la place des quinze visages neutres. Le pas
 d'échantillonnage suit la surface.
 
+### Le second jeu de fiches : une palette par image
+
+    python3 fabriquer.py --14        # -> portraits14/, quatorze couleurs relevées par fiche
+
+Le jeu montre `portraits/` ou `portraits14/` selon le réglage **Visages**. Les deux sont sur
+**exactement la même grille** — 288 × 360 et 576 × 720 —, si bien que basculer ne déplace pas un
+pixel : seule la couleur change.
+
+**La palette est mesurée, pas choisie.** K-moyennes en Oklab, **déterministe de bout en bout** —
+aucun tirage au sort : deux fabrications de suite rendent les mêmes octets. Le premier centre est
+la couleur la plus fréquente, chacun des suivants le point le plus loin de ce qui est déjà pris,
+pondéré par la fréquence pour qu'un pixel isolé ne fonde pas une famille à lui tout seul.
+
+**Fusion sous 22 unités RVB, jamais un coloré avec un neutre.** Deux gris à dix-huit unités l'un
+de l'autre sont le même gris ; un gris et un bleu-gris à dix-huit unités sont deux décisions
+différentes, et les fondre fait virer une chemise blanche au bleu sur toute sa surface. Neutre =
+écart max−min entre canaux sous 18.
+
+**Trois places réservées** aux couleurs qui pèsent ≥ 0,08 % des pixels et dont le remplaçant
+serait à plus de 88 unités : le vert d'une bouteille, l'or d'un bouton — ce qu'on regarde en
+premier et que la moyenne noie.
+
+**Le trait gagne son bloc.** `reduire(..., encre=1.0)` tire la moyenne d'aire vers le pixel le
+plus sombre du bloc, d'autant plus fort que l'écart dépasse 34 niveaux. Sans ça un cordon de
+tablier large d'un pixel source ressort à un neuvième de sa force et disparaît à l'accrochage —
+et avec quatorze couleurs il ne se rattrape plus. Sur une étoffe unie l'écart est nul et rien ne
+bouge. La *couleur* du plus sombre est reprise, pas seulement sa noirceur : un trait brun reste
+brun.
+
+**Et il a fallu retrouver les gammes.** `cerner` fait descendre le liseré d'une marche dans sa
+propre gamme, `unifier` demande quelle famille domine autour d'un pixel : les deux veulent des
+groupes de teinte. La palette partagée les reçoit de sa construction ; une palette relevée arrive
+en vrac. `gammesImage` les regroupe par angle de teinte en Oklab — distance **circulaire**, sans
+quoi deux couleurs à cheval sur π se croiraient à six radians l'une de l'autre — et met tous les
+neutres ensemble, quel que soit leur angle : sur un gris, l'angle tourne au hasard d'une unité de
+bruit.
+
+**41 fiches, 853 Ko, 12,5 couleurs par fiche en moyenne, 14 au plus, 0,1 % d'orphelins.**
+
 ### Le seul écart, et il est assumé
 
 Le comptoir et le garage montrent leur visage **neutre à deux tailles** : 96 dans la fenêtre

@@ -241,10 +241,20 @@ def _dedoubler(P, gammes):
     return np.asarray(garde, np.uint8), [[ren[i] for i in g] for g in gammes]
 
 # ---------- B. LA REDUCTION PAR MOYENNE D AIRE ---------------------------------
-def reduire(rgba, larg):
+def reduire(rgba, larg, encre=0.0, seuilEncre=34.0):
     """Cadre -> grille de la fiche. Le cadre fait un multiple entier de la fiche : chaque
        pixel rendu est la moyenne d un bloc, ponderee par l alpha, ce qui interdit au fond
-       de deteindre sur le contour."""
+       de deteindre sur le contour.
+
+       `encre` : LE TRAIT EST PRIORITAIRE DANS LE VOTE DE BLOC. Une moyenne d aire efface
+       les traits fins — un cordon de tablier sombre large d un pixel source, noye dans un
+       bloc de trois par trois clairs, ressort a un neuvieme de sa force et disparait au
+       premier accrochage. Un dessinateur de pixel art fait l inverse : le trait gagne le
+       bloc. On tire donc la moyenne vers le pixel LE PLUS SOMBRE du bloc, d autant plus
+       fort que l ecart entre les deux est grand — au-dela de `seuilEncre` niveaux, c est
+       qu il y a un trait la-dedans et pas seulement un degrade. Sur une etoffe unie
+       l ecart est nul et rien ne bouge : la regle ne touche que ce qu elle doit toucher.
+       A `encre = 0`, la fonction rend exactement ce qu elle rendait avant."""
     W, H = rgba.size
     k = W // larg
     if k < 1 or W % larg: raise ValueError('le cadre doit faire un multiple entier de la fiche')
@@ -256,6 +266,24 @@ def reduire(rgba, larg):
     somme = bloc(rgb*al[:, :, None])
     couv = poids/float(k*k)
     moy = np.where(poids[:, :, None] > 1e-6, somme/np.maximum(poids, 1e-6)[:, :, None], 255.0)
+    if encre > 0:
+        # La luminance du bloc, et le pixel le plus sombre qu il contient. Les pixels
+        # transparents sont ecartes en les poussant au blanc : un trou dans la silhouette
+        # ne doit pas se faire elire trait le plus sombre.
+        lum = rgb @ np.array([0.299, 0.587, 0.114])
+        lum = np.where(al > 0.5, lum, 255.0)
+        cel = lum.reshape(haut, k, larg, k)
+        iMin = cel.min(axis=(1, 3))
+        # On remet les k x k pixels d un bloc a plat pour aller chercher la COULEUR du plus
+        # sombre, et pas seulement sa luminance : un trait brun doit rester brun.
+        plat = cel.transpose(0, 2, 1, 3).reshape(haut, larg, k*k)
+        pp = rgb.reshape(haut, k, larg, k, 3).transpose(0, 2, 1, 3, 4).reshape(haut, larg, k*k, 3)
+        arg = np.argmin(plat, axis=2)
+        sombre = np.take_along_axis(pp, arg[:, :, None, None], axis=2)[:, :, 0, :]
+        moyL = (moy @ np.array([0.299, 0.587, 0.114]))
+        w = np.clip((moyL - iMin)/float(seuilEncre), 0.0, 1.0)*float(encre)
+        w = np.where(couv > 0.5, w, 0.0)[:, :, None]
+        moy = (1.0 - w)*moy + w*sombre
     return moy, couv
 
 # ---------- accrochage ---------------------------------------------------------
@@ -411,3 +439,136 @@ def png8(idx, op, pal):
     q = Image.fromarray(np.where(op, idx, m).astype(np.uint8), 'P')
     q.putpalette((list(np.asarray(pal, np.uint8).ravel()) + [0, 0, 0] + [0]*768)[:768])
     return q, m
+
+
+# ---------- LA PALETTE RELEVEE SUR CHAQUE IMAGE ---------------------------------
+# LE JOUEUR : « palette relevee sur chaque image (pas choisie) : environ 14 teintes, fusion
+# des quasi-doublons sous 22 unites RVB, mais jamais un ton colore avec un neutre, et
+# jusqu a trois places reservees aux couleurs rares mais lointaines. »
+#
+# C EST L EXACT CONTRAIRE DE LA PALETTE PARTAGEE, ET LES DEUX SE DEFENDENT.
+# La palette commune de 105 couleurs fait tenir les quinze personnages ensemble : une peau
+# y est la meme peau d un bout a l autre du casting, et c est ce qui donne l impression
+# d une seule main. Une palette relevee PAR IMAGE fait l inverse — chaque fiche recoit les
+# quatorze couleurs qui la servent le mieux, elle, et le casting cesse d etre un casting.
+# En echange, chaque fiche est plus juste avec quatre fois moins de couleurs.
+# On ne tranche pas ici : les deux jeux de fiches sont fabriques, et c est un interrupteur
+# du jeu qui decide. Voir « Visages » dans les reglages.
+NB_TEINTES   = 14      # la cible
+FUSION_RVB   = 22.0    # deux couleurs plus proches que ca n en font qu une
+SPREAD_NEUTRE= 18.0    # ecart max-min entre canaux : en dessous, c est un neutre
+RESERVE      = 3       # places gardees pour les couleurs rares mais lointaines
+PART_RARE    = 0.0008  # 0,08 % des pixels suffit a meriter une place
+LOIN_RVB     = 88.0    # ... si son remplacant est a plus de 88 unites
+
+def _neutre(c):
+    """Un neutre est une couleur dont les trois canaux se tiennent : ni bleu, ni brun,
+       du gris. La regle est en RVB parce que c est en RVB que le joueur l a posee."""
+    c = np.asarray(c, np.float64)
+    return (c.max(axis=-1) - c.min(axis=-1)) < SPREAD_NEUTRE
+
+def _kmoyennes(pts, poids, k, tours=24):
+    """K-moyennes EN OKLAB, deterministe de bout en bout — aucun tirage au sort.
+       Une palette qui change d une fabrication a l autre n est pas une decision, c est un
+       accident : deux passes de suite doivent rendre les memes octets. Le premier centre
+       est donc la couleur LA PLUS FREQUENTE, et chacun des suivants le point le plus loin
+       de ce qui est deja pris (ponderes par la frequence, pour qu un pixel isole ne fonde
+       pas une famille a lui tout seul)."""
+    lab = oklab(pts.reshape(1, -1, 3))[0]
+    n = len(lab)
+    k = min(k, n)
+    cen = [int(np.argmax(poids))]
+    d2 = ((lab - lab[cen[0]])**2).sum(1)
+    for _ in range(k - 1):
+        score = d2*poids
+        j = int(np.argmax(score))
+        if score[j] <= 0: break
+        cen.append(j)
+        d2 = np.minimum(d2, ((lab - lab[j])**2).sum(1))
+    C = lab[cen].copy()
+    for _ in range(tours):
+        d = lab[:, None, :] - C[None, :, :]
+        a = np.argmin((d*d).sum(2), 1)
+        neuf = C.copy()
+        for i in range(len(C)):
+            m = a == i
+            w = poids[m].sum()
+            if w > 0: neuf[i] = (lab[m]*poids[m][:, None]).sum(0)/w
+        if np.allclose(neuf, C, atol=1e-6): C = neuf; break
+        C = neuf
+    return np.clip(np.round(deOklab(C)), 0, 255).astype(np.uint8), C
+
+def paletteImage(rgb, couv, cible=NB_TEINTES):
+    """LES QUATORZE COULEURS DE CETTE IMAGE-LA, mesurees et non choisies.
+       Rend un tableau (n, 3) d octets. n vaut au plus `cible` + RESERVE."""
+    op = couv > 0.5
+    pix = np.clip(np.round(rgb[op]), 0, 255).astype(np.uint8)
+    if not len(pix): return np.zeros((1, 3), np.uint8)
+    # On travaille sur les couleurs DISTINCTES ponderees par leur frequence : une fiche de
+    # 576 x 720 porte quatre cent mille pixels pour quelques milliers de couleurs.
+    uni, cpt = np.unique(pix.reshape(-1, 3), axis=0, return_counts=True)
+    pal, _ = _kmoyennes(uni.astype(np.float64), cpt.astype(np.float64), cible)
+
+    # 1. FUSION DES QUASI-DOUBLONS — MAIS JAMAIS UN COLORE AVEC UN NEUTRE.
+    #    Deux gris a dix-huit unites l un de l autre sont le meme gris ; un gris et un
+    #    bleu-gris a dix-huit unites sont deux decisions differentes, et les fondre est ce
+    #    qui fait virer une chemise blanche au bleu sur toute sa surface.
+    garde = list(range(len(pal)))
+    fusionne = True
+    while fusionne and len(garde) > 1:
+        fusionne = False
+        for i in range(len(garde)):
+            for j in range(i + 1, len(garde)):
+                a, b = pal[garde[i]].astype(np.float64), pal[garde[j]].astype(np.float64)
+                if np.linalg.norm(a - b) >= FUSION_RVB: continue
+                if _neutre(a) != _neutre(b): continue      # colore + neutre : on ne fond pas
+                del garde[j]; fusionne = True; break
+            if fusionne: break
+    pal = pal[garde]
+
+    # 2. LES PLACES RESERVEES. Une couleur peut ne peser que quelques centiemes de pour
+    #    cent et etre pourtant ce qu on regarde en premier : le rouge d un tampon, le vert
+    #    d une bouteille, l or d un bouton. La moyenne la noie ; on lui garde trois places,
+    #    a la double condition qu elle soit assez presente pour ne pas etre du bruit et
+    #    assez loin de son remplacant pour que la difference se VOIE.
+    tot = float(cpt.sum())
+    d = uni.astype(np.float64)[:, None, :] - pal.astype(np.float64)[None, :, :]
+    dist = np.sqrt((d*d).sum(2)).min(1)
+    cand = [(int(c), tuple(u)) for u, c, q in zip(uni, cpt, dist)
+            if c/tot >= PART_RARE and q > LOIN_RVB]
+    cand.sort(reverse=True)
+    for _, u in cand[:RESERVE]:
+        c = np.asarray(u, np.uint8)
+        if np.min(np.linalg.norm(pal.astype(np.float64) - c.astype(np.float64), axis=1)) <= LOIN_RVB:
+            continue
+        pal = np.vstack([pal, c[None, :]])
+    return pal
+
+
+def gammesImage(pal, ecart=0.55):
+    """RANGER UNE PALETTE RELEVEE EN GAMMES, parce que deux passes en ont besoin.
+       `cerner` fait descendre le liseré d une marche DANS SA PROPRE gamme, et `unifier`
+       demande quelle famille domine autour d un pixel : les deux veulent des groupes de
+       teinte, pas une liste plate. La palette partagee les recoit de sa construction ; une
+       palette relevee sur l image, elle, arrive en vrac et il faut les retrouver.
+       On groupe par ANGLE DE TEINTE en Oklab — deux couleurs a moins de `ecart` radians
+       l une de l autre sont la meme etoffe vue a deux clartes — et l on met tous les
+       neutres ensemble, quel que soit leur angle : sur un gris, l angle ne veut rien dire,
+       il tourne au hasard d une unite de bruit."""
+    lab = oklab(pal.astype(np.float64).reshape(1, -1, 3))[0]
+    neu = _neutre(pal.astype(np.float64))
+    ang = np.arctan2(lab[:, 2], lab[:, 1])
+    groupes = []
+    for i in range(len(pal)):
+        if neu[i]: continue
+        pose = False
+        for g in groupes:
+            # Distance CIRCULAIRE au chef de file : a cheval sur pi, une difference brute
+            # dirait six radians la ou il y en a un dixieme.
+            d = abs((ang[i] - ang[g[0]] + np.pi) % (2*np.pi) - np.pi)
+            if d <= ecart: g.append(i); pose = True; break
+        if not pose: groupes.append([i])
+    gris = [i for i in range(len(pal)) if neu[i]]
+    if gris: groupes.append(gris)
+    # Chaque gamme se lit du plus sombre au plus clair : c est ce que `cerner` attend.
+    return [sorted(g, key=lambda c: lab[c][0]) for g in groupes]

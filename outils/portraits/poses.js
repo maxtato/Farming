@@ -131,6 +131,12 @@ const PORT = +(process.env.PORT || 9820);
   await ev("for(let k=0;k<4;k++){const b=Array.prototype.slice.call(document.querySelectorAll('.accbtn')).filter(function(x){return x.offsetParent!==null;})[0]; if(!b)break; b.click();} return 1;");
   await page.waitForTimeout(400);
   await ev('fermerBravo(); CAMPAGNE.tuto = 99; CAMPAGNE.niveau = NIVEAUX.length; return 1;');
+  /* LE MODE GRILLE SE MESURE AUSSI, ET IL LE FAUT : c est le seul ou le visage du guichet
+     passe de 64 a 96, donc le seul ou les quarante-trois poses tombent toutes sur la
+     grille. Mesurer un seul des deux modes reviendrait a ne connaitre que la moitie du
+     jeu. PORTRAITS_GRILLE=1 le met avant que la session commence. */
+  if(process.env.PORTRAITS_GRILLE)
+    await ev('PIXEL.ui = true; appliquerPixel(); return 1;');
   await rel();
   /* --- toutes les poses de portrait, commerce par commerce --- */
   const noms = await page.evaluate('Object.keys(PORTRAITS)');
@@ -182,7 +188,8 @@ const PORT = +(process.env.PORT || 9820);
   fs.writeFileSync(process.env.PORTRAITS_POSES || '/tmp/poses.json', out);
   const P = JSON.parse(out);
   const im = Object.keys(P.img).sort();
-  console.log('=== IMAGES DU DOCUMENT (' + im.length + ' poses) ===');
+  console.log('=== IMAGES DU DOCUMENT (' + im.length + ' poses'
+    + (process.env.PORTRAITS_GRILLE ? ', INTERFACE SUR LA GRILLE' : '') + ') ===');
   console.log('fichier                        elem       planche   boite     peint     PX_JEU  rendu');
   for(const k of im){
     const e = P.img[k];

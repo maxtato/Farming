@@ -40,8 +40,8 @@ HUMEURS = [('neutre', 'neutre', 'propose la mission'),
 def table():
     return json.load(open(os.path.join(ICI, 'commerces.json')))
 
-def fiche(rad, h, jeu=True):
-    d = os.path.join(JEU, 'portraits') if jeu else os.path.join(ICI, 'attente')
+def fiche(rad, h, jeu=True, dossier='portraits'):
+    d = os.path.join(JEU, dossier) if jeu else os.path.join(ICI, 'attente')
     f = os.path.join(d, rad + '-' + h + '.png')
     return f if os.path.exists(f) else None
 
@@ -59,6 +59,7 @@ def ecrire(sortie=None):
     T = table()
     pal = json.load(open(os.path.join(ICI, 'palette.json')))
     lignes, tot, nb = [], 0, 0
+    tot14 = 0.0; teintes14 = []
     for rad in sorted(T, key=lambda r: (T[r].get('site') or 'zz').lower()):
         jeu = bool(T[rad].get('site'))
         nom = T[rad].get('site') or (rad + ' — en attente')
@@ -70,15 +71,28 @@ def ecrire(sortie=None):
                              '<div class="case vide"><span>sans objet</span></div></div>')
                 continue
             m = mesurer(f); tot += m['ko']; nb += 1
+            # LA DEUXIEME PALETTE, DANS LA MEME CASE. Les deux jeux de fiches sont sur la
+            # MEME grille — 288 ou 576 —, donc les superposer ne deplace pas un pixel :
+            # le bouton ne fait qu echanger l image, et l on juge la couleur seule.
+            f14 = fiche(rad, h, jeu, 'portraits14')
+            m14 = mesurer(f14) if f14 else None
+            if m14: tot14 += m14['ko']; teintes14.append(m14['teintes'])
             # LA LEGENDE EST HORS DE LA BOITE, ET IL A FALLU LA PLANCHE POUR LE VOIR.
             # Dedans, elle heritait du fond sombre du jeu et s ecrivait en brun sur
             # anthracite : illisible, et collee au buste par-dessus le marche.
             cases.append(
-              '<div class="vig"><div class="case">'
-              '<img src="data:image/png;base64,' + m['b64'] + '" alt=""></div>'
+              '<div class="vig" style="--b:' + str(BOITE[h]) + '"><div class="case">'
+              '<img class="p105" src="data:image/png;base64,' + m['b64'] + '" alt="">'
+              + ('<img class="p14" src="data:image/png;base64,' + m14['b64'] + '" alt="">'
+                 if m14 else '')
+              + '</div>'
               '<div class="sous"><b>' + lab + '</b><span>' + quand + '</span>'
-              '<span class="chiffres">' + str(m['l']) + '×' + str(m['h']) + ' · '
-              + str(m['teintes']) + ' teintes · ' + ('%.1f' % m['ko']) + ' Ko</span></div></div>')
+              '<span class="chiffres p105">' + str(m['l']) + '×' + str(m['h']) + ' · '
+              + str(m['teintes']) + ' teintes · ' + ('%.1f' % m['ko']) + ' Ko</span>'
+              + ('<span class="chiffres p14">' + str(m14['l']) + '×' + str(m14['h']) + ' · '
+                 + str(m14['teintes']) + ' teintes · ' + ('%.1f' % m14['ko']) + ' Ko</span>'
+                 if m14 else '')
+              + '</div></div>')
         lignes.append('<section class="perso' + ('' if jeu else ' attente') + '">'
                       '<h2>' + nom + '</h2><div class="trio">' + ''.join(cases) + '</div></section>')
 
@@ -93,6 +107,8 @@ def ecrire(sortie=None):
                  .replace('@@N@@', str(nb)) \
                  .replace('@@KO@@', '%.0f' % tot) \
                  .replace('@@COUL@@', str(len(pal['couleurs']))) \
+                 .replace('@@KO14@@', '%.0f' % tot14) \
+                 .replace('@@MOY14@@', '%.1f' % (sum(teintes14)/max(1, len(teintes14)))) \
                  .replace('@@GAM@@', str(sum(1 for g in pal['gammes'] if g)))
     open(sortie, 'w', encoding='utf-8').write(html)
     print('->', sortie, '%.0f Ko' % (os.path.getsize(sortie)/1024.0), '·', nb, 'fiches')
@@ -142,6 +158,16 @@ MODELE = r"""<!doctype html>
   .case img{display:block;width:var(--l);height:var(--ht);object-fit:contain;
             object-position:bottom center;image-rendering:pixelated}
   body.lisse .case img{image-rendering:auto}
+  /* UNE PALETTE A LA FOIS, ET LA MEME PLACE POUR LES DEUX. Les deux jeux de fiches sont
+     sur la meme grille : on empile les deux images et l on n en montre qu une, ce qui
+     rend la comparaison honnete — aucun decalage, aucune mise a l echelle, la couleur
+     seule change. */
+  .case .p14{display:none}
+  body.pal14 .case .p105{display:none}
+  body.pal14 .case .p14{display:block}
+  .sous .p14, .info .p14{display:none}
+  body.pal14 .sous .p105, body.pal14 .info .p105{display:none}
+  body.pal14 .sous .p14, body.pal14 .info .p14{display:inline}
   /* LE FOND EST CELUI DU JEU, parce qu un portrait detoure juge sur du blanc ment. */
   body.fjeu .case{background:#2A2E31}
   body.fpapier .case{background:var(--ligne)}
@@ -173,14 +199,20 @@ MODELE = r"""<!doctype html>
 <body class="fjeu">
 <header>
   <h1>Portraits — planche de vérification</h1>
-  <div class="info">@@N@@ fiches · @@KO@@ Ko · palette de @@COUL@@ couleurs en @@GAM@@ gammes,
-    partagée par tout le casting</div>
+  <div class="info"><span class="p105">@@N@@ fiches · @@KO@@ Ko · palette de @@COUL@@ couleurs
+    en @@GAM@@ gammes, <b>partagée par tout le casting</b> — la peau du boulanger est celle du
+    marchand, et c'est ce qui leur donne l'air d'une seule main</span><span class="p14">@@N@@
+    fiches · @@KO14@@ Ko · <b>une palette relevée sur chaque image</b>, @@MOY14@@ couleurs par
+    fiche en moyenne — plus franches, mais le casting cesse d'être un casting</span></div>
   <div class="barre">
     <div class="grp"><span>Taille</span>
       <button data-t="1" class="on">taille du jeu</button>
       <button data-t="2">×2</button>
-      <button data-t="3">×3 · 1 pixel d\u2019art par point</button>
+      <button data-t="3">×3 · un pixel d&rsquo;art par point</button>
       <button data-t="6">×6</button></div>
+    <div class="grp"><span>Palette</span>
+      <button data-p="0" class="on">105 partagées</button>
+      <button data-p="1">14 par image</button></div>
     <div class="grp"><span>Fond</span>
       <button data-f="fjeu" class="on">jeu</button>
       <button data-f="fpapier">papier</button>
@@ -206,6 +238,9 @@ MODELE = r"""<!doctype html>
   document.querySelectorAll('[data-t]').forEach(function(b){
     b.onclick = function(){ poser(+b.dataset.t);
       seul([].slice.call(document.querySelectorAll('[data-t]')), b); }; });
+  document.querySelectorAll('[data-p]').forEach(function(b){
+    b.onclick = function(){ B.classList.toggle('pal14', b.dataset.p === '1');
+      seul([].slice.call(document.querySelectorAll('[data-p]')), b); }; });
   document.querySelectorAll('[data-f]').forEach(function(b){
     b.onclick = function(){ B.classList.remove('fjeu','fpapier','fdamier');
       B.classList.add(b.dataset.f);
