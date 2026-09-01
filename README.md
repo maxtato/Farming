@@ -10739,3 +10739,76 @@ instants, douze tirages de délai, et les six cas du remappage de sauvegarde. Se
 disaient l'ancien ordre et disent le nouveau : `campagne30`, `contrat`, `cuves`, `ecrans`,
 `guidage`, `hud`, `lecons`. Les vingt-six suites : **1 127 contrôles**, zéro échec, zéro
 erreur de page, zéro 404.
+
+## Le bandeau devient un bouton, et un carnet de contrats
+
+« Enlève l'espèce de message en haut à gauche qui rappelle la mission ; fais juste un petit
+logo de contrat à la place, de la même taille que les boutons pour changer de véhicule, qui
+passe en jaune lorsqu'on a une mission disponible **plus légèrement**, et avec une pastille
+en bas du bouton quand on a une mission en cours. Quand on clique sur ce bouton, une fenêtre
+s'affiche avec les missions passées rayées et grisées, et les missions en cours avec le
+détail de ce qu'on doit faire. »
+
+**Il y avait cinq blocs, et ils étaient là en permanence** : la pilule de la mission de
+campagne — titre, prime, expérience, étape du moment avec sa distance, barre d'avancement —
+puis une puce par contrat accepté, jusqu'à quatre. Reconstruits vingt fois par seconde, ils
+occupaient le quart supérieur gauche de l'écran du premier tour de roue à la fin de la
+campagne. C'est ce bandeau-là qui a fait naître le banc `contrat` : il en mangeait **10,6 %**
+à sa pire heure, ramené à 7,2 par deux resserrements. Il en pèse maintenant **moins de 1 %**,
+et ce qui reste n'est plus un rappel : c'est la marche du tutoriel, la leçon du moment et le
+nom du service sous les roues — trois choses qui **apprennent** un geste ou nomment
+l'endroit où l'on est arrêté, et qui ne durent que le temps de le faire.
+
+**Le bouton dit deux choses, et elles ne sont pas de même nature.** *Y a-t-il quelque chose
+à prendre ?* — le jaune. *Qu'est-ce qui court ?* — la pastille verte et son nombre : la
+mission de campagne prise compte pour une, chaque contrat accepté pour un ; à zéro elle
+n'existe pas, un « 0 » posé sous un bouton étant un chiffre qu'on lit pour rien.
+
+**Et le jaune est un voile, pas un aplat** — c'est le « plus légèrement » du cahier des
+charges, et il se mesure. Ses deux voisins allumés, l'attelage et le plan de travail,
+prennent le jaune plein `#FAD201` et l'encre sombre : c'est la livrée d'un **état qu'on a
+commandé**, un outil accroché, un plan qui tourne. Une mission qui attend n'est pas un état
+qu'on a commandé, c'est une nouvelle. Le fond garde donc sa plaque sombre sous un lavis de
+jaune à **28 %** d'opacité, et c'est l'encre qui passe au jaune vif : le pictogramme se
+détache, le bouton ne saute pas à la figure.
+
+**La fenêtre porte le détail que la pilule ne pouvait pas porter.** Le bandeau tenait dans
+quatre centimètres : il disait le titre, la prime et un pourcentage. Ici il y a la place
+pour ce que le client a demandé mot pour mot, le compte ligne par ligne, l'étape du moment
+avec sa distance, et la prime. C'est tout le gain du changement — l'information n'a pas été
+supprimée, elle a été mise là où elle tient. Les missions faites se lisent **de la plus
+récente à la plus ancienne** : c'est un journal, on l'ouvre pour savoir ce qu'on vient de
+faire. En mode libre il n'y a pas de journal du tout — une section vide promettrait un
+mécanisme qui n'existe pas.
+
+**Un identifiant est un nom propre, et `contrat` était déjà pris.** Il porte la **fenêtre**
+d'un contrat qu'on lit chez un commerce, posée dans le document depuis longtemps. Le
+réutiliser faisait rendre à `getElementById` le premier des deux — la fenêtre — et le
+pictogramme du bouton allait s'écrire par-dessus son contenu, **en silence** : le premier
+essai a effacé la fenêtre de contrat sans qu'aucune erreur ne le dise. Le bouton s'appelle
+donc `carnet`.
+
+**Et le bouton de semence remonte d'un cran.** Il était à droite de la rangée depuis le
+chapitre précédent ; la rangée vient de gagner un quatrième bouton et passe de 168 à 228
+pixels de large. Sur un téléphone en paysage — 568 px — le bas de l'écran est alors plein :
+le manche tient de 24 à 142, la manette des gaz de 476 à 542, la rangée de 170 à 398. Il
+reste 28 pixels à gauche et 78 à droite pour un libellé qui en demande 78 — « AVOINE », le
+plus long des huit. À gauche il se posait sur le manche, à droite il touchait la manette. Il
+passe **au-dessus de la rangée, centré sur elle** : la place n'y dépend plus d'aucune
+largeur, et il n'y a rien d'autre à cette hauteur — les boutons d'achat de parcelle et
+d'atelier sont à 104 pixels du bas, le sien s'arrête à 96. Il y perd sa hauteur de bouton,
+26 pixels au lieu de 48, et c'est juste : ce n'est pas un bouton de la rangée, c'est une
+étiquette qu'on touche pour changer de sac.
+
+**Ce que les bancs ont appris.** Sept d'entre eux comptaient les `.pil` et les `.chip` du
+bandeau : ils comptent maintenant la pastille et lisent la fenêtre. Le banc `contrat`, né du
+bandeau qui mangeait l'écran, mesure la même chose qu'avant — ce que l'interface coûte — et
+trouve 0,5 % au lieu de 7,2. Une section qui empruntait l'état de la campagne sans le rendre
+a été corrigée au passage : les deux sections suivantes relisaient une sauvegarde et
+comptaient un délai, et mesuraient depuis autre chose que ce qu'elles croyaient.
+
+Bancs : `bandeau` passe de 28 à **38 contrôles** — le bouton mesuré dans la rangée, son
+jaune comparé en opacité à celui de l'attelage, la pastille éprouvée à zéro, à un et à
+trois, la fenêtre ouverte au doigt, ses deux sections, ses lignes rayées lues dans le style
+calculé, et l'absence de journal en mode libre. Les vingt-six suites : **1 136 contrôles**,
+zéro échec, zéro erreur de page, zéro 404.
