@@ -49,6 +49,11 @@
     --vert:#5C8C3F; --vertOmb:#3F6A2A;
     --rouge:#C2503E;--rougeOmb:#8E3428;
     --pale:#CFC3A4; --paleOmb:#A99C7C; --paleEncre:#4F4936;
+    /* ET UN BLEU SOMBRE, qui n'est pas une couleur de bouton mais une ENCRE. Le bleu du
+       guidage — #4AA8E0 — est fait pour un fond anthracite : posé sur de la crème il
+       tombe à 2,2 de rapport de contraste. Celui-ci est le même bleu assombri, celui que
+       les boutons bleus du jeu portent déjà en ombre, et il tient à 5,6. */
+    --bleuOmb:#2E6BA8;
     /* le voile qu'on pose sur le jeu quand une fenêtre s'ouvre : il assombrit sans
        masquer, et la feuille claire s'y détache seule, sans avoir besoin d'ombre */
     --voile:rgba(32,35,38,.82);
@@ -149,61 +154,86 @@
      jouait derrière ; la puce dit l'essentiel et ouvre le reste d'un doigt. */
   #ctr{position:absolute;top:calc(78px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
     max-width:52vw;display:none;flex-direction:column;gap:5px;pointer-events:auto}
-  #ctr .pil{padding:6px 11px;border-radius:13px;background:rgba(20,28,33,.55);
-    backdrop-filter:blur(6px)}
-  #ctr .pil.mis{background:rgba(28,40,26,.62);box-shadow:inset 0 0 0 1px rgba(139,224,122,.35)}
-  /* L'OBJECTIF DU MOMENT, sous le résultat à atteindre. Le bandeau disait ce que le
-     client veut ; il dit maintenant aussi ce qu'il faut faire MAINTENANT pour l'avoir,
-     et c'est le jaune du guidage qui le porte — la même couleur qu'au sol et au bord de
-     l'écran. Une ligne, pas un panneau. */
-  #ctr .obj{font-size:9px;font-weight:bold;letter-spacing:.8px;margin-top:4px;
-    color:#FFD21E;display:flex;gap:5px;align-items:baseline}
-  #ctr .obj .ou{opacity:.6;font-weight:normal}
-  /* Le service permanent sous les roues : une ligne bleue, sans barre ni puce. Elle
-     n'annonce pas une tâche, elle nomme un endroit. */
-  #ctr .serv{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#4AA8E0;
-    background:rgba(10,16,22,.62);border-radius:7px;padding:5px 9px;align-self:flex-start;
-    display:flex;gap:6px;align-items:baseline}
-  #ctr .serv .sf{opacity:.62;font-weight:normal;text-transform:none;letter-spacing:.4px}
-  /* L'étape du tutoriel : la forme de la ligne de service, le jaune du guidage — la même
-     couleur qu'au sol et au bord de l'écran, parce que c'est le même ordre. Deux lignes :
-     le geste en capitales, puis la phrase qui l'explique. */
-  #ctr .tuto{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#FFD21E;
-    background:rgba(28,26,10,.66);border-radius:9px;padding:6px 10px;align-self:flex-start;
-    display:flex;flex-direction:column;gap:3px;max-width:100%;
-    box-shadow:inset 0 0 0 1px rgba(255,210,30,.28)}
-  #ctr .tuto .tf{opacity:.8;font-weight:normal;text-transform:none;letter-spacing:.3px;
-    font-size:9px;white-space:normal;line-height:1.4}
-  /* LA LEÇON A LA MÊME FORME QUE LE TUTORIEL, ET UNE AUTRE COULEUR. La forme, parce que
-     c'est la même chose — une consigne d'une ligne, avec sa distance. La couleur, parce
-     que ce n'en est pas la même sorte : le jaune est la mission en cours, le bleu ce
-     qu'on peut faire — et une leçon est toujours une chose qu'on PEUT faire. */
-  #ctr .lecon{font-size:9px;font-weight:bold;letter-spacing:.8px;color:#4AA8E0;
-    background:rgba(10,22,30,.66);border-radius:9px;padding:6px 10px;align-self:flex-start;
-    display:flex;flex-direction:column;gap:3px;max-width:100%;
-    box-shadow:inset 0 0 0 1px rgba(74,168,224,.28)}
-  #ctr .lecon .tf{opacity:.8;font-weight:normal;text-transform:none;letter-spacing:.3px;
-    font-size:9px;white-space:normal;line-height:1.4}
-  #ctrtxt,#ctr .ct{font-size:10px;font-weight:bold;letter-spacing:.6px;text-transform:uppercase}
-  #ctrsub,#ctr .cs{font-size:9px;opacity:.6;letter-spacing:.8px;margin-top:3px}
-  #ctrbar,#ctr .cb{height:4px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:6px}
-  #ctrfill,#ctr .cf{height:100%;width:0%;background:#FAD201;border-radius:3px;transition:width .25s}
-  #ctr .pil.mis .cf{background:#8BE07A}
-  #ctr .urgent .cf{background:#E8563F}
-  #ctr .urgent .cs{opacity:.9;color:#E8563F}
-  #ctr .pil{position:relative}
+  /* LE BANDEAU DEVIENT DU PAPIER, LUI AUSSI.
+     Le joueur : « supprime la petite étiquette qui est en haut à gauche, qui indique
+     l'action à faire en cours, et remplace-la par le même type d'étiquette qui ressemble
+     à du papier déchiré, qui apparaît en tant que fenêtre, avec le même type d'écriture,
+     mais toujours aussi petite qu'aujourd'hui. »
+     C'ÉTAIT LE DERNIER MORCEAU D'INTERFACE SOMBRE QUI PARLAIT. Les fenêtres sont
+     devenues des feuilles ; les cinq blocs du bandeau — la pilule de mission, la ligne de
+     service, celle du tutoriel, celle de la leçon et les puces de contrat — étaient restés
+     des pastilles anthracite à flou d'arrière-plan, c'est-à-dire la matière que le style
+     papier a justement quittée. Ils prennent la feuille, ses encres et ses deux écritures.
+     RIEN NE GRANDIT : les cotes de police ne bougent pas d'un dixième, et le rembourrage
+     ne gagne que les trois pixels dont le bord déchiré a besoin pour ne pas mordre sur une
+     lettre. « Toujours aussi petit » est une contrainte, pas une préférence — c'est ce qui
+     distingue un bandeau d'une fenêtre.
+     ET LA FEUILLE EST UNE IMAGE, PAS UN FILTRE. Celle des fenêtres est un rectangle passé
+     dans une turbulence fractale à quatre octaves : magnifique, et peint une seule fois, à
+     l'ouverture. Ce bandeau-ci se reconstruit VINGT FOIS PAR SECONDE — la distance à
+     l'objectif change à chaque mètre parcouru —, et vingt turbulences par seconde sur cinq
+     blocs coûteraient plus cher que tout le reste de l'interface. Le bord déchiré est donc
+     TRACÉ D'AVANCE, une seule fois, en soixante-deux points tirés au sort hors du jeu, et
+     posé en image de fond : le navigateur la décode une fois pour toutes et la réutilise
+     pour les cinq blocs, quelle que soit leur taille. `background-size:100% 100%` l'étire
+     comme `preserveAspectRatio="none"` étire celle des fenêtres — une feuille large a des
+     dents larges, c'est ce qu'on veut d'un papier. */
+  #ctr .pil, #ctr .serv, #ctr .tuto, #ctr .lecon, #ctr .chip{
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3ClinearGradient id='p' x1='0' y1='0' x2='0.4' y2='1'%3E%3Cstop offset='0' stop-color='%23F6F0DF'/%3E%3Cstop offset='0.55' stop-color='%23F1E9D4'/%3E%3Cstop offset='1' stop-color='%23E7DEC6'/%3E%3C/linearGradient%3E%3Cpath d='M5.0 6.6 L20.0 6.5 L35.0 1.9 L50.0 4.9 L65.0 7.8 L80.0 6.0 L95.0 6.6 L110.0 8.0 L125.0 5.9 L140.0 2.3 L155.0 5.9 L170.0 8.3 L185.0 2.7 L200.0 7.7 L215.0 8.3 L230.0 8.3 L245.0 5.3 L260.0 2.3 L275.0 6.3 L290.0 7.1 L305.0 7.2 L320.0 8.2 L335.0 5.4 L350.0 5.3 L365.0 2.6 L380.0 6.1 L393.7 5.0 L396.1 15.0 L395.2 25.0 L391.8 35.0 L394.3 45.0 L395.0 56.0 L380.0 56.7 L365.0 53.5 L350.0 55.4 L335.0 54.8 L320.0 56.9 L305.0 53.1 L290.0 55.4 L275.0 54.1 L260.0 54.8 L245.0 53.7 L230.0 54.1 L215.0 54.1 L200.0 56.4 L185.0 57.4 L170.0 53.9 L155.0 55.9 L140.0 53.3 L125.0 56.7 L110.0 54.9 L95.0 53.1 L80.0 57.2 L65.0 54.5 L50.0 57.3 L35.0 57.8 L20.0 58.4 L1.8 55.0 L2.5 45.0 L5.2 35.0 L8.2 25.0 L6.6 15.0 Z' fill='url(%23p)'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat;
+    border:none;border-radius:0;box-shadow:none;backdrop-filter:none;
+    align-self:flex-start;max-width:100%;position:relative}
+  #ctr .pil{padding:7px 14px}
+  #ctr .serv{padding:6px 12px;display:flex;gap:6px;align-items:baseline}
+  #ctr .tuto, #ctr .lecon{padding:7px 13px;display:flex;flex-direction:column;gap:2px}
+  #ctr .chip{padding:4px 11px}
+  /* LES DEUX ÉCRITURES DE LA FEUILLE, aux cotes du bandeau. La condensée porte ce qu'on
+     lit d'un coup d'œil — le titre d'une mission, le geste d'une étape —, la linéale ce
+     qu'on lit vraiment. C'est la règle des fenêtres, appliquée en petit. */
+  #ctr .ct{font-family:var(--titre);font-size:11px;font-weight:bold;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--titreC)}
+  #ctr .cs{font-family:var(--corps);font-size:9px;letter-spacing:.4px;margin-top:3px;
+    color:var(--sous)}
+  /* LES ENCRES DU GUIDAGE, ASSOMBRIES POUR LE PAPIER. Le jaune #FFD21E et le bleu #4AA8E0
+     sont faits pour un fond anthracite : posés sur de la crème, ils tombent sous trois de
+     rapport de contraste et deviennent illisibles. On garde le RÔLE de chaque couleur — le
+     jaune de la chaîne en cours, le bleu de ce qui est ouvert, le vert de la mission, le
+     rouge de l'urgence — et l'on prend leur version sombre, celle des ombres de bouton du
+     style papier, qui tient au-dessus de quatre et demi. */
+  #ctr .obj{font-family:var(--titre);font-size:10px;letter-spacing:.7px;margin-top:4px;
+    color:var(--orOmb);display:flex;gap:6px;align-items:baseline;text-transform:uppercase}
+  #ctr .obj .ou{color:var(--sourdine)}
+  #ctr .serv{font-family:var(--titre);font-size:10px;letter-spacing:.7px;
+    color:var(--bleuOmb);text-transform:uppercase}
+  #ctr .serv .sf{font-family:var(--corps);font-size:9px;letter-spacing:.3px;
+    text-transform:none;color:var(--sous)}
+  #ctr .tuto{font-family:var(--titre);font-size:10px;letter-spacing:.7px;
+    color:var(--orOmb);text-transform:uppercase}
+  #ctr .lecon{font-family:var(--titre);font-size:10px;letter-spacing:.7px;
+    color:var(--bleuOmb);text-transform:uppercase}
+  #ctr .tuto .tf, #ctr .lecon .tf{font-family:var(--corps);font-weight:normal;
+    text-transform:none;letter-spacing:.2px;font-size:9px;white-space:normal;
+    line-height:1.4;color:var(--texte)}
+  /* LA BARRE EST UNE LIGNE DE LA FEUILLE, comme celles qu'on pose dans les fenêtres :
+     un beige un peu plus foncé que le papier, avec son ombre portée d'un pixel. Une
+     glissière blanche translucide, sur de la crème, ne se voyait plus du tout. */
+  #ctr .cb{height:4px;border-radius:2px;background:var(--ligne);
+    box-shadow:0 1px 0 var(--ligneOmb);overflow:hidden;margin-top:6px}
+  #ctr .cf{height:100%;width:0%;background:var(--orOmb);border-radius:2px;
+    transition:width .25s}
+  #ctr .pil.mis .cf{background:var(--vert)}
+  #ctr .urgent .cf{background:var(--rouge)}
+  #ctr .urgent .cs{color:var(--rougeOmb)}
   /* LA PUCE D'UN CONTRAT ACCEPTÉ. Une ligne, une barre de deux pixels, rien d'autre :
      de quoi savoir où l'on en est sans rien cacher du champ qu'on est en train de
-     travailler. On la touche pour ouvrir le contrat en entier. */
-  #ctr .chip{padding:4px 9px;border-radius:9px;background:rgba(20,28,33,.5);
-    backdrop-filter:blur(6px);border-left:2px solid rgba(98,216,78,.75);align-self:flex-start;
-    max-width:100%}
-  #ctr .chip .ct{font-size:8.5px;font-weight:bold;letter-spacing:.7px;text-transform:uppercase;
-    opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #ctr .chip .cb{height:2px;margin-top:3px;border-radius:2px;background:rgba(255,255,255,.16)}
-  #ctr .chip .cf{background:#8BE07A}
-  #ctr .chip.urgent{border-left-color:#E8563F}
-  #ctr .chip.urgent .cf{background:#E8563F}
+     travailler. On la touche pour ouvrir le contrat en entier. Son filet vert de gauche
+     est parti avec le fond sombre — un liseré posé au bord d'une feuille déchirée se
+     lirait comme une déchirure ratée — et c'est l'encre du titre qui porte sa couleur. */
+  #ctr .chip .ct{font-size:10px;color:var(--vertOmb);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  #ctr .chip .cb{height:2px;margin-top:3px}
+  #ctr .chip .cf{background:var(--vert)}
+  #ctr .chip.urgent .ct{color:var(--rougeOmb)}
+  #ctr .chip.urgent .cf{background:var(--rouge)}
   /* LA FLÈCHE VERTE DU BORD.
      C'ÉTAIT UN TRIANGLE, ET UN TRIANGLE NE POINTE NULLE PART. Trois côtés égaux, aucune
      hampe : tourné de quatre-vingt-dix degrés il ressemble encore à un triangle, et l'on
@@ -675,37 +705,35 @@
     45%{transform:translateX(-2px)}}
   .ong.appel,.art.appel{animation:appelRespire .95s ease-in-out infinite}
   .pe.appel{animation:appelGlisse 2.1s ease-in-out infinite}
-  /* Le semoir monte EN HAUT. En bas il occupait une rangée à lui seul pour un réglage
-     qu'on change une fois par parcelle. Il se pose SOUS le menu et la pause, contre le
-     bord droit, et non à côté d'eux : la barre de progression est centrée et large de
-     282 px, si bien qu'un écran de téléphone en paysage — 568 px — n'a pas la place
-     des deux sur la même ligne. Sur la deuxième rangée il n'a plus de voisin du tout,
-     le bandeau des contrats étant borné à 52 % de la largeur depuis la gauche.
-     Il est accroché par son bord DROIT, car c'est le seul bouton qui grandit avec son
-     texte : il pousse vers la gauche, où il n'y a personne.
-     Le z-index le met au-dessus des flèches du bord, qui montent jusqu'à y = 79 :
-     mieux vaut qu'une flèche passe derrière un libellé que par-dessus. */
-  #crop{position:absolute;top:calc(56px + env(safe-area-inset-top));
-    right:calc(12px + env(safe-area-inset-right));pointer-events:auto;z-index:7;
-    padding:8px 13px;border-radius:12px;--act:#F0C24A;--actOmb:#B48A1E;
-    font-size:10px;font-weight:bold;letter-spacing:1.4px;gap:7px;
+  /* LE SEMOIR REDESCEND, ET IL NE DIT PLUS QUE SON NOM.
+     Le joueur : « le type de semence, blé, orge etc., ne doit pas être affiché en haut à
+     droite comme actuellement, mais doit arriver en bas à côté des boutons pour changer
+     de véhicule et pour atteler ; et ce bouton doit juste indiquer le nom de la semence.
+     Pas la peine de voir une barre, la barre sera propre au semoir. »
+     Il avait raison sur les deux points. La PLACE d'abord : c'est un réglage de l'outil
+     qu'on traîne, il appartient à la rangée où l'on change d'engin et où l'on attelle, et
+     non au coin où vivent le menu et la pause. La BARRE ensuite : elle disait le niveau du
+     casier, et la plaque du semoir le dit maintenant en toutes lettres au-dessus de la
+     machine, avec sa couleur et son battement — deux surfaces pour le même nombre, dont
+     une qu'on regarde et une qu'on ne regarde pas.
+     IL EST POSÉ EN ABSOLU DANS LA RANGÉE, ET NON DEDANS. La rangée est centrée par
+     `translateX(-50%)` : un quatrième enfant dans son flux la RECENTRE, et les trois
+     boutons permanents glisseraient de vingt-cinq pixels sous le pouce chaque fois qu'on
+     attelle ou dételle le semoir. `left:100%` le pose contre son bord droit sans rien lui
+     prendre de sa largeur.
+     ET C'EST À DROITE, PAS À GAUCHE, PARCE QU'UN TÉLÉPHONE EN PAYSAGE FAIT 568 PIXELS.
+     À gauche, la rangée commence à x = 200 et le manche occupe 24 à 142 : un libellé de
+     78 pixels — « AVOINE », le plus long des huit — descendait à 110 et se posait SUR le
+     manche. À droite, la rangée finit à 368 et la manette des gaz commence à 476 : il
+     reste 108 pixels pour 78, sur le plus étroit des écrans.
+     ET IL PREND LA LIVRÉE DE SES VOISINS — plaque sombre, ombre dure — au lieu de l'aplat
+     ambre qu'il portait seul en haut à droite : dans une rangée de quatre, c'est l'encre
+     qui suffit à dire de quoi il parle. */
+  #engbar #crop{position:absolute;left:100%;margin-left:12px;top:50%;
+    transform:translateY(-50%);height:48px;padding:0 14px;border-radius:14px;
+    color:#F0C24A;font-size:10px;font-weight:bold;letter-spacing:1.4px;
     white-space:nowrap;display:none}
-  /* Cuve vide : le bouton passe au rouge. C'est la seule chose qu'on regarde en semant,
-     et c'est là qu'on doit apprendre qu'il faut rentrer. Ici le rouge n'est PAS un
-     empêché — on peut toujours changer de culture — c'est une alerte, et elle reste donc
-     un aplat comme les autres, le seul rouge de la rangée. */
-  #crop.no{--act:#E8563F;--actOmb:#A03526}
-  /* ET CE QU'IL RESTE SE LIT EN JAUGE, PLUS EN CHIFFRES. « BLÉ 47 », « BLÉ 46 »,
-     « BLÉ 45 » : le nombre défilait à chaque cellule semée, et c'est justement ce qu'on
-     ne peut pas lire en conduisant. Une barre dit la même chose sans qu'on ait à la
-     lire — et elle dit en plus la PART de cuve, ce que le chiffre nu ne disait pas. */
-  /* ET LA JAUGE S'INVERSE AVEC LE BOUTON. Sur un aplat ambre, une barre ambre sur fond
-     blanc translucide ne se voyait plus du tout : c'est l'encre qui remplit la piste,
-     et la piste qui se creuse en sombre. Même barre, même largeur, lecture retrouvée. */
-  #crop i{display:block;width:36px;height:7px;border-radius:4px;
-    background:rgba(16,23,27,.28);overflow:hidden;flex:none}
-  #crop i b{display:block;height:100%;width:0;border-radius:4px;background:#10171B;
-    transition:width .2s linear}
+  #engbar #crop:active{transform:translateY(calc(-50% + 2px))}
   /* Le panneau « à vendre » n'a pas de cercle au sol — c'est un bord de champ, pas un
      quai — mais il obéit à la même règle que les autres : acheter une parcelle est une
      emplette ordinaire, jamais une étape de mission. Donc bleu, comme le garage hors
@@ -988,11 +1016,11 @@
      ET L'OMBRE PORTÉE N'EST PAS UNE COQUETTERIE : un aplat clair posé sur un ciel clair
      n'a plus de bord. Elle est FIXE — aucun de ces boutons ne l'anime —, donc elle ne
      coûte qu'une peinture, une fois. */
-  #service, #buy, #atelier, #veh, #choix .ch, #crop{
+  #service, #buy, #atelier, #veh, #choix .ch{
     background:var(--act);border:none;color:#10171B;
     box-shadow:0 3px 0 var(--actOmb), 0 5px 11px rgba(0,0,0,.34)}
-  #service:active, #buy:active, #atelier:active, #veh:active, #choix .ch:active,
-  #crop:active{transform:translateY(2px);
+  #service:active, #buy:active, #atelier:active, #veh:active,
+  #choix .ch:active{transform:translateY(2px);
     box-shadow:0 1px 0 var(--actOmb), 0 3px 8px rgba(0,0,0,.34)}
   #choix .ch{padding:9px 17px;border-radius:11px;--act:#4AA8E0;--actOmb:#2E6BA8;
     font-size:10px;font-weight:bold;letter-spacing:1.1px;
@@ -1281,8 +1309,8 @@
   body.grille #regie .rgb:active{box-shadow:0 1px 0 rgba(0,0,0,.45)}
   body.grille .dir{box-shadow:0 4px 0 rgba(0,0,0,.45)}
   body.grille .dir.on{box-shadow:0 1px 0 #B49700}
-  body.grille #service,body.grille #buy,body.grille #atelier,body.grille #veh,body.grille #choix .ch,body.grille #crop{box-shadow:0 3px 0 var(--actOmb)}
-  body.grille #service:active,body.grille #buy:active,body.grille #atelier:active,body.grille #veh:active,body.grille #choix .ch:active,body.grille #crop:active{box-shadow:0 1px 0 var(--actOmb)}
+  body.grille #service,body.grille #buy,body.grille #atelier,body.grille #veh,body.grille #choix .ch{box-shadow:0 3px 0 var(--actOmb)}
+  body.grille #service:active,body.grille #buy:active,body.grille #atelier:active,body.grille #veh:active,body.grille #choix .ch:active{box-shadow:0 1px 0 var(--actOmb)}
   body.grille .ped,body.grille .jic{filter:none}
 </style>
 </head>
@@ -1380,8 +1408,8 @@
     <div id="engins" class="pic" aria-label="ENGINS"></div>
     <div id="hitch" class="pic" aria-label="Atteler"></div>
     <div id="auto" class="pic" aria-label="Plan de travail"></div>
+    <div id="crop" class="pic" aria-label="Culture du semoir"></div>
   </div>
-  <div id="crop" class="pic" aria-label="Culture du semoir"></div>
   <div id="buy"></div>
   <div id="atelier"></div>
   <div id="veh"></div>
@@ -3387,7 +3415,23 @@ function acheteursDe(cle, sauf, quantite){
    en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[]};
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0};
+/* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
+   Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
+   d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
+   première : « deux secondes après avoir sélectionné le pick-up, un appel sonne. »
+   Une mission tombait à l'IMAGE MÊME où la précédente se soldait : l'écran de
+   félicitations s'ouvrait pendant que le téléphone se mettait à sonner derrière, et le
+   village avait l'air de tenir un registre plutôt que d'appeler quelqu'un. Trois à dix
+   secondes suffisent à séparer les deux — c'est le temps de lire ce qu'on vient de
+   gagner —, et le tirage les rend inégales, ce qu'un délai fixe ne fait pas.
+   `retard` NE SE SAUVEGARDE PAS, comme les délais des contrats et pour la même raison :
+   il mesure le temps écoulé depuis une livraison de la session d'avant, ce qui ne veut
+   rien dire. Une partie rechargée trouve donc sa mission tout de suite. */
+const MISSION_RETARD = [3, 10];
+const APPEL_DELAI = 2.0;
+// Le compte à rebours de la marche du pick-up : voir la table TUTO.
+let appelT = APPEL_DELAI;
 
 /* Ce que chaque palier ouvre. Une famille par colonne, la clé de l'objet dans la
    famille. `parcelles` est le NOMBRE de parcelles qu'on a le droit de posséder — un
@@ -3686,7 +3730,12 @@ const MISSIONS = [
    dort au silo — et le joueur repartirait la garer sans savoir pourquoi.
    C'est la règle que ce fichier s'impose partout : « des champs, jamais des lignes ». On
    en a ajouté une, on paie donc le remappage — quatre lignes, et une fois pour toutes. */
-const TUTO_V = 2, TUTO_INSERE = 5;
+/* ET ON Y INSÈRE UNE SECONDE MARCHE, « REPRENDRE LE PICK-UP », en septième position.
+   Même paiement que la première fois, et les deux remappages se composent : une
+   sauvegarde d'avant les DEUX insertions passe par les deux décalages, dans l'ordre où
+   ils ont eu lieu. Écrire `< TUTO_V` pour les deux les appliquerait ensemble à une
+   sauvegarde qui n'a manqué que la dernière — d'où un seuil par version. */
+const TUTO_V = 3, TUTO_INSERE = 5, TUTO_INSERE3 = 6;
 const MISSIONS_V = 2;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
@@ -3888,6 +3937,8 @@ const missionCourante = ()=> MODE_LIBRE ? null : (MISSIONS[CAMPAGNE.mission] || 
 function missionAPrendre(){
   const M = missionCourante();
   if(!(M && !M.faire && M.lieu && !CAMPAGNE.prise)) return null;
+  // Elle n'est pas encore arrivée : voir MISSION_RETARD.
+  if(CAMPAGNE.retard > 0) return null;
   /* ET LE TÉLÉPHONE NE SONNE PAS PENDANT QU'ON APPREND LE MÉTIER. Le tutoriel de la
      première mission tourne AVANT qu'on la prenne : six marches, du premier attelage au
      pick-up chargé. Un cercle vert allumé chez soi dès la première image tirerait le
@@ -3903,6 +3954,12 @@ function missionAPrendre(){
 // Ce que le joueur doit voir : une mission prise, ou une mission qu'on ne prend nulle part.
 function missionVisible(){
   const M = missionCourante();
+  /* ET UNE MISSION QUI N'EST PAS ENCORE ARRIVÉE N'EST NULLE PART. Le délai vaut aussi
+     pour les missions « faire », qui ne se prennent chez personne et deviendraient
+     l'objectif à l'image même où la précédente se solde : c'est le cas où le joueur
+     verrait le moins qu'il y a eu un avant et un après. Tout ce qui lit ce juge est
+     déjà à l'épreuve du null. */
+  if(CAMPAGNE.retard > 0) return null;
   return (M && (M.faire || CAMPAGNE.prise)) ? M : null;
 }
 /* LES TROIS FOURNISSEURS, ET POURQUOI ILS NE SE TAISENT JAMAIS.
@@ -3975,6 +4032,11 @@ function finirMission(){
   showHint('MISSION FAITE' + (M.prime > 0 ? '  +' + eur(M.prime) : '')
            + (M.xp ? '  ·  +' + M.xp + ' XP' : ''));
   pluiePieces(M.prime, null, null, 9);
+  /* ET LA SUIVANTE SE FAIT ATTENDRE. Le tirage est posé EN DERNIER, après que
+     `ouvrirBravo` a lu la mission qui vient : l'écran de félicitations annonce ce qui
+     arrive, il ne doit pas le trouver caché par le délai qu'on vient d'armer. */
+  CAMPAGNE.retard = MISSION_RETARD[0]
+                  + Math.random()*(MISSION_RETARD[1] - MISSION_RETARD[0]);
 }
 /* ---------- BRAVO, MISSION TERMINÉE ----------
    Une mission se soldait sur une ligne de bandeau qui s'effaçait en deux secondes et
@@ -4129,8 +4191,12 @@ function chargerCampagne(S){
     /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
        la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
        après a glissé d'un cran. `99` — « tout franchi » — ne bouge pas. */
-    if((C.tv | 0) < TUTO_V && CAMPAGNE.tuto >= TUTO_INSERE && CAMPAGNE.tuto < 99)
+    if((C.tv | 0) < 2 && CAMPAGNE.tuto >= TUTO_INSERE && CAMPAGNE.tuto < 99)
       CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
+    if((C.tv | 0) < 3 && CAMPAGNE.tuto >= TUTO_INSERE3 && CAMPAGNE.tuto < 99)
+      CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
+    // Un délai ne se relit pas : la mission du moment est là, tout de suite.
+    CAMPAGNE.retard = 0;
     /* MÊME RÈGLE POUR LES LEÇONS, ET POUR LA MÊME RAISON QUE LE TUTORIEL. Le champ
        n'existait pas : son absence vaut « tout appris ». Sans ce défaut, une partie en
        cours depuis trois heures se verrait expliquer comment acheter un tracteur, remplir
@@ -5906,7 +5972,23 @@ let sonnerie = null;
    `hx`/`hz` sont la maison elle-même ; `x`/`z` le cercle. Les deux sont ici parce que le
    guidage, la colonne d'actions et la carte du plan de travail les lisent tous les trois,
    et qu'un lieu déclaré dans la fonction qui le bâtit n'aurait été visible de personne. */
-const MAISON = {hx:-58, hz:57, x:-50, z:57, r:4.2, nom:'Ferme'};
+/* ET LE CERCLE S'ÉLOIGNE DE TROIS MÈTRES. Le joueur : « le cercle qui est à côté de la
+   maison, quand on reçoit les coups de téléphone, décale-le un peu plus de la maison,
+   mets-le plus sur la partie en herbe. » Il était à huit mètres du pignon — le premier
+   point libre du relevé, donc le plus proche possible —, si bien qu'il mordait sur
+   l'ombre du bâtiment et se lisait comme une marque de façade plutôt que comme un point
+   du terrain. Le relevé refait au demi-mètre sur 72 directions donne 136 points libres ;
+   celui-ci est à ONZE MÈTRES du pignon, à un degré près dans l'axe, en plein herbage et
+   sans obstacle à moins de 3,2 m, sans route à moins de 3, hors parcelle, hors chemin et
+   hors dalle de la cour.
+   ET IL NE VA PAS PLUS LOIN, PARCE QUE LE COMBINÉ SUIT LA MAISON ET NON LE CERCLE. Le
+   téléphone qui sonne flotte à 9,20 m au-dessus du toit ; plus on s'éloigne de la maison,
+   plus il monte à l'écran, et il sort par le haut du cadre bien avant le toit — mesuré :
+   65 px de marge à dix mètres du cercle quand celui-ci était à huit, 20 px quand il est à
+   onze, et l'on passe sous zéro dès treize. Le point le plus lointain qui garde le
+   combiné dans le cadre à l'approche est donc celui-là, et c'est lui qui borne le
+   décalage. */
+const MAISON = {hx:-58, hz:57, x:-47, z:56, r:4.2, nom:'Ferme'};
 const obstacles = [];   // cercles {x,z,r} ; ceux marqués `soft` sont renversables
 // Décor renversable : on le bouscule, il tombe, reste au sol quelques secondes, clignote
 // puis se relève. Il ne bloque jamais la machine, qui reçoit seulement un renvoi.
@@ -8171,6 +8253,20 @@ function buildFarm(){
        rocade. L'abscisse, elle, est celle du quai — x = −3,4 dans le modèle, 18,64 une
        fois le bâtiment retourné. */
     ENTREPOT.quai = entPoint(-3.4, -(ENT_D/2 + 4.6));
+    /* ET IL RECULE DE QUATRE-VINGT-DIX CENTIMÈTRES VERS LA ROUTE. Le joueur : « le cercle
+       qui est à côté de l'entrepôt est trop proche de l'entrepôt ; décale-le un tout petit
+       peu plus vers la route, sans qu'il morde sur la route. » Il avait raison, et c'était
+       pire que « proche » : LE CERCLE MORDAIT SUR LE QUAI. Relevé — le massif du quai
+       s'arrête à z = 62,05, le bitume de la rocade commence à 69,00, et le cercle était
+       posé à 64,64 pour le rayon commun de 3,05 : son bord nord tombait à 61,59, soit
+       QUARANTE-SIX CENTIMÈTRES SOUS le socle, quand son bord sud gardait 1,31 m de gazon.
+       Il était enfoncé d'un côté et flottait de l'autre.
+       LE COULOIR EST ÉTROIT, ET C'EST LUI QUI DÉCIDE : 6,95 m entre le socle et l'asphalte
+       pour un cercle qui en fait 6,10. Il reste 85 cm de jeu, et la seule pose qui ne
+       morde nulle part est celle qui les partage — 42 cm de chaque côté, soit z = 65,54.
+       Le décalage se fait EN MÈTRES DU MONDE et non en unités de modèle : la rocade est
+       parallèle au bâtiment, l'axe z est le même pour les deux. */
+    ENTREPOT.quai.z += 0.9;
     const agirEnt = ()=> actionsEntrepot(MACHINES[cur]).length > 0;
     anneauAction(ENTREPOT.quai.x, ENTREPOT.quai.z, 2.4,
       ()=> couleurPoste('entrepot', agirEnt) !== GUIDE.GRIS,
@@ -11679,6 +11775,15 @@ function updateCommandes(dt){
       S.offreT = attenteRenom(S)*0.8;
     }
   }
+  /* LES DEUX COMPTES À REBOURS. Celui de la mission court tout seul ; celui de l'appel
+     ne court QUE pendant la marche du pick-up, et il repart si l'on redescend de la
+     machine — sans quoi on pourrait armer les deux secondes puis reprendre la
+     moissonneuse et voir le téléphone sonner à sa place. */
+  if(CAMPAGNE.retard > 0) CAMPAGNE.retard = Math.max(0, CAMPAGNE.retard - dt);
+  const ET0 = etapeTuto();
+  if(ET0 && ET0.cle === 'pickup')
+    appelT = (MACHINES[cur] && MACHINES[cur].key === 'pickup')
+      ? Math.max(0, appelT - dt) : APPEL_DELAI;
   remplirCommandes(dt);
   veillerMission();
 }
@@ -17353,33 +17458,22 @@ cropEl.addEventListener('pointerdown', ()=>{
            (CROPS[n].perenne ? '' : ' — ' + kg(resteN).toUpperCase() + ' EN CUVE'));
   refreshCropButton();
 });
-let cropJauge = null;
+/* LE BOUTON NE DIT PLUS QUE LA SEMENCE. « Ce bouton doit juste indiquer le nom de la
+   semence ; pas la peine de voir une barre, la barre sera propre au semoir. »
+   Il portait trois choses : un pictogramme de culture, le nom, et une jauge du casier
+   qui s'inversait en rouge à sec. Les deux dernières sont parties chez la plaque du
+   semoir, qui flotte au-dessus de la machine et qui dit exactement cela — la matière, le
+   nombre, la barre, sa couleur et son battement quand il ne reste rien. Ce qui reste ici
+   est ce qu'aucune autre surface ne dit : SUR QUOI le semoir est réglé, c'est-à-dire ce
+   qu'on va semer au prochain rang. C'est aussi ce qu'on touche pour en changer.
+   ET IL NE SE REPEINT QU'AU CHANGEMENT DE CULTURE. Il n'a plus rien qui bouge au fil du
+   semis : le texte est le même d'un bout à l'autre d'une parcelle. */
 function refreshCropButton(){
   const T = toolOf(MACHINES[cur]);
   if(!T || T.key !== 'semis'){ cropEl.style.display = 'none'; return; }
   cropEl.style.display = 'flex';
-  /* LE BOUTON DIT AUSSI CE QU'IL RESTE DANS LA CUVE. Depuis que le semoir porte ses
-     graines, tomber en panne au milieu d'un rang est possible : le seul endroit où l'on
-     regarde en semant, c'est ce bouton, et c'est donc là que le chiffre doit être. */
-  const c = CROPS[T.crop || 0];
-  // Le casier de CETTE graine-là : les autres sont toujours à bord, ils ne concernent
-  // simplement pas le rang qu'on est en train de semer.
-  const reste = cuveDe(T, c.cle);
-  const nom = c.nom.toUpperCase();
-  /* Le libellé ne change qu'au changement de culture — c'est la jauge, et elle seule,
-     qui bouge au fil du semis. Une pérenne se plante et ne puise rien : pas de jauge. */
-  if(cropEl.dataset.crop !== nom){
-    cropEl.dataset.crop = nom;
-    cropEl.innerHTML = picto('culture') + '<span>' + nom + '</span>'
-                       + (c.perenne ? '' : '<i><b></b></i>');
-    cropJauge = cropEl.querySelector('i b');
-  }
-  if(cropJauge && !c.perenne){
-    const part = Math.max(0, Math.min(100, Math.round(reste/Math.max(1, T.cuveMax || 1)*100)));
-    if(cropJauge.dataset.p !== '' + part){ cropJauge.dataset.p = '' + part;
-                                           cropJauge.style.width = part + '%'; }
-  }
-  cropEl.classList.toggle('no', !c.perenne && reste < 1);
+  const nom = CROPS[T.crop || 0].nom.toUpperCase();
+  if(cropEl.dataset.crop !== nom){ cropEl.dataset.crop = nom; cropEl.textContent = nom; }
 }
 const autoEl = document.getElementById('auto');
 
@@ -19210,10 +19304,28 @@ const TUTO = [
    fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
      return !!(M && M.v.parc
        && Math.hypot(M.v.pos.x - M.v.parc.x, M.v.pos.z - M.v.parc.z) < 6); }},
-  {cle:'charger', ou:'silo', engin:'pickup', titre:'PRÉPARER LA LIVRAISON',
-   txt:'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up',
-   quoi:'charger', prod:'ble',
-   fait:()=> bleABord() >= 29.9},
+  /* REPRENDRE LE PICK-UP, ET ATTENDRE DEUX SECONDES.
+     Le joueur : « une fois qu'on a garé la moissonneuse, le système nous demande de
+     reprendre notre pick-up, mais pas d'aller directement charger au silo ; il faut que,
+     deux secondes après avoir sélectionné le pick-up, un appel sonne, qu'on aille à la
+     maison pour écouter l'appel, et que là il s'agisse de la mission pour les 30 kg à la
+     Coopérative. Et là on nous demande d'aller charger le pick-up au silo pour aller
+     livrer à la Coopérative. »
+     L'ORDRE CHANGE, ET C'EST TOUT L'OBJET DE LA MARCHE. Le tutoriel envoyait charger
+     trente kilos AVANT que personne ne les ait demandés : on chargeait pour rien, puis le
+     téléphone sonnait pour réclamer ce qu'on portait déjà. L'appel passe donc devant, et
+     ce n'est plus le tutoriel qui envoie au silo — c'est la MISSION, une fois prise, par
+     le chemin ordinaire du guidage : `objectifProduit` voit trente kilos au silo et rien
+     dans la benne, et dit CHARGER puis LIVRER. Rien à écrire pour cela, il suffisait de
+     ne plus le faire à sa place.
+     LES DEUX SECONDES SONT UNE VRAIE ATTENTE, et non un délai d'affichage : la marche
+     n'est franchie qu'une fois `appelT` épuisé, si bien que le bandeau dit encore
+     « reprendre le pick-up » pendant qu'on s'installe, et que la sonnerie tombe dans le
+     silence qui suit. Le compte à rebours ne court que pendant CETTE marche et que si
+     l'on est bien dans le pick-up : voir `updateCommandes`. */
+  {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP',
+   txt:'REPRENDRE LE PICK-UP — la moissonneuse est rangée : reprends ton pick-up',
+   fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0},
   /* LA DERNIÈRE MARCHE EST LA SEULE DU TUTORIEL QUI SE DÉDOUBLE, ET C'EST LE MODE QUI
      TRANCHE.
      EN CAMPAGNE, LE TÉLÉPHONE SONNE. La mission se prenait chez le CLIENT, au moment
@@ -19230,13 +19342,30 @@ const TUTO = [
      d'office — et le tour du fermier se termine où il doit, chez l'acheteur. Le cercle
      jaune montre la Coopérative parce que c'est elle qui prend tout, mais rien n'oblige
      à y aller : vendre son blé à l'usine céréales solde l'étape aussi bien. */
+  /* ET LES DEUX DERNIÈRES MARCHES NE SONT PAS DANS LE MÊME ORDRE SELON LE MODE.
+     EN CAMPAGNE : l'appel, puis plus rien — prendre la mission met `CAMPAGNE.prise` à
+     vrai, `listeEtapes` rend alors la liste des préambules (mission zéro n'en a pas), et
+     le tutoriel s'arrête là. C'est la mission qui prend le relais et qui envoie charger
+     au silo puis livrer.
+     EN MODE LIBRE il n'y a pas de mission, et il n'y en aura jamais : personne ne dira
+     d'aller charger. La marche garde donc son ancien rôle — charger trente kilos au
+     silo — et la dernière reste la première vente.
+     UNE MARCHE QUI NE SERT PAS À UN MODE SE SOLDE TOUTE SEULE : `fait` rend vrai, le
+     cliquet la traverse, et rien ne s'affiche puisqu'on n'annonce jamais une marche déjà
+     franchie. C'était la seule façon de garder UNE table indicée — « des champs, jamais
+     des lignes » — avec deux ordres de lecture. */
   {cle:'appel', engin:'pickup',
-   ou:   ()=> MODE_LIBRE ? 'Coopérative' : 'ferme',
-   titre:()=> MODE_LIBRE ? 'PREMIÈRE VENTE' : 'LE TÉLÉPHONE SONNE',
+   ou:   ()=> MODE_LIBRE ? 'silo' : 'ferme',
+   titre:()=> MODE_LIBRE ? 'PRÉPARER LA LIVRAISON' : 'LE TÉLÉPHONE SONNE',
    txt:  ()=> MODE_LIBRE
-     ? 'PREMIÈRE VENTE — rends-toi à la Coopérative agricole'
+     ? 'PRÉPARER LA LIVRAISON — charge 30 kg de blé dans le pick-up'
      : 'LE TÉLÉPHONE SONNE — rentre à la ferme, on veut de ton blé',
-   fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : CAMPAGNE.prise}
+   quoi: ()=> MODE_LIBRE ? 'charger' : 'tuto',
+   prod: ()=> MODE_LIBRE ? 'ble' : null,
+   fait: ()=> MODE_LIBRE ? bleABord() >= 29.9 : CAMPAGNE.prise},
+  {cle:'vente', engin:'pickup', ou:'Coopérative', titre:'PREMIÈRE VENTE',
+   txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
+   fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : true}
 ];
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
@@ -19776,7 +19905,14 @@ function veillerTuto(){
   while(CAMPAGNE.tuto < L.length && L[CAMPAGNE.tuto].fait() && n++ <= L.length){
     CAMPAGNE.tuto++;
     const E = L[CAMPAGNE.tuto];
-    if(E) annoncerEtape(E);
+    /* ET ON N'ANNONCE PAS UNE MARCHE DÉJÀ FRANCHIE. Le cliquet en traverse plusieurs d'un
+       coup — un joueur qui arrive avec sa benne pleine en saute quatre — et il ouvrait la
+       fenêtre de chacune au passage, la dernière écrasant les précédentes deux
+       millisecondes plus tard. C'est devenu visible avec les marches qui ne servent qu'à
+       un mode : en campagne, prendre la mission solde l'appel, et la marche suivante —
+       « PREMIÈRE VENTE », qui n'existe qu'en mode libre — s'annonçait avant de se solder
+       toute seule. On n'annonce que ce qui reste à faire. */
+    if(E && !E.fait()) annoncerEtape(E);
     /* ET LA DERNIÈRE MARCHE SE DIT, EN MODE LIBRE. En campagne il n'y a rien à annoncer —
        la Coopérative enchaîne sur la première mission, et c'est elle qui parle. En libre,
        la septième étape soldée, tout s'éteint : plus de cercle jaune, plus de flèche, plus
@@ -19802,8 +19938,14 @@ function objectifMission(){
        un transfert portent donc `quoi` et `prod`, et le juge les relaie dans le vocabulaire
        de tout le monde. Les autres — labourer, semer, attendre que ça pousse — gardent
        `quoi:'tuto'` : il n'y a pas de bouton à désigner sur un champ. */
+    /* `quoi` ET `prod` PASSENT PAR `champEtape` COMME LES AUTRES. Ils étaient lus en
+       clair, ce qui interdisait à une marche de changer de geste selon le mode — et
+       c'est exactement ce que demande la marche qui suit le pick-up : le téléphone en
+       campagne, le chargement au silo en mode libre. Une fonction posée sur `quoi`
+       aurait été passée telle quelle à la colonne d'actions, qui compare des chaînes. */
     if(L0) return {lieu:L0.lieu, x:L0.x, z:L0.z,
-                   quoi: E.quoi || 'tuto', cle: E.prod, txt:champEtape(E, 'txt')};
+                   quoi: champEtape(E, 'quoi') || 'tuto', cle: champEtape(E, 'prod'),
+                   txt:champEtape(E, 'txt')};
   }
   const M = missionVisible();
   if(!M) return null;

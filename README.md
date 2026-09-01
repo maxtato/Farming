@@ -10608,3 +10608,134 @@ l'ancienne règle et disent maintenant la nouvelle : `hud` (la trémie, la remor
 couleur d'une cuve), `contrat` (le libellé de la flèche verte) et `lecons` (la vignette
 d'une leçon). Les vingt-quatre suites plus celle-ci : **1 098 contrôles**, zéro échec,
 zéro erreur de page, zéro 404.
+
+## Le bandeau passe au papier, le semoir descend, et l'appel arrive avant le chargement
+
+Cinq demandes, dont trois de forme et deux de rythme.
+
+**Le bandeau du haut était le dernier morceau d'interface sombre qui parle.** « Supprime la
+petite étiquette en haut à gauche qui indique l'action à faire, et remplace-la par le même
+type d'étiquette qui ressemble à du papier déchiré, avec le même type d'écriture, mais
+toujours aussi petite qu'aujourd'hui. » Les fenêtres sont devenues des feuilles il y a
+longtemps ; les cinq blocs du bandeau — la pilule de mission, la ligne de service, celle du
+tutoriel, celle de la leçon et les puces de contrat — étaient restés des pastilles
+anthracite à flou d'arrière-plan, c'est-à-dire exactement la matière que le style papier a
+quittée. Ils prennent la feuille, ses deux écritures et ses encres. **Rien ne grandit** :
+le titre reste à 11 px, le détail à 9, l'objectif à 10, et la pilule passe de 60 pixels de
+haut à 64 — les quatre que le bord déchiré demande pour ne pas mordre sur une lettre.
+
+**Et la feuille est une image, pas un filtre.** Celle des fenêtres est un rectangle passé
+dans une turbulence fractale à quatre octaves : magnifique, et peinte une seule fois, à
+l'ouverture. Ce bandeau-ci **se reconstruit vingt fois par seconde** — la distance à
+l'objectif change à chaque mètre parcouru —, et vingt turbulences par seconde sur cinq
+blocs coûteraient plus cher que tout le reste de l'interface. Le bord déchiré est donc
+tracé d'avance, une fois, en **soixante-deux points tirés au sort hors du jeu**, et posé en
+image de fond : le navigateur la décode une fois pour toutes et la réutilise pour les cinq
+blocs, quelle que soit leur taille. `background-size:100% 100%` l'étire comme
+`preserveAspectRatio="none"` étire celle des fenêtres.
+
+**Les encres du guidage sont assombries, et il le fallait.** Le jaune `#FFD21E` et le bleu
+`#4AA8E0` sont faits pour un fond anthracite ; posés sur de la crème ils tombent à 2,2 de
+rapport de contraste, sous le seuil lisible de 4,5. Chaque couleur garde son **rôle** — le
+jaune de la chaîne en cours, le bleu de ce qui est ouvert, le vert de la mission, le rouge
+de l'urgence — et prend sa version sombre, celle que les boutons du style papier portent
+déjà en ombre. Un jeton de plus, `--bleuOmb`, parce que le bleu n'en avait pas.
+
+**Le bouton de semence redescend, et ne dit plus que son nom.** « Le type de semence ne doit
+pas être affiché en haut à droite, mais doit arriver en bas à côté des boutons pour changer
+de véhicule et pour atteler ; et ce bouton doit juste indiquer le nom de la semence. Pas la
+peine de voir une barre, la barre sera propre au semoir. » Les deux points portaient : c'est
+un réglage de l'outil qu'on traîne, il appartient à la rangée où l'on change d'engin ; et sa
+barre disait le niveau du casier, que la plaque du semoir dit maintenant en toutes lettres
+au-dessus de la machine, avec sa couleur et son battement.
+
+Deux détails de pose, tous deux mesurés. Il est **absolu dans la rangée, pas dedans** : la
+rangée est centrée par `translateX(-50%)`, et un quatrième enfant dans son flux la recentre
+— les trois boutons permanents glisseraient de vingt-cinq pixels sous le pouce chaque fois
+qu'on attelle le semoir. Et il est **à droite, pas à gauche**, parce qu'un téléphone en
+paysage fait 568 pixels : à gauche, la rangée commence à x = 200 et le manche occupe 24 à
+142, si bien qu'un libellé de 78 px — « AVOINE », le plus long des huit — se posait **sur le
+manche** ; à droite, la rangée finit à 368 et la manette des gaz commence à 476.
+
+**Deux cercles s'écartent, et le premier mordait.** « Le cercle à côté de l'entrepôt est trop
+proche de l'entrepôt : décale-le un tout petit peu plus vers la route, sans qu'il morde sur
+la route. » Relevé : le massif du quai s'arrête à z = 62,05, le bitume commence à 69,00, et
+le cercle était posé à 64,64 pour le rayon commun de 3,05 — son bord nord tombait à 61,59,
+soit **quarante-six centimètres sous le socle**, quand son bord sud gardait 1,31 m de gazon.
+Le couloir ne fait que 6,95 m pour un cercle qui en occupe 6,10 : il reste 85 cm de jeu, et
+la seule pose qui ne morde nulle part est celle qui les partage — 42 cm de chaque côté.
+
+« Le cercle à côté de la maison, quand on reçoit les coups de téléphone, décale-le un peu
+plus de la maison, mets-le plus sur la partie en herbe. » Il était à huit mètres du pignon,
+le premier point libre du relevé d'origine, donc le plus proche possible. Le relevé refait
+au demi-mètre sur 72 directions donne 136 points libres ; il passe à **onze mètres**, à un
+degré près dans l'axe. **Et pas plus loin, parce que le combiné suit la maison et non le
+cercle** : le téléphone qui sonne flotte à 9,20 m au-dessus du toit, donc il monte à l'écran
+à mesure qu'on s'éloigne — 65 px de marge à dix mètres du cercle quand celui-ci était à
+huit, 20 px quand il est à onze, et l'on passe sous zéro dès treize. Le point le plus
+lointain qui garde le combiné dans le cadre à l'approche borne le décalage.
+
+**L'appel passe avant le chargement, et c'est la mission qui envoie au silo.** « Une fois
+qu'on a garé la moissonneuse, le système nous demande de reprendre notre pick-up, mais pas
+d'aller directement charger au silo : deux secondes après avoir sélectionné le pick-up, un
+appel sonne, on va à la maison pour écouter l'appel, et là il s'agit de la mission pour les
+30 kg à la Coopérative. Et là on nous demande d'aller charger le pick-up au silo pour aller
+livrer. » Le tutoriel envoyait charger trente kilos **avant que personne ne les ait
+demandés** : on chargeait pour rien, puis le téléphone sonnait pour réclamer ce qu'on portait
+déjà. La table gagne donc une marche, `pickup`, entre le parking et l'appel — et perd la
+sienne : ce n'est plus le tutoriel qui envoie au silo, c'est la **mission prise**, par le
+chemin ordinaire du guidage. `objectifProduit` voit trente kilos au silo et rien dans la
+benne, dit CHARGER puis LIVRER. Il n'y a rien eu à écrire pour cela : il suffisait de ne
+plus le faire à sa place.
+
+**Les deux secondes sont une vraie attente.** La marche n'est franchie qu'une fois le compte
+à rebours épuisé, si bien que le bandeau dit encore « reprendre le pick-up » pendant qu'on
+s'installe, et que la sonnerie tombe dans le silence qui suit. Il ne court que pendant cette
+marche-là, et il **repart si l'on redescend de la machine** — sans quoi on pourrait armer les
+deux secondes, reprendre la moissonneuse, et voir le téléphone sonner à sa place.
+
+**Les deux derniers rangs ne sont pas dans le même ordre selon le mode**, et c'est ce qui a
+demandé le plus de soin. En campagne, prendre la mission met `CAMPAGNE.prise` à vrai et
+`listeEtapes` rend alors la liste des préambules — mission zéro n'en a pas —, donc le
+tutoriel s'arrête sur l'appel. En mode libre il n'y a **aucune** mission : personne ne dira
+d'aller charger. La marche de l'appel garde donc son ancien rôle de ce côté-là — charger
+trente kilos au silo —, et la dernière reste la première vente. Une marche qui ne sert pas à
+un mode se solde toute seule, le cliquet la traverse, et rien ne s'affiche puisqu'on
+**n'annonce plus jamais une marche déjà franchie** — un défaut qui existait avant et qu'on ne
+voyait pas : le cliquet en traverse plusieurs d'un coup et ouvrait la fenêtre de chacune au
+passage, la dernière écrasant les précédentes deux millisecondes plus tard.
+
+**Et une mission ne tombe plus sur la précédente.** « Laisse un petit délai variable entre 3
+et 10 secondes pour l'arrivée d'une nouvelle mission une fois qu'une mission est
+finalisée. » Elle tombait à l'image même où la précédente se soldait : l'écran de
+félicitations s'ouvrait pendant que le téléphone se mettait à sonner derrière, et le village
+avait l'air de tenir un registre plutôt que d'appeler quelqu'un. Le tirage est posé **en
+dernier**, après que l'écran de félicitations a lu la mission qui vient — il annonce ce qui
+arrive, il ne doit pas le trouver caché par le délai qu'on vient d'armer. Le délai vaut
+aussi pour les missions « faire », qui ne se prennent chez personne et deviendraient
+l'objectif à l'image même. Il **ne se sauvegarde pas**, comme les délais des contrats et pour
+la même raison : il mesure le temps écoulé depuis une livraison de la session d'avant, ce qui
+ne veut rien dire.
+
+**Le rang du tutoriel se paie une seconde fois.** `CAMPAGNE.tuto` est un indice dans `TUTO`,
+et l'on vient d'y insérer une marche en septième position — comme le parking l'avait été en
+sixième. Les deux remappages se composent, avec **un seuil par version** : écrire `< TUTO_V`
+pour les deux les appliquerait ensemble à une sauvegarde qui n'a manqué que la dernière. Une
+partie d'avant les deux insertions passe par les deux décalages, dans l'ordre où ils ont eu
+lieu ; un tutoriel fini le reste.
+
+**Ce que les bancs ont appris au passage.** Huit d'entre eux écrivaient `TUTO.length - 1`
+pour dire « la marche où le téléphone sonne » : vrai tant que c'était la dernière ligne,
+faux dès qu'on en ajoute une. C'est exactement l'absolu déguisé en propriété que ce fichier
+traque, et ils nomment maintenant la marche. Un autre demandait que le combiné tienne dans
+le cadre **tant que le toit y est**, et il passait de dix pixels — une marge que le moindre
+mètre fait tomber ; il mesure maintenant ce qui compte, qu'on le voie en venant et qu'il
+sorte par le haut.
+
+Bancs : le nouveau **`bandeau`**, 28 contrôles — la feuille lue dans le style calculé, les
+cotes de police comparées aux anciennes, le couloir de l'entrepôt mesuré des deux côtés, le
+point de la maison repassé par le test de liberté, le cliquet du pick-up éprouvé aux trois
+instants, douze tirages de délai, et les six cas du remappage de sauvegarde. Sept bancs
+disaient l'ancien ordre et disent le nouveau : `campagne30`, `contrat`, `cuves`, `ecrans`,
+`guidage`, `hud`, `lecons`. Les vingt-six suites : **1 127 contrôles**, zéro échec, zéro
+erreur de page, zéro 404.
