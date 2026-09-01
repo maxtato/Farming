@@ -20,8 +20,11 @@ balayé : l'orge et l'avoine sont deux gerbes jaunes, et leurs noms de fichier s
 empreintes. Le fichier sorti s'appelle `produits/<clé>.png`, à côté d'`index.html`.
 
 **Une planche peut servir deux clés**, et c'est `VIGNETTES` côté jeu qui le dit — elle
-associe une clé à un *nom de planche*, pas un oui. Le mouton et la brebis sont le même
-animal, la ruche se montre par son abeille : seize clés, quinze planches.
+associe une clé à un *nom de planche*, pas un oui. Deux façons d'en arriver là, et ce ne sont
+pas les mêmes : `mouton` et `alimentPlus` visent la planche d'une **autre clé** — le mouton
+et la brebis sont le même animal, l'aliment premium tient dans le même sac —, tandis que
+`ruche` vise une planche qui ne porte le nom d'**aucune** clé, parce qu'elle dessine une
+abeille. Vingt clés, dix-huit planches.
 
 **Ajouter une vignette, c'est deux lignes.** Une entrée ici, et la clé dans `VIGNETTES`
 côté jeu. Tant que la seconde manque, la ligne de menu garde son filet de couleur ; tant que
@@ -92,6 +95,6 @@ dans les deux sens et signale l'oubli.
 
 ## Où vivent les images
 
-`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — sept récoltes,
-trois produits de la bête et cinq animaux, 26,6 Ko pour quinze planches. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+`produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
+brut, plus cinq animaux : 33,4 Ko pour dix-huit planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

@@ -11019,3 +11019,35 @@ deux sens en tenant compte des clés qui partagent, les six espèces vérifiées
 rayon de l'élevage relu ligne par ligne contre `ESPECES`, et rien dans la table qui ne soit
 ni un produit ni une espèce. Les vingt-sept suites : **1 166 contrôles**, zéro échec, zéro
 erreur de page, zéro 404.
+
+---
+
+## Le miel, la laine, l'aliment — et le sac d'olives qui remplace la branche
+
+Quatre rendus, et il ne reste plus une seule ligne de produit **brut** sans image : un pot de
+miel, une pelote de laine, un sac d'aliment du bétail, et un sac d'olives.
+
+**Le sac d'olives remplace la branche du deuxième envoi.** C'est un remplacement et non un
+ajout : `olives` est une clé, et la table lui associe une planche, pas deux. La branche est à
+une ligne de revenir — `produits.json` garde le nom de sa source —, mais le sac lui va mieux
+là où il paraît : ce que la ligne nomme est une marchandise en stock, pas une plante sur son
+arbre, et à vingt-six pixels un sac compact se lit là où une branche à feuilles fines se
+dissout.
+
+**L'aliment premium tient dans le même sac.** C'est le troisième partage de planche, après le
+mouton avec la brebis et la ruche avec son abeille : ce qui distingue l'aliment premium de
+l'aliment, c'est sa recette — maïs, orge et avoine au lieu du maïs seul —, pas son emballage.
+Vingt clés, **dix-huit planches**, et deux façons différentes d'en arriver là : `mouton` et
+`alimentPlus` visent la planche d'une *autre clé* — deux clés pour un fichier —, tandis que
+`ruche` vise une planche qui ne porte le nom d'aucune clé, parce qu'elle dessine une abeille
+et qu'il aurait fallu mentir pour l'appeler `ruche.png`. Le banc distingue les deux cas.
+
+La chaîne n'a pas bougé d'une ligne : les quatre sources sont sur magenta, trois portent une
+ombre portée, et le sujet le plus magenta d'entre elles — une olive noire au fond du sac —
+monte à 0,42 pour un seuil à 0,55. Dix-huit planches, **33,4 Ko**, la plus lourde à 2,3.
+
+Les vingt-sept suites : **1 166 contrôles**, zéro échec, zéro erreur de page, zéro 404.
+
+Restent sans image, et ce sont toutes des **transformations** : farine, huile de colza, huile
+d'olive, bière, lait d'avoine, beurre, yaourt, fromage, fromage de brebis, textile, céréales,
+viande, vin, pain, viennoiseries, pâtisseries.
