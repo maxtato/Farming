@@ -10033,9 +10033,6 @@ maximum secondaire, annonce dix pour cent, puis converge en deux tours vers les 
 corriger, inutilisable pour constater. D'où `aligner.py --verifier`, qui dégrossit sur une
 plage étroite puis finit sur la grille fine.
 
-Trente-huit fiches, 255 Ko. Les vingt-deux suites : **1 013 contrôles**, zéro échec, zéro
-erreur de page, zéro 404.
-
 **Un cas sur treize a résisté, et c'est celui où l'instrument se trompe sans le dire.** Les
 trois rapports de la Laiterie, mesurés séparément, donnent bravo = 0,854 × neutre, refus =
 1,083 × neutre, et refus = 0,865 × bravo — alors que les deux premiers imposent 1,268. Le
@@ -10058,3 +10055,29 @@ ne ferme pas. Annoncer « 4,9 % » aurait été annoncer du bruit.
 
 Trente-huit fiches, 255 Ko. Les vingt-deux suites : **1 013 contrôles**, zéro échec, zéro
 erreur de page, zéro 404.
+
+### Quinzième et dernière place : le boulanger
+
+> « Attention, ce personnage roux et fort est le boulanger. »
+
+Ses trois planches étaient arrivées **les premières**, et je les avais données au Restaurant
+par ressemblance — une veste blanche, un foulard, un cuisinier. C'était faux : le Restaurant,
+c'est la femme au tableau d'ardoise. Plutôt que de refaire la même erreur en le plaçant
+ailleurs au jugé, il a attendu dans `outils/portraits/attente/`, groupé, détouré, cadré,
+avec ses réglages écrits — et le jour où le joueur a tranché, il n'y a eu qu'un mot à
+changer dans `commerces.json` : `"site": "Boulangerie"`. C'est exactement ce pour quoi le
+dossier d'attente existait, et il est maintenant vide.
+
+**Un banc est tombé, et il avait raison de tomber.** `visages.js` vérifiait qu'un nom sans
+fiche rend `null` plutôt que d'inventer un chemin, et il prenait la **Boulangerie** comme
+exemple — le seul commerce qui n'avait alors personne. Vrai hier, faux aujourd'hui. Le
+contrôle était bon, son exemple ne l'était pas : un banc ne doit pas dépendre d'un **trou**
+dans les données, parce qu'un trou finit toujours par se boucher. Il prend maintenant un nom
+qui ne peut pas exister, et un contrôle de plus vérifie séparément qu'il ne reste plus de
+trou — *plus un seul des quinze commerces du village n'est sans visage*. Une propriété qui
+vient d'être acquise est le bon moment pour la verrouiller : sans cela, un commerce ajouté
+plus tard passerait sans personne.
+
+Quarante-et-une fiches, **276 Ko**, plus une seule en attente. `visages.js` passe à **28
+contrôles**. Les vingt-deux suites : **1 014 contrôles**, zéro échec, zéro erreur de page,
+zéro 404.

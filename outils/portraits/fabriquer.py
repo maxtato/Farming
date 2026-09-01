@@ -123,8 +123,11 @@ def fabriquer():
     """UN PERSONNAGE SANS COMMERCE N EST PAS UN PERSONNAGE PERDU. Le premier groupe recu a
        ete attribue au Restaurant par ressemblance — une veste blanche, un foulard, un
        cuisinier — et c etait faux : le Restaurant, c est la femme au tableau d ardoise.
-       Le chef, lui, n a rien perdu. Ses trois planches vont ensemble, on sait laquelle est
-       le pouce leve et laquelle est le refus, on ne sait que son METIER.
+       Le roux, lui, n a rien perdu. Ses trois planches allaient ensemble, on savait
+       laquelle etait le pouce leve et laquelle le refus, on ne savait que son METIER — et
+       le jour ou le joueur a tranche (« ce personnage roux et fort est le boulanger »), il
+       n y a eu qu un mot a changer. Le dossier d attente est vide aujourd hui ; le
+       mecanisme reste, parce que le prochain lot arrivera comme celui-la.
        Une entree dont le champ `site` est vide part donc EN ATTENTE au lieu de partir dans
        le jeu : elle garde son groupement, son cadrage et ses reglages, et le jour ou l on
        apprend son commerce il n y a qu un mot a ecrire. C est aussi ce qui garantit que

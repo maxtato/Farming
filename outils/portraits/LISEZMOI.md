@@ -36,8 +36,12 @@ ses lunettes rondes et sa tignasse ont tenu les deux détecteurs en échec, et l
 visage visait la bouteille de vin.
 
 **Où vivent les images.** `portraits/`, à côté d'`index.html`, ne contient QUE ce que le jeu
-charge. Les planches normalisées dont on ne connaît pas encore le métier attendent dans
-`outils/portraits/attente/`.
+charge : quarante-et-une fiches, quinze commerces, 276 Ko. Les planches normalisées dont on
+ne connaît pas encore le métier attendent dans `outils/portraits/attente/`, qui est
+aujourd'hui **vide** — le dernier pensionnaire, le roux à la veste blanche, était le
+boulanger. Le mécanisme reste : une entrée dont le champ `site` est vide part en attente au
+lieu de partir dans le jeu, et garde son groupement, son cadrage et ses réglages jusqu'à ce
+qu'on apprenne son commerce. Il n'y a alors qu'un mot à écrire.
 
 ## Ce que fait la chaîne
 
