@@ -35,6 +35,9 @@ LUM_MIN      = 40     # ... a condition d etre eclaire : un noir presque pur n a
 BANDE        = 8      # largeur, en pixels source, de la frange ou l alpha se calcule
 TOL_NEUTRE   = 6      # fond BLANC : ecart en dessous duquel un pixel est du fond
 PLEIN_NEUTRE = 60     # fond BLANC : ecart au-dela duquel un pixel est opaque
+SAT_OMBRE    = 0.10   # une ombre sur du blanc est GRISE : elle n a pas de saturation
+LUM_OMBRE    = 190    # ... et elle reste claire. Mesure : la regle ne mord que 0,04 % du
+                      # sujet plein des deux tracteurs, leurs reflets de toit.
 # LE FOND VU AU TRAVERS D UN VERRE. Trois conditions, et il en faut trois — mesurees sur
 # les vingt-trois sources, avec ce que chacune separe :
 SEUIL_VERRE  = 0.30   # teinte : sous ce seuil c est de la matiere, pas du fond attenue
@@ -123,8 +126,10 @@ def sansDebris(fond):
     return (fond | np.isin(lab, jeter)) if jeter else fond
 
 
-def detourer(chemin):
-    """Rend (couleur H,W,3 demelangee ; alpha H,W dans [0,1])."""
+def detourer(chemin, ombre=False):
+    """Rend (couleur H,W,3 demelangee ; alpha H,W dans [0,1]).
+       `ombre` dit que la source porte une ombre portee QUE LA CHAINE NE PEUT PAS DEVINER —
+       le cas d un fond blanc, et de lui seul. Voir l etape 1 ter."""
     a = np.asarray(Image.open(chemin).convert('RGB')).astype(np.float32)
     tour = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     ref = np.median(tour, axis=0)
@@ -139,6 +144,21 @@ def detourer(chemin):
     #    Une regle de connexite les aurait gardees opaques, et elles sortaient roses.
     fond = (teinteNormee(a) >= SEUIL_TEINTE) if chromatique \
            else (np.abs(a - ref).max(axis=2) <= TOL_NEUTRE)
+    if ombre and not chromatique:
+        # 1 ter. L OMBRE PORTEE SUR FOND BLANC NE SE DEVINE PAS, ELLE SE DECLARE.
+        #    Sur magenta, une ombre se reconnait toute seule : elle garde la teinte du fond.
+        #    Sur du blanc, elle est un voile GRIS ET CLAIR — et c est exactement la
+        #    signature des AILES de l abeille, qui sont peintes de la meme facon et qu il
+        #    faut garder. Aucune mesure ne separe les deux : c est la table qui tranche,
+        #    comme elle tranche l ancrage des yeux d un portrait que les detecteurs ratent.
+        #    Ce qu on retire est ce qui est gris, clair, ET JOINT AU BORD : le reflet creme
+        #    d un phare est enferme dans la calandre, une ombre portee ne l est jamais.
+        mx = a.max(axis=2)
+        sat = (mx - a.min(axis=2))/np.maximum(mx, 1)
+        cand = (fond | ((sat <= SAT_OMBRE) & (mx >= LUM_OMBRE))).astype(np.uint8)
+        nn, lab, _, _ = cv2.connectedComponentsWithStats(cand, 8)
+        bords = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+        fond = np.isin(lab, [int(i) for i in bords if i != 0])
     fond = sansDebris(fond)
     if chromatique:
         # 1 bis. ET LE FOND VU AU TRAVERS D UN VERRE, qui est du fond aussi.
@@ -190,11 +210,11 @@ def detourer(chemin):
     return np.clip(C, 0, 255), al
 
 
-def vignette(chemin):
+def vignette(chemin, ombre=False):
     """Detoure, recadre sur le sujet, met a l echelle par le PLUS GRAND COTE et centre.
        Le plus grand cote, et non la hauteur : les recoltes sont toutes debout, mais un
        fromage ou une vache seront couches, et une regle par hauteur les ferait deborder."""
-    C, al = detourer(chemin)
+    C, al = detourer(chemin, ombre)
     ys, xs = np.where(al > 0.02)
     C = C[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
     al = al[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
@@ -224,7 +244,7 @@ def main():
         if not os.path.exists(src):
             print('  %-8s source absente : %s' % (cle, e['src']))
             continue
-        im, (nw, nh) = vignette(src)
+        im, (nw, nh) = vignette(src, bool(e.get('ombre')))
         # LA PALETTE EST RELEVEE SUR L IMAGE, comme celle de `portraits14/`. Un rendu de
         # recolte tient dans soixante-quatre couleurs — mesure : le passage de RGBA a la
         # palette ne se voit pas a 26 pixels CSS, et divise le poids par trois et demi.

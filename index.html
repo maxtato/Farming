@@ -3856,9 +3856,11 @@ function poserVisage(el, nom, humeur){
    sept récoltes, tout ce qui sort de la bête, les six espèces et huit transformations
    aujourd'hui, les huit autres ensuite — sans que le jeu attende quoi que ce soit.
 
-   LA CLÉ EST CELLE DE `PRODUITS` — ou d'`ESPECES` pour une bête, et les deux jeux de clés
-   ne se recoupent nulle part : ni `vache`, ni `poule`, ni `cochon`, ni `mouton`, ni
-   `brebis`, ni `ruche` n'est un produit. Un seul dossier, une seule règle de nommage.
+   LA CLÉ EST CELLE DE `PRODUITS`, d'`ESPECES` pour une bête, de `MACHINES` pour un engin
+   ou de `TOOLS` pour un outil — et ces quatre jeux de clés ne se recoupent nulle part : ni
+   `vache`, ni `ruche`, ni `t1`, ni `pickup`, ni `labour` n'est un produit. Un seul dossier,
+   une seule règle de nommage, et un banc qui vérifie qu'aucune clé n'appartient à deux
+   tables à la fois.
 
    ET LA TABLE DIT UN NOM DE PLANCHE, PAS UN OUI. Plusieurs clés peuvent partager le même
    dessin, et quatre le font : le MOUTON et la BREBIS sont le même animal — l'un se tond,
@@ -3881,7 +3883,8 @@ const VIGNETTES = {
   huile:'huile', huileOlive:'huileOlive', laitAvoine:'laitAvoine',
   fromage:'fromage', biere:'biere', vin:'vin',
   vache:'vache', brebis:'brebis', mouton:'brebis', cochon:'cochon',
-  poule:'poule', ruche:'abeille'
+  poule:'poule', ruche:'abeille',
+  t1:'t1', t2:'t2', t3:'t3', pickup:'pickup', fourgon:'fourgon'
 };
 const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle] + '.png' : null;
 /* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
@@ -16443,7 +16446,7 @@ function ongletEngins(){
                              : (T ? 'Attelé : ' + T.nom : 'Sans outil'))
         + ' · niveau ' + m.v.level;
     article(0xFAD201, m.nom, det, i === cur ? 'À bord' : 'Piloter',
-      i === cur ? 'ok' : '', ()=>{ setMachine(i); fermerPanneau(); });
+      i === cur ? 'ok' : '', ()=>{ setMachine(i); fermerPanneau(); }, null, m.key);
   });
   /* On achetait et on améliorait ICI, sans bouger de sa parcelle. Le menu ne fait plus
      que MONTRER : ce qu'on possède, ce qui reste à prendre et ce qu'il coûterait. Pour
@@ -16464,7 +16467,7 @@ function ongletEngins(){
                                      + (m.v.cargo ? m.v.cargo.capacite : 0) + ' kg · '
            : m.v.cargo ? 'Transport ' + m.v.cargo.capacite + ' kg · ' : '')) + eur(a2.prix)
         + (money >= a2.prix ? ' · de quoi payer' : ' · il manque ' + eur(a2.prix - money));
-      article(0x8BE07A, a2.nom, det, 'Au garage', 'no', null);
+      article(0x8BE07A, a2.nom, det, 'Au garage', 'no', null, null, a2.cle);
     }
   }
   // Ce qui reste fermé, et à quel palier il s'ouvre : sans cette ligne, un engin
@@ -16477,7 +16480,7 @@ function ongletEngins(){
       const fam = q.key && MACHINES.indexOf(q) >= 0 ? 'engins' : 'outils';
       const niv = niveauDe(fam, q.key);
       article(0x4A5359, q.nom, 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom +
-        ' · ' + eur(q.prix || 0), 'Niveau ' + niv, 'no', null);
+        ' · ' + eur(q.prix || 0), 'Niveau ' + niv, 'no', null, null, q.key);
     }
   }
   titre('Améliorations');
@@ -16532,6 +16535,10 @@ function ligneAmelioration(cle, couleur){
        et c'était sans conséquence tant que rien ne désignait une amélioration — aucune
        mission n'en demande jamais, « une mission ne demande jamais un confort ». Une
        leçon, si : la cascade bouton → onglet → ligne s'arrêtait à l'onglet. */
+    cle,
+    /* ET LE MÊME MOT SERT DE CLÉ DE PRODUIT, ce qui n'est pas une confusion : ici la clé
+       DÉSIGNE l'engin dont la ligne parle. Le silo et l'entrepôt passent par la même
+       fonction et n'ont pas de planche — ils gardent leur filet, sans rien à écrire. */
     cle);
 }
 
@@ -16550,7 +16557,7 @@ function ongletOutils(){
          : ' · cuve vide (' + kg(T.cuveMax) + ' par nature)');
     const det = (T.cargo ? 'Benne ' + kg(T.capacite) : 'Largeur ' + dec(T.width, 1) + ' m')
       + cuve + ' · niveau ' + T.level + (porteur ? ' · attelé au ' + porteur.nom : ' · au sol');
-    article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null);
+    article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
   }
   const aPrendre = TOOLS.filter((T)=> T.verrou);
   if(aPrendre.length){
@@ -16561,7 +16568,7 @@ function ongletOutils(){
         (T.aide ? T.aide + ' · ' : '') + 'largeur ' + dec(T.width, 1) + ' m · ' + eur(T.prix || 0) +
         (libre ? (money >= (T.prix || 0) ? ' · de quoi payer' : ' · il manque ' + eur((T.prix||0) - money))
                : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
-        libre ? 'Au garage' : 'Niveau ' + niv, 'no', null);
+        libre ? 'Au garage' : 'Niveau ' + niv, 'no', null, null, T.key);
     }
   }
   titre('Améliorations');
@@ -16613,7 +16620,7 @@ function ligneAchat(o){
     !libre ? 'Niveau ' + o.niv : (ok ? 'Acheter' : 'Trop cher'),
     ok ? 'vert' : 'no',
     ok ? ()=>{ o.f(); rafraichirEcran(); refreshVehButton(); refreshAtelier(); } : null,
-    o.cle);
+    o.cle, o.cle);
 }
 function vueAchatEngins(){
   const aPrendre = MACHINES.filter((m)=> m.verrou);
@@ -16641,7 +16648,7 @@ function vueAchatEngins(){
     if(m.verrou) return;
     article(m.teinte || 0xFAD201, nomEngin(m),
       detailEngin(m) + ' · niveau ' + m.v.level,
-      i === cur ? 'À bord' : 'Possédé', i === cur ? 'ok' : 'no', null);
+      i === cur ? 'À bord' : 'Possédé', i === cur ? 'ok' : 'no', null, null, m.key);
   });
 }
 function vueAchatOutils(){
@@ -16673,7 +16680,7 @@ function vueAchatOutils(){
     const porteur = T.attached ? MACHINES.find((m)=> m.v === T.attached) : null;
     article(0xF0C24A, T.nom, detailOutil(T) + ' · niveau ' + T.level +
       (porteur ? ' · attelé au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
-      porteur ? 'Attelé' : 'Libre', 'no', null);
+      porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
   }
 }
 /* AMÉLIORER : TOUT CE QU'ON POSSÈDE, pas seulement l'engin où l'on est assis. Le

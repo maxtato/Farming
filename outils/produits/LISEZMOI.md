@@ -11,11 +11,20 @@ marchandise.
 
 ```json
 "ble":  {"src": "e23188c8-image.png"},
-"orge": {"src": "6c61e32b-image.png"}
+"orge": {"src": "6c61e32b-image.png"},
+"t3":   {"src": "b135ace8-image.jpg", "ombre": true}
 ```
 
-La clé est celle de `PRODUITS` dans `index.html` — ou celle d'`ESPECES` pour une bête, et
-les deux jeux de clés ne se recoupent nulle part. Une table explicite, et non un dossier
+**`ombre`** dit que la source porte une ombre portée **que la chaîne ne peut pas deviner** —
+le cas d'un fond blanc, et de lui seul. Sur magenta une ombre se reconnaît toute seule (elle
+garde la teinte du fond) ; sur du blanc elle est un voile gris et clair, c'est-à-dire
+exactement la signature des ailes de l'abeille, qu'il faut garder. Aucune mesure ne sépare
+les deux : c'est la table qui tranche, comme elle tranche l'ancrage des yeux d'un portrait
+que les détecteurs ratent.
+
+La clé est celle de `PRODUITS` dans `index.html`, d'`ESPECES` pour une bête, de `MACHINES`
+pour un engin ou de `TOOLS` pour un outil — et ces quatre jeux de clés ne se recoupent nulle
+part. Une table explicite, et non un dossier
 balayé : l'orge et l'avoine sont deux gerbes jaunes, et leurs noms de fichier sont des
 empreintes. Le fichier sorti s'appelle `produits/<clé>.png`, à côté d'`index.html`.
 
@@ -106,10 +115,12 @@ dans les deux sens et signale l'oubli.
 | `SEUIL_VERRE` | 0,30 | teinte : en dessous c'est de la matière, pas du fond atténué |
 | `EQ_VERRE` | 0,18 | `\|R−B\| / clarté` : le fond a R ≈ B, une olive noire non (0,28) |
 | `LUM_VERRE` | 175 | le verre du vin est à 185, le reflet de sa bouteille à 162 |
+| `SAT_OMBRE` | 0,10 | fond blanc, `ombre` déclarée : une ombre est grise |
+| `LUM_OMBRE` | 190 | ... et claire. Ne mord que 0,04 % du sujet des deux tracteurs |
 
 ## Où vivent les images
 
 `produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
-brut, cinq animaux et huit transformations : 45,8 Ko pour vingt-six planches, la plus lourde
-à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+brut, cinq animaux, huit transformations et cinq engins : 53,3 Ko pour trente-et-une
+planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.

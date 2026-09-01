@@ -11140,3 +11140,48 @@ contrôles**, zéro échec, zéro erreur de page, zéro 404.
 
 Restent sans image, sur trente-trois produits : beurre, yaourt, fromage de brebis, textile,
 viande, pain, viennoiseries, et les trois pâtisseries.
+
+---
+
+## Les engins entrent dans les menus, et trois « TRACTEUR » cessent de se ressembler
+
+Trois tracteurs — vert, rouge, bleu —, un pick-up et un fourgon : les cinq engins que le
+joueur conduit portent maintenant leur dessin, au menu de la flotte comme au garage. La
+moissonneuse, l'enjambeuse et les quatre outils attelables gardent leur filet en attendant le
+leur ; leurs clés sont posées.
+
+**Et cela règle un défaut qui n'était pas le mien.** Le menu de la flotte nomme ses lignes
+`m.nom` — « Tracteur » — là où le garage dit `nomEngin(m)`, « Tracteur vert ». Les trois
+tracteurs y étaient donc **trois lignes identiques**, distinguées seulement par un détail
+qu'il fallait lire. Avec le dessin en tête de ligne, le vert, le rouge et le bleu se
+reconnaissent d'un coup d'œil. (Le nom, lui, reste à corriger si vous le voulez : `nomEngin`
+existe et suffirait.)
+
+**Quatre tables de clés, aucun recoupement.** `PRODUITS`, `ESPECES`, `MACHINES`, `TOOLS` :
+un seul dossier, une seule règle de nommage, et un contrôle de banc qui vérifie qu'aucune
+clé n'appartient à deux tables — le jour où ce serait le cas, une ligne montrerait l'image
+de l'autre sans que rien ne le dise.
+
+### L'ombre portée sur fond blanc ne se devine pas, elle se déclare
+
+Les deux tracteurs bleu et rouge arrivent **sur du blanc**, et portent une ombre douce :
+5,6 % de leur planche, parfaitement grise et claire. La règle des ombres ne les voit pas —
+elle lit la *teinte*, et sur du blanc il n'y en a pas.
+
+**Et une mesure ne peut pas les trouver**, parce que la signature « gris, clair, joint au
+bord » est **exactement celle des ailes de l'abeille**, peintes de la même façon et qu'il
+faut garder. Les deux sont optiquement le même objet : un voile clair sur du blanc.
+
+C'est donc la table qui tranche — `"ombre": true` sur ces deux entrées-là —, exactement comme
+`produits.json` porte déjà l'ancrage des yeux d'un portrait que les détecteurs ratent : *les
+réglages faits à la main sont dans le fichier, pas dans une séance de mise au point*. Ce que
+le drapeau retire est ce qui est gris (saturation ≤ 0,10), clair (≥ 190) **et joint au
+bord** : le reflet crème d'un phare est enfermé dans la calandre, une ombre portée ne l'est
+jamais. Mesuré : la règle ne mord que **0,04 %** du sujet plein des deux tracteurs — leurs
+reflets de toit — et l'abeille, elle, ne bouge pas d'un millième d'alpha.
+
+Trente-et-une planches, **53,3 Ko**. Le banc `vignettes` passe de 32 à **37 contrôles** — les
+cinq engins nommés un par un, la flotte relue **rang par rang** (les trois tracteurs portant
+le même nom, on ne peut pas apparier autrement) et le garage **par le nom** (il dit la robe),
+les outils vérifiés sans planche, et le non-recoupement des quatre tables. Les vingt-sept
+suites : **1 173 contrôles**, zéro échec, zéro erreur de page, zéro 404.
