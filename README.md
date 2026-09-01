@@ -10812,3 +10812,98 @@ jaune comparé en opacité à celui de l'attelage, la pastille éprouvée à zé
 trois, la fenêtre ouverte au doigt, ses deux sections, ses lignes rayées lues dans le style
 calculé, et l'absence de journal en mode libre. Les vingt-six suites : **1 136 contrôles**,
 zéro échec, zéro erreur de page, zéro 404.
+
+---
+
+## Une gerbe au début de la ligne, et seulement dans les menus
+
+Le joueur : « dès qu'on parle de la récolte, des transformations, de ce qu'on risque de
+faire avec, il y a un petit logo de ce produit au début de la ligne — **uniquement quand on
+est dans les menus** ; quand on est sur l'écran de jeu, où il y a les barres de chargement,
+on laisse juste le texte. » Cinq rendus suivent : une gerbe de blé, un épi de maïs, une
+gerbe d'orge aux longues barbes, une d'avoine aux panicules retombantes, un bouquet de
+colza.
+
+**La vignette prend la place du filet, elle ne s'ajoute pas à lui.** Chaque ligne de menu
+s'ouvrait sur un filet de couleur de quatre pixels sur vingt-six — la pastille, réduite à un
+trait au chapitre des listes resserrées. Deux marques de couleur au début de la même ligne
+diraient deux fois la même chose, et la seconde mangerait le texte : la ligne porte l'une
+**ou** l'autre.
+
+**Elle fait exactement la hauteur du filet, et c'est le seul chiffre qui compte.** Une
+rangée à deux étages mesure 32 pixels de texte, une rangée à un seul en mesure 16 : une
+image de 32 aurait fait grandir la seconde de moitié, et les listes ont été resserrées deux
+fois pour gagner ces pixels-là. À 26, **aucune liste du jeu ne bouge d'un pixel** — mesuré
+en vidant la table des vignettes et en repeignant la même fenêtre. Ce que la vignette coûte,
+elle le prend en largeur : 22 pixels de plus que le filet, sur les 400 de la fenêtre.
+
+**La planche fait trois fois la boîte**, comme les portraits : PX_JEU = 1/3, un pixel d'art
+mesure un tiers de pixel CSS. 26 × 3 = 78, et sur un téléphone à trois points d'écran par
+pixel CSS un pixel d'art tombe sur un point. Les cinq planches pèsent **8,9 Ko en tout**,
+palette relevée sur chaque image — un portrait en pèse treize à lui seul.
+
+**Un produit sans planche reste jouable**, exactement comme un commerce sans visage :
+`vignetteDe` rend nul, la ligne repose son filet, et rien n'est cassé. C'est la seule raison
+pour laquelle la table peut se remplir au fil des images qui arrivent. La vigne et
+l'oliveraie, dont le rendu n'est pas encore là, gardent leur trait mauve au comptoir ; les
+clés de l'élevage — `vache`, `poule`, `cochon` — sont **déjà posées** sur leurs lignes, et
+la table d'`ESPECES` ne recoupe celle de `PRODUITS` nulle part : un seul dossier, une seule
+règle de nommage, et le jour où `vache.png` arrive il n'y a pas une ligne de code à écrire.
+
+**Et `prod` n'est pas `cle`.** La ligne d'article portait déjà une clé facultative en queue,
+qui sert au tutoriel à désigner *cette ligne-là*. Elle vaut aussi bien `pickup` ou
+`materiel.silo` qu'une récolte, et elle se trouve porter le même mot que le produit sur une
+ligne de graine — c'est une coïncidence, pas une règle. Un huitième paramètre nomme donc le
+**produit dont la ligne parle**, et les deux questions restent deux.
+
+**La fenêtre d'action en porte, le bandeau non.** Le partage demandé n'est pas
+fenêtre-contre-jeu mais **menu-contre-écran** : la fenêtre CHARGER — un verbe, une liste, un
+curseur par ligne — est l'endroit du jeu où l'on nomme le plus souvent une récolte, et l'y
+laisser en texte seul aurait été le seul écart. Elle cale sa vignette au centre et non sur la
+ligne de base : le nom et le nombre se répondent sur leur pied commun, une image n'a pas de
+pied. Le bandeau du haut, la rangée des engins, les boutons d'action, les jauges du sol et
+les plaques en trois dimensions n'en portent aucune — mesuré fenêtres fermées, pas une seule
+vignette visible à l'écran.
+
+### Le détourage, et l'erreur qu'il a fallu deux essais pour voir
+
+Le fond est un magenta plein, et la première règle a été celle des portraits : est du fond
+ce qui *ressemble* au fond, `max|P − fond|` sous un seuil. Les barbes de l'orge sortaient
+**roses**, et le colza avec elles.
+
+La raison se mesure. Un pixel de bord vaut `a·C + (1−a)·fond` ; sa distance au fond vaut
+donc `a × max|C − fond|`, où le second facteur **dépend de la couleur du sujet** — 195 pour
+un jaune de blé, 199 pour un vert de feuille. Le même seuil rendait opaque un pixel à moitié
+magenta, et le démêlage n'avait plus rien à retirer.
+
+Ce qu'il faut lire est une grandeur **linéaire dans le mélange** : `min(R,B) − G`. Le fond
+est à +244, un blé à −134, un vert à −100, et un pixel à moitié l'un et l'autre tombe pile
+au milieu. L'alpha se lit dessus, dans une frange de huit pixels autour du fond — au-delà
+c'est du sujet plein, et la ficelle brune d'une gerbe, à quarante unités du magenta, se
+serait retrouvée à demi transparente.
+
+Deux réglages de plus, tous deux mesurés : le pourtour des cinq images s'écarte de sa
+médiane de 30 unités au pire (les coins tirent au vert), et le sujet de 150 au moins — le
+seuil du fond tient à 40, loin des deux. Et l'on ne remonte **pas** depuis le bord :
+l'avoine et le colza ont des poches de fond **enfermées** entre deux tiges, qu'une règle de
+connexité aurait gardées opaques. Le magenta ne se trouvant nulle part dans le sujet — le
+raisin, la plus proche des couleurs à venir, en est à 128 unités —, ce qui *est* la couleur
+du fond est du fond, enfermé ou non.
+
+La réduction se fait enfin sur la couleur **prémultipliée** : sans cela, la moyenne d'un
+pixel de bord mélange la couleur du sujet à celle du vide, et la silhouette s'éclaircit d'un
+liseré sur tout son tour.
+
+**La chaîne est dans `outils/produits`** — `produits.json` dit quelle source va à quelle clé
+de `PRODUITS`, et c'est la seule façon d'être sûr qu'on ne livre pas l'orge à la place de
+l'avoine : les deux sont des gerbes jaunes, et leurs noms de fichier sont des empreintes.
+
+Bancs : `vignettes` naît avec **23 contrôles** — la table du jeu comparée au contenu du
+dossier dans les deux sens, la boîte relue dans la feuille de style et la planche vérifiée à
+trois fois cette boîte, le poids, la hauteur des rangées mesurée avec et sans, les cinq
+images vraiment décodées, chaque récolte comparée à *sa* planche et non à celle du voisin,
+la vigne restée au filet, l'écran des prix, la fenêtre CHARGER, et l'absence de toute
+vignette visible fenêtres fermées. Les vingt-deux serveurs de bancs qui rendaient la page du
+jeu pour l'adresse d'une image servent maintenant `portraits/` et `produits/` depuis le
+disque. Les vingt-sept suites : **1 159 contrôles**, zéro échec, zéro erreur de page, zéro
+404.

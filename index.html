@@ -515,6 +515,20 @@
   .art .act.vert{background:var(--vert);color:var(--encre);box-shadow:0 3px 0 var(--vertOmb)}
   .art .act.vert:active{box-shadow:0 1px 0 var(--vertOmb)}
   .pastille{width:4px;height:26px;border-radius:2px;flex-shrink:0}
+  /* ET QUAND LA LIGNE PARLE D'UN PRODUIT, LE FILET DEVIENT UNE VIGNETTE.
+     Le joueur : « dès qu'on parle de la récolte, des transformations, de ce qu'on risque
+     de faire avec, il y a un petit logo de ce produit au début de la ligne — uniquement
+     quand on est dans les menus ; sur l'écran de jeu, où il y a les barres de chargement,
+     on laisse juste le texte. »
+     ELLE FAIT EXACTEMENT LA HAUTEUR DU FILET QU'ELLE REMPLACE, 26 px, et c'est la seule
+     raison pour laquelle aucune liste du jeu ne bouge d'un pixel en hauteur : une ligne
+     à deux étages mesure 32 px de texte, une ligne à un seul en mesure 16, et une image
+     de 32 aurait fait grandir la seconde de moitié. Ce qu'elle coûte, elle le prend en
+     LARGEUR — 22 px de plus que le filet, sur les 400 de la fenêtre.
+     `object-fit:contain` ne sert à rien tant que la planche est carrée ; il est là pour
+     le jour où l'on en posera une qui ne l'est pas, et il ne coûte rien. */
+  .art .vign, .al .vign{width:26px;height:26px;flex-shrink:0;object-fit:contain}
+  .al .vign{align-self:center}
   /* UN ARTICLE À CURSEUR. Certains réglages ne sont pas un bouton qui bascule mais une
      quantité qu'on cherche à l'œil — le zoom, d'abord. Le bloc garde le gabarit de
      l'article : filet de couleur, nom, détail, puis la barre sur toute la largeur. */
@@ -3825,6 +3839,32 @@ function poserVisage(el, nom, humeur){
   el.style.display = 'block';
   return true;
 }
+/* ---------- LES VIGNETTES DES PRODUITS ----------
+   Le pendant des visages, pour la marchandise. Une ligne de menu qui parle d'une récolte,
+   d'une transformation ou d'une bête porte son image au lieu du filet de couleur ; une
+   ligne qui parle d'autre chose garde le filet, et l'écran de jeu ne change pas.
+
+   ET UN PRODUIT SANS VIGNETTE RESTE JOUABLE, exactement comme un commerce sans visage :
+   `vignetteDe` rend nul, `article` repose son filet, et rien n'est cassé. C'est la seule
+   raison pour laquelle cette table peut se remplir au fil des images qui arrivent — cinq
+   récoltes aujourd'hui, les transformations et l'élevage ensuite — sans que le jeu
+   attende quoi que ce soit.
+
+   LA CLÉ EST CELLE DE `PRODUITS` — ou d'`ESPECES` pour une bête, et les deux jeux de clés
+   ne se recoupent nulle part : ni `vache`, ni `poule`, ni `cochon`, ni `brebis`, ni
+   `abeille` n'est un produit. Un seul dossier, une seule règle de nommage.
+
+   LA PLANCHE FAIT 78 PIXELS POUR UNE BOÎTE DE 26, c'est-à-dire PX_JEU = 1/3 comme les
+   portraits : sur un téléphone à trois points d'écran par pixel CSS, un pixel d'art tombe
+   sur un point. Les planches se fabriquent par `outils/produits`. */
+const VIGNETTES = {ble:1, mais:1, orge:1, avoine:1, colza:1};
+const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + cle + '.png' : null;
+/* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
+   `lignes` — une marchandise et une quantité par ligne — et c'est la PREMIÈRE qui donne
+   son image à la ligne de menu. Une mission qui demande un GESTE et non une marchandise
+   — labourer, rentrer à la ferme — n'a pas de lignes du tout, et garde son filet vert. */
+const ligneProduit = (E)=> (E && E.lignes && E.lignes[0]) ? E.lignes[0].cle : null;
+
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
    réglées à la main finissent toujours par se contredire : un palier qu'on n'atteint pas
@@ -16290,10 +16330,25 @@ for(const id of ['goalwrap', 'goaltxt']){
 /* `cle` EST FACULTATIF, ET IL EST EN QUEUE. Soixante-quatre appels existent : un
    septième paramètre optionnel les laisse tous intacts. Il sert à deux choses — retrouver
    une ligne depuis un banc, et la faire battre quand le tutoriel la désigne. */
-function article(couleur, nom, detail, libelle, etat, action, cle){
+/* ET `prod` EST LE HUITIÈME, POUR LA MÊME RAISON. Il nomme LE PRODUIT DONT LA LIGNE
+   PARLE, ce qui n'est pas la même question que `cle` : `cle` désigne la ligne pour le
+   tutoriel, et vaut aussi bien 'pickup' ou 'silo' qu'une récolte. Les deux se trouvent
+   souvent porter le même mot sur une ligne de graine — c'est une coïncidence, pas une
+   règle, et confondre les deux aurait mis une gerbe de blé devant l'amélioration du silo
+   le jour où quelqu'un lui aurait donné la clé 'ble'. */
+function article(couleur, nom, detail, libelle, etat, action, cle, prod){
   const d = document.createElement('div'); d.className = 'art';
-  const p = document.createElement('div'); p.className = 'pastille';
-  p.style.background = '#' + couleur.toString(16).padStart(6,'0'); d.appendChild(p);
+  /* LA VIGNETTE PREND LA PLACE DU FILET, elle ne s'ajoute pas à lui : deux marques de
+     couleur au début de la même ligne diraient deux fois la même chose, et la seconde
+     mangerait le texte. Quand la planche n'existe pas encore, le filet reste. */
+  const vg = vignetteDe(prod);
+  if(vg){
+    const g = document.createElement('img'); g.className = 'vign';
+    g.src = vg; g.alt = ''; d.appendChild(g);
+  } else {
+    const p = document.createElement('div'); p.className = 'pastille';
+    p.style.background = '#' + couleur.toString(16).padStart(6,'0'); d.appendChild(p);
+  }
   const t = document.createElement('div'); t.className = 'txt';
   t.innerHTML = '<div class="nom">' + nom + '</div><div class="det">' + detail + '</div>';
   d.appendChild(t);
@@ -16672,18 +16727,18 @@ function ongletGraines(){
                    + 'elle repart toute seule après chaque récolte'
                  : 'Semence ' + dec(c.grainePrix) + ' € / kg · ' + kg(c.graineKg)
                    + ' la parcelle, soit ' + euroFin(c.graineKg*c.grainePrix));
-    if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null); return; }
+    if(!c.verrou){ article(c.hi.getHex(), c.nom, det, 'Acquise', 'ok', null, null, c.cle); return; }
     const niv = niveauDe('cultures', c.cle);
     if(!auNiveau(niv)){
       article(c.hi.getHex(), c.nom,
         det + '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom,
-        'Niveau ' + niv, 'no', null);
+        'Niveau ' + niv, 'no', null, null, c.cle);
       return;
     }
     const ok = money >= c.cout;
     article(c.hi.getHex(), c.nom, det + ' · ' + eur(c.cout),
       ok ? 'Acheter' : 'Trop cher', ok ? 'vert' : 'no',
-      ok ? ()=> acquerirCulture(c) : null);
+      ok ? ()=> acquerirCulture(c) : null, null, c.cle);
   });
   const reste = CROPS.filter((c)=> c.verrou && !auNiveau(niveauDe('cultures', c.cle)));
   if(reste.length){
@@ -17506,7 +17561,7 @@ function vueContrats(){
            Math.round(Math.hypot(v.pos.x - O.x, v.pos.z - O.z)) + ' m</span>' : '') +
       '<br><span class="det2">' + (M.prime ? eur(M.prime) + '  ·  ' : '') +
       '+' + M.xp + ' XP</span>',
-      Math.round(part*100) + ' %', 'vert', null);
+      Math.round(part*100) + ' %', 'vert', null, null, ligneProduit(M));
   }
   for(const C of CONTRATS){
     rien = false;
@@ -17518,7 +17573,7 @@ function vueContrats(){
       '<br><span class="det2">' + eur(C.prime) + ' de prime  ·  +' + C.xp + ' XP' +
       (C.temps ? '  ·  ' + Math.max(0, Math.ceil(C.temps)) + ' s restantes' : '') +
       '<br>La marchandise est payée en plus, au prix du commerce.</span>',
-      Math.round(avanceCommande(C)*100) + ' %', 'vert', null);
+      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, ligneProduit(C));
   }
   if(rien)
     article(0x8A9298, 'Rien en cours',
@@ -17541,7 +17596,7 @@ function vueContrats(){
         /* LE BOUTON D'UNE LIGNE FAITE EST ÉTEINT, PAS DORÉ. `ok` donne l'or des lignes
            qu'on peut encore toucher : posé sur un titre rayé, il attirait l'œil vers ce
            qui n'attend plus rien. `no` est le pâle de ce qui ne décide de rien. */
-        'Faite', 'no', null);
+        'Faite', 'no', null, null, ligneProduit(F));
       d.classList.add('faite');
     }
   }
@@ -23127,6 +23182,17 @@ function fermerActes(){
 function ligneActe(e, livraison){
   const d = document.createElement('div'); d.className = 'al';
   const t = document.createElement('div'); t.className = 'alt';
+  /* ET LA VIGNETTE DU PRODUIT OUVRE LA LIGNE, comme dans les menus. Cette fenêtre EST un
+     menu — un verbe, une liste, un curseur par ligne — et non le bandeau du jeu : c'est
+     l'endroit du jeu où l'on nomme le plus souvent une récolte, et l'y laisser en texte
+     seul aurait été le seul écart de la règle. Elle se cale au CENTRE et non sur la ligne
+     de base : le nom et le nombre se répondent sur leur pied commun, une image n'a pas
+     de pied. */
+  const vg = vignetteDe(e.A && e.A.cle);
+  if(vg){
+    const g = document.createElement('img'); g.className = 'vign';
+    g.src = vg; g.alt = ''; t.appendChild(g);
+  }
   const b = document.createElement('b'); b.textContent = e.nom;
   const q = document.createElement('span'); q.className = 'q';
   const det = document.createElement('div'); det.className = 'ald';
@@ -24625,7 +24691,7 @@ function ligneGraine(c){
         : 'Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
       !auNiveau(niv) ? 'Niveau ' + niv : (ok ? 'Acquérir' : 'Trop cher'),
       ok ? 'vert' : 'no',
-      ok ? ()=> acquerirCulture(c) : null, c.cle);
+      ok ? ()=> acquerirCulture(c) : null, c.cle, c.cle);
     return;
   }
   // La place que le comptoir annonce est celle que l'achat utilisera : ce qui reste dans
@@ -24654,7 +24720,7 @@ function ligneGraine(c){
       valider: (q)=>{ const pris = acheterIntrant(c.cle, q);
                       if(pris) showHint('+ ' + kg(pris) + ' ' + dNom(c.nom).toUpperCase()
                         + ' \u00c0 LA CUVE DE LA COUR'); }
-    }) : null, c.cle);
+    }) : null, c.cle, c.cle);
 }
 function vueComptoirSemences(){
   titre('Semences — ' + kg(grainesTotal()) + ' sur ' + kg(CUVES.max) + ' à la cuve de la cour');
@@ -24688,7 +24754,7 @@ function vueComptoirSemences(){
         article(c.hi.getHex(), 'Plantation ' + dNom(c.nom.toLowerCase()),
           eur(c.plantation) + ' la parcelle, payés au fur et à mesure du semoir.<br>' +
           'Une fois en terre, elle repart seule après chaque récolte : plus rien à acheter.',
-          'Au champ', 'no', null);
+          'Au champ', 'no', null, null, c.cle);
         continue;
       }
       const nv = niveauDe('cultures', c.cle), okP = auNiveau(nv) && money >= c.cout;
@@ -24699,7 +24765,7 @@ function vueComptoirSemences(){
           : 'Ouvre au niveau ' + nv + ' — ' + NIVEAUX[nv-1].nom) +
         '<br>Ensuite ' + eur(c.plantation) + ' la parcelle, payés au champ.',
         !auNiveau(nv) ? 'Niveau ' + nv : (okP ? 'Acquérir' : 'Trop cher'),
-        okP ? 'vert' : 'no', okP ? ()=> acquerirCulture(c) : null, c.cle);
+        okP ? 'vert' : 'no', okP ? ()=> acquerirCulture(c) : null, c.cle, c.cle);
     }
   }
 }
@@ -24795,11 +24861,11 @@ function vueComptoirCuves(){
          dNom((PRODUITS[k] ? PRODUITS[k].nom : k).toLowerCase())).join(' · ') : '') +
       '<br>À la cuve de la cour : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
       kg(dispo) + ' ' + dNom(nom) + '</span>',
-      T === attele ? 'Attelé' : 'À la ferme', 'no', null);
+      T === attele ? 'Attelé' : 'À la ferme', 'no', null, null, cle);
     if(perenne)
       article(0x8A9298, c.nom + ' ne se sème pas',
         'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
-        'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null);
+        'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null, null, cle);
     else {
       const q = Math.min(place, dispo);
       const ok = q >= 0.5;
@@ -24811,7 +24877,8 @@ function vueComptoirCuves(){
                                      'que soit l\'outil. Les autres sacs ne bougent pas.'),
         ok ? '+ ' + kg(q) : (place < 0.5 ? 'Plein' : 'Cuve vide'), ok ? 'vert' : 'no',
         ok ? ()=>{ const pris = remplirCuve(T, cle);
-                   if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null);
+                   if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null,
+        null, cle);
     }
     if(cuveTotal(T) > 0.5)
       article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
@@ -24873,7 +24940,7 @@ function ongletElevage(){
       (libre ? '' : '<br>Ouvre au niveau ' + niv + ' — ' + NIVEAUX[niv-1].nom),
       !libre ? 'Niveau ' + niv : (i === especeChoisie ? 'Choisie' : 'Choisir'),
       !libre ? 'no' : (i === especeChoisie ? 'ok' : ''),
-      libre ? ()=>{ especeChoisie = i; } : null);
+      libre ? ()=>{ especeChoisie = i; } : null, null, cle);
   });
   if(!PATURES.length){
     titre('Aucun enclos');
@@ -24902,7 +24969,7 @@ function ongletElevage(){
                    ' / ' + qte(E.produit, P.produitMax) : '') +
       (E.second ? ' · ' + E.second.nom + ' : ' + Math.round(enUnites(E.second.cle, P.produit2)) +
                   ' / ' + qte(E.second.cle, P.produit2Max) : ''),
-      'État', 'no', null);
+      'État', 'no', null, null, P.espece);
     const plein = P.betes.length >= P.places;
     const ok = !plein && money >= E.prix;
     article(E.robes[1].fond, 'Acheter ' + E.un,
@@ -24914,7 +24981,8 @@ function ongletElevage(){
         : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
       plein ? 'Plus de place' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ()=>{ if(acheterBete(P))
-              showHint(E.statique ? 'UNE COLONIE DE PLUS AU RUCHER' : 'UNE BÊTE DE PLUS AU PRÉ'); });
+              showHint(E.statique ? 'UNE COLONIE DE PLUS AU RUCHER' : 'UNE BÊTE DE PLUS AU PRÉ'); },
+      null, P.espece);
     /* LES DEUX ÉCHELLES D'UN ENCLOS, ET ELLES SONT BIEN DEUX. Le bâtiment décide de
        combien de bêtes on peut tenir ; l'autonomie, de combien de temps elles tiennent
        sans qu'on repasse. On agrandit son étable bien avant de vouloir passer trois fois
@@ -24992,7 +25060,7 @@ function ongletFilieres(){
       dec(prixUnite(cle)) + ' ' + parUniteTxt(cle) + ' brut<br>' +
       (acheteurs(cle) ? 'Vente directe : ' + acheteurs(cle) + '<br>' : 'Aucune vente directe<br>') +
       (suites.length ? 'Se transforme en : ' + suites.join(', ') : 'Ne se transforme pas'),
-      'Brut', 'no', null);
+      'Brut', 'no', null, null, cle);
   }
 
   titre('L\'atelier de la ferme');
@@ -25006,7 +25074,7 @@ function ongletFilieres(){
       uniteUn(entreeSeule(R.cle)) + ' engagé · ' + R.duree + ' s les 100 kg',
       a2 ? (HALLE.recette === R.cle ? 'En cours' : 'Acheté')
          : (auNiveau(niv) ? eur(R.prix) : 'Niveau ' + niv),
-      a2 ? 'ok' : 'no', null);
+      a2 ? 'ok' : 'no', null, null, R.cle);
   }
 
   titre('Les usines et les commerces');
@@ -25045,7 +25113,7 @@ function vueStockMagasin(){
   const ligne = (cle, q, ou)=> article(parseInt(PRODUITS[cle].couleur.slice(1), 16),
     PRODUITS[cle].nom, qte(cle, q) + ' · ' + dec(prixUnite(cle)) + ' ' + parUniteTxt(cle) +
       ' — soit ' + eur(q*prixDe(cle)),
-    ou, 'no', null);
+    ou, 'no', null, null, cle);
 
   const st = siloTotal();
   titre('Silo — ' + kg(st) + ' / ' + kg(siloMax()) + ' (céréales seules)');
@@ -25167,7 +25235,7 @@ function vueStockPossible(){
     });
     article(parseInt(P.couleur.slice(1), 16),
       P.nom + ' — ' + qte(T.cle, T.q) + ' en magasin',
-      lignes.join('<br><br>'), eur(T.q*prixDe(T.cle)), 'no', null, T.cle);
+      lignes.join('<br><br>'), eur(T.q*prixDe(T.cle)), 'no', null, T.cle, T.cle);
   }
 }
 function lignePossible(R){
@@ -25206,7 +25274,7 @@ function lignePossible(R){
              : (!place ? 'File pleine' : (assez ? 'Produire' : 'Pas de matière')),
       peut ? 'vert' : 'no',
       peut ? ()=> ouvrirDose(R.cle, Math.min(pot.sortie, halleLotMax()*P.rendement)) : null,
-      R.cle);
+      R.cle, R.cle);
   }
 }
 /* L'AIGUILLAGE DU PANNEAU N'A AUCUN REPLI : ces deux noms doivent continuer d'exister
@@ -25325,7 +25393,7 @@ function vueProdProduire(){
           HALLE.file.splice(i, 1);
           showHint('ATELIER — LOT RETIRÉ');
           rafraichirEcran();
-        });
+        }, null, C.cle);
     });
     if(HALLE.file.length < halleFileMax())
       article(0x8A9298, 'Place dans la file',
@@ -25361,7 +25429,7 @@ function vueProdProduire(){
         'Le magasin d\'aujourd\'hui en sortirait <span class="q neutre">' +
         qteNom(R.cle, pot.sortie) + '</span>.<br>Il s\'achète à l\'onglet <b>Métiers</b> — ' +
         eur(R.prix) + '.',
-        'À acheter', 'no', null, R.cle);
+        'À acheter', 'no', null, R.cle, R.cle);
     }
   }
 }
@@ -25382,7 +25450,7 @@ function vueProdMetiers(){
     if(atelierA(M.cle)){
       article(parseInt(P.couleur.slice(1), 16), M.module + ' — ' + P.nom,
         fait + '<br>Acheté. Il tourne dès qu\'on lui donne de la matière.',
-        'Acheté', 'ok', null);
+        'Acheté', 'ok', null, null, M.cle);
       continue;
     }
     const niv = niveauDe('modules', M.cle), libre = auNiveau(niv);
@@ -25495,7 +25563,7 @@ function ongletPrix(){
         PRODUITS[k].nom + ' ' + dec(rendementValeur(k)/parKgDe(cle)) +
         ' € par ' + uniteUn(cle) + ' engagé').join(' · '));
     article(parseInt(P.couleur.slice(1), 16), P.nom, l.join('<br>'),
-      dec(prixUnite(cle)) + ' ' + parUniteTxt(cle), 'no', null);
+      dec(prixUnite(cle)) + ' ' + parUniteTxt(cle), 'no', null, null, cle);
   }
 
   titre('Comment lire ces prix');
@@ -25732,7 +25800,7 @@ function ongletReglages(){
         const q = Math.min(DEV.qte, siloPlace());
         siloStock[k] = (siloStock[k] || 0) + q;
         showHint('SILO  +' + qteHaut(k, q));
-      });
+      }, null, k);
   article(0x8BE07A, 'Fill the silo',
     'Tops every grain up to an even share of the room left — ' + kg(siloPlace()) + ' free',
     'Fill', siloPlace() > 0.01 ? 'vert' : 'no', ()=>{
@@ -25762,7 +25830,7 @@ function ongletReglages(){
       '+ ' + DEV.qte, entrepotPlace() > 0.01 ? 'vert' : 'no', ()=>{
         const pris = entrepotRange(k, DEV.qte);
         showHint('ENTREPÔT  +' + qteHaut(k, pris));
-      });
+      }, null, k);
 
   titre('Developer — progress');
   {
@@ -25872,7 +25940,8 @@ function ongletCampagne(){
                : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) +
                    ' / ' + Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')) +
       '</span>' + (M.prime ? '  ·  ' + eur(M.prime) : '') + '  ·  +' + M.xp + ' XP';
-    article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null);
+    article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null,
+            null, ligneProduit(M));
   }
   }
 
@@ -25895,7 +25964,7 @@ function ongletCampagne(){
       '<br>' + eur(C.prime) + ' de prime  ·  +' + C.xp + ' XP' +
       (C.temps ? '  ·  ' + Math.max(0, Math.ceil(C.temps)) + ' s' : '') +
       '<br>La marchandise est payée en plus, au prix du commerce.',
-      Math.round(avanceCommande(C)*100) + ' %', 'vert', null);
+      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, ligneProduit(C));
   });
 
   /* CE QUE LE VILLAGE PENSE DE NOUS. La renommée ne se voit nulle part ailleurs : elle
