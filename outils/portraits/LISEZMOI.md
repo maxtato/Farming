@@ -391,6 +391,49 @@ porte quatre fois plus de pixels qu'une de 288, et sans correction les vingt-six
 levés et refus décideraient la palette à la place des quinze visages neutres. Le pas
 d'échantillonnage suit la surface.
 
+## Le détourage : deux fuites, et ce qui les distingue d'une dent
+
+> « Recherche les problèmes de détourage dans les personnages, il reste du blanc dans certains. »
+
+Il y en avait, et de deux natures différentes. Les deux se voient d'un coup en composant les
+quarante et une fiches **sur du magenta** — un fond que rien dans le casting ne porte.
+
+**1. L'inondation se faisait sur une grille sous-échantillonnée.** `ech = max(H,W)/420` valait 3 :
+un pixel gardé sur trois, et pas une réduction. Un couloir de fond large de deux pixels source
+disparaissait donc de la grille, et tout ce qu'il desservait restait opaque. Les composantes
+connexes d'OpenCV font le même travail **à pleine résolution**, en C, en quelques centièmes.
+
+**2. Les poches de fond enfermées.** Vingt-deux, sur douze fiches. Le fond vu **à travers le
+verre des lunettes**, entre la monture et la joue — l'atelier textile, la coopérative, le caviste
+— et le fond **entre le pouce et la manche**, au restaurant. Une inondation depuis le bord ne peut
+pas les atteindre : elles sont enfermées, par définition. Et la règle « ce qui est enfermé reste »
+était écrite exprès, pour protéger les dents d'un rire.
+
+**On ne peut donc pas trancher sur la forme. On tranche sur la couleur et sur la taille**, et les
+deux seuils sont mesurés sur le casting entier :
+
+| ce que c'est | distance à la médiane du pourtour | aire |
+|---|---|---|
+| **poche de fond** | **0 à 4 unités** — littéralement la même couleur | 187 à 3 864 px |
+| dent, blanc d'œil, bijou clair | 4 à 20 | 27 à 437 px |
+| blouse blanche du laitier | 20 à 24 | jusqu'à 36 093 px |
+| reflet dans une pupille | 2 à 5 | **27 à 35 px** |
+
+D'où `TOL_POCHE = 6` — au milieu du fossé entre 4 et 20 — et `AIRE_POCHE = 5·10⁻⁵` de l'image,
+soit 79 px sur une planche de 1 122 × 1 402 : deux fois plus gros que le plus gros reflet de
+pupille, deux fois plus petit que la plus petite poche. Le seuil d'aire est une **fraction**, pour
+ne pas dépendre de `cote`.
+
+**Ce que ça a coûté au cadrage : rien, et c'est mesuré avant de refabriquer.** Zéro étage
+d'ancrage changé sur quarante et un, écart d'ancre maximal **0,8 px**, surface opaque −0,23 % en
+moyenne — exactement le fond retiré. L'alignement des humeurs tient : 0,8 % d'écart moyen, 1,5 %
+au pire.
+
+**Et le contrôle est permanent.** `python3 controle.py --poches` refait le détourage et compte ce
+qui reste enfermé, à la couleur du fond, au-dessus du seuil. Il doit rendre **zéro** ; il tourne
+avec le contrôle d'alignement. Sur les fiches livrées, les taches blanches de plus de 140 px
+passent de 19 à 7, et les 7 qui restent sont la blouse du laitier (6) et un blanc d'œil (1).
+
 ### Le second jeu de fiches : une palette par image
 
     python3 fabriquer.py --14        # -> portraits14/, quatorze couleurs relevées par fiche

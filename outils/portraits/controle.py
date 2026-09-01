@@ -26,7 +26,7 @@ IL REND DEUX CHOSES, ET LA DEUXIEME N EST PAS UN ORNEMENT.
 import os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-import aligner as A, fabriquer as F
+import aligner as A, fabriquer as F, portrait as P
 
 SEUIL_ECART   = 0.04     # au-dela, les humeurs ne sont plus a la meme echelle
 SEUIL_CONFIANCE = 0.04   # au-dela, le triangle ne ferme pas : la mesure ne conclut pas
@@ -85,6 +85,46 @@ def silhouettes(rads, sortie='40_silhouettes.png', zoom=2, cols=4):
         pl.paste(v, (x, y+18))
     pl.save(sortie); print('->', sortie, pl.size)
 
+def poches():
+    """AUCUNE POCHE DE FOND NE DOIT SUBSISTER, ET C EST UN CONTROLE, PAS UNE ESPERANCE.
+       Le joueur : « il reste du blanc dans certains. » Vingt-deux poches sur douze
+       fiches — le fond vu a travers le verre des lunettes, le fond entre le pouce et la
+       manche. Une inondation depuis le bord ne peut pas les atteindre par construction,
+       et la regle « ce qui est enferme reste » existe pour proteger les dents : c est
+       donc un equilibre, et un equilibre se verifie. On refait le detourage et l on
+       compte ce qui reste enferme, a la couleur du fond, au-dessus du seuil d aire.
+       Le compte doit etre ZERO."""
+    import cv2
+    T = F.table(); reste = []
+    for rad in sorted(T):
+        for h in F.HUMEURS:
+            reg = T[rad].get(h)
+            if not reg: continue
+            im, al, _ = F.plaque(reg)
+            a = np.asarray(im.convert('RGB')).astype(np.int16)
+            H, W, _ = a.shape
+            tour = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
+            ref = np.median(tour, axis=0).astype(np.int16)
+            clair = (np.abs(a - ref).max(axis=2) <= 26)
+            n, lab = cv2.connectedComponents(clair.astype(np.uint8), 4)
+            b = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+            fond = np.isin(lab, b[b != 0])
+            nn, ll, st, _ = cv2.connectedComponentsWithStats(
+                (clair & ~fond & (al > 127)).astype(np.uint8), 4)
+            seuil = P.AIRE_POCHE*H*W
+            for i in range(1, nn):
+                ar = int(st[i, cv2.CC_STAT_AREA])
+                if ar < seuil: continue
+                m = ll == i
+                d = float(np.abs(a[m].mean(0) - ref).max())
+                if d <= P.TOL_POCHE:
+                    reste.append((rad + '-' + h, ar, d, int(st[i, 0]), int(st[i, 1])))
+    for n, ar, d, x, y in sorted(reste, key=lambda t: -t[1]):
+        print('  POCHE  %-22s %6d px  a %.1f unite(s) du fond, en (%d,%d)' % (n, ar, d, x, y))
+    print('poches de fond restantes : %d   (seuil %.0f px sur une planche de 1 122 x 1 402, '
+          'tolerance %d unites)' % (len(reste), P.AIRE_POCHE*1122*1402, P.TOL_POCHE))
+    return 1 if reste else 0
+
 def controler():
     T = F.table()
     lignes, pires, douteux = [], [], []
@@ -116,4 +156,5 @@ def controler():
     return 1 if trop else 0
 
 if __name__ == '__main__':
-    sys.exit(controler())
+    if '--poches' in sys.argv: sys.exit(poches())
+    sys.exit(controler() or poches())

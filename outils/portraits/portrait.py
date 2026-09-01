@@ -25,7 +25,7 @@ Cinq etapes, chacune verifiable a l oeil sur une planche de controle :
   5. POIDS          on encode et on mesure. Rien ne rentre dans le jeu sans son chiffre.
 """
 import io, os, sys, json
-from collections import deque
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -42,6 +42,20 @@ def charger(chemin, cote=900):
     return im
 
 # ---------- 1. DETOURAGE ------------------------------------------------------
+# LE SEUIL DE POCHE, ET POURQUOI IL Y EN A DEUX.
+# `TOL_POCHE` : a quelle distance de la couleur du fond une poche enfermee est ENCORE du
+# fond. Mesure sur les quarante et une planches : les poches de fond vraies sont a 0 a 4
+# unites de la mediane du pourtour — c est litteralement la meme couleur —, les dents, les
+# reflets d oeil et les bijoux clairs sont a 4-20, et la blouse blanche du laitier a 21-24.
+# Six laisse donc passer les poches et protege tout le reste, avec de la marge des deux
+# cotes.
+# `AIRE_POCHE` : en FRACTION de l image, pour ne pas dependre de `cote`. Les poches vraies
+# font de 187 a 3 864 pixels sur des planches de 1 122 x 1 402, soit au moins 1,2 pour dix
+# mille ; les reflets d oeil a proteger en font 27 a 35, soit deux pour cent mille. Le
+# seuil est a cinq pour cent mille — quatre-vingts pixels sur ces planches-la : deux fois
+# plus gros que le plus gros reflet, deux fois plus petit que la plus petite poche.
+TOL_POCHE, AIRE_POCHE = 6, 5e-5
+
 def detourer(im, tol=26, marge=2):
     """Rend un masque alpha (H,W) uint8. Le fond est ce qui RESSEMBLE AUX COINS *et* qui
        est relie au bord : les dents blanches d un rire ressemblent au fond mais sont
@@ -55,35 +69,43 @@ def detourer(im, tol=26, marge=2):
        ont le buste qui DEBORDE PAR LE BAS : leurs deux coins inferieurs sont dans la
        veste, la mediane de quatre coins tombe a mi-chemin entre le beige du fond et le
        brun du vetement, et plus rien ne ressemble au fond. La mediane du pourtour entier
-       resiste : il faudrait que le sujet occupe plus de la moitie du tour du cadre."""
+       resiste : il faudrait que le sujet occupe plus de la moitie du tour du cadre.
+
+       L INONDATION SE FAIT A PLEINE RESOLUTION, ET C EST UNE CORRECTION.
+       Elle se faisait sur une grille SOUS-ECHANTILLONNEE d un facteur trois — un pixel
+       gardé sur trois, pas une reduction — parce qu une file d attente en Python ne tient
+       pas un million et demi de pixels. Un couloir de fond large de deux pixels source
+       disparaissait donc de la grille reduite, et tout ce qu il desservait restait
+       opaque. Les composantes connexes d OpenCV font le meme travail en C, a pleine
+       resolution, en quelques centiemes : il n y a plus de couloir trop mince.
+
+       ET LES POCHES ENFERMEES QUI SONT LE FOND, ON LES OUVRE.
+       Le joueur : « il reste du blanc dans certains. » Vingt-deux poches sur douze fiches,
+       toutes du meme genre : le fond vu A TRAVERS le verre des lunettes entre la monture
+       et la joue, et le fond entre le pouce et la manche. Une inondation depuis le bord ne
+       peut pas les atteindre — elles sont enfermees, par definition — et la regle « ce qui
+       est enferme reste » etait ecrite exprès pour proteger les dents. On ne peut donc pas
+       trancher sur la forme : on tranche sur la COULEUR et sur la TAILLE. Une poche qui
+       est exactement la couleur du pourtour et qui pese plus que le plus gros reflet
+       d oeil du casting est du fond ; tout le reste reste."""
     a = np.asarray(im.convert('RGB')).astype(np.int16)
-    H0, W0, _ = a.shape
+    H, W, _ = a.shape
     tour = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     ref = np.median(tour, axis=0).astype(np.int16)
     clair = (np.abs(a - ref).max(axis=2) <= tol)
-    H, W = clair.shape
-    # inondation depuis les bords, sur une grille reduite : la BFS python ne tient pas
-    # 1,5 million de pixels, elle en tient cent mille sans qu on la sente.
-    ech = max(1, int(round(max(H, W) / 420.0)))
-    pet = clair[::ech, ::ech]
-    ph, pw = pet.shape
-    vu = np.zeros((ph, pw), bool)
-    f = deque()
-    for x in range(pw):
-        for y in (0, ph-1):
-            if pet[y, x] and not vu[y, x]: vu[y, x] = True; f.append((y, x))
-    for y in range(ph):
-        for x in (0, pw-1):
-            if pet[y, x] and not vu[y, x]: vu[y, x] = True; f.append((y, x))
-    while f:
-        y, x = f.popleft()
-        for dy, dx in ((1,0),(-1,0),(0,1),(0,-1)):
-            b, c = y+dy, x+dx
-            if 0 <= b < ph and 0 <= c < pw and pet[b, c] and not vu[b, c]:
-                vu[b, c] = True; f.append((b, c))
-    # on remonte le masque a la taille reelle, puis on le recale sur le vrai seuil
-    gros = np.asarray(Image.fromarray((vu*255).astype(np.uint8)).resize((W, H), Image.BILINEAR))
-    fond = (gros > 96) & clair
+    # 1. LE FOND JOINT AU BORD, par composantes connexes a pleine resolution.
+    n, lab = cv2.connectedComponents(clair.astype(np.uint8), 4)
+    bords = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+    bords = bords[bords != 0]
+    fond = np.isin(lab, bords)
+    # 2. LES POCHES ENFERMEES QUI SONT LA COULEUR DU FOND.
+    nn, ll, st, _ = cv2.connectedComponentsWithStats(
+        (clair & ~fond).astype(np.uint8), 4)
+    seuil = AIRE_POCHE*H*W
+    for i in range(1, nn):
+        if st[i, cv2.CC_STAT_AREA] < seuil: continue
+        m = ll == i
+        if np.abs(a[m].mean(0) - ref).max() <= TOL_POCHE: fond |= m
     # les bords restent du fond quoi qu il arrive : une bordure claire non reliee serait
     # un artefact de l echantillonnage, pas un morceau de personnage.
     fond[:marge, :] = clair[:marge, :]; fond[-marge:, :] = clair[-marge:, :]
