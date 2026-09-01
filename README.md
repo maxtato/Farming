@@ -10502,3 +10502,109 @@ indépendance.
 
 Quarante-et-une fiches, **822 Ko**. Les vingt-trois suites : **1 023 contrôles**, zéro échec,
 zéro erreur de page, zéro 404.
+
+## Le bord de l'écran et les jauges se taisent
+
+Deux demandes, et la même dans le fond : **en dire moins, et le dire au même endroit
+partout**.
+
+**La vignette du bord portait la consigne, c'est-à-dire la ligne du bandeau une seconde
+fois.** « Tout le texte qu'il y a autour est trop long ; indique juste l'endroit et le
+nombre de mètres. » On lisait « AU CHAMP — BLÉ · 95 m » sous une flèche de sept pixels de
+haut, posée sur un champ de blé au soleil, pendant que le bandeau disait exactement la
+même chose en grand, sur fond sombre, sans bouger. Une flèche sait dire deux choses — une
+direction et une distance — et c'est tout ce qu'on lui laisse : **LE CHAMP · 95 M**. Les
+quatre espèces de vignette suivent la même règle, l'objectif jaune comme le rendez-vous
+vert, la leçon bleue comme les contrats : plus de verbe, plus de préfixe « CONTRAT · »,
+plus de « LE TÉLÉPHONE SONNE ». La couleur dit déjà de quoi il s'agit. La flèche, elle, ne
+change pas d'un pixel : 22 de côté, comme avant.
+
+**Et elle ne se rallume plus au bout du champ.** « Quand on laboure un champ, à peine on
+est au bout du champ, on a le texte qui réapparaît avec la flèche, alors qu'on sait très
+bien qu'on doit être ici. » Le défaut est mesurable : la règle d'avant n'avait qu'un
+seuil, et ce seuil n'était pas une distance — la vignette paraissait dès que le point
+sortait du **cadre**. Or une parcelle fait 30,4 m de côté et son objectif est posé au
+centre : à l'autre bout du champ on est à **21,5 m** du point, la caméra regarde ailleurs,
+et le bord se remet à crier une direction qu'on connaît par cœur, à chaque demi-tour.
+Il y a donc maintenant **deux seuils, et c'est ce qui fait un cliquet** : à **28 m** on
+considère qu'on est arrivé — la plus grande parcelle du jeu tient tout entière dedans,
+coin compris — et la vignette s'éteint, cadre ou pas ; elle ne se rallume qu'à **60 m**,
+quand on a vraiment quitté les lieux. Entre les deux, rien ne clignote. Le cliquet se
+retient par **nom de lieu** et non par indice de vignette : leur ordre change à chaque
+image, et un objectif qui change d'endroit porte un autre nom, donc un cliquet neuf — la
+flèche repart aussitôt, ce qui est exactement ce qu'on veut.
+
+**Le trait sous les titres part des deux espèces d'étiquette.** Une barre d'accent, 260
+pixels sur 5 pour une plaque de lieu et 310 sur 5 pour une enseigne de commerce, séparait
+le titre du détail. « Sur toutes les étiquettes, enlève le petit trait de soulignage qui
+est sous le titre, tu laisses juste le titre, en dessous les détails. » Les deux se
+resserrent d'autant : la plaque d'un lieu passe de 200 pixels de haut à **196**,
+l'enseigne perd **10 px**.
+
+**Et les étages d'une plaque deviennent facultatifs**, ce qui est tout l'objet du
+changement. Une plaque de cargaison n'a plus de titre — « on n'a pas besoin de marquer
+pick-up, on sait très bien qu'on est dans le pick-up ; marque juste les différentes
+cargaisons avec ce que représente chacune en kilos » — et c'est le chargement qui prend le
+premier étage : **Blé 83 kg**. La boîte sombre descend alors jusqu'au dernier étage écrit
+au lieu de tomber sur un gabarit, le bas du canevas reste transparent, et la plaque du
+pick-up devient **deux fois plus courte** qu'une étiquette de lieu, sans changer ni de
+fonte, ni de largeur, ni de porteur. Les deux mots de fin partent avec le nom :
+« PLEINE », « VIDE » — une barre au plafond et une barre au plancher les disaient déjà.
+
+**La cuve d'un outil est nommée par sa matière, plus par l'outil.** « Pour le semoir, mets
+le type de récolte, par exemple blé, et le nombre de kilos avec la barre, c'est tout, rien
+de plus ; et pour l'engrais, juste engrais avec la quantité et la barre. » Le premier mot
+était sous les yeux du joueur, qui vient d'atteler l'engin et le traîne derrière lui,
+tandis que la **semence embarquée** est la seule chose qu'il ne peut lire nulle part
+ailleurs — le bouton de culture dit ce qu'il a *choisi* de semer, pas ce qui reste dans le
+casier. On lit donc **Blé / 31 kg** et **Engrais / 5 kg**. La quantité reste en kilos :
+l'engrais s'achète au comptoir à 0,80 € **le kilo** et la cuve blanche de la cour en tient
+450 — écrire des litres sur la seule remorque ferait mentir les deux autres surfaces.
+
+**Une seule échelle de couleur pour toutes les jauges de niveau.** Il y en avait **cinq**,
+et aucune ne ressemblait à l'autre :
+
+| | orange | rouge |
+|---|---|---|
+| pilule de gazole | 30 % | 15 % |
+| cuve à gazole de la cour | 35 % | 15 % |
+| réserves de graines et d'engrais | 30 % | 10 % |
+| mangeoire d'un enclos | 22 % | 6 % |
+| cuve du semoir ou de l'épandeur | — | **à ras bord** |
+
+La dernière ligne est le vrai défaut : elle ne suivait pas de niveau du tout, elle prenait
+la couleur de la **matière** — grise à sec, rouge quand elle débordait — c'est-à-dire
+l'inverse aux deux bouts. Un joueur ne peut pas apprendre cinq barèmes. Il y en a un :
+**vert au-dessus d'un tiers, orange en dessous, rouge sous un cinquième, et un battement
+sous un huitième**. Trois marches, parce que « quand c'est quasi vide, il faut que ça
+pulse » vient après « quand on est vraiment critique, ça devient rouge ».
+
+**Le battement se pose sur l'opacité du sprite, pas sur le canevas.** Repeindre 470 × 196
+pixels et les téléverser soixante fois par seconde pour faire clignoter une barre coûterait
+plus cher que toutes les étiquettes réunies ; le sprite ne coûte rien à faire varier. Même
+période et même chute que la pilule de gazole, qui le fait déjà en CSS : trois quarts de
+seconde, et l'ensemble tombe au quart. Il a fallu pour cela sortir le **fondu de distance**
+de l'opacité du matériau — un lissage à 6 par seconde écrase un clignotement de 0,75 s
+jusqu'à ne plus rien laisser voir ; le fondu vit maintenant à part, et l'opacité n'en est
+que le produit.
+
+**Une seule exception, et elle est demandée : les cargaisons.** « Tu mets juste une jauge
+verte, sans changer de couleur quand ça diminue, pour les cargaisons de livraison. » Elle
+est juste : une réserve vide **arrête le travail**, une caisse vide est l'état normal
+d'une caisse. Rougir à zéro alarmerait soixante fois par partie pour une benne qu'on vient
+de vider exprès. Trémie, benne, pick-up et bétail restent donc verts à tous les niveaux.
+
+**Ce qui n'a pas pris l'échelle, et pourquoi.** Le silo et l'entrepôt alarment quand ils
+sont **pleins** — c'est le plein qui bloque la moisson —, l'atelier et une parcelle
+portent un **avancement** et non un niveau, et le tank d'un enclos déborde. Leur donner le
+barème des réserves ferait pulser en rouge un silo vide au premier jour de la partie,
+c'est-à-dire alarmer sur l'état normal. Ils gardent la règle qu'ils avaient.
+
+Bancs : le nouveau **`discret`**, 24 contrôles — le cliquet éprouvé à quatre distances, la
+flèche mesurée dans la feuille de style, le trait cherché **au pixel** dans les deux
+espèces d'étiquette, l'échelle vérifiée à cinq niveaux sur le semoir, et le battement
+échantillonné sur plus d'une période avec de vraies attentes. Trois bancs disaient
+l'ancienne règle et disent maintenant la nouvelle : `hud` (la trémie, la remorque, la
+couleur d'une cuve), `contrat` (le libellé de la flèche verte) et `lecons` (la vignette
+d'une leçon). Les vingt-quatre suites plus celle-ci : **1 098 contrôles**, zéro échec,
+zéro erreur de page, zéro 404.

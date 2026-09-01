@@ -6361,7 +6361,7 @@ function bulleTex(nom, toit, sous){
   const lig = couperNom(nom);
   const LW = 560;
   const hNom = lig.length*(NOM_PX + 12);
-  const LH = 34 + hNom + (sous ? SOUS_PX + 26 : 0) + 26;
+  const LH = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
@@ -6374,20 +6374,24 @@ function bulleTex(nom, toit, sous){
   c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
 
-  const accent = '#' + toit.toString(16).padStart(6,'0');
   const ferme = /^NIVEAU /.test(sous || '');
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
   c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
   lig.forEach((t, i)=> c.fillText(t, LW/2, 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
+  /* PLUS DE TRAIT SOUS LE TITRE. Une barre d'accent de 310 pixels sur 5, dans la couleur
+     du toit, séparait le nom du commerce de ce qu'une mission y attend. Le joueur : « sur
+     toutes les étiquettes, enlève le petit trait de soulignage qui est sous le titre, tu
+     laisses juste le titre, en dessous les détails. » Elle part des DEUX espèces
+     d'étiquette — celle-ci et la plaque d'un lieu — et l'enseigne se resserre de dix
+     pixels : la seconde ligne monte là où le trait était. */
   const yb = 34 + hNom + 2;
-  c.fillStyle = accent; c.fillRect(LW/2 - 155, yb, 310, 5);
   if(sous){
     // Le palier d'un commerce fermé se lit en gris ; ce qu'une mission y attend, dans le
     // jaune du guidage — c'est la même information que le cercle au sol, écrite.
     c.fillStyle = ferme ? 'rgba(255,255,255,.55)' : '#FFD21E';
     c.font = 'bold ' + SOUS_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-    c.fillText(sous, LW/2, yb + 26 + SOUS_PX/2);
+    c.fillText(sous, LW/2, yb + 10 + SOUS_PX/2);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 8;
@@ -23304,7 +23308,28 @@ const viseursEl = document.getElementById('viseurs');
 /* La marge du haut tient compte de la deuxième rangée du bandeau : le bouton de graine
    descend à 94 px, et une vignette de viseur mesure 42 px autour de son centre. À 100 la
    pointe de la flèche — la moitié qui porte la direction — passait DERRIÈRE lui. */
-const VISEUR = {haut:120, bas:158, cote:64, pool:[]};
+const VISEUR = {haut:120, bas:158, cote:64, pool:[], acquis:{}};
+/* UNE FOIS QU'ON Y EST ALLÉ, LA FLÈCHE SE TAIT — ET LONGTEMPS.
+   Le joueur : « quand on laboure un champ, à peine on est au bout du champ, on a le texte
+   qui réapparaît avec la flèche, alors qu'on sait très bien qu'on doit être ici ; c'est
+   gênant. Il faut qu'elle ne réapparaisse que quand on est suffisamment loin du point. »
+   La règle d'avant n'avait qu'un seuil, et ce seuil n'était pas une distance : la flèche
+   se montrait dès que le point sortait du CADRE. Or une parcelle mesure 30,4 m de côté et
+   son objectif est posé en son centre : à l'autre bout du champ on est à 21,5 m du point,
+   la caméra regarde ailleurs, et le bord de l'écran se remettait à crier une direction
+   qu'on connaît par cœur — plusieurs fois par passe, à chaque demi-tour.
+   DEUX SEUILS, ET C'EST CE QUI FAIT UN CLIQUET. À 28 m on considère qu'on EST arrivé — la
+   plus grande parcelle du jeu tient tout entière dedans, coin compris — et la vignette
+   s'éteint, cadre ou pas. Elle ne se rallume qu'à 60 m, c'est-à-dire quand on a
+   VRAIMENT quitté les lieux : plus de deux fois la demi-diagonale du champ, et à peu près
+   la distance de la cour au premier commerce. Entre les deux, rien ne clignote : c'est
+   tout l'intérêt d'un cliquet par rapport à un seuil unique.
+   LA CLÉ EST L'ENDROIT, PAS LA VIGNETTE. Le cliquet se retient par nom de lieu : l'ordre
+   des vignettes change à chaque image, leur nombre aussi, et un indice de tableau
+   rendrait le souvenir à la voisine. Un objectif qui CHANGE d'endroit — la mission passe
+   du champ au silo — porte un autre nom, donc un cliquet neuf : la flèche repart
+   aussitôt, ce qui est exactement ce qu'on veut. */
+const VIS_PRES = 28, VIS_REPRISE = 60;
 /* LA FLÈCHE : UN TRIANGLE, MAIS POINTU.
    Le premier était équilatéral — trois angles de soixante degrés — et un triangle dont
    tous les angles se valent ne pointe nulle part : tourné d'un quart de tour on le
@@ -23326,6 +23351,35 @@ const FLECHE_SVG =
    L'objectif jaune n'est pas forcément un commerce : ce peut être un champ, le silo,
    l'atelier ou un enclos. C'est pour cela que la liste se compose ici plutôt que de
    parcourir SITES : le guidage désigne un ENDROIT, pas un bâtiment. */
+/* CE QUE LA VIGNETTE ÉCRIT : L'ENDROIT, ET RIEN D'AUTRE.
+   Le joueur : « tout le texte qu'il y a autour est trop long ; indique juste l'endroit et
+   le nombre de mètres. » Elle portait la CONSIGNE — « LIVRER 30 KG DE BLÉ », « LE
+   TÉLÉPHONE SONNE · LA FERME », « CONTRAT · COOPÉRATIVE » —, c'est-à-dire la même phrase
+   que la ligne du bandeau, en plus petit, sur un fond de paysage et sous une flèche qui
+   bouge. Deux surfaces pour la même phrase, et c'est celle du bord qui se lit le plus
+   mal : elle garde la direction et la distance, qui sont ce qu'une flèche sait dire, et
+   laisse la consigne au bandeau, qui est fait pour être lu.
+   LES LIEUX ONT DÉJÀ UN NOM, il suffit de le traduire. `objectifMission` et `lieuLecon`
+   travaillent avec des clés — 'silo', 'entrepot', 'pature3' — parce qu'elles servent à
+   comparer, pas à écrire. Cette table les rend lisibles ; tout ce qui n'y figure pas est
+   déjà un nom de commerce, et passe tel quel en capitales. */
+const ENDROITS = {silo:'Silo', entrepot:'Entrepôt', atelier:'Atelier', champ:'Le champ',
+                  parcelle:'La friche', parc:'Le parc à outils', outil:'L\'outil',
+                  cuve:'Cuve à gazole', 'cuve à engrais':'Cuve à engrais',
+                  'réserve':'La réserve', enclos:'L\'enclos', Ferme:'La ferme'};
+function nomEndroit(lieu){
+  if(!lieu) return '';
+  if(ENDROITS[lieu]) return ENDROITS[lieu].toUpperCase();
+  // Un enclos se nomme par SON troupeau : il peut y en avoir cinq, et « ENCLOS » tout
+  // court ne dirait pas lequel.
+  const m = /^pature(\d+)$/.exec(lieu);
+  if(m){
+    const P = PATURES[+m[1]];
+    const E = P && (ESPECES[P.espece] || null);
+    return E ? E.pluriel.toUpperCase() : 'L\'ENCLOS';
+  }
+  return String(lieu).toUpperCase();
+}
 const MAX_VERTES = 3;
 /* UNE SEULE FLÈCHE JAUNE, ET C'EST CELLE DE L'ÉTAPE DU MOMENT. Les étapes suivantes
    sont bien jaunes au sol et sur la carte, mais elles n'ont PAS de flèche : trois flèches
@@ -23340,15 +23394,15 @@ function ciblesGuidage(){
      carré d'herbe, et le bord de l'écran portait deux flèches superposées. C'est le vert
      qui reste — c'est lui qui dit ce qui attend. */
   const memeCible = O && APrendre && Math.hypot(O.x - MAISON.x, O.z - MAISON.z) < 0.5;
-  if(O && !memeCible) out.push({nom:O.txt, x:O.x, z:O.z, coul:'#FFD21E'});
+  if(O && !memeCible)
+    out.push({nom:nomEndroit(O.lieu), x:O.x, z:O.z, coul:'#FFD21E'});
   /* LA FLÈCHE VERTE MÈNE CHEZ SOI, ET NULLE PART AILLEURS. Elle désignait le commerce qui
      proposait la mission — un endroit différent à chaque fois — et il y en avait jusqu'à
      trois à l'écran. Le téléphone sonne maintenant au-dessus de la maison, et c'est la
      seule flèche verte de la vallée : sans elle, un joueur à l'autre bout de la carte ne
      verrait ni le cercle ni le combiné, et ne saurait pas qu'on l'appelle. */
   if(APrendre)
-    out.push({nom:'LE TÉLÉPHONE SONNE  ·  LA FERME', x:MAISON.x, z:MAISON.z,
-              coul:'#62D84E'});
+    out.push({nom:nomEndroit('Ferme'), x:MAISON.x, z:MAISON.z, coul:'#62D84E'});
   const v = MACHINES[cur].v;
   /* ET LA LEÇON DU MOMENT A LA SIENNE, EN BLEU. Bleue parce qu'une leçon désigne une
      chose qu'on PEUT faire, et que le jaune ne dit qu'une chose : la mission en cours.
@@ -23360,11 +23414,11 @@ function ciblesGuidage(){
      de trois vignettes bleues — « un écran cerné de vignettes ne dit plus rien » — et un
      geste qu'on n'a jamais fait passe avant une affaire de plus. */
   const LG = leconCourante(), PG = LG ? lieuLecon(LG) : null;
-  if(PG) out.push({nom:LG.titre, x:PG.x, z:PG.z, coul:'#4AA8E0'});
+  if(PG) out.push({nom:nomEndroit(PG.lieu), x:PG.x, z:PG.z, coul:'#4AA8E0'});
   // Les contrats d'un commerce gardent leur flèche, en bleu : ce sont des affaires
   // ouvertes, pas la mission de la campagne.
   const bleus = SITES.filter((S)=> aQuelqueChoseADire(S) && (!O || O.lieu !== S.nom))
-    .map((S)=> ({nom:'CONTRAT  ·  ' + S.nom.toUpperCase(), x:S.dropX, z:S.dropZ,
+    .map((S)=> ({nom:nomEndroit(S.nom), x:S.dropX, z:S.dropZ,
                  coul:'#4AA8E0',
                  d:Math.hypot(v.pos.x - S.dropX, v.pos.z - S.dropZ)}))
     .sort((a2, b2)=> a2.d - b2.d)
@@ -23443,6 +23497,13 @@ function refreshViseurs(){
   const v = MACHINES[cur].v;
   let n = 0;
   for(const S of ciblesGuidage()){
+    /* LE CLIQUET, AVANT TOUT CALCUL D'ÉCRAN. On y est allé une fois : la vignette se tait
+       jusqu'à ce qu'on soit reparti pour de bon. Voir VIS_PRES et VIS_REPRISE. */
+    const dS = Math.hypot(v.pos.x - S.x, v.pos.z - S.z);
+    const cle = S.nom || (Math.round(S.x) + ',' + Math.round(S.z));
+    if(dS <= VIS_PRES) VISEUR.acquis[cle] = 1;
+    else if(dS >= VIS_REPRISE) delete VISEUR.acquis[cle];
+    if(VISEUR.acquis[cle]) continue;
     // Deux mètres vingt de haut : le centre de la pastille, pas le sol, sinon la flèche
     // dérive quand la caméra rase.
     _vVis.set(S.x, 2.2, S.z);
@@ -23463,7 +23524,7 @@ function refreshViseurs(){
       e.innerHTML = '<div class="fl">' + FLECHE_SVG + '</div><div class="nm"></div>';
       viseursEl.appendChild(e); VISEUR.pool[n] = e;
     }
-    const d = Math.round(Math.hypot(v.pos.x - S.x, v.pos.z - S.z));
+    const d = Math.round(dS);
     if(e.style.display !== 'flex') e.style.display = 'flex';
     // La couleur porte le SENS : elle est donnée par le guidage, une seule fois, et la
     // flèche comme son libellé s'y accordent — `currentColor` fait le reste.
@@ -23492,6 +23553,32 @@ function refreshViseurs(){
 }
 
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
+/* UNE SEULE ÉCHELLE DE COULEUR POUR TOUTES LES JAUGES DE NIVEAU.
+   Le joueur : « colore la barre avec une couleur universelle pour toutes les jauges :
+   quand c'est plein c'est vert, jusqu'à arriver à un tiers c'est vert, en dessous d'un
+   tiers ça devient orange, et quand on est vraiment critique ça devient rouge ; et quand
+   c'est quasi vide, il faut que ça pulse, que ce soit visible pour attirer l'œil. »
+   Il y en avait CINQ, toutes différentes, et aucune ne se ressemblait d'un objet à
+   l'autre : la pilule de gazole passait au rouge à 15 % et à l'orange à 30 ; la cuve de
+   la cour à 15 et 35 ; les deux réserves de la cour à 10 et 30 ; la mangeoire d'un enclos
+   à 6 et 22 ; et la cuve d'un outil ne suivait pas de niveau du tout — elle prenait la
+   couleur de la MATIÈRE qu'elle portait, rouge à ras bord et grise à sec, c'est-à-dire
+   exactement l'inverse aux deux bouts. Un joueur ne peut pas apprendre cinq barèmes.
+   TROIS SEUILS, ÉCRITS UNE FOIS. Un tiers pour l'orange, comme demandé ; un cinquième
+   pour le rouge ; un huitième pour le battement, qui doit tomber SOUS le rouge — « et
+   quand c'est quasi vide » vient après « quand c'est vraiment critique », ce sont deux
+   marches et non une.
+   LE BATTEMENT SE POSE SUR L'OPACITÉ DU SPRITE, PAS SUR LE CANEVAS. Repeindre 470 x 196
+   pixels et les téléverser soixante fois par seconde pour faire clignoter une barre
+   coûterait plus cher que tout le reste des étiquettes réunies. Le sprite, lui, ne coûte
+   rien à faire varier — et c'est déjà ce que fait la pilule de gazole en CSS, avec la
+   même période de trois quarts de seconde et la même chute au quart. */
+const NIV_ORANGE = 1/3, NIV_ROUGE = 0.20, NIV_PULSE = 0.12;
+const VERT_JAUGE = '#8BE07A', ORANGE_JAUGE = '#F0A030', ROUGE_JAUGE = '#E8563F';
+const couleurNiveau = (k)=> k < NIV_ROUGE ? ROUGE_JAUGE
+                          : (k < NIV_ORANGE ? ORANGE_JAUGE : VERT_JAUGE);
+const niveauCritique = (k)=> k < NIV_PULSE;
+const battementJauge = ()=> 0.25 + 0.75*(0.5 - 0.5*Math.cos(performance.now()/375*Math.PI));
 const jaugeEl = {
   fuel: document.getElementById('fuelfill'), fuelBox: document.getElementById('fuel'),
   heure: document.getElementById('heure')
@@ -23503,10 +23590,10 @@ function refreshJauges(){
   // La pompe est en `currentColor` : elle prend la teinte de la boîte, qui prend celle
   // du niveau. Sans cette ligne la piste virait au rouge et clignotait pendant que le
   // pictogramme d'à côté restait vert vif.
-  const teinte = k < 0.15 ? '#E8563F' : (k < 0.30 ? '#F0A030' : '#8BE07A');
+  const teinte = couleurNiveau(k);
   jaugeEl.fuel.style.background = teinte;
   jaugeEl.fuelBox.style.color = teinte;
-  jaugeEl.fuelBox.classList.toggle('bas', k < 0.15);
+  jaugeEl.fuelBox.classList.toggle('bas', niveauCritique(k));
   const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
   jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
   /* ET LA LIGNE DE CHARGEMENT N'EST PLUS ICI. Elle écrivait « BLÉ 80 KG » en petites
@@ -23568,9 +23655,22 @@ function refreshJauges(){
    l'ancienne jauge. Plus lisible ET moins lourd, les deux à la fois. */
 const PAN_LARGE = 11.0;
 const PAN_W = 470, PAN_NOM = 52, PAN_SOUS = 46;
-// Trois étages, toujours dessinés au même endroit : c'est ce qui permet de REPEINDRE le
-// canevas d'une étiquette au lieu de la reconstruire, vingt fois par seconde s'il le faut.
-const PAN_YNOM = 24, PAN_YACC = 84, PAN_YSOUS = 96, PAN_YBAR = 158, PAN_HBAR = 22;
+// Deux étages et une barre, toujours dessinés au même endroit : c'est ce qui permet de
+// REPEINDRE le canevas d'une étiquette au lieu de la reconstruire, vingt fois par seconde.
+/* IL Y EN AVAIT TROIS, ET LE TROISIÈME ÉTAIT UN TRAIT. Une barre d'accent de 260 pixels
+   sur 5 courait sous le titre, à PAN_YACC = 84. Le joueur : « sur toutes les étiquettes,
+   je veux que tu enlèves le petit trait de soulignage qui est sous le titre, tu laisses
+   juste le titre, en dessous les détails actuels. » Elle part, et les deux étages qui
+   restent se resserrent de huit pixels : la ligne de détail monte de 96 à 88, la barre de
+   158 à 154, et la plaque d'un lieu passe de 200 pixels de haut à 196.
+   ET LES ÉTAGES SONT MAINTENANT FACULTATIFS, ce qui est tout l'objet du changement. Une
+   plaque de cargaison n'a plus de titre — on sait dans quel véhicule on est assis — et
+   n'a donc plus rien à écrire au premier étage ; une plaque qui ne porte qu'un titre n'a
+   rien sous lui. La boîte sombre descend jusqu'au DERNIER ÉTAGE ÉCRIT au lieu de tomber
+   sur un gabarit, et le bas du canevas reste transparent. Une jauge de charge devient
+   ainsi deux fois plus courte qu'une étiquette de lieu, sans changer ni de fonte, ni de
+   largeur, ni de porteur. */
+const PAN_YNOM = 24, PAN_YSOUS = 88, PAN_YBAR = 154, PAN_HBAR = 22;
 /* ET UNE ÉTIQUETTE PEUT AVOIR PLUSIEURS LIGNES DE DÉTAIL. Le joueur : « indique dans
    l'étiquette de la cuve à graines et dans le silo le détail des graines et des types de
    récolte. » Il n'y avait qu'une ligne, et elle disait le total plus la nature la plus
@@ -23585,11 +23685,19 @@ const PAN_LIGNE = 52;                                 // ce qu'ajoute une ligne 
 const panHaut = (n)=> PAN_YBAR + PAN_HBAR + 20 + Math.max(0, (n || 1) - 1)*PAN_LIGNE;
 const PAN_H = panHaut(1);                             // 200
 const PAN_RATIO = PAN_H/PAN_W;
-function peindrePanneauCv(c, nom, accent, sous, barre, k, coul, lignes){
+function peindrePanneauCv(c, nom, sous, barre, k, coul, lignes){
   const nL = Math.max(1, lignes || 1);
-  const PAN_HH = panHaut(nL), yBar = PAN_YBAR + (nL - 1)*PAN_LIGNE;
-  c.clearRect(0, 0, PAN_W, PAN_HH);
-  const r = 34, w = PAN_W - 20, h = PAN_HH - 22, x = 10, y = 8;
+  c.clearRect(0, 0, PAN_W, panHaut(nL));
+  const li = sous ? String(sous).split('\n').slice(0, nL) : [];
+  /* CE QU'ELLE PORTE DÉCIDE DE SA HAUTEUR, ET NON L'INVERSE. Le titre occupe le premier
+     étage quand il y en a un ; les lignes de détail viennent dessous, ou À SA PLACE quand
+     la plaque n'a pas de titre ; la barre se pose sous le dernier étage écrit. La réserve
+     reste de nL lignes dès qu'il y a du détail — le silo en gagne et en perd au fil des
+     livraisons, et une plaque qui changerait de hauteur à chaque kilo sauterait. */
+  const yS = nom ? PAN_YSOUS : PAN_YNOM;
+  const bas = li.length ? yS + nL*PAN_LIGNE : (nom ? PAN_YNOM + PAN_NOM : PAN_YNOM);
+  const yBar = bas + (PAN_YBAR - PAN_YSOUS - PAN_LIGNE);
+  const r = 34, w = PAN_W - 20, h = (barre ? yBar + PAN_HBAR : bas) - 2, x = 10, y = 8;
   c.fillStyle = 'rgba(28,35,40,.80)';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -23597,21 +23705,21 @@ function peindrePanneauCv(c, nom, accent, sous, barre, k, coul, lignes){
   c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = '#FFFFFF';
-  // Le nom rétrécit s'il déborde, plutôt que de se faire comprimer : une lettre étirée
-  // se lit moins bien qu'une lettre petite. Même règle que l'ancienne jauge.
-  let t = PAN_NOM;
-  c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
-  while(t > 26 && c.measureText(nom).width > PAN_W - 56){
-    t -= 2; c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
+  if(nom){
+    c.fillStyle = '#FFFFFF';
+    // Le nom rétrécit s'il déborde, plutôt que de se faire comprimer : une lettre étirée
+    // se lit moins bien qu'une lettre petite. Même règle que l'ancienne jauge.
+    let t = PAN_NOM;
+    c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
+    while(t > 26 && c.measureText(nom).width > PAN_W - 56){
+      t -= 2; c.font = 'bold ' + t + 'px "Trebuchet MS",Verdana,sans-serif';
+    }
+    c.fillText(nom, PAN_W/2, PAN_YNOM + PAN_NOM/2);
   }
-  c.fillText(nom, PAN_W/2, PAN_YNOM + PAN_NOM/2);
-  c.fillStyle = accent; c.fillRect(PAN_W/2 - 130, PAN_YACC, 260, 5);
-  if(sous){
+  {
     // La première ligne porte le total, les suivantes le détail : plus petites et plus
     // discrètes, parce que c'est du second plan et que ça doit se lire comme tel.
-    const li = String(sous).split('\n');
-    for(let q = 0; q < li.length && q < nL; q++){
+    for(let q = 0; q < li.length; q++){
       if(!li[q]) continue;
       const base = q === 0 ? PAN_SOUS : PAN_SOUS - 8;
       c.fillStyle = q === 0 ? 'rgba(255,255,255,.82)' : 'rgba(255,255,255,.66)';
@@ -23620,7 +23728,7 @@ function peindrePanneauCv(c, nom, accent, sous, barre, k, coul, lignes){
       while(t2 > 24 && c.measureText(li[q]).width > PAN_W - 56){
         t2 -= 2; c.font = 'bold ' + t2 + 'px "Trebuchet MS",Verdana,sans-serif';
       }
-      c.fillText(li[q], PAN_W/2, PAN_YSOUS + q*PAN_LIGNE + base/2);
+      c.fillText(li[q], PAN_W/2, yS + q*PAN_LIGNE + base/2);
     }
   }
   if(barre){
@@ -23698,8 +23806,12 @@ function creerJauge(lignes, large){
   m.userData.anime = true;
   scene.add(m);
   PANNEAUX.push(m);
+  /* `f` EST LE FONDU DE DISTANCE, TENU À PART DE L'OPACITÉ DU MATÉRIAU. Le battement
+     multiplie l'opacité à chaque image ; s'il la lissait avec elle, le lissage à 6 par
+     seconde écraserait un clignotement de 0,75 s jusqu'à ne plus rien laisser voir. Le
+     fondu vit donc ici, et l'opacité n'en est que le produit. */
   return {sp:m, cv, ctx:cv.getContext('2d'), tex, k:-1, txt:null, sous:null, coul:null,
-          lignes:nL};
+          lignes:nL, f:0};
 }
 function peindreJauge(J, nom, sous, k, coul){
   // arrondi au centième : c'est le pas visible sur une barre de 480 pixels
@@ -23709,28 +23821,27 @@ function peindreJauge(J, nom, sous, k, coul){
   // le silo de la réserve d'engrais sans avoir à relire le canevas pixel par pixel.
   J.sp.userData.nom = nom;
   J.k = kk; J.txt = nom; J.sous = sous; J.coul = coul;
-  peindrePanneauCv(J.ctx, nom, coul || '#8A9298', sous, kk !== null, kk || 0,
-                   coul || '#8A9298', J.lignes);
+  peindrePanneauCv(J.ctx, nom, sous, kk !== null, kk || 0, coul || '#8A9298', J.lignes);
   J.tex.needsUpdate = true;
 }
 // Une étiquette ne se montre que si elle a quelque chose à dire ET qu'on est assez près :
 // vingt étiquettes éparpillées sur la vallée, ce serait un tableau de bord, pas un paysage.
 const JAUGE_PORTEE = 62;
-function montrerJauge(J, x, y, z, nom, sous, k, coul, dt){
+function montrerJauge(J, x, y, z, nom, sous, k, coul, dt, pulse){
   const v = MACHINES[cur].v;
   const loin = Math.hypot(v.pos.x - x, v.pos.z - z) > JAUGE_PORTEE;
   const vise = loin ? 0 : 1;
-  const mt = J.sp.material;
-  mt.opacity += (vise - mt.opacity)*Math.min(1, dt*6);
-  J.sp.visible = mt.opacity > 0.02;
+  J.f += (vise - J.f)*Math.min(1, dt*6);
+  J.sp.material.opacity = J.f*(pulse ? battementJauge() : 1);
+  J.sp.visible = J.sp.material.opacity > 0.02;
   if(!J.sp.visible) return;
   peindreJauge(J, nom, sous, k, coul);
   J.sp.position.set(x, y, z);
 }
 function cacherJauge(J, dt){
-  const mt = J.sp.material;
-  mt.opacity += (0 - mt.opacity)*Math.min(1, dt*6);
-  J.sp.visible = mt.opacity > 0.02;
+  J.f += (0 - J.f)*Math.min(1, dt*6);
+  J.sp.material.opacity = J.f;
+  J.sp.visible = J.f > 0.02;
 }
 
 /* Les quatre étiquettes de la cour, plus un petit tas pour les enclos et les parcelles.
@@ -23760,11 +23871,12 @@ function prendreJauge(p){
   if(p.jauge) return p.jauge;
   p.jauge = jaugesLibres.pop() || creerJauge();
   p.jauge.k = -1;                      // elle vient d'ailleurs : elle doit se repeindre
+  p.jauge.f = 0;                       // et elle se rallume en fondu, comme une neuve
   return p.jauge;
 }
 function rendreJauge(p){
   if(!p.jauge) return;
-  p.jauge.sp.visible = false; p.jauge.sp.material.opacity = 0;
+  p.jauge.sp.visible = false; p.jauge.sp.material.opacity = 0; p.jauge.f = 0;
   jaugesLibres.push(p.jauge); p.jauge = null;
 }
 
@@ -23866,7 +23978,12 @@ function majPousseParcelles(dt){
    général — sauf les cuves du semoir et de l'épandeur, qui restent allumées à zéro parce
    qu'on ne s'aperçoit qu'au milieu du champ qu'on n'a plus rien à semer. Elles ne disent
    RIEN D'AUTRE que leur nombre : voir `direCuve`. */
-const PLEIN_A = 0.995;
+/* ET « PLEIN » N'EST PLUS UNE COULEUR. Un seuil à 0,995 faisait virer au rouge une cuve
+   à ras bord et une caisse pleine : le rouge disait alors « on ne peut plus rien y
+   mettre ». Il dit maintenant l'inverse, et pour toutes les jauges à la fois — « quand on
+   est vraiment critique, ça devient rouge » —, si bien qu'un semoir plein et un semoir à
+   sec auraient porté la même couleur. Le seuil part avec les deux emplois qu'il avait ;
+   ce qu'il annonçait, la barre au plafond le dit déjà sans un mot. */
 /* L'ENGRAIS N'EST PAS UN PRODUIT, ET C'EST LA SEULE EXCEPTION. Il ne figure pas dans
    `PRODUITS` — il n'a ni prix de vente, ni ligne de silo, ni recette : c'est un INTRANT,
    qui vit dans `CUVES.engrais` et nulle part ailleurs. `nomDe` rendait donc « Charge »,
@@ -23885,24 +24002,43 @@ const nomCharge = (c)=> ((PRODUITS[c] || INTRANTS[c] || {}).nom) || 'Charge';
    et la leçon « REMPLIR LE SEMOIR » se lève la première fois qu'on attelle une cuve vide.
    La couleur de la plaque reste, elle : vert de la matière, rouge à ras bord, gris à sec —
    ce n'est pas une information de plus, c'est la même, dite sans un mot. */
-function direCuve(J, x, y, z, nom, q, max, cle, dt){
+/* ET C'EST LA MATIÈRE QUI LA NOMME, PLUS L'OUTIL. Le joueur : « pour le semoir, mets le
+   type de récolte, par exemple blé, et le nombre de kilos avec la barre, c'est tout, rien
+   de plus ; et pour l'engrais, juste engrais avec la quantité et la barre. » La plaque
+   disait « Semoir » puis « 240 kg » : le premier mot est sous les yeux du joueur, qui
+   vient d'atteler l'engin et le traîne derrière lui, tandis que la SEMENCE embarquée est
+   la seule chose qu'il ne peut lire nulle part ailleurs — le bouton de culture dit ce
+   qu'il a CHOISI de semer, pas ce qu'il reste dans le casier. Le nom de l'outil cède donc
+   la place à la nature, et le nombre passe à l'étage du dessous. Deux étages, deux
+   informations, aucune redite. */
+function direCuve(J, x, y, z, q, max, cle, dt){
   const k = max > 0 ? Math.min(1, q/max) : 0;
-  const coul = k > PLEIN_A ? '#E8563F' : q <= 0.01 ? '#8A9298'
-             : ((PRODUITS[cle] || INTRANTS[cle] || {}).couleur || '#E6F0F8');
-  montrerJauge(J, x, y, z, nom, kg(q), k, coul, dt);
+  montrerJauge(J, x, y, z, nomCharge(cle), kg(q), k, couleurNiveau(k), dt,
+               niveauCritique(k));
 }
-function direCharge(J, x, y, z, nom, q, max, cles, lire, motPlein, motVide, dt){
+/* UNE CARGAISON NE DIT QUE CE QU'ELLE PORTE, ET SA BARRE RESTE VERTE.
+   Le joueur, sur la plaque du pick-up : « on n'a pas besoin de marquer pick-up, on sait
+   très bien qu'on est dans le pick-up ; il faut juste que tu marques les différentes
+   cargaisons qu'on a, avec ce que représente chacune en kilos, mais pas le nom pick-up. »
+   Le nom du véhicule quitte donc le titre, et c'est le chargement qui le prend : « Blé
+   240 kg », ou « Blé 240 · Orge 100 » quand la caisse porte deux natures. La plaque perd
+   son deuxième étage du même coup et se retrouve deux fois plus courte.
+   ET SA BARRE NE CHANGE PLUS DE COULEUR : « tu mets juste une jauge verte, sans changer
+   de couleur quand ça diminue, pour les cargaisons de livraison. » C'est la seule
+   exception à l'échelle commune, et elle est juste : une réserve VIDE arrête le travail,
+   une caisse vide est l'état normal d'une caisse. Rougir à zéro alarmerait soixante fois
+   par partie pour une benne qu'on vient de vider exprès.
+   LES DEUX MOTS DE FIN PARTENT AUSSI — « PLEINE », « VIDE ». Une barre au plafond dit
+   qu'on est plein, une barre au plancher qu'on est vide : les écrire par-dessus, c'était
+   la même chose deux fois sur quatre centimètres de plaque. */
+function direCharge(J, x, y, z, q, max, cles, lire, dt){
   const k = max > 0 ? Math.min(1, q/max) : 0;
   // Une caisse peut porter plusieurs natures : on les nomme comme le silo les nomme.
   const detail = cles.length > 1 ? detailTas(lire, cles, nomCharge, 1)
                : !cles.length ? kg(q)
                : PRODUITS[cles[0]] ? nomQte(cles[0], q)
                                    : nomCharge(cles[0]) + ' ' + kg(q);
-  const plein = k > PLEIN_A, vide = q <= 0.01;
-  const coul = plein ? '#E8563F' : vide ? '#8A9298'
-             : ((PRODUITS[cles[0]] || INTRANTS[cles[0]] || {}).couleur || '#E6F0F8');
-  const mot = plein ? ' — ' + motPlein : (vide && motVide ? ' — ' + motVide : '');
-  montrerJauge(J, x, y, z, nom, detail + mot, k, coul, dt);
+  montrerJauge(J, x, y, z, detail || kg(q), null, k, VERT_JAUGE, dt);
 }
 function jaugesEngin(dt){
   const m = MACHINES[cur], v = m.v, T = toolOf(m);
@@ -23913,28 +24049,27 @@ function jaugesEngin(dt){
     /* LE BÉTAIL AUSSI : il partageait la ligne de chargement du bandeau, qui disait
        « 3 BÊTES » là où elle disait « BLÉ 80 KG », et il serait parti avec elle. */
     const cap = capaciteBetail(m) || v.betail;
-    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z, 'Bétail',
-      v.betail + ' bête' + (v.betail > 1 ? 's' : '') + ' sur ' + cap,
-      v.betail/cap, v.betail >= cap ? '#E8563F' : '#E8B44A', dt);
+    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z,
+      v.betail + ' bête' + (v.betail > 1 ? 's' : '') + ' sur ' + cap, null,
+      v.betail/cap, VERT_JAUGE, dt);
   } else if(m.key === 'moisson'){
     const c = CROPS[hopCrop];
-    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, 'Trémie', hopper, HOP_MAX,
-               (hopper > 0.01 && c) ? [c.cle] : [], ()=> hopper,
-               'TRÉMIE PLEINE', 'VIDE', dt);
+    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, hopper, HOP_MAX,
+               (hopper > 0.01 && c) ? [c.cle] : [], ()=> hopper, dt);
   } else if(v.cargo && v.cargo.load > 0.01){
-    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, m.nom, v.cargo.load, v.cargo.capacite,
-               naturesDe(v.cargo), (k)=> chargeDe(v.cargo, k), 'PLEINE', null, dt);
+    direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, v.cargo.load, v.cargo.capacite,
+               naturesDe(v.cargo), (k)=> chargeDe(v.cargo, k), dt);
   } else cacherJauge(jaugeEngin, dt);
   /* — CE QU'IL TRAÎNE. `toolOf` rend aussi la coupe et le tunnel, qui ne sont pas des
        outils du parc : ils n'ont ni modèle, ni position, et ce qu'ils récoltent est déjà
        dit par la plaque du dessus. Cinq mètres : un outil ne dépasse pas 2,2 m de haut. */
   const traine = T && T.group && T !== MOISSON && T !== VENDANGE ? T : null;
   if(traine && traine.cargo && traine.load > 0.01)
-    direCharge(jaugeOutil, traine.x, 5.0, traine.z, traine.nom, traine.load, traine.capacite,
-               naturesDe(traine), (k)=> chargeDe(traine, k), 'PLEINE', null, dt);
+    direCharge(jaugeOutil, traine.x, 5.0, traine.z, traine.load, traine.capacite,
+               naturesDe(traine), (k)=> chargeDe(traine, k), dt);
   else if(traine && traine.cuveMax){
     const k = cuveCleDe(traine);
-    direCuve(jaugeOutil, traine.x, 5.0, traine.z, traine.nom,
+    direCuve(jaugeOutil, traine.x, 5.0, traine.z,
              cuveDe(traine, k), traine.cuveMax, k, dt);
   } else cacherJauge(jaugeOutil, dt);
 }
@@ -24042,7 +24177,7 @@ function majJauges(dt){
        peinte par-dessus puisqu'une étiquette de lieu ignore le test de profondeur. */
     montrerJauge(jaugeCuve, CUVE_POS.x, 7.4, CUVE_POS.z, 'Cuve à gazole',
       litres(CARBU.cuve) + ' sur ' + litres(CARBU.cuveMax),
-      kc, kc < 0.15 ? '#E8563F' : (kc < 0.35 ? '#F0A030' : '#8BE07A'), dt);
+      kc, couleurNiveau(kc), dt, niveauCritique(kc));
   } else cacherJauge(jaugeCuve, dt);
 
   /* — LES DEUX RÉSERVES DE LA COUR. Le joueur : « je veux que tu ajoutes au-dessus des
@@ -24074,12 +24209,12 @@ function majJauges(dt){
     montrerJauge(jaugeGraine, RES_GRAINE.x, 11.0, RES_GRAINE.z, 'Cuve à graines',
       gt > 0.5 ? Math.round(gt) + ' kg sur ' + Math.round(CUVES.max) + '\n' + det
                : 'vide  ·  à remplir au comptoir agricole',
-      kg1, kg1 < 0.10 ? '#E8563F' : (kg1 < 0.30 ? '#F0A030' : '#8BE07A'), dt);
+      kg1, couleurNiveau(kg1), dt, niveauCritique(kg1));
     const ke = CUVES.max > 0 ? CUVES.engrais/CUVES.max : 0;
     montrerJauge(jaugeEngrais, RES_ENGRAIS.x, 10.6, RES_ENGRAIS.z, 'Cuve à engrais',
       CUVES.engrais > 0.5 ? Math.round(CUVES.engrais) + ' kg sur ' + Math.round(CUVES.max)
                           : 'vide  ·  à remplir au comptoir agricole',
-      ke, ke < 0.10 ? '#E8563F' : (ke < 0.30 ? '#F0A030' : '#8BE07A'), dt);
+      ke, couleurNiveau(ke), dt, niveauCritique(ke));
   }
 
   // — les enclos : ce qu'il reste à manger, et où en est le produit. Un troupeau qui
@@ -24121,7 +24256,7 @@ function majJauges(dt){
          faire se toucher. */
       montrerJauge(prendreJauge(P), cx, 12.4, cz, 'Mangeoire',
         Math.round(P.grain) + ' kg' + reste,
-        kg2, kg2 < 0.06 ? '#E8563F' : (kg2 < 0.22 ? '#F0A030' : '#E0C07A'), dt);
+        kg2, couleurNiveau(kg2), dt, niveauCritique(kg2));
     } else if(P.jauge) cacherJauge(P.jauge, dt);
     if(E2.produit){
       const nourries = (!E2.rationCycle || P.grain > 0.5) ? P.betes.length : 0;
