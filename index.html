@@ -264,6 +264,28 @@
   #viseurs .vis .fl svg{width:22px;height:22px;display:block}
   #viseurs .vis .nm{font-size:7px;font-weight:bold;letter-spacing:.7px;text-transform:uppercase;
     color:currentColor;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+  /* LA PASTILLE DU TÉLÉPHONE.
+     C'ÉTAIT UN COMBINÉ DE TROIS MÈTRES POSÉ AU-DESSUS DU TOIT — un objet de la vallée,
+     avec sa taille, sa distance et sa perspective : de près il mangeait le pignon, de
+     loin il ne faisait plus deux pixels, et passé vingt-cinq mètres il quittait le cadre
+     avec la maison. Le joueur : « ne fais pas l'espèce de téléphone en 3D au-dessus du
+     toit ; à la place, ce combiné dans une pastille grise transparente du même style que
+     les boutons qu'on a sur l'écran. »
+     C'est donc un BOUTON, au sens exact du HUD : trente-huit pixels, coin de douze, le
+     même fond `rgba(20,28,33,.72)` et la même ombre portée que la pause et le menu. Il
+     n'en a que l'habit — `pointer-events` reste à `none`, hérité de `#viseurs` : on ne
+     décroche pas en touchant l'écran, on décroche en allant chez soi. */
+  #tel{position:absolute;left:0;top:0;width:38px;height:38px;border-radius:12px;
+    background:rgba(20,28,33,.72);display:none;align-items:center;justify-content:center;
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 5px 11px rgba(0,0,0,.3);will-change:transform}
+  #tel .tp{width:24px;height:24px;display:block;will-change:transform}
+  #tel .tp svg{width:24px;height:24px;display:block}
+  /* L'ONDE : le halo qui part de la pastille à chaque coup de sonnerie. C'est le seul
+     reste des deux ondes du combiné en trois dimensions, et il dit la même chose — ça
+     sonne MAINTENANT — sans rien ajouter au décor. Un cadre, pas un aplat : il ne
+     recouvre jamais le picto. */
+  #tel .onde{position:absolute;inset:-2px;border-radius:14px;border:2px solid #62D84E;
+    opacity:0;will-change:transform,opacity}
   #pause{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.72);pointer-events:auto;
     display:flex;align-items:center;justify-content:center;gap:4px;
@@ -1551,7 +1573,7 @@
        pas : elle dit dans quelle direction se trouve ce qu'on cherche, et à quelle
        distance. Sans elles, une proposition qui tombe à l'autre bout de la vallée
        n'existe pour le joueur que s'il passe devant par hasard. -->
-  <div id="viseurs"></div>
+  <div id="viseurs"><div id="tel"><div class="onde"></div><div class="tp"></div></div></div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctitre">Changer d'engin</div><div id="parcliste"></div></div></div>
@@ -6491,9 +6513,11 @@ function flushTint(){
 
 /* ---------- 9. PROPS ---------- */
 let chimney = null;     // sortie de cheminée, source de la fumée
-/* LE TÉLÉPHONE QUI SONNE AU-DESSUS DE LA MAISON. Il est posé avec elle et animé par la
-   boucle ; il ne se voit que lorsqu'une mission attend qu'on vienne la prendre. */
-let sonnerie = null;
+/* LE TÉLÉPHONE NE SE POSE PLUS DANS LA VALLÉE : il sonne dans le HUD, sur une pastille
+   grise du même style que les boutons de l'écran — voir `majTelephone`. Un combiné de
+   trois mètres au-dessus du toit avait la taille d'un objet du monde, donc sa
+   perspective : il mangeait le pignon de près, disparaissait de loin, et sortait du
+   cadre avec la maison. Rien ne reste ici de l'ancien groupe. */
 /* ---------- LA FERME : LA MAISON, ET LE SEUL ENDROIT OÙ L'ON PREND UNE MISSION ----------
    Elles se prenaient CHEZ LE CLIENT : la Coopérative pour la première, puis l'Épicerie, la
    Boulangerie, la Laiterie — un cercle vert qui se déplaçait de commerce en commerce et
@@ -6501,7 +6525,8 @@ let sonnerie = null;
    missions se prennent toutes au même endroit, à côté de la maison sur le terrain en
    herbe ; place là le cercle vert où apparaîtront toutes les missions, avec un effet de
    sonnerie de téléphone au-dessus de la maison, et le cercle qui se met en vert lorsqu'une
-   mission apparaît. »
+   mission apparaît. » (La sonnerie est aujourd'hui une pastille du HUD et non plus un
+   objet du décor — voir `majTelephone` —, mais elle sonne toujours au-dessus du toit.)
    C'est aussi ce qui rend les trois couleurs lisibles d'un coup : le VERT n'a plus qu'un
    seul lieu dans toute la vallée — chez soi — et tout le reste se partage entre le JAUNE de
    la chaîne en cours et le BLEU de ce qui est ouvert.
@@ -8646,51 +8671,6 @@ function buildFarm(){
      comme vert même éteint. */
   anneauAction(MAISON.x, MAISON.z, 1.7, ()=> !!missionAPrendre(),
                {coul: 0x62D84E, coulDyn: ()=> couleurLieu('Ferme')});
-  sonnerie = new THREE.Group();
-  {
-    const CORPS = 0x2F3A40, ECRAN = 0xBFE8FF, ONDE = 0x8BE07A;
-    // Le combiné : un corps sombre, un écran clair, deux ondes de part et d'autre.
-    /* LA TAILLE EST CELLE DE LA MAISON, PAS CELLE D'UNE ICÔNE. Un combiné d'un mètre de
-       haut au-dessus d'un pignon de neuf mètres de large disparaissait dès qu'on
-       s'éloignait de vingt mètres — et c'est justement de loin qu'il doit se voir. Deux
-       mètres de large sur trois vingt : la moitié de la hauteur du toit, ce qui le pose
-       comme un objet et non comme une décoration de faîtage. */
-    const t = new THREE.Group();
-    t.add(box(2.00, 3.20, 0.62, CORPS, 0, 0, 0));
-    t.add(box(1.48, 2.10, 0.10, ECRAN, 0, 0.22, 0.35));
-    t.add(box(0.64, 0.18, 0.10, ECRAN, 0, -1.14, 0.35));
-    t.rotation.z = 0.22;
-    sonnerie.add(t);
-    sonnerie.userData.corps = t;
-    sonnerie.userData.ondes = [];
-    for(const c of [-1, 1]){
-      const o = new THREE.Group();
-      for(let k = 0; k < 2; k++){
-        const a = box(0.22, 0.80 + k*0.62, 0.22, ONDE, c*(1.45 + k*0.62), 0.45 + k*0.10, 0);
-        a.material = a.material.clone();
-        a.material.transparent = true;
-        o.add(a);
-      }
-      sonnerie.add(o);
-      sonnerie.userData.ondes.push(o);
-    }
-  }
-  /* AU-DESSUS DU FAÎTAGE, ET DEVANT LUI. Le toit culmine à (3,8 + 2,5) × 1,18 = 7,43 m,
-     et le décalage de deux mètres vers la cour pose le combiné du côté d'où l'on arrive
-     au lieu de le cacher derrière la crête.
-     LA HAUTEUR EST CELLE QUE LA CAMÉRA LAISSE VOIR, et non celle qui « fait joli ». Le
-     jeu se regarde de haut : à seize mètres de la maison le faîtage est déjà à 44 px du
-     bord supérieur de l'écran, et un combiné posé à 10,6 m en sortait par le haut
-     (−23 px) alors qu'on voyait encore le toit. À 9,2 m il y tient (−3 px, la pointe de
-     l'onde extérieure et rien d'autre), et la pente qu'il surplombe est à 6,36 m —
-     un mètre six de vide sous lui : il flotte, il ne s'y pose pas. Passé vingt-cinq
-     mètres c'est la maison ENTIÈRE qui quitte le cadre, et c'est la flèche verte du bord
-     qui prend le relais. */
-  sonnerie.position.set(MAISON.hx + 2.0, 9.2, MAISON.hz);
-  sonnerie.visible = false;
-  sonnerie.traverse((o)=>{ if(o.isMesh){ o.castShadow = false; o.receiveShadow = false;
-                                         o.userData.anime = true; } });
-  scene.add(sonnerie);
 
   // Le puits de la cour : margelle de pierre, deux montants, un petit toit et le seau
   // au bout de sa corde. Il ne sert à rien qu'à dire que la maison est habitée.
@@ -25506,6 +25486,31 @@ const VIS_PRES = 28, VIS_REPRISE = 60;
 const FLECHE_SVG =
   '<svg viewBox="0 0 26 46" aria-hidden="true">' +
   '<polygon points="13,1 24,45 2,45" fill="currentColor"/></svg>';
+/* LE COMBINÉ, DESSINÉ COMME L'OBJET QU'IL REMPLACE.
+   Le joueur a joint la photo de son combiné : rouge, à facettes, deux écouteurs
+   octogonaux reliés par un manche courbe, le tout penché. C'est ce dessin-là qu'on
+   reprend, et non le pictogramme de téléphone au trait des autres boutons : les
+   pictogrammes du HUD disent une ACTION qu'on peut faire du doigt — le menu, le garage,
+   l'attelage —, celui-ci dit qu'un objet du monde est en train de sonner. Il est donc
+   PLEIN et EN COULEUR là où les autres sont au trait et en `currentColor`.
+   TROIS TONS, PAS UN DE PLUS. Le rouge de l'objet, un rouge clair pour la facette
+   éclairée du manche, un rouge sombre pour les deux grilles. Les neuf trous de la photo
+   ne feraient pas un demi-pixel à cette taille : ils deviennent le creux qui les porte.
+   La rotation et le retrait sont posés une fois sur le groupe — le dessin, lui, est
+   droit, ce qui le rend relisible. */
+const TEL_SVG =
+  '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+  '<g transform="translate(12,12) rotate(-18) scale(0.94) translate(-12,-12)">' +
+    '<polygon points="12,3.4 8,6 6.2,12 8,18 12,20.6 12,17.6 9.6,15.6 9,12 9.6,8.4 12,6.4" fill="#E23B2E"/>' +
+    '<polygon points="19.17,7.45 16.85,9.77 13.55,9.77 11.23,7.45 11.23,4.15 13.55,1.83 16.85,1.83 19.17,4.15" fill="#E23B2E"/>' +
+    '<polygon points="19.17,19.85 16.85,22.17 13.55,22.17 11.23,19.85 11.23,16.55 13.55,14.23 16.85,14.23 19.17,16.55" fill="#E23B2E"/>' +
+    '<polygon points="12,3.4 8,6 6.2,12 7.4,12 9.3,7 12,4.9" fill="#F4645A"/>' +
+    '<polygon points="16.96,6.53 15.93,7.56 14.47,7.56 13.45,6.53 13.45,5.07 14.47,4.05 15.93,4.05 16.96,5.07" fill="#A6231C"/>' +
+    '<polygon points="16.96,18.93 15.93,19.96 14.47,19.96 13.45,18.93 13.45,17.47 14.47,16.45 15.93,16.45 16.96,17.47" fill="#A6231C"/>' +
+  '</g></svg>';
+const telEl = document.getElementById('tel');
+const telOnde = telEl.firstElementChild, telPic = telEl.lastElementChild;
+telPic.innerHTML = TEL_SVG;
 /* CE VERS QUOI LE BORD DE L'ÉCRAN POINTE, et dans quel ordre. Le cahier des charges est
    explicite : l'objectif jaune d'abord, deux ou trois missions vertes ensuite, et surtout
    pas les trois services bleus en permanence — « ne pas encombrer le HUD ».
@@ -25560,11 +25565,12 @@ function ciblesGuidage(){
     out.push({nom:nomEndroit(O.lieu), x:O.x, z:O.z, coul:'#FFD21E'});
   /* LA FLÈCHE VERTE MÈNE CHEZ SOI, ET NULLE PART AILLEURS. Elle désignait le commerce qui
      proposait la mission — un endroit différent à chaque fois — et il y en avait jusqu'à
-     trois à l'écran. Le téléphone sonne maintenant au-dessus de la maison, et c'est la
-     seule flèche verte de la vallée : sans elle, un joueur à l'autre bout de la carte ne
-     verrait ni le cercle ni le combiné, et ne saurait pas qu'on l'appelle. */
+     trois à l'écran. Le téléphone sonne maintenant chez soi, et c'est la seule flèche
+     verte de la vallée : sans elle, un joueur à l'autre bout de la carte verrait bien la
+     pastille du combiné accrochée au bord, mais rien ne lui dirait où c'est ni à quelle
+     distance — c'est la flèche qui porte le nom et les mètres. */
   if(APrendre)
-    out.push({nom:nomEndroit('Ferme'), x:MAISON.x, z:MAISON.z, coul:'#62D84E'});
+    out.push({nom:nomEndroit('Ferme'), x:MAISON.x, z:MAISON.z, coul:'#62D84E', tel:true});
   const v = MACHINES[cur].v;
   /* ET LA LEÇON DU MOMENT A LA SIENNE, EN BLEU. Bleue parce qu'une leçon désigne une
      chose qu'on PEUT faire, et que le jaune ne dit qu'une chose : la mission en cours.
@@ -25657,6 +25663,10 @@ function refreshViseurs(){
   const mT = VISEUR.haut, mB = H - VISEUR.bas;
   const cx = W/2, cy = (mT + mB)/2;
   const v = MACHINES[cur].v;
+  // Où la flèche verte de la ferme a fini par se poser, cette image-ci : la pastille du
+  // téléphone s'accroche à elle quand la maison est hors cadre. Remis à zéro ici, écrit
+  // plus bas si la flèche est effectivement dessinée.
+  VISEUR.tel = null;
   let n = 0;
   for(const S of ciblesGuidage()){
     /* LE CLIQUET, AVANT TOUT CALCUL D'ÉCRAN. On y est allé une fois : la vignette se tait
@@ -25708,10 +25718,123 @@ function refreshViseurs(){
     // déplacement reste en sous-pixels, donc fluide.
     e.style.transform = 'translate3d(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) +
                         'px,0) translate(-50%,-50%)';
+    if(S.tel) VISEUR.tel = {x:fx, y:fy, h:e._h};
     n++;
   }
   for(let k = n; k < VISEUR.pool.length; k++)
     if(VISEUR.pool[k].style.display !== 'none') VISEUR.pool[k].style.display = 'none';
+  majTelephone(W, H, mL, mR, mT, mB);
+}
+/* ---------- LE TÉLÉPHONE QUI SONNE, ET OÙ IL SONNE ----------
+   Il y avait un combiné de trois mètres de haut planté à 9,20 m au-dessus de la cour.
+   Le joueur : « ne fais pas l'espèce de téléphone en 3D au-dessus du toit de la maison ;
+   à la place tu feras ce combiné dans une pastille grise transparente du même style que
+   les boutons qu'on a sur l'écran de jeu. Tu peux positionner cette pastille proche de
+   la flèche verte qui indique l'endroit où on doit aller décrocher, et une fois devant
+   la maison, la pastille doit arriver au-dessus de la maison. »
+
+   D'où DEUX POSITIONS, ET UNE SEULE RÈGLE POUR CHOISIR : on projette le point du faîtage.
+   S'il tombe dans le cadre utile — celui qui exclut le bandeau du haut et les commandes
+   du bas —, la pastille s'y pose : on est devant la maison, et le combiné sonne
+   au-dessus d'elle. Sinon, la maison n'est pas à l'écran, et la pastille rejoint la
+   flèche verte : elle se pose JUSTE AU-DESSUS de sa vignette, pas dessus — la flèche
+   garde son nom et sa distance en dessous, la pastille dit ce qui attend au bout.
+   ET SI LA FLÈCHE N'EST PAS LÀ, la pastille se débrouille : le cliquet des viseurs éteint
+   la flèche dès vingt-huit mètres (on sait où l'on va, elle n'a plus rien à dire), et
+   l'on peut très bien être à vingt mètres de chez soi en regardant ailleurs. La pastille
+   coupe alors le rayon sur le bord du cadre, exactement comme la flèche l'aurait fait :
+   elle reste au bord, du bon côté, et rien ne disparaît.
+   ELLE N'EST PAS UN BOUTON : `#viseurs` ne prend pas le doigt, et elle en hérite. On ne
+   décroche pas en touchant l'écran — on décroche en rentrant chez soi. */
+/* AU-DESSUS DU TOIT, ET NON DEDANS. Le point d'accroche a d'abord été posé DANS le monde,
+   à 8,60 m — un mètre au-dessus d'un faîtage qui culmine à 7,43. Un mètre de monde ne
+   fait pas la même chose à l'écran selon qu'on est à six mètres ou à quarante : de près
+   il ne valait que huit pixels, et la pastille, qui en mesure trente-huit, mordait la
+   moitié du toit. Le décalage est donc pris EN PIXELS, sur le point du faîtage : vingt et
+   un, c'est-à-dire les dix-neuf pixels de son rayon et deux de jour. La pastille effleure
+   la crête du toit sans jamais la couvrir, et cela reste vrai à toutes les distances. */
+const TEL_TOIT = 7.6, TEL_JOUR = 21;
+/* ET SON CADRE N'EST PAS CELUI DES FLÈCHES. Les viseurs s'interdisent les 120 pixels du
+   haut et les 158 du bas — c'est là que sont le bandeau et les commandes —, ce qui ne
+   leur laisse qu'une bande de 112 pixels sur un écran de 390. Or on est DEVANT la maison
+   à six mètres, et la pointe de son toit se projette à 71 px : hors de cette bande, mais
+   en plein milieu de l'écran, parfaitement visible. Avec le cadre des flèches, la
+   pastille refusait de s'y poser et restait collée à la barre des 120 — exactement ce
+   que le joueur ne voulait pas.
+   Elle prend donc le cadre de ce qu'elle est : dix-neuf pixels de rayon et quatre de
+   jour, sur trois côtés. LE BAS GARDE LA MARGE DES FLÈCHES, et lui seul : sous cette
+   ligne il y a les commandes, et une pastille posée derrière le bouton d'attelage ne se
+   verrait pas. Quand le toit tombe si bas, la maison repasse à la flèche verte. */
+const TEL_M = 23;
+/* ET ELLE NE MONTE PAS DANS LA BARRE DE NIVEAU. Le haut de l'écran porte la jauge d'XP et
+   son titre — ils descendent à 50 px —, et les deux boutons ronds du coin. Cinquante-
+   quatre pixels : la pastille passe dessous. Ce n'est qu'un PLANCHER, pas une frontière —
+   quand la maison est elle-même tout en haut du cadre, la pastille la suit et repasse
+   au-dessus de la barre : mieux vaut un instant sur la jauge que la pastille décrochée de
+   ce qu'elle désigne. */
+const TEL_HAUT = 54;
+const _vTel = new THREE.Vector3(), _cTel = new THREE.Vector3();
+let telMontre = false;
+function majTelephone(W, H, mL, mR, mT, mB){
+  const sonne = !!missionAPrendre();
+  if(sonne !== telMontre){
+    telEl.style.display = sonne ? 'flex' : 'none';
+    telMontre = sonne;
+  }
+  if(!sonne) return;
+  /* DEUX POINTS DE LA MAISON, ET CHACUN SON RÔLE. Le PIED dit si on la voit — c'est lui
+     qui est posé au sol, donc lui qui décide —, le FAÎTAGE dit où se pose la pastille.
+     Les confondre a coûté un essai : le faîtage d'une maison qu'on regarde de six mètres
+     se projette au-dessus de la barre de niveau, la pastille se croyait hors cadre et
+     filait au bord de l'écran alors qu'on avait la maison sous les yeux. */
+  const P = (x, y, z)=>{
+    _vTel.set(x, y, z);
+    _cTel.copy(_vTel).applyMatrix4(camera.matrixWorldInverse);
+    _vTel.project(camera);
+    // Un point DERRIÈRE la caméra sort de la projection avec ses signes inversés : on le
+    // retourne, sinon la pastille filerait à l'exact opposé de la maison.
+    const d = _cTel.z > 0;
+    return {d:d, x:((d ? -_vTel.x : _vTel.x)*0.5 + 0.5)*W,
+                 y:((-(d ? -_vTel.y : _vTel.y))*0.5 + 0.5)*H};
+  };
+  const toit = P(MAISON.hx, TEL_TOIT, MAISON.hz), pied = P(MAISON.hx, 0, MAISON.hz);
+  const sx = toit.x, sy = toit.y - TEL_JOUR;
+  let px, py;
+  /* ON VOIT LA MAISON : au-dessus d'elle, et jamais dessus. La pastille se pose sur le
+     faîtage, sans monter dans la barre de niveau ni descendre sous le pied — c'est ce
+     `min` qui la garde au-dessus du toit quand la maison touche le haut du cadre. Sous la
+     ligne des commandes, en revanche, on rend la main à la flèche : une pastille derrière
+     le bouton d'attelage ne se voit pas. */
+  if(!pied.d && pied.x >= TEL_M && pied.x <= W - TEL_M && pied.y >= 34 && pied.y <= mB){
+    px = sx; py = Math.min(pied.y - TEL_M, Math.max(TEL_HAUT, sy));
+  } else if(VISEUR.tel){
+    // Au-dessus de la vignette, d'une demi-vignette plus les dix-neuf pixels de la
+    // pastille et quatre de jour : les deux se touchent sans jamais se recouvrir.
+    px = VISEUR.tel.x; py = VISEUR.tel.y - (VISEUR.tel.h/2 + 23);
+  } else {
+    const cx = W/2, cy = (mT + mB)/2;
+    const dx = sx - cx, dy = sy - cy;
+    const tx = dx === 0 ? Infinity : (dx > 0 ? (mR - cx)/dx : (mL - cx)/dx);
+    const ty = dy === 0 ? Infinity : (dy > 0 ? (mB - cy)/dy : (mT - cy)/dy);
+    const t = Math.max(0, Math.min(tx, ty));
+    px = cx + dx*t; py = cy + dy*t;
+  }
+  // Elle ne sort jamais de l'écran, quoi qu'il arrive au-dessus.
+  px = Math.max(TEL_M, Math.min(W - TEL_M, px));
+  py = Math.max(TEL_M, Math.min(H - TEL_M, py));
+  telEl.style.transform = 'translate3d(' + px.toFixed(2) + 'px,' + py.toFixed(2) +
+                          'px,0) translate(-50%,-50%)';
+  /* ET ELLE SONNE, DU MÊME BATTEMENT QUE L'ANCIEN COMBINÉ : un cycle de 4,5 par seconde,
+     fort pendant les quatre premiers dixièmes, muet ensuite. Le tremblement est en DENTS
+     DE SCIE et non en sinus — une sonnerie ne se balance pas, elle secoue — et l'onde
+     part de la pastille à chaque coup. Deux écritures de `transform` et une d'opacité :
+     le compositeur s'en charge, sans remise en page. */
+  const t2 = performance.now()/1000;
+  const bat = (t2*4.5) % 1, fort = bat < 0.42;
+  telPic.style.transform = fort ? 'rotate(' + (Math.sin(t2*46)*9).toFixed(1) + 'deg)' : 'none';
+  const k = fort ? bat/0.42 : 1;
+  telOnde.style.transform = 'scale(' + (1 + k*0.55).toFixed(3) + ')';
+  telOnde.style.opacity = fort ? ((1 - k)*0.85).toFixed(3) : '0';
 }
 
 /* ---------- 24. JAUGES ET HORLOGE ---------- */
@@ -30088,31 +30211,6 @@ function loop(now){
        d'une image. */
     for(const B of BULLES)
       B.m.position.y = B.y0 + Math.sin(now/1000*0.65 + B.ph)*0.05;
-    /* LE TÉLÉPHONE SONNE, ET IL NE SONNE QUE QUAND IL Y A QUELQU'UN AU BOUT.
-       Trois mouvements, tous en `position`, `rotation` et `scale` — jamais un matériau
-       recréé ni une géométrie touchée : il flotte, il tremble par saccades de deux
-       dixièmes de seconde, et deux ondes s'écartent de lui en s'effaçant. Le tremblement
-       est en DENTS DE SCIE et non en sinus : une sonnerie n'oscille pas doucement, elle
-       secoue. Quand aucune mission n'attend, le groupe entier est invisible — c'est un
-       objet de moins à parcourir, pas un objet transparent. */
-    if(sonnerie){
-      const sonne = !!missionAPrendre();
-      sonnerie.visible = sonne;
-      if(sonne){
-        const t = now/1000;
-        sonnerie.position.y = 9.2 + Math.sin(t*1.5)*0.22;
-        const bat = (t*4.5) % 1;                       // le cycle d'une sonnerie
-        const fort = bat < 0.42;                       // elle sonne, puis se tait
-        sonnerie.userData.corps.rotation.z =
-          0.22 + (fort ? Math.sin(t*46)*0.20 : 0);
-        for(let i = 0; i < sonnerie.userData.ondes.length; i++){
-          const o = sonnerie.userData.ondes[i];
-          const k = fort ? bat/0.42 : 1;
-          o.scale.setScalar(0.55 + k*0.7);
-          for(const a of o.children) a.material.opacity = fort ? (1 - k)*0.95 : 0;
-        }
-      }
-    }
     // Anneaux d'action : jaune et pulsant quand l'action est possible, blanc et fixe
     // sinon. La bascule est amortie (A.k) plutôt qu'immédiate — sans ça, rouler le long
     // d'une rangée de commerces ou finir de charger une benne fait clignoter la carte.

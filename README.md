@@ -12377,3 +12377,89 @@ creux : trois âges du même rang rendaient 3,230, 3,235 et 3,237 m pour un piqu
 
 `ages` rejoint la suite : **trente-quatre suites à 1 409 contrôles**, dont les 7 échecs
 préexistants de `chaine` — et ses 29 contrôles à lui passent pour la première fois.
+
+## Le téléphone ne sonne plus dans la vallée, il sonne à l'écran
+
+Le joueur, une photo de combiné rouge à la main : « lorsque le téléphone sonne à la maison,
+ne fais pas l'espèce de téléphone en 3D au-dessus du toit de la maison ; à la place, tu
+feras ce combiné téléphonique dans une pastille grise transparente du même style que les
+boutons qu'on a sur l'écran de jeu. Tu peux positionner cette pastille proche de la flèche
+verte qui indique l'endroit où on doit aller pour décrocher le téléphone, et une fois devant
+la maison, la pastille doit arriver au-dessus de la maison. »
+
+**Ce qu'il y avait là.** Un combiné de deux mètres de large sur trois vingt, posé à 9,20 m
+au-dessus de la cour, avec deux ondes qui s'en écartaient en s'effaçant. Un OBJET DU MONDE,
+donc, avec la taille, la distance et la perspective d'un objet du monde : il mangeait le
+pignon quand on arrivait, ne faisait plus deux pixels à quarante mètres, et passé
+vingt-cinq mètres il quittait le cadre en même temps que la maison — c'est-à-dire
+exactement quand on aurait eu besoin de lui. Le banc `guidage` mesurait tout cela : son
+volume en pixels, le vide sous son bas, sa sortie de cadre par le haut. Rien de tout ça
+n'existe plus.
+
+**Ce qu'il y a maintenant.** Une pastille de HUD, et c'est un bouton au sens exact du mot :
+trente-huit pixels, coin de douze, le fond `rgba(20,28,33,.72)` et l'ombre portée de la
+pause et du menu — le banc compare les deux styles calculés et exige qu'ils soient
+identiques. Elle n'en a que l'habit : `#viseurs` ne prend pas le doigt et elle en hérite.
+On ne décroche pas en touchant l'écran, on décroche en rentrant chez soi.
+
+Le picto est le combiné de la photo, et non le pictogramme de téléphone au trait des autres
+boutons : ceux-là disent une ACTION qu'on peut faire du doigt, celui-ci dit qu'un objet du
+monde est en train de sonner. Il est donc PLEIN et EN COULEUR là où les autres sont au
+trait et en `currentColor`. Trois tons — l'objet, la facette éclairée du manche, le creux
+des deux grilles —, deux écouteurs octogonaux, un manche à facettes, l'ensemble penché de
+dix-huit degrés. Les neuf trous de la photo ne feraient pas un demi-pixel à cette taille :
+ils deviennent le creux qui les porte.
+
+**Deux positions, et une seule règle pour choisir.** On projette DEUX points de la maison,
+et chacun a son rôle : le PIED dit si on la voit — c'est lui qui est posé au sol, donc lui
+qui décide —, le FAÎTAGE dit où se pose la pastille. Les confondre a coûté un essai : le
+faîtage d'une maison qu'on regarde de six mètres se projette à 71 px, au-dessus de la bande
+utile des flèches, et la pastille se croyait hors cadre — elle restait collée à la barre des
+120 px alors qu'on avait la maison sous les yeux. Elle a donc son propre cadre : dix-neuf
+pixels de rayon et quatre de jour sur trois côtés, la marge des flèches en bas seulement,
+là où sont les commandes.
+
+Le décalage au-dessus du toit se prend EN PIXELS et non en mètres. Un mètre de monde ne
+fait pas la même chose à l'écran selon qu'on est à six mètres ou à quarante : le premier
+point d'accroche était posé à 8,60 m, un mètre au-dessus d'un faîtage qui culmine à 7,43, et
+ce mètre ne valait que huit pixels de près — la pastille, qui en mesure trente-huit,
+mordait la moitié du toit. Vingt et un pixels au-dessus du faîtage : elle l'effleure sans
+jamais le couvrir, et cela reste vrai à toutes les distances.
+
+Quand la maison n'est pas à l'écran, la pastille rejoint la flèche verte et se pose JUSTE
+au-dessus de sa vignette — **zéro pixel d'écart latéral, quatre pixels de jour** entre les
+deux : proches, jamais l'une sur l'autre. La flèche garde le nom et les mètres, la pastille
+dit ce qui attend au bout. Et si la flèche n'est pas là — le cliquet des viseurs l'éteint
+dès vingt-huit mètres, et l'on peut très bien être à vingt mètres de chez soi en regardant
+ailleurs —, la pastille coupe le rayon sur le bord du cadre toute seule, exactement comme
+la flèche l'aurait fait.
+
+Elle sonne du même battement que l'ancien combiné : un cycle de 4,5 par seconde, fort
+pendant les quatre premiers dixièmes, muet ensuite. Le tremblement est en DENTS DE SCIE et
+non en sinus — une sonnerie ne se balance pas, elle secoue — et une onde verte, la couleur
+du guidage, part de la pastille à chaque coup. Deux écritures de `transform` et une
+d'opacité par image : le compositeur s'en charge, sans remise en page.
+
+**Une limite qu'il faut dire.** La caméra du jeu est une isométrique à décalage fixe : plus
+on s'éloigne de la maison, plus elle MONTE à l'écran. Passé une quinzaine de mètres son
+faîtage sort par le haut du cadre — 29 px à 16 m, −49 px à 26 m — et il n'y a alors plus
+aucune place au-dessus de lui. La pastille se pose aussi haut que le cadre le permet, dans
+l'axe de la maison, et un plancher à 54 px l'empêche de monter dans la barre de niveau. Ce
+plancher n'est qu'un plancher : quand la maison est elle-même tout en haut du cadre, la
+pastille la suit et repasse au-dessus de la barre — mieux vaut un instant sur la jauge que
+la pastille décrochée de ce qu'elle désigne.
+
+**Le banc.** Un banc `telephone` de **15 contrôles** : plus un maillage au-dessus de 8 m
+dans les six mètres autour de la maison et le groupe `sonnerie` absent du code ; l'habit du
+bouton mesuré contre celui de la pause ; la bascule sonne/décroché ; la pose sur le faîtage
+à six mètres (385,1 / 56,4 px pour un point d'accroche à 385,1 / 56,4) ; la maison collée
+au haut de l'écran, où la pastille reste au-dessus d'elle au lieu de filer au bord ; le
+retour à la flèche à 122 m ; le bord coupé tout seul à 45 m ; le battement, relevé sur
+quarante images ; et le picto lui-même, rasterisé et compté — 138 pixels remplis, tous
+rouges, quatorze tons.
+
+La section « 7 bis » de `guidage` mesurait l'ancien combiné et passe donc à la nouvelle
+vérité, en cinq contrôles au lieu de huit : ce qui appartient au GUIDAGE et non au dessin —
+elle ne parle que lorsqu'on appelle, elle désigne la maison, elle ne lâche jamais le joueur,
+elle sonne. La suite compte **trente-cinq bancs à 1 421 contrôles**, dont les 7 échecs
+préexistants de `chaine`.
