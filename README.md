@@ -12396,19 +12396,18 @@ exactement quand on aurait eu besoin de lui. Le banc `guidage` mesurait tout cel
 volume en pixels, le vide sous son bas, sa sortie de cadre par le haut. Rien de tout ça
 n'existe plus.
 
-**Ce qu'il y a maintenant.** Une pastille de HUD, et c'est un bouton au sens exact du mot :
-trente-huit pixels, coin de douze, le fond `rgba(20,28,33,.72)` et l'ombre portée de la
-pause et du menu — le banc compare les deux styles calculés et exige qu'ils soient
-identiques. Elle n'en a que l'habit : `#viseurs` ne prend pas le doigt et elle en hérite.
-On ne décroche pas en touchant l'écran, on décroche en rentrant chez soi.
+**Ce qu'il y a maintenant.** Une pastille de HUD. Elle a d'abord repris l'habit exact des
+boutons — trente-huit pixels, coin de douze, le fond `rgba(20,28,33,.72)` et l'ombre portée
+de la pause et du menu. *Elle est depuis devenue ronde et verte : voir le chapitre suivant.*
+Elle n'a jamais eu que l'habit : `#viseurs` ne prend pas le doigt et elle en hérite. On ne
+décroche pas en touchant l'écran, on décroche en rentrant chez soi.
 
-Le picto est le combiné de la photo, et non le pictogramme de téléphone au trait des autres
-boutons : ceux-là disent une ACTION qu'on peut faire du doigt, celui-ci dit qu'un objet du
-monde est en train de sonner. Il est donc PLEIN et EN COULEUR là où les autres sont au
-trait et en `currentColor`. Trois tons — l'objet, la facette éclairée du manche, le creux
-des deux grilles —, deux écouteurs octogonaux, un manche à facettes, l'ensemble penché de
-dix-huit degrés. Les neuf trous de la photo ne feraient pas un demi-pixel à cette taille :
-ils deviennent le creux qui les porte.
+*Le picto a d'abord été DESSINÉ ici, en SVG* — deux écouteurs octogonaux, un manche à
+facettes, trois tons de rouge, l'ensemble penché de dix-huit degrés dans le carré de 24 des
+autres pictogrammes. *Le joueur l'a refusé, et il avait raison : voir le chapitre suivant.*
+Ce qui reste vrai du raisonnement : les pictogrammes des boutons disent une ACTION qu'on
+peut faire du doigt, celui-ci dit qu'un objet du monde est en train de sonner. Il est donc
+PLEIN et EN COULEUR là où les autres sont au trait et en `currentColor`.
 
 **Deux positions, et une seule règle pour choisir.** On projette DEUX points de la maison,
 et chacun a son rôle : le PIED dit si on la voit — c'est lui qui est posé au sol, donc lui
@@ -12449,17 +12448,94 @@ plancher n'est qu'un plancher : quand la maison est elle-même tout en haut du c
 pastille la suit et repasse au-dessus de la barre — mieux vaut un instant sur la jauge que
 la pastille décrochée de ce qu'elle désigne.
 
-**Le banc.** Un banc `telephone` de **15 contrôles** : plus un maillage au-dessus de 8 m
+**Le banc.** Un banc `telephone` (**15 contrôles à ce stade, 23 après le chapitre
+suivant**) : plus un maillage au-dessus de 8 m
 dans les six mètres autour de la maison et le groupe `sonnerie` absent du code ; l'habit du
 bouton mesuré contre celui de la pause ; la bascule sonne/décroché ; la pose sur le faîtage
 à six mètres (385,1 / 56,4 px pour un point d'accroche à 385,1 / 56,4) ; la maison collée
 au haut de l'écran, où la pastille reste au-dessus d'elle au lieu de filer au bord ; le
 retour à la flèche à 122 m ; le bord coupé tout seul à 45 m ; le battement, relevé sur
-quarante images ; et le picto lui-même, rasterisé et compté — 138 pixels remplis, tous
-rouges, quatorze tons.
+quarante images ; et le picto lui-même.
 
 La section « 7 bis » de `guidage` mesurait l'ancien combiné et passe donc à la nouvelle
 vérité, en cinq contrôles au lieu de huit : ce qui appartient au GUIDAGE et non au dessin —
 elle ne parle que lorsqu'on appelle, elle désigne la maison, elle ne lâche jamais le joueur,
-elle sonne. La suite compte **trente-cinq bancs à 1 421 contrôles**, dont les 7 échecs
-préexistants de `chaine`.
+elle sonne.
+
+## Le combiné n'est pas dessiné : c'est sa photo, en pixels
+
+Le joueur, sur le chapitre précédent : « pour le téléphone fais différemment. Je ne veux pas
+que tu me refasses un téléphone en SVG. Je veux que tu utilises le visuel du téléphone rouge
+que je t'ai joint **exactement**, celui-ci, que tu convertis en pixels exactement comme on a
+fait pour les visages, et que tu le mettes dans une pastille. Par contre la pastille, je veux
+qu'on la change : on va la faire **verte** comme la flèche de la mission, et **ronde**. »
+
+**Il a raison sur le fond, et pas seulement sur le goût.** Un tracé à la main est une
+INTERPRÉTATION du modèle, et c'est exactement ce que le jeu ne fait nulle part ailleurs : les
+quinze commerçants, le héros, les quarante et une marchandises et tout le parc sont des
+images du joueur, détourées par une chaîne, jamais des redessins. Le combiné en SVG était la
+seule pièce d'art du jeu qui n'était pas de sa main.
+
+### La chaîne, sans une ligne de neuf
+
+`pictos/telephone.png` sort de `outils/produits`, la chaîne des vignettes de marchandise,
+à la virgule près : détourage du fond (blanc, comme l'abeille — et sans ombre portée à
+déclarer, mesuré 0,013 % de gris clair, ce qui est l'anticrénelage du bord et non une ombre),
+alpha lu partout et non dans une frange, démêlage contre le fond local, recadrage sur le
+sujet, mise à l'échelle par le plus grand côté, réduction sur la couleur **prémultipliée**,
+soixante-quatre couleurs relevées sur l'image. Il en sort **41 × 74 pixels d'art dans une
+planche de 78**, pour **1,3 Ko**. Les trous du micro et de l'écouteur survivent à la
+réduction ; les facettes du manche aussi.
+
+**Ce qui a été ajouté, c'est une table, pas un traitement.** `produits.json` écrit dans
+`produits/`, `pictos.json` écrit dans `pictos/`, et le reste est commun. Le second dossier
+n'est pas un caprice de rangement : `produits/` est **sous contrat** — un fichier par entrée
+de `VIGNETTES`, ni plus ni moins, et le banc `vignettes` le vérifie dans les deux sens. Un
+picto de HUD n'est ni un produit, ni une bête, ni un engin, ni un outil ; le poser là-bas
+aurait obligé à desserrer ce banc pour loger une exception. Les quarante et une planches de
+`produits/` ont été refabriquées au passage et sortent **identiques à l'octet près** — la
+preuve que la chaîne n'a pas bougé.
+
+### La pastille : ronde, et du vert de la flèche
+
+`#62D84E` est le vert du guidage — celui de la flèche du bord, celui du cercle au sol chez
+soi. La pastille le prend tel quel, et le banc le vérifie **contre la source** et non contre
+une constante recopiée : il demande sa couleur à `ciblesGuidage()`, c'est-à-dire à la
+fonction qui peint la flèche, et exige que le fond calculé de la pastille soit ce vert-là.
+Les deux ne peuvent plus diverger.
+
+Elle garde du HUD **sa taille et son ombre portée** — trente-huit pixels, le module des
+boutons, et la même ombre que la pause, qui est ce qui la détache du paysage. Elle n'en garde
+ni le coin arrondi ni le fond anthracite : `border-radius: 50%`, et le banc vérifie aussi que
+les boutons, eux, ont gardé leur `12px`.
+
+**L'onde est passée au blanc.** Le halo qui part de la pastille à chaque coup de sonnerie
+était vert, du même vert : sur un disque vert, posé sur de l'herbe verte, il avait disparu.
+
+**Le rendu est `auto`, et c'est le bon choix aux trois densités** — la même démonstration que
+pour les portraits : l'image est toujours réduite, 78 dans une boîte de 26. À trois points
+d'écran par pixel CSS un pixel d'art tombe sur un point et `auto` rend la même chose que
+`pixelated` ; à deux points la réduction vaut 1,5 et `pixelated` ferait de l'escalier ; à un
+seul elle vaut 3, moyenne de bloc exacte pour `auto` et deux pixels sur trois jetés pour
+`pixelated`.
+
+### Prouver que c'est SA photo
+
+Un banc peut vérifier qu'une image est chargée ; il ne peut pas, d'ordinaire, vérifier
+qu'elle est *la bonne*. Celui-ci sert la source telle que le joueur l'a envoyée sur une route
+à lui, charge les deux dans la page, et compare ce qu'un redessin ne saurait pas reproduire
+des deux à la fois :
+
+| | la photo | la planche |
+|---|---|---|
+| silhouette | 627 × 1126 | 41 × 74 |
+| rapport | 0,557 | 0,554 — **0,5 % d'écart** |
+| matière (R,V,B moyens) | 201, 26, 23 | 199, 25, 21 — **2, 1, 2 d'écart** |
+
+Un tracé à la main tombe juste sur l'un ou sur l'autre, jamais sur les deux au demi-pourcent.
+
+Le banc `telephone` passe donc de 15 à **23 contrôles** : les cinq de l'habit (verte, ronde,
+la taille et l'ombre du HUD, insensible au doigt, l'onde blanche), les trois de l'image (une
+balise `img` et plus un seul `svg`, 78 pixels d'art pour une boîte de 26, le rendu `auto`) et
+les trois de la comparaison. La suite compte **trente-cinq bancs à 1 429 contrôles**, dont
+les 7 échecs préexistants de `chaine`.

@@ -24,6 +24,14 @@ U     = '/root/.claude/uploads/3c255efa-fd9f-5aab-a574-54544179bd6d/'
 ICI   = os.path.dirname(os.path.abspath(__file__))
 DEST  = os.path.abspath(os.path.join(ICI, '..', '..', 'produits'))
 TABLE = os.path.join(ICI, 'produits.json')
+# LA MEME CHAINE SERT UN SECOND DOSSIER, ET C EST TOUT CE QUI LES SEPARE.
+# `produits/` est sous contrat : un fichier par entree de `VIGNETTES`, ni plus ni moins,
+# et un banc le verifie DANS LES DEUX SENS. Le combine du telephone qui sonne est un
+# picto de HUD et non une marchandise — aucune cle de PRODUITS, ESPECES, MACHINES ou
+# TOOLS ne lui correspond, et le poser la-bas aurait oblige a desserrer ce banc. Il a
+# donc son dossier, avec sa table ; le traitement, lui, est le meme au pixel pres.
+PICTOS  = os.path.abspath(os.path.join(ICI, '..', '..', 'pictos'))
+TPICTOS = os.path.join(ICI, 'pictos.json')
 
 PX_JEU     = 1/3      # taille d un pixel d art, en pixels CSS — la meme que les portraits
 BOITE      = 26       # la boite ou le jeu pose la vignette, en pixels CSS
@@ -236,7 +244,15 @@ def vignette(chemin, ombre=False):
 
 
 def main():
-    table = json.load(open(TABLE, encoding='utf-8'))
+    faits = []
+    for t, d in [(TABLE, DEST), (TPICTOS, PICTOS)]:
+        if os.path.exists(t):
+            faits += fabriquer(json.load(open(t, encoding='utf-8')), d)
+    if '--planche' in sys.argv:
+        planche(faits)
+
+
+def fabriquer(table, DEST):
     os.makedirs(DEST, exist_ok=True)
     faits, poids = [], 0
     for cle, e in sorted(table.items()):
@@ -254,18 +270,17 @@ def main():
         poids += os.path.getsize(f)
         faits.append((cle, nw, nh, os.path.getsize(f)))
     for cle, nw, nh, o in faits:
-        print('  %-8s %2d x %2d dans %d  %5d o' % (cle, nw, nh, COTE, o))
-    print('  %d vignettes, %.1f Ko' % (len(faits), poids/1024))
-    if '--planche' in sys.argv:
-        planche(faits)
+        print('  %-10s %2d x %2d dans %d  %5d o' % (cle, nw, nh, COTE, o))
+    print('  %s : %d planches, %.1f Ko' % (os.path.basename(DEST), len(faits), poids/1024))
+    return [(c, w, h, o, DEST) for c, w, h, o in faits]
 
 
 def planche(faits):
     """Les vignettes a leur taille de jeu, et grossies huit fois, sur le papier du menu."""
     Z, N = 8, len(faits)
     im = Image.new('RGB', (COTE*Z*N, COTE*Z + COTE + 12), (232, 224, 202))
-    for i, (cle, _, _, _) in enumerate(faits):
-        v = Image.open(os.path.join(DEST, cle + '.png')).convert('RGBA')
+    for i, (cle, _, _, _, D) in enumerate(faits):
+        v = Image.open(os.path.join(D, cle + '.png')).convert('RGBA')
         g = v.resize((COTE*Z, COTE*Z), Image.NEAREST)
         im.paste(g, (i*COTE*Z, 0), g)
         im.paste(v, (i*COTE*Z + 12, COTE*Z + 6), v)

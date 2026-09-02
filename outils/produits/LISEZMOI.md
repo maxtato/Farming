@@ -7,6 +7,18 @@ marchandise.
     python3 fabriquer.py             # fabrique, et dit le poids
     python3 fabriquer.py --planche   # controle.png : les vignettes grossies huit fois
 
+## Deux tables, deux dossiers, une seule chaîne
+
+`produits.json` → `produits/`, et `pictos.json` → `pictos/`. Le traitement est le même au
+pixel près ; ce qui les sépare est un **contrat**, et lui seul.
+
+`produits/` est sous contrat : **un fichier par entrée de `VIGNETTES`, ni plus ni moins**, et
+le banc `vignettes` le vérifie dans les deux sens — un fichier orphelin est une erreur, une
+clé sans fichier aussi. Le combiné du téléphone qui sonne au-dessus de la maison est un picto
+de HUD : aucune clé de `PRODUITS`, `ESPECES`, `MACHINES` ou `TOOLS` ne lui correspond, et le
+poser là-bas aurait obligé à desserrer ce banc pour loger une exception. Il a donc son
+dossier. C'est tout ce que la seconde table achète, et c'est assez.
+
 ## La table de production
 
 ```json
@@ -14,6 +26,16 @@ marchandise.
 "orge": {"src": "6c61e32b-image.png"},
 "t3":   {"src": "b135ace8-image.jpg", "ombre": true}
 ```
+
+Et dans `pictos.json`, à ce jour une seule ligne :
+
+```json
+"telephone": {"src": "ff24d187-image.png"}
+```
+
+Le combiné rouge du joueur, sur fond **blanc** comme l'abeille — mais sans ombre portée à
+déclarer : mesuré, 0,013 % de l'image est gris et clair, et c'est l'anticrénelage du bord,
+pas une ombre. Il sort en **41 × 74 dans 78**, 1,3 Ko, soixante-quatre couleurs.
 
 **`ombre`** dit que la source porte une ombre portée **que la chaîne ne peut pas deviner** —
 le cas d'un fond blanc, et de lui seul. Sur magenta une ombre se reconnaît toute seule (elle
