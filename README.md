@@ -12075,3 +12075,54 @@ contre `[72/72] [36/36]` et échoue.
 chacune sous la précédente » et « chacune est en face de sa ligne, au pixel près » —,
 `campagne` de 75 à **76**. Les trente-deux suites à **1 351 contrôles**, dont les 7 échecs
 préexistants de `chaine`.
+
+### Une livraison inachevée ne s'annonce pas
+
+Le joueur : « quand on fait une livraison incomplète — la boulangerie attend 29 et on en
+livre 6 —, il ne faut pas qu'on fasse un message avec "merci pour la livraison". Il faut
+juste qu'on voie qu'on a livré 6, tant qu'on n'a pas fini. La livraison, il ne faut pas que
+ça arrête quoi que ce soit. »
+
+**Le reçu est un point final, et un engagement à moitié tenu n'en est pas un.** On porte six
+kilos sur les vingt-neuf attendus, on repart chercher le reste : dire « merci pour la
+livraison » au milieu du trajet, c'est refermer une porte encore ouverte — et le faire en
+posant au centre de l'écran une boîte de 292 × 245 px, **21,7 % de la surface d'un téléphone
+en paysage**, par-dessus un voile qui assombrit toute la vallée, pendant 4,2 secondes, pour
+une nouvelle qui tient sur une ligne. La ligne, justement : 233 × 25 px, **1,8 %**, en bas de
+l'écran, qui n'assombrit rien et ne demande pas qu'on la referme. Douze fois moins de surface,
+et le jeu continue dessous.
+
+**Ce qu'elle dit, c'est le compte de l'engagement — pas celui du voyage.** `BLÉ 6 / 30 KG –
+COOPÉRATIVE`. Deux allers de trois kilos font six chez le commerce, et c'est six que la ligne
+affiche : le joueur n'a pas à faire l'addition lui-même à chaque tour de roue. Une cinquième
+façon d'écrire une quantité rejoint les quatre autres — `avanceHaut` —, la seule qui en compare
+deux de la même marchandise, et la seule aussi à savoir se taire sur le nom quand l'unité le
+porte déjà : « 12 / 36 ŒUFS » et non « ŒUFS 12 / 36 ŒUFS ».
+
+**Ce qu'on regarde, c'est l'engagement servi, et non la ligne.** Une mission qui veut de la
+farine ET des œufs à la boulangerie n'est pas honorée quand la farine y est toute : le reçu se
+tairait pour les œufs et parlerait pour la farine, à un moment où il reste un voyage à faire.
+Un contrat, lui, disparaît de `CONTRATS` dès qu'il est soldé — s'il y est encore, c'est qu'il
+attend quelque chose. Et **la vente libre ne change pas d'un poil** : personne n'attend ces
+deux cents kilos de blé, il n'y a rien à finir donc rien à interrompre, et le reçu reste ce
+qu'il est — le geste ordinaire du mode libre, que le joueur avait demandé lui aussi.
+
+**Le manque et le total viennent désormais du même endroit.** `resteCommande` refaisait seule
+le tour des engagements pour rendre ce qui manque ; il fallait maintenant savoir *sur combien*.
+Deux fonctions parcourant chacune de son côté les contrats et la mission auraient fini par ne
+plus désigner le même : le manque d'une ligne, le total d'une autre, et un compte affiché qui
+n'aurait été celui de personne. `avanceChez` rend l'engagement — ce qui est arrivé, ce qui est
+dû, ce qui manque — et `resteCommande` n'en est plus que la troisième valeur.
+
+`fenetres` passe de 28 à **36 contrôles**, `ecrans` de 77 à **81**. Le second refait le geste
+entier — le bouton LIVRER, la fenêtre de quantités, la validation, le transfert image par
+image — et il a fallu le réparer avant qu'il ne serve à quoi que ce soit : **`setMachine` sur
+un engin verrouillé ne fait rien**, silencieusement. Le banc croyait piloter le fourgon, qui
+n'est pas encore à la ferme au premier palier ; la colonne restait vide, le transfert partait
+par le chemin des engins automatiques, `validerActes` n'était jamais appelé, aucun bilan de
+livraison n'était posé — et le contrôle passait en ne mesurant rien, y compris sur la version
+d'avant. Il prend le pick-up, et trois témoins (une ligne dans la fenêtre, une dans la file, un
+bilan posé) sont là pour que ce silence ne puisse plus se reproduire. Remis dans la version
+d'avant, les nouveaux contrôles échouent : cinq dans `fenetres`, deux dans `ecrans`.
+
+Les trente-deux suites à **1 363 contrôles**, dont les 7 échecs préexistants de `chaine`.

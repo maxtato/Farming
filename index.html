@@ -2907,6 +2907,13 @@ const nomQteBas  = (cle, v)=> nomme(cle) ? qte(cle, v)
                             : PRODUITS[cle].nom.toLowerCase() + ' ' + qte(cle, v);
 const qteNomHaut = (cle, v)=> nomme(cle) ? qteHaut(cle, v)
                             : nomHaut(cle) + ' ' + qteHaut(cle, v);
+/* ET UNE CINQUIÈME, POUR CE QUI EST EN CHEMIN : « BLÉ 6 / 29 KG », « 12 / 36 ŒUFS ».
+   Une livraison qui n'est pas finie ne se dit pas avec un nombre mais avec deux, et
+   l'unité n'a pas à être écrite deux fois. C'est la seule forme du jeu qui compare deux
+   quantités de la même marchandise ; les quatre autres en écrivent une. */
+const avanceHaut = (cle, fait, need)=>
+  (nomme(cle) ? '' : nomHaut(cle) + ' ')
+  + Math.round(enUnites(cle, fait)) + ' / ' + qteHaut(cle, need);
 /* La même chose au dixième près, pour une cadence : « 0,95 L de lait / min », « 1,3 œuf
    / min ». Une bête donne trop peu par minute pour qu'un arrondi à l'unité dise quoi que
    ce soit — c'est le chiffre qui décide de l'achat d'un troupeau. */
@@ -12370,29 +12377,44 @@ function livraison(lieu, cle, q){
 }
 /* ---------- CE QU'UNE COMMANDE ATTEND ENCORE ---------- */
 /* « Le MissionResolver doit toujours travailler avec quantité demandée moins quantité
-   déjà livrée, et non avec la quantité totale initiale. » C'est la règle, et c'est cette
-   fonction : elle rend ce qui MANQUE ici, pour cette marchandise-là, tous engagements
-   confondus — les contrats signés et la mission de campagne du moment.
+   déjà livrée, et non avec la quantité totale initiale. » C'est la règle, et c'est ce
+   couple de fonctions : elles disent ce qu'on attend ici, pour cette marchandise-là, tous
+   engagements confondus — les contrats signés et la mission de campagne du moment.
 
    Quand deux commandes du même lieu veulent du blé, on prend la plus grosse : une seule
    livraison les crédite toutes les deux, et il faut donc de quoi combler la plus exigeante.
 
+   `avanceChez` REND L'ENGAGEMENT, `resteCommande` N'EN REND QUE LE MANQUE. Le transfert
+   n'a besoin que du manque — c'est sa borne. Mais pour écrire au joueur « blé 6 / 29 kg »
+   il faut aussi savoir SUR COMBIEN, et deux fonctions qui refont chacune le tour des
+   engagements finiraient par ne plus désigner le même : le manque et le total viendraient
+   de deux lignes différentes, et le compte affiché ne serait celui de personne. Il n'y a
+   donc qu'un seul parcours, et le manque en est tiré.
+
    Zéro veut dire « rien n'attend » : c'est de la vente libre, et le joueur décide seul de
-   ce qu'il en fait. */
-function resteCommande(lieu, cle){
-  let r = 0;
+   ce qu'il en fait. Une ligne SOLDÉE est gardée faute de mieux — elle rend bien un manque
+   nul, et elle sait dire « 29 / 29 ». */
+function avanceChez(lieu, cle){
+  let A = null;
+  const voir = (fait, need)=>{
+    const f = Math.min(need, fait || 0), r = need - f;
+    if(!A || r > A.reste) A = {fait:f, need:need, reste:r};
+  };
   for(const C of CONTRATS){
     if(!C || C.lieu !== lieu) continue;
     const l = C.lignes.find((x)=> x.cle === cle);
-    if(l) r = Math.max(r, l.need - Math.min(l.need, l.fait || 0));
+    if(l) voir(l.fait || 0, l.need);
   }
   const M = missionVisible();
   if(M && !M.faire && M.lieu === lieu)
     M.lignes.forEach((l, i)=>{
-      if(l.cle === cle)
-        r = Math.max(r, l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0));
+      if(l.cle === cle) voir(CAMPAGNE.faits[i] || 0, l.need);
     });
-  return r;
+  return A;
+}
+function resteCommande(lieu, cle){
+  const A = avanceChez(lieu, cle);
+  return A ? A.reste : 0;
 }
 
 /* Un contrat honoré paie la prime, donne l'XP, et fait monter la renommée d'un cran
@@ -24505,6 +24527,43 @@ function veillerLivraison(dt){
      sa production, on est payé, on repart. Si la mission a avancé pendant que la
      cargaison descendait, c'est elle qui parle, et le reçu se tait. */
   if(!MODE_LIBRE && CAMPAGNE.mission !== B.mission0) return;
+  /* ET UNE LIVRAISON QUI N'EST PAS FINIE NE S'ANNONCE PAS DU TOUT.
+     Le joueur : « quand on fait une livraison incomplète — la boulangerie attend 29 et on
+     en livre 6 —, il ne faut pas qu'on fasse un message avec "merci pour la livraison".
+     Il faut juste qu'on voie qu'on a livré 6, tant qu'on n'a pas fini. La livraison, il
+     ne faut pas que ça arrête quoi que ce soit. »
+     LE REÇU EST UN POINT FINAL, ET UN ENGAGEMENT À MOITIÉ TENU N'EN EST PAS UN. On porte
+     six kilos sur les vingt-neuf que la boulangerie attend, on repart en chercher le
+     reste : dire « merci pour la livraison » au milieu du trajet, c'est refermer une
+     porte qui est encore ouverte — et le faire en couvrant l'écran quatre secondes pour
+     une nouvelle qui tient sur une ligne. Ce qui compte à cet instant, c'est le COMPTE :
+     six sur vingt-neuf. Il passe par le bandeau du bas, qui ne cache rien et ne demande
+     rien.
+     CE QU'ON REGARDE, C'EST L'ENGAGEMENT SERVI, ET NON LA LIGNE. Une mission qui veut de
+     la farine ET des œufs à la boulangerie n'est pas honorée quand la farine y est
+     toute : le reçu se tairait pour les œufs et parlerait pour la farine, à un moment où
+     il reste un voyage à faire. Un contrat, lui, disparaît de `CONTRATS` dès qu'il est
+     soldé — s'il y est encore, c'est qu'il attend quelque chose.
+     ET LA VENTE LIBRE NE CHANGE PAS D'UN POIL. Personne n'attend ces deux cents kilos de
+     blé : il n'y a rien à finir, donc rien à interrompre, et le reçu reste ce qu'il est —
+     le geste ordinaire du mode libre, que le joueur avait demandé. */
+  const Meng = missionVisible();
+  const engage = (cle)=>
+    CONTRATS.some((C)=> C && C.lieu === B.lieu && C.lignes.some((l)=> l.cle === cle))
+    || !!(Meng && !Meng.faire && Meng.lieu === B.lieu
+          && Meng.lignes.some((l)=> l.cle === cle));
+  const enChemin = (B.natures || []).filter((x)=> engage(x.cle));
+  if(enChemin.length){
+    /* CE QU'ON ÉCRIT : le compte de l'engagement, pas celui du voyage. Deux allers de
+       trois kilos font six, et c'est six que le commerce a reçu — le joueur n'a pas à
+       faire l'addition lui-même à chaque tour de roue. */
+    const comptes = enChemin.map((x)=>{
+      const A = avanceChez(B.lieu, x.cle);
+      return A ? avanceHaut(x.cle, A.fait, A.need) : qteNomHaut(x.cle, x.q);
+    });
+    showHint(comptes.join('  ·  ') + ' – ' + B.lieu.toUpperCase());
+    return;
+  }
   /* CE QU'ON VIENT LIRE : ce qu'on a remis, et à combien le kilo. Le prix au kilo est le
      seul chiffre qu'on ne peut pas retrouver à l'écran — la caisse monte toute seule
      pendant le transfert, et le total est déjà affiché en gros. */
