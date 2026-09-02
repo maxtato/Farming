@@ -15,7 +15,7 @@ Quatre surfaces disent quelque chose au joueur, et elles n'ont ni le même ton n
 
 ## 1. L'ouverture
 
-**Écran d'accueil** — titre `MOISSON`, sous-titre « La partie s'enregistre toute seule : tu peux fermer et revenir. », boutons : « Commencer » · « Mode libre ».
+**Écran d'accueil** — titre `MOISSON`, sous-titre « Votre partie est sauvegardée automatiquement. », boutons : « Commencer » · « Mode libre ».
 
 **Première fenêtre de la campagne**, juste après le bouton *Commencer* :
 
@@ -30,75 +30,75 @@ Quatre surfaces disent quelque chose au joueur, et elles n'ont ni le même ton n
 
 Une marche **attend le doigt** : elle ne part pas toute seule. Elle allume aussi un cercle jaune au sol et une flèche au bord de l'écran vers l'endroit à rejoindre.
 
-### 1. PRÉPARER LA PARCELLE
-> PRÉPARER LA PARCELLE — on ne sème pas sur de l’herbe, paraît-il. La charrue est au parc : il faut l’accrocher derrière le tracteur.
+### 1. PRÉPARER LA TERRE
+> PRÉPARER LA TERRE — Première leçon : on ne sème pas directement dans l’herbe. La charrue est au parc. Il faut l’atteler au tracteur.
 
 - **Arrive** : Dès la première seconde de la campagne, après la fenêtre « UN HÉRITAGE ».
 - **Se solde** : Quand 98 % de la parcelle est labourée.
 - **Où elle envoie** : champ
 
 ### 2. SEMER DU BLÉ
-> SEMER DU BLÉ — la terre est ouverte. Reste à y mettre quelque chose : le semoir attend au même endroit que la charrue.
+> SEMER DU BLÉ — La terre est prête. Maintenant, il faudrait peut-être y mettre quelque chose. Le semoir est au parc.
 
 - **Arrive** : Dès que le labour est fini.
 - **Se solde** : Quand 98 % de la parcelle est semée.
 - **Où elle envoie** : champ
 
 ### 3. LAISSER POUSSER
-> LAISSER POUSSER — et maintenant on attend. Personne ne m’avait dit que ce serait la partie la plus longue.
+> LAISSER POUSSER — Et maintenant… on attend. Je découvre que l’agriculture demande beaucoup de patience.
 
 - **Arrive** : Dès que le semis est fini.
 - **Se solde** : Quand 98 % du blé est mûr.
 - **Où elle envoie** : champ
 
 ### 4. PREMIÈRE RÉCOLTE
-> PREMIÈRE RÉCOLTE — le blé est mûr. La moissonneuse, c’est la grosse machine avec la barre devant. Toute la parcelle, cette fois.
+> PREMIÈRE RÉCOLTE — Ça y est. Le blé est mûr. La grosse machine avec la barre devant ? C’est notre moissonneuse.
 
 - **Arrive** : Dès que le blé est mûr.
 - **Se solde** : Quand 98 % de la parcelle est moissonnée ET qu'au moins 30 kg sont rentrés.
 - **Où elle envoie** : champ
 
-### 5. STOCKER LA RÉCOLTE
-> STOCKER LA RÉCOLTE — la trémie est pleine, la tour est vide. Ça doit bien aller quelque part.
+### 5. VIDER AU SILO
+> VIDER AU SILO — La moissonneuse ne va pas garder le grain éternellement. Direction le silo.
 
 - **Arrive** : Dès que le champ est moissonné.
 - **Se solde** : Quand 30 kg de blé sont entrés au silo.
 - **Où elle envoie** : silo
 
 ### 6. RANGER LA MOISSONNEUSE
-> RANGER LA MOISSONNEUSE — le champ est fait. Autant la remettre où je l’ai trouvée.
+> RANGER LA MOISSONNEUSE — Première récolte terminée. On va déjà essayer de rendre la machine entière.
 
 - **Arrive** : Dès que le silo a reçu la récolte.
 - **Se solde** : Quand la moissonneuse est garée au parc à outils.
 - **Où elle envoie** : parc
 
 ### 7. REPRENDRE LE PICK-UP
-> REPRENDRE LE PICK-UP — on ne descend pas au village en moissonneuse. J’ai essayé.
+> REPRENDRE LE PICK-UP — Pour descendre au village, le pick-up sera plus discret que la moissonneuse.
 
 - **Arrive** : Dès que la moissonneuse est rangée.
 - **Se solde** : Quand on conduit le pick-up.
 - **Où elle envoie** : parc
 
 ### 8. LE TÉLÉPHONE SONNE
-> LE TÉLÉPHONE SONNE — déjà quelqu’un qui veut de mon blé. Je ne l’ai même pas encore vendu.
+> LE TÉLÉPHONE SONNE — Ah. Le téléphone. Soit quelqu’un veut acheter mon blé… soit mon tracteur est déjà en panne.
 
 - **Arrive** : CAMPAGNE UNIQUEMENT — dès qu'on a repris le pick-up. C'est la marche qui fait sonner le téléphone chez soi.
 - **Se solde** : Quand on prend la mission, au cercle vert de la ferme.
 - **Où elle envoie** : ferme
-- **En mode libre, elle dit autre chose** : **PRÉPARER LA LIVRAISON** — PRÉPARER LA LIVRAISON — trente kilos suffiront pour voir ce que ça vaut.
+- **En mode libre, elle dit autre chose** : **PRÉPARER UNE VENTE** — PRÉPARER UNE VENTE — Trente kilos devraient suffire pour voir ce que vaut notre première récolte.
 
 ### 9. PREMIÈRE VENTE
-> PREMIÈRE VENTE — la Coopérative achète le grain. C’est le moment de savoir si tout ça valait la peine.
+> PREMIÈRE VENTE — La Coopérative achète le grain directement. Voyons maintenant si tout ce travail rapporte quelque chose.
 
 - **Arrive** : MODE LIBRE UNIQUEMENT — dès qu'on a repris le pick-up.
 - **Se solde** : À la première vente, quel que soit le commerce.
 - **Où elle envoie** : Coopérative
 
 ### Et à la fin, en mode libre seulement
-> **TUTORIEL TERMINÉ**  
-> *« Préparer la terre, semer, attendre, moissonner, stocker, vendre.  
-> Voilà. Je suis agriculteur. »*  
-> — suite : *Plus aucun objectif – cultivez, élevez, transformez et vendez comme vous voulez*
+> **VOUS SAVEZ L'ESSENTIEL**  
+> *« Préparer, semer, attendre, récolter, stocker, vendre.  
+> Bon… ça commence à ressembler à un métier. »*  
+> — suite : *Cultivez, élevez, transformez et développez votre ferme comme vous le souhaitez*
 
 ---
 
@@ -107,119 +107,119 @@ Une marche **attend le doigt** : elle ne part pas toute seule. Elle allume aussi
 Une leçon se lève **quand le geste devient possible ou nécessaire**, jamais deux fois dans la même partie. Un **MUR** est un blocage (le fermier fait la tête) ; une **porte** est une possibilité qui s'ouvre (il est surpris).
 
 ### REMPLIR LE SEMOIR  — *mur*
-> REMPLIR LA CUVE — un semoir vide ne sème rien, et il m’a fallu un demi-champ pour m’en apercevoir. La cuve verte est dans la cour, ou au comptoir.
+> **LE SEMOIR EST VIDE** — Je me demandais pourquoi rien ne sortait. Les graines sont dans la cuve de la cour. Sinon, direction le Comptoir agricole.
 
 - **Arrive quand** : L'outil attelé a une cuve VIDE, et il reste de quoi la remplir à la ferme.
 - **Où elle envoie** : reserve
 
-### LA TRÉMIE EST PLEINE  — *mur*
-> LA TRÉMIE EST PLEINE — elle ne ramasse plus rien. Il faut aller vider au silo, puis revenir finir : une parcelle en donne plus qu’elle n’en tient.
+### TRÉMIE PLEINE  — *mur*
+> **TRÉMIE PLEINE** — Plus de place. Il faut vider le grain au silo avant de continuer.
 
 - **Arrive quand** : La trémie de la moissonneuse est pleine.
 - **Où elle envoie** : silo
 
-### LE PLEIN DE GAZOLE  — *mur*
-> LE PLEIN — arrête-toi sur le cercle de la citerne, dans la cour. Ça coule tout seul et c’est gratuit : la seule chose gratuite de la semaine.
+### CARBURANT  — *mur*
+> **LA JAUGE BAISSE** — Il serait peut-être temps de penser au plein avant de finir à pied. La citerne est dans la cour.
 
 - **Arrive quand** : Un engin descend sous 40 % de gazole et la citerne de la cour n'est pas vide.
 - **Où elle envoie** : gazole
 
-### FAIRE SES COURSES
-> LE COMPTOIR AGRICOLE — c’est là qu’on remplit les deux cuves de la cour, et la citerne à gazole
+### COMPTOIR AGRICOLE
+> **LE COMPTOIR AGRICOLE** — Graines, engrais, carburant… quand les réserves de la ferme baissent, c’est ici qu’on se ravitaille.
 
 - **Arrive quand** : Une des deux cuves de la cour tombe sous 10 %, ou le gazole sous 25 %.
 - **Où elle envoie** : Comptoir agricole · fenêtre comptoir / semences
 
-### ACHETER DU MATÉRIEL
-> LE GARAGE — un engin de plus, ou un outil : deux onglets, une seule fenêtre
+### GARAGE
+> **LE GARAGE** — Tracteurs, outils, machines… si la ferme doit grandir, il faudra forcément passer par ici.
 
 - **Arrive quand** : On a de quoi acheter le moins cher des engins ou outils en vitrine.
 - **Où elle envoie** : Garage · fenêtre achat / engins
 
-### AMÉLIORER SON MATÉRIEL
-> AMÉLIORER — au garage aussi : plus large, plus vite, plus de charge, cran par cran
+### AMÉLIORATIONS
+> **AMÉLIORER LE MATÉRIEL** — Plus rapide, plus large, plus de capacité. Avant d’acheter une nouvelle machine, améliorer l’ancienne peut être une bonne idée.
 
 - **Arrive quand** : On a de quoi payer le cran suivant d'un engin ou d'un outil déjà possédé.
 - **Où elle envoie** : Garage · fenêtre amelio / engins
 
-### UNE CULTURE DE PLUS
-> UNE NOUVELLE CULTURE — le droit de la semer s’achète une fois pour toutes, au comptoir
+### NOUVELLE CULTURE
+> **UNE NOUVELLE CULTURE** — Une nouvelle semence est disponible au Comptoir. Une fois achetée, le semoir pourra l’utiliser définitivement.
 
 - **Arrive quand** : Une culture est ouverte par le palier et on a de quoi l'acheter.
 - **Où elle envoie** : Comptoir agricole · fenêtre comptoir / semences
 
 ### CHANGER DE CULTURE
-> LE BOUTON DE CULTURE — en haut à droite : il fait défiler ce que le semoir sait semer
+> **CHOISIR LA SEMENCE** — Le semoir sait maintenant planter plusieurs cultures. Le bouton de culture permet de choisir laquelle.
 
 - **Arrive quand** : Le semoir est attelé et au moins deux cultures sont débloquées.
 
 ### ACHETER UNE PARCELLE
-> UNE TERRE DE PLUS — pose-toi DESSUS, à l’arrêt, et le prix s’affiche
+> **UNE TERRE À VENDRE** — Une parcelle voisine est disponible. Arrêtez-vous dessus pour connaître son prix.
 
 - **Arrive quand** : Une parcelle est à vendre et on a de quoi la payer.
 - **Où elle envoie** : parcelle
 
-### LE PLAN DE TRAVAIL
-> LE PLAN — le bouton en bas à gauche ouvre la carte : désigne une parcelle, un engin, et il travaille seul
+### PLAN DE TRAVAIL
+> **LE PLAN DE TRAVAIL** — On n’est pas obligé de tout conduire soi-même. Depuis la carte, une machine peut être envoyée travailler seule sur une parcelle.
 
 - **Arrive quand** : On possède un outil de travail et une parcelle cultivable.
 
-### AGRANDIR LE SILO
-> LE SILO SATURE — il s’agrandit par l’onglet « Agrandir » du bouton Stockage
+### SILO
+> **LE SILO SE REMPLIT** — Il commence à manquer de place. Sa capacité peut être augmentée depuis le menu Stockage.
 
 - **Arrive quand** : Le silo dépasse 85 % et on a de quoi l'agrandir.
 - **Où elle envoie** : silo · fenêtre stockage / agrandir
 
-### ACHETER UN MÉTIER
-> L’ATELIER — un métier transforme ce qu’on récolte : le moulin fait la farine, et la farine se vend le double
+### MÉTIER D’ATELIER
+> **TRANSFORMER POUR MIEUX VENDRE** — Vendre du blé, c’est bien. Le transformer en farine peut rapporter davantage. Les métiers s’installent à l’atelier.
 
 - **Arrive quand** : Un métier d'atelier est ouvert par le palier et on a de quoi l'acheter.
 - **Où elle envoie** : atelier · fenêtre production / metiers
 
-### LANCER UN LOT
-> PRODUIRE — verse la matière à l’atelier, puis lance le lot par l’onglet « Produire »
+### LANCER UNE PRODUCTION
+> **LANCER UN LOT** — La matière est prête. Choisissez une recette et lancez la production depuis l’atelier.
 
 - **Arrive quand** : L'atelier a au moins un métier, sa file est vide, et il y a de quoi lancer un lot.
 - **Où elle envoie** : atelier · fenêtre production / produire
 
-### RANGER À L’ENTREPÔT
-> L’ENTREPÔT — le silo garde le grain, l’entrepôt garde ce que l’atelier a fabriqué
+### ENTREPÔT
+> **L’ENTREPÔT** — Le silo garde les récoltes en vrac. L’entrepôt accueille les produits transformés.
 
 - **Arrive quand** : On roule avec une caisse dont le contenu se range à l'entrepôt.
 - **Où elle envoie** : entrepot
 
-### RÉGLER L’ATELIER
-> LES TROIS RÉGLAGES — plus gros lots, plus vite, plusieurs à la file : l’onglet « Améliorations »
+### RÉGLAGES DE L’ATELIER
+> **AMÉLIORER L’ATELIER** — Des lots plus gros, une production plus rapide ou davantage de commandes en attente. À vous de choisir ce qui vous ralentit le plus.
 
 - **Arrive quand** : L'atelier a un métier et on a de quoi payer une de ses trois améliorations.
 - **Où elle envoie** : atelier · fenêtre production / reglages
 
-### MONTER UN ÉLEVAGE
-> UN ENCLOS — arrête-toi sur une parcelle à toi : le bandeau propose de la clôturer
+### ÉLEVAGE
+> **INSTALLER UN ÉLEVAGE** — Une parcelle libre peut devenir un enclos. Après ça, il faudra encore acheter les animaux… et les nourrir. Évidemment.
 
 - **Arrive quand** : Aucun enclos encore monté, une espèce ouverte, une parcelle libre et l'argent.
 - **Où elle envoie** : champ
 
-### ACHETER UNE BÊTE
-> UNE BÊTE — devant l’enclos, le bouton INTERAGIR ouvre tout ce qui s’y fait
+### ACHETER UN ANIMAL
+> **PEUPLER L’ENCLOS** — L’enclos est prêt. Approchez-vous et utilisez INTERAGIR pour acheter vos premiers animaux.
 
 - **Arrive quand** : Un enclos a de la place et on a de quoi acheter une bête.
 - **Où elle envoie** : pature
 
-### REMPLIR LA MANGEOIRE
-> LA MANGEOIRE — une bête qui mange produit ; charge du grain au silo et verse-le à l’enclos
+### MANGEOIRE
+> **ILS ONT FAIM** — Pas de nourriture, pas de production. Chargez de l’aliment et remplissez la mangeoire.
 
 - **Arrive quand** : Un enclos habité tombe sous 35 % de mangeoire.
 - **Où elle envoie** : pature
 
-### RÉCUPÉRER LA PRODUCTION
-> LE TANK EST PLEIN — reviens avec une benne vide : INTERAGIR, et la production monte à bord
+### PRODUCTION ANIMALE
+> **PRODUCTION À RÉCUPÉRER** — Il y a quelque chose à récupérer dans l’élevage. Revenez avec un véhicule adapté et utilisez INTERAGIR.
 
 - **Arrive quand** : Un enclos a de quoi être récolté (lait, laine, œufs, miel).
 - **Où elle envoie** : pature
 
-### PRENDRE UN CONTRAT
-> UN CONTRAT — un commerce en propose un : sa pastille est bleue, et le bouton aussi
+### CONTRATS
+> **UN CONTRAT DISPONIBLE** — Un commerce cherche un fournisseur. Sa pastille bleue indique qu’un contrat est disponible.
 
 - **Arrive quand** : Les contrats sont ouverts et un commerce en propose un.
 
@@ -234,24 +234,24 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le blé, la coopérative, une parcelle*
 
 #### 1. Livrer 30 kg de blé – Coopérative
-- **Chez** : Coopérative  ·  **Demande** : 30 kg de blé  ·  **Prime** : 200 €  ·  **XP** : 60
+- **Chez** : Coopérative  ·  **Demande** : 30 kg de blé  ·  **Prime** : 200 €  ·  **XP** : 60  ·  **En-tête** : UNE PREMIÈRE COMMANDE
 
-> **À la prise** — *« Bonjour, vous êtes le nouveau propriétaire de la ferme ? Bienvenue dans le village. Pour commencer, je vais vous prendre 30 kg de votre blé. »*
+> **À la prise** — *« Alors c’est vous qui avez repris la vieille ferme ? Bienvenue. Si votre première récolte est prête, apportez-moi 30 kg de blé. On va commencer tranquillement. »*
 
-> **À la livraison** — *« Parfait. Voilà votre première vente. Vous pouvez revenir ici quand vous voulez, même sans contrat : je peux acheter toute votre production immédiatement. »*
+> **À la livraison** — *« Voilà, première vente. Pas mal pour un début. Et retenez une chose : même sans contrat, je rachète vos récoltes. »*
 
-> *Page suivante — **VENTE LIBRE DÉBLOQUÉE** : La Coopérative agricole achète votre production à tout moment. Les prix sont faibles, mais vous pouvez y vendre librement vos surplus.*
+> *Page suivante — **VENTE LIBRE DÉBLOQUÉE** : La Coopérative achète vos récoltes à tout moment. / Les prix sont modestes, mais elle accepte facilement les gros volumes.*
 
-> *Page suivante — **CE QUE ÇA PERMET** : « Je ne suis pas celui qui paie le mieux, mais je prends ce que vous avez. Ça peut vous permettre de payer vos graines, votre carburant ou quelques améliorations sans attendre le prochain contrat. »*
+> *Page suivante — **LA COOPÉRATIVE** (visage : Coopérative (bravo)) : « Je ne serai pas toujours celui qui paie le mieux. Mais quand il faut vendre vite, vous savez où me trouver. »*
 
-> *Page suivante — **LE VILLAGE VOUS A VU** : « Maintenant que votre exploitation tourne, d’autres entreprises du village vont commencer à s’intéresser à ce que vous produisez. »*
+> *Page suivante — **LE VILLAGE VOUS A REPÉRÉ** : Votre première récolte n’est pas passée inaperçue. / D’autres entreprises pourraient bientôt appeler.*
 
 #### 2. Livrer 80 kg de blé – Usine céréales
 - **Chez** : Usine céréales  ·  **Demande** : 80 kg de blé  ·  **Prime** : 300 €  ·  **XP** : 80
 
-> **À la prise** — *« La Coopérative m'a parlé de votre première récolte. J'aimerais tester votre blé dans notre production. Préparez-moi 80 kg. »*
+> **À la prise** — *« La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 80 kg. »*
 
-> **À la livraison** — *« Très bien. La qualité est bonne. On pourra augmenter les volumes la prochaine fois. »*
+> **À la livraison** — *« Hum… bonne tenue, grain régulier. Ça ira très bien. Gardez cette qualité et nous pourrons parler de volumes plus sérieux. »*
 
 
 ### Palier 2 — Productivité
@@ -260,20 +260,20 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 3. Livrer 150 kg de blé – Coopérative
 - **Chez** : Coopérative  ·  **Demande** : 150 kg de blé  ·  **Prime** : 600 €  ·  **XP** : 100
 
-> **À la prise** — *« J'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l'épandeur – l'engrais peut vous faire gagner du temps, mais libre à vous de l'utiliser ensuite. »*
+> **À la prise** — *« J’ai une commande un peu plus grosse : 150 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses. »*
 
-> **À la livraison** — *« Très bien. Votre ferme commence à trouver son rythme. »*
+> **À la livraison** — *« Très bien. Vous commencez à produire régulièrement. C’est généralement à ce moment-là qu’on commence à acheter trop de machines. »*
 
-> *Préambule — **PRENDRE L'ÉPANDEUR** : L'ÉPANDEUR — il t'attend au garage du village, pour 250 €*
+> *Préambule — **PRENDRE L’ÉPANDEUR** : PRENDRE L’ÉPANDEUR — Il est au garage du village, 250 €. On verra vite si l’engrais vaut son prix.*
 
-> *Préambule — **REMPLIR L'ÉPANDEUR** : REMPLIR L'ÉPANDEUR — la cuve blanche de la cour en est pleine : sers-toi*
+> *Préambule — **REMPLIR L’ÉPANDEUR** : REMPLIR L’ÉPANDEUR — La cuve blanche de la cour est pleine d’engrais. Autant s’en servir.*
 
 #### 4. Livrer 250 kg de blé – Usine céréales
 - **Chez** : Usine céréales  ·  **Demande** : 250 kg de blé  ·  **Prime** : 900 €  ·  **XP** : 120
 
-> **À la prise** — *« Le premier lot s'est bien comporté. Cette fois, je peux utiliser 250 kg de votre blé. »*
+> **À la prise** — *« Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume. »*
 
-> **À la livraison** — *« Parfait. Je sais maintenant que vous pouvez répondre à de vraies commandes. »*
+> **À la livraison** — *« Parfait. Quantité, qualité, délai. Vous commencez à devenir un fournisseur intéressant. »*
 
 
 ### Palier 3 — Première transformation
@@ -282,9 +282,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 5. Livrer 72 kg de farine – Boulangerie
 - **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine  ·  **Prime** : 1400 €  ·  **XP** : 150
 
-> **À la prise** — *« J'ai vu passer votre blé. Plutôt que de l'acheter brut, j'aimerais travailler directement avec votre farine. Installez un moulin et préparez-moi 72 kg. »*
+> **À la prise** — *« Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste. »*
 
-> **À la livraison** — *« Voilà une farine qui me convient. Votre blé vient de prendre un peu plus de valeur. »*
+> **À la livraison** — *« Ah, ça c’est une farine qui me plaît ! Vous voyez ? Même blé… mais déjà beaucoup plus de valeur. »*
 
 
 ### Palier 4 — Le maïs et les poules
@@ -293,16 +293,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 6. Livrer 180 kg de maïs – Usine céréales
 - **Chez** : Usine céréales  ·  **Demande** : 180 kg de maïs  ·  **Prime** : 1800 €  ·  **XP** : 170
 
-> **À la prise** — *« Votre exploitation s'agrandit. J'aimerais maintenant tester une autre culture. Préparez-moi 180 kg de maïs. »*
+> **À la prise** — *« Le blé fonctionne. Passons au maïs. 180 kg pour un premier test. »*
 
-> **À la livraison** — *« Très bien. Plus vous diversifiez vos cultures, plus nous pourrons travailler ensemble. »*
+> **À la livraison** — *« Très bien. Continuez comme ça. Une exploitation capable de fournir plusieurs céréales nous intéresse beaucoup plus. »*
 
 #### 7. Livrer 24 œufs – Boulangerie
 - **Chez** : Boulangerie  ·  **Demande** : 24 œufs  ·  **Prime** : 2500 €  ·  **XP** : 180
 
-> **À la prise** — *« Pour la farine, nous sommes au point. Il me manque maintenant de bons œufs. Si vous installez quelques poules, je vous prends les 24 premiers. »*
+> **À la prise** — *« La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 24 œufs pour moi. »*
 
-> **À la livraison** — *« Parfait. Farine et œufs provenant de la même ferme, ça commence à devenir intéressant. »*
+> **À la livraison** — *« Parfait ! Avec votre farine et vos œufs, je vais finir par ne plus avoir besoin de personne d’autre. »*
 
 
 ### Palier 5 — Deux chaînes à la fois
@@ -311,9 +311,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 8. Livrer 72 kg de farine et 36 œufs – Boulangerie
 - **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs  ·  **Prime** : 2800 €  ·  **XP** : 200
 
-> **À la prise** — *« Cette fois, j'ai besoin des deux. Préparez-moi 72 kg de farine et 36 œufs. »*
+> **À la prise** — *« Cette fois je veux le panier complet : 72 kg de farine et 36 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps. »*
 
-> **À la livraison** — *« Tout est là. C'est exactement le type d'approvisionnement que je recherchais. »*
+> **À la livraison** — *« Tout est là, et en même temps. Ça, c’est déjà une vraie organisation de ferme. »*
 
 
 ### Palier 6 — L'orge
@@ -322,16 +322,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 9. Livrer 140 L de bière – Restaurant
 - **Chez** : Restaurant  ·  **Demande** : 140 L de bière  ·  **Prime** : 3200 €  ·  **XP** : 220
 
-> **À la prise** — *« Je cherche quelqu'un qui cultiverait de l'orge dans le coin et qui se lancerait dans une bière artisanale – une vraie, brassée ici. Si vous vous y mettez, je vous en prends 140 litres sans hésiter. »*
+> **À la prise** — *« On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 140 litres. »*
 
-> **À la livraison** — *« C'est exactement ce que j'espérais. Une bière du village, brassée à la ferme d'à côté : la carte peut enfin le dire. »*
+> **À la livraison** — *« Très bonne. Et surtout : brassée juste à côté. Celle-là, je vais pouvoir la mettre en avant sur la carte. »*
 
 #### 10. Livrer 60 L de bière et 120 kg de farine – Épicerie
 - **Chez** : Épicerie  ·  **Demande** : 60 L de bière, 120 kg de farine  ·  **Prime** : 3600 €  ·  **XP** : 240
 
-> **À la prise** — *« Le Restaurant m'a fait goûter votre bière, et on me la réclame déjà au comptoir. J'ouvre un rayon de produits de la ferme : 60 litres et 120 kg de farine pour commencer. »*
+> **À la prise** — *« J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 60 litres de bière et 120 kg de farine. »*
 
-> **À la livraison** — *« Le rayon est monté. Vos produits sont les premiers qu'on voit en entrant, maintenant. »*
+> **À la livraison** — *« Parfait. Votre ferme a maintenant son petit coin dans mon magasin. Essayez de ne pas me laisser les rayons vides. »*
 
 
 ### Palier 7 — L'avoine
@@ -340,27 +340,27 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 11. Livrer 200 kg d’avoine – Usine avoine
 - **Chez** : Usine avoine  ·  **Demande** : 200 kg d’avoine  ·  **Prime** : 4000 €  ·  **XP** : 260
 
-> **À la prise** — *« Nous cherchons un producteur local d'avoine. Une première livraison de 200 kg nous permettra de voir si votre récolte convient à notre procédé. »*
+> **À la prise** — *« Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 200 kg et nous testerons votre récolte. »*
 
-> **À la livraison** — *« Ça nous convient. Gardez de l'avoine en production, nous en aurons probablement encore besoin. »*
+> **À la livraison** — *« Très bon résultat. Continuez à en produire : ce ne sera probablement pas notre dernière commande. »*
 
 
 ### Palier 8 — Les vaches
 *Le mélangeur premium, l'étable, la laiterie*
 
-#### 12. Produire 184 kg d'aliment premium
-- **Chez** : —  ·  **Demande** : alimentPlus  ·  **Prime** : 4500 €  ·  **XP** : 280
+#### 12. Produire 184 kg d’aliment premium
+- **Chez** : —  ·  **Demande** : alimentPlus  ·  **Prime** : 4500 €  ·  **XP** : 280  ·  **Qui parle** : Moi  ·  **En-tête** : NOURRIR MIEUX
 
-> **À la prise** — *« Vous produisez maintenant suffisamment de céréales différentes pour préparer un aliment plus complet pour vos élevages. Montez le mélangeur : 40 kg de maïs, 30 d'orge et 30 d'avoine donnent 92 kg d'aliment premium. Il en faut deux cycles. »*
+> **À la prise** — *« Maïs, orge, avoine… j’ai tout ce qu’il faut. Avec un mélangeur, je pourrais fabriquer mon propre aliment premium. Deux lots devraient donner 184 kg. »*
 
-> **À la livraison** — *« Votre ferme peut désormais produire son propre aliment premium. »*
+> **À la livraison** — *« Voilà. Maintenant même les animaux mangent mieux que moi. »*
 
 #### 13. Livrer 200 L de lait – Laiterie
 - **Chez** : Laiterie  ·  **Demande** : 200 L de lait  ·  **Prime** : 5500 €  ·  **XP** : 300
 
-> **À la prise** — *« Votre exploitation semble prête pour accueillir des vaches. Installez votre élevage et gardez-moi les 200 premiers litres de lait. »*
+> **À la prise** — *« On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres. »*
 
-> **À la livraison** — *« Très bon début. Si votre troupeau grandit, je pourrai prendre davantage. »*
+> **À la livraison** — *« Très bon lait. Pour un premier troupeau, c’est prometteur. Si vous augmentez la production, appelez-moi. »*
 
 
 ### Palier 9 — Fromage fermier
@@ -369,16 +369,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 14. Livrer 350 L de lait – Laiterie
 - **Chez** : Laiterie  ·  **Demande** : 350 L de lait  ·  **Prime** : 6000 €  ·  **XP** : 320
 
-> **À la prise** — *« La première collecte était bonne. Cette fois, j'aurais besoin de 350 litres. À vous de choisir : davantage de vaches, ou simplement un peu plus de temps. »*
+> **À la prise** — *« J’aurais besoin de 350 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir. »*
 
-> **À la livraison** — *« Parfait. Votre production laitière commence à devenir sérieuse. »*
+> **À la livraison** — *« Parfait. Là, on ne parle plus d’un essai. Votre production laitière commence à compter. »*
 
 #### 15. Livrer 28 kg de fromage – Restaurant
 - **Chez** : Restaurant  ·  **Demande** : 28 kg de fromage  ·  **Prime** : 7000 €  ·  **XP** : 340
 
-> **À la prise** — *« Votre lait est bon, mais j'aimerais servir quelque chose qui vienne vraiment de votre ferme. Préparez-moi 28 kg de fromage. »*
+> **À la prise** — *« Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 28 kg de fromage. »*
 
-> **À la livraison** — *« Très réussi. Celui-là aura sa place sur la carte. »*
+> **À la livraison** — *« Excellent. Celui-là reste sur la carte. Et je veux pouvoir écrire “fabriqué à la ferme”. »*
 
 
 ### Palier 10 — Gros volumes
@@ -387,9 +387,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 16. Livrer 56 kg de fromage et 48 œufs – Supermarché
 - **Chez** : Supermarché  ·  **Demande** : 56 kg de fromage, 48 œufs  ·  **Prime** : 8000 €  ·  **XP** : 360
 
-> **À la prise** — *« Nous ouvrons un petit rayon consacré aux producteurs du village. Pour le lancement, il nous faudrait 56 kg de fromage et 48 œufs. »*
+> **À la prise** — *« Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour. »*
 
-> **À la livraison** — *« Parfait. Le rayon local peut ouvrir. »*
+> **À la livraison** — *« Parfait. Les quantités sont bonnes. Votre ferme est officiellement référencée chez nous. »*
 
 
 ### Palier 11 — La bergerie
@@ -398,16 +398,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 17. Livrer 40 kg de laine – Atelier textile
 - **Chez** : Atelier textile  ·  **Demande** : 40 kg de laine  ·  **Prime** : 8500 €  ·  **XP** : 380
 
-> **À la prise** — *« Je cherche de la laine produite dans le secteur pour une petite série. Si vous installez une bergerie, je vous prends les premiers 40 kg. »*
+> **À la prise** — *« Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 40 premiers kilos. »*
 
-> **À la livraison** — *« Cette laine me convient très bien. On pourra travailler sur des volumes plus importants. »*
+> **À la livraison** — *« Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver. »*
 
 #### 18. Livrer 160 L de lait de brebis – Fromagerie
 - **Chez** : Fromagerie  ·  **Demande** : 160 L de lait de brebis  ·  **Prime** : 9000 €  ·  **XP** : 400
 
-> **À la prise** — *« Vos brebis peuvent nous intéresser pour autre chose que leur laine. J'aimerais essayer 160 litres de leur lait. »*
+> **À la prise** — *« Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis. »*
 
-> **À la livraison** — *« Très intéressant. Ce lait a vraiment son propre caractère. »*
+> **À la livraison** — *« Ah oui… beaucoup plus riche que le lait de vache. Avec ça, on peut faire quelque chose de vraiment intéressant. »*
 
 
 ### Palier 12 — Fromage de brebis
@@ -416,9 +416,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 19. Livrer 40 kg de fromage de brebis – Restaurant
 - **Chez** : Restaurant  ·  **Demande** : 40 kg de fromage de brebis  ·  **Prime** : 9500 €  ·  **XP** : 420
 
-> **À la prise** — *« J'ai goûté ce qui a été fait avec votre lait de brebis. Maintenant, j'aimerais servir votre propre fromage. Préparez-moi 40 kg. »*
+> **À la prise** — *« J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos. »*
 
-> **À la livraison** — *« Excellent. Il se distingue clairement de votre fromage de vache. »*
+> **À la livraison** — *« Celui-là a du caractère. Gardez-moi une place dans votre prochaine production. »*
 
 
 ### Palier 13 — L'apiculture
@@ -427,16 +427,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 20. Livrer 100 kg de laine – Atelier textile
 - **Chez** : Atelier textile  ·  **Demande** : 100 kg de laine  ·  **Prime** : 10000 €  ·  **XP** : 450
 
-> **À la prise** — *« La première série s'est bien vendue. Cette fois, j'aurais besoin de 100 kg de laine. »*
+> **À la prise** — *« La première série est partie plus vite que prévu. Cette fois j’en veux 100 kg. »*
 
-> **À la livraison** — *« Très bien. Votre bergerie est devenue une vraie source d'approvisionnement. »*
+> **À la livraison** — *« Parfait. Votre bergerie est officiellement devenue mon fournisseur. »*
 
 #### 21. Livrer 12 kg de miel – Marché
 - **Chez** : Marché  ·  **Demande** : 12 kg de miel  ·  **Prime** : 11000 €  ·  **XP** : 480
 
-> **À la prise** — *« Plusieurs clients me demandent du miel produit dans le coin. Installez quelques ruches et gardez-moi les premiers 12 kg. »*
+> **À la prise** — *« On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos. »*
 
-> **À la livraison** — *« Parfait. Le miel local ne restera pas longtemps sur les étals. »*
+> **À la livraison** — *« Regardez-moi ça… Celui-là ne va pas rester longtemps sur l’étal. »*
 
 
 ### Palier 14 — La gamme fermière
@@ -445,9 +445,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 22. Livrer 72 kg de farine et 36 œufs et 12 kg de miel – Boulangerie
 - **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs, 12 kg de miel  ·  **Prime** : 12000 €  ·  **XP** : 500
 
-> **À la prise** — *« J'ai une nouvelle recette en tête. Cette fois, j'aurais besoin de votre farine, de vos œufs et de votre miel. »*
+> **À la prise** — *« J’ai une idée : votre farine, vos œufs et votre miel. Si ça fonctionne comme je l’imagine, on tient quelque chose. »*
 
-> **À la livraison** — *« Tout vient de votre exploitation. C'est exactement ce que je voulais pour cette gamme. »*
+> **À la livraison** — *« Exactement ! Tout vient de votre ferme. Là, je peux vraiment raconter une histoire aux clients. »*
 
 
 ### Palier 15 — Le colza
@@ -456,16 +456,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 23. Livrer 300 kg de colza – Coopérative
 - **Chez** : Coopérative  ·  **Demande** : 300 kg de colza  ·  **Prime** : 13000 €  ·  **XP** : 520
 
-> **À la prise** — *« Le colza se vend bien en ce moment. Si vous voulez vous lancer, je peux prendre immédiatement 300 kg. »*
+> **À la prise** — *« Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 300 kg pour commencer. »*
 
-> **À la livraison** — *« Très bien. Et si vous voulez augmenter sa valeur, le pressoir à colza de votre atelier devrait vous intéresser. »*
+> **À la livraison** — *« Très bien. Et avant de tout revendre brut, regardez ce qu’un pressoir peut en tirer. »*
 
 #### 24. Livrer 68 L d’huile de colza – Restaurant
 - **Chez** : Restaurant  ·  **Demande** : 68 L d’huile de colza  ·  **Prime** : 14500 €  ·  **XP** : 560
 
-> **À la prise** — *« Je préférerais utiliser une huile produite autour du village. Faites transformer votre colza et apportez-moi 68 litres. »*
+> **À la prise** — *« J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 68 litres d’huile de colza. »*
 
-> **À la livraison** — *« Parfait. C'est exactement ce qu'il nous fallait pour la cuisine. »*
+> **À la livraison** — *« Parfait. Produit à quelques kilomètres de la cuisine : difficile de faire plus local. »*
 
 
 ### Palier 16 — Les olives
@@ -474,9 +474,9 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 25. Livrer 200 kg d’olives – Supermarché
 - **Chez** : Supermarché  ·  **Demande** : 200 kg d’olives  ·  **Prime** : 17000 €  ·  **XP** : 600
 
-> **À la prise** — *« Nous aimerions proposer des olives locales directement en rayon. Plantez une oliveraie et préparez-nous une première livraison de 200 kg. »*
+> **À la prise** — *« Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 200 kg d’olives. »*
 
-> **À la livraison** — *« Très bien. Les premières caisses peuvent partir en rayon. »*
+> **À la livraison** — *« Très bien. Les caisses partent directement en rayon. Maintenant, j’attends de voir ce que vous allez faire avec l’huile. »*
 
 
 ### Palier 17 — Le raisin
@@ -485,16 +485,16 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 26. Livrer 40 L d’huile d’olive – Restaurant
 - **Chez** : Restaurant  ·  **Demande** : 40 L d’huile d’olive  ·  **Prime** : 18000 €  ·  **XP** : 650
 
-> **À la prise** — *« Les olives sont bonnes, mais ce qui m'intéresse vraiment, c'est votre huile. J'en voudrais 40 litres. »*
+> **À la prise** — *« Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 40 litres de votre huile. »*
 
-> **À la livraison** — *« Celle-ci vaut clairement plus que les olives vendues brutes. »*
+> **À la livraison** — *« Voilà. Là, on change de catégorie. Cette huile vaut clairement plus que les olives vendues brutes. »*
 
 #### 27. Livrer 200 kg de raisin – Supermarché
 - **Chez** : Supermarché  ·  **Demande** : 200 kg de raisin  ·  **Prime** : 20000 €  ·  **XP** : 700
 
-> **À la prise** — *« Nous voudrions maintenant ajouter du raisin local au rayon frais. Commencez avec 200 kg. »*
+> **À la prise** — *« On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 200 kg fera l’affaire. »*
 
-> **À la livraison** — *« Très bien. Il se vendra facilement comme ça… mais j'imagine que le Caviste aura une autre idée. »*
+> **À la livraison** — *« Très bien. Il se vendra facilement comme ça. Mais connaissant le caviste… il ne va pas vouloir le manger. »*
 
 
 ### Palier 18 — Le vin
@@ -503,35 +503,42 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 #### 28. Livrer 140 L de vin – Caviste
 - **Chez** : Caviste  ·  **Demande** : 140 L de vin  ·  **Prime** : 22000 €  ·  **XP** : 750
 
-> **À la prise** — *« J'ai vu passer votre raisin. Il a du potentiel. Installez une cave et faites-moi une première cuvée de 140 litres. »*
+> **À la prise** — *« Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée. »*
 
-> **À la livraison** — *« Voilà qui est intéressant. Votre ferme produit désormais quelque chose qui mérite qu'on s'y attarde. »*
+> **À la livraison** — *« Hm… intéressant. Vraiment intéressant. Vous ne cultivez plus seulement des produits. Vous commencez à avoir une signature. »*
 
 
 ### Palier 19 — Les cochons
 *La porcherie et la boucherie*
 
 #### 29. Livrer quatre porcs à la boucherie
-- **Chez** : —  ·  **Demande** : porcs4  ·  **Prime** : 26000 €  ·  **XP** : 850
+- **Chez** : —  ·  **Demande** : porcs4  ·  **Prime** : 26000 €  ·  **XP** : 850  ·  **Qui parle** : Boucherie
 
-> **À la prise** — *« Vous avez maintenant suffisamment de céréales et d'aliment pour développer un élevage porcin. J'aurais besoin de quatre porcs prêts à partir. »*
+> **À la prise** — *« Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes. »*
 
-> **À la livraison** — *« Très bien. Si votre élevage grandit, je pourrai prendre des lots plus importants. »*
+> **À la livraison** — *« Très bien. Bêtes saines, bon gabarit. Si vous augmentez l’élevage, je prendrai des lots plus importants. »*
 
 
 ### Palier 20 — Exploitation complète
 *La grande réception, et toute la vallée à prendre*
 
 #### 30. Livrer 72 kg de farine et 60 œufs et 28 kg de fromage et 20 kg de fromage de brebis et 12 kg de miel et 34 L d’huile de colza et 20 L d’huile d’olive et 140 L de vin – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 72 kg de farine, 60 œufs, 28 kg de fromage, 20 kg de fromage de brebis, 12 kg de miel, 34 L d’huile de colza, 20 L d’huile d’olive, 140 L de vin  ·  **Prime** : 40000 €  ·  **XP** : 1000
+- **Chez** : Restaurant  ·  **Demande** : 72 kg de farine, 60 œufs, 28 kg de fromage, 20 kg de fromage de brebis, 12 kg de miel, 34 L d’huile de colza, 20 L d’huile d’olive, 140 L de vin  ·  **Prime** : 40000 €  ·  **XP** : 1000  ·  **En-tête** : UNE GRANDE COMMANDE
 
-> **À la prise** — *« Nous préparons une grande réception consacrée aux producteurs du village. Cette fois, je voudrais construire presque tout le menu autour de votre ferme : de la farine, des œufs, vos deux fromages, du miel, les deux huiles et votre vin. Prenez le temps de vous organiser. »*
+> **À la prise** — *« J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.
+Farine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous. »*
 
-> **À la livraison** — *« Tout est là. En regardant cette livraison, on mesure le chemin parcouru depuis vos premiers 30 kg de blé. Votre ferme est devenue une véritable exploitation. »*
+> **À la livraison** — *« Tout est là. Absolument tout. Quand je pense que votre première livraison faisait trente kilos de blé… »*
 
-> *Page suivante — **EXPLOITATION ÉTABLIE** : Vous avez développé les principales filières de votre ferme.*
+> *Page suivante — **L’EXPLOITATION** (visage : Moi (bravo)) : « Trente kilos de blé… / J’avais presque oublié. »*
 
-> *Page suivante — **À VOUS DE JOUER** : Les commerces continueront désormais à proposer des contrats, tandis que vous pouvez développer librement vos parcelles, vos élevages, vos ruches, vos bâtiments et votre matériel.*
+> *Page suivante — **L’EXPLOITATION** (visage : Moi (rire)) : « Finalement, l’oncle ne m’avait peut-être pas laissé une vieille ferme. / Il m’avait laissé un début. »*
+
+> *Page suivante — **EXPLOITATION ÉTABLIE** : Vous maîtrisez maintenant les principales filières de la ferme.*
+
+> *Page suivante — **LA FERME CONTINUE** : La campagne principale est terminée, mais votre exploitation continue de vivre. / Contrats illimités  ·  Vente libre  ·  Parcelles  ·  Élevages  ·  Production  ·  Améliorations — suite : À vous de décider de la suite*
+
+> *Page suivante — **MAINTENANT, C’EST LA VÔTRE** : Continuez à acheter des terres, développer vos élevages, améliorer votre matériel et répondre aux contrats du village. — suite : CONTINUER À JOUER*
 
 ---
 
@@ -549,43 +556,45 @@ Le papier déchiré du coin haut gauche. Il ne porte que **deux choses** : le no
 
 ## 5 bis. Les fenêtres de circonstance
 
-### BRAVO — à chaque mission finie
-> **BRAVO**  
+### CONTRAT TERMINÉ — à chaque mission finie
+> **CONTRAT TERMINÉ**  
 > *le titre de la mission, puis la réponse du commerçant (ci-dessus)*  
 > **+ prime en gros**  
-> *+ XP · + valeur de la marchandise · palier franchi s'il y en a un*  
+> *+ XP · + valeur de la marchandise · nouveau palier s'il y en a un*  
 > — suite : *Prochaine mission – <lieu>*, ou *La campagne est finie*
 
-### EXPLOITATION LIBRE — après la dernière mission
-> **EXPLOITATION LIBRE**  
-> Contrats illimités · Vente libre · Développement de l'exploitation · Améliorations maximales  
-> — suite : *La vallée est à vous*
+### LA FERME CONTINUE — après la dernière mission
+> **LA FERME CONTINUE**  
+> La campagne principale est terminée, mais votre exploitation continue de vivre.  
+> Contrats illimités · Vente libre · Parcelles · Élevages · Production · Améliorations  
+> — suite : *À vous de décider de la suite*  
+> *(c'est l'avant-dernière page de la mission 30, ci-dessus ; le dernier mot est le bouton CONTINUER À JOUER)*
 
-### COMMERCE DÉBLOQUÉ — quand un palier ouvre un commerce
-> **COMMERCE DÉBLOQUÉ** — *<NOM DU COMMERCE>*  
-> Vous pouvez y déposer votre production quand vous voulez, sans mission, dans la limite de ce qu'il peut prendre.  
-> Il prend : *<jusqu'à huit marchandises>*  
-> — suite : *Un point de plus sur la carte*
+### NOUVEAU CLIENT — quand un palier ouvre un commerce
+> **NOUVEAU CLIENT** — *<NOM DU COMMERCE>*  
+> Ce commerce achète désormais certains de vos produits, même en dehors des missions.  
+> *<les produits acceptés, en vignettes — jusqu'à huit>*  
+> — suite : *À retrouver sur la carte*
 
-### MERCI POUR LA LIVRAISON — reçu, à chaque livraison qui solde une ligne
-> **MERCI POUR LA LIVRAISON**  
-> *<marchandises> – <LIEU>*  
+### LIVRAISON ACCEPTÉE — reçu, à chaque livraison qui solde une ligne
+> **LIVRAISON ACCEPTÉE**  
+> *<quantité et marchandise> → <LIEU>*  
 > **+ <gain>**  
-> *<combien> · <prix au kilo>*  
+> *<combien> × <prix à l'unité>*  
 > — suite : *La caisse est à <argent>*
 
 *Une livraison **incomplète** n'ouvre aucune fenêtre : elle passe en bandeau volant, sur une ligne — « 6 / 29 kg de farine · BOULANGERIE ».*
 
-### STOCK PLEIN — quand un commerce ne peut plus rien prendre
-> **<NOM DU COMMERCE>** — tampon *Stock plein*  
-> *« Plus besoin de <marchandise> pour le moment, mon étal est plein. »*  
-> Qui en veut encore, et ce que ça ferait : *<la liste des autres acheteurs, avec le prix>*
+### STOCK SATURÉ — quand un commerce ne peut plus rien prendre
+> **STOCK SATURÉ** — *<NOM DU COMMERCE>*  
+> *« Pas de <marchandise> en plus pour le moment. J'en ai encore plein les étagères. »*  
+> Autres acheteurs : *<jusqu'à quatre, avec le prix à l'unité — Restaurant → 1,15 € / kg>*
 
 ### PANNE SÈCHE — quand un engin tombe à sec
 > **PANNE SÈCHE**  
-> *« Plus une goutte, au bout du champ.  
-> J'avais vu la jauge clignoter. »*  
-> — suite : *La citerne est dans la cour, et le plein est gratuit*
+> *« Voilà. Plus une goutte.  
+> Et bien sûr, je suis à l'autre bout du champ. »*  
+> — suite : *La citerne est dans la cour*
 
 ---
 
@@ -601,7 +610,7 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 
 - `<…> EN PREND`
 - `CHANTIER TERMINÉ – PARCELLE <…>`
-- `L’AUTOMATISATION PREND LE VOLANT – ARRÊTEZ-LA DANS LE PLAN DE TRAVAIL`
+- `CONDUITE AUTOMATIQUE ACTIVÉE`
 - `ÉLEVAGE TERMINÉ – PARCELLE <…>`
 
 **Bouton contextuel de service**
@@ -609,11 +618,11 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `<…> RENDUS À LA CUVE / LA CUVE DE LA COUR EST PLEINE`
 - `EN ROUTE POUR LA BOUCHERIE`
 - `MISSION PRISE – <…>`
-- `UNE COLONIE DE PLUS AU RUCHER / UNE BÊTE DE PLUS AU PRÉ`
+- `NOUVELLE COLONIE INSTALLÉE / NOUVEL ANIMAL AJOUTÉ`
 
 **Carburant**
 
-- `PLEIN FAIT`
+- `RÉSERVOIR PLEIN`
 
 **Ce qu'on peut faire ici, et qui choisit**
 
@@ -624,13 +633,13 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `<…> RENTRÉ À L’ENTREPÔT`
 - `<…> VENDU – <…> €`
 - `<…> – <…><…> LIVRÉ À <…>`
+- `ANIMAL LIVRÉ À LA BOUCHERIE – <…>`
 - `ATELIER – <…>`
 - `ATELIER – <…> <…>`
 - `ATELIER – <…> ATTEND SA MATIÈRE`
 - `ATELIER – <…> LOTS EN FILE`
 - `ATELIER – LA FILE EST PLEINE`
-- `AUGE REMPLIE`
-- `BÊTE ABATTUE – <…>`
+- `MANGEOIRE REMPLIE`
 
 **Ce qu'une commande attend encore**
 
@@ -638,8 +647,8 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `CHAMP NETTOYÉ – <…> PIED<…> LAISSÉ<…>`
 - `CONTRAT EXPIRÉ – <…>`
 - `CONTRAT HONORÉ – <…> · +<…> XP · RENOMMÉE`
-- `MOISSON ARRÊTÉE – VIDE LE SILO, PUIS RELANCE`
 - `RIEN À FAIRE POUR CET OUTIL`
+- `SILO PLEIN · MOISSON INTERROMPUE`
 - `SILO PLEIN – LA TRÉMIE NE PEUT PAS SE VIDER`
 - `TRAVAIL TERMINÉ`
 
@@ -650,7 +659,7 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 
 **Consommables : les deux cuves de la cour**
 
-- `PLUS DE QUOI PLANTER VIDE – REMPLIR À LA CUVE DE LA COUR / ACHETER AU COMPTOIR`
+- `PLUS DE QUOI PLANTER VIDE · REMPLIR À LA CUVE DE LA COUR / ACHETER AU COMPTOIR`
 
 **Entrées**
 
@@ -663,10 +672,10 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `CHANTIER ARRÊTÉ – PARCELLE <…>`
 - `CHANTIERS LANCÉS / CHANTIER LANCÉ – PARCELLE · EN CONTINU`
 - `ENCLOS AMÉNAGÉ – <…>`
-- `ENGIN EN AUTOMATIQUE – ARRÊTEZ-LE DANS LE PLAN DE TRAVAIL`
-- `PARCELLE ACHETÉE`
-- `PAUSE / EN ROUTE`
-- `QUANTITÉ ATTEINTE`
+- `ENGIN EN MODE AUTOMATIQUE`
+- `NOUVELLE PARCELLE ACHETÉE`
+- `OBJECTIF ATTEINT`
+- `PAUSE / REPRISE`
 - `SEMOIR RÉGLÉ SUR <…> EN CUVE`
 
 **Le barème de l'élevage**
@@ -678,14 +687,14 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `BENNE OCCUPÉE PAR DU / TRÉMIE OCCUPÉE PAR DU <…>`
 - `BENNE PLEINE`
 - `SILO AGRANDI – <…> KG`
-- `TRÉMIE PLEINE – DIRECTION SILO`
+- `TRÉMIE PLEINE · VIDER AU SILO`
 
 **Les colis : la marchandise, enfin visible**
 
 - `<…> A UN CONTRAT À PROPOSER`
 - `<…> – CONTRAT REFUSÉ, RENOMMÉE <…>`
 - `CONTRAT ACCEPTÉ – <…>`
-- `DÉJÀ QUATRE CONTRATS EN COURS`
+- `MAXIMUM <…> CONTRATS EN COURS`
 
 **Les trois écrans de la régie**
 
@@ -712,7 +721,7 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `<…> AGRANDI – <…> PLACES`
 - `<…> RENDUS À LA CUVE / LA CUVE EST PLEINE`
 - `MANGEOIRE – <…> CYCLES D’AUTONOMIE`
-- `UNE COLONIE DE PLUS AU RUCHER / UNE BÊTE DE PLUS AU PRÉ`
+- `NOUVELLE COLONIE INSTALLÉE / NOUVEL ANIMAL AJOUTÉ`
 
 **Panneau : boutique, améliorations, réglages**
 
@@ -720,13 +729,13 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 - `<…> ACHETÉ – AU PARKING DE LA FERME`
 - `<…> DISPONIBLE AU SEMOIR`
 - `<…> – NIVEAU <…>`
-- `PARCELLE ACHETÉE`
+- `NOUVELLE PARCELLE ACHETÉE`
 
 **Progression**
 
 - `CUVE À ENGRAIS PRESQUE VIDE – À REMPLIR AU COMPTOIR AGRICOLE`
 - `CUVE À GRAINES PRESQUE VIDE – À REMPLIR AU COMPTOIR AGRICOLE`
-- `SILO PRESQUE PLEIN`
+- `SILO À <…> %`
 
 **Sauvegarde**
 
@@ -739,7 +748,7 @@ La ligne noire en capitales, au milieu de l'écran, deux à trois secondes. Elle
 
 **Écran d'accueil**
 
-- `SAUVEGARDE ILLISIBLE – NOUVELLE PARTIE`
+- `SAUVEGARDE ENDOMMAGÉE · NOUVELLE PARTIE CRÉÉE`
 
 ---
 

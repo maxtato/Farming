@@ -12870,3 +12870,78 @@ plantes par pied, et le colza est déjà une nappe : on ne l'a pas fait sans le 
 Mesuré sur la parcelle de départ : blé 420 pieds à 3,24 m, colza 552 à 1,93 ; les autres
 cultures ne bougent pas (maïs 552, avoine 420, orge 420, vigne 192, oliviers 20). `ages`,
 `plan`, `chantiers`, `regression` verts ; `cultures` garde ses deux échecs d'avant.
+
+## La voix du jeu
+
+Le joueur a relu `TEXTES.md` et rendu une direction, pas des corrections : « Le fond est déjà
+très bon, mais je retravaillerais surtout la voix du jeu. Certains textes sont très
+techniques, d'autres humoristiques, d'autres presque administratifs. » La ligne : **le
+personnage principal apprend le métier, il est débrouillard, un peu bougon, parfois
+ironique, mais jamais idiot ; chaque commerçant a légèrement sa propre personnalité ; les
+fenêtres racontent, les bandeaux ne font qu'informer.** Toute la mécanique reste telle
+quelle : ce sont les mots qui changent, et la place de quelques-uns.
+
+**L'ouverture tient en deux pages.** « Je n'ai jamais conduit autre chose qu'une voiture »
+le faisait passer pour incapable ; il hérite d'une ferme « et un tracteur qui a probablement
+mon âge », puis, page suivante, PREMIER JOUR : « avant de récolter quoi que ce soit… il faut
+commencer par retourner la terre. Au boulot. » Le sous-titre de l'accueil devient « Votre
+partie est sauvegardée automatiquement ».
+
+**Le tutoriel raccourcit : le titre dit quoi faire, la phrase apporte le caractère.** Neuf
+marches réécrites — PRÉPARER LA TERRE, VIDER AU SILO, PRÉPARER UNE VENTE en libre — et la
+fin du tutoriel libre s'appelle VOUS SAVEZ L'ESSENTIEL : « Bon… ça commence à ressembler à
+un métier », au lieu du « Voilà. Je suis agriculteur » jugé caricatural pour quelqu'un qui
+doit progresser toute la campagne.
+
+**Les leçons distinguent les problèmes des possibilités.** Chacune reçoit un `nom` — son
+étiquette dans le relevé — et un `titre` qui est ce qui s'affiche, fenêtre et bandeau : LE
+SEMOIR EST VIDE, LA JAUGE BAISSE, ILS ONT FAIM, PRODUCTION À RÉCUPÉRER (« LE TANK EST
+PLEIN » n'allait ni à la laine, ni aux œufs, ni au miel). La blague du plein gratuit sort
+d'une leçon permanente.
+
+**Trente missions, et chacun sa voix.** La Coopérative est directe et un peu moqueuse
+(« c'est généralement à ce moment-là qu'on commence à acheter trop de machines »), l'usine
+parle en lots et en qualité, le boulanger est chaleureux, la patronne du restaurant
+énergique et exigeante, le supermarché compte en rayons, le caviste est légèrement
+précieux. Deux missions changent de bouche : l'aliment premium est portée par le héros
+(`qui:'Moi'`, en-tête NOURRIR MIEUX, et sa réplique de fin — « même les animaux mangent
+mieux que moi »), les porcs par la Boucherie, dont le visage paraît enfin. La fenêtre où
+l'on décroche prend un `entete` quand la mission en a un : UNE PREMIÈRE COMMANDE, UNE
+GRANDE COMMANDE.
+
+**La fin boucle avec l'héritage.** Après la patronne (« Quand je pense que votre première
+livraison faisait trente kilos de blé… »), c'est le héros qui parle, deux pages — satisfait,
+puis franchement content : « Finalement, l'oncle ne m'avait peut-être pas laissé une
+vieille ferme. Il m'avait laissé un début. » Puis EXPLOITATION ÉTABLIE, LA FERME CONTINUE,
+et le dernier mot est un bouton : MAINTENANT, C'EST LA VÔTRE — CONTINUER À JOUER. Une page
+de suite peut donc porter un visage et sa propre ligne de suite ; la page de clôture
+d'office n'est plus ajoutée qu'à une dernière mission qui n'aurait pas les siennes.
+
+**Les fenêtres de circonstance deviennent directes.** BRAVO — « très jeu mobile
+générique » — devient CONTRAT TERMINÉ ; MERCI POUR LA LIVRAISON devient LIVRAISON ACCEPTÉE,
+presque totalement informative : « 72 kg de farine → BOULANGERIE », « + 828 € », « 72 kg ×
+11,50 € / kg ». COMMERCE DÉBLOQUÉ devient NOUVEAU CLIENT, et les produits qu'il accepte sont
+des **vignettes** au lieu d'une phrase — celles de la ferme seulement, le beurre du boulanger
+ne nous regarde pas. STOCK PLEIN devient STOCK SATURÉ, l'enseigne dans la case de l'argent,
+et la liste des autres acheteurs dit le prix à l'unité : « Restaurant → 1,15 € / kg ». La
+panne sèche : « Voilà. Plus une goutte. Et bien sûr, je suis à l'autre bout du champ. »
+
+**Les bandeaux volants n'ont aucune personnalité.** Seize réécrits d'après sa table :
+CONDUITE AUTOMATIQUE ACTIVÉE, TRÉMIE PLEINE · VIDER AU SILO, SILO PLEIN · MOISSON
+INTERROMPUE, RÉSERVOIR PLEIN, MANGEOIRE REMPLIE (plus d'« auge » nulle part), ANIMAL LIVRÉ
+À LA BOUCHERIE, NOUVELLE PARCELLE ACHETÉE, PAUSE / REPRISE, OBJECTIF ATTEINT, MAXIMUM 4
+CONTRATS EN COURS, SAUVEGARDE ENDOMMAGÉE · NOUVELLE PARTIE CRÉÉE. « SILO À 85 % » aurait
+menti — le bandeau part à 92 % — : il dit le pourcentage réel au moment où il paraît.
+
+**Trois écarts à sa lettre, dits ici.** « Ajoutée à la carte » s'accorde avec la Boulangerie
+et pas avec le Restaurant : la ligne dit « À retrouver sur la carte ». « Pas de farine
+supplémentaire » devient « Pas de farine en plus » pour la même raison, les œufs étant au
+pluriel. Et les deux préambules de l'épandeur, qu'il n'avait pas relus, passent à la voix
+du héros. Le relevé (`outils/textes`) lit les champs neufs — `nom`, `qui`, `entete`, les
+visages des pages de suite — et `TEXTES.md` est régénéré depuis le jeu qui tourne.
+
+Mesuré : les 37 bancs relancés sur la page réécrite ; sept d'entre eux citaient l'ancien
+mot à mot (`campagne30`, `chantiers`, `contrat`, `ecrans`, `fenetres`, `guidage`, `lecons`,
+`visages`) et lisent maintenant le nouveau. Tout est vert, sauf les sept échecs antérieurs
+de `chaine` ; `ecrans` et `hud` ne passent que seuls, comme avant, la charge de deux
+navigateurs en parallèle leur faisant dépasser le délai de chargement.

@@ -546,7 +546,8 @@
      sens : on entre chez quelqu'un, il demande quelque chose, et il le dit avec ses
      mots. Retrait à gauche et barre verte : c'est quelqu'un qui parle, pas l'interface. */
   #cttexte{font-size:11.5px;line-height:1.7;color:var(--texte);margin-top:10px;
-    padding:2px 0 2px 11px;border-left:3px solid var(--ligneOmb);font-style:italic}
+    padding:2px 0 2px 11px;border-left:3px solid var(--ligneOmb);font-style:italic;
+    white-space:pre-line}   /* une réplique peut faire deux paragraphes */
   #ctlignes{margin-top:11px;display:flex;flex-direction:column;gap:7px}
   #ctlignes .cl{display:flex;justify-content:space-between;align-items:center;gap:10px;
     background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb);
@@ -1125,6 +1126,8 @@
      ligne, à la taille du texte courant — ce sont des renseignements, pas la nouvelle. */
   #brplus{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;
     color:var(--sourdine);text-align:center;line-height:1.6;margin-top:1px}
+  /* les produits qu'un nouveau client accepte, en vignettes sur la ligne */
+  #brplus .vign{width:26px;height:26px;vertical-align:middle;margin:0 3px;object-fit:contain}
   /* ---------- LE TAMPON « STOCK PLEIN » ----------
      Le joueur : « avec comme un tampon rouge sur le côté qui met stock plein ».
      C'est un tampon de caoutchouc, et un tampon de caoutchouc a trois signes : il est
@@ -3892,21 +3895,34 @@ const parcellesPermises = ()=> (MODE_LIBRE || TOUT_OUVERT) ? NIVEAUX[NIVEAUX.len
    font que réduire le nombre de trajets, de remplissages et de cycles d'attente. C'est
    exactement là que le joueur choisit de dépenser, et personne ne le lui impose. */
 const MISSIONS = [
+  /* CHAQUE COMMERÇANT A SA VOIX. Le joueur : « certains textes sont très techniques,
+     d'autres humoristiques, d'autres presque administratifs » ; « chaque commerçant doit
+     avoir légèrement sa propre personnalité ». La Coopérative est directe et un peu
+     moqueuse, l'usine parle en lots et en qualité, le boulanger est chaleureux, la
+     patronne du restaurant est énergique et exigeante, le supermarché compte en rayons,
+     le caviste est légèrement précieux. Deux missions sont portées par le HÉROS lui-même
+     (`qui:'Moi'`) — l'aliment premium — ou par un commerce sans quai, la boucherie.
+     `entete` remplace la suscription « Mission de campagne » de la fenêtre où l'on
+     décroche ; `apres` porte des pages de plus, qui peuvent avoir un visage et leur
+     propre ligne de suite. */
   {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:200, xp:60,
-   texte:'Bonjour, vous êtes le nouveau propriétaire de la ferme ? Bienvenue dans le village. Pour commencer, je vais vous prendre 30 kg de votre blé.',
-   fin:'Parfait. Voilà votre première vente. Vous pouvez revenir ici quand vous voulez, même sans contrat : je peux acheter toute votre production immédiatement.',
-   apres:[{titre:'VENTE LIBRE DÉBLOQUÉE', txt:'La Coopérative agricole achète votre production à tout moment. Les prix sont faibles, mais vous pouvez y vendre librement vos surplus.'}, {titre:'CE QUE ÇA PERMET', txt:'« Je ne suis pas celui qui paie le mieux, mais je prends ce que vous avez. Ça peut vous permettre de payer vos graines, votre carburant ou quelques améliorations sans attendre le prochain contrat. »'}, {titre:'LE VILLAGE VOUS A VU', txt:'« Maintenant que votre exploitation tourne, d’autres entreprises du village vont commencer à s’intéresser à ce que vous produisez. »'}]},
+   entete:'UNE PREMIÈRE COMMANDE',
+   texte:'Alors c’est vous qui avez repris la vieille ferme ? Bienvenue. Si votre première récolte est prête, apportez-moi 30 kg de blé. On va commencer tranquillement.',
+   fin:'Voilà, première vente. Pas mal pour un début. Et retenez une chose : même sans contrat, je rachète vos récoltes.',
+   apres:[{titre:'VENTE LIBRE DÉBLOQUÉE', txt:'La Coopérative achète vos récoltes à tout moment.<br>Les prix sont modestes, mais elle accepte facilement les gros volumes.'},
+          {titre:'LA COOPÉRATIVE', txt:'<i>« Je ne serai pas toujours celui qui paie le mieux. Mais quand il faut vendre vite, vous savez où me trouver. »</i>', face:{nom:'Coopérative', humeur:'bravo'}},
+          {titre:'LE VILLAGE VOUS A REPÉRÉ', txt:'Votre première récolte n’est pas passée inaperçue.<br>D’autres entreprises pourraient bientôt appeler.'}]},
   {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:300, xp:80,
-   texte:'La Coopérative m\'a parlé de votre première récolte. J\'aimerais tester votre blé dans notre production. Préparez-moi 80 kg.',
-   fin:'Très bien. La qualité est bonne. On pourra augmenter les volumes la prochaine fois.'},
+   texte:'La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 80 kg.',
+   fin:'Hum… bonne tenue, grain régulier. Ça ira très bien. Gardez cette qualité et nous pourrons parler de volumes plus sérieux.'},
   /* LE SEUL PRÉAMBULE DE LA CAMPAGNE. Le cahier des charges veut que l'épandeur soit
      PRÉSENTÉ une fois — on va le chercher, on le remplit, on voit la pousse accélérer —
      et qu'il redevienne facultatif dès la mission suivante. Deux étapes qui indiquent,
      et qui ne bloquent rien : la mission se solde en livrant, épandeur ou pas. */
   {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:600, xp:100,
    prep:[
-     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L\'ÉPANDEUR',
-      txt:'L\'ÉPANDEUR – il t\'attend au garage du village, pour 250 €',
+     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L’ÉPANDEUR',
+      txt:'PRENDRE L’ÉPANDEUR – Il est au garage du village, 250 €. On verra vite si l’engrais vaut son prix.',
       // le bouton ACHETER du garage ouvre cette fenêtre : l'onglet des outils bat,
       // puis la ligne de l'épandeur
       fen:'achat', onglet:'outils', art:'engrais',
@@ -3920,27 +3936,27 @@ const MISSIONS = [
         Elle envoie donc à la CUVE BLANCHE de la cour, et se solde sur la cuve de l'OUTIL.
         C'est le geste qui manquait au joueur, et c'est celui que la boucle enseigne : le
         comptoir remplit la cuve de la cour, la cuve de la cour remplit l'outil. */
-     {cle:'engrais', ou:'cuveEngrais', outil:'engrais', titre:'REMPLIR L\'ÉPANDEUR',
-      txt:'REMPLIR L\'ÉPANDEUR – la cuve blanche de la cour en est pleine : sers-toi',
+     {cle:'engrais', ou:'cuveEngrais', outil:'engrais', titre:'REMPLIR L’ÉPANDEUR',
+      txt:'REMPLIR L’ÉPANDEUR – La cuve blanche de la cour est pleine d’engrais. Autant s’en servir.',
       fait:()=> cuveDe(TOOLS.find((T)=> T.key === 'engrais'), 'engrais') > 0.5}],
-   texte:'J\'ai une demande un peu plus importante cette semaine : je peux vous prendre 150 kg de blé. Et avec les volumes qui augmentent, vous devriez jeter un œil à l\'épandeur – l\'engrais peut vous faire gagner du temps, mais libre à vous de l\'utiliser ensuite.',
-   fin:'Très bien. Votre ferme commence à trouver son rythme.'},
+   texte:'J’ai une commande un peu plus grosse : 150 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses.',
+   fin:'Très bien. Vous commencez à produire régulièrement. C’est généralement à ce moment-là qu’on commence à acheter trop de machines.'},
   {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
-   texte:'Le premier lot s\'est bien comporté. Cette fois, je peux utiliser 250 kg de votre blé.',
-   fin:'Parfait. Je sais maintenant que vous pouvez répondre à de vraies commandes.'},
+   texte:'Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume.',
+   fin:'Parfait. Quantité, qualité, délai. Vous commencez à devenir un fournisseur intéressant.'},
   {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1400, xp:150,
-   texte:'J\'ai vu passer votre blé. Plutôt que de l\'acheter brut, j\'aimerais travailler directement avec votre farine. Installez un moulin et préparez-moi 72 kg.',
-   fin:'Voilà une farine qui me convient. Votre blé vient de prendre un peu plus de valeur.'},
+   texte:'Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste.',
+   fin:'Ah, ça c’est une farine qui me plaît ! Vous voyez ? Même blé… mais déjà beaucoup plus de valeur.'},
   {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1800, xp:170,
-   texte:'Votre exploitation s\'agrandit. J\'aimerais maintenant tester une autre culture. Préparez-moi 180 kg de maïs.',
-   fin:'Très bien. Plus vous diversifiez vos cultures, plus nous pourrons travailler ensemble.'},
+   texte:'Le blé fonctionne. Passons au maïs. 180 kg pour un premier test.',
+   fin:'Très bien. Continuez comme ça. Une exploitation capable de fournir plusieurs céréales nous intéresse beaucoup plus.'},
   {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:2500, xp:180,
-   texte:'Pour la farine, nous sommes au point. Il me manque maintenant de bons œufs. Si vous installez quelques poules, je vous prends les 24 premiers.',
-   fin:'Parfait. Farine et œufs provenant de la même ferme, ça commence à devenir intéressant.'},
+   texte:'La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 24 œufs pour moi.',
+   fin:'Parfait ! Avec votre farine et vos œufs, je vais finir par ne plus avoir besoin de personne d’autre.'},
   {niv:5, lieu:'Boulangerie',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2800, xp:200,
-   texte:'Cette fois, j\'ai besoin des deux. Préparez-moi 72 kg de farine et 36 œufs.',
-   fin:'Tout est là. C\'est exactement le type d\'approvisionnement que je recherchais.'},
+   texte:'Cette fois je veux le panier complet : 72 kg de farine et 36 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps.',
+   fin:'Tout est là, et en même temps. Ça, c’est déjà une vraie organisation de ferme.'},
   /* LE PALIER SIX NE COMPTE PLUS DEUX FOIS LA MÊME ORGE.
      Il demandait 200 kg d'orge à la Brasserie, puis 140 L de bière au Restaurant. Or 140 L
      de bière, c'est EXACTEMENT 200 kg d'orge — le rendement vaut 0,70 : la campagne faisait
@@ -3956,83 +3972,96 @@ const MISSIONS = [
      3 600, 220 puis 240 — parce que la campagne entière vaut 11 640 XP et qu'un banc compte
      les trente valeurs dans l'ordre. */
   {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3200, xp:220,
-   texte:'Je cherche quelqu\'un qui cultiverait de l\'orge dans le coin et qui se lancerait dans une bière artisanale – une vraie, brassée ici. Si vous vous y mettez, je vous en prends 140 litres sans hésiter.',
-   fin:'C\'est exactement ce que j\'espérais. Une bière du village, brassée à la ferme d\'à côté : la carte peut enfin le dire.'},
+   texte:'On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 140 litres.',
+   fin:'Très bonne. Et surtout : brassée juste à côté. Celle-là, je vais pouvoir la mettre en avant sur la carte.'},
   {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:60}, {cle:'farine', need:120}], prime:3600, xp:240,
-   texte:'Le Restaurant m\'a fait goûter votre bière, et on me la réclame déjà au comptoir. J\'ouvre un rayon de produits de la ferme : 60 litres et 120 kg de farine pour commencer.',
-   fin:'Le rayon est monté. Vos produits sont les premiers qu\'on voit en entrant, maintenant.'},
+   texte:'J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 60 litres de bière et 120 kg de farine.',
+   fin:'Parfait. Votre ferme a maintenant son petit coin dans mon magasin. Essayez de ne pas me laisser les rayons vides.'},
   {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:4000, xp:260,
-   texte:'Nous cherchons un producteur local d\'avoine. Une première livraison de 200 kg nous permettra de voir si votre récolte convient à notre procédé.',
-   fin:'Ça nous convient. Gardez de l\'avoine en production, nous en aurons probablement encore besoin.'},
-  {niv:8, faire:'alimentPlus', prime:4500, xp:280, titre:'Produire 184 kg d\'aliment premium',
-   texte:'Vous produisez maintenant suffisamment de céréales différentes pour préparer un aliment plus complet pour vos élevages. Montez le mélangeur : 40 kg de maïs, 30 d\'orge et 30 d\'avoine donnent 92 kg d\'aliment premium. Il en faut deux cycles.',
-   fin:'Votre ferme peut désormais produire son propre aliment premium.'},
+   texte:'Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 200 kg et nous testerons votre récolte.',
+   fin:'Très bon résultat. Continuez à en produire : ce ne sera probablement pas notre dernière commande.'},
+  /* LA SEULE MISSION QUE LE HÉROS SE DONNE À LUI-MÊME. Personne ne commande d'aliment
+     premium : c'est lui qui regarde ses trois céréales et décide de mieux nourrir ses
+     bêtes. Son visage, ses mots, et à la fin sa réplique — « même les animaux mangent
+     mieux que moi ». */
+  {niv:8, faire:'alimentPlus', prime:4500, xp:280, qui:'Moi', entete:'NOURRIR MIEUX',
+   titre:'Produire 184 kg d’aliment premium',
+   texte:'Maïs, orge, avoine… j’ai tout ce qu’il faut. Avec un mélangeur, je pourrais fabriquer mon propre aliment premium. Deux lots devraient donner 184 kg.',
+   fin:'Voilà. Maintenant même les animaux mangent mieux que moi.'},
   {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:5500, xp:300,
-   texte:'Votre exploitation semble prête pour accueillir des vaches. Installez votre élevage et gardez-moi les 200 premiers litres de lait.',
-   fin:'Très bon début. Si votre troupeau grandit, je pourrai prendre davantage.'},
+   texte:'On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres.',
+   fin:'Très bon lait. Pour un premier troupeau, c’est prometteur. Si vous augmentez la production, appelez-moi.'},
   {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:6000, xp:320,
-   texte:'La première collecte était bonne. Cette fois, j\'aurais besoin de 350 litres. À vous de choisir : davantage de vaches, ou simplement un peu plus de temps.',
-   fin:'Parfait. Votre production laitière commence à devenir sérieuse.'},
+   texte:'J’aurais besoin de 350 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir.',
+   fin:'Parfait. Là, on ne parle plus d’un essai. Votre production laitière commence à compter.'},
   {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:7000, xp:340,
-   texte:'Votre lait est bon, mais j\'aimerais servir quelque chose qui vienne vraiment de votre ferme. Préparez-moi 28 kg de fromage.',
-   fin:'Très réussi. Celui-là aura sa place sur la carte.'},
+   texte:'Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 28 kg de fromage.',
+   fin:'Excellent. Celui-là reste sur la carte. Et je veux pouvoir écrire “fabriqué à la ferme”.'},
   {niv:10, lieu:'Supermarché',
    lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:8000, xp:360,
-   texte:'Nous ouvrons un petit rayon consacré aux producteurs du village. Pour le lancement, il nous faudrait 56 kg de fromage et 48 œufs.',
-   fin:'Parfait. Le rayon local peut ouvrir.'},
+   texte:'Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour.',
+   fin:'Parfait. Les quantités sont bonnes. Votre ferme est officiellement référencée chez nous.'},
   {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:8500, xp:380,
-   texte:'Je cherche de la laine produite dans le secteur pour une petite série. Si vous installez une bergerie, je vous prends les premiers 40 kg.',
-   fin:'Cette laine me convient très bien. On pourra travailler sur des volumes plus importants.'},
+   texte:'Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 40 premiers kilos.',
+   fin:'Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver.'},
   {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:9000, xp:400,
-   texte:'Vos brebis peuvent nous intéresser pour autre chose que leur laine. J\'aimerais essayer 160 litres de leur lait.',
-   fin:'Très intéressant. Ce lait a vraiment son propre caractère.'},
+   texte:'Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis.',
+   fin:'Ah oui… beaucoup plus riche que le lait de vache. Avec ça, on peut faire quelque chose de vraiment intéressant.'},
   {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:9500, xp:420,
-   texte:'J\'ai goûté ce qui a été fait avec votre lait de brebis. Maintenant, j\'aimerais servir votre propre fromage. Préparez-moi 40 kg.',
-   fin:'Excellent. Il se distingue clairement de votre fromage de vache.'},
+   texte:'J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos.',
+   fin:'Celui-là a du caractère. Gardez-moi une place dans votre prochaine production.'},
   {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:10000, xp:450,
-   texte:'La première série s\'est bien vendue. Cette fois, j\'aurais besoin de 100 kg de laine.',
-   fin:'Très bien. Votre bergerie est devenue une vraie source d\'approvisionnement.'},
+   texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 100 kg.',
+   fin:'Parfait. Votre bergerie est officiellement devenue mon fournisseur.'},
   {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:11000, xp:480,
-   texte:'Plusieurs clients me demandent du miel produit dans le coin. Installez quelques ruches et gardez-moi les premiers 12 kg.',
-   fin:'Parfait. Le miel local ne restera pas longtemps sur les étals.'},
+   texte:'On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos.',
+   fin:'Regardez-moi ça… Celui-là ne va pas rester longtemps sur l’étal.'},
   {niv:14, lieu:'Boulangerie',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}, {cle:'miel', need:12}],
    prime:12000, xp:500,
-   texte:'J\'ai une nouvelle recette en tête. Cette fois, j\'aurais besoin de votre farine, de vos œufs et de votre miel.',
-   fin:'Tout vient de votre exploitation. C\'est exactement ce que je voulais pour cette gamme.'},
+   texte:'J’ai une idée : votre farine, vos œufs et votre miel. Si ça fonctionne comme je l’imagine, on tient quelque chose.',
+   fin:'Exactement ! Tout vient de votre ferme. Là, je peux vraiment raconter une histoire aux clients.'},
   {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:13000, xp:520,
-   texte:'Le colza se vend bien en ce moment. Si vous voulez vous lancer, je peux prendre immédiatement 300 kg.',
-   fin:'Très bien. Et si vous voulez augmenter sa valeur, le pressoir à colza de votre atelier devrait vous intéresser.'},
+   texte:'Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 300 kg pour commencer.',
+   fin:'Très bien. Et avant de tout revendre brut, regardez ce qu’un pressoir peut en tirer.'},
   {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:14500, xp:560,
-   texte:'Je préférerais utiliser une huile produite autour du village. Faites transformer votre colza et apportez-moi 68 litres.',
-   fin:'Parfait. C\'est exactement ce qu\'il nous fallait pour la cuisine.'},
+   texte:'J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 68 litres d’huile de colza.',
+   fin:'Parfait. Produit à quelques kilomètres de la cuisine : difficile de faire plus local.'},
   {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:17000, xp:600,
-   texte:'Nous aimerions proposer des olives locales directement en rayon. Plantez une oliveraie et préparez-nous une première livraison de 200 kg.',
-   fin:'Très bien. Les premières caisses peuvent partir en rayon.'},
+   texte:'Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 200 kg d’olives.',
+   fin:'Très bien. Les caisses partent directement en rayon. Maintenant, j’attends de voir ce que vous allez faire avec l’huile.'},
   {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:18000, xp:650,
-   texte:'Les olives sont bonnes, mais ce qui m\'intéresse vraiment, c\'est votre huile. J\'en voudrais 40 litres.',
-   fin:'Celle-ci vaut clairement plus que les olives vendues brutes.'},
+   texte:'Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 40 litres de votre huile.',
+   fin:'Voilà. Là, on change de catégorie. Cette huile vaut clairement plus que les olives vendues brutes.'},
   {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:20000, xp:700,
-   texte:'Nous voudrions maintenant ajouter du raisin local au rayon frais. Commencez avec 200 kg.',
-   fin:'Très bien. Il se vendra facilement comme ça… mais j\'imagine que le Caviste aura une autre idée.'},
+   texte:'On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 200 kg fera l’affaire.',
+   fin:'Très bien. Il se vendra facilement comme ça. Mais connaissant le caviste… il ne va pas vouloir le manger.'},
   {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:22000, xp:750,
-   texte:'J\'ai vu passer votre raisin. Il a du potentiel. Installez une cave et faites-moi une première cuvée de 140 litres.',
-   fin:'Voilà qui est intéressant. Votre ferme produit désormais quelque chose qui mérite qu\'on s\'y attarde.'},
-  {niv:19, faire:'porcs4', prime:26000, xp:850, titre:'Livrer quatre porcs à la boucherie',
-   texte:'Vous avez maintenant suffisamment de céréales et d\'aliment pour développer un élevage porcin. J\'aurais besoin de quatre porcs prêts à partir.',
-   fin:'Très bien. Si votre élevage grandit, je pourrai prendre des lots plus importants.'},
+   texte:'Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée.',
+   fin:'Hm… intéressant. Vraiment intéressant. Vous ne cultivez plus seulement des produits. Vous commencez à avoir une signature.'},
+  {niv:19, faire:'porcs4', prime:26000, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
+   texte:'Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes.',
+   fin:'Très bien. Bêtes saines, bon gabarit. Si vous augmentez l’élevage, je prendrai des lots plus importants.'},
   /* LA DERNIÈRE. Huit marchandises de sept filières différentes : c'est toute
      l'exploitation qui passe en revue, et c'est pour cela qu'elle vaut quarante mille
-     euros. Rien de neuf à acheter — tout ce qu'elle demande, on l'a déjà monté. */
-  {niv:20, lieu:'Restaurant',
+     euros. Rien de neuf à acheter — tout ce qu'elle demande, on l'a déjà monté.
+     ET ELLE BOUCLE AVEC L'HÉRITAGE DU DÉBUT : après la patronne, c'est le héros qui parle
+     — deux pages, satisfait puis franchement content — puis le jeu, et le dernier mot est
+     un bouton : CONTINUER À JOUER. La page « LA FERME CONTINUE » est ici et non ajoutée
+     d'office, pour que le bouton reste le dernier. */
+  {niv:20, lieu:'Restaurant', entete:'UNE GRANDE COMMANDE',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 60)},
            {cle:'fromage', need:28}, {cle:'fromageBrebis', need:20},
            {cle:'miel', need:12}, {cle:'huile', need:34},
            {cle:'huileOlive', need:20}, {cle:'vin', need:140}],
    prime:40000, xp:1000,
-   texte:'Nous préparons une grande réception consacrée aux producteurs du village. Cette fois, je voudrais construire presque tout le menu autour de votre ferme : de la farine, des œufs, vos deux fromages, du miel, les deux huiles et votre vin. Prenez le temps de vous organiser.',
-   fin:'Tout est là. En regardant cette livraison, on mesure le chemin parcouru depuis vos premiers 30 kg de blé. Votre ferme est devenue une véritable exploitation.',
-   apres:[{titre:'EXPLOITATION ÉTABLIE', txt:'Vous avez développé les principales filières de votre ferme.'}, {titre:'À VOUS DE JOUER', txt:'Les commerces continueront désormais à proposer des contrats, tandis que vous pouvez développer librement vos parcelles, vos élevages, vos ruches, vos bâtiments et votre matériel.'}]}
+   texte:'J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.\nFarine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous.',
+   fin:'Tout est là. Absolument tout. Quand je pense que votre première livraison faisait trente kilos de blé…',
+   apres:[{titre:'L’EXPLOITATION', txt:'<i>« Trente kilos de blé…<br>J’avais presque oublié. »</i>', face:{nom:'Moi', humeur:'bravo'}},
+          {titre:'L’EXPLOITATION', txt:'<i>« Finalement, l’oncle ne m’avait peut-être pas laissé une vieille ferme.<br>Il m’avait laissé un début. »</i>', face:{nom:'Moi', humeur:'rire'}},
+          {titre:'EXPLOITATION ÉTABLIE', txt:'Vous maîtrisez maintenant les principales filières de la ferme.'},
+          {titre:'LA FERME CONTINUE', txt:'La campagne principale est terminée, mais votre exploitation continue de vivre.<br>Contrats illimités  ·  Vente libre  ·  Parcelles  ·  Élevages  ·  Production  ·  Améliorations', suite:'À vous de décider de la suite'},
+          {titre:'MAINTENANT, C’EST LA VÔTRE', txt:'Continuez à acheter des terres, développer vos élevages, améliorer votre matériel et répondre aux contrats du village.', suite:'CONTINUER À JOUER'}]}
 ];
 /* LA TABLE DES MISSIONS EST LUE PAR RANG, ET C'EST UN PIÈGE DE SAUVEGARDE.
    `CAMPAGNE.mission` est un INDICE dans MISSIONS, et `CAMPAGNE.faits` est indexé par
@@ -4385,24 +4414,32 @@ function veillerDeblocages(){
     const nom = SITES_ANNONCE.shift();
     const S = SITES.find((x)=> x.nom === nom);
     if(!S) continue;
+    /* ET SEULEMENT CE QUE LA FERME PEUT LUI APPORTER : le beurre et le pain sont faits
+       derrière son comptoir, ils ne nous regardent pas (voir `fournissable`). */
     const pris = (S.achete || []).concat(
-      (S.accepte || []).filter((c)=> (S.achete || []).indexOf(c) < 0));
+      (S.accepte || []).filter((c)=> (S.achete || []).indexOf(c) < 0)).filter(fournissable);
     // Huit noms suffisent à dire ce qu'il prend ; le supermarché en accepte treize, et
     // la liste entière ferait quatre lignes de petites capitales pour rien.
-    const quoi = pris.slice(0, 8).map((c)=> nomDe(c)).join(', ')
-               + (pris.length > 8 ? '…' : '');
+    /* EN VIGNETTES, PAS EN PHRASE. « Puis les produits acceptés en icônes plutôt qu'en
+       phrase » : la planche de chaque produit existe déjà, on la pose en ligne. Un produit
+       sans planche garde son nom. */
+    const quoi = pris.slice(0, 8).map((c)=>{
+      const v = vignetteDe(c);
+      return v ? '<img class="vign" src="' + v + '" alt="' + nomDe(c) + '" title="' + nomDe(c) + '">'
+               : nomDe(c);
+    }).join(' ') + (pris.length > 8 ? ' …' : '');
     annoncerFenetre({
       /* LE NOM VA DANS LA CASE DE L'ARGENT, et c'est le même raisonnement que pour
          « COMPLET — BOULANGERIE » : quinze commerces, deux genres, deux nombres. « La
          Laiterie est débloquée » demanderait une table d'accords pour un seul titre ;
          le mot d'abord, le nom ensuite, et il se lit pour les quinze. */
-      titre:'COMMERCE DÉBLOQUÉ',
+      titre:'NOUVEAU CLIENT',
       prix:S.nom.toUpperCase(),
-      sous:'Vous pouvez y déposer votre production quand vous voulez, sans mission, ' +
-           'dans la limite de ce qu’il peut prendre.',
-      plus:pris.length ? 'Il prend : ' + quoi : '',
+      sous:'Ce commerce achète désormais certains de vos produits, même en dehors ' +
+           'des missions.',
+      plus:pris.length ? quoi : '',
       face:{nom:S.nom, humeur:'bravo'},
-      suite:'Un point de plus sur la carte', duree:6.0});
+      suite:'À retrouver sur la carte', duree:6.0});
   }
 }
 
@@ -4564,32 +4601,39 @@ function ouvrirBravo(M, suite, niv0){
     if(val > 1) p.push('+ ' + eur(val) + ' de marchandise');
   }
   if(CAMPAGNE.niveau > niv0)
-    p.push('Niveau ' + CAMPAGNE.niveau + ' – ' + NIVEAUX[CAMPAGNE.niveau-1].nom);
+    p.push('Nouveau palier – ' + NIVEAUX[CAMPAGNE.niveau-1].nom);
   /* CE QUE LE CLIENT RÉPOND EN PAYANT. C'est la moitié de la réplique — l'autre est ce
      qu'il a demandé, et elle a été lue à la fenêtre de contrat. Sans elle, la mission se
      termine sur un chiffre ; avec elle, quelqu'un a été content du travail. */
+  /* « CONTRAT TERMINÉ », et non « BRAVO » : le joueur trouvait « bravo » très jeu mobile
+     générique. Le titre dit ce qui vient de se passer, et la réplique du client fait le
+     reste. */
   bravoPages = [{
-    titre: 'BRAVO',
+    titre: 'CONTRAT TERMINÉ',
     sous: titreMission(M) + (M.fin ? '<br><i>\u00ab\u00a0' + M.fin + '\u00a0\u00bb</i>' : ''),
     prix: M.prime > 0 ? '+ ' + eur(M.prime) : '',
     plus: p.join('&nbsp; · &nbsp;'),
     /* LE POUCE LEVÉ, ET SUR CETTE PAGE SEULEMENT. Les pages qui suivent — la vente libre
        débloquée, la clôture de campagne — ne sont plus le client qui remercie : c'est le
        jeu qui parle. Un visage y resterait affiché sans que personne ne l'ait dit. */
-    face: {nom: M.lieu, humeur: 'bravo'},
+    // `qui` : le héros, ou un commerce sans quai, quand ce n'est pas le lieu qui parle
+    face: {nom: M.qui || M.lieu, humeur: 'bravo'},
     suite: suite ? (suite.lieu ? 'Prochaine mission – ' + suite.lieu : 'Prochaine mission')
                  : 'La campagne est finie'
   }];
+  // Une page de suite peut porter un visage — le héros à la fin — et sa propre ligne de suite.
   for(const a of (M.apres || []))
-    bravoPages.push({titre:a.titre, sous:a.txt, suite:'Toucher pour continuer'});
+    bravoPages.push({titre:a.titre, sous:a.txt, face:a.face || null,
+                     suite:a.suite || 'Toucher pour continuer'});
   /* LA DERNIÈRE PAGE DE LA CAMPAGNE. Elle ne vient pas de la mission : elle vient du fait
      qu'il n'y en a plus. C'est aussi le moment où les commerces se remettent à proposer
      des contrats — voir `contratsOuverts()`. */
-  if(!suite)
-    bravoPages.push({titre:'EXPLOITATION LIBRE',
-      sous:'Contrats illimités  ·  Vente libre  ·  Développement de l\'exploitation  ·  ' +
-           'Améliorations maximales',
-      suite:'La vallée est à vous'});
+  if(!suite && !(M.apres && M.apres.length))
+    bravoPages.push({titre:'LA FERME CONTINUE',
+      sous:'La campagne principale est terminée, mais votre exploitation continue de vivre.' +
+           '<br>Contrats illimités  ·  Vente libre  ·  Parcelles  ·  Élevages  ·  ' +
+           'Production  ·  Améliorations',
+      suite:'À vous de décider de la suite'});
   bravoI = 0;
   peindreBravo();
 }
@@ -12641,7 +12685,7 @@ function poserOffre(){
 }
 function accepterOffre(S){
   if(!S || !S.offre) return false;
-  if(CONTRATS.length >= CONTRAT_MAX){ showHint('DÉJÀ QUATRE CONTRATS EN COURS'); return false; }
+  if(CONTRATS.length >= CONTRAT_MAX){ showHint('MAXIMUM ' + CONTRAT_MAX + ' CONTRATS EN COURS'); return false; }
   const C = S.offre;
   S.offre = null;
   S.offreT = attenteRenom(S);
@@ -14325,7 +14369,7 @@ function siloRefuse(m, dt){
   v.attenteSilo = 0; v.diteSilo = false;
   v.goSilo = false; v.finMoisson = false;
   v.auto = false; v.mission = null; v.plan = null;
-  showHint('MOISSON ARRÊTÉE – VIDE LE SILO, PUIS RELANCE');
+  showHint('SILO PLEIN · MOISSON INTERROMPUE');
   return true;
 }
 /* Exécuter un plan. Une tâche à la fois, dans l'ordre de la file ; la suivante quand
@@ -17390,7 +17434,7 @@ function reservoirRecolte(m, T){
       const was = hopper;
       if(hopper <= 0.01) hopCrop = c;
       hopper = Math.min(HOP_MAX, hopper + q);
-      if(was < HOP_MAX && hopper >= HOP_MAX) showHint('TRÉMIE PLEINE – DIRECTION SILO');
+      if(was < HOP_MAX && hopper >= HOP_MAX) showHint('TRÉMIE PLEINE · VIDER AU SILO');
       return hopper - was;
     }};
   const K = caisseDe(m);
@@ -18524,7 +18568,7 @@ function ongletParcelles(){
         p.signPos = null;
         activateParcel(p);
         flushTiles();
-        showHint('PARCELLE ACHETÉE');
+        showHint('NOUVELLE PARCELLE ACHETÉE');
       });
   }
 }
@@ -20327,7 +20371,7 @@ buyEl.addEventListener('pointerdown', ()=>{
   activateParcel(p);
   flushTiles();
   solderLecon('parcelle');
-  showHint('PARCELLE ACHETÉE');
+  showHint('NOUVELLE PARCELLE ACHETÉE');
   refreshBuyButton();
 });
 
@@ -20337,7 +20381,7 @@ hitchEl.addEventListener('pointerdown', ()=>{
   // Le bouton est déjà caché ; un doigt encore posé dessus au moment où le pilote prend
   // le volant pourrait tout de même le déclencher.
   if(m.v.auto || m.v.mission){
-    showHint('ENGIN EN AUTOMATIQUE – ARRÊTEZ-LE DANS LE PLAN DE TRAVAIL'); return;
+    showHint('ENGIN EN MODE AUTOMATIQUE'); return;
   }
   const T = toolOf(m);
   if(T){
@@ -20380,7 +20424,7 @@ function showHint(t){
    porte, et le relire coûte moins cher que d'inventer une migration pour un nombre
    dont plus personne ne se sert. */
 let etape = 0;
-document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'EN ROUTE'); });
+document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'REPRISE'); });
 
 /* livraison au silo */
 
@@ -20413,7 +20457,7 @@ function updateCargo(dt){
         choixLimite -= Math.abs(chargePortee(m) - avant);
         if(choixLimite <= 0.01){
           choixLimite = null; choixEnCours = null;
-          showHint('QUANTITÉ ATTEINTE');
+          showHint('OBJECTIF ATTEINT');
         }
       }
     }
@@ -20806,9 +20850,9 @@ function brulerCarburant(v, throttle, dt){
       if(MACHINES[cur].v === v)
         annoncerFenetre({titre:'PANNE SÈCHE', etape:true, duree:5.5,
           face:{nom:'Moi', humeur:'abattu'},
-          sous:'<i>\u00ab\u00a0Plus une goutte, au bout du champ.<br>' +
-               'J\u2019avais vu la jauge clignoter.\u00a0\u00bb</i>',
-          suite:'La citerne est dans la cour, et le plein est gratuit'});
+          sous:'<i>\u00ab\u00a0Voilà. Plus une goutte.<br>' +
+               'Et bien sûr, je suis à l\u2019autre bout du champ.\u00a0\u00bb</i>',
+          suite:'La citerne est dans la cour'});
     }
   } else if(v.fuel > 1) v.sec = false;
 }
@@ -20831,7 +20875,7 @@ function remplir(v, dt, source){
   }
   v.fuel += q;
   if(v.fuel >= v.resMax - 0.05){ v.fuel = v.resMax; v.sec = false;
-                                 solderLecon('gazole'); showHint('PLEIN FAIT'); }
+                                 solderLecon('gazole'); showHint('RÉSERVOIR PLEIN'); }
   return q;
 }
 
@@ -20963,7 +21007,7 @@ function cellulesPossibles(T, voulu, besoin){
        ne remplit plus les cuves. */
     const dansLaCuve = b.plantation ? 0 : dansLaCuveDeLaCour(b);
     showHint(b.plantation ? 'PLUS DE QUOI PLANTER'
-             : b.nom + ' VIDE – ' + (dansLaCuve > b.par ? 'REMPLIR À LA CUVE DE LA COUR'
+             : b.nom + ' VIDE · ' + (dansLaCuve > b.par ? 'REMPLIR À LA CUVE DE LA COUR'
                                                       : 'ACHETER AU COMPTOIR'));
     alerteStock = 6;
   }
@@ -21264,17 +21308,17 @@ const SERVICES = {
    écrit au milieu du répartiteur deviendrait faux le jour où une marche s'ajoute. C'est
    `combinePret` qui la lit — voir là-bas pourquoi. */
 const TUTO = [
-  {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA PARCELLE',
-   txt:'PRÉPARER LA PARCELLE – on ne sème pas sur de l’herbe, paraît-il. La charrue est au '
-     + 'parc : il faut l’accrocher derrière le tracteur.',
+  {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA TERRE',
+   txt:'PRÉPARER LA TERRE – Première leçon : on ne sème pas directement dans l’herbe. '
+     + 'La charrue est au parc. Il faut l’atteler au tracteur.',
    fait:()=> partParcelle('labour') >= PART_ETAPE},
   {cle:'semis', ou:'champ', engin:'t1', outil:'semis', titre:'SEMER DU BLÉ',
-   txt:'SEMER DU BLÉ – la terre est ouverte. Reste à y mettre quelque chose : le semoir '
-     + 'attend au même endroit que la charrue.',
+   txt:'SEMER DU BLÉ – La terre est prête. Maintenant, il faudrait peut-être y mettre '
+     + 'quelque chose. Le semoir est au parc.',
    fait:()=> partParcelle('semis') >= PART_ETAPE},
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
-   txt:'LAISSER POUSSER – et maintenant on attend. Personne ne m’avait dit que ce serait '
-     + 'la partie la plus longue.',
+   txt:'LAISSER POUSSER – Et maintenant… on attend. Je découvre que l’agriculture demande '
+     + 'beaucoup de patience.',
    fait:()=> partParcelle('pousse') >= PART_ETAPE},
   /* LA MOISSON SE SOLDE COMME LE LABOUR ET LE SEMIS : AU CHAMP ENTIER.
      Le joueur : « pour les messages du tutoriel qui apparaissent pendant le travail de la
@@ -21290,8 +21334,8 @@ const TUTO = [
      de tutoriel dit où l'on en est dans le tour ; une leçon dit ce qu'on ne pouvait pas
      deviner. Ce n'était pas la même chose. */
   {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
-   txt:'PREMIÈRE RÉCOLTE – le blé est mûr. La moissonneuse, c’est la grosse machine avec '
-     + 'la barre devant. Toute la parcelle, cette fois.',
+   txt:'PREMIÈRE RÉCOLTE – Ça y est. Le blé est mûr. La grosse machine avec la barre '
+     + 'devant ? C’est notre moissonneuse.',
    fait:()=> bleRentre() >= 30 && partParcelle('moisson') >= PART_ETAPE},
   /* ET CES DEUX ÉTAPES-LÀ DISENT QUEL BOUTON ELLES DÉSIGNENT. Elles envoient toutes deux
      sur la grille du silo, où l'on trouve jusqu'à sept lignes — rentrer sa trémie, rentrer
@@ -21309,9 +21353,9 @@ const TUTO = [
      ranger la moissonneuse avec le dernier andain encore dans le ventre, et le blé de la
      fin du champ restait à bord. La marche demande donc ce qu'elle dit : DÉCHARGE — la
      trémie vide, et du blé dans la tour. */
-  {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
-   txt:'STOCKER LA RÉCOLTE – la trémie est pleine, la tour est vide. Ça doit bien aller '
-     + 'quelque part.',
+  {cle:'silo', ou:'silo', engin:'moisson', titre:'VIDER AU SILO',
+   txt:'VIDER AU SILO – La moissonneuse ne va pas garder le grain éternellement. '
+     + 'Direction le silo.',
    quoi:'vider', prod:'ble',
    fait:()=> siloStock.ble >= 29.9 && hopper < 0.5},
   /* RANGER LA MOISSONNEUSE, ET C'EST UNE MARCHE À PART ENTIÈRE.
@@ -21331,7 +21375,8 @@ const TUTO = [
      au repos une fois son travail fini — au même rayon de six mètres. On réutilise donc
      le nombre du jeu plutôt que d'en écrire un second qui pourrait diverger. */
   {cle:'parking', ou:'parc', engin:'moisson', titre:'RANGER LA MOISSONNEUSE',
-   txt:'RANGER LA MOISSONNEUSE – le champ est fait. Autant la remettre où je l’ai trouvée.',
+   txt:'RANGER LA MOISSONNEUSE – Première récolte terminée. On va déjà essayer de rendre '
+     + 'la machine entière.',
    fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
      return !!(M && M.v.parc
        && Math.hypot(M.v.pos.x - M.v.parc.x, M.v.pos.z - M.v.parc.z) < 6); }},
@@ -21355,7 +21400,8 @@ const TUTO = [
      silence qui suit. Le compte à rebours ne court que pendant CETTE marche et que si
      l'on est bien dans le pick-up : voir `updateCommandes`. */
   {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP',
-   txt:'REPRENDRE LE PICK-UP – on ne descend pas au village en moissonneuse. J’ai essayé.',
+   txt:'REPRENDRE LE PICK-UP – Pour descendre au village, le pick-up sera plus discret '
+     + 'que la moissonneuse.',
    fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0},
   /* LA DERNIÈRE MARCHE EST LA SEULE DU TUTORIEL QUI SE DÉDOUBLE, ET C'EST LE MODE QUI
      TRANCHE.
@@ -21387,17 +21433,18 @@ const TUTO = [
      des lignes » — avec deux ordres de lecture. */
   {cle:'appel', engin:'pickup',
    ou:   ()=> MODE_LIBRE ? 'silo' : 'ferme',
-   titre:()=> MODE_LIBRE ? 'PRÉPARER LA LIVRAISON' : 'LE TÉLÉPHONE SONNE',
+   titre:()=> MODE_LIBRE ? 'PRÉPARER UNE VENTE' : 'LE TÉLÉPHONE SONNE',
    txt:  ()=> MODE_LIBRE
-     ? 'PRÉPARER LA LIVRAISON – trente kilos suffiront pour voir ce que ça vaut.'
-     : 'LE TÉLÉPHONE SONNE – déjà quelqu’un qui veut de mon blé. Je ne l’ai même pas '
-     + 'encore vendu.',
+     ? 'PRÉPARER UNE VENTE – Trente kilos devraient suffire pour voir ce que vaut notre '
+     + 'première récolte.'
+     : 'LE TÉLÉPHONE SONNE – Ah. Le téléphone. Soit quelqu’un veut acheter mon blé… '
+     + 'soit mon tracteur est déjà en panne.',
    quoi: ()=> MODE_LIBRE ? 'charger' : 'tuto',
    prod: ()=> MODE_LIBRE ? 'ble' : null,
    fait: ()=> MODE_LIBRE ? bleABord() >= 29.9 : CAMPAGNE.prise},
   {cle:'vente', engin:'pickup', ou:'Coopérative', titre:'PREMIÈRE VENTE',
-   txt:'PREMIÈRE VENTE – la Coopérative achète le grain. C’est le moment de savoir si '
-     + 'tout ça valait la peine.',
+   txt:'PREMIÈRE VENTE – La Coopérative achète le grain directement. Voyons maintenant si '
+     + 'tout ce travail rapporte quelque chose.',
    fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : true}
 ];
 // La marche à partir de laquelle le travail de la terre est appris — voir le commentaire
@@ -21474,9 +21521,9 @@ const LECONS = [
      dit « sème ta parcelle » à quelqu'un qui n'a plus rien à semer sans que rien ne le
      lui dise. Cette leçon-là arrive donc au moment exact où l'on accroche l'outil et
      qu'il est vide. */
-  {cle:'cuve', ou:'reserve', tot:true, mur:true, titre:'REMPLIR LE SEMOIR',
-   txt:'REMPLIR LA CUVE – un semoir vide ne sème rien, et il m’a fallu un demi-champ pour '
-     + 'm’en apercevoir. La cuve verte est dans la cour, ou au comptoir.',
+  {cle:'cuve', ou:'reserve', tot:true, mur:true, nom:'REMPLIR LE SEMOIR', titre:'LE SEMOIR EST VIDE',
+   txt:'LE SEMOIR EST VIDE – Je me demandais pourquoi rien ne sortait. Les graines sont '
+     + 'dans la cuve de la cour. Sinon, direction le Comptoir agricole.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.cuveMax && cuveTotal(T) < 0.5
                && (T.key === 'engrais' ? CUVES.engrais : grainesTotal()) > 0.5); }},
@@ -21487,22 +21534,22 @@ const LECONS = [
      la suivante partait sur un champ à 40 % — et ce qu'elle disait vraiment n'était pas
      « tu as fini », c'était « tu ne peux plus avancer ». C'est une leçon, mot pour mot :
      elle se lève à la première trémie pleine et ne revient jamais. */
-  {cle:'tremie', ou:'silo', tot:true, mur:true, titre:'LA TRÉMIE EST PLEINE',
-   txt:'LA TRÉMIE EST PLEINE – elle ne ramasse plus rien. Il faut aller vider au silo, puis '
-     + 'revenir finir : une parcelle en donne plus qu’elle n’en tient.',
+  {cle:'tremie', ou:'silo', tot:true, mur:true, nom:'TRÉMIE PLEINE', titre:'TRÉMIE PLEINE',
+   txt:'TRÉMIE PLEINE – Plus de place. Il faut vider le grain au silo avant de continuer.',
    quand:()=> hopper >= HOP_MAX - 0.5},
 
-  {cle:'gazole', ou:'gazole', tot:true, mur:true, titre:'LE PLEIN DE GAZOLE',
-   txt:'LE PLEIN – arrête-toi sur le cercle de la citerne, dans la cour. Ça coule tout seul '
-     + 'et c’est gratuit : la seule chose gratuite de la semaine.',
+  {cle:'gazole', ou:'gazole', tot:true, mur:true, nom:'CARBURANT', titre:'LA JAUGE BAISSE',
+   txt:'LA JAUGE BAISSE – Il serait peut-être temps de penser au plein avant de finir à '
+     + 'pied. La citerne est dans la cour.',
    quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
 
   /* ET ELLE SE LÈVE QUAND UNE CUVE SE VIDE, en part de sa contenance et non en kilos :
      « quand elles sont quasiment vides, on doit retourner au comptoir agricole pour les
      re-remplir ». Un dixième pour les deux cuves de la cour, un quart pour le gazole. */
   {cle:'courses', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
-   titre:'FAIRE SES COURSES', 
-   txt:'LE COMPTOIR AGRICOLE – c’est là qu’on remplit les deux cuves de la cour, et la citerne à gazole',
+   nom:'COMPTOIR AGRICOLE', titre:'LE COMPTOIR AGRICOLE',
+   txt:'LE COMPTOIR AGRICOLE – Graines, engrais, carburant… quand les réserves de la ferme '
+     + 'baissent, c’est ici qu’on se ravitaille.',
    quand:()=> comptoirServable()
               && (grainesTotal() < CUVES.max*0.10
                   || (!outilVerrou('engrais') && CUVES.engrais < CUVES.max*0.10)
@@ -21513,8 +21560,9 @@ const LECONS = [
    // La moins chère de la vitrine : c'est celle qu'on prend en premier, et c'est l'ordre
    // dans lequel `articlesAVendre` les range déjà.
    art:()=>{ const A = articlesAVendre()[0]; return A ? A.cle : null; },
-   titre:'ACHETER DU MATÉRIEL',
-   txt:'LE GARAGE – un engin de plus, ou un outil : deux onglets, une seule fenêtre',
+   nom:'GARAGE', titre:'LE GARAGE',
+   txt:'LE GARAGE – Tracteurs, outils, machines… si la ferme doit grandir, il faudra '
+     + 'forcément passer par ici.',
    quand:()=> articlesAVendre().some((A)=> money >= A.prix)},
 
   {cle:'amelio', ou:'Garage', fen:'amelio', onglet:'engins',
@@ -21522,8 +21570,9 @@ const LECONS = [
               .filter((c)=> money >= prixCranSuivant(c, niveauMateriel(c)))
               .sort((a, b)=> prixCranSuivant(a, niveauMateriel(a))
                            - prixCranSuivant(b, niveauMateriel(b)))[0] || null,
-   titre:'AMÉLIORER SON MATÉRIEL',
-   txt:'AMÉLIORER – au garage aussi : plus large, plus vite, plus de charge, cran par cran',
+   nom:'AMÉLIORATIONS', titre:'AMÉLIORER LE MATÉRIEL',
+   txt:'AMÉLIORER LE MATÉRIEL – Plus rapide, plus large, plus de capacité. Avant d’acheter '
+     + 'une nouvelle machine, améliorer l’ancienne peut être une bonne idée.',
    quand:()=> ameliorationsPossibles().some((c)=>
                 money >= prixCranSuivant(c, niveauMateriel(c)))},
 
@@ -21532,30 +21581,35 @@ const LECONS = [
                                        && money >= x.cout)
                            .sort((a, b)=> a.cout - b.cout)[0];
              return c ? c.cle : null; },
-   titre:'UNE CULTURE DE PLUS',
-   txt:'UNE NOUVELLE CULTURE – le droit de la semer s’achète une fois pour toutes, au comptoir',
+   nom:'NOUVELLE CULTURE', titre:'UNE NOUVELLE CULTURE',
+   txt:'UNE NOUVELLE CULTURE – Une nouvelle semence est disponible au Comptoir. Une fois '
+     + 'achetée, le semoir pourra l’utiliser définitivement.',
    quand:()=> CROPS.some((c)=> c.verrou && auNiveau(niveauDe('cultures', c.cle))
                                         && money >= c.cout)},
 
-  {cle:'semoirCulture', ou:null, titre:'CHANGER DE CULTURE',
-   txt:'LE BOUTON DE CULTURE – en haut à droite : il fait défiler ce que le semoir sait semer',
+  {cle:'semoirCulture', ou:null, nom:'CHANGER DE CULTURE', titre:'CHOISIR LA SEMENCE',
+   txt:'CHOISIR LA SEMENCE – Le semoir sait maintenant planter plusieurs cultures. Le bouton '
+     + 'de culture permet de choisir laquelle.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.key === 'semis' && CROPS.filter((c)=> !c.verrou).length >= 2); }},
 
-  {cle:'parcelle', ou:'parcelle', titre:'ACHETER UNE PARCELLE',
-   txt:'UNE TERRE DE PLUS – pose-toi DESSUS, à l’arrêt, et le prix s’affiche',
+  {cle:'parcelle', ou:'parcelle', nom:'ACHETER UNE PARCELLE', titre:'UNE TERRE À VENDRE',
+   txt:'UNE TERRE À VENDRE – Une parcelle voisine est disponible. Arrêtez-vous dessus pour '
+     + 'connaître son prix.',
    quand:()=>{ if(!peutAcheterParcelle()) return false;
      return PARCELS.some((q)=> !q.owned && q.signPos && money >= q.price); }},
 
   /* --- LE PLAN DE TRAVAIL : LA MACHINE TRAVAILLE SEULE --- */
-  {cle:'plan', ou:null, titre:'LE PLAN DE TRAVAIL',
-   txt:'LE PLAN – le bouton en bas à gauche ouvre la carte : désigne une parcelle, un engin, et il travaille seul',
+  {cle:'plan', ou:null, nom:'PLAN DE TRAVAIL', titre:'LE PLAN DE TRAVAIL',
+   txt:'LE PLAN DE TRAVAIL – On n’est pas obligé de tout conduire soi-même. Depuis la '
+     + 'carte, une machine peut être envoyée travailler seule sur une parcelle.',
    quand:()=> TOOLS.some((T)=> !T.verrou && T.from)
               && PARCELS.some((q)=> q.owned && !q.pature)},
 
   {cle:'silo', ou:'silo', fen:'stockage', onglet:'agrandir',
-   titre:'AGRANDIR LE SILO',
-   txt:'LE SILO SATURE – il s’agrandit par l’onglet « Agrandir » du bouton Stockage',
+   nom:'SILO', titre:'LE SILO SE REMPLIT',
+   txt:'LE SILO SE REMPLIT – Il commence à manquer de place. Sa capacité peut être '
+     + 'augmentée depuis le menu Stockage.',
    quand:()=> siloTotal() > siloMax()*0.85 && !!coutSilo() && money >= coutSilo()},
 
   /* --- L'ATELIER : LA MATIÈRE DEVIENT UN PRODUIT --- */
@@ -21564,51 +21618,60 @@ const LECONS = [
                          && auNiveau(niveauDe('modules', X.cle)) && money >= X.prix)
                        .sort((a, b)=> a.prix - b.prix)[0];
              return M ? M.cle : null; },
-   titre:'ACHETER UN MÉTIER',
-   txt:'L’ATELIER – un métier transforme ce qu’on récolte : le moulin fait la farine, et la farine se vend le double',
+   nom:'MÉTIER D’ATELIER', titre:'TRANSFORMER POUR MIEUX VENDRE',
+   txt:'TRANSFORMER POUR MIEUX VENDRE – Vendre du blé, c’est bien. Le transformer en farine '
+     + 'peut rapporter davantage. Les métiers s’installent à l’atelier.',
    quand:()=> ATELIER_MODULES.some((M)=> !atelierA(M.cle)
                 && auNiveau(niveauDe('modules', M.cle)) && money >= M.prix)},
 
   {cle:'produire', ou:'atelier', fen:'production', onglet:'produire',
-   titre:'LANCER UN LOT',
-   txt:'PRODUIRE – verse la matière à l’atelier, puis lance le lot par l’onglet « Produire »',
+   nom:'LANCER UNE PRODUCTION', titre:'LANCER UN LOT',
+   txt:'LANCER UN LOT – La matière est prête. Choisissez une recette et lancez la '
+     + 'production depuis l’atelier.',
    quand:()=> HALLE.modules.length > 0 && !HALLE.file.length
               && ATELIER_MODULES.some((M)=> atelierA(M.cle) && potentiel(M.cle).sortie >= 1)},
 
-  {cle:'entrepot', ou:'entrepot', titre:'RANGER À L’ENTREPÔT',
-   txt:'L’ENTREPÔT – le silo garde le grain, l’entrepôt garde ce que l’atelier a fabriqué',
+  {cle:'entrepot', ou:'entrepot', nom:'ENTREPÔT', titre:'L’ENTREPÔT',
+   txt:'L’ENTREPÔT – Le silo garde les récoltes en vrac. L’entrepôt accueille les produits '
+     + 'transformés.',
    quand:()=>{ const T = caisseDe(MACHINES[cur]);
      return !!(ENTREPOT.quai && T && naturesDe(T).some((k)=> entrepotAccepte(k))); }},
 
   {cle:'reglages', ou:'atelier', fen:'production', onglet:'reglages',
-   titre:'RÉGLER L’ATELIER',
-   txt:'LES TROIS RÉGLAGES – plus gros lots, plus vite, plusieurs à la file : l’onglet « Améliorations »',
+   nom:'RÉGLAGES DE L’ATELIER', titre:'AMÉLIORER L’ATELIER',
+   txt:'AMÉLIORER L’ATELIER – Des lots plus gros, une production plus rapide ou davantage '
+     + 'de commandes en attente. À vous de choisir ce qui vous ralentit le plus.',
    quand:()=> HALLE.modules.length > 0
               && ['capa', 'vite', 'queue'].some((q)=> !!coutUp(q) && money >= coutUp(q))},
 
   /* --- LES BÊTES --- */
-  {cle:'elevage', ou:'champ', titre:'MONTER UN ÉLEVAGE',
-   txt:'UN ENCLOS – arrête-toi sur une parcelle à toi : le bandeau propose de la clôturer',
+  {cle:'elevage', ou:'champ', nom:'ÉLEVAGE', titre:'INSTALLER UN ÉLEVAGE',
+   txt:'INSTALLER UN ÉLEVAGE – Une parcelle libre peut devenir un enclos. Après ça, il '
+     + 'faudra encore acheter les animaux… et les nourrir. Évidemment.',
    quand:()=> PATURES.length === 0
               && ESP_CLES.some((c, k)=> ouvert('especes', c) && money >= prixPature(c))
               && PARCELS.some((q)=> q.owned && !q.pature)},
 
-  {cle:'bete', ou:'pature', titre:'ACHETER UNE BÊTE',
-   txt:'UNE BÊTE – devant l’enclos, le bouton INTERAGIR ouvre tout ce qui s’y fait',
+  {cle:'bete', ou:'pature', nom:'ACHETER UN ANIMAL', titre:'PEUPLER L’ENCLOS',
+   txt:'PEUPLER L’ENCLOS – L’enclos est prêt. Approchez-vous et utilisez INTERAGIR pour '
+     + 'acheter vos premiers animaux.',
    quand:()=> PATURES.some((P)=> P.betes.length < P.places
                 && money >= (ESPECES[P.espece] || ESPECES.vache).prix)},
 
-  {cle:'mangeoire', ou:'pature', titre:'REMPLIR LA MANGEOIRE',
-   txt:'LA MANGEOIRE – une bête qui mange produit ; charge du grain au silo et verse-le à l’enclos',
+  {cle:'mangeoire', ou:'pature', nom:'MANGEOIRE', titre:'ILS ONT FAIM',
+   txt:'ILS ONT FAIM – Pas de nourriture, pas de production. Chargez de l’aliment et '
+     + 'remplissez la mangeoire.',
    quand:()=> PATURES.some((P)=> P.betes.length > 0 && P.grain < P.grainMax*0.35)},
 
-  {cle:'traire', ou:'pature', titre:'RÉCUPÉRER LA PRODUCTION',
-   txt:'LE TANK EST PLEIN – reviens avec une benne vide : INTERAGIR, et la production monte à bord',
+  {cle:'traire', ou:'pature', nom:'PRODUCTION ANIMALE', titre:'PRODUCTION À RÉCUPÉRER',
+   txt:'PRODUCTION À RÉCUPÉRER – Il y a quelque chose à récupérer dans l’élevage. Revenez '
+     + 'avec un véhicule adapté et utilisez INTERAGIR.',
    quand:()=> PATURES.some((P)=> P.produit > 0.5 || P.produit2 > 0.5)},
 
   /* --- ET LE VILLAGE, QUI FINIT PAR PROPOSER SES PROPRES AFFAIRES --- */
-  {cle:'contrat', ou:null, titre:'PRENDRE UN CONTRAT',
-   txt:'UN CONTRAT – un commerce en propose un : sa pastille est bleue, et le bouton aussi',
+  {cle:'contrat', ou:null, nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
+   txt:'UN CONTRAT DISPONIBLE – Un commerce cherche un fournisseur. Sa pastille bleue '
+     + 'indique qu’un contrat est disponible.',
    quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)}
 ];
 /* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
@@ -21995,11 +22058,11 @@ function veillerTuto(){
        la septième étape soldée, tout s'éteint : plus de cercle jaune, plus de flèche, plus
        de ligne de bandeau. Sans un mot, le joueur croirait avoir perdu quelque chose. */
     else if(MODE_LIBRE && L === TUTO)
-      annoncerFenetre({titre:'TUTORIEL TERMINÉ', etape:true, duree:6.0,
+      annoncerFenetre({titre:'VOUS SAVEZ L’ESSENTIEL', etape:true, duree:6.0,
         face:{nom:'Moi', humeur:'rire'},
-        sous:'<i>« Préparer la terre, semer, attendre, moissonner, stocker, vendre.<br>'
-           + 'Voilà. Je suis agriculteur. »</i>',
-        suite:'Plus aucun objectif – cultivez, élevez, transformez et vendez comme vous voulez'});
+        sous:'<i>« Préparer, semer, attendre, récolter, stocker, vendre.<br>'
+           + 'Bon… ça commence à ressembler à un métier. »</i>',
+        suite:'Cultivez, élevez, transformez et développez votre ferme comme vous le souhaitez'});
   }
 }
 function objectifMission(){
@@ -24031,7 +24094,9 @@ function actionsAuSite(m, S){
    kilos de place n'est pas le bon choix pour en écouler cent. On la montre. */
 function montrerRefus(S, cle, q){
   const autres = acheteursDe(cle, S.nom, q).slice(0, 4);
-  const l = autres.map((a)=> a.nom + ' – ' + qte(cle, a.prend) + '  ·  ' + eur(a.gain));
+  // le prix à l'unité officielle : « Restaurant → 1,15 € / kg », « Marché → 0,32 € pièce »
+  const l = autres.map((a)=> a.nom + ' → '
+    + dec(a.prix/Math.max(1e-9, enUnites(cle, 1)), 2) + ' ' + parUniteTxt(cle));
   annoncerFenetre({
     /* L'ENSEIGNE SEULE, ET L'ÉTAT AU TAMPON. Le titre disait « COMPLET – BOULANGERIE »,
        c'est-à-dire l'état d'un lieu collé à son nom ; il ne dit plus que le nom, et le
@@ -24041,14 +24106,17 @@ function montrerRefus(S, cle, q){
        table de genres pour un seul titre. Un tampon n'accorde rien.
        (Un temps, le titre a porté le prénom du tenancier — « Jules, boulangerie ». Le
        joueur l'a retiré : le visage suffit à dire qui parle.) */
-    titre: S.nom,
+    /* « STOCK SATURÉ — BOULANGERIE » : l'état en titre, l'enseigne dans la case de
+       l'argent, comme pour un nouveau client. Le tampon de caoutchouc reste : le joueur
+       l'avait demandé tel quel, et un tampon n'accorde rien. */
+    titre: 'STOCK SATURÉ',
+    prix: S.nom.toUpperCase(),
     tampon: 'Stock\nplein',
     // `dNom` pose l'article : « d'œufs », « de blé », « de l'huile ». Écrit à la main,
     // on lisait « prendre de œufs ».
-    sous: '<i>\u00ab\u00a0Plus besoin ' + dNom(nomDe(cle).toLowerCase()) +
-          ' pour le moment, mon étal est plein.\u00a0\u00bb</i>' +
-          (l.length ? '<br><br>Qui en veut encore, et ce que ça ferait&nbsp;:<br>'
-                      + l.join('<br>')
+    sous: '<i>\u00ab\u00a0Pas ' + dNom(nomDe(cle).toLowerCase()) +
+          ' en plus pour le moment. J\u2019en ai encore plein les étagères.\u00a0\u00bb</i>' +
+          (l.length ? '<br><br>Autres acheteurs<br>' + l.join('<br>')
                     : '<br><br>Personne d\'autre n\'en achète pour l\'instant.'),
     suite: 'Toucher pour continuer',
     face: {nom: S.nom, humeur: 'refus'}, duree: 9
@@ -24381,7 +24449,7 @@ function executer(m, A, dt){
       solderLecon('mangeoire');
       if(siSouvent(0.4)) puff(P.quai.x, 1.8, P.quai.z, 0xE0C07A, 0.32, 0.3);
       viderType(T);
-      if(P.grain >= P.grainMax - 0.01) showHint('AUGE REMPLIE');
+      if(P.grain >= P.grainMax - 0.01) showHint('MANGEOIRE REMPLIE');
       return;
     }
     case 'rangerEntrepot': {
@@ -24749,7 +24817,7 @@ function updateBetail(dt){
     STAT.betes++;
     if(v.betailEspece === 'cochon') STAT.porcs++;
     puff(BOUCHERIE.dropX, 2.4, BOUCHERIE.dropZ, 0xB85A50, 0.5, 0.4);
-    showHint('BÊTE ABATTUE – ' + eur((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI));
+    showHint('ANIMAL LIVRÉ À LA BOUCHERIE – ' + eur((v.betailPrix || ESPECES.vache.prixBete)*PALIER.FINI));
   }
 }
 
@@ -24890,8 +24958,8 @@ function actionService(){
     else if(money >= E2.prix)
       out.push({txt:'ACHETER ' + E2.un.toUpperCase() + ' · ' + eur(E2.prix), ok:true,
                 f:()=>{ if(acheterBete(P))
-                          showHint(E2.statique ? 'UNE COLONIE DE PLUS AU RUCHER'
-                                               : 'UNE BÊTE DE PLUS AU PRÉ'); }});
+                          showHint(E2.statique ? 'NOUVELLE COLONIE INSTALLÉE'
+                                               : 'NOUVEL ANIMAL AJOUTÉ'); }});
     else
       out.push({txt:E2.un.toUpperCase() + ' : IL MANQUE ' +
                     Math.ceil(E2.prix - money).toLocaleString('fr-FR') + ' €', ok:false});
@@ -24975,8 +25043,9 @@ function rendreContrat(){
   if(!contratVu) return;
   const {C, S, offre, mission} = contratVu;
   const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
+  // `entete` : « UNE PREMIÈRE COMMANDE », « UNE GRANDE COMMANDE » — sinon la suscription ordinaire
   document.getElementById('cttitre').textContent = mission
-    ? 'Mission de campagne'
+    ? (mission.entete || 'Mission de campagne')
     : ((offre ? 'Proposition · ' : 'Contrat en cours · ') + T.nom);
   document.getElementById('ctlieu').textContent = C.lieu;
   /* ET LE COMMERÇANT EST LÀ QUAND IL PROPOSE. C'est ici que se lit ce que le client
@@ -25323,11 +25392,14 @@ function veillerLivraison(dt){
         ? dec(gagne/enUnites(N[0].cle, poids), 2) + ' ' + parUniteTxt(N[0].cle)
         : dec(gagne/poids, 2) + ' € / kg')
     : '';
+  /* PRESQUE TOTALEMENT INFORMATIF, c'est la consigne : ce qu'on a remis, chez qui, ce que
+     ça a rapporté, et le calcul — « 72 kg × 11,50 € / kg ». Plus de merci. */
+  const remis = N.length ? N.map((x)=> qteNom(x.cle, x.q)).join(', ') : combien;
   annoncerFenetre({recu:true, duree:4.2,
-    titre:'MERCI POUR LA LIVRAISON',
-    sous:(noms ? noms + ' – ' : '') + B.lieu,
+    titre:'LIVRAISON ACCEPTÉE',
+    sous:(remis ? remis + ' → ' : '') + B.lieu.toUpperCase(),
     prix:'+ ' + eur(gagne),
-    plus:[combien, auKilo].filter(Boolean).join('&nbsp; · &nbsp;'),
+    plus:[combien, auKilo].filter(Boolean).join('&nbsp;×&nbsp;'),
     face:{nom:B.lieu, humeur:'bravo'},
     suite:'La caisse est à ' + eur(money)});
 }
@@ -27156,7 +27228,7 @@ function ongletElevage(){
         : ' · elle engraisse tant qu\'elle est nourrie, puis part à la boucherie'),
       plein ? 'Plus de place' : (ok ? 'Acheter' : 'Trop cher'), ok ? 'vert' : 'no',
       ()=>{ if(acheterBete(P))
-              showHint(E.statique ? 'UNE COLONIE DE PLUS AU RUCHER' : 'UNE BÊTE DE PLUS AU PRÉ'); },
+              showHint(E.statique ? 'NOUVELLE COLONIE INSTALLÉE' : 'NOUVEL ANIMAL AJOUTÉ'); },
       null, P.espece);
     /* LES DEUX ÉCHELLES D'UN ENCLOS, ET ELLES SONT BIEN DEUX. Le bâtiment décide de
        combien de bêtes on peut tenir ; l'autonomie, de combien de temps elles tiennent
@@ -29316,11 +29388,20 @@ function lancerPartie(){
        « une dimension différente : un agriculteur qui hérite d'une terre, mais qui n'y
        connaît pas grand-chose ». C'est lui qui parle maintenant, et il le dit avec sa
        tête des mauvais jours — celle qui regarde de côté et qui n'est sûre de rien. */
+    /* ET IL LE DIT EN DEUX PAGES. « Je n'ai jamais conduit autre chose qu'une voiture »
+       le faisait passer pour incapable ; il est débutant, débrouillard, un peu bougon. La
+       première page est l'héritage, la seconde le premier jour — et la marche du labour
+       vient derrière, dans la même file. */
     annoncerFenetre({titre:'UN HÉRITAGE',
-      sous:'<i>« Mon oncle m’a laissé sa terre, son tracteur et sa maison.<br>' +
-           'Je n’ai jamais conduit autre chose qu’une voiture. »</i>',
+      sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
+           'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
       face:{nom:'Moi', humeur:'perplexe'},
-      suite:'On commence par retourner le sol, paraît-il'});
+      suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
+    annoncerFenetre({titre:'PREMIER JOUR',
+      sous:'<i>« Apparemment, avant de récolter quoi que ce soit… ' +
+           'il faut commencer par retourner la terre. »</i>',
+      face:{nom:'Moi', humeur:'pensif'},
+      suite:'Au boulot.'});
     annoncerEtape(TUTO[0]);
   }
 }
@@ -29346,7 +29427,7 @@ function lancerPartie(){
   };
   const reprendre = (S, libre)=> ()=>{
     MODE_LIBRE = !!libre;
-    if(!chargerPartie(S)) showHint('SAUVEGARDE ILLISIBLE – NOUVELLE PARTIE');
+    if(!chargerPartie(S)) showHint('SAUVEGARDE ENDOMMAGÉE · NOUVELLE PARTIE CRÉÉE');
     if(libre){ majBulles(); if(typeof caleEspece === 'function') caleEspece(); }
     lancerPartie();
   };
@@ -29354,7 +29435,7 @@ function lancerPartie(){
   if(SC) lignes.push('Campagne – ' + resume(SC));
   if(SL) lignes.push('Mode libre – ' + resume(SL));
   sous.innerHTML = lignes.length ? lignes.join('<br>')
-    : (SAVE.actif ? 'La partie s\'enregistre toute seule : tu peux fermer et revenir.'
+    : (SAVE.actif ? 'Votre partie est sauvegardée automatiquement.'
                   : 'Le stockage local est refusé ici : la partie ne sera pas conservée.');
   // 1. l'entrée en campagne, TOUJOURS le bouton principal
   if(SC) boutonAccueil('Reprendre la campagne', true, reprendre(SC, false));
@@ -29407,7 +29488,7 @@ function refreshHUD(){
      chiffre qu'on ne regardait pas ; elle ne se répète qu'après être redescendu sous
      85 %, sinon elle reviendrait toutes les cinquante millisecondes. */
   const partSilo = siloTotal()/siloMax();
-  if(partSilo > 0.92 && !siloPrevenu){ siloPrevenu = true; showHint('SILO PRESQUE PLEIN'); }
+  if(partSilo > 0.92 && !siloPrevenu){ siloPrevenu = true; showHint('SILO À ' + Math.round(partSilo*100) + ' %'); }
   else if(partSilo < 0.85) siloPrevenu = false;
   const partGr = CUVES.max > 0 ? grainesTotal()/CUVES.max : 1;
   if(partGr < 0.10 && !cuvePrevenue.graines){ cuvePrevenue.graines = true;
@@ -29715,7 +29796,7 @@ function armerEngin(m, taches){
      tâche : `v.auto` est déjà vrai à la deuxième, et le message ne repart donc qu'après
      un arrêt franc. */
   if(!v.auto && m === MACHINES[cur])
-    showHint('L’AUTOMATISATION PREND LE VOLANT – ARRÊTEZ-LA DANS LE PLAN DE TRAVAIL');
+    showHint('CONDUITE AUTOMATIQUE ACTIVÉE');
   v.mission = {taches:taches, i:0, etape:0, boucle:false, attente:0};
   v.plan = null; v.goSilo = false; v.finMoisson = false;
   v.sensVoulu = null; v.cleVoulue = null;

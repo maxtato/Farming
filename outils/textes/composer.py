@@ -206,9 +206,9 @@ for E in d['tuto']:
           % (E['libre']['titre'], E['libre']['txt'].replace('–', '—')))
     w("")
 w("### Et à la fin, en mode libre seulement")
-w("> **TUTORIEL TERMINÉ**  \n> *« Préparer la terre, semer, attendre, moissonner, "
-  "stocker, vendre.  \n> Voilà. Je suis agriculteur. »*  \n> — suite : *Plus aucun "
-  "objectif – cultivez, élevez, transformez et vendez comme vous voulez*\n")
+w("> **VOUS SAVEZ L'ESSENTIEL**  \n> *« Préparer, semer, attendre, récolter, stocker, "
+  "vendre.  \n> Bon… ça commence à ressembler à un métier. »*  \n> — suite : *Cultivez, "
+  "élevez, transformez et développez votre ferme comme vous le souhaitez*\n")
 w("---\n")
 
 # 3. LECONS
@@ -217,8 +217,8 @@ w("Une leçon se lève **quand le geste devient possible ou nécessaire**, jamai
   "dans la même partie. Un **MUR** est un blocage (le fermier fait la tête) ; une "
   "**porte** est une possibilité qui s'ouvre (il est surpris).\n")
 for Le in d['lecons']:
-    w("### %s%s" % (Le['titre'], '  — *mur*' if Le['mur'] else ''))
-    w("> %s\n" % Le['txt'].replace('–', '—'))
+    w("### %s%s" % (Le.get('nom') or Le['titre'], '  — *mur*' if Le['mur'] else ''))
+    w("> **%s** — %s\n" % (Le['titre'], ' – '.join(Le['txt'].split(' – ')[1:]) or Le['txt']))
     w("- **Arrive quand** : %s" % QUAND_LECON.get(Le['cle'], '—'))
     if Le['ou']: w("- **Où elle envoie** : %s%s"
                    % (Le['ou'], (' · fenêtre %s / %s' % (Le['fen'], Le['onglet'])) if Le['fen'] else ''))
@@ -238,15 +238,20 @@ for M in d['missions']:
         w("*%s*\n" % N['resume'])
     w("#### %d. %s" % (M['i'] + 1, M['nom'] or (M['lieu'] or '')))
     dem = ', '.join(l['unite'] for l in M['lignes']) if M['lignes'] else (M['faire'] or '—')
-    w("- **Chez** : %s  ·  **Demande** : %s  ·  **Prime** : %s €  ·  **XP** : %s"
-      % (M['lieu'] or '—', dem, M['prime'], M['xp']))
+    w("- **Chez** : %s  ·  **Demande** : %s  ·  **Prime** : %s €  ·  **XP** : %s%s%s"
+      % (M['lieu'] or '—', dem, M['prime'], M['xp'],
+         ('  ·  **Qui parle** : %s' % M['qui']) if M.get('qui') else '',
+         ('  ·  **En-tête** : %s' % M['entete']) if M.get('entete') else ''))
     w("\n> **À la prise** — *« %s »*\n" % M['texte'])
     if M['fin']:
         w("> **À la livraison** — *« %s »*\n" % M['fin'])
     for E in M['prep']:
         w("> *Préambule — **%s** : %s*\n" % (E['titre'], E['txt'].replace('–', '—')))
     for A in M['apres']:
-        w("> *Page suivante — **%s** : %s*\n" % (A['titre'], A['txt']))
+        w("> *Page suivante — **%s**%s : %s%s*\n"
+          % (A['titre'], (' (visage : %s)' % A['face']) if A.get('face') else '',
+             A['txt'].replace('<br>', ' / ').replace('<i>', '').replace('</i>', ''),
+             (' — suite : %s' % A['suite']) if A.get('suite') else ''))
 w("---\n")
 
 # 5. FENETRES DE CIRCONSTANCE
@@ -262,29 +267,31 @@ w("| *(tutoriel)* | le titre de la marche seul, sans détail | pendant le tutori
 w("")
 w("---\n")
 w("## 5 bis. Les fenêtres de circonstance\n")
-w("### BRAVO — à chaque mission finie")
-w("> **BRAVO**  \n> *le titre de la mission, puis la réponse du commerçant (ci-dessus)*  \n"
-  "> **+ prime en gros**  \n> *+ XP · + valeur de la marchandise · palier franchi s'il y en a un*  \n"
+w("### CONTRAT TERMINÉ — à chaque mission finie")
+w("> **CONTRAT TERMINÉ**  \n> *le titre de la mission, puis la réponse du commerçant (ci-dessus)*  \n"
+  "> **+ prime en gros**  \n> *+ XP · + valeur de la marchandise · nouveau palier s'il y en a un*  \n"
   "> — suite : *Prochaine mission – <lieu>*, ou *La campagne est finie*\n")
-w("### EXPLOITATION LIBRE — après la dernière mission")
-w("> **EXPLOITATION LIBRE**  \n> Contrats illimités · Vente libre · Développement de "
-  "l'exploitation · Améliorations maximales  \n> — suite : *La vallée est à vous*\n")
-w("### COMMERCE DÉBLOQUÉ — quand un palier ouvre un commerce")
-w("> **COMMERCE DÉBLOQUÉ** — *<NOM DU COMMERCE>*  \n> Vous pouvez y déposer votre "
-  "production quand vous voulez, sans mission, dans la limite de ce qu'il peut prendre.  \n"
-  "> Il prend : *<jusqu'à huit marchandises>*  \n> — suite : *Un point de plus sur la carte*\n")
-w("### MERCI POUR LA LIVRAISON — reçu, à chaque livraison qui solde une ligne")
-w("> **MERCI POUR LA LIVRAISON**  \n> *<marchandises> – <LIEU>*  \n> **+ <gain>**  \n"
-  "> *<combien> · <prix au kilo>*  \n> — suite : *La caisse est à <argent>*\n")
+w("### LA FERME CONTINUE — après la dernière mission")
+w("> **LA FERME CONTINUE**  \n> La campagne principale est terminée, mais votre exploitation "
+  "continue de vivre.  \n> Contrats illimités · Vente libre · Parcelles · Élevages · Production · "
+  "Améliorations  \n> — suite : *À vous de décider de la suite*  \n> *(c'est l'avant-dernière page "
+  "de la mission 30, ci-dessus ; le dernier mot est le bouton CONTINUER À JOUER)*\n")
+w("### NOUVEAU CLIENT — quand un palier ouvre un commerce")
+w("> **NOUVEAU CLIENT** — *<NOM DU COMMERCE>*  \n> Ce commerce achète désormais certains de "
+  "vos produits, même en dehors des missions.  \n"
+  "> *<les produits acceptés, en vignettes — jusqu'à huit>*  \n> — suite : *À retrouver sur la carte*\n")
+w("### LIVRAISON ACCEPTÉE — reçu, à chaque livraison qui solde une ligne")
+w("> **LIVRAISON ACCEPTÉE**  \n> *<quantité et marchandise> → <LIEU>*  \n> **+ <gain>**  \n"
+  "> *<combien> × <prix à l'unité>*  \n> — suite : *La caisse est à <argent>*\n")
 w("*Une livraison **incomplète** n'ouvre aucune fenêtre : elle passe en bandeau volant, "
   "sur une ligne — « 6 / 29 kg de farine · BOULANGERIE ».*\n")
-w("### STOCK PLEIN — quand un commerce ne peut plus rien prendre")
-w("> **<NOM DU COMMERCE>** — tampon *Stock plein*  \n> *« Plus besoin de <marchandise> "
-  "pour le moment, mon étal est plein. »*  \n> Qui en veut encore, et ce que ça ferait : "
-  "*<la liste des autres acheteurs, avec le prix>*\n")
+w("### STOCK SATURÉ — quand un commerce ne peut plus rien prendre")
+w("> **STOCK SATURÉ** — *<NOM DU COMMERCE>*  \n> *« Pas de <marchandise> en plus pour le "
+  "moment. J'en ai encore plein les étagères. »*  \n> Autres acheteurs : "
+  "*<jusqu'à quatre, avec le prix à l'unité — Restaurant → 1,15 € / kg>*\n")
 w("### PANNE SÈCHE — quand un engin tombe à sec")
-w("> **PANNE SÈCHE**  \n> *« Plus une goutte, au bout du champ.  \n> J'avais vu la jauge "
-  "clignoter. »*  \n> — suite : *La citerne est dans la cour, et le plein est gratuit*\n")
+w("> **PANNE SÈCHE**  \n> *« Voilà. Plus une goutte.  \n> Et bien sûr, je suis à l'autre "
+  "bout du champ. »*  \n> — suite : *La citerne est dans la cour*\n")
 w("---\n")
 
 # 6. BANDEAUX VOLANTS
