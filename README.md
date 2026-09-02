@@ -12805,3 +12805,28 @@ plutôt que listés comme des lignes vides.
 pas : `partParcelle('labour') >= PART_ETAPE` doit devenir « quand 98 % de la parcelle est
 labourée ». Ce sont les deux seules tables du composeur à tenir à jour, et une leçon
 ajoutée sans sa ligne laisse un « — » dans le document, ce qui se voit.
+
+## Le blé au plafond de la maille, le colza en nappe
+
+« Tu peux multiplier le blé encore par 1,5, réduire encore le colza et le multiplier aussi
+par 1,5 ; tu peux aussi essayer de réduire, un petit peu moins détaillé. »
+
+**Le blé prend toutes les cellules — et c'est le plafond.** Il était à trois cellules sur
+quatre ; une fois et demie ferait cent douze pour cent, et la grille n'a qu'une place par
+cellule. Il passe donc de **420 à 552 pieds** par parcelle, plus trente et un pour cent, et
+il n'y a plus de masque du tout, comme le maïs. Au-delà, il faudrait dessiner deux tiges
+par pied — c'est faisable, c'est une autre décision, et elle n'a pas été prise sans le
+demander.
+
+**Le colza rapetisse encore et se resserre.** 1,51 → 1,30 d'échelle, soit 2,67 → 2,30 m au
+plus grand tirage ; et le damier passe à trois cellules sur quatre, **276 → 420 pieds**. Un
+colza plus bas et plus serré se lit comme un champ de colza — une nappe jaune — et non
+comme des tiges plantées.
+
+**Et ce qu'on gagne en pieds se rend en triangles.** L'épi de blé perd un étage de grains et
+une barbe : **84 → 66 triangles**, et 552 × 66 vaut à peu près 420 × 84 — la parcelle coûte
+la même chose, plus pleine. Le colza perd une tête de fleurs sur trois : **30 → 24**. Les
+cinq céréales mûres tiennent en 180 triangles, contre 204.
+
+Mesuré sur la parcelle de départ : blé 552 pieds à 3,06 m de moyenne, colza 420 à 2,03.
+`ages`, `plan`, `chantiers`, `escargot`, `pilote`, `regression` relancés, tous verts.

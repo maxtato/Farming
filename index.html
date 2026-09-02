@@ -5704,10 +5704,14 @@ function ageMontee(){
 function adulteBle(){
   const P = [];
   fut(P, 1.12, 0.03, 0.05);
-  /* L'ÉPI : cinq étages de grains autour d'un axe, chaque étage tourné d'un cran et
+  /* L'ÉPI : des étages de grains autour d'un axe, chaque étage tourné d'un cran et
      légèrement plus court en montant. C'est cet étagement en épis serrés qui fait lire
-     un épi de blé, là où trois fuseaux lisses donnaient un simple pinceau. */
-  for(let k = 0; k < 5; k++){
+     un épi de blé, là où trois fuseaux lisses donnaient un simple pinceau.
+     QUATRE ÉTAGES ET NON CINQ, UNE BARBE ET NON DEUX — « essaie de réduire, un petit
+     peu moins détaillé ». Le champ passe à toutes les cellules, et ce qu'on gagne en
+     pieds se rend en triangles : 84 par épi avant, 66 après, et 552 × 66 vaut à peu
+     près 420 × 84. Le parcelle coûte la même chose, et elle est plus pleine. */
+  for(let k = 0; k < 4; k++){
     const y = 1.16 + k*0.115, r = 0.115 - k*0.014;
     for(let j2 = 0; j2 < 2; j2++){
       const a = k*1.05 + j2*Math.PI;
@@ -5721,9 +5725,9 @@ function adulteBle(){
   }
   P.push({g:new THREE.CylinderGeometry(0.012, 0.03, 0.5, 3, 1, true),   // rachis
           m:new THREE.Matrix4().makeTranslation(0, 1.4, 0), c:0xFFFFFF});
-  for(let k = 0; k < 2; k++){                                          // deux barbes
+  {                                                                    // une barbe
     const g = new THREE.CylinderGeometry(0.006, 0.018, 0.34, 3, 1, true);
-    const m = new THREE.Matrix4().makeRotationZ(0.22*(k ? 1 : -1));
+    const m = new THREE.Matrix4().makeRotationZ(0.22);
     m.premultiply(new THREE.Matrix4().makeTranslation(0, 1.78, 0));
     P.push({g, m, c:0xFFFFFF});
   }
@@ -5765,7 +5769,9 @@ function adulteAvoine(){
 function adulteColza(){
   const P = [];
   fut(P, 0.82, 0.03, 0.05);
-  for(let k = 0; k < 3; k++){
+  // Deux têtes de fleurs et non trois : à trois cellules sur quatre, le champ est une
+  // nappe, et la troisième tête ne se voyait plus qu'en triangles — 30 par pied, 24.
+  for(let k = 0; k < 2; k++){
     const a = k*2.1;
     P.push({g:new THREE.CylinderGeometry(0.13, 0.10, 0.18, 3, 1, true),
             m:new THREE.Matrix4().makeTranslation(
@@ -6196,9 +6202,14 @@ const PARC_REF = 552;                    // la parcelle de départ, en cellules
 const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
+  /* ET LE BLÉ ENCORE UNE FOIS ET DEMIE — « tu peux multiplier le blé encore par 1,5 ».
+     Il était à trois cellules sur quatre ; une fois et demie ferait cent douze pour
+     cent, et la grille n'a qu'UNE place par cellule. Il prend donc toutes les cellules
+     — 552 pieds au lieu de 420, plus trente et un pour cent — et c'est le plafond de la
+     maille : au-delà il faudrait dessiner deux tiges par pied, ce qui est une autre
+     décision. Sans masque, comme le maïs : une cellule semée est un pied dessiné. */
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(0x8CB831), hi:new THREE.Color(0xFBD143),
-   temps:75, kg:0.2174, haut:1.00, large:0.92, grainePrix:0.18, graineKg:25,
-   masque:(i, j)=> !(i % 2 && j % 2)},
+   temps:75, kg:0.2174, haut:1.00, large:0.92, grainePrix:0.18, graineKg:25},
   // Le maïs gagne en épi : le cylindre du fruit passe de 0,07/0,12/0,40 à
   // 0,10/0,17/0,56 dans `adulteMais`. Il n'a plus de masque : une cellule semée est un
   // pied dessiné.
@@ -6210,9 +6221,13 @@ const CROPS = [
      palissée. Moins dix-huit pour cent le ramène à 2,67 m, sous le blé et l'orge, ce qui
      est aussi l'ordre du champ réel. `large` multiplie les trois axes : la plante garde
      ses proportions et son compte de triangles. */
+  /* PUIS ENCORE : « réduis encore le colza, et multiplie-le aussi par 1,5 ». Moins
+     quatorze pour cent de plus — 1,51 → 1,30, soit 2,67 → 2,30 m au plus grand tirage —
+     et le damier passe à trois cellules sur quatre, 276 → 414 pieds. Un colza plus bas
+     et plus serré : c'est un champ de colza, une nappe jaune, et non des tiges. */
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:0.85, large:1.51, cout:2400, verrou:true,
-   grainePrix:0.36, graineKg:12, masque:(i, j)=> (i + j) % 2 === 0},
+   temps:140, kg:0.1993, haut:0.85, large:1.30, cout:2400, verrou:true,
+   grainePrix:0.36, graineKg:12, masque:(i, j)=> !(i % 2 && j % 2)},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
    temps:90, kg:0.2264, haut:0.95, large:1.87, cout:900, verrou:true,
    grainePrix:0.22, graineKg:22, masque:(i, j)=> !(i % 2 && j % 2)},
