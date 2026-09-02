@@ -12302,3 +12302,78 @@ premier palier.
 l'étiquette porte deux lignes depuis que le joueur y a mis le nom de la mission, et la borne
 qui compte est la sienne : jamais plus du tiers de la largeur. Les **trente-trois suites à
 1 380 contrôles**, dont les 7 échecs préexistants de `chaine`.
+
+### Les cultures du joueur, posées sur la parcelle
+
+Il a envoyé une planche — `culturesfinal.html`, sept cultures et trois âges tournant sur
+leurs socles — et il a tranché : « non non, je veux que tu utilises ces visuels pour les
+cultures, représente-moi ce que ça donne sur la parcelle ». Ce sont donc ses géométries qui
+sont entrées dans le jeu, recopiées trait pour trait, avec sa palette.
+
+**Ce qui change le plus, c'est l'épi de blé.** Le jeu posait deux fuseaux lisses en haut
+d'une tige : de loin, un pinceau. Sa planche empile **cinq étages de deux grains**, chacun
+tourné d'un cran et un peu plus court en montant, puis pose le rachis et deux barbes —
+dix-sept pièces là où il y en avait trois. C'est cet étagement qui fait lire un épi. Les
+talles disparaissent avec : le jeu groupait deux ou trois tiges par pied pour fermer le
+tapis, sa planche dessine UN pied, une tige, un épi.
+
+**Sur les permanentes, la charpente remplace le feuillage.** Trois briques nouvelles portent
+tout : `boisTordu` empile des tronçons décalés et inclinés — c'est le décalage à chaque
+étage qui donne le noueux, pas la forme d'un tronçon isolé ; `branche` part d'un point et
+REND son bout, ce qui permet de chaîner charpentière, rameau et feuille ; `feuille` est un
+fût à trois pans écrasé, six triangles, la brique qui remplace les boules de feuillage — on
+voit enfin le bois à travers. L'olivier y gagne un tronc court et gros, trois contreforts au
+pied, cinq charpentières coudées et leurs rameaux.
+
+**Ce que ça coûte, mesuré, par pied adulte :**
+
+| | avant | après |
+|---|---|---|
+| Blé | 36 tri. | **84** |
+| Maïs · Avoine · Orge | 36 tri. | **30** |
+| Colza | 42 tri. | **30** |
+| Raisin | 60 tri. | **242** |
+| Olives | 66 tri. | **460** |
+
+Les quatre céréales autres que le blé sont plus légères qu'avant — une tige au lieu de deux
+ou trois. Le blé double, les permanentes coûtent quatre et sept fois plus ; mais elles se
+plantent large, un olivier tous les 6,50 m, et ce sont vingt arbres par parcelle contre 276
+pieds de blé.
+
+**Et les cotes du jeu ne bougent pas — c'est la seule chose qu'on ne lui a pas prise.** Une
+plante du jeu n'est pas seulement un dessin : la moissonneuse culmine à 4,10 m et
+l'enjambeuse a 4,75 m de tunnel. Le banc `ages` le vérifie, et en l'ajoutant à la suite —
+il en était resté dehors — il a sorti **trois échecs qui dormaient depuis longtemps** :
+l'orge montait à 4,64 m et le maïs à 4,11, tous deux au-dessus de la moissonneuse qui les
+fauche, et l'olivier à 4,83 m dépassait déjà le tunnel. Les échelles sont donc recalées, et
+tout rentre :
+
+| | hauteur au plus grand tirage |
+|---|---|
+| Blé | 3,49 m |
+| Maïs | 3,94 m |
+| Colza | 3,26 m |
+| Avoine | 3,99 m |
+| Orge | 3,94 m |
+| Raisin | 3,24 m |
+| Olives | 4,52 m |
+
+La vigne garde son **piquet de 3,21 m et son fil de palissage** : c'est du matériel, pas du
+décor, et une vigne qui repasserait sous l'enjambeuse est la régression déjà corrigée une
+fois. C'est le CEP du joueur qu'on pose dessus, grandi de 1,35 pour arriver à hauteur de
+fil — et la mise à l'échelle se fait sur les matrices, pas sur les nombres écrits :
+recopier une planche en multipliant chaque cote à la main, c'est se tromper une fois sur dix
+et ne plus savoir laquelle.
+
+**Deux contrôles d'`ages` disaient faux, et ils ont été redressés.** Le premier exigeait un
+pied dessiné par cellule semée — 552 pour 552 : il date d'avant le masque de plantation, qui
+en saute un sur deux en échiquier. Ce qu'il faut vérifier tient quand même : le compte ne
+doit pas BOUGER d'un âge à l'autre, un pied qui disparaît en passant de la montée à l'adulte
+étant un trou que personne ne saurait expliquer. Le second mesurait la hauteur de BOÎTE de
+la vigne pour prouver que « le piquet ne grandit pas » — or le bois tordu plonge de deux ou
+trois centimètres SOUS le sol, ce qui lui donne son pied noueux, et la boîte comptait ce
+creux : trois âges du même rang rendaient 3,230, 3,235 et 3,237 m pour un piquet qui fait
+3,21 dans les trois. On lit maintenant le HAUT de la géométrie, qui est ce dont il parlait.
+
+`ages` rejoint la suite : **trente-quatre suites à 1 409 contrôles**, dont les 7 échecs
+préexistants de `chaine` — et ses 29 contrôles à lui passent pour la première fois.
