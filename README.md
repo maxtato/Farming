@@ -12843,3 +12843,30 @@ moyenne, entre le colza (2,03) et l'orge (3,46).
 `ages`, `plan`, `chantiers`, `regression` relancés, tous verts ; `cultures` garde ses deux
 échecs d'avant (l'olivier à 490 triangles, la vigne un rang sur deux), qui ne tiennent pas
 au blé.
+
+## Le blé en touffes, le colza au plafond
+
+« Refais un tout petit peu plus petit pour le colza, et multiplie encore un peu le colza par
+1,5, et le blé par 1,5 aussi. »
+
+**Le blé passe le plafond de la maille par le seul chemin qui reste : deux tiges par pied.**
+Il occupait déjà toutes les cellules, et une fois et demie avait été refusée pour cela ;
+redemandée, c'est une décision. Le pied devient une touffe : la tige dessinée par le
+joueur, entière, et une seconde à côté, plus courte et plus légère — trois étages de
+grains au lieu de quatre, pas de barbe, huit pour cent moins haute, tournée d'un tiers de
+tour. Deux épis identiques auraient fait un pied en miroir ; deux épis inégaux font deux
+plantes. Avec deux tiges, le semis plein aurait doublé : le blé revient à trois cellules
+sur quatre, et **420 pieds × 2 = 840 épis**, une fois et demie les 552 d'avant.
+
+**Le prix se compte.** 66 + 48 = **114 triangles par pied**, 47 880 la parcelle contre
+36 432, plus trente et un pour cent — pour cinquante-deux pour cent d'épis en plus. C'est
+la seconde tige allégée qui tient l'écart ; deux tiges entières auraient coûté 55 440.
+
+**Le colza rapetisse d'un cran et prend toutes les cellules.** 1,30 → 1,24 d'échelle, moins
+cinq pour cent, 2,03 → 1,93 m de moyenne ; et plus de masque, **420 → 552 pieds** — une
+fois et trois dixièmes, le plafond, comme le blé la fois d'avant. Au-delà il faudrait deux
+plantes par pied, et le colza est déjà une nappe : on ne l'a pas fait sans le demander.
+
+Mesuré sur la parcelle de départ : blé 420 pieds à 3,24 m, colza 552 à 1,93 ; les autres
+cultures ne bougent pas (maïs 552, avoine 420, orge 420, vigne 192, oliviers 20). `ages`,
+`plan`, `chantiers`, `regression` verts ; `cultures` garde ses deux échecs d'avant.

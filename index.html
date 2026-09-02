@@ -5701,17 +5701,19 @@ function ageMontee(){
    fermer le tapis à la densité d'une cellule de 1,30 m ; sa planche dessine UN pied, une
    tige, un épi. On prend le pied qu'il a dessiné — c'est ce qu'il demande — et la densité
    se rattrape par l'échelle, qui est faite pour ça. */
-function adulteBle(){
-  const P = [];
+/* UNE TIGE DE BLÉ, telle que le joueur l'a dessinée. Rend l'indice de sa première pièce,
+   pour qu'on puisse la déplacer d'un bloc (voir `adulteBle`).
+   L'ÉPI : des étages de grains autour d'un axe, chaque étage tourné d'un cran et
+   légèrement plus court en montant. C'est cet étagement en épis serrés qui fait lire
+   un épi de blé, là où trois fuseaux lisses donnaient un simple pinceau.
+   QUATRE ÉTAGES ET NON CINQ, UNE BARBE ET NON DEUX — « essaie de réduire, un petit
+   peu moins détaillé ». Le champ passe à toutes les cellules, et ce qu'on gagne en
+   pieds se rend en triangles : 84 par épi avant, 66 après, et 552 × 66 vaut à peu
+   près 420 × 84. La parcelle coûte la même chose, et elle est plus pleine. */
+function tigeBle(P, etages, barbe){
+  const depuis = P.length;
   fut(P, 1.12, 0.03, 0.05);
-  /* L'ÉPI : des étages de grains autour d'un axe, chaque étage tourné d'un cran et
-     légèrement plus court en montant. C'est cet étagement en épis serrés qui fait lire
-     un épi de blé, là où trois fuseaux lisses donnaient un simple pinceau.
-     QUATRE ÉTAGES ET NON CINQ, UNE BARBE ET NON DEUX — « essaie de réduire, un petit
-     peu moins détaillé ». Le champ passe à toutes les cellules, et ce qu'on gagne en
-     pieds se rend en triangles : 84 par épi avant, 66 après, et 552 × 66 vaut à peu
-     près 420 × 84. Le parcelle coûte la même chose, et elle est plus pleine. */
-  for(let k = 0; k < 4; k++){
+  for(let k = 0; k < etages; k++){
     const y = 1.16 + k*0.115, r = 0.115 - k*0.014;
     for(let j2 = 0; j2 < 2; j2++){
       const a = k*1.05 + j2*Math.PI;
@@ -5725,12 +5727,31 @@ function adulteBle(){
   }
   P.push({g:new THREE.CylinderGeometry(0.012, 0.03, 0.5, 3, 1, true),   // rachis
           m:new THREE.Matrix4().makeTranslation(0, 1.4, 0), c:0xFFFFFF});
-  {                                                                    // une barbe
+  if(barbe){
     const g = new THREE.CylinderGeometry(0.006, 0.018, 0.34, 3, 1, true);
     const m = new THREE.Matrix4().makeRotationZ(0.22);
     m.premultiply(new THREE.Matrix4().makeTranslation(0, 1.78, 0));
     P.push({g, m, c:0xFFFFFF});
   }
+  return depuis;
+}
+/* DEUX TIGES PAR PIED. « Multiplie le blé par 1,5 aussi », redemandé quand il occupait
+   déjà toutes les cellules : la maille n'a qu'une place par cellule, la densité ne peut
+   plus venir que du pied lui-même. Le pied devient donc une touffe de deux tiges — la
+   sienne, entière, et une seconde plus courte et plus légère à côté : trois étages, pas
+   de barbe, un peu moins haute, tournée d'un tiers de tour. Deux épis identiques
+   auraient fait un pied en miroir ; deux épis inégaux font deux plantes.
+   Le prix : 66 + 48 = 114 triangles par pied, et 420 pieds (trois cellules sur quatre,
+   voir CROPS) font 840 épis — une fois et demie les 552 d'avant — pour 47 880
+   triangles la parcelle contre 36 432, plus trente et un pour cent. */
+function adulteBle(){
+  const P = [];
+  tigeBle(P, 4, true);
+  const d = tigeBle(P, 3, false);
+  const M = new THREE.Matrix4().makeScale(0.92, 0.92, 0.92)
+    .premultiply(new THREE.Matrix4().makeRotationY(2.1))
+    .premultiply(new THREE.Matrix4().makeTranslation(0.34, 0, 0.18));
+  for(let i = d; i < P.length; i++) P[i].m.premultiply(M);
   return mergeParts(P);
 }
 function adulteOrge(){
@@ -6211,8 +6232,14 @@ const CROPS = [
   /* UN TOUT PETIT PEU PLUS GRAND — « augmente un tout petit peu la taille du blé ».
      `large` 0,92 → 0,97 : plus cinq pour cent sur les trois axes, soit 3,06 → 3,23 m de
      moyenne sur la parcelle. Même compte de pieds, mêmes triangles. */
+  /* ET ENCORE UNE FOIS ET DEMIE, AU-DELÀ DU PLAFOND. « Multiplie le blé par 1,5 aussi »,
+     redemandé alors qu'il occupe déjà toutes les cellules. La maille n'a qu'une place par
+     cellule ; la seule voie est donc DEUX TIGES PAR PIED — voir `adulteBle`. Avec deux
+     tiges, le semis plein ferait le double ; on revient à trois cellules sur quatre :
+     420 pieds × 2 tiges = 840 épis, contre 552, soit une fois et demie. */
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(0x8CB831), hi:new THREE.Color(0xFBD143),
-   temps:75, kg:0.2174, haut:1.00, large:0.97, grainePrix:0.18, graineKg:25},
+   temps:75, kg:0.2174, haut:1.00, large:0.97, grainePrix:0.18, graineKg:25,
+   masque:(i, j)=> !(i % 2 && j % 2)},
   // Le maïs gagne en épi : le cylindre du fruit passe de 0,07/0,12/0,40 à
   // 0,10/0,17/0,56 dans `adulteMais`. Il n'a plus de masque : une cellule semée est un
   // pied dessiné.
@@ -6226,11 +6253,15 @@ const CROPS = [
      ses proportions et son compte de triangles. */
   /* PUIS ENCORE : « réduis encore le colza, et multiplie-le aussi par 1,5 ». Moins
      quatorze pour cent de plus — 1,51 → 1,30, soit 2,67 → 2,30 m au plus grand tirage —
-     et le damier passe à trois cellules sur quatre, 276 → 414 pieds. Un colza plus bas
+     et le damier passe à trois cellules sur quatre, 276 → 420 pieds. Un colza plus bas
      et plus serré : c'est un champ de colza, une nappe jaune, et non des tiges. */
+  /* ET UNE TROISIÈME FOIS : « un tout petit peu plus petit, et encore une fois et demie ».
+     1,30 → 1,24, moins cinq pour cent ; et plus de masque du tout, 420 → 552 pieds, le
+     plafond de la maille — une fois et trois dixièmes, pas une fois et demie : au-delà il
+     faudrait deux plantes par pied, et le colza est déjà une nappe. */
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:0.85, large:1.30, cout:2400, verrou:true,
-   grainePrix:0.36, graineKg:12, masque:(i, j)=> !(i % 2 && j % 2)},
+   temps:140, kg:0.1993, haut:0.85, large:1.24, cout:2400, verrou:true,
+   grainePrix:0.36, graineKg:12},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
    temps:90, kg:0.2264, haut:0.95, large:1.87, cout:900, verrou:true,
    grainePrix:0.22, graineKg:22, masque:(i, j)=> !(i % 2 && j % 2)},
