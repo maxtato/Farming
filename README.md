@@ -12126,3 +12126,179 @@ bilan posé) sont là pour que ce silence ne puisse plus se reproduire. Remis da
 d'avant, les nouveaux contrôles échouent : cinq dans `fenetres`, deux dans `ecrans`.
 
 Les trente-deux suites à **1 363 contrôles**, dont les 7 échecs préexistants de `chaine`.
+
+## Neuf demandes du même message
+
+### Le grain de l'image part à 1
+
+`PIXEL_DEFAUT.px` valait 1,1 — le grain du jeu d'avant la barre, un dixième de flou hérité
+que personne n'avait choisi. À 1, le jeu dessine exactement à la définition de l'écran :
+c'est le bas de la barre, et le plus net qu'elle sache faire. Changer la valeur de départ
+n'aurait rien fait pour une partie en cours, qui recharge la sienne : la marque des réglages
+passe donc de 1 à **2**, et une sauvegarde d'un rang inférieur reprend le grain d'usine — et
+lui seul. La netteté, le zoom et les commandes qu'elle a choisis ne bougent pas.
+
+### Une fenêtre de tutoriel attend le doigt
+
+« Pour les messages de tutoriel, il faut qu'il faille appuyer sur le bouton de la fenêtre
+pour continuer, que ça ne parte pas tout seul de l'écran. » Elle partait au bout de cinq
+secondes, ce qui suffit à lire un titre et pas une consigne : on lève les yeux de la route,
+on trouve une phrase à moitié effacée, et rien ne la rappelle. Une étape est la seule fenêtre
+du jeu qui dit quoi FAIRE ensuite ; les autres — le bravo, le reçu, le refus — racontent ce
+qui vient d'arriver et se laissent oublier. Elle reste donc jusqu'au bouton, et **elle ne
+bloque rien** : `#bravo` est en `pointer-events:none`, seule la boîte prend le doigt. On
+continue de rouler avec elle à l'écran.
+
+**Et la flèche verte était bel et bien coupée.** Le bouton vivait DANS `#brdefile`, qui porte
+`overflow-y:auto` — et un bloc qui défile sur un axe rogne l'autre, c'est la règle du CSS. Or
+il se pousse de cinq pixels vers la droite en boucle : la moitié droite passait sous le
+ciseau à chaque aller. Il devient frère du défileur, dans la boîte, où il lui reste **13,9 px
+de marge** à droite. Le tracé lui-même était décentré : il allait de 4,3 à 24,7 dans une
+boîte de 32 — arrondis compris —, soit un centre à 14,5 au lieu de 16. Décalé d'une unité et
+demie, il est maintenant à **0,00 px** du milieu de son rond, mesuré.
+
+### Décrocher la charrue avant d'aller chercher le semoir
+
+Le bouton d'attelage battait déjà en jaune quand une marche demande un outil — mais à cinq
+mètres de lui seulement, la portée du bras. Or dételer est le geste qu'on doit faire AVANT,
+et l'annoncer au dernier mètre revient à le dire trop tard. Deux portées, donc : **cinq
+mètres pour atteler, quatorze pour dételer** — le parc à outils entier, deux places et demie
+à 6,13 m d'entraxe. Pas plus loin : `detachTool` laisse l'outil OÙ IL EST, et un appel qui
+commencerait au milieu du champ ferait déposer la charrue dans le blé. La fenêtre d'étape le
+dit aussi maintenant : *« Dételer la charrue d'abord, au parc de la ferme »*.
+
+### Le bandeau : le nom, l'attendu, et rien d'autre
+
+« Ne mets pas le nombre de mètres avant d'arriver à la mission, on l'a déjà avec la flèche
+jaune. Mets juste le nom de la mission et ce qui est attendu, pas le texte du scénario. »
+
+La distance était écrite deux fois : la flèche du bord la porte déjà, en gros, et elle bouge
+avec le regard. Elle part. L'étiquette dit maintenant d'où vient l'ordre — le nom de la
+mission, puis l'ordre du moment — là où elle ne portait que l'ordre : le joueur savait quoi
+faire et pas pourquoi. La marche de tutoriel, elle, n'y met plus son récit : *« on ne sème
+pas sur de l'herbe, paraît-il »* est une réplique du personnage, elle a sa place dans la
+fenêtre d'étape — qui attend maintenant le doigt et qu'on peut lire.
+
+**Et l'étiquette s'arrête au tiers de l'écran.** « Quand cette étiquette prend plus qu'un
+tiers de la largeur de l'écran, le texte passe sur deux lignes. » C'est un plafond de
+largeur, pas une mesure : `flex-wrap` fait tomber le second morceau dès qu'il déborde, et le
+papier grandit d'une ligne au lieu de s'allonger. Relevé sur un écran de 844 px : **279 px
+pour un tiers à 281**, sur deux lignes de 32 px de haut. Rien à recalculer quand l'écran
+tourne.
+
+### Les cultures redescendent de douze pour cent
+
+`large` multiplie les trois axes — c'est l'échelle de la plante — là où `haut` n'étire que la
+hauteur et tasserait la silhouette. Les cinq céréales passent donc à 0,88 de ce qu'elles
+valaient. Mesuré dans le jeu, hauteur moyenne d'un pied adulte :
+
+| | avant | après |
+|---|---|---|
+| Blé | 3,44 m | **3,03 m** |
+| Maïs | 4,10 m | **3,60 m** |
+| Colza | 3,26 m | **2,86 m** |
+| Avoine | 3,97 m | **3,49 m** |
+| Orge | 4,61 m | **4,05 m** |
+| Raisin | 3,21 m | *inchangé* |
+| Olives | 4,26 m | *inchangé* |
+
+La moissonneuse fait 4,10 m : **l'orge la dépassait d'un demi-mètre**, le maïs l'égalait
+exactement. Les deux passent maintenant dessous. Les permanentes ne bougent pas d'un
+centimètre, et c'est une contrainte et non un oubli : la vigne et l'olivier sont taillés sur
+le TUNNEL de l'enjambeuse — 3,21 m et 4,75 m de poutre — et les rapetisser les ferait passer
+sous la machine sans qu'elle les touche.
+
+### Le rabatteur ne tourne plus dans une machine vide
+
+Il tournait TOUJOURS : un plancher de 0,6 lui donnait un tour lent même à l'arrêt, moteur
+coupé, dans un coin de la cour — une machine abandonnée qui moulinait toute seule au fond de
+l'image. Le plancher simule le RALENTI, et un ralenti suppose quelqu'un aux commandes : il ne
+vaut donc que pour l'engin qu'on conduit. Mesuré : **0,00 radian par seconde** garée,
+**0,96** dès qu'on est dedans. Une moissonneuse en pilotage automatique fauche rabatteur
+tournant, ce qui est vrai.
+
+### « En continu » prend sur-le-champ
+
+Le bouton ne touchait que le réglage du FORMULAIRE, et le formulaire ne part vers les
+chantiers qu'au moment de LANCER. Or sur un chantier qui tourne, le bouton du bas dit
+ARRÊTER : il n'existait aucun chemin entre la case cochée et le chantier en cours, et fermer
+la fenêtre jetait le réglage. Pour mettre en continu ce qui tournait, il fallait arrêter puis
+relancer — c'est-à-dire rappeler tous les engins au parc et repartir de zéro. Rien à
+relancer, pourtant : `C.continu` est relu à chaque tour par le moteur de chantier. Il suffit
+de l'écrire sur les chantiers du lot, et le tour suivant en tient compte — **dans les deux
+sens**, décocher rend au chantier sa fin normale sans l'interrompre.
+
+### Tout se touche : le chantier des volumes
+
+« Rends tous les volumes pleins : aujourd'hui on passe à travers beaucoup de volumes. Je veux
+qu'il y ait des contacts entre chacun. »
+
+**On a compté avant de corriger.** Tout maillage visible d'au moins un mètre sur deux axes et
+80 cm de haut est un VOLUME ; pour chacun, on cherche une emprise sous son centre. Relevé :
+**386 volumes, dont 176 sans la moindre emprise.** Le décor l'était pourtant depuis
+longtemps — troncs, poteaux, piquets de clôture, silo, réserves, puits, bottes, bâtiments,
+enclos. Ce qui manquait :
+
+- **la maison de ferme**, 14,4 × 13,8 m et 7,7 de haut, le plus gros volume du jeu — « elle
+  ne pousse aucun obstacle » était écrit dans le code ; on la traversait de part en part ;
+- **les rochers et les buissons**, une centaine, qu'on effaçait au pare-chocs ;
+- **les véhicules**, tous : les seize du village passaient au travers du joueur comme des
+  fantômes, et les sept engins de la ferme se traversaient entre eux.
+
+Après : **0 volume traversable sur 386**, 604 cercles et 29 boîtes d'emprise. Les cinq seules
+exceptions sont les OUTILS du parc, et c'est voulu : on roule dessus pour les atteler, et un
+outil attelé suivrait l'engin en le poussant devant lui.
+
+**Une gélule, et non un disque.** Un disque unique ne sait pas représenter un fourgon de
+11,90 m : assez large pour que le nez touche, il repousse tout ce qui passe à quatre mètres
+sur le côté ; assez étroit pour les côtés, il laisse traverser le capot. Une gélule — un
+segment et un rayon — décrit les deux à la fois pour une distance segment-segment de plus.
+Le rayon vient de la largeur, la demi-longueur du reste : tracteur r 1,68 h 0,99, pick-up
+r 1,75 h 2,90, fourgon r 1,85 h 4,10. Et la lumière ne compte pas dans l'encombrement — les
+deux cônes de phare font quatorze mètres, et mesurés avec la carrosserie ils donnaient 14,72 m
+de long pour un tracteur qui en fait 5,33. Celui qui les avait posés l'avait écrit d'avance :
+« qui mesure l'encombrement d'un engin doit écarter ce nom-là aussi ».
+
+**L'auto-tamponneuse.** Les deux véhicules se séparent à parts égales et échangent une
+impulsion ; le supplément de l'engin conduit s'ajoute APRÈS le partage — il ne prend rien à
+l'autre, il rend le choc plus vif pour celui qui tient le volant. Mesuré : **2,95 fois plus
+de recul** pour le même engin selon qu'on est dedans ou non, et la carrosserie plonge, la
+secousse passant par la suspension qui existait déjà.
+
+**Le village freine, et rentre dans sa voie.** Une voiture n'a pas de vitesse propre : elle
+est posée sur son itinéraire par une abscisse lue à l'horloge, et c'est ce qui garantit
+qu'elle suit exactement le tracé qu'on lui a réservé au carrefour. On ne l'a donc pas
+poussée — on lui donne un ÉCART qu'un ressort presque critique ramène à zéro : le plus court
+chemin pour rentrer dans sa file est la ligne droite, et c'est ce que fait un écart qui
+décroît. Mesuré : **1,54 m de déport au choc, 0,08 m au bout d'une seconde, zéro à deux.**
+Et l'on ne freine pas non plus en changeant sa vitesse — on décale son DÉPART. `retard` est
+le temps qu'elle a perdu : à l'arrêt il croît d'une seconde par seconde et l'abscisse ne bouge
+plus, la voiture restant sur son tracé au mètre près. `conflitTrafic` lit le même départ
+effectif, si bien que les naissances continuent de compter juste. Le coup de frein est
+brutal, la reprise douce, et la caisse plonge — `aLon` valait zéro dans la suspension du
+trafic depuis toujours, avec ce commentaire : « il n'y a plus de plongée au freinage, et
+c'est juste : plus personne ne freine ». Maintenant si.
+
+**Un engin en automatique traverse tout**, et c'est une demande explicite dont la raison
+tient en une ligne : le pilote suit un tracé calculé d'avance, il ne sait pas éviter ; un
+camion arrêté sur sa voie d'accès le bloquerait pour toujours, et le chantier s'arrêterait
+sans que rien ne le dise. Le décor, lui, l'arrête toujours.
+
+**Et l'interrupteur est dans les Réglages**, sous « Conduite » et non sous « Image » : ce
+n'est pas un réglage d'affichage, c'est la façon dont le monde répond quand on le touche.
+Éteintes, on retrouve exactement le jeu d'avant — et le décor continue d'arrêter les engins,
+il n'a jamais cessé de le faire.
+
+**Deux défauts trouvés par les contrôles, et pas à l'œil.** Le premier : deux gélules
+alignées n'ont pas de normale — c'est exactement ce qui arrive quand on rentre dans l'arrière
+d'un véhicule en le suivant, le choc le plus fréquent du jeu, et la garde de sécurité le
+laissait passer sans rien faire. On prend alors la direction des centres, et à défaut le
+travers de celui qui arrive. Le second : `setMachine` sur un engin VERROUILLÉ ne fait rien,
+silencieusement — le banc croyait piloter le fourgon, qui n'est pas encore à la ferme au
+premier palier.
+
+`chocs` est une suite neuve de **17 contrôles**, `bandeau` passe à 47, `pixelart` garde ses
+39 sur un défaut de 1, `contrat` ses 93 avec un plafond de bandeau relevé de 1,5 à 3 % —
+l'étiquette porte deux lignes depuis que le joueur y a mis le nom de la mission, et la borne
+qui compte est la sienne : jamais plus du tiers de la largeur. Les **trente-trois suites à
+1 380 contrôles**, dont les 7 échecs préexistants de `chaine`.
