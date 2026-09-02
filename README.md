@@ -12498,6 +12498,10 @@ preuve que la chaîne n'a pas bougé.
 
 ### La pastille : ronde, et du vert de la flèche
 
+*(Cette étape a été reprise une fois de plus : le vert est passé dans le combiné et la
+pastille est redevenue sombre — voir le chapitre suivant. Ce qui est écrit ici reste vrai
+de la forme, et du raisonnement sur le vert du guidage.)*
+
 `#62D84E` est le vert du guidage — celui de la flèche du bord, celui du cercle au sol chez
 soi. La pastille le prend tel quel, et le banc le vérifie **contre la source** et non contre
 une constante recopiée : il demande sa couleur à `ciblesGuidage()`, c'est-à-dire à la
@@ -12695,3 +12699,32 @@ maintenant sur `ESP_CLES` au lieu d'être écrit).
 
 `elevage` rejoint la suite au passage — il en était resté dehors, comme `ages` avant lui.
 **Trente-sept bancs à 1 479 contrôles**, dont les 7 échecs préexistants de `chaine`.
+
+## Le vert change de côté
+
+« On va repartir sur une pastille noire partiellement transparente, on va la mettre ronde,
+et on va mettre un téléphone vert dedans » — avec la photo du même combiné, dans l'autre
+couleur.
+
+**Trois états auront été essayés, et c'est le troisième qui tient.** Un rectangle anthracite
+du même habit que les boutons ; puis un disque vert portant le combiné rouge ; puis un
+disque anthracite portant un combiné vert. Ce que les trois auront appris tient en une
+phrase : **la couleur ne peut pas être des deux côtés**. Un disque vert posé sur de l'herbe
+verte se cherche, et le rouge qu'il portait vibrait dessus ; un fond sombre découpe la
+pastille sur n'importe quel paysage, et le vert du combiné y ressort comme le vert du
+guidage ressort du sol.
+
+La **forme**, elle, ne bouge pas : ronde. C'est ce qui la distingue des boutons carrés, qui
+se touchent — elle, non.
+
+L'onde est **redevenue verte** avec le fond sombre. Elle l'avait été, puis blanche le temps
+que la pastille soit verte : un halo vert qui s'écarte d'un disque vert ne se voit pas. Sur
+l'anthracite elle reprend le vert du guidage, celui de la flèche du bord et du cercle au
+sol.
+
+**Et changer de combiné n'a demandé qu'un nom de fichier.** `pictos.json` pointe vers la
+nouvelle photo, la chaîne repasse : **41 × 74 pixels d'art dans une planche de 78, 1,4 Ko,
+soixante-quatre couleurs**. On ne redessine rien. Le banc, lui, sert la NOUVELLE source et
+refait sa comparaison — silhouette 0,557 contre 0,554 (**0,6 % d'écart**), matière 59,149,43
+dans la photo contre 57,147,42 dans la planche (**2, 2, 1**) —, et le contrôle qui exigeait
+un picto rouge exige maintenant un picto vert. `telephone` reste à **27 contrôles**.
