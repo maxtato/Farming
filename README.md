@@ -11647,3 +11647,49 @@ avant de mesurer, au lieu de parier sur un délai.
 Bancs : `fenetres` passe de 23 à **31 contrôles**, `visages` à 33, `etiquettes` encadre la
 barre des 98 %, `ecrans` et `campagne30` suivent le nouveau seuil. Les trente-et-une suites à
 **1 319 contrôles**.
+
+## Le cadratin devient un demi-cadratin
+
+« Partout dans le jeu où tu utilises un — je veux que tu remplaces par – ».
+
+Le fichier en contenait **2 535**. Un `sed` global les aurait tous pris, et c'aurait été une
+faute : **2 306 d'entre eux sont dans les commentaires**, c'est-à-dire dans de la prose
+française que personne ne voit tourner et où le cadratin est la bonne ponctuation. Le diff
+aurait été illisible pour rien.
+
+Un automate à états parcourt donc le fichier — HTML au dehors, JavaScript entre les balises,
+avec ses chaînes, ses gabarits, ses commentaires de bloc et de ligne — et classe chaque tiret
+par ce qu'il est. Le compte tombe juste : 2 535 sur 2 535, sans reste.
+
+| | où | remplacés |
+|---|---|---|
+| chaînes de caractères | 223 | **oui** |
+| échappements `—` | 6 | **oui** |
+| texte HTML (le `<title>`, une ligne d'aide) | 2 | **oui** |
+| expressions régulières | 4 | **oui** — voir plus bas |
+| commentaires de bloc, de ligne, HTML | 2 306 | non |
+
+**Et quatre endroits COUPENT sur le tiret.** C'est ce qu'un remplacement à l'aveugle aurait
+cassé sans un bruit. Deux expressions régulières découpent l'intitulé d'une étape de tutoriel
+de son détail — `replace(/^[^—]*—\s*/, '')` — et deux `split(' — ')` en font autant pour les
+leçons. Si le texte change de tiret et pas le découpeur, la moitié de la phrase disparaît de
+l'écran **sans qu'aucune erreur ne soit levée**. Les deux `split` sont déjà des chaînes et
+suivent tout seuls ; les deux expressions sont le seul endroit du fichier où l'on remplace
+hors d'une chaîne.
+
+**Une barrière, pour que le cadratin ne revienne pas.** Rien n'empêche un `—` de repasser du
+commentaire à la chaîne le jour où l'on écrira une mission de plus. Le banc `regression` lit
+donc les **tables**, pas l'écran : un balayage du DOM ne verrait que les quelques fenêtres
+ouvertes à cet instant, tandis que `MISSIONS`, `TUTO`, `LECONS`, `NIVEAUX`, `PRODUITS`,
+`CROPS`, `ESPECES`, `SITES`, `MACHINES`, `TOOLS` et `PALIERS` portent *tout* le texte du jeu
+et se lisent d'un coup. Deux contrôles de plus vérifient que les découpeurs coupent encore —
+la leçon rend bien deux morceaux, l'étape garde bien son détail.
+
+Trois bancs pointaient eux-mêmes sur le cadratin et suivent : `ecrans` découpait un texte de
+tutoriel, `lecons` cherchait le séparateur d'une leçon, `pixelart` testait un libellé de
+réglage. Un quatrième, `vignettes`, reconstruisait la clé d'un métier avec `—` : il ne
+trouvait plus aucune des neuf lignes, et c'est exactement le genre de faute que ce chapitre
+raconte.
+
+Les trente-et-une suites à **1 322 contrôles**. Le README, lui, garde ses cadratins : c'est de
+la documentation, pas le jeu.
