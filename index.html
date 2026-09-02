@@ -5826,6 +5826,17 @@ function grandir(P, k, depuis){
   for(let i = depuis; i < P.length; i++) P[i].m.premultiply(S);
   return P;
 }
+/* ET LA MÊME CHOSE POUR L'ORIENTATION. La vigne de la planche a ses deux bras posés le
+   long de l'axe des X — c'est ainsi qu'elle a été dessinée, de face. Or un RANG de vigne
+   court le long des Z : le masque ne garde qu'une colonne sur deux, et le fil de
+   palissage est une poutre de 2,75 m orientée en Z. Les bras tendaient donc vers les
+   rangs VOISINS au lieu de suivre leur propre fil, et de haut le champ ne montrait pas
+   des lignes mais un tapis. Un quart de tour remet la souche dans son rang. */
+function tourner(P, ang, depuis){
+  const R = new THREE.Matrix4().makeRotationY(ang);
+  for(let i = depuis; i < P.length; i++) P[i].m.premultiply(R);
+  return P;
+}
 
 /* LA PALETTE DE LA PLANCHE, reprise telle quelle : son bois est plus clair et plus
    chaud que celui du jeu, son raisin franchement bordeaux là où le jeu tirait sur le
@@ -5844,7 +5855,16 @@ const filVigne = (P)=> P.push({g:new THREE.BoxGeometry(0.05, 0.05, 2.75),
    palissés en deux tronçons chacun pour qu'ils se courbent, les sarments dressés — le
    bois de l'année — et quatorze petites feuilles semées le long des bras. Grandi de 1,55
    pour que les bras arrivent au fil, qui est à 2,22 m. */
-const VIGNE_K = 1.35;
+/* LA VIGNE RAPETISSE, ET ELLE SE MET DANS SON RANG.
+   Le joueur : « réduis un peu les vignes et mets-les en lignes. » Les deux ne font qu'une
+   cause : les bras du cep étaient dessinés le long des X quand le rang court le long des
+   Z, et chaque pied tendait ses branches vers les rangs d'à côté. À 2,60 m d'écartement,
+   les rangs se rejoignaient et le champ ne montrait plus de lignes — un tapis de feuilles
+   et des piquets dessus. Un QUART DE TOUR met la souche dans son fil : les bras suivent
+   le palissage, les rangs se referment sur eux-mêmes et se séparent les uns des autres.
+   Et le cep perd treize pour cent, ce qui achève de dégager l'inter-rang. Le piquet et le
+   fil, eux, ne bougent pas : ce sont des mètres de matériel, calés sur l'enjambeuse. */
+const VIGNE_K = 1.18, VIGNE_TOUR = Math.PI/2;
 function vigneJeune(){
   const P = [];
   fut(P, 3.21, 0.055, 0.055, BOIS2); filVigne(P);
@@ -5852,7 +5872,7 @@ function vigneJeune(){
   boisTordu(P, 0.14, 0, 0, 0.45, 0.05, 0.07, 3, 0.16, 1.2, BOIS);
   for(let k = 0; k < 4; k++)
     feuille(P, 0.16 + (k%2)*0.08, 0.42 + k*0.1, (k%2 - 0.5)*0.1, 0.2, 0.09, k*1.6, 0.9, FEUILLE);
-  return mergeParts(grandir(P, VIGNE_K, n0));
+  return mergeParts(tourner(grandir(P, VIGNE_K, n0), VIGNE_TOUR, n0));
 }
 function vigneMontee(){
   const P = [];
@@ -5865,7 +5885,7 @@ function vigneMontee(){
     feuille(P, t[0] + Math.sin(k*1.9)*0.3, t[1] + 0.05 + (k%3)*0.12,
             t[2] + Math.cos(k*2.3)*0.28, 0.22, 0.1, k*0.9, 0.8 + (k%2)*0.4,
             k%2 ? FEUILLE : FEUILLE2);
-  return mergeParts(grandir(P, VIGNE_K, n0));
+  return mergeParts(tourner(grandir(P, VIGNE_K, n0), VIGNE_TOUR, n0));
 }
 /* L'adulte en feuilles : la souche entière, sa charpente et sa frondaison, sans un
    grain. C'est l'état d'une vigne qu'on vient de vendanger — elle ne redevient pas un
@@ -5896,7 +5916,7 @@ function vigneAdulte(sansFruit){
     fruit(P, -0.30, 0.76, -0.10, 0.10, RAISIN);
     fruit(P,  0.12, 0.66,  0.26, 0.09, RAISIN);
   }
-  return mergeParts(grandir(P, VIGNE_K, n0));
+  return mergeParts(tourner(grandir(P, VIGNE_K, n0), VIGNE_TOUR, n0));
 }
 /* L'OLIVIER DE LA PLANCHE : gros tronc noueux, contreforts au pied, cinq charpentières
    coudées, des rameaux fins à leur bout et trente petites feuilles groupées autour. Il
@@ -6160,26 +6180,45 @@ const PARC_REF = 552;                    // la parcelle de départ, en cellules
    oubli : la vigne et l'olivier sont taillés sur le TUNNEL de l'enjambeuse — 3,21 m et
    4,75 m de poutre — et les rapetisser les ferait passer sous la machine sans qu'elle
    les touche. Leur taille est une cote de mécanique, pas un goût. */
+/* LA DENSITÉ DE SEMIS DES QUATRE CÉRÉALES, ×1,5.
+   « Multiplie les pieds de récolte ×1,5 pour le blé, l'orge, le maïs, l'avoine. »
+   Le masque ne décide QUE des pieds dessinés — ni la récolte, ni les missions, ni la
+   capacité de la ferme ne s'en aperçoivent : toutes les cellules sont semées et toutes
+   se moissonnent. C'est une question de densité à l'œil, et rien d'autre.
+   TROIS D'ENTRE ELLES PARTAIENT D'UN DAMIER — `(i+j) % 2`, une cellule sur deux, 50 %.
+   Une fois et demie, c'est 75 %, et `!(i % 2 && j % 2)` le donne exactement : on ne
+   retire que les cellules impaires DANS LES DEUX SENS. Le champ se lit alors en rangs
+   pleins alternant avec des rangs à demi — un semis, pas un damier — au lieu de la
+   diagonale que `(i+j) % 4 !== 3` aurait tracée.
+   LE MAÏS PARTAIT DE DEUX TIERS, et une fois et demie fait exactement UN : il n'a donc
+   plus de masque du tout, ce qui est aussi la façon la moins chère de le dire — une
+   cellule sans masque n'a pas de test à passer. */
 const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(0x8CB831), hi:new THREE.Color(0xFBD143),
    temps:75, kg:0.2174, haut:1.00, large:0.92, grainePrix:0.18, graineKg:25,
-   masque:(i, j)=> (i + j) % 2 === 0},
-  // Le maïs perd un pied sur trois et gagne en épi : la cylindre du fruit passe de
-  // 0,07/0,12/0,40 à 0,10/0,17/0,56 dans `adulteMais`.
+   masque:(i, j)=> !(i % 2 && j % 2)},
+  // Le maïs gagne en épi : le cylindre du fruit passe de 0,07/0,12/0,40 à
+  // 0,10/0,17/0,56 dans `adulteMais`. Il n'a plus de masque : une cellule semée est un
+  // pied dessiné.
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
    temps:110, kg:0.2536, haut:1.45, large:0.66, cout:600, verrou:true,
-   grainePrix:0.27, graineKg:18, masque:(i, j)=> (i + j) % 3 !== 2},
+   grainePrix:0.27, graineKg:18},
+  /* LE COLZA RAPETISSE ENCORE. « Réduis la taille du colza » : il était le plus large des
+     annuels avec l'avoine — 1,84 — et culminait à 3,26 m, plus haut qu'une vigne
+     palissée. Moins dix-huit pour cent le ramène à 2,67 m, sous le blé et l'orge, ce qui
+     est aussi l'ordre du champ réel. `large` multiplie les trois axes : la plante garde
+     ses proportions et son compte de triangles. */
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:0.85, large:1.84, cout:2400, verrou:true,
+   temps:140, kg:0.1993, haut:0.85, large:1.51, cout:2400, verrou:true,
    grainePrix:0.36, graineKg:12, masque:(i, j)=> (i + j) % 2 === 0},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
    temps:90, kg:0.2264, haut:0.95, large:1.87, cout:900, verrou:true,
-   grainePrix:0.22, graineKg:22, masque:(i, j)=> (i + j) % 2 === 0},
+   grainePrix:0.22, graineKg:22, masque:(i, j)=> !(i % 2 && j % 2)},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x9EB449), hi:new THREE.Color(0xE3C766),
    temps:95, kg:0.2355, haut:1.10, large:1.01, cout:700, verrou:true,
-   grainePrix:0.20, graineKg:23, masque:(i, j)=> (i + j) % 2 === 0},
+   grainePrix:0.20, graineKg:23, masque:(i, j)=> !(i % 2 && j % 2)},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
   // ne poussent pas non plus à chaque cellule — un olivier tous les 6,50 m, un pied de
@@ -25641,7 +25680,7 @@ function ciblesGuidage(){
      pastille du combiné accrochée au bord, mais rien ne lui dirait où c'est ni à quelle
      distance — c'est la flèche qui porte le nom et les mètres. */
   if(APrendre)
-    out.push({nom:nomEndroit('Ferme'), x:MAISON.x, z:MAISON.z, coul:'#62D84E', tel:true});
+    out.push({nom:nomEndroit('Ferme'), x:MAISON.x, z:MAISON.z, coul:'#62D84E'});
   const v = MACHINES[cur].v;
   /* ET LA LEÇON DU MOMENT A LA SIENNE, EN BLEU. Bleue parce qu'une leçon désigne une
      chose qu'on PEUT faire, et que le jaune ne dit qu'une chose : la mission en cours.
@@ -25734,10 +25773,6 @@ function refreshViseurs(){
   const mT = VISEUR.haut, mB = H - VISEUR.bas;
   const cx = W/2, cy = (mT + mB)/2;
   const v = MACHINES[cur].v;
-  // Où la flèche verte de la ferme a fini par se poser, cette image-ci : la pastille du
-  // téléphone s'accroche à elle quand la maison est hors cadre. Remis à zéro ici, écrit
-  // plus bas si la flèche est effectivement dessinée.
-  VISEUR.tel = null;
   let n = 0;
   for(const S of ciblesGuidage()){
     /* LE CLIQUET, AVANT TOUT CALCUL D'ÉCRAN. On y est allé une fois : la vignette se tait
@@ -25789,12 +25824,11 @@ function refreshViseurs(){
     // déplacement reste en sous-pixels, donc fluide.
     e.style.transform = 'translate3d(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) +
                         'px,0) translate(-50%,-50%)';
-    if(S.tel) VISEUR.tel = {x:fx, y:fy, h:e._h};
     n++;
   }
   for(let k = n; k < VISEUR.pool.length; k++)
     if(VISEUR.pool[k].style.display !== 'none') VISEUR.pool[k].style.display = 'none';
-  majTelephone(W, H, mL, mR, mT, mB);
+  majTelephone(W, H, mB);
 }
 /* ---------- LE TÉLÉPHONE QUI SONNE, ET OÙ IL SONNE ----------
    Il y avait un combiné de trois mètres de haut planté à 9,20 m au-dessus de la cour.
@@ -25804,17 +25838,14 @@ function refreshViseurs(){
    la flèche verte qui indique l'endroit où on doit aller décrocher, et une fois devant
    la maison, la pastille doit arriver au-dessus de la maison. »
 
-   D'où DEUX POSITIONS, ET UNE SEULE RÈGLE POUR CHOISIR : on projette le point du faîtage.
-   S'il tombe dans le cadre utile — celui qui exclut le bandeau du haut et les commandes
-   du bas —, la pastille s'y pose : on est devant la maison, et le combiné sonne
-   au-dessus d'elle. Sinon, la maison n'est pas à l'écran, et la pastille rejoint la
-   flèche verte : elle se pose JUSTE AU-DESSUS de sa vignette, pas dessus — la flèche
-   garde son nom et sa distance en dessous, la pastille dit ce qui attend au bout.
-   ET SI LA FLÈCHE N'EST PAS LÀ, la pastille se débrouille : le cliquet des viseurs éteint
-   la flèche dès vingt-huit mètres (on sait où l'on va, elle n'a plus rien à dire), et
-   l'on peut très bien être à vingt mètres de chez soi en regardant ailleurs. La pastille
-   coupe alors le rayon sur le bord du cadre, exactement comme la flèche l'aurait fait :
-   elle reste au bord, du bon côté, et rien ne disparaît.
+   ELLE NE SE MONTRE QUE QUAND ON VOIT LA MAISON, et c'est tout. Elle a d'abord rejoint la
+   flèche verte du bord quand la maison sortait du cadre, et coupé le rayon toute seule
+   quand le cliquet avait éteint la flèche : trois positions pour une seule chose à dire.
+   Le joueur : « finalement fais juste le téléphone au-dessus de la maison, pas à côté de
+   la flèche. » C'est plus juste ainsi. La flèche verte porte déjà le nom de l'endroit et
+   les mètres qui restent ; poser la pastille à côté d'elle, c'était dire deux fois la
+   même chose au même endroit. La maison hors cadre, il n'y a plus qu'une flèche ; la
+   maison à l'écran, il n'y a plus qu'une pastille, et elle est SUR ce dont elle parle.
    ELLE N'EST PAS UN BOUTON : `#viseurs` ne prend pas le doigt, et elle en hérite. On ne
    décroche pas en touchant l'écran — on décroche en rentrant chez soi. */
 /* AU-DESSUS DU TOIT, ET NON DEDANS. Le point d'accroche a d'abord été posé DANS le monde,
@@ -25850,13 +25881,11 @@ const TEL_HAUT = 54;
 const TEL_CYCLE = 1.15, TEL_COUPS = [[0.00, 0.26], [0.34, 0.60]];
 const _vTel = new THREE.Vector3(), _cTel = new THREE.Vector3();
 let telMontre = false;
-function majTelephone(W, H, mL, mR, mT, mB){
+function majTelephone(W, H, mB){
   const sonne = !!missionAPrendre();
-  if(sonne !== telMontre){
-    telEl.style.display = sonne ? 'flex' : 'none';
-    telMontre = sonne;
-  }
-  if(!sonne) return;
+  const montrer = (v)=>{ if(v !== telMontre){
+    telEl.style.display = v ? 'flex' : 'none'; telMontre = v; } };
+  if(!sonne){ montrer(false); return; }
   /* DEUX POINTS DE LA MAISON, ET CHACUN SON RÔLE. Le PIED dit si on la voit — c'est lui
      qui est posé au sol, donc lui qui décide —, le FAÎTAGE dit où se pose la pastille.
      Les confondre a coûté un essai : le faîtage d'une maison qu'on regarde de six mètres
@@ -25874,26 +25903,20 @@ function majTelephone(W, H, mL, mR, mT, mB){
   };
   const toit = P(MAISON.hx, TEL_TOIT, MAISON.hz), pied = P(MAISON.hx, 0, MAISON.hz);
   const sx = toit.x, sy = toit.y - TEL_JOUR;
-  let px, py;
-  /* ON VOIT LA MAISON : au-dessus d'elle, et jamais dessus. La pastille se pose sur le
-     faîtage, sans monter dans la barre de niveau ni descendre sous le pied — c'est ce
-     `min` qui la garde au-dessus du toit quand la maison touche le haut du cadre. Sous la
-     ligne des commandes, en revanche, on rend la main à la flèche : une pastille derrière
-     le bouton d'attelage ne se voit pas. */
-  if(!pied.d && pied.x >= TEL_M && pied.x <= W - TEL_M && pied.y >= 34 && pied.y <= mB){
-    px = sx; py = Math.min(pied.y - TEL_M, Math.max(TEL_HAUT, sy));
-  } else if(VISEUR.tel){
-    // Au-dessus de la vignette, d'une demi-vignette plus les dix-neuf pixels de la
-    // pastille et quatre de jour : les deux se touchent sans jamais se recouvrir.
-    px = VISEUR.tel.x; py = VISEUR.tel.y - (VISEUR.tel.h/2 + 23);
-  } else {
-    const cx = W/2, cy = (mT + mB)/2;
-    const dx = sx - cx, dy = sy - cy;
-    const tx = dx === 0 ? Infinity : (dx > 0 ? (mR - cx)/dx : (mL - cx)/dx);
-    const ty = dy === 0 ? Infinity : (dy > 0 ? (mB - cy)/dy : (mT - cy)/dy);
-    const t = Math.max(0, Math.min(tx, ty));
-    px = cx + dx*t; py = cy + dy*t;
+  /* LA MAISON EST-ELLE À L'ÉCRAN ? C'est le PIED qui décide — il est posé au sol, donc
+     c'est lui qui dit si le bâtiment est dans le cadre. Sinon, la pastille s'éteint : la
+     flèche verte du bord dit déjà où c'est et à quelle distance, et deux marques pour la
+     même chose au même endroit ne valent pas mieux qu'une.
+     SOUS LA LIGNE DES COMMANDES ELLE S'ÉTEINT AUSSI : une pastille derrière le bouton
+     d'attelage ne se verrait pas, et la flèche reprend la main d'elle-même. */
+  if(pied.d || pied.x < TEL_M || pied.x > W - TEL_M || pied.y < 34 || pied.y > mB){
+    montrer(false); return;
   }
+  montrer(true);
+  /* AU-DESSUS D'ELLE, ET JAMAIS DESSUS. La pastille se pose sur le faîtage, sans monter
+     dans la barre de niveau ni descendre sous le pied — c'est ce `min` qui la garde
+     au-dessus du toit quand la maison touche le haut du cadre. */
+  let px = sx, py = Math.min(pied.y - TEL_M, Math.max(TEL_HAUT, sy));
   // Elle ne sort jamais de l'écran, quoi qu'il arrive au-dessus.
   px = Math.max(TEL_M, Math.min(W - TEL_M, px));
   py = Math.max(TEL_M, Math.min(H - TEL_M, py));
