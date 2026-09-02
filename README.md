@@ -12979,3 +12979,45 @@ posé sur la clôture de la ferme par le banc lui-même. Le banc s'appelle `entr
 dans la suite, borné aux départs dans le champ ou à son bord. `pilote`, `plan`,
 `chantiers`, `escargot`, `regression`, `cloture`, `commandes`, `guidage` relancés, tous
 verts.
+
+## Six retouches d'un coup : le tracteur jaune, le combiné, la moissonneuse, le blé
+
+**Le tracteur lourd.** « En avant un tout petit peu trop long » : le capot, la calandre, le
+pare-chocs, les feux et l'essieu avant reculent de vingt centimètres (trente et un au
+tirage), la cabine et la chape ne bougent pas — 16,92 → 16,61 m hors tout. « Ses roues sont
+complètement voilées quand il tourne » : ses roues sont dessinées à part (`roueLisse`), et
+n'avaient pas reçu l'ordre de rotation `YXZ` qui avait déjà corrigé les autres — c'est fait.
+
+**La chape.** « L'accroche avec le combiné est parfaite, mais les autres remorques
+n'arrivent pas au bon endroit. » Chaque outil porte `hitch`, la cote de la chape du
+tracteur pour lequel il a été dessiné : 2,0 m pour les quatre premiers, 3,8 pour le
+combiné, fait pour le lourd. Attelé au lourd, un outil à 2,0 m tombait dans sa caisse.
+L'engin dit maintenant sa chape (`chape:3.8`), et `hitchDe(v, T)` prend la plus lointaine
+des deux : charrue, semoir et benne se posent à 3,80 m du lourd, à 2,00 du vert, mesuré.
+
+**Le combiné 3-en-1.** « J'arrive pas à le remplir d'engrais à la citerne, ni à lui mettre
+d'autres semences, et je ne vois pas le bouton pour changer la semence. » Tout lisait
+`key === 'engrais'` ou `key === 'semis'` : un outil qui n'était ni l'un ni l'autre n'avait
+droit qu'à la cuve verte, son casier d'engrais n'existait nulle part à l'écran, et le bouton
+de culture ne s'affichait que pour le semoir. On regarde ce que l'outil PORTE — `seme`,
+`fertilise` — : devant la cuve verte il prend sa semence, devant la blanche son engrais, au
+comptoir les deux ; l'onglet des cuves montre ses deux casiers ; le bouton de culture paraît
+et change de semence. Mesuré : 90 kg de blé à la verte, 90 kg d'engrais à la blanche, le
+bouton passe au maïs.
+
+**Le voile des fenêtres.** « Une espèce de vert très léger derrière le personnage, j'aime
+pas, enlève-le. » C'était l'éclat jaune posé dans la boîte à l'ouverture, qui sur le papier
+crème virait au vert pâle derrière le portrait. Retiré.
+
+**La moissonneuse grandit, sa coupe non.** Tout ce qui n'est pas la tête passe dans un
+corps à l'échelle 1,08 ; la tête reste enfant direct du groupe, à ses huit mètres, et
+l'amélioration de coupe continue de régler son `scale.x`. Elle avance d'autant que le corps
+s'allonge, et `toolOffset` la suit : 9,04 → 9,41 m de large, 6,15 → 6,65 de haut, la coupe
+à 8,40 comme avant.
+
+**Le blé, plus basique.** « Trop de détails, le champ fait ramer le jeu : épaissis un peu la
+tige, élargis un peu l'épi, deux ou trois petits épis sur la tige. » L'épi de quatre étages
+de deux grains, rachis et barbe devient trois grains larges empilés sur une tige plus
+épaisse ; la seconde tige de la touffe n'en a que deux. **114 → 42 triangles par pied**,
+17 640 la parcelle contre 47 880, moins soixante-trois pour cent ; `large` 0,97 → 1,00
+pour garder la hauteur.

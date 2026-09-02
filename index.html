@@ -1190,10 +1190,9 @@
      au carré, ce qui est exactement ce qu'on cherchait à quitter. Le voile d'éclat est
      donc borné par sa propre boîte, avec le même débord et le même rayon. */
   #brboite{position:relative}
-  #brboite::before{content:'';position:absolute;inset:-10px;border-radius:16px;
-    pointer-events:none;opacity:0;z-index:2;
-    background:radial-gradient(ellipse at 50% 0%, rgba(250,210,1,.55), rgba(250,210,1,0) 68%)}
-  #bravo.on #brboite::before{animation:brallume 1.05s ease-out both}
+  /* LE VOILE D'ÉCLAT EST RETIRÉ. Il s'allumait derrière le portrait à l'ouverture et se
+     lisait, sur le papier crème, comme « une espèce de vert très léger derrière le
+     personnage » — le joueur : « j'aime pas, enlève-le ». La feuille apparaît, et c'est tout. */
   /* LE BOUTON QUI FAIT AVANCER. Il n'y en avait aucun : on touchait la boîte, ou l'on
      attendait cinq secondes, et rien ne le disait à part une ligne de petites capitales.
      « Tu mets un bouton un peu marrant avec une flèche à droite en bas de la fenêtre pour
@@ -5754,44 +5753,27 @@ function ageMontee(){
    peu moins détaillé ». Le champ passe à toutes les cellules, et ce qu'on gagne en
    pieds se rend en triangles : 84 par épi avant, 66 après, et 552 × 66 vaut à peu
    près 420 × 84. La parcelle coûte la même chose, et elle est plus pleine. */
-function tigeBle(P, etages, barbe){
+function tigeBle(P, grains){
   const depuis = P.length;
-  fut(P, 1.12, 0.03, 0.05);
-  for(let k = 0; k < etages; k++){
-    const y = 1.16 + k*0.115, r = 0.115 - k*0.014;
-    for(let j2 = 0; j2 < 2; j2++){
-      const a = k*1.05 + j2*Math.PI;
-      const g = new THREE.CylinderGeometry(0.012, r, 0.2, 3, 1, true);
-      const m = new THREE.Matrix4().makeTranslation(0, 0.1, 0);
-      m.premultiply(new THREE.Matrix4().makeRotationZ(0.85));   // grain penché vers le haut
-      m.premultiply(new THREE.Matrix4().makeRotationY(a));
-      m.premultiply(new THREE.Matrix4().makeTranslation(0, y, 0));
-      P.push({g, m, c:0xFFFFFF});
-    }
-  }
-  P.push({g:new THREE.CylinderGeometry(0.012, 0.03, 0.5, 3, 1, true),   // rachis
-          m:new THREE.Matrix4().makeTranslation(0, 1.4, 0), c:0xFFFFFF});
-  if(barbe){
-    const g = new THREE.CylinderGeometry(0.006, 0.018, 0.34, 3, 1, true);
-    const m = new THREE.Matrix4().makeRotationZ(0.22);
-    m.premultiply(new THREE.Matrix4().makeTranslation(0, 1.78, 0));
-    P.push({g, m, c:0xFFFFFF});
+  fut(P, 1.25, 0.045, 0.065);                          // la tige, un peu plus épaisse
+  for(let k = 0; k < grains; k++){                     // deux ou trois grains larges, empilés
+    const y = 1.30 + k*0.21, r = 0.15 - k*0.02;
+    P.push({g:new THREE.CylinderGeometry(0.05, r, 0.24, 3, 1, true),
+            m:new THREE.Matrix4().makeRotationY(k*1.1).setPosition(0, y, 0), c:0xFFFFFF});
   }
   return depuis;
 }
-/* DEUX TIGES PAR PIED. « Multiplie le blé par 1,5 aussi », redemandé quand il occupait
-   déjà toutes les cellules : la maille n'a qu'une place par cellule, la densité ne peut
-   plus venir que du pied lui-même. Le pied devient donc une touffe de deux tiges — la
-   sienne, entière, et une seconde plus courte et plus légère à côté : trois étages, pas
-   de barbe, un peu moins haute, tournée d'un tiers de tour. Deux épis identiques
-   auraient fait un pied en miroir ; deux épis inégaux font deux plantes.
-   Le prix : 66 + 48 = 114 triangles par pied, et 420 pieds (trois cellules sur quatre,
-   voir CROPS) font 840 épis — une fois et demie les 552 d'avant — pour 47 880
-   triangles la parcelle contre 36 432, plus trente et un pour cent. */
+/* PLUS BASIQUE, ET PLUS LÉGER. « Il y a trop de détails, le champ fait ramer le jeu :
+   épaissis un tout petit peu la tige, élargis un petit peu l'épi, et fais juste deux ou
+   trois petits épis sur la tige pour donner un peu de volume. » L'épi de quatre étages
+   de deux grains, rachis et barbe — dix pièces, 66 triangles — devient trois grains
+   larges empilés sur une tige plus épaisse : quatre pièces, 24 triangles. La seconde
+   tige de la touffe n'en a que deux : 42 triangles par pied contre 114, soit 17 640 la
+   parcelle contre 47 880, moins soixante-trois pour cent. */
 function adulteBle(){
   const P = [];
-  tigeBle(P, 4, true);
-  const d = tigeBle(P, 3, false);
+  tigeBle(P, 3);
+  const d = tigeBle(P, 2);
   const M = new THREE.Matrix4().makeScale(0.92, 0.92, 0.92)
     .premultiply(new THREE.Matrix4().makeRotationY(2.1))
     .premultiply(new THREE.Matrix4().makeTranslation(0.34, 0, 0.18));
@@ -6282,7 +6264,7 @@ const CROPS = [
      tiges, le semis plein ferait le double ; on revient à trois cellules sur quatre :
      420 pieds × 2 tiges = 840 épis, contre 552, soit une fois et demie. */
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(0x8CB831), hi:new THREE.Color(0xFBD143),
-   temps:75, kg:0.2174, haut:1.00, large:0.97, grainePrix:0.18, graineKg:25,
+   temps:75, kg:0.2174, haut:1.00, large:1.00, grainePrix:0.18, graineKg:25,
    masque:(i, j)=> !(i % 2 && j % 2)},
   // Le maïs gagne en épi : le cylindre du fruit passe de 0,07/0,12/0,40 à
   // 0,10/0,17/0,56 dans `adulteMais`. Il n'a plus de masque : une cellule semée est un
@@ -10835,6 +10817,9 @@ function buildTracteurLourd(){
      ce qu'on ne met pas ailleurs — voile de jante à six trous, boulons, valve. */
   function roueLisse(r, larg){
     const g = new THREE.Group();
+    // La roue tourne d'abord sur son axe, puis l'ensemble braque : sinon le pneu décrit un
+    // cône en virage, la « jante voilée » déjà corrigée sur `wheelMesh`. Même ordre ici.
+    g.rotation.order = 'YXZ';
     g.add(c2(r, r, larg, 12, NOIR, 0, 0, 0, 0, 0, Math.PI/2));
     for(const s of [-1, 1])
       g.add(c2(r*0.96, r*0.96, 0.05, 12, NOIR2, s*(larg/2 - 0.02), 0, 0, 0, 0, Math.PI/2));
@@ -10867,28 +10852,31 @@ function buildTracteurLourd(){
   const wr = [], wf = [];
   for(const s of [-1, 1]){
     const a = roueLisse(rAR, lAR); a.position.set(s*voie*K, rAR*K, -1.30*K); g.add(a); wr.push(a);
-    const f = roueLisse(rAV, lAV); f.position.set(s*(voie - 0.06)*K, rAV*K, 1.55*K); g.add(f); wf.push(f);
+    const f = roueLisse(rAV, lAV); f.position.set(s*(voie - 0.06)*K, rAV*K, 1.45*K); g.add(f); wf.push(f);
   }
-  for(const s of [-1, 1]) g.add(b(0.20, 0.34, 3.9, NOIR2, s*0.50, 0.78, 0.10));
-  g.add(b(1.2, 0.26, 0.7, NOIR2, 0, 0.78, 1.55));
-  g.add(c2(0.12, 0.12, 2.2, 8, GRIS, 0, 0.78, 1.55, 0, 0, Math.PI/2));
+  /* L'AVANT RACCOURCIT DE VINGT CENTIMÈTRES (trente et un au tirage) : « le tracteur jaune,
+     en avant, un tout petit peu trop long ». Le capot, la calandre, le pare-chocs, les
+     feux et l'essieu avant reculent ensemble ; la cabine et la chape ne bougent pas. */
+  for(const s of [-1, 1]) g.add(b(0.20, 0.34, 3.7, NOIR2, s*0.50, 0.78, 0.00));
+  g.add(b(1.2, 0.26, 0.7, NOIR2, 0, 0.78, 1.45));
+  g.add(c2(0.12, 0.12, 2.2, 8, GRIS, 0, 0.78, 1.45, 0, 0, Math.PI/2));
   g.add(b(0.9, 0.30, 0.5, NOIR, 0, 0.62, 0.60));                         // carter de boîte
 
   /* ---- capot : grille fine, loquet, écusson ---- */
-  g.add(b(1.50, 0.80, 2.30, JAUNE, 0, 1.32, 0.85));
-  g.add(b(1.58, 0.14, 2.34, JAUNE3, 0, 1.76, 0.85));
-  g.add(b(1.20, 0.05, 1.90, JAUNE2, 0, 1.84, 0.85));                     // panneau de capot
-  g.add(b(0.30, 0.08, 0.20, GRIS2, 0, 1.86, 1.92));                      // loquet
+  g.add(b(1.50, 0.80, 2.10, JAUNE, 0, 1.32, 0.75));
+  g.add(b(1.58, 0.14, 2.14, JAUNE3, 0, 1.76, 0.75));
+  g.add(b(1.20, 0.05, 1.70, JAUNE2, 0, 1.84, 0.75));                     // panneau de capot
+  g.add(b(0.30, 0.08, 0.20, GRIS2, 0, 1.86, 1.72));                      // loquet
   for(const s of [-1, 1]) for(let k = 0; k < 7; k++)                      // ouïes serrées
     g.add(b(0.05, 0.22, 0.22, JAUNE2, s*0.76, 1.36, -0.05 + k*0.28));
-  g.add(b(1.30, 0.46, 0.12, NOIR, 0, 1.34, 2.02));                       // calandre
-  for(let k = 0; k < 9; k++) g.add(b(0.05, 0.5, 0.14, GRIS, -0.52 + k*0.13, 1.34, 2.04));
-  g.add(b(1.36, 0.08, 0.16, JAUNE2, 0, 1.60, 2.04));
-  g.add(b(0.36, 0.12, 0.06, NOIR, 0, 1.72, 2.06));                       // écusson
-  g.add(b(1.62, 0.28, 0.34, NOIR2, 0, 1.00, 2.06));                      // pare-chocs
+  g.add(b(1.30, 0.46, 0.12, NOIR, 0, 1.34, 1.82));                       // calandre
+  for(let k = 0; k < 9; k++) g.add(b(0.05, 0.5, 0.14, GRIS, -0.52 + k*0.13, 1.34, 1.84));
+  g.add(b(1.36, 0.08, 0.16, JAUNE2, 0, 1.60, 1.84));
+  g.add(b(0.36, 0.12, 0.06, NOIR, 0, 1.72, 1.86));                       // écusson
+  g.add(b(1.62, 0.28, 0.34, NOIR2, 0, 1.00, 1.86));                      // pare-chocs
   for(const s of [-1, 1]){
-    g.add(b(0.14, 0.14, 0.10, ORANGE, s*0.60, 1.40, 2.10));              // clignotant
-    g.add(b(0.10, 0.34, 0.10, GRIS, s*0.80, 1.16, 2.00));                // support
+    g.add(b(0.14, 0.14, 0.10, ORANGE, s*0.60, 1.40, 1.90));              // clignotant
+    g.add(b(0.10, 0.34, 0.10, GRIS, s*0.80, 1.16, 1.80));                // support
   }
   /* ---- flancs : réservoir, batterie, coffre à outils ---- */
   g.add(b(0.26, 0.44, 1.10, NOIR2, -0.74, 0.92, -0.35));                 // réservoir
@@ -10945,15 +10933,15 @@ function buildTracteurLourd(){
      la main resteraient éteintes à la tombée du soir. Ils sont posés aux cotes exactes
      des blocs optiques de la page. ---- */
   const F = jeuDeFeux();
-  for(const sx of [-0.50*K, 0.50*K]) optique(g, F, false, sx, 1.42*K,  2.05*K, 0.40*K, 0.28*K);
+  for(const sx of [-0.50*K, 0.50*K]) optique(g, F, false, sx, 1.42*K,  1.85*K, 0.40*K, 0.28*K);
   for(const sx of [-0.52*K, 0.52*K]) optique(g, F, true,  sx, 1.48*K, -2.36*K, 0.24*K, 0.26*K);
   const gyro = gyrophare(g, 0.52*K, (y + 1.44)*K, -0.55*K);
   const exh = new THREE.Object3D(); exh.position.set(-0.62*K, 2.95*K, 1.45*K); g.add(exh);
 
   g.userData = {wr, wf, exhaust:exh, gyro, feux:F,
-    lampes:{avant:  {x:[-0.50*K, 0.50*K], y:1.42*K, z: 2.05*K, w:0.40*K, h:0.28*K},
+    lampes:{avant:  {x:[-0.50*K, 0.50*K], y:1.42*K, z: 1.85*K, w:0.40*K, h:0.28*K},
             arriere:{x:[-0.52*K, 0.52*K], y:1.48*K, z:-2.36*K, w:0.24*K, h:0.26*K},
-            nez:2.20*K}};
+            nez:2.00*K}};
   return g;
 }
 /* ---------- LE COMBINÉ 3-EN-1 ----------
@@ -11257,6 +11245,7 @@ function buildFourgon(){
             nez:3.5}};
   return g;
 }
+const MOISSON_K = 1.08;                 // la caisse, la cabine, la trémie, les roues — pas la coupe
 function buildMoissonneuse(){
   const g = new THREE.Group();
   g.add(slab({w:3.5,h:2.3,d:6.6, tw:3.1,td:5.9, dz:0.3, sz:0.18, c:0xD9453A, y:1.15, z:-0.6}));
@@ -11293,16 +11282,25 @@ function buildMoissonneuse(){
     reel.add(box(7.6,0.16,0.5,0xF2B32C,0,Math.sin(a2)*0.75,Math.cos(a2)*0.75));
   }
   reel.position.set(0,1.5,-0.5); head.add(reel);
-  head.position.set(0,0.05,4.6); g.add(head);
+  head.position.set(0,0.05,4.6*MOISSON_K); g.add(head);
   const wr=[], wf=[];
   for(const s2 of [-1,1]){
     const w1 = wheelMesh(1.35,0.85); w1.position.set(s2*1.7,1.35,0.6); g.add(w1); wr.push(w1);
     const w2 = wheelMesh(0.72,0.5);  w2.position.set(s2*1.15,0.72,-3.4); g.add(w2); wf.push(w2);
   }
+  /* LA MACHINE GRANDIT, SA COUPE NON. « Grossir un tout petit peu la moissonneuse, sans
+     grossir son outil, juste la moissonneuse elle-même. » Tout ce qui n'est pas la tête
+     passe dans un corps à l'échelle MOISSON_K ; la tête reste enfant direct du groupe,
+     à ses huit mètres, et l'amélioration de coupe continue de régler son `scale.x`. Elle
+     avance d'autant que le corps s'allonge, et `toolOffset` la suit. */
+  const corps = new THREE.Group(); corps.scale.set(MOISSON_K, MOISSON_K, MOISSON_K);
+  for(const ch of g.children.slice()){ if(ch === head) continue; g.remove(ch); corps.add(ch); }
+  g.add(corps);
+  const Km = MOISSON_K;
   g.userData = {wr, wf, reel, exhaust:exhM, auger, gyro, feux:F, head,
-    lampes:{avant:  {x:[-1.0, 1.0],  y:3.90, z: 3.03, w:0.40, h:0.24},
-            arriere:{x:[-1.2, 1.2],  y:2.00, z:-3.92, w:0.34, h:0.22},
-            nez:5.2}};
+    lampes:{avant:  {x:[-1.0*Km, 1.0*Km],  y:3.90*Km, z: 3.03*Km, w:0.40*Km, h:0.24*Km},
+            arriere:{x:[-1.2*Km, 1.2*Km],  y:2.00*Km, z:-3.92*Km, w:0.34*Km, h:0.22*Km},
+            nez:5.2*Km}};
   return g;
 }
 
@@ -11726,6 +11724,7 @@ class Vehicle {
     // à chaque cran fait dériver le total dès qu'on recharge une partie en cours de route.
     this.vmax0 = this.vmax; this.accel0 = this.accel; this.turn0 = this.turn;
     this.toolOffset = cfg.toolOffset || 0;
+    this.chape = cfg.chape || 0;          // la cote de la chape derrière le centre ; 0 = celle de l'outil
     this.toolX = this.pos.x; this.toolZ = this.pos.z; this.toolCap = this.cap;
     /* SA PLACE AU PARC, RETENUE UNE FOIS POUR TOUTES. Le joueur : « une fois une action
        automatique terminée, si elle n'est pas en continu, le véhicule doit venir se garer
@@ -11900,7 +11899,8 @@ class Vehicle {
     // attelage : le timon tire l'essieu de l'outil, qui s'aligne tout seul
     const T = this.tool;
     if(T && T.attached === this){
-      const hx = this.pos.x - f.x*T.hitch, hz = this.pos.z - f.z*T.hitch;
+      const hc = hitchDe(this, T);
+      const hx = this.pos.x - f.x*hc, hz = this.pos.z - f.z*hc;
       let dx = hx - T.axle.x, dz = hz - T.axle.z;
       const d = Math.hypot(dx,dz) || 1; dx /= d; dz /= d;
       T.cap = Math.atan2(dx, dz);
@@ -13340,7 +13340,7 @@ function planAuto(m, cible){
   const dep0 = P(aDeb0, traverse(0));
   {
     const dx0 = LONG ? sens : 0, dz0 = LONG ? 0 : sens;
-    const att = (T.hitch || 0) + (T.L || 0), demi = T.width/2 + 0.3;
+    const att = hitchDe(v, T) + (T.L || 0), demi = T.width/2 + 0.3;
     const ex = Math.abs(dz0)*demi, ez = Math.abs(dx0)*demi;
     for(const D of [9.0, 7.0, 5.5, 4.0, 3.0, 2.2]){
       /* LE MUR D'ABORD, ET PAR LA GÉOMÉTRIE. `voieLibre` échantillonne le segment tous les
@@ -13623,7 +13623,7 @@ function finDePlan(m){
   const ici = {x:v2.pos.x, z:v2.pos.z};
   const der = {x:v2.pos.x - Math.sin(v2.cap), z:v2.pos.z - Math.cos(v2.cap)};
   const s = pointSortie(plan.p, ici, der,
-                        T2 ? (T2.hitch || 0) + (T2.L || 0) : 0,
+                        T2 ? hitchDe(v2, T2) + (T2.L || 0) : 0,
                         plan.sorti > 1 ? plan.pts[plan.pts.length - 1] : null);
   if(s){ plan.pts.push(s); return true; }
   return false;
@@ -17019,7 +17019,7 @@ const MACHINES = [
   {key:'moisson', nom:'Moisson', teinte:0xF0BE28, timbre:'tracteur', ton:0.76, v:new Vehicle({
       x:COUR_X0 + 4*PLACE_PAS, z:47, cap:Math.PI, vmax:9.5, accel:7, turn:1.5, grip:4.0, trackW:1.7,
       susp:{k:20, d:3.8, roll:0.052, pitch:0.024, rough:1.3},
-      toolOffset:4.6, build:buildMoissonneuse
+      toolOffset:4.6*1.08, build:buildMoissonneuse
     })},
   {key:'enjambeuse', nom:'Enjambeuse', teinte:0xE07B24, verrou:true, prix:5000,
    timbre:'tracteur', ton:1.14,
@@ -17045,7 +17045,7 @@ const MACHINES = [
    timbre:'tracteur', ton:0.70, v:new Vehicle({
       x:placeCentre(3), z:47, cap:Math.PI, vmax:11, accel:8, turn:1.55, grip:6.4, trackW:1.78,
       susp:{k:24, d:4.6, roll:0.050, pitch:0.030, rough:1.10},
-      build:buildTracteurLourd
+      chape:3.8, build:buildTracteurLourd
     })}
 ];
 
@@ -17149,6 +17149,12 @@ const nomPourEngin = (T)=>{
   const m = T && T.pourEngin ? MACHINES.find((x)=> x.key === T.pourEngin) : null;
   return m ? nomEngin(m).toUpperCase() : '';
 };
+/* OÙ L'OUTIL S'ACCROCHE. Chaque outil porte `hitch`, la cote de la chape du tracteur pour
+   lequel il a été dessiné — 2,0 m pour les quatre premiers, 3,8 pour le combiné, fait pour
+   le tracteur lourd. Attelé au lourd, un outil à 2,0 m tombait DANS sa caisse : « quand
+   j'accroche d'autres remorques ça arrive pas au bon endroit ». L'engin dit donc sa chape
+   (`chape`), et l'outil s'y accroche quand elle est plus loin que sa propre cote. */
+const hitchDe = (v, T)=> Math.max((T && T.hitch) || 0, (v && v.chape) || 0);
 function attachTool(v, T){
   if(T.attached) return false;
   /* ET LA RELECTURE DE SAUVEGARDE PASSE PAR LÀ AUSSI, ce qui est voulu : une partie qui
@@ -17176,8 +17182,8 @@ function attachTool(v, T){
   if(v.tool) detachTool(v);
   const f = v.fwd();
   T.attached = v; v.tool = T;
-  T.axle.x = v.pos.x - f.x*(T.hitch + T.L);
-  T.axle.z = v.pos.z - f.z*(T.hitch + T.L);
+  T.axle.x = v.pos.x - f.x*(hitchDe(v, T) + T.L);
+  T.axle.z = v.pos.z - f.z*(hitchDe(v, T) + T.L);
   v.prevWork = null;
   return true;
 }
@@ -19351,7 +19357,7 @@ function ameliorerItem(cle){
 const cropEl = document.getElementById('crop');
 cropEl.addEventListener('pointerdown', ()=>{
   const T = toolOf(MACHINES[cur]);
-  if(!T || T.key !== 'semis') return;
+  if(!T || !T.seme) return;                      // le semoir, et le combiné qui sème aussi
   // on ne propose que les cultures achetées au comptoir
   let n = T.crop || 0;
   for(let k=0;k<CROPS.length;k++){
@@ -19382,7 +19388,7 @@ cropEl.addEventListener('pointerdown', ()=>{
    semis : le texte est le même d'un bout à l'autre d'une parcelle. */
 function refreshCropButton(){
   const T = toolOf(MACHINES[cur]);
-  if(!T || T.key !== 'semis'){ cropEl.style.display = 'none'; return; }
+  if(!T || !T.seme){ cropEl.style.display = 'none'; return; }
   cropEl.style.display = 'flex';
   const nom = CROPS[T.crop || 0].nom.toUpperCase();
   if(cropEl.dataset.crop !== nom){ cropEl.dataset.crop = nom; cropEl.textContent = nom; }
@@ -21156,7 +21162,7 @@ function remplirCuve(T, cle){
      au transvasement, c'est-à-dire au seul endroit où la graine monte à bord. Sans
      lui, on charge de l'orge sur un semoir réglé sur le blé et la machine sème
      encore du blé, c'est-à-dire rien. Les autres casiers ne bougent pas. */
-  if(T.key === 'semis'){
+  if(T.seme && k !== 'engrais'){
     const i = CROP_DE[k];
     if(i !== undefined && CROPS[i] && !CROPS[i].perenne && T.crop !== i){
       T.crop = i; refreshCropButton();
@@ -21628,7 +21634,7 @@ const LECONS = [
    txt:'CHOISIR LA SEMENCE – Le semoir sait maintenant planter plusieurs cultures. Le bouton '
      + 'de culture permet de choisir laquelle.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
-     return !!(T && T.key === 'semis' && CROPS.filter((c)=> !c.verrou).length >= 2); }},
+     return !!(T && T.seme && CROPS.filter((c)=> !c.verrou).length >= 2); }},
 
   {cle:'parcelle', ou:'parcelle', nom:'ACHETER UNE PARCELLE', titre:'UNE TERRE À VENDRE',
    txt:'UNE TERRE À VENDRE – Une parcelle voisine est disponible. Arrêtez-vous dessus pour '
@@ -24936,10 +24942,19 @@ function actionService(){
      faire redonnerait exactement le « partout » qu'on vient de retirer. L'ACHAT, lui, ne
      bouge pas d'un pouce : il reste au Comptoir agricole, où l'on voit la cuve et le prix. */
   const surReserve = (R)=> prochePoint(v, R.quai.x, R.quai.z, R.r);
-  const bonneCuve = !!outil && outil.cuveMax
-    && (outil.key === 'engrais' ? surReserve(RES_ENGRAIS) : surReserve(RES_GRAINE));
-  if(outil && outil.cuveMax && (aQuai(v, COMPTOIR) || bonneCuve)){
-    const eng = outil.key === 'engrais';
+  /* LE COMBINÉ A DEUX CASIERS, DONC DEUX CUVES. Le joueur : « j'arrive pas à le remplir
+     d'engrais à la citerne et j'arrive pas à lui mettre d'autres semences ». Tout ici
+     lisait `key === 'engrais'` : un outil qui n'était ni le semoir ni l'épandeur n'avait
+     droit qu'à la cuve verte, et l'engrais de son second casier n'existait nulle part.
+     On regarde ce que l'outil PORTE — `seme`, `fertilise` — et l'on sert chaque casier
+     devant sa cuve, ou les deux au comptoir. */
+  const aGraine = !!outil && !!outil.cuveMax && !!outil.seme;
+  const aEngrais = !!outil && !!outil.cuveMax && (outil.key === 'engrais' || !!outil.fertilise);
+  const auComptoir = !!outil && !!outil.cuveMax && aQuai(v, COMPTOIR);
+  const natures = [];
+  if(aGraine && (auComptoir || surReserve(RES_GRAINE))) natures.push(false);
+  if(aEngrais && (auComptoir || surReserve(RES_ENGRAIS))) natures.push(true);
+  for(const eng of natures){
     const cle = eng ? null : CROPS[outil.crop || 0].cle;
     const perenne = !eng && CROPS[outil.crop || 0].perenne;
     const kCuve = eng ? 'engrais' : cle;
@@ -24949,8 +24964,6 @@ function actionService(){
     if(perenne)
       cuves.push({txt:nom + ' NE SE SÈME PAS – ELLE SE PLANTE, ET SE PAIE AU CHAMP', ok:false});
     else if(place < 0.5)
-      // « plein » veut dire plein DE CETTE GRAINE-LÀ : les autres casiers ont leur propre
-      // compte, et l'on peut charger de l'orge sur un semoir plein de blé.
       cuves.push({txt:outil.nom.toUpperCase() + ' PLEIN DE ' + nom + ' – ' +
                       kg(cuveDe(outil, kCuve)).toUpperCase(), ok:false});
     else if(dispo < 0.5)
@@ -24959,15 +24972,15 @@ function actionService(){
     else
       cuves.push({txt:'REMPLIR ' + lHaut(outil.nom) + ' – ' + nom + ' ' +
                       kg(Math.min(place, dispo)).toUpperCase(), ok:true,
-                  f:()=>{ const q = remplirCuve(outil, cle);
+                  f:()=>{ const q = remplirCuve(outil, kCuve);
                           if(q) showHint('+ ' + kg(q).toUpperCase() + ' ' + nom); }});
-    if(cuveTotal(outil) > 0.5)
-      cuves.push({txt:'VIDER ' + lHaut(outil.nom) + ' – ' +
-                      kg(cuveTotal(outil)).toUpperCase() + ' \u00c0 LA CUVE', ok:true,
-                  f:()=>{ const q = viderToutesCuves(outil);
-                          showHint(q ? kg(q).toUpperCase() + ' RENDUS \u00c0 LA CUVE'
-                                     : 'LA CUVE DE LA COUR EST PLEINE'); }});
   }
+  if(natures.length && cuveTotal(outil) > 0.5)
+    cuves.push({txt:'VIDER ' + lHaut(outil.nom) + ' – ' +
+                    kg(cuveTotal(outil)).toUpperCase() + ' \u00c0 LA CUVE', ok:true,
+                f:()=>{ const q = viderToutesCuves(outil);
+                        showHint(q ? kg(q).toUpperCase() + ' RENDUS \u00c0 LA CUVE'
+                                   : 'LA CUVE DE LA COUR EST PLEINE'); }});
   /* LE COMPTOIR A SA FENÊTRE, ET N'OUVRE PLUS LE MENU GÉNÉRAL. On arrivait au quai, on
      appuyait, et l'on tombait dans le menu de la ferme à un onglet, au milieu d'une barre
      de onze autres qui n'avaient rien à voir avec le geste demandé — exactement le défaut
@@ -27124,45 +27137,48 @@ function vueComptoirCuves(){
   }
   const attele = toolOf(MACHINES[cur]);
   for(const T of cuves){
-    const eng = T.key === 'engrais';
-    const c = eng ? null : CROPS[T.crop || 0];
-    const cle = eng ? null : c.cle;
-    const nom = eng ? 'engrais' : c.nom.toLowerCase();
-    const kCuve = eng ? 'engrais' : cle;
-    const place = placeCuve(T, kCuve);
-    const dispo = eng ? CUVES.engrais : (CUVES.graines[cle] || 0);
-    const perenne = !eng && c.perenne;
-    /* CE QU'IL PORTE, SAC PAR SAC. Un semoir qui rentre avec du blé et du maïs à bord
-       doit le dire : la ligne n'affichait que la nature réglée, et le second sac
-       n'existait nulle part à l'écran. */
-    const sacs = Object.keys(T.cuves || {}).filter((k)=> T.cuves[k] > 0.5);
-    article(0xF0C24A, T.nom + ' – ' + kg(cuveDe(T, kCuve)) + ' sur ' + kg(T.cuveMax) +
-      ' ' + dNom(nom),
-      (eng ? 'Il épand l\'engrais qu\'il porte, pris à la cuve blanche de la cour.'
-           : 'Il est réglé sur ' + lNom(nom) + ' – le bouton de l\'écran de conduite en ' +
-             'change. Chaque semence a son casier, et sa propre capacité.') +
-      (sacs.length > 1 ? '<br>À bord : ' + sacs.map((k)=> kg(T.cuves[k]) + ' ' +
-         dNom((PRODUITS[k] ? PRODUITS[k].nom : k).toLowerCase())).join(' · ') : '') +
-      '<br>À la cuve de la cour : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
-      kg(dispo) + ' ' + dNom(nom) + '</span>',
-      T === attele ? 'Attelé' : 'À la ferme', 'no', null, null, cle);
-    if(perenne)
-      article(0x8A9298, c.nom + ' ne se sème pas',
-        'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
-        'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null, null, cle);
-    else {
-      const q = Math.min(place, dispo);
-      const ok = q >= 0.5;
-      article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase() + ' ' + dNom(nom),
-        place < 0.5 ? 'Le casier ' + dNom(nom) + ' est plein.'
-                    : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' à la cuve – le rayon ' +
-                                     'des semences est à l\'onglet précédent.'
-                                   : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' à la cuve de la cour, où ' +
-                                     'que soit l\'outil. Les autres sacs ne bougent pas.'),
-        ok ? '+ ' + kg(q) : (place < 0.5 ? 'Plein' : 'Cuve vide'), ok ? 'vert' : 'no',
-        ok ? ()=>{ const pris = remplirCuve(T, cle);
-                   if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null,
-        null, cle);
+    // Un casier par nature : le semoir sa semence, l'épandeur son engrais, le combiné les deux.
+    const casiers = [];
+    if(T.seme) casiers.push(false);
+    if(T.key === 'engrais' || T.fertilise) casiers.push(true);
+    for(const eng of casiers){
+      const c = eng ? null : CROPS[T.crop || 0];
+      const cle = eng ? null : c.cle;
+      const nom = eng ? 'engrais' : c.nom.toLowerCase();
+      const kCuve = eng ? 'engrais' : cle;
+      const place = placeCuve(T, kCuve);
+      const dispo = eng ? CUVES.engrais : (CUVES.graines[cle] || 0);
+      const perenne = !eng && c.perenne;
+      // le second sac doit se dire : la ligne n'affichait que la nature réglée
+      const sacs = Object.keys(T.cuves || {}).filter((k)=> T.cuves[k] > 0.5 && (eng ? k === 'engrais' : k !== 'engrais'));
+      article(0xF0C24A, T.nom + ' – ' + kg(cuveDe(T, kCuve)) + ' sur ' + kg(T.cuveMax) +
+        ' ' + dNom(nom),
+        (eng ? 'Il épand l\'engrais qu\'il porte, pris à la cuve blanche de la cour.'
+             : 'Il est réglé sur ' + lNom(nom) + ' – le bouton de l\'écran de conduite en ' +
+               'change. Chaque semence a son casier, et sa propre capacité.') +
+        (sacs.length > 1 ? '<br>À bord : ' + sacs.map((k)=> kg(T.cuves[k]) + ' ' +
+           dNom((PRODUITS[k] ? PRODUITS[k].nom : k).toLowerCase())).join(' · ') : '') +
+        '<br>À la cuve de la cour : <span class="' + (dispo >= 1 ? 'q' : 'q court') + '">' +
+        kg(dispo) + ' ' + dNom(nom) + '</span>',
+        T === attele ? 'Attelé' : 'À la ferme', 'no', null, null, kCuve);
+      if(perenne)
+        article(0x8A9298, c.nom + ' ne se sème pas',
+          'Cette culture se PLANTE, et se paie au champ à mesure que le semoir avance : il ' +
+          'n\'y a rien à charger dans la cuve.', 'Au champ', 'no', null, null, cle);
+      else {
+        const q = Math.min(place, dispo);
+        const ok = q >= 0.5;
+        article(0x8BE07A, 'Remplir ' + lHaut(T.nom).toLowerCase() + ' ' + dNom(nom),
+          place < 0.5 ? 'Le casier ' + dNom(nom) + ' est plein.'
+                      : (dispo < 0.5 ? 'Il n\'y a plus ' + dNom(nom) + ' à la cuve – le rayon ' +
+                                       (eng ? 'des consommables' : 'des semences') + ' est à l\'onglet précédent.'
+                                     : 'Prend ' + kg(q) + ' ' + dNom(nom) + ' à la cuve de la cour, où ' +
+                                       'que soit l\'outil. Les autres sacs ne bougent pas.'),
+          ok ? '+ ' + kg(q) : (place < 0.5 ? 'Plein' : 'Cuve vide'), ok ? 'vert' : 'no',
+          ok ? ()=>{ const pris = remplirCuve(T, kCuve);
+                     if(pris) showHint('+ ' + kg(pris).toUpperCase() + ' ' + nom.toUpperCase()); } : null,
+          null, kCuve);
+      }
     }
     if(cuveTotal(T) > 0.5)
       article(0x9FD8E8, 'Vider ' + lHaut(T.nom).toLowerCase(),
