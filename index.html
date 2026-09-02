@@ -283,6 +283,14 @@
     font-weight:normal;margin-top:2px;text-transform:none}
   .pe.on{background:var(--or);box-shadow:0 5px 0 #C08F22;transform:rotate(0deg) scale(1.03)}
   .pe.on .pn{color:#3A3010}
+  /* UNE LIGNE QU'ON NE PEUT PAS PRENDRE EST ÉTEINTE, PAS ABSENTE. C'est la règle de tous
+     les magasins du jeu : on voit ce qui vient, et à quel palier. Elle garde son relief
+     — l'enlever ferait un trou dans la pile — et perd seulement son encre. */
+  .pe.no{opacity:.45}
+  /* ET LA LISTE DES ÉLEVAGES PORTE LA VIGNETTE DE SA BÊTE, à la place du filet de
+     couleur. Même boîte de 26 que dans les menus, et le même `flex:none` : sans lui,
+     la ligne de texte comprimerait l'image au lieu de s'élargir. */
+  .pe .vign{width:26px;height:26px;flex:none;object-fit:contain}
   .pe.on .pd{color:#6B571C}
   #menuBtn{position:absolute;top:calc(10px + env(safe-area-inset-top));
     right:calc(58px + env(safe-area-inset-right));pointer-events:auto;
@@ -298,8 +306,11 @@
      ni voisins. */
   #fen{position:absolute;inset:0;display:none;pointer-events:auto;z-index:21}
   #fenfond{position:absolute;inset:0;background:var(--voile)}
-  #fenboite{position:absolute;inset:calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)) 14px;
-    max-width:680px;margin:auto;display:flex;flex-direction:column;padding:12px 14px 12px}
+  /* HUIT PIXELS DE MARGE AU LIEU DE QUATORZE : douze pixels rendus à la liste, sur un
+     écran de téléphone qui n'en a que 390. Le bord déchiré déborde de dix — il reste donc
+     dans l'écran, à deux pixels près, et c'est ce qu'on veut d'une feuille posée dessus. */
+  #fenboite{position:absolute;inset:calc(8px + env(safe-area-inset-top)) 10px calc(8px + env(safe-area-inset-bottom)) 10px;
+    max-width:680px;margin:auto;display:flex;flex-direction:column;padding:10px 14px 10px}
   /* LE TITRE DE FENÊTRE : capitales, vert profond, légèrement de travers. Pas d'ombre —
      elle alourdissait un texte déjà gras, et la capitale suffit à le poser comme titre. */
   #fentete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
@@ -329,6 +340,20 @@
      connaît déjà le geste, et deux barres d'onglets différentes dans le même jeu
      seraient une leçon à réapprendre pour rien. */
   #fenliste{flex:1;overflow-y:auto;padding:2px 9px 10px}
+  /* ---------- L'ACCUEIL D'UN GUICHET ----------
+     Le tenancier, deux fois plus grand que dans le bandeau, et ce qu'il dit en arrivant.
+     C'est une LIGNE DE LISTE, et elle en a le gabarit — même fond beige, même relief que
+     les articles — parce qu'elle vit avec eux et s'en va avec eux. Ce n'est pas un cadre :
+     un cadre resterait, et prendrait la place des véhicules qu'on est venu voir. */
+  .fenacc{display:flex;align-items:center;gap:12px;padding:6px 12px 4px;margin-bottom:7px;
+    background:var(--ligne);border-radius:11px;box-shadow:0 3px 0 var(--ligneOmb);
+    transform:rotate(-.5deg)}
+  .fenacc .face{width:96px;height:120px;object-fit:contain;object-position:bottom center;
+    flex:none;margin:-2px 0 -6px;image-rendering:auto}
+  /* CE QU'IL DIT EST UNE RÉPLIQUE, et sur du papier une réplique se met en italique entre
+     guillemets — c'est déjà la règle des fins de mission, où le client remercie. */
+  .fenaccmot{font-size:13px;line-height:1.55;color:var(--texte);text-align:left}
+  .fenaccmot i{font-style:italic}
   /* Le chiffre qui décide : ce qu'on a en magasin et ce qu'on peut en sortir. Il doit
      se lire sans lire la phrase autour — d'où la graisse, la taille et la couleur. */
   .art .det .q{font-weight:bold;font-size:10.5px;letter-spacing:.2px;color:var(--titreC)}
@@ -389,15 +414,16 @@
      animation d'entrée : 192 x 240 sur l'écran de gain, 96 x 120 dans la fenêtre de
      contrat, 64 x 80 au bandeau du guichet. Les fiches sont fabriquées par
      outils/portraits ; PX_JEU y porte le même nom et la même valeur.
-     LE GUICHET EST LE SEUL ÉCART, ET IL EST ASSUMÉ. Le comptoir et le garage montrent leur
-     visage NEUTRE à deux tailles : 96 dans la fenêtre de contrat, 64 dans le bandeau de
-     leur guichet. Un fichier ne peut pas être à la fois 288 et 192 de large ; la planche
-     suit la boîte la plus fréquente (96, quinze commerces contre deux) et le guichet
-     affiche donc à 64/288, soit un pixel d'art de 0,22 px CSS au lieu de 0,33. La seule
-     façon de fermer cet écart serait de porter #fenface à 96 x 120 — mesuré : le bandeau
-     de titre passerait de 80 à 115 px et le rayon perdrait 35 px sur les 192 d'un
-     téléphone couché, soit une ligne d'article. Ça ne valait pas deux fichiers sur
-     quarante et un.
+     ET IL N'Y A PLUS D'ÉCART DU TOUT. Il y en a eu un, longtemps : le comptoir et le
+     garage posaient leur visage neutre à 64 x 80 dans leur bandeau de titre, soit 64/288
+     — 0,22 px CSS par pixel d'art au lieu du tiers. On ne pouvait pas l'élargir sans
+     porter le bandeau de 80 à 115 px, c'est-à-dire sans coûter une ligne d'article sur un
+     téléphone couché ; l'écart était donc assumé, faute de mieux.
+     LE MIEUX EST VENU D'AILLEURS. Le joueur voulait voir ces deux personnages plus grands
+     et leur donner une phrase d'accroche ; les sortir du bandeau pour en faire une ligne
+     d'ACCUEIL en tête de liste règle les deux questions du même geste — 96 est le tiers
+     exact de 288, et la place ne se paie plus sur le rayon puisque l'accueil s'en va dès
+     qu'on descend. Les quarante et une planches sont maintenant à la même échelle.
      LE RENDU EST `auto`, ET C EST LE BON CHOIX AUX TROIS DENSITÉS. L'image est toujours
      réduite : 576 dans une boîte de 192. Sur un téléphone à trois points par pixel CSS la
      boîte en fait 576 et le navigateur pose un pixel d'art par point d'écran — `auto` et
@@ -534,6 +560,20 @@
      le jour où l'on en posera une qui ne l'est pas, et il ne coûte rien. */
   .art .vign, .al .vign{width:26px;height:26px;flex-shrink:0;object-fit:contain}
   .al .vign{align-self:center}
+  /* UNE LIGNE PEUT PARLER DE PLUSIEURS PRODUITS. Une mission qui demande de la farine ET
+     des œufs n'en montrait qu'un : « la farine est bien affichée en tant que logo, mais
+     pas les œufs ». Les images se posent donc côte à côte, TOUJOURS à 26 px de haut — la
+     hauteur du filet qu'elles remplacent, celle qui garantit qu'aucune liste ne bouge —
+     et c'est encore la LARGEUR qui paie. Elles se chevauchent d'un tiers, comme des
+     jetons poussés les uns sur les autres : deux produits prennent 44 px au lieu de 55,
+     trois en prennent 62, et la colonne de texte ne part pas au milieu de la ligne.
+     Le chevauchement se fait vers la GAUCHE (`margin-left` négatif) pour que la première
+     image reste entière et au-dessus : c'est celle du produit principal. */
+  .art .vigns{display:flex;flex-shrink:0;align-items:center}
+  .art .vigns .vign + .vign{margin-left:-9px}
+  /* Chacune porte le fond du papier derrière elle : sans quoi le chevauchement laisserait
+     voir le blé à travers les œufs, et l'on ne lirait ni l'un ni l'autre. */
+  .art .vigns .vign{background:var(--ligne);border-radius:6px}
   /* ET LE NOM RESTE COLLE A SON IMAGE. La ligne de la fenetre d'action repartit ses
      enfants aux deux bouts — le nom a gauche, la quantite a droite —, et une vignette de
      plus en faisait TROIS : le nom partait au milieu, entre l image et le nombre. La
@@ -906,13 +946,31 @@
      pages. Et un PORTRAIT ÉLASTIQUE : c'est lui le poste le plus lourd — 240 pixels sur
      390 — et il se règle en `vh`, donc il rétrécit là où l'écran est court et garde sa
      taille là où il est grand. */
-  #brboite{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:auto;
+  /* ---------- LA FEUILLE GARDE SON BORD, C'EST LE DEDANS QUI DÉFILE ----------
+     Il fallait deux choses à la fois, et les deux se sont mordues.
+     LA PREMIÈRE : la fenêtre ne doit pas dépasser de l'écran — c'est ce que le joueur a
+     signalé sur la fin de mission, qui faisait 541 px sur 390. Un plafond de hauteur avec
+     `overflow-y:auto` le règle.
+     LA SECONDE : « pour ces fenêtres, utilise encore le côté papier déchiré comme avant. »
+     Or le bord déchiré est un SVG posé en `inset:-10px`, c'est-à-dire DIX PIXELS DEHORS,
+     et un conteneur qui défile recadre à sa boîte de remplissage : le plafond avait donc
+     retaillé le papier au carré, exactement ce qu'on avait cherché à quitter.
+     LES DEUX TIENNENT DÈS QU'ON SÉPARE LES DEUX RÔLES. La FEUILLE porte le plafond et ne
+     recadre rien ; un DÉFILEUR posé dedans porte la colonne et le débordement. Le papier
+     garde ses dix pixels dehors, le contenu s'arrête au bord du papier, et sur un écran
+     trop court c'est la pile de blocs qui glisse — le titre, le portrait et la feuille
+     restent en place. C'est déjà la manœuvre du sélecteur d'engin, où « le titre reste, le
+     bord déchiré reste, seule la pile glisse ». */
+  #brboite{display:flex;flex-direction:column;align-items:center;pointer-events:auto;
     width:min(92vw,400px);padding:12px 20px 12px;
-    max-height:calc(100vh - 14px);max-height:calc(100dvh - 14px);overflow-y:auto;
+    max-height:calc(100vh - 14px);max-height:calc(100dvh - 14px);
     /* LE REPÈRE DU TAMPON. Il se pose SUR la boîte et non dans la colonne : un tampon
        encré est un accident sur le papier, pas une ligne de plus dans la mise en page.
-       `overflow-y` reste : le tampon est posé dans les marges latérales, jamais au-delà. */
+       Et il reste HORS du défileur : un tampon qui glisserait avec le texte serait une
+       vignette, pas un coup de tampon. */
     position:relative}
+  #brdefile{display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:100%;min-height:0;overflow-y:auto}
   /* Un bloc vide ne prend pas de place : les pages ne portent pas toutes les cinq lignes,
      et un `<div>` vide gardait son écart et sa marge. */
   #brsous:empty,#brprix:empty,#brplus:empty,#brsuite:empty,#brtampon:empty{display:none}
@@ -944,7 +1002,8 @@
      de blé. La boîte se resserre, le portrait passe à un tiers, et le prix reste gros
      parce que c'est la seule chose qu'on vient y lire. */
   #bravo.recu{background:radial-gradient(ellipse at center, rgba(12,18,22,.34), rgba(12,18,22,.08) 70%)}
-  #bravo.recu #brboite{width:min(86vw,330px);gap:5px;padding:11px 16px 11px}
+  #bravo.recu #brboite{width:min(86vw,330px);padding:11px 16px 11px}
+  #bravo.recu #brdefile{gap:5px}
   #bravo.recu #brface{width:min(104px,16vh);height:min(130px,20vh);margin-bottom:-4px}
   #bravo.recu #brtitre{font-size:15px;letter-spacing:2.2px;transform:scaleY(1.1) rotate(-.7deg)}
   #bravo.recu #brprix{font-size:26px;padding:7px 18px;border-radius:11px}
@@ -1378,13 +1437,11 @@
      fenêtre de contrat, 64 au bandeau de leur guichet. Une planche de 288 tombe sur 3 dans
      la première et sur 4,5 dans la seconde — quarante et une poses sur quarante-trois sur
      la grille, deux à côté.
-     Hors grille, ça ne se voit pas : le rendu est `auto`, et une réduction lisse de 4,5
-     est une moyenne pondérée, pas un pixel sur deux jeté. En grille, le rendu passe à
-     `pixelated` et le demi-pixel MORD — c'est exactement là que l'écart devient visible,
-     et c'est donc exactement là qu'on le paie. Le visage du guichet passe à 96 × 120, le
-     bandeau de titre de 80 à 115 px, et le rayon perd 35 px sur les 192 dont il dispose
-     sur un téléphone couché : une ligne d'article, dans le seul mode qui la réclame. */
-  body.grille #fenface{width:96px;height:120px;margin:-3px 0 -12px}
+     CETTE RÈGLE-LÀ A ÉTÉ RETIRÉE, ET C'EST UNE BONNE NOUVELLE. Elle portait le visage du
+     guichet de 64 à 96 dans le seul mode qui voyait le demi-pixel, en payant 35 px de
+     rayon pour cela. Les deux guichets ont depuis sorti leur tenancier du bandeau : il est
+     à 96 x 120 EN PERMANENCE, sur la grille dans les deux modes, et le rayon ne paie plus
+     rien. Il n'y a plus d'écart à rattraper ici. */
   body.grille #goaltxt{text-shadow:0 1px 0 rgba(0,0,0,.6)}
   body.grille #viseurs .vis .nm{text-shadow:0 1px 0 rgba(0,0,0,.85)}
   body.grille #pause{box-shadow:0 3px 0 rgba(0,0,0,.45)}
@@ -1574,16 +1631,15 @@
 <!-- LA FÊTE D'UNE MISSION FINIE. Un calque à part, jamais l'écran d'accueil : celui-ci
      met le jeu en PAUSE, ce qui gèlerait les pièces et le décompte, et il porte des
      boutons `.accbtn.pri` par lesquels toute la suite de bancs entre dans le jeu. -->
-<div id="bravo"><div id="brboite">
+<div id="bravo"><div id="brboite"><div id="brdefile">
   <img id="brface" class="face" alt="">
   <div id="brtitre">BRAVO</div>
   <div id="brsous"></div>
   <div id="brprix"></div>
   <div id="brplus"></div>
-  <div id="brtampon"></div>
   <div id="brsuite"></div>
   <div id="brgo" aria-label="Continuer"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 16h16M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-</div></div>
+</div><div id="brtampon"></div></div></div>
 <div id="rot"><b>TOURNE L'ÉCRAN</b><span>Le jeu se joue en paysage</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -3893,43 +3949,6 @@ const PORTRAITS = {
   'Comptoir agricole': {r:'comptoir', h:['neutre']},
   'Garage':            {r:'garage',   h:['neutre']}
 };
-/* ---------- ET CHACUN A UN PRÉNOM ----------
-   Le joueur, sur la fenêtre d'étal plein : « tu ne marques pas COMPLET — BOULANGERIE, tu
-   marques Jules, boulangerie. » Un commerce ne refuse pas une livraison : QUELQU'UN la
-   refuse, et c'est cette personne-là qu'on a devant soi, dessinée, avec sa mine de regret.
-   Le nom de l'enseigne disait un lieu ; le prénom dit l'interlocuteur, et il rend la
-   phrase entre guillemets à celui qui la prononce.
-
-   LES QUINZE SONT CHOISIS SUR LES VISAGES, pas au hasard : la Coopérative est une femme
-   âgée à lunettes, le Marché un vieil homme en casquette, l'Atelier textile une femme aux
-   cheveux noirs. Se tromper de personne serait pire que de n'en nommer aucune. JULES est
-   celui que le joueur a nommé — le boulanger roux — et les quatorze autres se changent en
-   un mot, ici, sans que rien d'autre bouge.
-
-   ET LE COMPTOIR ET LE GARAGE EN ONT UN AUSSI, bien qu'ils ne refusent jamais rien : ils
-   tiennent une fenêtre à leur nom, et le jour où elle voudra dire « Marcel » elle le
-   pourra. Une table qui ne couvre que les cas d'aujourd'hui se retrouve à trous demain. */
-const PRENOMS = {
-  'Coopérative':      'Simone',    // la femme aux lunettes vertes, cheveux gris
-  'Comptoir agricole':'Marcel',    // le roux barbu en salopette, un brin de blé aux dents
-  'Garage':           'Roger',     // le vieux à moustache blanche et bras tatoués
-  'Usine céréales':   'Damien',    // le jeune homme à la chemise verte et au presse-papiers
-  'Boulangerie':      'Jules',     // le roux costaud au foulard bleu — nommé par le joueur
-  'Épicerie':         'Gilbert',   // la casquette, la moustache, le tablier vert
-  'Restaurant':       'Margot',    // la femme à la chemise rouge et à l'ardoise
-  'Usine avoine':     'Hélène',    // la veste bleu canard, l'épi à la main
-  'Laiterie':         'Bernard',   // le chauve à moustache, en blouse blanche
-  'Supermarché':      'Sofiane',   // le crâne rasé, le gilet et le badge
-  'Atelier textile':  'Nadia',     // les cheveux noirs, les lunettes, le châle brodé
-  'Fromagerie':       'Odette',    // la rousse bouclée et son plateau
-  'Marché':           'Lucien',    // le vieil homme à la casquette et à la moustache blanche
-  'Caviste':          'Victor',    // le jeune bouclé à lunettes rondes et nœud papillon
-  'Boucherie':        'Henri'      // le calot blanc et le tablier rayé
-};
-/* ET UN COMMERCE SANS PRÉNOM RESTE JOUABLE, comme un commerce sans visage : on retombe
-   sur l'enseigne, qui est ce que le jeu disait avant. C'est ce qui permet d'ajouter un
-   seizième commerce sans toucher à cette table le jour même. */
-const prenomDe = (nom)=> PRENOMS[nom] || null;
 const HUMEURS = ['neutre', 'bravo', 'refus'];
 /* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
    ne refuse jamais un achat — il vend, il n'achète pas : il n'a ni pouce levé ni refus à
@@ -4021,7 +4040,14 @@ const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle
    `lignes` — une marchandise et une quantité par ligne — et c'est la PREMIÈRE qui donne
    son image à la ligne de menu. Une mission qui demande un GESTE et non une marchandise
    — labourer, rentrer à la ferme — n'a pas de lignes du tout, et garde son filet vert. */
-const ligneProduit = (E)=> (E && E.lignes && E.lignes[0]) ? E.lignes[0].cle : null;
+/* TOUTES LES MARCHANDISES D'UN ENGAGEMENT, ET NON PLUS SEULEMENT LA PREMIÈRE. Une
+   mission qui demande de la farine et des œufs a DEUX lignes, et n'en montrait qu'une :
+   « la farine est bien affichée en tant que logo, mais pas les œufs. » Le doublon se
+   retire — deux lignes de blé de deux commerces différents ne font pas deux images —, et
+   `article` pose ce qu'on lui donne. */
+const ligneProduit = (E)=> (E && E.lignes)
+  ? E.lignes.map((l)=> l.cle).filter((c, i, t)=> c && t.indexOf(c) === i)
+  : null;
 
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
@@ -13380,6 +13406,50 @@ function voiesAcces(){
 }
 const accesDe = (x, z, L)=> L.find((A)=> Math.abs(x - A.voie) <= A.large/2
                                       && z >= A.z0 - 1 && z <= A.z1 + 1);
+/* ---------- LA LIGNE DROITE EST-ELLE ROULABLE JUSQU'AU CHAMP ? ----------
+   Deux questions, et deux seulement. Y a-t-il un MUR sur le trajet ? Traverse-t-on la
+   TERRE D'UN AUTRE ? Le reste — l'herbe, les chemins, sa propre parcelle — se roule.
+
+   ON ÉCHANTILLONNE AU MÈTRE, et c'est assez : le plus étroit des passages du jeu est le
+   couloir entre deux parcelles, 9,60 m, et la plus petite emprise dure fait 1,35 m de
+   rayon autour de son centre. Un pas d'un mètre ne saute rien de ce qui arrête une
+   machine. Le coût est celui de la longueur du trajet — quelques dizaines de points, une
+   fois par entrée au champ, pas une fois par image.
+
+   ON ÉLARGIT LES MURS DE LA DEMI-MACHINE, comme le fait déjà `itineraire` pour compter ce
+   que ses candidats traversent : un trajet qui frôle un pilier à un mètre n'est pas
+   roulable, il est seulement calculé. `MI_MACHINE` vaut 1,35 m là-bas, et c'est la même
+   mesure ici — les deux comptent la même chose.
+
+   LES PARCELLES SE TESTENT SANS MARGE, elles. Une parcelle n'arrête pas : elle se laboure.
+   Frôler le bord de celle du voisin de quelques centimètres ne marque rien — l'outil ne
+   peint que les cellules qu'il couvre —, et prendre une marge ferait refuser la ligne
+   droite dans tout le couloir qui sépare deux terres, c'est-à-dire précisément là où
+   passe le chemin qu'on cherche. */
+function voieDirecteChamp(ax, az, bx, bz, cible){
+  const MI_MACHINE = 1.35;
+  const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz);
+  const pas = Math.max(1, Math.ceil(L));
+  for(let i = 0; i <= pas; i++){
+    const px = ax + dx*i/pas, pz = az + dz*i/pas;
+    for(const o of obstacles){
+      const R = o.r + (o.soft ? 1.5 : 1.35);
+      const ex = px - o.x, ez = pz - o.z;
+      if(ex*ex + ez*ez < R*R) return false;
+    }
+    for(const o of boxObs){
+      const cx = Math.max(o.x - o.hw, Math.min(o.x + o.hw, px));
+      const cz = Math.max(o.z - o.hd, Math.min(o.z + o.hd, pz));
+      const ex = px - cx, ez = pz - cz;
+      if(ex*ex + ez*ez < MI_MACHINE*MI_MACHINE) return false;
+    }
+    for(const q of PARCELS){
+      if(q === cible || !q.owned) continue;
+      if(Math.abs(px - q.x) <= q.w/2 && Math.abs(pz - q.z) <= q.h/2) return false;
+    }
+  }
+  return true;
+}
 function itineraire(ax, az, bx, bz){
   // Déjà sur place : la voie ne sert à rien, et l'y faire passer ferait faire un tour.
   if(Math.hypot(bx - ax, bz - az) < 8) return [{x:bx, z:bz}];
@@ -13846,12 +13916,40 @@ function missionDrive(m, dt){
       if(m.key === 'moisson' && hopper > VIDE_TREMIE){ v.goSilo = true; v.plan = null; return [0, 0.5]; }
       tacheSuivante(m); return [0, 0];
     }
-    // On rejoint le premier point du travail PAR LES CHEMINS. Sans ça, l'engin part en
-    // diagonale et laboure au passage toutes les parcelles qui le séparent du chantier.
+    /* ---------- ON REJOINT LE DÉPART PAR LE CÔTÉ QU'ON VEUT, SI LA VOIE EST LIBRE ----------
+       Le joueur : « le point de départ du travail de la terre est assez figé, et on dirait
+       que l'accès à ce point se fait par un chemin défini, ce qui fait que le véhicule
+       prend parfois de grands virages pour se remettre dessus alors qu'il était à côté.
+       Fais vraiment plus simple : que le départ soit fixe, mais qu'on puisse y accéder par
+       n'importe quel côté, tout en suivant au maximum les routes. »
+
+       LE DÉPART NE BOUGE PAS — il est calculé par `planAuto`, et c'est lui qui garantit le
+       tiers de débord et le sens des lignes. Ce qui change, c'est le CHEMIN pour y aller.
+       Il passait toujours par `itineraire`, c'est-à-dire par la grille des chaussées : de
+       la parcelle voisine, ou du milieu de sa propre terre, l'engin ressortait sur un
+       chemin de sable, remontait, redescendait, et rentrait par le côté que la grille avait
+       choisi. C'est le grand virage qu'il décrit.
+
+       LA LIGNE DROITE EST PRISE QUAND ELLE EST VRAIMENT LIBRE, et deux conditions ne se
+       négocient pas. Aucun MUR sur le trajet — les bâtiments, les cuves, les arbres, la
+       clôture : c'est ce qu'il demande quand il dit « pas de grands virages qui nous font
+       sortir des routes, parce qu'on a tous les bâtiments qui nous bloquent, les arbres,
+       etc. » Et aucune TERRE ÉTRANGÈRE : couper à travers la parcelle du voisin la
+       labourerait au passage, ce qui était la raison d'être du détour par les chemins.
+       Sa propre parcelle, elle, se traverse librement — c'est là qu'on va travailler.
+
+       QUAND LA LIGNE N'EST PAS LIBRE, ON REPREND LES ROUTES, sans rien changer : `itineraire`
+       garde la desserte du silo, des cuves et des commerces exactement comme elle était. */
     if(!v.plan.entre){
       const R0 = v.plan.reprise;
-    const r = suivreRoute(v, R0 ? R0.x : wp.x, R0 ? R0.z : wp.z, 'p' + t.p);
-      if(r) return r;
+      const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
+      if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, PARCELS[t.p])){
+        const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
+        if(d > 1.6){ v.route = null; v.routeBut = null; return viser(v, cx, cz, 2.0); }
+      } else {
+        const r = suivreRoute(v, cx, cz, 'p' + t.p);
+        if(r) return r;
+      }
       v.plan.entre = true; v.plan.reprise = null;
       v.plan.dep = {x:v.pos.x, z:v.pos.z};
     }
@@ -14061,10 +14159,23 @@ function autoDrive(m, dt){
     }
     v.auto = false; v.plan = null; showHint('TRAVAIL TERMINÉ'); return [0,0];
   }
+  /* MÊME ACCÈS QUE SOUS MISSION, ET C'EST LE MÊME BESOIN. Les deux pilotes rejoignent le
+     premier point du travail par le même code écrit deux fois — l'un pour la campagne,
+     l'autre pour l'automatisation —, et n'en corriger qu'un se voit tout de suite : le
+     premier jet n'avait touché que la mission, et la mesure des cinq départs autour d'une
+     même parcelle rendait EXACTEMENT les mêmes chiffres qu'avant. C'est l'automatisation
+     que le joueur décrit ; c'est donc ici que la ligne droite compte le plus.
+     Le raisonnement est écrit une fois, au-dessus, dans `missionDrive`. */
   if(!v.plan.entre){
     const R0 = v.plan.reprise;
-    const r = suivreRoute(v, R0 ? R0.x : wp.x, R0 ? R0.z : wp.z, 'a' + PARCELS.indexOf(v.plan.p));
-    if(r) return r;
+    const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
+    if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, v.plan.p)){
+      const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
+      if(d > 1.6){ v.route = null; v.routeBut = null; return viser(v, cx, cz, 2.0); }
+    } else {
+      const r = suivreRoute(v, cx, cz, 'a' + PARCELS.indexOf(v.plan.p));
+      if(r) return r;
+    }
     v.plan.entre = true; v.plan.reprise = null;
     /* ET LE PREMIER TRONÇON A BESOIN D'UNE ORIGINE. Un tronçon va d'un point du plan au
        suivant ; le tout premier, lui, part de LÀ OÙ LA ROUTE A LAISSÉ LA MACHINE. On note
@@ -16942,6 +17053,7 @@ const FENETRES = {
      gain, ni un refus — les trois moments d'un portrait jusqu'ici : c'est un GUICHET. La
      fenêtre nomme donc son tenancier, et n'importe laquelle pourra en nommer un. */
   comptoir:   {titre:'Comptoir agricole', visage:'Comptoir agricole',
+                                   accroche:'Qu\'est-ce que je peux faire pour vous aujourd\'hui ?',
                                    vues:[{id:'semences', nom:'Semences'},
                                          {id:'consos',   nom:'Engrais & gazole'},
                                          {id:'cuves',    nom:'Remplir les cuves'}]},
@@ -16950,9 +17062,11 @@ const FENETRES = {
      pareil. C'est le premier cas où deux fenêtres nomment la même personne — la table le
      permettait déjà, il n'y avait rien à changer pour cela. */
   achat:      {titre:'Acheter', visage:'Garage',
+                                   accroche:'Qu\'est-ce que je peux faire pour vous aujourd\'hui ?',
                                    vues:[{id:'engins',   nom:'Véhicules'},
                                          {id:'outils',   nom:'Outils & remorques'}]},
   amelio:     {titre:'Améliorer', visage:'Garage',
+                                   accroche:'On regarde ce qu\'on peut améliorer ?',
                                    vues:[{id:'engins',   nom:'Véhicules'},
                                          {id:'outils',   nom:'Outils & remorques'}]}
 };
@@ -16972,7 +17086,21 @@ function rendreFenetre(){
   const F = FENETRES[fenActive];
   if(!F){ fermerFenetre(); return; }
   fentitre.textContent = F.titre;
-  poserVisage(document.getElementById('fenface'), F.visage, 'neutre');
+  /* LE TENANCIER QUITTE LE BANDEAU QUAND IL A UNE ACCROCHE. Le joueur : « pour le garage
+     et le comptoir agricole, retravaille la mise en page pour qu'on voie plus les
+     personnages, là ils sont tout petits par rapport aux autres ; un peu plus grand, avec
+     peut-être une phrase d'accroche. »
+     ET CE N'ÉTAIT PAS QU'UNE QUESTION DE GOÛT. Mesuré sur un téléphone en paysage : la
+     fenêtre fait 362 px, le bandeau en prend 80 — la hauteur du portrait —, les onglets
+     une trentaine, et il reste 222 px de liste pour 474 px de contenu. DEUX lignes sur
+     sept se voyaient, et c'est l'autre reproche du même message : « quand on a tous les
+     véhicules disponibles, on ne les voit pas tous dans la fenêtre. »
+     Le grandir DANS le bandeau aurait aggravé cela. Il en sort donc : il devient la
+     première ligne de la LISTE, où il est deux fois plus grand, où il a la place de dire
+     bonjour — et où il s'en va tout seul dès qu'on descend chercher un article. Le
+     bandeau retombe à la hauteur de son titre, et la liste récupère ce qu'il prenait. */
+  document.getElementById('fenface').style.display = F.accroche ? 'none' : '';
+  poserVisage(document.getElementById('fenface'), F.accroche ? null : F.visage, 'neutre');
   fenargent.textContent = eur(money);
   const vues = F.vues || null;
   fenonglets.innerHTML = '';
@@ -16998,6 +17126,25 @@ function rendreFenetre(){
   }
   fenliste.innerHTML = '';
   hote = fenliste;
+  /* L'ACCUEIL, EN TÊTE DE LISTE. Il est posé AVANT l'aiguillage, donc avant le premier
+     rayon, et il défile avec lui : c'est une salutation, pas un cadre.
+     LE PORTRAIT Y RETOMBE SUR LA GRILLE, et c'était le dernier écart du jeu. La planche
+     neutre fait 288 de large ; 96 est exactement son tiers, c'est-à-dire PX_JEU. Le
+     bandeau, lui, le posait dans 64 — 288/64 vaut 4,5, et le demi-pixel ne se voyait que
+     parce que le rendu est `auto`. Il n'y a plus une seule boîte de portrait hors grille
+     dans le jeu. */
+  if(F.accroche){
+    const acc = document.createElement('div');
+    acc.className = 'fenacc';
+    const im = document.createElement('img');
+    im.className = 'face'; im.alt = '';
+    poserVisage(im, F.visage, 'neutre');
+    const mot = document.createElement('div');
+    mot.className = 'fenaccmot';
+    mot.innerHTML = '<i>« ' + F.accroche + ' »</i>';
+    acc.appendChild(im); acc.appendChild(mot);
+    fenliste.appendChild(acc);
+  }
   /* CET AIGUILLAGE-CI A UN REPLI, à la différence de celui du panneau. Il porte
      maintenant neuf vues au lieu de trois écrans : une entrée oubliée laisserait la
      fenêtre vide, LE JEU EN PAUSE, et rien pour comprendre pourquoi. Toutes les
@@ -17080,10 +17227,18 @@ function article(couleur, nom, detail, libelle, etat, action, cle, prod){
   /* LA VIGNETTE PREND LA PLACE DU FILET, elle ne s'ajoute pas à lui : deux marques de
      couleur au début de la même ligne diraient deux fois la même chose, et la seconde
      mangerait le texte. Quand la planche n'existe pas encore, le filet reste. */
-  const vg = vignetteDe(prod);
-  if(vg){
-    const g = document.createElement('img'); g.className = 'vign';
-    g.src = vg; g.alt = ''; d.appendChild(g);
+  /* `prod` EST UNE CLÉ, OU UNE LISTE DE CLÉS. Soixante-quatre appels en passent une
+     seule ; les lignes d'engagement en passent autant que l'engagement a de marchandises.
+     On normalise ici, une fois, plutôt que d'avoir deux fonctions qui divergeront. */
+  const vgs = (Array.isArray(prod) ? prod : [prod])
+    .map(vignetteDe).filter((x, i, t)=> x && t.indexOf(x) === i).slice(0, 3);
+  if(vgs.length){
+    const grp = document.createElement('div'); grp.className = 'vigns';
+    for(const src of vgs){
+      const g = document.createElement('img'); g.className = 'vign';
+      g.src = src; g.alt = ''; grp.appendChild(g);
+    }
+    d.appendChild(grp);
   } else {
     const p = document.createElement('div'); p.className = 'pastille';
     p.style.background = '#' + couleur.toString(16).padStart(6,'0'); d.appendChild(p);
@@ -18038,7 +18193,59 @@ function ouvrirParc(){
   });
   parcEl.style.display = 'block';
 }
-const fermerParc = ()=>{ parcEl.style.display = 'none'; };
+/* ---------- ET LA MÊME FEUILLE SERT À CHOISIR UN ÉLEVAGE ----------
+   Le joueur : « quand on arrive sur une terre pour la transformer en élevage, je ne veux
+   pas qu'il soit marqué directement POULES avec après confirmer poules ou changer pour
+   cochons ; je veux qu'il marque juste ÉLEVAGE, et quand on clique dessus ça ouvre une
+   fenêtre qui dit transformer cette parcelle en élevage, et en dessous il y a tous les
+   élevages disponibles et on doit choisir celui qu'on veut. »
+
+   CE QUI DISPARAÎT AVEC ÇA : l'armement en deux temps. On touchait « POULES 2 500 € —
+   TOUCHER POUR ARMER », le bouton devenait « CONFIRMER POULES », un second bouton disait
+   « PLUTÔT COCHONS », et un compte à rebours de quatre secondes désarmait tout seul. Six
+   espèces se parcouraient donc en six appuis, chacun relançant le rebours — et l'espèce
+   retenue vivait dans une variable hors sauvegarde. Une liste dit la même chose d'un
+   coup d'œil : le prix de chacune, ce qu'elle donne, et ce qui manque pour l'avoir.
+
+   ELLE MONTRE TOUT, Y COMPRIS CE QU'ON NE PEUT PAS PRENDRE. Une espèce fermée par le
+   palier reste en liste, éteinte, avec son niveau ; une espèce trop chère aussi, avec ce
+   qui manque. C'est la règle de tous les magasins du jeu — on voit ce qui vient — et
+   c'est ce qui donne envie d'y revenir. */
+function ouvrirChoixPature(p){
+  relacherCommandes();
+  document.getElementById('parctitre').textContent =
+    'Transformer cette parcelle en élevage';
+  parcListe.innerHTML = '';
+  for(const cle of ESP_CLES){
+    const E = ESPECES[cle], prix = prixPature(cle);
+    const niv = niveauDe('especes', cle), libre = auNiveau(niv), assez = money >= prix;
+    const donne = [E.produit, E.second && E.second.cle].filter(Boolean)
+                  .map((c)=> nomDe(c).toLowerCase()).join(' et ');
+    const det = !libre ? 'Ouvre au niveau ' + niv + ' – ' + NIVEAUX[niv-1].nom
+              : !assez ? 'Il manque ' + eur(prix - money)
+              : eur(prix) + (donne ? ' · donne ' + donne : '');
+    const l = document.createElement('div');
+    l.className = 'pe' + ((libre && assez) ? '' : ' no');
+    l.dataset.cle = cle;
+    const vg = vignetteDe(cle);
+    l.innerHTML = (vg ? '<img class="vign" src="' + vg + '" alt="">'
+                      : '<div class="pt" style="background:#8BE07A"></div>')
+      + '<div class="pn">' + E.pluriel.toUpperCase()
+      + '<div class="pd">' + det + '</div></div>';
+    if(libre && assez)
+      l.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
+        fermerParc();
+        /* LA CULTURE EST PERDUE, ET C'EST DÉFINITIF : on le dit au moment où on le fait,
+           là où l'ancien bouton le disait dans son libellé de confirmation. */
+        if(acheterPature(p, cle))
+          showHint('ENCLOS AMÉNAGÉ – ' + E.pluriel.toUpperCase());
+        rafraichirEcran(); });
+    parcListe.appendChild(l);
+  }
+  parcEl.style.display = 'block';
+}
+const fermerParc = ()=>{ parcEl.style.display = 'none';
+  document.getElementById('parctitre').textContent = 'Changer d\'engin'; };
 enginsEl.addEventListener('pointerdown', ouvrirParc);
 document.getElementById('parcfond').addEventListener('pointerdown', fermerParc);
 function setMachine(i){
@@ -22105,8 +22312,12 @@ function creerPature(p, espece){
     if(E.produit && peutPrendre(T, E.produit, P.produit)) return true;
     if(E.second && peutPrendre(T, E.second.cle, P.produit2)) return true;
     if(P.betes.length < P.places && money >= E.prix) return true;
+    /* MÊME RÈGLE POUR L'ANNEAU AU SOL : il s'allume sur ce qu'on peut faire, et tant que
+       la boucherie est fermée, embarquer n'en fait pas partie. Sans cette ligne le cercle
+       aurait appelé le joueur vers un enclos qui ne lui propose plus rien. */
     const cap = capaciteBetail(m);
-    return E.prixBete > 0 && cap > 0 && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
+    return siteOuvert(BOUCHERIE) && E.prixBete > 0 && cap > 0
+           && betesAdultes(P) > 0 && (m.v.betail || 0) < cap;
   };
   anneauAction(P.quai.x, P.quai.z, 1.4,
                ()=> couleurPoste(clePature, agirPature) !== GUIDE.GRIS,
@@ -22896,16 +23107,15 @@ function montrerRefus(S, cle, q){
   const autres = acheteursDe(cle, S.nom, q).slice(0, 4);
   const l = autres.map((a)=> a.nom + ' – ' + qte(cle, a.prend) + '  ·  ' + eur(a.gain));
   annoncerFenetre({
-    /* LE PRÉNOM D'ABORD, L'ENSEIGNE ENSUITE. Le titre disait « COMPLET — BOULANGERIE »,
-       c'est-à-dire l'état d'un lieu ; il dit maintenant QUI parle — « Jules, boulangerie ».
-       L'état, lui, est passé au tampon : c'est sa place, et cela règle du même coup le
-       problème d'accord qui avait imposé « complet » devant le nom (« Épicerie est
-       complet » est faux, « complète » l'est pour le Restaurant, et accorder quinze
-       enseignes de deux genres demandait une table pour un seul titre). Un tampon
-       n'accorde rien.
-       ET SANS PRÉNOM, ON GARDE L'ENSEIGNE SEULE : la phrase reste juste, elle est
-       seulement moins incarnée. */
-    titre: (prenomDe(S.nom) ? prenomDe(S.nom) + ', ' : '') + S.nom,
+    /* L'ENSEIGNE SEULE, ET L'ÉTAT AU TAMPON. Le titre disait « COMPLET – BOULANGERIE »,
+       c'est-à-dire l'état d'un lieu collé à son nom ; il ne dit plus que le nom, et le
+       tampon dit l'état. C'était l'occasion de régler le problème d'accord qui avait
+       imposé « complet » DEVANT le nom : « Épicerie est complet » est faux, « complète »
+       l'est pour le Restaurant, et accorder quinze enseignes de deux genres demandait une
+       table de genres pour un seul titre. Un tampon n'accorde rien.
+       (Un temps, le titre a porté le prénom du tenancier — « Jules, boulangerie ». Le
+       joueur l'a retiré : le visage suffit à dire qui parle.) */
+    titre: S.nom,
     tampon: 'Stock\nplein',
     // `dNom` pose l'article : « d'œufs », « de blé », « de l'huile ». Écrit à la main,
     // on lisait « prendre de œufs ».
@@ -23631,9 +23841,11 @@ function capaciteBetail(m){
   if(m.key === 'pickup')  return 2;
   return (T && T.key === 'benne') ? 4 : 0;
 }
-// L'aménagement d'une pâture est définitif : il se confirme en deux temps, et
-// l'armement retombe tout seul si on ne confirme pas.
-let armePature = 0;
+/* L'ARMEMENT EN DEUX TEMPS A DISPARU AVEC LA FENÊTRE DE CHOIX. Le bouton de la parcelle
+   se confirmait lui-même — « TOUCHER POUR ARMER », puis « CONFIRMER POULES », avec un
+   rebours de quatre secondes qui désarmait tout seul —, et un second bouton faisait
+   défiler les espèces une par une. La liste dit tout d'un coup ; il n'y a plus rien à
+   armer, et plus de rebours à faire retomber. */
 // L'espèce que l'on posera au prochain aménagement. Elle se règle dans l'onglet
 // Élevage, et le bouton contextuel l'affiche avant de demander confirmation.
 /* Indice dans ESP_CLES, et non une clé : c'est ce que le bouton d'aménagement fait
@@ -23668,7 +23880,7 @@ const ARRET = 0.35;                       // m/s : au-dessous, l'engin est à l'
 // Renvoie l'action disponible ici et maintenant, ou null.
 function actionService(){
   const m = MACHINES[cur], v = m.v;
-  if(v.speed > ARRET){ armePature = 0; return null; }
+  if(v.speed > ARRET) return null;
   /* REMPLIR LA CUVE DE L'OUTIL : AU COMPTOIR, ET DEVANT SA RÉSERVE. La cour le proposait
      PARTOUT, et c'était une fausse commodité — on attelait le semoir, on s'arrêtait
      n'importe où chez soi, et le bandeau demandait de le remplir alors que rien ne disait ce
@@ -23761,8 +23973,18 @@ function actionService(){
       out.push({txt:'ENCLOS ' + E2.pluriel.toUpperCase() + ' – ' + P.betes.length + ' / ' +
                     P.places + '  ·  AGRANDIR, MANGEOIRE', ok:true,
                 f:()=> ouvrirPanneau('elevage')});
+    /* ET L'ON N'EMBARQUE PAS DE BÊTES TANT QUE LA BOUCHERIE EST FERMÉE. « Au départ on
+       n'a pas encore la boucherie débloquée : je ne veux pas que le bouton "enlever des
+       bêtes" apparaisse ; ce bouton n'apparaîtra que quand la boucherie sera disponible.
+       Et OK pour acheter des bêtes. » C'est juste, et le défaut était logique autant que
+       cosmétique : embarquer, c'est partir POUR LA BOUCHERIE — le libellé le disait déjà,
+       « EN ROUTE POUR LA BOUCHERIE » — et un chargement qu'on ne peut décharger nulle
+       part immobilise le pick-up avec des bêtes à bord.
+       Acheter reste ouvert, comme il le demande : on peuple son enclos bien avant d'avoir
+       de quoi vendre, et c'est l'ordre de la campagne. */
     const cap = capaciteBetail(m), prets = betesAdultes(P);
-    if(E2.prixBete > 0 && cap > 0 && prets > 0 && (v.betail || 0) < cap){
+    if(siteOuvert(BOUCHERIE) && E2.prixBete > 0 && cap > 0 && prets > 0
+       && (v.betail || 0) < cap){
       const n = Math.min(cap - (v.betail||0), prets);
       // Au curseur : on vient parfois chercher UNE bête, pas tout l'enclos.
       out.push({txt:'EMBARQUER ' + n + ' BÊTE' + (n>1?'S':''), ok:true,
@@ -23785,56 +24007,19 @@ function actionService(){
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
-    const E = ESPECES[ESP_CLES[especeChoisie]];
-    const niv = niveauDe('especes', E.cle);
-    const prixE = prixPature(E.cle);
-    /* CHANGER D'ESPÈCE PASSE AVANT TOUT LE RESTE, ET C'ÉTAIT UN CUL-DE-SAC.
-       Le prix et le palier étaient testés AVANT le bouton de défilement : on désignait
-       les cochons avec neuf cents euros en poche, le bandeau répondait « ENCLOS : IL
-       MANQUE 1 900 € » en gris — et plus rien ne ramenait au choix, puisque le rayon
-       Élevage a quitté la barre du menu. On pouvait payer un poulailler et ne plus jamais
-       en poser un. Pire : `especeChoisie` n'est pas dans la sauvegarde, si bien qu'un
-       rechargement le remettait sur les vaches, à trois mille cinq cents euros.
-       Le défilement sort donc TOUJOURS, quel que soit l'argent et quel que soit le
-       palier, et il sort en premier. */
-    const ouvertes = ESP_CLES.map((c, k)=> k).filter((k)=> ouvert('especes', ESP_CLES[k]));
-    const autreEspece = ()=>{
-      if(ouvertes.length < 2) return null;
-      const suiv = ouvertes[(ouvertes.indexOf(especeChoisie) + 1) % ouvertes.length];
-      const S3 = ESPECES[ESP_CLES[suiv]];
-      return {txt:'PLUTÔT ' + S3.pluriel.toUpperCase() + '  ·  ' +
-                  prixPature(S3.cle).toLocaleString('fr-FR') + ' €', ok:true,
-              f:()=>{ especeChoisie = suiv; if(armePature > 0) armePature = 4;
-                      showHint('ENCLOS RÉGLÉ SUR ' + S3.pluriel.toUpperCase()); }};
-    };
-    const A3 = autreEspece();
-    if(!auNiveau(niv))
-      return [{txt:E.pluriel.toUpperCase() + ' – NIVEAU ' + niv + ' REQUIS', ok:false}]
-             .concat(A3 ? [A3] : []);
-    const ok = money >= prixE;
-    if(!ok) return [{txt:'ENCLOS : IL MANQUE ' +
-                         Math.ceil(prixE-money).toLocaleString('fr-FR') + ' €', ok:false}]
-                   .concat(A3 ? [A3] : []);
-    // Deux temps, comme avant, mais le premier sert aussi à choisir l'espèce : chaque
-    // appui fait défiler les quatre, le deuxième appui sur la même confirme.
-    /* ET L'ESPÈCE SE CHOISIT ICI, PLUS AU MENU. Le message disait « MENU ÉLEVAGE POUR
-       CHANGER D'ESPÈCE » : c'était le dernier geste du jeu qu'aucun bouton du monde ne
-       savait faire, et le rayon Élevage n'est plus dans la barre du menu. Une fois armé,
-       un second bouton fait défiler les espèces OUVERTES — et le compteur d'armement se
-       remet à quatre secondes à chaque passage, sinon parcourir la liste désarmerait. */
-    if(armePature > 0){
-      const out2 = [{txt:'CONFIRMER ' + E.pluriel.toUpperCase() + ' – LA CULTURE SERA PERDUE',
-                     ok:true, f:()=>{ armePature = 0; acheterPature(p, E.cle); }}];
-      if(A3) out2.push(A3);
-      return out2;
-    }
-    return {txt:E.pluriel.toUpperCase() + ' ' + prixE.toLocaleString('fr-FR') + ' € – TOUCHER POUR ARMER',
-            ok:true, f:()=>{ armePature = 4;
-              showHint(ouvertes.length > 1
-                ? 'APPUIE ENCORE POUR CONFIRMER · OU CHANGE D\'ESPÈCE'
-                : 'APPUIE ENCORE POUR CONFIRMER'); }};
+    /* UN SEUL BOUTON, ET IL OUVRE UNE LISTE. « Je veux qu'il marque juste ÉLEVAGE ;
+       quand on clique dessus ça ouvre une fenêtre qui dit transformer cette parcelle en
+       élevage, et en dessous il y a tous les élevages disponibles. »
+       Le bouton ne décide donc plus de rien : ni l'espèce, ni le prix, ni le palier. Il
+       ne fait qu'ouvrir. Tout ce qui suit — ce qui est ouvert, ce qu'on peut payer, ce
+       que chaque bête donne — se lit dans la fenêtre, où l'on a la place de l'écrire.
+       IL SORT MÊME QUAND RIEN N'EST OUVERT, et c'est voulu : la fenêtre dit alors à quel
+       palier le premier enclos arrive. Un bouton absent ne raconte rien ; un bouton qui
+       ouvre une liste d'attentes raconte la suite du jeu. */
+    const moinschere = Math.min.apply(null, ESP_CLES.map(prixPature));
+    return {txt:'ÉLEVAGE – À PARTIR DE ' + moinschere.toLocaleString('fr-FR') + ' €',
+            ok:true, f:()=> ouvrirChoixPature(p)};
   }
-  armePature = 0;
   return null;
 }
 /* ---------- LA FENÊTRE DU CONTRAT ----------
@@ -29013,7 +29198,6 @@ function loop(now){
     AUDIO.moteurUpdate(v, thrM, m);
     AUDIO.traficUpdate(v.pos.x, v.pos.z);
     if(alerteStock > 0) alerteStock -= dt;
-    if(armePature > 0) armePature -= dt;
     chimT -= dt;
     if(chimney && chimT <= 0){
       for(let k=0;k<2;k++)

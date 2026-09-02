@@ -11693,3 +11693,124 @@ raconte.
 
 Les trente-et-une suites à **1 322 contrôles**. Le README, lui, garde ses cadratins : c'est de
 la documentation, pas le jeu.
+
+## Huit demandes du même message
+
+### La feuille garde son bord, c'est le dedans qui défile
+
+« Pour ces fenêtres, utilise encore le côté papier déchiré comme avant. » C'était une
+régression, et j'en étais l'auteur : le plafond de hauteur posé sur `#brboite` était venu
+avec un `overflow-y:auto`, et le bord déchiré est un SVG en `inset:-10px` — **dix pixels
+dehors**. Un conteneur qui défile recadre à sa boîte de remplissage : le papier redevenait
+un rectangle.
+
+Les deux besoins tiennent dès qu'on sépare les deux rôles. La **feuille** porte le plafond
+et ne recadre rien ; un **défileur** posé dedans porte la colonne et le débordement. C'est
+déjà la manœuvre du sélecteur d'engin — « le titre reste, le bord déchiré reste, seule la
+pile glisse ». Mesuré après coup : 376/390 comme avant, et le papier a retrouvé ses
+dentelures.
+
+### Les prénoms s'en vont, le tampon reste
+
+« Non, enlève les prénoms. » La table des quinze et `prenomDe` disparaissent ; le titre
+redevient l'enseigne seule. Le tampon rouge, lui, garde tout son intérêt : c'est lui qui
+porte l'état, et qui avait réglé le problème d'accord.
+
+### Une mission à deux marchandises en montre deux
+
+« J'ai une mission en cours avec la farine et les œufs ; la farine est bien affichée en tant
+que logo, mais pas les œufs. » `ligneProduit` ne rendait que `lignes[0].cle`. Il rend
+maintenant la liste des clés distinctes, et `article` accepte une clé **ou** une liste.
+
+Les images se chevauchent d'un tiers, comme des jetons poussés les uns sur les autres : deux
+produits prennent 44 px au lieu de 55, et la colonne de texte ne part pas au milieu de la
+ligne. Le chevauchement se fait vers la gauche pour que la première image reste entière et
+au-dessus. Mesuré : **46 px de hauteur de ligne avec une image, 46 px avec trois** — la
+règle de la vignette tient.
+
+### Une parcelle propose « Élevage », et une fenêtre fait choisir
+
+Le bouton disait « POULES 2 500 € — TOUCHER POUR ARMER », puis « CONFIRMER POULES », avec un
+second bouton « PLUTÔT COCHONS » et un rebours de quatre secondes qui désarmait tout seul.
+Six espèces se parcouraient en six appuis, et l'espèce retenue vivait dans une variable hors
+sauvegarde.
+
+Il dit maintenant **« ÉLEVAGE — À PARTIR DE 800 € »**, et il ouvre une liste : la feuille du
+sélecteur d'engin, un titre — « Transformer cette parcelle en élevage » — et une ligne par
+espèce avec sa vignette, son prix et ce qu'elle donne. Les espèces fermées y restent,
+éteintes, avec leur palier : c'est la règle de tous les magasins du jeu, on voit ce qui
+vient. L'armement en deux temps disparaît entièrement, rebours compris.
+
+### « Embarquer des bêtes » attend la Boucherie
+
+« Au départ on n'a pas encore la boucherie débloquée ; je ne veux pas que ce bouton
+apparaisse. Et OK pour acheter des bêtes. » C'est juste, et le défaut était logique autant
+que cosmétique : embarquer, c'est partir **pour la boucherie** — le libellé le disait déjà —
+et un chargement qu'on ne peut décharger nulle part immobilise le pick-up avec des bêtes à
+bord. L'anneau au sol suit la même règle, sans quoi il appellerait vers un enclos qui ne
+propose plus rien. Mesuré sur un poulailler de six adultes : **« EMBARQUER 2 BÊTES » présent
+boucherie ouverte, absent boucherie fermée**, le reste inchangé.
+
+### Le tenancier quitte le bandeau, et l'écart à la grille avec lui
+
+« Retravaille la mise en page pour qu'on voie plus les personnages : là ils sont tout petits
+par rapport aux autres. Un peu plus grand, avec peut-être une phrase d'accroche. »
+
+Et ce n'était pas qu'une question de goût. **Mesuré sur un téléphone en paysage** : la
+fenêtre fait 362 px, le bandeau en prend 80 — la hauteur du portrait —, les onglets une
+trentaine, et il restait **222 px de liste pour 474 px de contenu**. Deux lignes sur sept se
+voyaient : c'est l'autre reproche du même message, « quand on a tous les véhicules
+disponibles, on ne les voit pas tous dans la fenêtre ».
+
+Le grandir *dans* le bandeau aurait aggravé cela. Il en sort donc : il devient la première
+ligne de la **liste**, deux fois plus grand, avec la place de dire bonjour — et il s'en va
+tout seul dès qu'on descend chercher un article. Le bandeau retombe de **80 à 40 px**, la
+liste passe de **222 à 278**.
+
+Bonus qui n'était pas prévu : le portrait retombe **sur la grille**. La planche neutre fait
+288 de large ; 96 en est exactement le tiers, c'est-à-dire `PX_JEU`. Le bandeau, lui, le
+posait dans 64 — 288/64 vaut 4,5. C'était le dernier écart du jeu, et il était assumé faute
+de pouvoir l'élargir sans coûter une ligne d'article. La règle `body.grille #fenface` qui le
+rattrapait dans le seul mode où le demi-pixel se voit n'a plus d'objet : elle est retirée.
+
+### Le champ se rejoint par le côté qu'on veut
+
+« Le point de départ du travail de la terre est assez figé, et on dirait que l'accès à ce
+point se fait par un chemin défini, ce qui fait que le véhicule prend parfois de grands
+virages pour se remettre dessus alors qu'il était à côté. »
+
+**Le départ ne bouge pas** — il est calculé par `planAuto`, et c'est lui qui garantit le
+tiers de débord et le sens des lignes. Ce qui change, c'est le chemin pour y aller. Il
+passait toujours par `itineraire`, c'est-à-dire par la grille des chaussées : de la parcelle
+voisine, ou du milieu de sa propre terre, l'engin ressortait sur un chemin de sable,
+remontait, redescendait, et rentrait par le côté que la grille avait choisi.
+
+La ligne droite est prise **quand elle est vraiment libre**, et deux conditions ne se
+négocient pas : aucun **mur** sur le trajet — bâtiments, cuves, arbres, clôture —, et aucune
+**terre étrangère**, parce que couper chez le voisin la labourerait au passage. C'était la
+raison d'être du détour, et elle tient sans lui. Sinon, on reprend les routes sans rien
+changer : la desserte du silo, des cuves et des commerces est intacte.
+
+Mesuré sur six départs autour de la même parcelle, chemin réellement parcouru :
+
+| départ | par les chaussées | ligne droite quand elle est libre |
+|---|---|---|
+| nord | 19,5 m · 213 images | 19,8 m · **145** |
+| sud | 26,6 m · 258 | **21,4 m** · **165** |
+| ouest | 17,4 m · 182 | 18,7 m · 181 |
+| est | 18,7 m · 220 | 18,7 m · **181** |
+| **depuis sa propre terre** | **40,8 m · 408** | **25,8 m · 196** |
+| depuis la cour (136 m) | 148,8 m · 4 637 | 149,3 m · 4 559 |
+
+Le cas que le joueur décrit — sortir de son propre champ pour y revenir — passe de ×1,70 à
+×1,07. Depuis la cour, la ligne droite traverse les bâtiments : elle est **refusée**, et le
+trajet reste celui des routes. Et **pas une cellule** de la terre du voisin n'est travaillée
+au passage, dans aucun des six cas.
+
+**Le premier jet n'avait corrigé qu'une moitié**, et cela s'est vu tout de suite : les deux
+pilotes — celui de la campagne et celui de l'automatisation — rejoignent le premier point du
+travail par le même code écrit deux fois. N'en toucher qu'un rendait *exactement* les mêmes
+chiffres qu'avant.
+
+Un banc `acces` de **5 contrôles**, `visages` et `pixelart` mis à la nouvelle place du
+portrait, `vignettes` +2. Les trente-deux suites à **1 326 contrôles**.
