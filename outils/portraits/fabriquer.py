@@ -61,11 +61,25 @@ CACHE   = os.environ.get('PORTRAITS_CACHE', '')
 # lissage demandee avant conversion, et elle est du double au moins.
 PX_JEU = 1.0/3.0
 # La boite, en pixels CSS, ou le jeu pose chaque humeur. Releve, pas suppose.
-POSES  = {'neutre': 96, 'bravo': 192, 'refus': 192}
+# LE HEROS A CINQ HUMEURS, ET ELLES VIVENT TOUTES DANS LA MEME FENETRE.
+# Les quinze commercants en ont trois — neutre au contrat, pouce leve et refus a l ecran de
+# gain. Le joueur, lui, ne parait QUE dans la fenetre d annonce (#bravo, boite de 192) :
+# c est la qu il ouvre la partie, qu il apprend une marche du tutoriel, qu il bute sur une
+# lecon et qu il finit. Ses cinq planches sont donc toutes a la meme taille — un visage qui
+# changerait de finesse en changeant d expression se lirait comme deux dessins.
+# ET LE CALME DU HEROS N EST PAS LE `neutre` DU CASTING. Les quinze commercants posent leur
+# neutre dans une boite de 96 — la fenetre de contrat, le bandeau d accueil — et sa planche
+# fait donc 288. Le heros ne parait jamais la : ses cinq expressions vivent toutes dans la
+# fenetre d annonce, en 192. Lui donner `neutre` l aurait fabrique a 288 et fait AGRANDIR de
+# moitie a l affichage, seule de ses cinq planches a etre floue. Son calme porte donc son
+# propre nom — et `perplexe` decrit mieux ce qu il montre : un homme qui regarde de cote et
+# qui n est sur de rien.
+POSES  = {'neutre': 96, 'bravo': 192, 'refus': 192,
+          'perplexe': 192, 'pensif': 192, 'surpris': 192, 'rire': 192}
 def largeurDe(h):
     """La planche d une humeur : sa boite divisee par la grille. 288 ou 576."""
     return int(round(POSES[h]/PX_JEU))
-LARG_MAX   = max(largeurDe(h) for h in ('neutre', 'bravo', 'refus'))   # 576
+LARG_MAX   = max(largeurDe(h) for h in POSES)                          # 576
 HAUT_MAX   = LARG_MAX*5//4                                            # 720
 GRAIN      = 3
 W, H       = LARG_MAX*GRAIN, HAUT_MAX*GRAIN                           # 1728 x 2160
@@ -90,9 +104,30 @@ COTE       = 1500
 # la table sont dans ces memes coordonnees de 900 : elles suivent le meme facteur.
 DETECT     = 900
 YEUX_Y, ECART = 0.318, 0.150
+# LES TROIS HUMEURS DU CASTING, ET C EST L ORDRE D AFFICHAGE DE LA PLANCHE DE CONTROLE.
 HUMEURS = ['neutre', 'bravo', 'refus']
 
 def table(): return json.load(open(os.path.join(ICI, 'commerces.json')))
+
+def humeursDe(T=None):
+    """TOUTES LES HUMEURS QUE LA TABLE DECLARE, dans un ordre stable.
+
+       La chaine bouclait sur les TROIS humeurs ecrites en dur, et c etait juste tant que
+       le casting n avait que des commercants. Le heros en a cinq — il pense, il s etonne,
+       il rit —, et une boucle en dur les aurait fabriquees a zero sans rien dire : ni
+       erreur, ni fichier, juste un visage qui ne parait jamais.
+       On lit donc la table. Les trois du casting viennent d abord, pour que la planche de
+       controle garde ses colonnes ou elles etaient ; ce qui s ajoute vient ensuite, dans
+       l ordre ou la table le nomme."""
+    T = T if T is not None else table()
+    vues = list(HUMEURS)
+    for rad in sorted(T):
+        for h in (T[rad].get('humeurs') or []):
+            if h not in vues: vues.append(h)
+        for k in T[rad]:
+            if k in ('site', 'humeurs') or k in vues: continue
+            if isinstance(T[rad][k], dict) and 'src' in T[rad][k]: vues.append(k)
+    return vues
 
 # DETOURER ET CADRER SONT SEPARES, ET C EST LE RECALAGE QUI L A EXIGE. Detourer une
 # planche coute deux secondes ; la cadrer, deux centiemes. Aligner les trois humeurs d un
@@ -175,7 +210,7 @@ def cadres14(refaire=False):
         return {k[2:]: (z[k], z['c_' + k[2:]]) for k in z.files if k.startswith('r_')}
     T = table(); out = {}
     for rad in sorted(T):
-        for h in HUMEURS:
+        for h in humeursDe(T):
             reg = T[rad].get(h)
             if not reg: continue
             c, inf = une(reg)
@@ -209,7 +244,7 @@ def fabriquer14():
     tot = 0; n = 0; teintes = []
     for rad in sorted(T):
         if not T[rad].get('site'): continue
-        for h in HUMEURS:
+        for h in humeursDe(T):
             if not T[rad].get(h): continue
             rgb, couv = C[rad + '-' + h]
             idx, op, pal = fiche14(rgb, couv)
@@ -233,7 +268,7 @@ def cadres(refaire=False):
         return {k[2:]: (z[k], z['c_' + k[2:]]) for k in z.files if k.startswith('r_')}
     T = table(); out = {}
     for rad in sorted(T):
-        for h in HUMEURS:
+        for h in humeursDe(T):
             reg = T[rad].get(h)
             if not reg: continue
             c, inf = une(reg)
@@ -321,7 +356,7 @@ def fabriquer():
         # leve ni refus a montrer. `humeurs` dit lesquelles il DOIT avoir, pour qu une
         # absence voulue ne se lise pas comme un fichier perdu.
         voulues = T[rad].get('humeurs') or HUMEURS
-        for h in HUMEURS:
+        for h in humeursDe(T):
             reg = T[rad].get(h)
             if not reg:
                 if h in voulues: print('%-12s %-7s MANQUE' % (rad, h))
@@ -351,13 +386,14 @@ def planche(sortie='30_production.png', zoom=1):
     # LES TROIS COLONNES N ONT PLUS LA MEME LARGEUR. On dessine chaque humeur a la taille
     # de sa planche, multipliee par le zoom demande : la planche de controle montre alors
     # le rapport reel entre la fenetre de contrat et l ecran de gain.
-    cols = [largeurDe(h)*zoom for h in HUMEURS]
-    hs_  = [largeurDe(h)*5//4*zoom for h in HUMEURS]
+    HS = humeursDe(T)
+    cols = [largeurDe(h)*zoom for h in HS]
+    hs_  = [largeurDe(h)*5//4*zoom for h in HS]
     ch   = max(hs_)
     pl = Image.new('RGB', (sum(cols)+20*len(cols)+20, len(rads)*(ch+32)+20), (244,239,229))
     d = ImageDraw.Draw(pl)
     for r, rad in enumerate(rads):
-        for cI, h in enumerate(HUMEURS):
+        for cI, h in enumerate(HS):
             cw = cols[cI]; chh = hs_[cI]
             x = 20+sum(cols[:cI])+20*cI; y = 20+r*(ch+32)+(ch-chh)
             reg = T[rad].get(h)

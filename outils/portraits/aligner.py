@@ -34,7 +34,7 @@ def ecrireTable(T):
        `json.dump(indent=1)` eclate chaque ancre sur quatre lignes : une correction de trois
        nombres devient un diff de cinq cents lignes, et l on ne voit plus ce qui a change.
        Une humeur par ligne, comme a la main."""
-    ordre = ['site', 'humeurs'] + F.HUMEURS
+    ordre = ['site', 'humeurs'] + F.humeursDe(T)
     j = lambda v: json.dumps(v, ensure_ascii=False)
     blocs = []
     for rad in sorted(T):
@@ -105,7 +105,7 @@ def verifier(T=None, titre='table courante'):
     T = T if T is not None else F.table()
     pires = []; residus = []
     for rad in sorted(T):
-        hs = [h for h in F.HUMEURS if T[rad].get(h)]
+        hs = [h for h in F.humeursDe(T) if T[rad].get(h)]
         if len(hs) < 2: continue
         pl = {h: F.plaque(T[rad][h]) for h in hs}   # (im, alpha, ancre)
         cad = {h: F.cadrer(pl[h][0], pl[h][1], T[rad][h], pl[h][2])[0] for h in hs}
@@ -124,7 +124,7 @@ def aligner(ecrire=True, tours=5):
     T = F.table()
     bilan = []
     for rad in sorted(T):
-        hs = [h for h in F.HUMEURS if T[rad].get(h)]
+        hs = [h for h in F.humeursDe(T) if T[rad].get(h)]
         if len(hs) < 2:
             continue
         pl = {h: F.plaque(T[rad][h]) for h in hs}   # (im, alpha, ancre)

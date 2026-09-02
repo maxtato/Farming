@@ -11814,3 +11814,78 @@ chiffres qu'avant.
 
 Un banc `acces` de **5 contrôles**, `visages` et `pixelart` mis à la nouvelle place du
 portrait, `vignettes` +2. Les trente-deux suites à **1 326 contrôles**.
+
+## Un héritage, et quelqu'un pour le porter
+
+« Je vais faire un truc avec un personnage principal : un agriculteur qui hérite d'une
+terre, mais qui n'y connaît pas grand-chose. » Cinq planches sont arrivées avec la phrase —
+le même homme, casquette et salopette, dans cinq états.
+
+### Cinq expressions là où le casting en a trois
+
+Un commerçant n'a que trois choses à dire : bonjour, merci, non. C'est pour ça que les
+quinze en ont trois — `neutre`, `bravo`, `refus` — et qu'aucun n'en a jamais demandé une
+quatrième. Le héros, lui, **traverse** le jeu, et ses cinq expressions sont les cinq moments
+de la première heure, dans l'ordre : il arrive sans rien savoir (**perplexe**), il cherche
+(**pensif**), il se cogne (**surpris**), il réussit (**bravo**), il finit par en rire
+(**rire**).
+
+**Son calme ne s'appelle pas `neutre`, et c'est une mesure, pas un caprice.** Les quinze
+posent leur neutre dans une boîte de 96 — la fenêtre de contrat, le bandeau d'accueil — et
+sa planche fait donc 288 pixels. Le héros ne paraît jamais là : ses cinq expressions vivent
+toutes dans la fenêtre d'annonce, en 192. Reprendre le mot du casting l'aurait fabriqué à
+288 et fait **agrandir de moitié** à l'affichage, seule de ses cinq planches à être floue.
+Le premier jet l'a fait ; la planche de contrôle l'a montré tout de suite.
+
+**La chaîne lisait ses trois humeurs en dur**, et c'est ce qui a demandé le plus de travail.
+`fabriquer.py` bouclait sur `HUMEURS`, `aligner.py` aussi : les quatre planches nouvelles
+auraient été fabriquées à zéro **sans un mot** — ni erreur, ni fichier, juste un visage qui
+ne paraît jamais. Les deux scripts lisent maintenant la table. La preuve que ça comptait est
+dans le premier passage de l'aligneur : il ne voyait que deux des cinq planches et annonçait
+4,1 % d'écart ; une fois les cinq vues, **59,5 %**, ramenés à **0,8 %**.
+
+| | planches | poids |
+|---|---|---|
+| palette partagée | 5 × 576 × 720 | 189 Ko |
+| palette par image | 5 × 576 × 720 | 130 Ko |
+
+### Les textes passent à la première personne
+
+Le tutoriel donnait des ordres — « attelle la charrue et travaille le sol » —, dits par
+personne, à quelqu'un dont on ne savait rien. C'est lui qui parle maintenant, et il ne sait
+pas ce qu'il fait :
+
+| | avant | après |
+|---|---|---|
+| ouverture | « Cette ferme est maintenant entre vos mains. » | « Mon oncle m'a laissé sa terre, son tracteur et sa maison. Je n'ai jamais conduit autre chose qu'une voiture. » |
+| labour | « attelle la charrue et travaille le sol » | « on ne sème pas sur de l'herbe, paraît-il » |
+| pousse | « le blé mûrit, la moisson vient » | « et maintenant on attend. Personne ne m'avait dit que ce serait la partie la plus longue. » |
+| pick-up | « la moissonneuse est rangée : reprends ton pick-up » | « on ne descend pas au village en moissonneuse. J'ai essayé. » |
+| trémie pleine | « va la vider au silo, puis reviens finir » | « une parcelle en donne plus qu'elle n'en tient » |
+| fin du tutoriel | « Vous avez fait le tour complet… » | « Voilà. Je suis agriculteur. » |
+
+**Ce qui n'a pas bougé, et volontairement.** Les TITRES restent mot pour mot : ce sont les
+étiquettes que le guidage peint en jaune, que le bandeau répète et que quatre bancs
+vérifient. Et **les trente textes de mission non plus** — ils viennent du cahier des charges,
+au mot près, et les réécrire n'était pas ce qui était demandé. Le joueur a dit « retravailler
+un petit peu les textes » : ce qui change est la voix de l'apprentissage, celle des dix
+marches et des trois murs de la première heure.
+
+### Chaque moment montre la bonne tête
+
+Une expression posée au hasard vaudrait moins que pas d'expression du tout. La règle est
+donc écrite, et mesurée : **l'ouverture** le montre perplexe, **une marche de tutoriel** le
+montre en train de chercher, **la dernière** — la première vente — est le seul endroit du
+tutoriel où il sourit, **une leçon** le prend en pleine figure (elle ne se lève que quand on
+ne peut plus avancer : semoir vide, trémie pleine, réservoir sec), et **la fin du tutoriel**
+le fait rire.
+
+Son visage est **plus petit sur une marche que sur une annonce** — 120 × 150 contre
+146 × 182 sur un téléphone en paysage. Une marche de tutoriel ne met pas le jeu en pause :
+elle se pose pendant qu'on roule, et elle doit se lire sans arrêter la main. Le portrait
+d'une fin de mission fait 192 parce qu'on s'arrête pour le regarder ; celui d'une étape en
+fait 120, ce qui est encore un visage et n'est plus un écran.
+
+`visages` passe de 34 à **42 contrôles** — huit pour le héros seul, dont les quatre qui
+vérifient que chaque moment montre la bonne planche. Les trente-deux suites à **1 334
+contrôles**.

@@ -1113,6 +1113,13 @@
   /* `animation:none` sous le doigt : sans ça la poussée infinie reprendrait la main sur
      `transform` et l'appui ne se verrait pas. */
   #brgo:active{animation:none;transform:scale(1.12)}
+  /* LE VISAGE D'UNE ÉTAPE EST PLUS PETIT, ET C'EST LA MÊME RAISON QUI FAIT TOUT LE RESTE
+     DE CETTE FENÊTRE. Une marche de tutoriel NE MET PAS LE JEU EN PAUSE : elle se pose
+     pendant qu'on roule, et elle doit se lire sans arrêter la main. Le portrait d'une fin
+     de mission fait 192 parce qu'on s'arrête pour le regarder ; celui d'une étape en fait
+     120, ce qui est encore un visage et n'est plus un écran. Le rapport reste celui de la
+     planche — quatre sur cinq — et le plafond en `vh` suit la même règle qu'ailleurs. */
+  #bravo.etape #brface{width:min(120px,20vh);height:min(150px,25vh);margin-bottom:-4px}
   #bravo.etape #brgo{width:32px;height:32px}
   #bravo.etape #brgo svg{width:19px;height:19px}
   #bravo.on #brtitre,#bravo.on #brsous,#bravo.on #brprix,#bravo.on #brplus,
@@ -3947,7 +3954,23 @@ const PORTRAITS = {
      mission se solde, ni refus à opposer quand un étal déborde. Une seule humeur, et elle
      ne paraît qu'à leur propre fenêtre. */
   'Comptoir agricole': {r:'comptoir', h:['neutre']},
-  'Garage':            {r:'garage',   h:['neutre']}
+  'Garage':            {r:'garage',   h:['neutre']},
+  /* ---------- ET LE SEIZIÈME N'EST PAS UN COMMERCE : C'EST LE JOUEUR ----------
+     Le joueur : « je vais faire un truc avec un personnage principal, un agriculteur qui
+     hérite d'une terre mais qui n'y connaît pas grand-chose. »
+     IL A CINQ EXPRESSIONS LÀ OÙ LES QUINZE AUTRES EN ONT TROIS, et ce n'est pas de la
+     générosité : un commerçant n'a que trois choses à dire — bonjour, merci, non. Le
+     héros, lui, TRAVERSE le jeu. Il arrive sans rien savoir (perplexe), il cherche
+     (pensif), il se cogne (surpris), il réussit (bravo), et il finit par y prendre goût
+     (rire). Ce sont les cinq moments de la première heure de jeu, dans l'ordre.
+     ET SON CALME S'APPELLE `perplexe`, PAS `neutre`. Les quinze commerçants posent leur
+     neutre dans une boîte de 96 — la fenêtre de contrat, le bandeau d'accueil — et sa
+     planche fait donc 288 pixels. Le héros ne paraît jamais là : ses cinq expressions
+     vivent toutes dans la fenêtre d'annonce, en 192. Reprendre le mot `neutre` l'aurait
+     fabriqué à 288 et fait agrandir de moitié à l'affichage, seule de ses cinq planches à
+     être floue. La chaîne `outils/portraits` lit les humeurs dans sa table au lieu de les
+     tenir en dur, et fabrique donc les cinq à 576. */
+  'Moi': {r:'fermier', h:['perplexe', 'bravo', 'pensif', 'surpris', 'rire']}
 };
 const HUMEURS = ['neutre', 'bravo', 'refus'];
 /* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
@@ -20388,13 +20411,16 @@ const SERVICES = {
    `combinePret` qui la lit — voir là-bas pourquoi. */
 const TUTO = [
   {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA PARCELLE',
-   txt:'PRÉPARER LA PARCELLE – attelle la charrue et travaille le sol',
+   txt:'PRÉPARER LA PARCELLE – on ne sème pas sur de l’herbe, paraît-il. La charrue est au '
+     + 'parc : il faut l’accrocher derrière le tracteur.',
    fait:()=> partParcelle('labour') >= PART_ETAPE},
   {cle:'semis', ou:'champ', engin:'t1', outil:'semis', titre:'SEMER DU BLÉ',
-   txt:'SEMER DU BLÉ – attelle le semoir et sème ta première parcelle',
+   txt:'SEMER DU BLÉ – la terre est ouverte. Reste à y mettre quelque chose : le semoir '
+     + 'attend au même endroit que la charrue.',
    fait:()=> partParcelle('semis') >= PART_ETAPE},
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
-   txt:'LAISSER POUSSER – le blé mûrit, la moisson vient',
+   txt:'LAISSER POUSSER – et maintenant on attend. Personne ne m’avait dit que ce serait '
+     + 'la partie la plus longue.',
    fait:()=> partParcelle('pousse') >= PART_ETAPE},
   /* LA MOISSON SE SOLDE COMME LE LABOUR ET LE SEMIS : AU CHAMP ENTIER.
      Le joueur : « pour les messages du tutoriel qui apparaissent pendant le travail de la
@@ -20410,7 +20436,8 @@ const TUTO = [
      de tutoriel dit où l'on en est dans le tour ; une leçon dit ce qu'on ne pouvait pas
      deviner. Ce n'était pas la même chose. */
   {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
-   txt:'PREMIÈRE RÉCOLTE – moissonne toute la parcelle',
+   txt:'PREMIÈRE RÉCOLTE – le blé est mûr. La moissonneuse, c’est la grosse machine avec '
+     + 'la barre devant. Toute la parcelle, cette fois.',
    fait:()=> bleRentre() >= 30 && partParcelle('moisson') >= PART_ETAPE},
   /* ET CES DEUX ÉTAPES-LÀ DISENT QUEL BOUTON ELLES DÉSIGNENT. Elles envoient toutes deux
      sur la grille du silo, où l'on trouve jusqu'à sept lignes — rentrer sa trémie, rentrer
@@ -20429,7 +20456,8 @@ const TUTO = [
      fin du champ restait à bord. La marche demande donc ce qu'elle dit : DÉCHARGE — la
      trémie vide, et du blé dans la tour. */
   {cle:'silo', ou:'silo', engin:'moisson', titre:'STOCKER LA RÉCOLTE',
-   txt:'STOCKER LA RÉCOLTE – décharge ton blé dans le silo',
+   txt:'STOCKER LA RÉCOLTE – la trémie est pleine, la tour est vide. Ça doit bien aller '
+     + 'quelque part.',
    quoi:'vider', prod:'ble',
    fait:()=> siloStock.ble >= 29.9 && hopper < 0.5},
   /* RANGER LA MOISSONNEUSE, ET C'EST UNE MARCHE À PART ENTIÈRE.
@@ -20449,7 +20477,7 @@ const TUTO = [
      au repos une fois son travail fini — au même rayon de six mètres. On réutilise donc
      le nombre du jeu plutôt que d'en écrire un second qui pourrait diverger. */
   {cle:'parking', ou:'parc', engin:'moisson', titre:'RANGER LA MOISSONNEUSE',
-   txt:'RANGER LA MOISSONNEUSE – le champ est fait : ramène-la à sa place au parc',
+   txt:'RANGER LA MOISSONNEUSE – le champ est fait. Autant la remettre où je l’ai trouvée.',
    fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
      return !!(M && M.v.parc
        && Math.hypot(M.v.pos.x - M.v.parc.x, M.v.pos.z - M.v.parc.z) < 6); }},
@@ -20473,7 +20501,7 @@ const TUTO = [
      silence qui suit. Le compte à rebours ne court que pendant CETTE marche et que si
      l'on est bien dans le pick-up : voir `updateCommandes`. */
   {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP',
-   txt:'REPRENDRE LE PICK-UP – la moissonneuse est rangée : reprends ton pick-up',
+   txt:'REPRENDRE LE PICK-UP – on ne descend pas au village en moissonneuse. J’ai essayé.',
    fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0},
   /* LA DERNIÈRE MARCHE EST LA SEULE DU TUTORIEL QUI SE DÉDOUBLE, ET C'EST LE MODE QUI
      TRANCHE.
@@ -20507,13 +20535,15 @@ const TUTO = [
    ou:   ()=> MODE_LIBRE ? 'silo' : 'ferme',
    titre:()=> MODE_LIBRE ? 'PRÉPARER LA LIVRAISON' : 'LE TÉLÉPHONE SONNE',
    txt:  ()=> MODE_LIBRE
-     ? 'PRÉPARER LA LIVRAISON – charge 30 kg de blé dans le pick-up'
-     : 'LE TÉLÉPHONE SONNE – rentre à la ferme, on veut de ton blé',
+     ? 'PRÉPARER LA LIVRAISON – trente kilos suffiront pour voir ce que ça vaut.'
+     : 'LE TÉLÉPHONE SONNE – déjà quelqu’un qui veut de mon blé. Je ne l’ai même pas '
+     + 'encore vendu.',
    quoi: ()=> MODE_LIBRE ? 'charger' : 'tuto',
    prod: ()=> MODE_LIBRE ? 'ble' : null,
    fait: ()=> MODE_LIBRE ? bleABord() >= 29.9 : CAMPAGNE.prise},
   {cle:'vente', engin:'pickup', ou:'Coopérative', titre:'PREMIÈRE VENTE',
-   txt:'PREMIÈRE VENTE – rends-toi à la Coopérative agricole',
+   txt:'PREMIÈRE VENTE – la Coopérative achète le grain. C’est le moment de savoir si '
+     + 'tout ça valait la peine.',
    fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : true}
 ];
 // La marche à partir de laquelle le travail de la terre est appris — voir le commentaire
@@ -20591,7 +20621,8 @@ const LECONS = [
      lui dise. Cette leçon-là arrive donc au moment exact où l'on accroche l'outil et
      qu'il est vide. */
   {cle:'cuve', ou:'reserve', tot:true, titre:'REMPLIR LE SEMOIR',
-   txt:'REMPLIR LA CUVE – un semoir vide ne sème rien : sers-toi à la cuve verte de la cour, ou au comptoir',
+   txt:'REMPLIR LA CUVE – un semoir vide ne sème rien, et il m’a fallu un demi-champ pour '
+     + 'm’en apercevoir. La cuve verte est dans la cour, ou au comptoir.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.cuveMax && cuveTotal(T) < 0.5
                && (T.key === 'engrais' ? CUVES.engrais : grainesTotal()) > 0.5); }},
@@ -20603,11 +20634,13 @@ const LECONS = [
      « tu as fini », c'était « tu ne peux plus avancer ». C'est une leçon, mot pour mot :
      elle se lève à la première trémie pleine et ne revient jamais. */
   {cle:'tremie', ou:'silo', tot:true, titre:'LA TRÉMIE EST PLEINE',
-   txt:'LA TRÉMIE EST PLEINE – elle ne ramasse plus rien : va la vider au silo, puis reviens finir',
+   txt:'LA TRÉMIE EST PLEINE – elle ne ramasse plus rien. Il faut aller vider au silo, puis '
+     + 'revenir finir : une parcelle en donne plus qu’elle n’en tient.',
    quand:()=> hopper >= HOP_MAX - 0.5},
 
   {cle:'gazole', ou:'gazole', tot:true, titre:'LE PLEIN DE GAZOLE',
-   txt:'LE PLEIN – arrête-toi sur le cercle de la citerne, dans la cour : ça coule tout seul, et c’est gratuit',
+   txt:'LE PLEIN – arrête-toi sur le cercle de la citerne, dans la cour. Ça coule tout seul '
+     + 'et c’est gratuit : la seule chose gratuite de la semaine.',
    quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
 
   /* ET ELLE SE LÈVE QUAND UNE CUVE SE VIDE, en part de sa contenance et non en kilos :
@@ -20838,8 +20871,11 @@ function veillerLecons(dt){
   if(leconsDites.indexOf(leconActive.cle) >= 0) return;
   leconsDites.push(leconActive.cle);
   const L = leconActive, P = lieuLecon(L);
+  /* UNE LEÇON EST UN MUR, ET IL LE PREND EN PLEINE FIGURE. Elle ne se lève que quand on
+     ne peut plus avancer — semoir vide, trémie pleine, réservoir sec —, ce qui est
+     exactement le moment où quelqu'un qui apprend ouvre de grands yeux. */
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' – ').slice(1).join(' – ') || L.txt,
-    etape:true, duree:5.5,
+    etape:true, duree:5.5, face:{nom:'Moi', humeur:'surpris'},
     suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }
@@ -21059,7 +21095,14 @@ function annoncerEtape(E){
     : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
     : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
                       : 'Suis le cercle jaune – ' + ou));
+  /* ET C'EST LUI QUI DIT LA MARCHE, PAS L'INTERFACE. Une marche de tutoriel est le
+     moment où il découvre le geste suivant : il le dit à voix haute, avec la tête de
+     quelqu'un qui cherche. La DERNIÈRE, elle, est celle où ça a marché — il y sourit,
+     et c'est le seul endroit du tutoriel où on le voit content. */
+  const L = listeEtapes() || [];
+  const dernier = L.length && L[L.length - 1] === E;
   annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', etape:true,
+                   face:{nom:'Moi', humeur:dernier ? 'bravo' : 'pensif'},
                    duree:5.0, suite:suite});
 }
 function veillerTuto(){
@@ -21083,8 +21126,9 @@ function veillerTuto(){
        de ligne de bandeau. Sans un mot, le joueur croirait avoir perdu quelque chose. */
     else if(MODE_LIBRE && L === TUTO)
       annoncerFenetre({titre:'TUTORIEL TERMINÉ', etape:true, duree:6.0,
-        sous:'Vous avez fait le tour complet : préparer la terre, semer, laisser pousser, '
-           + 'moissonner, stocker au silo, charger et vendre. La ferme est à vous.',
+        face:{nom:'Moi', humeur:'rire'},
+        sous:'<i>« Préparer la terre, semer, attendre, moissonner, stocker, vendre.<br>'
+           + 'Voilà. Je suis agriculteur. »</i>',
         suite:'Plus aucun objectif – cultivez, élevez, transformez et vendez comme vous voulez'});
   }
 }
@@ -28123,10 +28167,17 @@ function lancerPartie(){
      met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
      dans la partie : s'en servir ici les arrêterait tous. */
   if(tutoActif() && CAMPAGNE.tuto === 0){
-    annoncerFenetre({titre:'NOUVELLE EXPLOITATION',
-      sous:'Cette ferme est maintenant entre vos mains.<br>' +
-           'Commençons par votre première récolte.',
-      suite:TUTO[0].titre});
+    /* CE QU'ON APPREND EN OUVRANT LA PARTIE A CHANGÉ DE NATURE. La fenêtre disait « cette
+       ferme est maintenant entre vos mains, commençons par votre première récolte » : une
+       consigne, dite par personne, à quelqu'un dont on ne sait rien. Le joueur a demandé
+       « une dimension différente : un agriculteur qui hérite d'une terre, mais qui n'y
+       connaît pas grand-chose ». C'est lui qui parle maintenant, et il le dit avec sa
+       tête des mauvais jours — celle qui regarde de côté et qui n'est sûre de rien. */
+    annoncerFenetre({titre:'UN HÉRITAGE',
+      sous:'<i>« Mon oncle m’a laissé sa terre, son tracteur et sa maison.<br>' +
+           'Je n’ai jamais conduit autre chose qu’une voiture. »</i>',
+      face:{nom:'Moi', humeur:'perplexe'},
+      suite:'On commence par retourner le sol, paraît-il'});
     annoncerEtape(TUTO[0]);
   }
 }
