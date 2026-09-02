@@ -127,11 +127,13 @@ dans les deux sens et signale l'oubli.
 
 `produits/`, à côté d'`index.html`, ne contient que ce que le jeu charge — tout ce qui est
 brut, cinq animaux, dix transformations et tout le parc — huit engins, cinq outils :
-67,0 Ko pour quarante et une planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
+67,5 Ko pour quarante et une planches, la plus lourde à 2,3 Ko. Les sources sont les rendus envoyés par le joueur, dans le dossier des pièces
 jointes de la session : `fabriquer.py` les lit là, comme la chaîne des portraits.
 
-**Et une source peut venir du JEU LUI-MÊME.** Le tracteur lourd et le combiné 3-en-1 sont
-arrivés en trois dimensions, pas en illustration : on les rend donc hors écran sur le même
-fond magenta, en trois quarts avant, la caméra reculée de ce que dit la sphère englobante —
-et la chaîne les traite comme les autres, sans savoir d'où ils viennent. C'est même le cas
-le plus simple qu'elle ait eu à traiter : pas d'ombre portée, pas de verre, pas de débris.
+**Et une source PEUT venir du jeu lui-même**, faute de mieux. Le tracteur lourd et le combiné
+3-en-1 sont arrivés en trois dimensions avant d'arriver en image : on les a donc rendus hors
+écran sur le même fond magenta, en trois quarts avant, la caméra reculée de ce que dit la
+sphère englobante. La chaîne les a traités comme les autres, sans savoir d'où ils venaient.
+Ces deux-là ont depuis reçu leur vraie planche — mieux éclairée, mieux cadrée, de la main du
+joueur — et c'est elle qui est en place ; le procédé reste écrit ici parce qu'il resservira le
+jour où un modèle précédera son dessin.

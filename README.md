@@ -11427,6 +11427,9 @@ plus loin à l'est ce n'est plus du parking : la dalle s'arrête à x = −3,4. 
 avait rangé, et le tracteur lourd est parti le chercher **quinze minutes sans jamais
 l'atteindre**, sans un message.
 
-Deux planches de menu neuves, rendues depuis le jeu lui-même sur fond magenta et passées
-dans la chaîne des vignettes : **43 clés, 41 planches, 67,0 Ko**. Un banc `combine` de
-**17 contrôles**, et les trente suites à **1 284 contrôles**.
+Deux planches de menu neuves : **43 clés, 41 planches, 67,5 Ko**. Elles ont d'abord été
+rendues depuis le jeu lui-même, faute de dessin — les deux modèles sont arrivés en trois
+dimensions avant d'arriver en image —, puis le joueur a envoyé les vraies, mieux éclairées et
+mieux cadrées, et ce sont elles qui sont en place. Le procédé du rendu reste écrit dans le
+LISEZMOI de la chaîne : il resservira le jour où un modèle précédera son dessin. Un banc
+`combine` de **17 contrôles**, et les trente suites à **1 284 contrôles**.
