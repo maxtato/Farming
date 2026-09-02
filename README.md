@@ -11433,3 +11433,126 @@ dimensions avant d'arriver en image —, puis le joueur a envoyé les vraies, mi
 mieux cadrées, et ce sont elles qui sont en place. Le procédé du rendu reste écrit dans le
 LISEZMOI de la chaîne : il resservira le jour où un modèle précédera son dessin. Un banc
 `combine` de **17 contrôles**, et les trente suites à **1 284 contrôles**.
+
+## Le prix en gros, le reçu à part, et le commerce qu'on vient d'ouvrir
+
+Quatre demandes en une, et toutes portent sur le même endroit : **ce que le jeu affiche
+quand on vient d'être payé**.
+
+### La fenêtre de fin de mission tenait mal dans le téléphone
+
+Le joueur : « elle est beaucoup trop grande et mal designée, il y a plein de petits
+rectangles en dessous de la tête du personnage qui dépasse d'ailleurs de l'écran ».
+
+Les petits rectangles, c'étaient les **quatre bandes dorées** du détail du gain — la prime,
+l'expérience, la valeur de la marchandise, le palier —, chacune sur sa propre bande, chacune
+inclinée d'un demi-degré. Empilées sous un portrait de 240 pixels, sur un écran de téléphone
+en paysage qui n'en fait que 390, elles donnaient une fenêtre de **541 pixels** : elle
+débordait de cent en haut, où le portrait se faisait couper la tête, et de cinquante en bas,
+où la ligne de niveau était tranchée en deux.
+
+Trois choses la referment.
+
+**Un seul chiffre, deux fois plus haut.** « Mets juste le prix en gros avec les couleurs
+spéciales, puis après l'expérience, etc., un petit. » La prime prend toute la bande dorée, à
+34 pixels au lieu de 18 ; l'expérience, la marchandise et le palier passent en **une** ligne
+de petites capitales sourdes en dessous. Quatre blocs deviennent deux, et le regard sait où
+aller.
+
+**Un portrait élastique.** C'est le poste le plus lourd de la fenêtre, et il était fixe. Il
+se règle maintenant en `vh` : il rétrécit là où l'écran est court, il garde sa taille là où
+il est grand.
+
+**Un plafond de hauteur**, `calc(100dvh - 14px)`, qui vaut pour toutes les pages — celles de
+fin de campagne comme celles de tutoriel. Et un bloc vide ne prend plus de place : `:empty`
+lui retire son écart, faute de quoi une page sans prix gardait le trou du prix.
+
+| | avant | après |
+|---|---|---|
+| iPhone paysage (390) | **541 px, débordait** | 376 px |
+| petit Android (360) | débordait | 346 px |
+| tablette (820) | — | 501 px |
+
+### La livraison libre a son propre reçu
+
+« Le message comme quoi on a bien livré et qu'on a été payé doit être différent quand on est
+sur une mission ou quand on est en mode libre. Quand on livre, on a la tête du personnage qui
+apparaît avec « merci pour la livraison » et le montant payé pour le kilo. »
+
+C'est la **même fenêtre dans un autre costume** — exactement comme l'étape de tutoriel, qui
+est déjà un `#bravo.etape`. La classe `recu` resserre la boîte à 330 pixels, réduit le
+portrait à un tiers, descend le titre à 15 pixels et garde le prix en gros, parce que c'est
+la seule chose qu'on vient y lire. **274 pixels** contre 376 : une livraison libre n'est pas
+un aboutissement, on est garé au quai et on va repartir.
+
+Elle dit le **prix à l'unité**, et c'est le seul chiffre qu'on ne peut pas retrouver ailleurs
+à l'écran : la caisse monte toute seule pendant le transfert, et le total est déjà là en gros.
+L'unité est celle du produit, pas le kilo par défaut — `qte` et `parUniteTxt` savent déjà
+écrire les trois : *200 kg · 0,50 € / kg*, *200 L · 0,50 € / L*, *500 œufs · 0,20 € pièce*.
+Un tiers du catalogue se compte en litres, et les œufs à la pièce.
+
+### Et l'on ne le dit plus deux fois
+
+« Aujourd'hui il y a le message de fin de mission, puis un message pour dire qu'on a livré :
+ça fait trop doublon. »
+
+Le bilan de livraison retient désormais **le numéro de la mission en cours** au moment où la
+cargaison part. À l'arrivée, si la mission a changé, c'est que cette livraison vient de la
+solder : la fenêtre de bravo a déjà dit la prime, le palier et le merci du client, et le reçu
+se tait. La même livraison qui ne solde rien ouvre bien le sien. Deux contrôles de banc, sur
+la même cargaison, séparés par la seule mission.
+
+### Le refus parle avec la bouche du commerçant
+
+« Sauf quand c'est plein, quand le commerce n'accepte plus : dans ce cas-là un message de
+refus disant plus besoin de marchandise pour le moment. »
+
+La fenêtre existait ; elle disait « Son étal ne peut plus prendre de farine aujourd'hui »,
+au-dessus d'un portrait qui fait la moue. C'est l'interface qui parlait au nom du commerçant
+alors que son visage est là. Elle dit maintenant, en italique et entre guillemets, **« Plus
+besoin de farine pour le moment, mon étal est plein. »** Le reste ne bouge pas : la liste de
+qui en veut encore, et ce que ça ferait.
+
+### Un commerce débloqué a droit à sa phrase
+
+« Confirme-moi aussi que chaque commerce, une fois débloqué par une mission, devient un spot
+où on peut venir déposer librement la production dans la limite de ses capacités. Il faudrait
+qu'il y ait un message qui dit bravo, vous avez débloqué la Coopérative, à chaque fois. »
+
+**Le premier point est vrai depuis toujours, et rien n'a eu à changer.** `acheteMaintenant`
+ne pose que trois questions : le commerce est-il ouvert, achète-t-il cette marchandise, et
+lui reste-t-il de la place à l'étal. Ni mission, ni contrat, ni niveau à revérifier. Un palier
+franchi ouvre le commerce, et il achète alors librement, dans la limite de son étal — qui se
+recharge. Mesuré sur trois commerces à trois paliers différents (Restaurant 6, Laiterie 8,
+Marché 13) : verrouillé il ne prend rien, ouvert il prend, plein il refuse. Ce qui manquait,
+c'était de le **dire**.
+
+Le déblocage prend donc la fenêtre, et le nom du commerce va dans la case de l'argent —
+« COMMERCE DÉBLOQUÉ », puis **LAITERIE** en gros. Le raisonnement est celui de « COMPLET —
+BOULANGERIE » : quinze commerces, deux genres, deux nombres ; « la Laiterie est débloquée »
+demanderait une table d'accords pour un seul titre.
+
+Trois précisions que les bancs ont imposées.
+
+**Les usines comptent.** La Laiterie n'achète rien à un étal — elle *accepte* dans sa trémie
+et transforme. Ne regarder que `achete` l'aurait passée sous silence, elle et les trois autres
+usines. **Le comptoir et le garage, non** : ils vendent, ils ne prennent rien, et le déblocage
+d'un fournisseur n'est pas la même nouvelle. Douze commerces s'annoncent sur toute la
+campagne. **Et l'on passe le palier d'avant** : une grosse commande en fait sauter deux d'un
+coup, et les commerces du palier intermédiaire seraient ouverts sans qu'un mot le dise.
+
+Enfin, l'annonce **attend une image**. L'expérience se gagne à l'encaissement, c'est-à-dire au
+milieu d'une livraison, et la fin de mission *remplace* la file de pages au lieu de s'y
+ajouter : annoncer sur place ferait effacer le déblocage par le « bravo » qui suit deux lignes
+plus loin. La file est vidée par `veillerDeblocages()` au tour suivant, où elle s'ajoute
+derrière ce qui est déjà à l'écran.
+
+Les quatre commerces du premier palier — Coopérative, Comptoir, Garage, Usine céréales — ne
+s'annoncent jamais : ils sont ouverts dès la première image, et l'on ne débloque pas ce qui
+n'a jamais été fermé.
+
+Un banc `fenetres` de **23 contrôles**, dont six mesurent des hauteurs sur trois écrans, et
+un contrôle de plus au banc `visages` : le portrait devenu élastique doit encore atteindre
+son plafond d'avant — 192 × 240 — sur un écran assez haut pour le laisser passer, faute de
+quoi une boîte qui aurait fondu à rien passerait le contrôle du rapport. Les trente-et-une
+suites sont à **1 308 contrôles**.

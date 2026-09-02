@@ -416,8 +416,13 @@
      commencent plus bas que lui et gardent toute la largeur. */
   #ctboite.avecFace #cttitre, #ctboite.avecFace #ctlieu{padding-right:104px}
   #ctboite.avecFace #cttexte{padding-right:104px}
-  #brface{width:192px;height:240px;object-fit:contain;object-position:bottom center;
-    image-rendering:auto;margin-bottom:-10px;pointer-events:none}
+  /* LE PORTRAIT SE RÈGLE EN `vh`, ET IL GARDE SES PROPORTIONS. La planche fait 576 × 720,
+     c'est-à-dire quatre sur cinq : les deux plafonds sont donc dans ce rapport — 20,8 vh
+     de large pour 26 vh de haut. Un seul et même plafond sur les deux côtés rendrait la
+     boîte carrée, et `contain` poserait le personnage au milieu de deux bandes vides. */
+  #brface{width:min(192px,20.8vh);height:min(240px,26vh);object-fit:contain;
+    object-position:bottom center;
+    image-rendering:auto;margin-bottom:-6px;pointer-events:none}
   /* LA SUSCRIPTION, en haut à gauche, comme sur un bon de commande : ce que c'est,
      avant de dire de qui ça vient. Le retrait à droite laisse la place au tampon. */
   #cttitre{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;
@@ -891,8 +896,22 @@
      prennent donc la boîte des missions — même fond, même rayon, même ombre portée — au
      jaune près, qui est la couleur du guidage. Elle n'attrape PAS le doigt ailleurs que
      sur elle-même (#bravo reste `pointer-events:none`) : on continue de conduire. */
-  #brboite{display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:auto;
-    width:min(92vw,400px);padding:18px 20px 16px}
+  /* ELLE TIENT DANS L'ÉCRAN, ET C'EST MESURÉ. Sur un téléphone en paysage — 844 × 390 —
+     la fenêtre de fin de mission faisait 541 pixels de haut : elle débordait de cent en
+     haut, où le portrait se faisait couper la tête, et de cinquante en bas, où la ligne
+     de niveau était tranchée en deux. Le joueur : « elle est beaucoup trop grande et mal
+     designée, il y a plein de petits rectangles en dessous de la tête du personnage qui
+     dépasse d'ailleurs de l'écran ».
+     Deux choses la tiennent. Un plafond de hauteur, d'abord, qui vaut pour toutes les
+     pages. Et un PORTRAIT ÉLASTIQUE : c'est lui le poste le plus lourd — 240 pixels sur
+     390 — et il se règle en `vh`, donc il rétrécit là où l'écran est court et garde sa
+     taille là où il est grand. */
+  #brboite{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:auto;
+    width:min(92vw,400px);padding:12px 20px 12px;
+    max-height:calc(100vh - 14px);max-height:calc(100dvh - 14px);overflow-y:auto}
+  /* Un bloc vide ne prend pas de place : les pages ne portent pas toutes les cinq lignes,
+     et un `<div>` vide gardait son écart et sa marge. */
+  #brsous:empty,#brprix:empty,#brplus:empty,#brsuite:empty{display:none}
   #brtitre{font-family:var(--titre);font-size:24px;letter-spacing:2.4px;
     text-transform:uppercase;color:var(--titreC);line-height:1.15;
     transform:scaleY(1.14) rotate(-1deg)}
@@ -910,18 +929,41 @@
      de 0,18 sur les bords à 0,06. */
   #bravo.etape{justify-content:flex-start;padding-top:min(15vh,104px);
     background:radial-gradient(ellipse at center, rgba(12,18,22,.30), rgba(12,18,22,.06) 70%)}
+  /* ---------- LE REÇU DE LIVRAISON ----------
+     Le joueur : « le message comme quoi on a bien livré et qu'on a été payé doit être
+     différent quand on est sur une mission ou quand on est en mode libre. Quand on livre,
+     on a la tête du personnage qui apparaît avec « merci pour la livraison » et le montant
+     payé pour le kilo. Un petit message juste de confirmation. »
+     C'est la MÊME fenêtre, dans un autre costume — comme l'étape de tutoriel. Une
+     livraison libre n'est pas un aboutissement : on est garé au quai, on va repartir, et
+     le voile ne doit pas éteindre la vallée pour annoncer qu'on a vendu deux cents kilos
+     de blé. La boîte se resserre, le portrait passe à un tiers, et le prix reste gros
+     parce que c'est la seule chose qu'on vient y lire. */
+  #bravo.recu{background:radial-gradient(ellipse at center, rgba(12,18,22,.34), rgba(12,18,22,.08) 70%)}
+  #bravo.recu #brboite{width:min(86vw,330px);gap:5px;padding:11px 16px 11px}
+  #bravo.recu #brface{width:min(104px,16vh);height:min(130px,20vh);margin-bottom:-4px}
+  #bravo.recu #brtitre{font-size:15px;letter-spacing:2.2px;transform:scaleY(1.1) rotate(-.7deg)}
+  #bravo.recu #brprix{font-size:26px;padding:7px 18px;border-radius:11px}
+  #bravo.recu #brgo{width:31px;height:31px}
+  #bravo.recu #brgo svg{width:18px;height:18px}
   #brsous{font-size:11.5px;line-height:1.7;color:var(--sous);text-align:center}
   /* Ce que le client répond en payant : c'est quelqu'un qui parle, et sur du papier
      cela se dit par l'italique et par l'encre du texte, pas par un vert plus clair. */
   #brsous i{font-style:italic;color:var(--texte)}
-  /* LE DÉTAIL DU GAIN : chaque ligne sur sa propre bande dorée, comme la rémunération de
-     la planche. C'est la ligne que le joueur doit voir en premier. */
-  #brgains{display:flex;flex-direction:column;gap:7px;margin-top:2px;align-self:stretch}
-  #brgains div{font-family:var(--titre);font-size:18px;letter-spacing:.6px;
-    color:#5A3E0B;background:var(--or);border-radius:11px;box-shadow:0 4px 0 var(--orOmb);
-    padding:7px 12px;text-align:center}
-  #brgains div:nth-child(even){transform:rotate(.6deg)}
-  #brgains div:nth-child(odd){transform:rotate(-.5deg)}
+  /* LE PRIX EN GROS, ET RIEN QU'UNE FOIS. Le gain se disait en QUATRE bandes dorées
+     empilées — la prime, l'expérience, la valeur de la marchandise, le palier — et le
+     joueur n'y lisait plus rien : « mets juste le prix en gros avec les couleurs
+     spéciales, puis après l'expérience, etc., un petit ». Une seule bande, deux fois plus
+     haute, sur la couleur de l'argent ; tout le reste passe en une ligne discrète en
+     dessous. C'est la ligne que le joueur doit voir en premier, et elle est maintenant
+     la seule à réclamer son regard. */
+  #brprix{font-family:var(--titre);font-size:34px;letter-spacing:.4px;line-height:1.05;
+    color:#5A3E0B;background:var(--or);border-radius:13px;box-shadow:0 5px 0 var(--orOmb);
+    padding:9px 22px;text-align:center;transform:rotate(-.7deg);margin-top:1px}
+  /* CE QUI VIENT APRÈS L'ARGENT : l'expérience, le palier, le prix au kilo. Une seule
+     ligne, à la taille du texte courant — ce sont des renseignements, pas la nouvelle. */
+  #brplus{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;
+    color:var(--sourdine);text-align:center;line-height:1.6;margin-top:1px}
   #brsuite{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
     color:var(--sourdine);margin-top:6px;text-align:center}
   /* Une seule animation, et seulement opacity + transform : le compositeur s'en charge
@@ -978,14 +1020,13 @@
   #brgo:active{animation:none;transform:scale(1.12)}
   #bravo.etape #brgo{width:32px;height:32px}
   #bravo.etape #brgo svg{width:19px;height:19px}
-  #bravo.on #brtitre,#bravo.on #brsous,#bravo.on #brsuite,#bravo.on #brgains div{
+  #bravo.on #brtitre,#bravo.on #brsous,#bravo.on #brprix,#bravo.on #brplus,
+  #bravo.on #brsuite{
     animation:brmonte .42s cubic-bezier(.2,.9,.3,1) both}
   #bravo.on #brsous{animation-delay:.10s}
-  #bravo.on #brgains div:nth-child(1){animation-delay:.20s}
-  #bravo.on #brgains div:nth-child(2){animation-delay:.30s}
-  #bravo.on #brgains div:nth-child(3){animation-delay:.40s}
-  #bravo.on #brgains div:nth-child(4){animation-delay:.50s}
-  #bravo.on #brsuite{animation-delay:.62s}
+  #bravo.on #brprix{animation-delay:.22s}
+  #bravo.on #brplus{animation-delay:.36s}
+  #bravo.on #brsuite{animation-delay:.46s}
   #hud.btn #fuel{bottom:calc(167px + env(safe-area-inset-bottom))}
   /* La rangée de choix : même place et même costume que le bouton de service, dont
      le joueur connaît déjà la forme. Elle s'empile au-dessus de lui. */
@@ -1501,7 +1542,8 @@
   <img id="brface" class="face" alt="">
   <div id="brtitre">BRAVO</div>
   <div id="brsous"></div>
-  <div id="brgains"></div>
+  <div id="brprix"></div>
+  <div id="brplus"></div>
   <div id="brsuite"></div>
   <div id="brgo" aria-label="Continuer"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 16h16M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 </div></div>
@@ -3959,8 +4001,11 @@ function gagnerXp(n){
   CAMPAGNE.xp += n;
   const v = niveauPourXp(CAMPAGNE.xp);
   if(v > CAMPAGNE.niveau){
+    const av = CAMPAGNE.niveau;
     CAMPAGNE.niveau = v;
-    annoncerNiveau(v);
+    // On passe le palier d'AVANT : une grosse commande en fait sauter deux, et les
+    // commerces du palier intermédiaire seraient ouverts sans que rien ne le dise.
+    annoncerNiveau(v, av);
   }
 }
 /* LES BULLES SUIVENT L'ÉTAT DES COMMERCES, PAS L'ÉVÉNEMENT QUI L'A CHANGÉ.
@@ -3982,13 +4027,71 @@ function majBulles(){
 }
 // Ce qu'un palier vient d'ouvrir, dit en clair. Sans cette phrase, on monte de niveau
 // sans savoir ce qu'on a gagné, et l'on ne pense pas à retourner voir la boutique.
-function annoncerNiveau(n){
+/* ---------- UN COMMERCE QUI S'OUVRE A DROIT À SA PHRASE ----------
+   Le joueur : « il faudrait qu'il y ait un message qui dit bravo, vous avez débloqué la
+   Coopérative, à chaque fois qu'on débloque un commerce, et que celui-ci devienne libre. »
+   Le second point est vrai depuis toujours et n'a rien demandé : `acheteMaintenant` ne
+   pose que trois questions — le commerce est-il OUVERT, achète-t-il cette marchandise, et
+   lui reste-t-il de la place à l'étal. Un palier franchi ouvre le commerce, et il achète
+   alors librement, sans mission, dans la limite de son étal qui se recharge. Ce qui
+   manquait, c'est de le DIRE : on passait un palier, une ligne de bandeau annonçait un
+   numéro, et le joueur devait deviner qu'un point de plus venait d'apparaître sur sa
+   carte.
+   ON DIFFÈRE D'UNE IMAGE, et c'est nécessaire. L'expérience se gagne à l'encaissement,
+   c'est-à-dire au milieu d'une livraison, et la fin de mission REMPLACE la file de pages
+   au lieu de s'y ajouter : annoncer ici, tout de suite, ferait effacer le déblocage par
+   le « bravo » qui suit deux lignes plus loin. La file attend donc l'image suivante, où
+   elle s'ajoute derrière ce qui est déjà à l'écran. */
+const SITES_ANNONCE = [];
+function annoncerNiveau(n, av){
   const N = NIVEAUX[n-1];
   if(!N) return;
+  for(let k = Math.max(1, (av | 0) + 1); k <= n; k++)
+    for(const nom of ((NIVEAUX[k-1] && NIVEAUX[k-1].sites) || [])){
+      const S = SITES.find((x)=> x.nom === nom);
+      /* DEUX FAÇONS DE PRENDRE, ET LES DEUX COMPTENT. Un commerce ACHÈTE à son étal —
+         il paie, et l'étal se recharge ; une usine ACCEPTE dans sa trémie — elle
+         transforme. La Laiterie n'achète rien du tout et prend pourtant tout le lait de
+         la ferme : ne retenir que `achete` l'aurait passée sous silence, elle et les
+         trois autres usines. Le comptoir et le garage, eux, VENDENT : ils n'ont ni étal
+         ni trémie, et le déblocage d'un fournisseur n'est pas la même nouvelle. */
+      if(S && ((S.achete && S.achete.length) || (S.accepte && S.accepte.length))
+         && SITES_ANNONCE.indexOf(nom) < 0)
+        SITES_ANNONCE.push(nom);
+    }
   showHint('NIVEAU ' + n + ' — ' + N.nom.toUpperCase());
   majBulles();
   caleEspece();
   rafraichirEcran();
+}
+function veillerDeblocages(){
+  while(SITES_ANNONCE.length){
+    /* ON DÉFILE D'ABORD, ON CHERCHE ENSUITE. Le `shift` avait été glissé DANS le prédicat
+       du `find` : il s'exécutait une fois par commerce testé, et vidait donc la file de
+       quinze noms pour en retrouver un. Relevé à l'écran — le déblocage n'apparaissait
+       jamais. Un effet de bord dans une comparaison est toujours une faute. */
+    const nom = SITES_ANNONCE.shift();
+    const S = SITES.find((x)=> x.nom === nom);
+    if(!S) continue;
+    const pris = (S.achete || []).concat(
+      (S.accepte || []).filter((c)=> (S.achete || []).indexOf(c) < 0));
+    // Huit noms suffisent à dire ce qu'il prend ; le supermarché en accepte treize, et
+    // la liste entière ferait quatre lignes de petites capitales pour rien.
+    const quoi = pris.slice(0, 8).map((c)=> nomDe(c)).join(', ')
+               + (pris.length > 8 ? '…' : '');
+    annoncerFenetre({
+      /* LE NOM VA DANS LA CASE DE L'ARGENT, et c'est le même raisonnement que pour
+         « COMPLET — BOULANGERIE » : quinze commerces, deux genres, deux nombres. « La
+         Laiterie est débloquée » demanderait une table d'accords pour un seul titre ;
+         le mot d'abord, le nom ensuite, et il se lit pour les quinze. */
+      titre:'COMMERCE DÉBLOQUÉ',
+      prix:S.nom.toUpperCase(),
+      sous:'Vous pouvez y déposer votre production quand vous voulez, sans mission, ' +
+           'dans la limite de ce qu’il peut prendre.',
+      plus:pris.length ? 'Il prend : ' + quoi : '',
+      face:{nom:S.nom, humeur:'bravo'},
+      suite:'Un point de plus sur la carte', duree:6.0});
+  }
 }
 
 /* LES MISSIONS DE CAMPAGNE, EN MARCHE.
@@ -4137,22 +4240,27 @@ const bravoEl = document.getElementById('bravo');
    milieu n'ont qu'une page, et rien ne change pour elles. */
 let bravoPages = [], bravoI = 0;
 function ouvrirBravo(M, suite, niv0){
-  const g = [];
-  if(M.prime > 0) g.push('+ ' + eur(M.prime));
-  if(M.xp) g.push('+ ' + M.xp + ' XP');
+  /* LE PRIME EN GROS, LE RESTE EN UNE LIGNE. Les quatre bandes dorées empilées ne se
+     lisaient plus — et sur un téléphone en paysage, la quatrième sortait de l'écran.
+     Ce qu'on vient chercher ici, c'est ce qu'on a gagné : un seul chiffre, deux fois
+     plus haut. L'expérience, la valeur de la marchandise et le palier franchi sont des
+     renseignements : ils tiennent sur une ligne, en petites capitales, en dessous. */
+  const p = [];
+  if(M.xp) p.push('+ ' + M.xp + ' XP');
   if(!M.faire && M.lignes){
     const val = M.lignes.reduce((t, l)=> t + l.need*prixDe(l.cle), 0);
-    if(val > 1) g.push('+ ' + eur(val) + ' de marchandise');
+    if(val > 1) p.push('+ ' + eur(val) + ' de marchandise');
   }
   if(CAMPAGNE.niveau > niv0)
-    g.push('NIVEAU ' + CAMPAGNE.niveau + ' — ' + NIVEAUX[CAMPAGNE.niveau-1].nom.toUpperCase());
+    p.push('Niveau ' + CAMPAGNE.niveau + ' — ' + NIVEAUX[CAMPAGNE.niveau-1].nom);
   /* CE QUE LE CLIENT RÉPOND EN PAYANT. C'est la moitié de la réplique — l'autre est ce
      qu'il a demandé, et elle a été lue à la fenêtre de contrat. Sans elle, la mission se
      termine sur un chiffre ; avec elle, quelqu'un a été content du travail. */
   bravoPages = [{
     titre: 'BRAVO',
     sous: titreMission(M) + (M.fin ? '<br><i>\u00ab\u00a0' + M.fin + '\u00a0\u00bb</i>' : ''),
-    gains: g,
+    prix: M.prime > 0 ? '+ ' + eur(M.prime) : '',
+    plus: p.join('&nbsp; · &nbsp;'),
     /* LE POUCE LEVÉ, ET SUR CETTE PAGE SEULEMENT. Les pages qui suivent — la vente libre
        débloquée, la clôture de campagne — ne sont plus le client qui remercie : c'est le
        jeu qui parle. Un visage y resterait affiché sans que personne ne l'ait dit. */
@@ -4161,12 +4269,12 @@ function ouvrirBravo(M, suite, niv0){
                  : 'La campagne est finie'
   }];
   for(const a of (M.apres || []))
-    bravoPages.push({titre:a.titre, sous:a.txt, gains:[], suite:'Toucher pour continuer'});
+    bravoPages.push({titre:a.titre, sous:a.txt, suite:'Toucher pour continuer'});
   /* LA DERNIÈRE PAGE DE LA CAMPAGNE. Elle ne vient pas de la mission : elle vient du fait
      qu'il n'y en a plus. C'est aussi le moment où les commerces se remettent à proposer
      des contrats — voir `contratsOuverts()`. */
   if(!suite)
-    bravoPages.push({titre:'EXPLOITATION LIBRE', gains:[],
+    bravoPages.push({titre:'EXPLOITATION LIBRE',
       sous:'Contrats illimités  ·  Vente libre  ·  Développement de l\'exploitation  ·  ' +
            'Améliorations maximales',
       suite:'La vallée est à vous'});
@@ -4178,12 +4286,13 @@ function peindreBravo(){
   if(!P){ fermerBravo(); return; }
   document.getElementById('brtitre').textContent = P.titre;
   document.getElementById('brsous').innerHTML = P.sous || '';
-  document.getElementById('brgains').innerHTML =
-    (P.gains || []).map((t)=> '<div>' + t + '</div>').join('');
+  document.getElementById('brprix').textContent = P.prix || '';
+  document.getElementById('brplus').innerHTML = P.plus || '';
   document.getElementById('brsuite').textContent = P.suite || '';
   poserVisage(document.getElementById('brface'),
               P.face ? P.face.nom : null, P.face ? P.face.humeur : null);
   bravoEl.classList.toggle('etape', !!P.etape);
+  bravoEl.classList.toggle('recu', !!P.recu);
   montrerBravo(P.duree || (bravoI === 0 ? 5.0 : 6.0));
 }
 /* ET UNE ANNONCE NE PIÉTINE PAS CELLE QUI EST À L'ÉCRAN. Une étape de tutoriel peut se
@@ -4209,7 +4318,8 @@ function montrerBravo(duree){
 }
 function fermerBravo(){ bravoT = 0; bravoPages = []; bravoI = 0;
                        bravoEl.style.display = 'none';
-                       bravoEl.classList.remove('on'); bravoEl.classList.remove('etape'); }
+                       bravoEl.classList.remove('on'); bravoEl.classList.remove('etape');
+                       bravoEl.classList.remove('recu'); }
 bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); suivantBravo(); });
 /* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
    Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
@@ -20447,7 +20557,7 @@ function veillerLecons(dt){
   leconsDites.push(leconActive.cle);
   const L = leconActive, P = lieuLecon(L);
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' — ').slice(1).join(' — ') || L.txt,
-    gains:[], etape:true, duree:5.5,
+    etape:true, duree:5.5,
     suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }
@@ -20655,7 +20765,7 @@ function annoncerEtape(E){
     : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
     : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
                       : 'Suis le cercle jaune — ' + ou));
-  annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', gains:[], etape:true,
+  annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', etape:true,
                    duree:5.0, suite:suite});
 }
 function veillerTuto(){
@@ -20678,7 +20788,7 @@ function veillerTuto(){
        la septième étape soldée, tout s'éteint : plus de cercle jaune, plus de flèche, plus
        de ligne de bandeau. Sans un mot, le joueur croirait avoir perdu quelque chose. */
     else if(MODE_LIBRE && L === TUTO)
-      annoncerFenetre({titre:'TUTORIEL TERMINÉ', etape:true, duree:6.0, gains:[],
+      annoncerFenetre({titre:'TUTORIEL TERMINÉ', etape:true, duree:6.0,
         sous:'Vous avez fait le tour complet : préparer la terre, semer, laisser pousser, '
            + 'moissonner, stocker au silo, charger et vendre. La ferme est à vous.',
         suite:'Plus aucun objectif — cultivez, élevez, transformez et vendez comme vous voulez'});
@@ -22706,12 +22816,12 @@ function montrerRefus(S, cle, q){
     titre: 'COMPLET \u2014 ' + S.nom.toUpperCase(),
     // `dNom` pose l'article : « d'œufs », « de blé », « de l'huile ». Écrit à la main,
     // on lisait « prendre de œufs ».
-    sous: 'Son étal ne peut plus prendre ' + dNom(nomDe(cle).toLowerCase()) +
-          ' aujourd\'hui.' +
+    sous: '<i>\u00ab\u00a0Plus besoin ' + dNom(nomDe(cle).toLowerCase()) +
+          ' pour le moment, mon étal est plein.\u00a0\u00bb</i>' +
           (l.length ? '<br><br>Qui en veut encore, et ce que ça ferait&nbsp;:<br>'
                       + l.join('<br>')
                     : '<br><br>Personne d\'autre n\'en achète pour l\'instant.'),
-    gains: [], suite: 'Toucher pour continuer',
+    suite: 'Toucher pour continuer',
     face: {nom: S.nom, humeur: 'refus'}, duree: 9
   });
 }
@@ -23910,8 +24020,19 @@ function validerActes(){
   /* LE BILAN D'UNE LIVRAISON S'OUVRE QUAND TOUT EST PARTI, PAS AVANT. On note l'argent
      d'avant et ce qu'on a promis ; la fenêtre du gain s'ouvrira toute seule quand la file
      sera vide et que plus rien ne se transfère — voir `veillerLivraison`. */
+  /* ET IL RETIENT CE QU'ON A LIVRÉ, ET SOUS QUEL RÉGIME. Le reçu nomme la marchandise et
+     dit le prix au kilo : il lui faut donc la liste, et non le seul total. Et il retient
+     le numéro de la mission en cours pour savoir, à l'arrivée, si c'est ELLE qu'on vient
+     de solder — auquel cas la fenêtre de fin de mission a déjà tout dit. */
+  const nat = [];
+  for(const e of acteLignes){
+    if(e.q <= 0.05 || !e.A.cle) continue;
+    const d = nat.find((x)=> x.cle === e.A.cle);
+    if(d) d.q += e.q; else nat.push({cle:e.A.cle, q:e.q});
+  }
   bilanLivraison = (acteLivraison && n) ? {lieu:acteLivraison, argent0:money,
-                                           kg:T ? T.kg : 0, attente:0} : null;
+                                           kg:T ? T.kg : 0, natures:nat,
+                                           mission0:CAMPAGNE.mission, attente:0} : null;
   fermerActes();
   refreshChoix(); refreshService();
 }
@@ -23934,9 +24055,39 @@ function veillerLivraison(dt){
   const B = bilanLivraison; bilanLivraison = null;
   const gagne = money - B.argent0;
   if(gagne < 0.005) return;                 // rien n'est parti : rien à annoncer
-  annoncerFenetre({titre:'LIVRAISON FAITE', duree:5.0,
-    sous:'Marchandise remise à ' + B.lieu + '.',
-    gains:['+ ' + eur(gagne)],
+  /* ET L'ON NE LE DIT PAS DEUX FOIS. Le joueur : « aujourd'hui il y a le message de fin
+     de mission, puis un message pour dire qu'on a livré : ça fait trop doublon. »
+     Une livraison qui SOLDE la mission en cours a déjà sa fenêtre — celle qui dit bravo,
+     la prime et le palier. Le reçu, lui, est le geste ordinaire du mode libre : on vend
+     sa production, on est payé, on repart. Si la mission a avancé pendant que la
+     cargaison descendait, c'est elle qui parle, et le reçu se tait. */
+  if(!MODE_LIBRE && CAMPAGNE.mission !== B.mission0) return;
+  /* CE QU'ON VIENT LIRE : ce qu'on a remis, et à combien le kilo. Le prix au kilo est le
+     seul chiffre qu'on ne peut pas retrouver à l'écran — la caisse monte toute seule
+     pendant le transfert, et le total est déjà affiché en gros. */
+  const N = B.natures || [];
+  const noms = N.map((x)=> nomDe(x.cle)).join(', ');
+  const poids = N.reduce((t, x)=> t + x.q, 0) || B.kg || 0;
+  /* `qte` ET NON `kg` : l'huile, le lait et la bière se comptent en LITRES, et un reçu qui
+     dirait « 120 kg d'huile de colza » se tromperait d'unité sur un tiers du catalogue.
+     Elle ne sait le faire que pour UNE nature ; une livraison mêlée retombe sur le kilo,
+     qui est alors le seul dénominateur commun. */
+  const combien = poids > 0.01
+    ? (N.length === 1 ? qte(N[0].cle, poids) : kg(poids)) : '';
+  /* ET LE PRIX SE DIT DANS L'UNITÉ OFFICIELLE. `parUniteTxt` sait déjà écrire « € / kg »,
+     « € / L » et « € pièce » : un œuf se paie à la pièce, pas au kilo, et un reçu qui
+     annoncerait « 0,66 € / kg d'œufs » ne voudrait rien dire pour personne. */
+  const auKilo = poids > 0.01
+    ? (N.length === 1
+        ? dec(gagne/enUnites(N[0].cle, poids), 2) + ' ' + parUniteTxt(N[0].cle)
+        : dec(gagne/poids, 2) + ' € / kg')
+    : '';
+  annoncerFenetre({recu:true, duree:4.2,
+    titre:'MERCI POUR LA LIVRAISON',
+    sous:(noms ? noms + ' — ' : '') + B.lieu,
+    prix:'+ ' + eur(gagne),
+    plus:[combien, auKilo].filter(Boolean).join('&nbsp; · &nbsp;'),
+    face:{nom:B.lieu, humeur:'bravo'},
     suite:'La caisse est à ' + eur(money)});
 }
 function refreshChoix(){
@@ -27694,7 +27845,7 @@ function lancerPartie(){
      met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
      dans la partie : s'en servir ici les arrêterait tous. */
   if(tutoActif() && CAMPAGNE.tuto === 0){
-    annoncerFenetre({titre:'NOUVELLE EXPLOITATION', gains:[],
+    annoncerFenetre({titre:'NOUVELLE EXPLOITATION',
       sous:'Cette ferme est maintenant entre vos mains.<br>' +
            'Commençons par votre première récolte.',
       suite:TUTO[0].titre});
@@ -28950,6 +29101,7 @@ function loop(now){
     enginsEl.classList.toggle('appel', !!enginTuto());
     refreshRegie();
     refreshChoix(); refreshService(); refreshJauges(); veillerLivraison(dt);
+    veillerDeblocages();
   }
   /* LES FLÈCHES SUIVENT LA CAMÉRA, PAS L'INTERFACE. Elles étaient rafraîchies avec le
      reste du bandeau, vingt fois par seconde : la caméra, elle, bouge à soixante, et
