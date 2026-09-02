@@ -12728,3 +12728,80 @@ soixante-quatre couleurs**. On ne redessine rien. Le banc, lui, sert la NOUVELLE
 refait sa comparaison — silhouette 0,557 contre 0,554 (**0,6 % d'écart**), matière 59,149,43
 dans la photo contre 57,147,42 dans la planche (**2, 2, 1**) —, et le contrôle qui exigeait
 un picto rouge exige maintenant un picto vert. `telephone` reste à **27 contrôles**.
+
+## Quatre réglages, et un document à relire
+
+### Le téléphone ne quitte plus la maison
+
+« Finalement fais juste le téléphone au-dessus de la maison, pas à côté de la flèche. »
+
+Il avait trois positions pour une seule chose à dire : sur le toit quand on voyait la
+maison, accroché à la vignette de la flèche verte quand elle sortait du cadre, et coupé
+sur le bord quand le cliquet avait éteint la flèche. C'est une de trop, et c'est même deux :
+la flèche porte déjà le nom de l'endroit et les mètres qui restent. Deux marques pour la
+même chose au même endroit ne valent pas mieux qu'une.
+
+La pastille ne paraît donc que **sur la maison**, et c'est le PIED du bâtiment qui décide —
+il est posé au sol, donc c'est lui qui dit si le bâtiment est dans le cadre. Sous la ligne
+des commandes elle s'éteint aussi : derrière le bouton d'attelage, elle ne se verrait pas.
+Trente lignes de code en moins, et deux contrôles de banc réécrits à la nouvelle vérité.
+
+### Une fois et demie plus de pieds pour les quatre céréales
+
+Le masque de plantation ne décide **que des pieds dessinés** : toutes les cellules sont
+semées et toutes se moissonnent, et ni la récolte, ni les missions, ni la capacité de la
+ferme ne s'en aperçoivent. C'est une question de densité à l'œil.
+
+| | avant | après | comment |
+|---|---|---|---|
+| Blé, avoine, orge | 276 pieds | **420** | `(i+j)%2` (un damier, 50 %) → `!(i%2 && j%2)` (75 %) |
+| Maïs | 368 pieds | **552** | deux tiers → toutes les cellules, plus de masque du tout |
+
+Trois quarts se rendent par `!(i % 2 && j % 2)` : on ne retire que les cellules impaires
+**dans les deux sens**, et le champ se lit en rangs pleins alternant avec des rangs à demi —
+un semis. La diagonale de `(i+j) % 4 !== 3` aurait donné 75 % elle aussi, mais rayée.
+
+### Le colza rapetisse, la vigne se met dans son rang
+
+Le colza était le plus large des annuels avec l'avoine et culminait à 3,26 m, plus haut
+qu'une vigne palissée. **Moins dix-huit pour cent** le ramène à 2,67 m, sous le blé et
+l'orge, ce qui est aussi l'ordre du champ réel.
+
+Pour la vigne, « réduis un peu les vignes et mets-les en lignes » n'était pas deux
+demandes mais une seule cause. **Ses bras étaient dessinés le long des X quand un rang
+court le long des Z** — le masque ne garde qu'une colonne sur deux, et le fil de palissage
+est une poutre de 2,75 m orientée en Z. Chaque pied tendait donc ses branches vers les
+rangs VOISINS au lieu de suivre son propre fil ; à 2,60 m d'écartement les rangs se
+rejoignaient, et de haut le champ ne montrait pas des lignes mais un tapis de feuilles avec
+des piquets dessus.
+
+Un **quart de tour** met la souche dans son rang, et le cep perd treize pour cent, ce qui
+achève de dégager l'inter-rang. Le piquet et le fil ne bougent pas : ce sont des mètres de
+matériel, calés sur le tunnel de l'enjambeuse.
+
+### TEXTES.md
+
+Le joueur : « je voudrais que tu me ressortes sur un fichier toutes les bulles avec tous
+les textes et le moment auquel ils arrivent, que je relise tout. »
+
+`TEXTES.md`, à la racine : l'ouverture, les neuf marches du tutoriel, les vingt leçons, les
+trente missions avec la demande ET la réponse du commerçant, les sept fenêtres de
+circonstance, et les quatre-vingt-huit bandeaux volants.
+
+**Les textes sont relevés, pas recopiés.** `outils/textes/relever.js` charge le jeu dans un
+vrai navigateur et lit ses tables : le document ne peut pas mentir sur ce qui est écrit, ni
+prendre du retard sur une phrase changée. Trois marches du tutoriel disent d'ailleurs autre
+chose en mode libre — leur titre et leur texte sont des fonctions — et le relevé les lit
+**dans les deux modes**.
+
+**Les bandeaux, eux, se lisent dans le source**, faute de pouvoir les interroger : cent
+appels de `showHint` éparpillés. Le composeur scanne les parenthèses, rend le texte
+littéral, remplace ce qui se calcule par `<…>`, et sort les DEUX branches d'un ternaire au
+lieu de les recoller en une phrase qui n'existe pas — « UNE COLONIE DE PLUS AU RUCHER / UNE
+BÊTE DE PLUS AU PRÉ ». Neuf appels ne portent aucun texte propre : ils sont comptés à part
+plutôt que listés comme des lignes vides.
+
+**Les « quand », en revanche, sont écrits à la main.** Une condition JavaScript ne se lit
+pas : `partParcelle('labour') >= PART_ETAPE` doit devenir « quand 98 % de la parcelle est
+labourée ». Ce sont les deux seules tables du composeur à tenir à jour, et une leçon
+ajoutée sans sa ligne laisse un « — » dans le document, ce qui se voit.
