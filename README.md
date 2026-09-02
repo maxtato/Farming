@@ -11949,3 +11949,82 @@ rend `null`, ce qu'un contrôle vérifie déjà.
 
 `visages` passe de 42 à **46 contrôles**. Les trente-deux suites à **1 338 contrôles**.
 
+
+### La mission revient au bandeau, en une ligne
+
+Le joueur avait fait retirer la pilule du haut à gauche — « enlève l'espèce de message qui
+rappelle la mission ; fais juste un petit logo de contrat à la place ». Il en redemande la
+forme courte : **« remets-le en le faisant le plus court possible pour que ça ne prenne pas
+trop de place à l'écran. »** Ce qui gênait n'était pas de savoir quoi faire, c'était de le
+lire sur six lignes.
+
+| | ce que ça portait | largeur mesurée |
+|---|---|---|
+| la pilule d'avant | titre, prime, XP, étape, barre, puis 4 puces de contrat | le quart supérieur gauche |
+| la ligne d'aujourd'hui | le geste du moment et sa distance | **169 × 21 px** |
+
+`« CHARGER BLÉ 80 KG · 28 m »` est la forme la plus courte qui rappelle encore la mission.
+Le titre en plus la doublerait pour redire ce que le geste dit déjà ; la prime, l'expérience
+et l'avancement restent dans le bouton de la rangée et la fenêtre qu'il ouvre — c'est là
+qu'ils tiennent.
+
+**Elle est lue par `objectifMission`, et c'est tout l'intérêt.** C'est le même juge qui
+allume l'anneau vert au sol et la flèche du bord : le bandeau écrit en toutes lettres ce que
+l'anneau montre du doigt, et les deux ne peuvent pas se contredire.
+
+**Et elle bouche un trou.** Pendant les marches de *préparation* d'une mission — l'épandeur
+à prendre au garage avant la livraison —, `refreshCommandes` masque la ligne de tutoriel
+puisqu'une mission est visible : le bandeau ne disait alors **plus rien du tout**. Il dit
+maintenant « PRENDRE L'ÉPANDEUR · 93 m ».
+
+**L'ordre, pas la phrase.** Le `txt` d'une marche est une explication — « l'épandeur, il
+t'attend au garage du village, pour 250 € » — parce qu'elle enseigne ; son `titre` est
+l'ordre. Le premier jet a pris le `txt` : mesuré, **417 px** de large contre **187**. Le juge
+rend donc les deux, et le bandeau prend le court.
+
+Il n'y a jamais deux lignes à la fois : la ligne de mission ne paraît que si une mission est
+visible, la ligne de tutoriel que si aucune ne l'est. Les deux conditions sont exclusives
+**par construction**, pas par un compte à tenir à jour.
+
+### Le papier se déchire plus fin
+
+« Réduis le fait de découpage sur le papier blanc pour que ça reste fin, pas trop grossier. »
+Le premier bord avait 27 points sur 400 unités et 6,4 d'amplitude sur 60. Relevé sur fond
+plat, aux tailles réelles des blocs :
+
+| bloc | ancien | nouveau |
+|---|---|---|
+| marche de tutoriel 439 × 50 | 5,33 px de creux · un sommet tous les 34,6 px | **2,17 px** · tous les **8,6 px** |
+| ligne de mission 187 × 21 | 2,33 px · tous les 14,7 px | **1,00 px** · tous les **3,8 px** |
+| ligne de mission 169 × 21 | 2,33 px · tous les 13,3 px | **1,00 px** · tous les **3,3 px** |
+
+Trois fois plus de points, moitié moins d'amplitude : le creux est divisé par 2,4 et la
+densité multipliée par 4. Sur une écriture de 10 px, la dent d'avant était plus haute que la
+moitié des capitales ; celle d'aujourd'hui en fait moins du tiers.
+
+**Les deux petits côtés, eux, ont gardé leur amplitude** — et c'est délibéré. La même étirure
+qui écrase la déchirure du haut sur 24 px de hauteur écrase celle des côtés sur 400 unités de
+largeur : sous deux unités de jeu, le bout se lit comme un coup de ciseaux. Ce qui était trop
+grossier, c'étaient les **longs** bords.
+
+**Et la déchirure devient reproductible.** Le premier tracé avait été tiré au sort dans une
+séance et collé dans le CSS : personne ne pouvait le refaire, donc personne ne pouvait le
+retoucher sans tout redessiner. Il sort maintenant de `outils/papier/bord.py`, graine
+20260902 — on change le pas ou l'amplitude, on relance, et le reste du papier ne bouge pas
+d'un pixel. Trois pixels de rembourrage rendus au jeu au passage : le bord n'en demande plus
+que deux.
+
+**Le banc mesure le tracé, pas l'image.** Le sable des chemins et les façades claires du
+village répondent au même test de couleur que la crème du papier : compté sur un fond de
+paysage, une colonne sur cent rend un toit de maison au lieu du bord de la feuille. On lit
+donc le chemin dans la source — et il a fallu deux corrections pour l'isoler proprement : le
+bord du haut se reconnaît à son x qui monte, pas à son y qui est petit (sinon on attrape les
+côtés, et l'amplitude passe de 2,8 à 16,7), et le premier point du coin droit y reste encore
+puisque son x croit aussi — c'est son *pas* qui le trahit, 0,8 unité là où le bord avance
+de 5.
+
+`bandeau` passe de 38 à **47 contrôles**, `contrat` garde ses 93 avec son plafond relevé de
+1,0 à 1,5 % — la ligne rendue coûte trois dixièmes de point dans le pire cas, quatre contrats
+et une leçon compris. Les trente-deux suites à **1 347 contrôles**, dont les 7 échecs
+préexistants de `chaine`.
+
