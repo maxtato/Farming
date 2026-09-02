@@ -12945,3 +12945,37 @@ mot à mot (`campagne30`, `chantiers`, `contrat`, `ecrans`, `fenetres`, `guidage
 `visages`) et lisent maintenant le nouveau. Tout est vert, sauf les sept échecs antérieurs
 de `chaine` ; `ecrans` et `hud` ne passent que seuls, comme avant, la charge de deux
 navigateurs en parallèle leur faisant dépasser le délai de chargement.
+
+## Le tracteur qui tournait sur lui-même à l'angle du champ
+
+« Y'a un bug avec le tracteur et la charrue en automatique. Il est à l'angle du champ et ne
+parvient pas à se lancer, il tourne en rond sur lui-même. »
+
+**Reproduit, puis mesuré, avant de toucher à quoi que ce soit.** Un banc pose le tracteur et
+sa charrue autour du premier point du plan de labour — sept distances de 1,5 à 4 m, huit
+directions, quatre caps — lance le chantier et regarde quinze secondes. Sur l'ancien code,
+**94 départs sur 256** n'entraient pas dans leur travail : 64 restaient plantés, 24
+tournaient en rond, 6 arrivaient tard ou jamais. Deux défauts, dans les derniers mètres qui
+séparent la machine du premier point :
+
+- **Un anneau mort.** On visait le point avec un rayon d'arrêt de 2,00 m, mais on ne se
+  déclarait « entré » qu'à 1,60 : entre les deux, `viser` rendait « ne bouge pas » et le
+  pilote attendait 1,60 — pour toujours. Toute machine qui s'arrêtait là, ou qui y glissait
+  sur son erre en arrivant de plus loin, ne repartait jamais.
+- **Le plein gaz sur trois mètres.** `viser` roule à fond dès que le cap est bon, sans
+  regarder la distance. Un point à trois mètres, souvent dans le dos de la machine après
+  un demi-tour, se prenait à douze mètres par seconde : elle le dépassait de quinze
+  mètres, revenait, le redépassait — deux à trois tours et demi. C'est le rond qu'on voit.
+
+**Le correctif est une seule fonction, `approcheChamp`, que les deux pilotes appellent** —
+celui du plan de travail et celui de la campagne, qui avaient chacun leur copie du même
+bloc. La loi d'approche est celle des parvis : un demi-mètre par seconde par mètre restant,
+jamais sous 1,5 m/s, à laquelle le rayon de braquage est celui du pivot. Le rayon d'arrêt
+passe sous le seuil d'entrée (1,2 contre 1,6), donc plus d'anneau. Et un garde-fou : six
+secondes sans se rapprocher, on entre de là où l'on est, et `piloteChamp` a les siens.
+
+**Mesuré après : 255 départs sur 256 entrent en moins de huit secondes**, et le dernier est
+posé sur la clôture de la ferme par le banc lui-même. Le banc s'appelle `entree` et reste
+dans la suite, borné aux départs dans le champ ou à son bord. `pilote`, `plan`,
+`chantiers`, `escargot`, `regression`, `cloture`, `commandes`, `guidage` relancés, tous
+verts.

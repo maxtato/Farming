@@ -13954,6 +13954,43 @@ const accesDe = (x, z, L)=> L.find((A)=> Math.abs(x - A.voie) <= A.large/2
    peint que les cellules qu'il couvre —, et prendre une marge ferait refuser la ligne
    droite dans tout le couloir qui sépare deux terres, c'est-à-dire précisément là où
    passe le chemin qu'on cherche. */
+/* LES DERNIERS MÈTRES AVANT LE PREMIER POINT DU PLAN, en ligne droite.
+   Le joueur : « il est à l'angle du champ et ne parvient pas à se lancer, il tourne en rond
+   sur lui-même. » Deux défauts, tous deux mesurés au banc (`_rond4`), sur 256 départs
+   autour du premier point — huit distances, huit directions, quatre caps :
+   1. UN ANNEAU MORT. On visait le point avec un rayon d'arrêt de 2,00 m, et l'on ne se
+      déclarait « entré » qu'à 1,60 : entre les deux, `viser` rendait [0, 0] et le pilote
+      attendait 1,60 — POUR TOUJOURS. Soixante-quatre départs sur soixante-quatre entre
+      1,7 et 1,9 m restaient plantés, toutes directions, tous caps. Et l'on y tombe aussi
+      en arrivant de plus loin : la machine s'arrête à 2,00 m et glisse sur son erre —
+      deux départs à 3 et 4 m finissaient dans l'anneau, à 1,66 et 1,98.
+   2. LE PLEIN GAZ SUR TROIS MÈTRES. `viser` roule à fond dès que le cap est bon, sans
+      regarder la distance : un point à 2,2 m droit devant se prenait à 12 m/s, la machine
+      le dépassait de quinze mètres sur son erre, revenait, le redépassait — deux à trois
+      tours et demi, dix à dix-neuf secondes avant d'entrer. C'est le rond qu'on voit.
+   La loi d'approche est celle des parvis (`suivreRoute`) : un demi-mètre par seconde par
+   mètre restant, jamais sous 1,5 m/s ; à cette allure le rayon est celui du pivot, et
+   l'on tourne autour de rien. Le rayon d'arrêt passe SOUS le seuil d'entrée — 1,2 contre
+   1,6 — pour qu'il n'y ait plus d'anneau où rien ne bouge. Et un garde-fou : six secondes
+   sans se rapprocher, et l'on entre de là où l'on est ; `piloteChamp` a ses propres
+   garde-fous pour le tronçon qui suit. Rend null quand on est entré. */
+const APPROCHE_ENTREE = 1.6;
+function approcheChamp(v, cx, cz, dt){
+  const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
+  const P = v.plan;
+  if(d <= APPROCHE_ENTREE){ if(P){ P.appT = 0; P.appD = undefined; } return null; }
+  if(P){
+    if(P.appD === undefined || d < P.appD - 0.35){ P.appD = d; P.appT = 0; }
+    else {
+      P.appT = (P.appT || 0) + dt;
+      if(P.appT > 6){ P.appT = 0; P.appD = undefined; return null; }
+    }
+  }
+  const cmd = viser(v, cx, cz, 1.2, VIT_PIVOT);
+  if(cmd[1] > 0)
+    cmd[1] = Math.min(cmd[1], Math.max(APPROCHE_POSER, d*APPROCHE_PENTE)/Math.max(1, v.vmax));
+  return cmd;
+}
 function voieDirecteChamp(ax, az, bx, bz, cible){
   const MI_MACHINE = 1.35;
   const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz);
@@ -14472,8 +14509,8 @@ function missionDrive(m, dt){
       const R0 = v.plan.reprise;
       const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
       if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, PARCELS[t.p])){
-        const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
-        if(d > 1.6){ v.route = null; v.routeBut = null; return viser(v, cx, cz, 2.0); }
+        const r = approcheChamp(v, cx, cz, dt);
+        if(r){ v.route = null; v.routeBut = null; return r; }
       } else {
         const r = suivreRoute(v, cx, cz, 'p' + t.p);
         if(r) return r;
@@ -14698,8 +14735,8 @@ function autoDrive(m, dt){
     const R0 = v.plan.reprise;
     const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
     if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, v.plan.p)){
-      const d = Math.hypot(cx - v.pos.x, cz - v.pos.z);
-      if(d > 1.6){ v.route = null; v.routeBut = null; return viser(v, cx, cz, 2.0); }
+      const r = approcheChamp(v, cx, cz, dt);
+      if(r){ v.route = null; v.routeBut = null; return r; }
     } else {
       const r = suivreRoute(v, cx, cz, 'a' + PARCELS.indexOf(v.plan.p));
       if(r) return r;
