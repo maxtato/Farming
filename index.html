@@ -3958,19 +3958,26 @@ const PORTRAITS = {
   /* ---------- ET LE SEIZIÈME N'EST PAS UN COMMERCE : C'EST LE JOUEUR ----------
      Le joueur : « je vais faire un truc avec un personnage principal, un agriculteur qui
      hérite d'une terre mais qui n'y connaît pas grand-chose. »
-     IL A CINQ EXPRESSIONS LÀ OÙ LES QUINZE AUTRES EN ONT TROIS, et ce n'est pas de la
+     IL A SEPT EXPRESSIONS LÀ OÙ LES QUINZE AUTRES EN ONT TROIS, et ce n'est pas de la
      générosité : un commerçant n'a que trois choses à dire — bonjour, merci, non. Le
      héros, lui, TRAVERSE le jeu. Il arrive sans rien savoir (perplexe), il cherche
-     (pensif), il se cogne (surpris), il réussit (bravo), et il finit par y prendre goût
+     (pensif), il découvre (surpris), il réussit (bravo), et il finit par y prendre goût
      (rire). Ce sont les cinq moments de la première heure de jeu, dans l'ordre.
+     LES DEUX DERNIÈRES SONT CELLES DES MAUVAIS MOMENTS, et elles manquaient : les cinq
+     premières vont de l'hésitation à la joie sans jamais passer par l'échec, alors que la
+     moitié de ce qu'un débutant vit à la ferme est un empêchement. `contrarie` est celui
+     qui SE COGNE — sourcils noués, regard de biais : le semoir vide, la trémie pleine, la
+     jauge qui descend. `abattu` est plus rare et plus lourd — tête baissée, yeux au sol :
+     le moteur qui meurt au bout du champ, et le chemin du retour à pied.
      ET SON CALME S'APPELLE `perplexe`, PAS `neutre`. Les quinze commerçants posent leur
      neutre dans une boîte de 96 — la fenêtre de contrat, le bandeau d'accueil — et sa
-     planche fait donc 288 pixels. Le héros ne paraît jamais là : ses cinq expressions
-     vivent toutes dans la fenêtre d'annonce, en 192. Reprendre le mot `neutre` l'aurait
-     fabriqué à 288 et fait agrandir de moitié à l'affichage, seule de ses cinq planches à
+     planche fait donc 288 pixels. Le héros ne paraît jamais là : ses expressions vivent
+     toutes dans la fenêtre d'annonce, en 192. Reprendre le mot `neutre` l'aurait
+     fabriqué à 288 et fait agrandir de moitié à l'affichage, seule de ses planches à
      être floue. La chaîne `outils/portraits` lit les humeurs dans sa table au lieu de les
-     tenir en dur, et fabrique donc les cinq à 576. */
-  'Moi': {r:'fermier', h:['perplexe', 'bravo', 'pensif', 'surpris', 'rire']}
+     tenir en dur, et fabrique donc les sept à 576. */
+  'Moi': {r:'fermier', h:['perplexe', 'bravo', 'pensif', 'surpris', 'rire',
+                          'contrarie', 'abattu']}
 };
 const HUMEURS = ['neutre', 'bravo', 'refus'];
 /* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
@@ -19954,7 +19961,21 @@ function brulerCarburant(v, throttle, dt){
   if(v.fuel <= 0.05){
     if(!v.sec){
       v.sec = true; v.auto = false; v.plan = null;
-      if(MACHINES[cur].v === v) showHint('PANNE SÈCHE – DIRECTION LA CUVE');
+      /* LA PANNE SÈCHE MÉRITAIT MIEUX QU'UN BANDEAU DE TROIS SECONDES. C'est le seul
+         événement du jeu qui PUNIT : la jauge clignote sous quinze pour cent, on la
+         regarde de biais en finissant l'andain, et le moteur meurt au bout du champ.
+         Il reste alors le trajet du retour à dix pour cent de gaz, l'outil derrière, et
+         c'est le moment où l'on comprend qu'un plein n'est pas une corvée facultative.
+         Le bandeau glissait par-dessus tout ça en trois secondes. La fenêtre, elle, a un
+         visage — et c'est le seul de ses sept où il baisse les yeux. On ne s'en sert
+         qu'ici : sept expressions dont une pour le pire moment, ça reste rare, et c'est
+         ce qui lui garde son poids. */
+      if(MACHINES[cur].v === v)
+        annoncerFenetre({titre:'PANNE SÈCHE', etape:true, duree:5.5,
+          face:{nom:'Moi', humeur:'abattu'},
+          sous:'<i>\u00ab\u00a0Plus une goutte, au bout du champ.<br>' +
+               'J\u2019avais vu la jauge clignoter.\u00a0\u00bb</i>',
+          suite:'La citerne est dans la cour, et le plein est gratuit'});
     }
   } else if(v.fuel > 1) v.sec = false;
 }
@@ -20620,7 +20641,7 @@ const LECONS = [
      dit « sème ta parcelle » à quelqu'un qui n'a plus rien à semer sans que rien ne le
      lui dise. Cette leçon-là arrive donc au moment exact où l'on accroche l'outil et
      qu'il est vide. */
-  {cle:'cuve', ou:'reserve', tot:true, titre:'REMPLIR LE SEMOIR',
+  {cle:'cuve', ou:'reserve', tot:true, mur:true, titre:'REMPLIR LE SEMOIR',
    txt:'REMPLIR LA CUVE – un semoir vide ne sème rien, et il m’a fallu un demi-champ pour '
      + 'm’en apercevoir. La cuve verte est dans la cour, ou au comptoir.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
@@ -20633,12 +20654,12 @@ const LECONS = [
      la suivante partait sur un champ à 40 % — et ce qu'elle disait vraiment n'était pas
      « tu as fini », c'était « tu ne peux plus avancer ». C'est une leçon, mot pour mot :
      elle se lève à la première trémie pleine et ne revient jamais. */
-  {cle:'tremie', ou:'silo', tot:true, titre:'LA TRÉMIE EST PLEINE',
+  {cle:'tremie', ou:'silo', tot:true, mur:true, titre:'LA TRÉMIE EST PLEINE',
    txt:'LA TRÉMIE EST PLEINE – elle ne ramasse plus rien. Il faut aller vider au silo, puis '
      + 'revenir finir : une parcelle en donne plus qu’elle n’en tient.',
    quand:()=> hopper >= HOP_MAX - 0.5},
 
-  {cle:'gazole', ou:'gazole', tot:true, titre:'LE PLEIN DE GAZOLE',
+  {cle:'gazole', ou:'gazole', tot:true, mur:true, titre:'LE PLEIN DE GAZOLE',
    txt:'LE PLEIN – arrête-toi sur le cercle de la citerne, dans la cour. Ça coule tout seul '
      + 'et c’est gratuit : la seule chose gratuite de la semaine.',
    quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
@@ -20871,11 +20892,19 @@ function veillerLecons(dt){
   if(leconsDites.indexOf(leconActive.cle) >= 0) return;
   leconsDites.push(leconActive.cle);
   const L = leconActive, P = lieuLecon(L);
-  /* UNE LEÇON EST UN MUR, ET IL LE PREND EN PLEINE FIGURE. Elle ne se lève que quand on
-     ne peut plus avancer — semoir vide, trémie pleine, réservoir sec —, ce qui est
-     exactement le moment où quelqu'un qui apprend ouvre de grands yeux. */
+  /* DEUX FAMILLES DE LEÇONS, DEUX VISAGES. Elles portaient toutes le même — celui des
+     grands yeux —, et c'était faux pour la moitié d'entre elles : « ton semoir est vide
+     au milieu du champ » et « tu pourrais t'acheter un second tracteur » ne se lisent pas
+     de la même figure. Les trois marquées `mur` se lèvent quand on NE PEUT PLUS AVANCER
+     — semoir vide, trémie pleine, réservoir qui descend — et ce n'est pas une découverte,
+     c'est un empêchement : il est CONTRARIÉ. Les dix-sept autres sont des portes qui
+     s'ouvrent, un geste de plus qui devient possible, et là il ouvre de grands yeux.
+     `mur` est écrit à part de `tot` bien qu'ils désignent aujourd'hui les mêmes trois
+     lignes : `tot` dit « assez tôt pour paraître pendant le tutoriel », `mur` dit « ça
+     t'arrête ». Les faire porter par le même drapeau tiendrait tant que la coïncidence
+     tient, et mentirait le jour où l'on ajoutera un mur tardif. */
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' – ').slice(1).join(' – ') || L.txt,
-    etape:true, duree:5.5, face:{nom:'Moi', humeur:'surpris'},
+    etape:true, duree:5.5, face:{nom:'Moi', humeur:L.mur ? 'contrarie' : 'surpris'},
     suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }

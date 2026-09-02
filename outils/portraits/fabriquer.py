@@ -75,7 +75,8 @@ PX_JEU = 1.0/3.0
 # propre nom — et `perplexe` decrit mieux ce qu il montre : un homme qui regarde de cote et
 # qui n est sur de rien.
 POSES  = {'neutre': 96, 'bravo': 192, 'refus': 192,
-          'perplexe': 192, 'pensif': 192, 'surpris': 192, 'rire': 192}
+          'perplexe': 192, 'pensif': 192, 'surpris': 192, 'rire': 192,
+          'abattu': 192, 'contrarie': 192}
 def largeurDe(h):
     """La planche d une humeur : sa boite divisee par la grille. 288 ou 576."""
     return int(round(POSES[h]/PX_JEU))

@@ -11889,3 +11889,63 @@ fait 120, ce qui est encore un visage et n'est plus un écran.
 `visages` passe de 34 à **42 contrôles** — huit pour le héros seul, dont les quatre qui
 vérifient que chaque moment montre la bonne planche. Les trente-deux suites à **1 334
 contrôles**.
+
+### Deux visages pour quand ça va mal
+
+Le joueur a envoyé deux planches de plus, sans un mot. Elles disent la même chose toutes les
+deux, et c'est exactement ce qui manquait : **les cinq premières vont de l'hésitation à la
+joie sans jamais passer par l'échec.** Perplexe, pensif, surpris, bravo, rire — il arrive, il
+cherche, il découvre, il réussit, il en rit. Or la moitié de ce qu'un débutant vit à la ferme
+est un empêchement, et le jeu n'avait aucune tête à lui montrer pour ça.
+
+| | ce qu'elle montre | où elle paraît |
+|---|---|---|
+| `contrarie` | sourcils noués, regard de biais | les **trois murs** du tutoriel |
+| `abattu` | tête baissée, yeux au sol | la **panne sèche**, et rien d'autre |
+
+**Les leçons portaient toutes le même visage, et c'était faux pour dix-sept d'entre elles.**
+`veillerLecons` posait `surpris` sur les vingt sans distinguer. Or « ton semoir est vide au
+milieu du champ » et « tu pourrais t'acheter un second tracteur » ne se lisent pas de la même
+figure : la première t'arrête, la seconde t'ouvre une porte. Les trois qui arrêtent portent
+désormais un drapeau `mur` — semoir vide, trémie pleine, réservoir qui descend — et c'est lui
+qui choisit la tête.
+
+**Pourquoi `mur` n'est pas `tot`.** Les deux drapeaux désignent aujourd'hui les mêmes trois
+lignes, et il aurait été tentant de n'en garder qu'un. Ils ne disent pas la même chose : `tot`
+veut dire « assez tôt pour paraître pendant le tutoriel », `mur` veut dire « ça t'arrête ».
+Les confondre tiendrait tant que la coïncidence tient, et mentirait le jour où l'on ajoutera
+un mur tardif.
+
+**La panne sèche méritait mieux qu'un bandeau de trois secondes.** C'est le seul événement du
+jeu qui *punit* : la jauge clignote sous quinze pour cent, on la regarde de biais en
+finissant l'andain, et le moteur meurt au bout du champ. Il reste le trajet du retour à dix
+pour cent de gaz, l'outil derrière. Elle avait droit à `showHint('PANNE SÈCHE – DIRECTION LA
+CUVE')`, qui glisse par-dessus tout ça et disparaît. Elle a maintenant une fenêtre, et c'est
+le seul endroit des sept où il baisse les yeux — sept expressions dont une pour le pire
+moment, ça reste rare, et c'est ce qui lui garde son poids.
+
+**Le banc mesure la porte, pas le rendu.** Écrire `annoncerFenetre({face:{humeur:'contrarie'}})`
+dans le contrôle ne prouverait que le fichier existe. Les nouveaux contrôles passent par les
+vraies fonctions : `veillerLecons` pour les deux familles de leçons — 3 murs et 17 portes,
+sans reste sur les 20 —, et un réservoir vidé à 0,04 litre plus une image de
+`brulerCarburant` pour la panne. C'est le CHOIX qu'on vérifie. Un dernier compte la RARETÉ :
+chacun des deux mots n'est écrit que **deux fois** dans les vingt-huit mille lignes — une au
+casting, une au moment.
+
+**Ce que la chaîne a redemandé.** Sept humeurs au lieu de trois, c'est vingt-et-une paires à
+comparer au lieu de trois : l'aligneur a passé une demi-heure sur le seul fermier. Il l'a
+ramené de **7,2 % à 0,6 %** d'écart, en prenant `abattu` pour référence — les sept têtes font
+désormais la même taille à un demi-pour-cent près. Le casting entier : 1,0 % avant, **0,3 %
+après**.
+
+| | fiches | poids |
+|---|---|---|
+| palette partagée | 48 × (288 ou 576) | 1 412 Ko |
+| palette par image | 48 × (288 ou 576) | 1 039 Ko |
+
+`portraits/fermier-neutre.png` a été supprimé au passage : il datait du premier jet, quand son
+calme s'appelait encore `neutre`, et plus rien ne le demandait — `visageDe('Moi', 'neutre')`
+rend `null`, ce qu'un contrôle vérifie déjà.
+
+`visages` passe de 42 à **46 contrôles**. Les trente-deux suites à **1 338 contrôles**.
+
