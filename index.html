@@ -3474,13 +3474,14 @@ const NIVEAUX = [
    modules:['farine'], sites:['Boulangerie'], parcelles:1},
   {nom:'Le maïs et les poules', resume:'Une deuxième parcelle, le broyeur, le poulailler',
    cultures:['mais'], modules:['aliment'], especes:['poule'], parcelles:2},
-  /* LE DEUXIÈME TRACTEUR OUVRE OÙ LE PALIER LE DEMANDE. « Deux chaînes à la fois » est
+  /* LE TRACTEUR LOURD OUVRE OÙ LE ROUGE OUVRAIT. « Deux chaînes à la fois » est
      exactement le moment où l'on commence à faire l'aller-retour au parc à outils entre
-     la charrue et le semoir : le tracteur rouge achète l'attelage permanent, pas de la
-     puissance. Le palier n'ouvrait rien d'autre — il ne demandait que de tenir deux
-     filières — et un banc vérifie que rien de payant n'échappe à cette table. */
+     la charrue et le semoir : c'est là qu'un second attelage se justifie. Ce n'est plus
+     un tracteur de plus qu'on achète, c'est LE tracteur — celui qui, neuf paliers plus
+     loin, tirera le combiné. Le palier n'ouvre rien d'autre, comme avant, et un banc
+     vérifie que rien de payant n'échappe à cette table. */
   {nom:'Deux chaînes à la fois', resume:'La farine ET les œufs dans la même tournée',
-   engins:['t2'], parcelles:2},
+   engins:['t4'], parcelles:2},
   {nom:'L\'orge', resume:'L\'orge, la cuve de brassage, le restaurant',
    cultures:['orge'], engins:['fourgon'], modules:['biere'],
    sites:['Épicerie', 'Restaurant'], parcelles:3},
@@ -3498,10 +3499,13 @@ const NIVEAUX = [
    modules:['fromageBrebis'], parcelles:6},
   {nom:'L\'apiculture', resume:'Le rucher, le miel, le marché du village',
    especes:['ruche'], sites:['Marché'], parcelles:6},
-  // Et le bleu au palier qui demande trois filières en même temps : dix-huit mille
-  // euros, c'est-à-dire le prix d'un pressoir, pour un troisième attelage debout.
+  /* ET LE COMBINÉ AU PALIER QUI DEMANDE TROIS FILIÈRES EN MÊME TEMPS. C'était le
+     tracteur bleu, un troisième attelage debout pour dix-huit mille euros ; c'est
+     maintenant l'outil qui rend les attelages inutiles. Le joueur a déjà le tracteur
+     lourd depuis neuf paliers : ce qu'il achète ici, c'est ce que ce tracteur-là
+     attendait, et trois passages qui n'en font plus qu'un. */
   {nom:'La gamme fermière', resume:'Farine, œufs et miel dans la même commande',
-   engins:['t3'], parcelles:7},
+   outils:['combine'], parcelles:7},
   {nom:'Le colza', resume:'Le colza et le pressoir',
    cultures:['colza'], modules:['huile'], parcelles:7},
   {nom:'Les olives', resume:'L\'oliveraie, l\'enjambeuse, l\'huile d\'olive',
@@ -3863,6 +3867,10 @@ function poserVisage(el, nom, humeur){
    une seule règle de nommage, et un banc qui vérifie qu'aucune clé n'appartient à deux
    tables à la fois.
 
+   ET LE ROUGE ET LE BLEU GARDENT LEUR PLANCHE. Ils ne sont plus à vendre, mais une ferme
+   qui en a déjà payé un le conduit encore : sa ligne de menu doit porter son dessin comme
+   toutes les autres. Une clé retirée de la CONCESSION n'est pas une clé retirée du JEU.
+
    ET LA TABLE DIT UN NOM DE PLANCHE, PAS UN OUI. Plusieurs clés peuvent partager le même
    dessin, et trois le font : le MOUTON et la BREBIS sont le même animal — l'un se tond,
    l'autre se trait, et rien ne les distingue à l'œil ; la RUCHE se montre par son abeille,
@@ -3888,9 +3896,9 @@ const VIGNETTES = {
   fromage:'fromage', fromageBrebis:'fromageBrebis', biere:'biere', vin:'vin',
   vache:'vache', brebis:'brebis', mouton:'brebis', cochon:'cochon',
   poule:'poule', ruche:'abeille',
-  t1:'t1', t2:'t2', t3:'t3', pickup:'pickup', fourgon:'fourgon',
+  t1:'t1', t2:'t2', t3:'t3', t4:'t4', pickup:'pickup', fourgon:'fourgon',
   moisson:'moisson', enjambeuse:'enjambeuse',
-  labour:'labour', semis:'semis', engrais:'engrais', benne:'benne'
+  labour:'labour', semis:'semis', engrais:'engrais', benne:'benne', combine:'combine'
 };
 const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle] + '.png' : null;
 /* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
@@ -4972,7 +4980,10 @@ const SWATH = {
   labour:  {base:C.soil,    line:C.soilDark,             step:0.52, lw:0.24, grain:'rgba(255,255,255,.05)'},
   semis:   {base:C.seed,    line:'rgba(0,0,0,.28)',      step:0.80, lw:0.18, grain:null, seeds:'#4E3A1C'},
   moisson: {base:'#63482A', line:'rgba(0,0,0,.16)',      step:0.95, lw:0.16, grain:null, debris:true},
-  engrais: {base:null,      line:null,                   step:0,    lw:0,    grain:null}
+  engrais: {base:null,      line:null,                   step:0,    lw:0,    grain:null},
+  // Le combiné laisse la trace de ce qu'il LAISSE DERRIÈRE LUI, et il laisse un semis :
+  // la terre est retournée devant, mais c'est le rouleau qui la referme en dernier.
+  combine: {base:C.seed,    line:'rgba(0,0,0,.28)',      step:0.80, lw:0.18, grain:null, seeds:'#4E3A1C'}
   // Rien pour 'vendange' : l'enjambeuse passe AU-DESSUS du rang, elle ne fauche pas.
   // Un outil sans entrée ici ne peint pas — c'est ce que dit le test de work().
 };
@@ -10127,6 +10138,295 @@ function buildTracteur(bodyColor){
             nez:2.6}};
   return g;
 }
+/* ---------- LE TRACTEUR LOURD ----------
+   Le joueur a envoyé son modèle dans une page à part, sur fond magenta, avec le combiné
+   déjà attelé derrière lui. Il est porté ici TEL QUEL : mêmes cotes, même ordre de
+   pièces, mêmes noms. Une seule chose change, l'ÉCHELLE — la page dessine en mètres
+   « maquette », le jeu en mètres de terrain — et elle passe par trois enveloppes plutôt
+   que par un `scale` sur le groupe. Ce n'est pas un caprice : `Vehicle` extrait les
+   roues des enfants du groupe pour leur donner leur propre train, `essieuAr` relit leur
+   cote, et la table des lampes est en coordonnées de modèle. Un groupe mis à l'échelle
+   obligerait chacun de ces trois-là à s'en souvenir. En multipliant à la source, tout
+   le reste du fichier continue de lire des mètres de terrain.
+
+   POURQUOI 1,55. Le tracteur vert mesure 5,9 m et roule sur des roues de 1,25 m ; à
+   1,55 le lourd fait 7,3 m sur des roues de 1,47, et sa voie passe de 2,70 à 3,57.
+   Il est donc plus long d'un quart et plus large d'un quart — « plus costaud » se voit
+   à côté du vert sans qu'il devienne un camion. Sa cabine, elle, reste À LA MÊME
+   HAUTEUR : un tracteur lourd est long et large, il n'est pas haut. */
+const LOURD_K = 1.55;
+function buildTracteurLourd(){
+  const K = LOURD_K;
+  // Les deux mêmes aides que partout dans le fichier, à l'échelle près.
+  const b = (w,h,d,c,x,y,z,rx,ry,rz)=>
+    box(w*K, h*K, d*K, c, (x||0)*K, (y||0)*K, (z||0)*K, rx, ry, rz);
+  const c2 = (rt,rb,h,seg,col,x,y,z,rx,ry,rz)=>
+    cyl(rt*K, rb*K, h*K, seg, col, (x||0)*K, (y||0)*K, (z||0)*K, rx, ry, rz);
+
+  const JAUNE = 0xF0B32B, JAUNE2 = 0xD1961C, JAUNE3 = 0xF7CB5E,
+        NOIR = 0x22262A, NOIR2 = 0x2E3438, GRIS = 0x6E767C, GRIS2 = 0x8A9298,
+        CREME = 0xF0E4C0, VITRE = 0x2A3A42, ROUGE = 0xC0392B, ORANGE = 0xE07B24;
+
+  /* ROUE NUE : sans garde-boue au-dessus, elle se voit entièrement. On lui met donc
+     ce qu'on ne met pas ailleurs — voile de jante à six trous, boulons, valve. */
+  function roueLisse(r, larg){
+    const g = new THREE.Group();
+    g.add(c2(r, r, larg, 12, NOIR, 0, 0, 0, 0, 0, Math.PI/2));
+    for(const s of [-1, 1])
+      g.add(c2(r*0.96, r*0.96, 0.05, 12, NOIR2, s*(larg/2 - 0.02), 0, 0, 0, 0, Math.PI/2));
+    g.add(c2(r*0.52, r*0.52, larg + 0.06, 10, JAUNE2, 0, 0, 0, 0, 0, Math.PI/2));   // jante
+    g.add(c2(r*0.34, r*0.34, larg + 0.10, 10, JAUNE3, 0, 0, 0, 0, 0, Math.PI/2));   // voile
+    for(let k = 0; k < 6; k++){                                                     // boulons
+      const a = k*Math.PI/3;
+      g.add(c2(0.035, 0.035, larg + 0.14, 6, GRIS, 0,
+               Math.cos(a)*r*0.22, Math.sin(a)*r*0.22, 0, 0, Math.PI/2));
+    }
+    g.add(c2(0.15, 0.15, larg + 0.16, 8, GRIS2, 0, 0, 0, 0, 0, Math.PI/2));         // moyeu
+    g.add(c2(0.03, 0.03, 0.12, 6, GRIS, 0, r*0.62, r*0.38, 0.6));                   // valve
+    return g;
+  }
+  /* MARCHEPIED AJOURÉ : deux marches en caillebotis tenues par une équerre. Visible
+     parce que le flanc est dégagé, faute de garde-boue. */
+  function marchepied(g, s, x, y, z){
+    for(let k = 0; k < 2; k++){
+      const yy = y + k*0.36, zz = z - k*0.05;
+      g.add(b(0.44, 0.05, 0.30, GRIS, s*x, yy, zz));
+      for(let j = 0; j < 3; j++) g.add(b(0.40, 0.07, 0.04, GRIS2, s*x, yy + 0.04, zz - 0.10 + j*0.10));
+    }
+    g.add(b(0.06, 0.80, 0.06, NOIR2, s*(x - 0.16), y + 0.20, z));
+  }
+
+  const g = new THREE.Group();
+  const rAR = 0.95, rAV = 0.62, lAR = 0.42, lAV = 0.34, voie = 1.15;
+
+  // LES ROUES D'ABORD, et enfants directs du groupe : `Vehicle` les cherche là.
+  const wr = [], wf = [];
+  for(const s of [-1, 1]){
+    const a = roueLisse(rAR, lAR); a.position.set(s*voie*K, rAR*K, -1.30*K); g.add(a); wr.push(a);
+    const f = roueLisse(rAV, lAV); f.position.set(s*(voie - 0.06)*K, rAV*K, 1.55*K); g.add(f); wf.push(f);
+  }
+  for(const s of [-1, 1]) g.add(b(0.20, 0.34, 3.9, NOIR2, s*0.50, 0.78, 0.10));
+  g.add(b(1.2, 0.26, 0.7, NOIR2, 0, 0.78, 1.55));
+  g.add(c2(0.12, 0.12, 2.2, 8, GRIS, 0, 0.78, 1.55, 0, 0, Math.PI/2));
+  g.add(b(0.9, 0.30, 0.5, NOIR, 0, 0.62, 0.60));                         // carter de boîte
+
+  /* ---- capot : grille fine, loquet, écusson ---- */
+  g.add(b(1.50, 0.80, 2.30, JAUNE, 0, 1.32, 0.85));
+  g.add(b(1.58, 0.14, 2.34, JAUNE3, 0, 1.76, 0.85));
+  g.add(b(1.20, 0.05, 1.90, JAUNE2, 0, 1.84, 0.85));                     // panneau de capot
+  g.add(b(0.30, 0.08, 0.20, GRIS2, 0, 1.86, 1.92));                      // loquet
+  for(const s of [-1, 1]) for(let k = 0; k < 7; k++)                      // ouïes serrées
+    g.add(b(0.05, 0.22, 0.22, JAUNE2, s*0.76, 1.36, -0.05 + k*0.28));
+  g.add(b(1.30, 0.46, 0.12, NOIR, 0, 1.34, 2.02));                       // calandre
+  for(let k = 0; k < 9; k++) g.add(b(0.05, 0.5, 0.14, GRIS, -0.52 + k*0.13, 1.34, 2.04));
+  g.add(b(1.36, 0.08, 0.16, JAUNE2, 0, 1.60, 2.04));
+  g.add(b(0.36, 0.12, 0.06, NOIR, 0, 1.72, 2.06));                       // écusson
+  g.add(b(1.62, 0.28, 0.34, NOIR2, 0, 1.00, 2.06));                      // pare-chocs
+  for(const s of [-1, 1]){
+    g.add(b(0.14, 0.14, 0.10, ORANGE, s*0.60, 1.40, 2.10));              // clignotant
+    g.add(b(0.10, 0.34, 0.10, GRIS, s*0.80, 1.16, 2.00));                // support
+  }
+  /* ---- flancs : réservoir, batterie, coffre à outils ---- */
+  g.add(b(0.26, 0.44, 1.10, NOIR2, -0.74, 0.92, -0.35));                 // réservoir
+  g.add(c2(0.09, 0.09, 0.10, 8, GRIS2, -0.74, 1.18, -0.05));             // bouchon
+  g.add(b(0.26, 0.34, 0.44, NOIR, 0.74, 0.95, -0.30));                   // batterie
+  g.add(b(0.28, 0.08, 0.46, GRIS, 0.74, 1.14, -0.30));
+  g.add(b(0.26, 0.30, 0.52, JAUNE2, 0.74, 0.95, 0.35));                  // coffre à outils
+  g.add(b(0.28, 0.05, 0.14, GRIS2, 0.74, 1.02, 0.35));
+
+  /* ---- cabine ---- */
+  const y = 1.30;
+  g.add(b(1.42, 1.15, 1.35, VITRE, 0, y + 0.62, -1.05));
+  for(const s of [-1, 1]) for(const z of [-1.68, -0.42])
+    g.add(b(0.10, 1.22, 0.10, JAUNE, s*0.70, y + 0.62, z));              // montants
+  for(const s of [-1, 1]){
+    g.add(b(0.11, 0.10, 1.28, JAUNE, s*0.70, y + 1.20, -1.05));          // ceinture haute
+    g.add(b(0.11, 0.10, 1.28, JAUNE, s*0.70, y + 0.06, -1.05));          // ceinture basse
+    g.add(b(0.12, 0.34, 0.06, NOIR2, s*0.72, y + 0.62, -0.72));          // poignée de porte
+    g.add(b(0.12, 0.10, 0.10, GRIS2, s*0.72, y + 0.90, -1.60));          // charnières
+    g.add(b(0.12, 0.10, 0.10, GRIS2, s*0.72, y + 0.34, -1.60));
+  }
+  g.add(b(1.24, 0.10, 0.10, JAUNE, 0, y + 1.20, -0.42));                 // traverse avant
+  g.add(b(1.24, 0.10, 0.10, JAUNE, 0, y + 1.20, -1.68));                 // traverse arrière
+  g.add(b(0.06, 0.05, 0.40, NOIR, 0.20, y + 1.12, -0.44));               // essuie-glace
+  g.add(b(1.60, 0.14, 1.55, JAUNE3, 0, y + 1.26, -1.05));                // toit
+  g.add(b(1.68, 0.07, 1.63, JAUNE2, 0, y + 1.34, -1.05));
+  for(const s of [-1, 1]){                                               // rétroviseurs
+    g.add(b(0.34, 0.05, 0.05, GRIS, s*0.92, y + 1.10, -0.40));
+    g.add(b(0.07, 0.24, 0.16, NOIR2, s*1.08, y + 1.00, -0.40));
+  }
+  marchepied(g, -1, 0.86, 0.80, -0.55);
+  marchepied(g,  1, 0.86, 0.80, -0.55);
+
+  /* ---- échappement, préfiltre ---- */
+  g.add(c2(0.09, 0.10, 1.25, 8, NOIR2, -0.62, 2.15, 1.45));
+  g.add(c2(0.13, 0.13, 0.12, 8, GRIS, -0.62, 2.82, 1.45));
+  g.add(b(0.16, 0.6, 0.16, GRIS2, -0.62, 2.10, 1.45));                   // écran thermique
+  g.add(c2(0.16, 0.16, 0.30, 10, GRIS2, 0.62, 2.10, 1.45));              // préfiltre à air
+  g.add(c2(0.08, 0.08, 0.70, 8, NOIR2, 0.62, 1.75, 1.45));
+
+  /* ---- arrière, et LA CHAPE D'ATTELAGE. C'est elle qui reçoit l'anneau du timon ;
+     sa cote est reprise telle quelle par `hitch` côté outil, pour que l'anneau tombe
+     dessus et non à peu près. ---- */
+  g.add(b(1.20, 0.80, 0.90, JAUNE, 0, 1.15, -1.90));
+  g.add(b(1.34, 0.22, 0.34, NOIR2, 0, 1.58, -1.95));
+  for(const s of [-1, 1]) g.add(b(0.20, 0.14, 0.10, JAUNE3, s*0.52, 1.28, -2.36));
+  g.add(c2(0.11, 0.11, 0.26, 8, GRIS2, 0, 0.86, -2.32, Math.PI/2));      // prise de force
+  g.add(b(0.46, 0.24, 0.60, NOIR2, 0, 0.78, -2.44));                     // chape
+  g.add(b(0.26, 0.34, 0.20, NOIR2, 0, 0.92, -2.20));                     // console de liaison
+  g.add(c2(0.06, 0.06, 0.40, 6, GRIS, 0, 0.78, -2.62));                  // broche
+
+  /* ---- ET LES FEUX SONT CEUX DU JEU, pas ceux de la page. Le cycle jour/nuit vient
+     poser sa lueur sur les optiques que le modèle déclare ; des boîtes crème peintes à
+     la main resteraient éteintes à la tombée du soir. Ils sont posés aux cotes exactes
+     des blocs optiques de la page. ---- */
+  const F = jeuDeFeux();
+  for(const sx of [-0.50*K, 0.50*K]) optique(g, F, false, sx, 1.42*K,  2.05*K, 0.40*K, 0.28*K);
+  for(const sx of [-0.52*K, 0.52*K]) optique(g, F, true,  sx, 1.48*K, -2.36*K, 0.24*K, 0.26*K);
+  const gyro = gyrophare(g, 0.52*K, (y + 1.44)*K, -0.55*K);
+  const exh = new THREE.Object3D(); exh.position.set(-0.62*K, 2.95*K, 1.45*K); g.add(exh);
+
+  g.userData = {wr, wf, exhaust:exh, gyro, feux:F,
+    lampes:{avant:  {x:[-0.50*K, 0.50*K], y:1.42*K, z: 2.05*K, w:0.40*K, h:0.28*K},
+            arriere:{x:[-0.52*K, 0.52*K], y:1.48*K, z:-2.36*K, w:0.24*K, h:0.26*K},
+            nez:2.20*K}};
+  return g;
+}
+/* ---------- LE COMBINÉ 3-EN-1 ----------
+   Un seul outil traîné qui fait les TROIS travaux en un passage, et il se lit de l'avant
+   vers l'arrière, dans l'ordre où la terre est travaillée :
+     1. les DENTS À RESSORT ouvrent et retournent la terre ;
+     2. la TRÉMIE CYLINDRIQUE porte la semence et l'engrais, cloisonnés à l'intérieur ;
+     3. la TÊTE DE RÉPARTITION les envoie dans les descentes, la RAMPE les dépose,
+        et le ROULEAU referme le sillon.
+   C'est cet ordre qui rend l'engin lisible : sans lui, ce serait un tas de pièces.
+
+   IL EST DESSINÉ AVEC SON ANNEAU À L'ORIGINE DU GROUPE, et c'est la convention des
+   outils du jeu : `Vehicle.update` pose le groupe au point d'attelage, à `hitch` derrière
+   l'engin. Le modèle de la page portait son anneau à z = +3,22 ; tout est donc reculé
+   d'autant, et `hitch` vaut exactement la cote de la chape du tracteur lourd. L'anneau
+   tombe sur la chape, et non à peu près. */
+function buildCombine(){
+  const K = LOURD_K;                      // la même échelle que le tracteur qui le tire
+  const outer = new THREE.Group();
+  const g = new THREE.Group();
+  g.position.z = -3.22*K;                 // l'anneau vient à l'origine
+  outer.add(g);
+  const b = (w,h,d,c,x,y,z,rx,ry,rz)=>
+    box(w*K, h*K, d*K, c, (x||0)*K, (y||0)*K, (z||0)*K, rx, ry, rz);
+  const c2 = (rt,rb,h,seg,col,x,y,z,rx,ry,rz)=>
+    cyl(rt*K, rb*K, h*K, seg, col, (x||0)*K, (y||0)*K, (z||0)*K, rx, ry, rz);
+
+  const CH_ROUGE = 0xB8342A, CH_ROUGE2 = 0x8E2A22, CH_GRIS = 0x4A5257,
+        CH_ACIER = 0x8A9298, CH_ACIER2 = 0x6E767C, CH_INOX = 0xC9CFD3,
+        CH_ORANGE = 0xE07B24, CH_JAUNE = 0xE8B33A, CH_NOIR = 0x22262A;
+
+  /* Une roue porteuse à pneu lisse. La fusée relie le moyeu au longeron : sa longueur
+     suit l'écartement, sinon la roue flotte à côté du cadre. */
+  function rouePorteuse(x, z, r){
+    const l = 0.46;
+    const w = new THREE.Group();
+    w.add(c2(r, r, l, 12, CH_NOIR, 0, 0, 0, 0, 0, Math.PI/2));
+    for(const t of [-1, 1])
+      w.add(c2(r*0.96, r*0.96, 0.05, 12, 0x2E3438, t*(l/2 - 0.02), 0, 0, 0, 0, Math.PI/2));
+    w.add(c2(r*0.5, r*0.5, l + 0.06, 10, CH_ACIER2, 0, 0, 0, 0, 0, Math.PI/2));
+    w.add(c2(r*0.18, r*0.18, l + 0.12, 6, CH_ACIER, 0, 0, 0, 0, 0, Math.PI/2));
+    w.position.set(x*K, r*K, z*K); g.add(w);
+    const dep = Math.abs(x) - 1.25;
+    g.add(b(dep + 0.30, 0.22, 0.30, CH_GRIS, x - Math.sign(x)*(dep + 0.30)/2 - Math.sign(x)*0.10, r, z));
+  }
+  /* Un élément semeur : deux disques inclinés qui ouvrent la ligne, une descente qui y
+     verse la graine, une roulette qui referme derrière. */
+  function elementSemis(x, z){
+    const e = new THREE.Group();
+    e.add(b(0.10, 0.52, 0.12, CH_ACIER2, 0, 0.44, 0.10));
+    for(const s of [-1, 1]){
+      const d = c2(0.20, 0.20, 0.04, 10, CH_INOX, s*0.07, 0.20, -0.04, 0, 0, Math.PI/2);
+      d.rotation.z = s * 0.16; e.add(d);
+    }
+    e.add(c2(0.05, 0.05, 0.44, 6, CH_NOIR, 0, 0.62, 0.06, 0.35));
+    e.add(c2(0.12, 0.12, 0.07, 8, CH_NOIR, 0, 0.13, -0.30, 0, 0, Math.PI/2));
+    e.position.set(x*K, 0, z*K);
+    return e;
+  }
+
+  const LARG = 3.6;
+  g.add(b(0.34, 0.34, 3.9, CH_GRIS, 0, 1.02, -0.10));
+  for(const s of [-1, 1]) g.add(b(0.22, 0.26, 2.6, CH_GRIS, s*1.25, 1.02, -0.10));
+  g.add(b(LARG, 0.28, 0.34, CH_GRIS, 0, 1.02, 1.05));
+  g.add(b(LARG, 0.28, 0.34, CH_GRIS, 0, 1.02, -1.30));
+
+  /* ---- timon : il PLONGE de 1,02 à 0,78 pour venir à la hauteur de la chape ---- */
+  for(const s of [-1, 1]){
+    const t = b(0.20, 0.22, 1.6, CH_ROUGE2, s*0.48, 1.02, 2.05);
+    t.rotation.y = s*0.15; g.add(t);
+  }
+  g.add(b(0.95, 0.30, 0.85, CH_GRIS, 0, 1.02, 2.70));
+  g.add(b(0.42, 0.34, 0.30, CH_GRIS, 0, 0.92, 3.05));
+  g.add(c2(0.20, 0.20, 0.14, 10, CH_ACIER, 0, 0.78, 3.22, Math.PI/2));    // anneau
+  g.add(c2(0.10, 0.10, 0.9, 8, CH_ACIER2, 0.42, 0.60, 2.50));             // béquille
+  g.add(b(0.34, 0.10, 0.34, CH_ACIER2, 0.42, 0.16, 2.50));
+
+  /* ---- 2. LA TRÉMIE, cylindrique et cloisonnée : la silhouette la plus nette ---- */
+  const yT = 1.18;
+  g.add(c2(1.15, 1.15, 1.55, 14, CH_ROUGE, 0, yT + 0.90, 0.10));
+  g.add(c2(1.15, 0.55, 0.55, 14, CH_ROUGE2, 0, yT + 0.05, 0.10));         // fond conique
+  for(let k = 0; k < 3; k++) g.add(c2(1.20, 1.20, 0.09, 14, CH_ORANGE, 0, yT + 0.45 + k*0.55, 0.10));
+  g.add(c2(1.22, 1.22, 0.14, 14, CH_GRIS, 0, yT + 1.72, 0.10));
+  g.add(c2(0.85, 0.85, 0.12, 14, CH_JAUNE, 0, yT + 1.84, 0.10));          // couvercle
+  g.add(b(0.60, 0.10, 0.16, CH_ACIER, 0, yT + 1.94, 0.55));               // poignée
+
+  /* ---- LA TÊTE DE RÉPARTITION, posée DERRIÈRE la caisse et remontée sur son pied :
+     sous la trémie, elle et son éventail de descentes étaient entièrement recouverts. ---- */
+  const TX = 0, TY = 1.98, TZ = -1.28;
+  g.add(c2(0.42, 0.42, 0.28, 14, CH_ACIER2, TX, TY, TZ));
+  g.add(c2(0.46, 0.46, 0.08, 14, CH_GRIS, TX, TY + 0.17, TZ));
+  g.add(c2(0.12, 0.12, 0.94, 8, CH_ACIER, TX, TY - 0.60, TZ));            // pied jusqu'au cadre
+  g.add(b(0.40, 0.14, 0.40, CH_GRIS, TX, TY - 1.06, TZ));                 // platine
+  g.add(b(0.30, 0.34, 0.62, CH_ACIER2, TX, TY - 0.30, TZ + 0.30));        // liaison courte
+
+  // essieu CENTRAL, roues sous la trémie
+  for(const s of [-1, 1]) rouePorteuse(s*1.72, 0.10, 0.62);
+
+  /* ---- 1. LES DENTS À RESSORT, en deux rangées décalées ---- */
+  for(const zr of [1.30, 0.80])
+    for(let k = 0; k < 6; k++){
+      const x = -LARG/2 + 0.32 + k*(LARG - 0.64)/5;
+      g.add(b(0.10, 0.85, 0.12, CH_GRIS, x, 0.68, zr));
+      const p = b(0.20, 0.12, 0.34, CH_ACIER2, x, 0.24, zr - 0.10);
+      p.rotation.x = -0.35; g.add(p);
+    }
+  g.add(b(LARG - 0.2, 0.26, 0.30, CH_ROUGE, 0, 1.05, 1.30));
+  g.add(b(LARG - 0.2, 0.26, 0.30, CH_ROUGE, 0, 1.05, 0.80));
+
+  /* ---- 3. LA RAMPE, puis le rouleau qui referme ---- */
+  g.add(b(LARG, 0.24, 0.26, CH_ROUGE, 0, 0.86, -1.60));
+  for(let k = 0; k < 7; k++)
+    g.add(elementSemis(-LARG/2 + 0.30 + k*(LARG - 0.6)/6, -1.60));
+  /* L'ÉVENTAIL : toutes les descentes partent du MÊME point et divergent vers l'arrière.
+     Tracées à longueur fixe, elles traverseraient la caisse et feraient une grille. */
+  for(let k = 0; k < 7; k++){
+    const x = -LARG/2 + 0.30 + k*(LARG - 0.6)/6;
+    const A = [TX, TY - 0.14, TZ - 0.16], B = [x, 0.95, -1.62];
+    const L2 = Math.hypot(B[0]-A[0], B[1]-A[1], B[2]-A[2]);
+    const t = c2(0.045, 0.045, L2, 6, CH_NOIR, (A[0]+B[0])/2, (A[1]+B[1])/2, (A[2]+B[2])/2);
+    t.rotation.x = -Math.atan2(B[2]-A[2], B[1]-A[1]);
+    t.rotation.z = Math.atan2(B[0]-A[0], B[1]-A[1]);
+    g.add(t);
+  }
+  g.add(c2(0.24, 0.24, LARG - 0.3, 12, CH_ACIER2, 0, 0.30, -2.20, 0, 0, Math.PI/2));
+  for(let k = 0; k < 10; k++)
+    g.add(b(LARG - 0.3, 0.06, 0.06, CH_GRIS, 0,
+            0.30 + Math.cos(k*Math.PI/5)*0.26, -2.20 + Math.sin(k*Math.PI/5)*0.26));
+  for(const s of [-1, 1]) g.add(b(0.16, 0.90, 0.16, CH_GRIS, s*1.60, 0.75, -1.85));
+
+  /* ---- signalisation arrière ---- */
+  for(const s of [-1, 1]){
+    g.add(b(0.34, 0.26, 0.1, 0xC0392B, s*1.60, 1.24, -1.72));
+    g.add(b(0.30, 0.20, 0.1, CH_JAUNE, s*1.60, 0.98, -1.72));
+  }
+  return outer;
+}
 function buildCharrue(){
   const outer = new THREE.Group(); const g = new THREE.Group(); g.position.z = -1.7; outer.add(g);
   g.add(box(0.4,0.4,1.6,C.dark,0,1.0,0.9));
@@ -13391,6 +13691,10 @@ function missionDrive(m, dt){
     // sans qu'on ait rien attelé. Leur demander d'aller chercher une charrue n'aurait
     // pas de sens, et elles n'ont pas de crochet.
     if(!T || m.key === 'moisson' || m.key === 'enjambeuse'){ tacheSuivante(m); return [0, 0]; }
+    // Un engin envoyé chercher un outil qu'il ne peut pas tirer rendrait la main sur
+    // place, au parc à outils, sans rien dire. `enginPourOutil` ne l'y envoie jamais ;
+    // cette garde est là pour que ce soit vrai même si un plan ancien le demandait.
+    if(!peutAtteler(v, T)){ tacheSuivante(m); return [0, 0]; }
     if(v.tool === T && T.attached === v){ tacheSuivante(m); return [0, 0]; }
     /* UN OUTIL PRIS PAR UN AUTRE N'EST PAS UNE ERREUR, C'EST UNE ATTENTE. Deux chantiers
        peuvent vouloir la même charrue au même moment ; celui qui arrive second patiente
@@ -13455,7 +13759,11 @@ function missionDrive(m, dt){
     const T = toolOf(m);
     v.cleVoulue = null; v.sensVoulu = 'route';
     if(!T || !T.cuveMax){ tacheSuivante(m); return [0, 0]; }
-    const eng = T.key === 'engrais';
+    /* QUEL CASIER ? Un outil pouvait n'en avoir qu'un, et son nom suffisait à le dire.
+       Le combiné en a deux, et c'est la TÂCHE qui désigne celui qu'elle vient remplir —
+       le répartiteur en enfile une par casier. Sans `nat`, on lit le nom de l'outil comme
+       avant, et rien ne change pour les quatre premiers. */
+    const eng = t.nat ? (t.nat === 'engrais') : (T.key === 'engrais');
     const C = CROPS[T.crop || 0];
     // Une vigne ne se sème pas, elle se plante et se paie au champ : rien à charger.
     if(!eng && C && C.perenne){ tacheSuivante(m); return [0, 0]; }
@@ -15435,23 +15743,24 @@ const MACHINES = [
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  /* LE ROUGE ET LE BLEU REVIENNENT À LA VENTE. Ils avaient été retirés au nom du « pas
-     de gros tracteur » — on garde son matériel et on l'améliore, on n'en rachète pas un
-     plus gros tous les cinq paliers — et la règle tient toujours : ils ne sont pas
-     PLUS GROS, ils sont EN PLUS. Ce qu'on achète avec le deuxième tracteur, ce n'est
-     pas de la puissance, c'est un attelage permanent : la charrue reste sur l'un, le
-     semoir sur l'autre, et l'on cesse de faire l'aller-retour au parc à outils entre
-     deux passages. Chacun garde sa propre échelle de vitesse, comme le vert.
-     Les entrées n'ont pas bougé de place : la sauvegarde sérialise MACHINES par
-     POSITION, et les déplacer ferait repartir chaque partie en cours sur la mauvaise
-     machine. Seul `retire` tombe. */
-  {key:'t2', nom:'Tracteur', robe:'rouge', teinte:0xD44435, verrou:true, prix:4500,
+  /* LE ROUGE ET LE BLEU QUITTENT LA VENTE, et cette fois c'est pour de bon. Ils étaient
+     revenus au nom d'un ATTELAGE DE PLUS — la charrue sur l'un, le semoir sur l'autre,
+     et l'on cesse l'aller-retour au parc à outils. Le combiné 3-en-1 répond mieux à la
+     même question : il n'y a plus trois attelages à garder debout, il n'y en a qu'un, et
+     il fait les trois travaux en un passage. Acheter deux tracteurs de plus pour éviter
+     un aller-retour qui n'existe plus n'avait plus d'objet.
+     ILS NE SONT PAS EFFACÉS, ILS SONT RETIRÉS DE LA VENTE. La sauvegarde sérialise
+     MACHINES par POSITION : supprimer les deux entrées ferait repartir chaque partie en
+     cours sur la mauvaise machine, et une ferme qui a déjà payé son tracteur rouge le
+     perdrait. `retire` ne ferme QUE la concession — un rouge déjà acheté reste au parc,
+     tire ses outils, s'améliore et se sauvegarde exactement comme avant. */
+  {key:'t2', nom:'Tracteur', robe:'rouge', teinte:0xD44435, verrou:true, retire:true, prix:4500,
    timbre:'tracteur', ton:0.94, v:new Vehicle({
       x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Tracteur', robe:'bleu', teinte:0x2F6FB5, verrou:true, prix:18000,
+  {key:'t3', nom:'Tracteur', robe:'bleu', teinte:0x2F6FB5, verrou:true, retire:true, prix:18000,
    timbre:'tracteur', ton:0.88, v:new Vehicle({
       x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
       susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
@@ -15522,6 +15831,23 @@ const MACHINES = [
       susp:{k:18, d:3.4, roll:0.062, pitch:0.030, rough:1.4},
       // Le tunnel travaille SOUS la machine, pas devant : le décalage est court.
       toolOffset:0.8, build:buildEnjambeuse
+    })},
+  /* ---------- LE TRACTEUR LOURD, ET IL EST SEUL DE SON ESPÈCE ----------
+     Il prend la place que le rouge et le bleu laissent, et il ne la prend pas de la même
+     façon : eux étaient un attelage de plus, lui est de la PUISSANCE. C'est le seul engin
+     de la ferme capable de tirer le combiné 3-en-1 — la règle vit sur l'outil, dans son
+     `pourEngin`, parce que c'est l'outil qui sait ce qu'il exige.
+     PLUS FORT NE VEUT PAS DIRE PLUS RAPIDE, et c'est ce qui l'empêche d'écraser le vert :
+     il plafonne plus bas (11 contre 12), il accélère moins fort et il braque moins court.
+     Ce qu'il a en plus, c'est l'adhérence — 6,4 contre 5,2 — c'est-à-dire de quoi tirer
+     six mètres d'outil chargé de graine et d'engrais sans patiner. Le vert reste le
+     tracteur agile ; le lourd est celui qui traîne.
+     EN FIN DE TABLE, et c'est impératif : la sauvegarde sérialise MACHINES par position. */
+  {key:'t4', nom:'Tracteur', robe:'lourd', teinte:0xF0B32B, verrou:true, prix:6000,
+   timbre:'tracteur', ton:0.70, v:new Vehicle({
+      x:placeCentre(3), z:47, cap:Math.PI, vmax:11, accel:8, turn:1.55, grip:6.4, trackW:1.78,
+      susp:{k:24, d:4.6, roll:0.050, pitch:0.030, rough:1.10},
+      build:buildTracteurLourd
     })}
 ];
 
@@ -15534,6 +15860,13 @@ const MACHINES = [
    ne s'ajoute QUE là où le doute existe — le nom reste « Tracteur » au bandeau, dans
    la liste du parc et sur la carte, où la couleur du modèle est sous les yeux. */
 const nomEngin = (m)=> m.robe ? m.nom + ' ' + m.robe : m.nom;
+/* ---------- CE QUI EST ENCORE À VENDRE ----------
+   `verrou` a toujours voulu dire deux choses à la fois : « pas encore acheté » et « à
+   vendre ». Le tracteur rouge et le bleu séparent les deux — ils ne sont plus proposés,
+   mais une ferme qui en a déjà payé un le garde. `retire` ne ferme QUE la concession :
+   partout ailleurs, un engin retiré se comporte exactement comme avant, et une partie en
+   cours ne perd rien. */
+const enVente = (m)=> !!m.verrou && !m.retire;
 const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, width0:8.0, level:1,
                  from:[ST.MUR], to:ST.CHAUME, recolte:true, perennes:false};
 /* Le tunnel de l'enjambeuse. Même nature d'outil intégré que la coupe : il ne se
@@ -15568,20 +15901,63 @@ const TOOLS = [
             from:[ST.JACHERE, ST.LABOURE, ST.SEME, ST.MUR, ST.CHAUME], to:ST.LABOURE,
             aide:'Prépare la terre'}),
   makeTool({key:'semis',   nom:'Semoir',  build:buildSemoir,   hitch:2.0, L:2.5,  width:6.4,
-            from:[ST.LABOURE], to:ST.SEME, aide:'Sème la culture choisie'}),
+            from:[ST.LABOURE], to:ST.SEME, seme:true, aide:'Sème la culture choisie'}),
   /* L'ÉPANDEUR S'ACHÈTE. C'est le premier vrai choix d'investissement du jeu : trois
      cent cinquante euros pour que la même terre pousse un quart plus vite. On peut
      s'en passer — et c'est exactement ce qui en fait un choix. */
   makeTool({key:'engrais', nom:'Épandeur',build:buildEpandeur, hitch:2.0, L:3.9,  width:12.0,
-            from:[ST.SEME], to:ST.SEME, aide:'Booste la croissance',
+            from:[ST.SEME], to:ST.SEME, fertilise:true, aide:'Booste la croissance',
             verrou:true, prix:250}),
   // La benne ne travaille pas la terre : elle transporte. C'est elle qui relie le
   // moulin à la boulangerie, deuxième maillon de la chaîne économique.
   makeTool({key:'benne', nom:'Benne', build:buildBenne, hitch:2.0, L:BENNE_L,
-            cargo:true, capacite:135, load:0, aide:'Transporte la farine'})
+            cargo:true, capacite:135, load:0, aide:'Transporte la farine'}),
+  /* ---------- LE COMBINÉ 3-EN-1, ET IL FAUT LE TRACTEUR LOURD POUR LE TIRER ----------
+     Il fait en UN passage ce que la charrue, le semoir et l'épandeur font en trois : son
+     `from` accepte toute terre à travailler — jachère, chaume, labour, semis, blé mûr —
+     et son `to` est directement SEMÉ. Deux drapeaux disent le reste : `seme` le fait
+     entrer dans la branche de semis de `work()` (culture choisie, croissance remise à
+     zéro), `fertilise` lui fait poser l'engrais au passage. Il consomme donc DEUX
+     matières par cellule, et c'est pour lui que `bacsDe` existe.
+     `pourEngin` est la règle demandée, et elle vit ICI et non sur le tracteur : c'est
+     l'outil qui sait ce qu'il exige, et le jour où un second engin serait assez fort, une
+     seule ligne suffirait. `attachTool`, le bouton d'attelage, le ramassage au parc et le
+     répartiteur la lisent tous au même endroit.
+     SA LARGEUR EST UN COMPROMIS ASSUMÉ : 5,6 m, entre la charrue (4,8) et le semoir
+     (6,4), et bien moins que les douze mètres de l'épandeur. Il fait trois travaux en un
+     passage ; il ne devait pas en plus être le plus large de la ferme. */
+  makeTool({key:'combine', nom:'Combiné 3-en-1', build:buildCombine,
+            hitch:3.8, L:4.85, width:5.6,
+            from:[ST.JACHERE, ST.LABOURE, ST.SEME, ST.MUR, ST.CHAUME], to:ST.SEME,
+            seme:true, fertilise:true, pourEngin:'t4', travaux:['labour', 'semis'],
+            aide:'Laboure, sème et fertilise en un passage',
+            verrou:true, prix:15000})
 ];
+/* ---------- CE QU'UN ENGIN A LE DROIT DE TIRER ----------
+   Le joueur : « ce tracteur plus costaud, le seul capable de tracter la remorque 3 en 1 ».
+   La règle vit sur l'OUTIL et non sur l'engin, dans son `pourEngin` : c'est l'outil qui
+   sait ce qu'il exige, et le jour où un second engin serait assez fort, une seule ligne
+   suffirait à l'ouvrir. Un outil sans `pourEngin` se laisse tirer par n'importe qui —
+   c'est-à-dire les quatre premiers, dont rien ne change.
+   TOUT CE QUI ATTELLE PASSE PAR ICI : le bouton du joueur, le ramassage au parc à outils,
+   la tâche `outil` du répartiteur et la relecture de sauvegarde. Une règle écrite deux
+   fois est une règle qui diverge. */
+const peutAtteler = (v, T)=>{
+  if(!T || !T.pourEngin) return true;
+  const m = MACHINES.find((x)=> x.key === T.pourEngin);
+  return !!m && m.v === v;
+};
+const nomPourEngin = (T)=>{
+  const m = T && T.pourEngin ? MACHINES.find((x)=> x.key === T.pourEngin) : null;
+  return m ? nomEngin(m).toUpperCase() : '';
+};
 function attachTool(v, T){
   if(T.attached) return false;
+  /* ET LA RELECTURE DE SAUVEGARDE PASSE PAR LÀ AUSSI, ce qui est voulu : une partie qui
+     aurait accroché le combiné à autre chose — il n'y a aucun chemin pour cela, mais une
+     sauvegarde se modifie — le retrouve simplement dételé, au parc, plutôt qu'attelé à un
+     tracteur qui ne peut pas le tirer. */
+  if(!peutAtteler(v, T)) return false;
   /* CE QUI PERDAIT UN OUTIL POUR TOUJOURS. Rien n'interdisait d'atteler un SECOND outil
      à un engin qui en traîne déjà un : `v.tool` passait au nouveau, et l'ancien gardait
      son `attached` pointé sur le même véhicule. Il devenait alors introuvable — sa
@@ -15633,7 +16009,16 @@ for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
 // chercher avec un tracteur. Un outil détaché garde la transformation de son groupe,
 // on la pose donc explicitement ici.
-const TOOL_PARK = [0,1,2,3].map(k => [placeCentre(k), 56]);
+/* LA CINQUIÈME PLACE EST SUR UNE DEUXIÈME RANGÉE, ET C'EST MESURÉ. La rangée du fond est
+   pleine : les quatre outils en 0 à 3, le PASSAGE de la cour en 4 — 0,51 m de jeu si on
+   l'occupe, 5,85 si on la laisse — et le fourgon en 5. Plus loin à l'est, ce n'est plus du
+   parking : la dalle s'arrête à x = −3,4, et les cases 6 à 11 tombent dehors, dans la cour
+   du silo. Un premier jet y avait rangé le combiné, et le tracteur lourd est parti le
+   chercher QUINZE MINUTES sans jamais l'atteindre — pas de message, pas de plan, rien.
+   Il se range donc à z = 61, derrière le semoir : sur la dalle, à huit mètres de son bord
+   nord, avec de l'air des deux côtés — il est plus large que les quatre autres. */
+const TOOL_PARK = [[0, 56], [1, 56], [2, 56], [3, 56], [1, 61]]
+  .map((q)=> [placeCentre(q[0]), q[1]]);
 TOOLS.forEach((T, i)=>{
   const q = TOOL_PARK[i];
   T.group.position.set(q[0], 0, q[1]);
@@ -15675,6 +16060,12 @@ const PALIERS = {
   t3:        {nom:'Tracteur bleu',  donne:'vitesse de travail',
               crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
                      {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
+  /* LE LOURD MONTE MOINS HAUT QUE LE VERT, et c'est cohérent avec ce qu'il est : sa
+     dernière vitesse vaut celle du vert au troisième cran. On ne paie pas pour qu'il
+     devienne agile — on paie pour qu'il traîne le combiné un peu plus vite. */
+  t4:        {nom:'Tracteur lourd', donne:'vitesse de travail',
+              crans:[{vite:1.00}, {vite:1.10, prix:900}, {vite:1.20, prix:2600},
+                     {vite:1.32, prix:6000}, {vite:1.45, prix:12000}]},
   moisson:   {nom:'Moissonneuse', donne:'vitesse, trémie et largeur de coupe',
               crans:[{vite:1.00, tremie:150, coupe:1.00},
                      {vite:1.12, tremie:250, coupe:1.20, prix:1500},
@@ -15707,7 +16098,14 @@ const PALIERS = {
                      {large:1.65, cuve:150, prix:2200}, {large:2.00, cuve:250, prix:5000}]},
   benne:     {nom:'Benne',        donne:'capacité',
               crans:[{caisse:200}, {caisse:350, prix:600},
-                     {caisse:550, prix:1800}, {caisse:850, prix:4200}]}
+                     {caisse:550, prix:1800}, {caisse:850, prix:4200}]},
+  /* LE COMBINÉ PORTE DEUX MATIÈRES, et `cuve` plafonne CHAQUE casier : 90 kg de graine
+     ET 90 kg d'engrais au neuf. Il en faut plus qu'au semoir seul — il vide deux casiers
+     dans le même passage — mais moins que la somme des deux outils qu'il remplace, sans
+     quoi il n'aurait plus à revenir se ravitailler. */
+  combine:   {nom:'Combiné 3-en-1', donne:'largeur et capacité des deux casiers',
+              crans:[{large:1.00, cuve:90}, {large:1.20, cuve:170, prix:2000},
+                     {large:1.45, cuve:300, prix:5500}, {large:1.70, cuve:480, prix:12000}]}
 };
 const cranDe = (cle, niv)=>{
   const P = PALIERS[cle];
@@ -16051,7 +16449,13 @@ function work(m, dt){
     if(T.from.indexOf(state[id]) < 0) continue;
     if(PAR && (Math.abs(cellX(i) - PAR.x) > PAR.w/2 || Math.abs(cellZ(j) - PAR.z) > PAR.h/2))
       continue;
-    if(T.key === 'engrais' && fert[id]) continue;
+    /* RIEN À FAIRE ICI : la terre est déjà à l'état voulu ET déjà fertilisée. C'était
+       écrit pour le seul épandeur — dont l'état de départ et celui d'arrivée sont le même
+       — et c'est la MÊME question pour le combiné, dont le `from` contient son `to`.
+       Sans elle, il repassait indéfiniment sur sa propre terre semée : mesuré, il vidait
+       son casier de graine sur 1 987 cellules pour en semer 78, et le champ n'avançait
+       plus. Une cellule qui n'a plus rien à recevoir n'entre pas dans l'andain. */
+    if(T.fertilise && fert[id] && state[id] === T.to) continue;
     // Une coupe couche ce qu'elle traverse : elle ne passe pas dans une vigne. Une
     // enjambeuse enjambe un rang : elle n'a rien à faire dans un blé. Chaque
     // récolteuse ne prend donc que sa famille de cultures, et laisse l'autre debout.
@@ -16074,9 +16478,21 @@ function work(m, dt){
   // tout en peignant la traînée complète afficherait un rang semé là où rien n'est
   // tombé ; et peindre la moitié d'une traînée ferait une couture visible. Le
   // reliquat trop petit pour une passe reste au stock, où la boutique l'affiche.
-  if(cellulesPossibles(T, touched.length) < touched.length){
+  /* CE QUE CHAQUE CASIER PAIE, ET CE N'EST PAS LE MÊME NOMBRE. Un andain de cent
+     vingt cellules peut demander cent semis et vingt épandages : vingt étaient déjà
+     semées et attendent seulement leur engrais. Compter l'andain entier pour les deux
+     casiers ferait payer de la graine pour de la terre déjà semée — c'est exactement ce
+     qui vidait le casier du combiné en un passage. Pour la charrue, le semoir et
+     l'épandeur les deux comptes valent l'andain entier, et rien ne change pour eux. */
+  let nSemis = 0, nFert = 0;
+  for(const id of touched){
+    if(state[id] !== T.to) nSemis++;
+    if(!fert[id]) nFert++;
+  }
+  const besoinCasier = (b)=> b.engrais ? nFert : nSemis;
+  if(cellulesPossibles(T, touched.length, besoinCasier) < touched.length){
     touched.length = 0;
-    if(bacDe(T)) eligible = false;
+    if(bacsDe(T).length) eligible = false;
   }
   /* LA TRÉMIE NE MÉLANGE PAS — MAIS L'ANDAIN N'EST PLUS REFUSÉ EN ENTIER POUR AUTANT.
      Une trémie entamée ne prend qu'une nature : c'est une règle de contenant, et elle
@@ -16111,15 +16527,38 @@ function work(m, dt){
       }
     }
   }
-  consommerStock(T, touched.length);
+  /* LE COMBINÉ FERTILISE S'IL A DE QUOI POUR TOUT L'ANDAIN, ET SÈME QUAND MÊME SINON.
+     La décision se prend UNE fois par passage, et pas cellule par cellule : un andain
+     à demi fertilisé laisserait au sol une bande qui pousse deux fois plus vite que sa
+     voisine, sans que rien ne l'explique. Elle se prend ICI, avant que `consommerStock`
+     ne vide quoi que ce soit — la lire après reviendrait à demander à la cuve si elle
+     avait de quoi une fois qu'on l'a vidée. */
+  let poseEngrais = false;
+  if(T.fertilise){
+    const be = bacsDe(T).find((q)=> q.option && q.engrais);
+    poseEngrais = !!be && dansLaCuve(be) >= be.par*nFert - 0.0001;
+  }
+  consommerStock(T, touched.length, poseEngrais, besoinCasier);
 
+  /* CE QUE LE PASSAGE COMPTE, ET IL PEUT EN COMPTER DEUX. Les compteurs étaient lus sur
+     la CLÉ de l'outil — `labour` comptait du labour, `semis` du semis — ce qui n'a plus
+     de sens dès qu'un outil fait les deux. Chaque outil déclare donc ses `travaux`, et
+     un outil qui n'en déclare pas fait celui de son nom : rien ne change pour les quatre
+     premiers, et le combiné compte pour un labour ET pour un semis, ce que la campagne
+     et les contrats attendent tous les deux. */
+  const TRAVAUX = T.travaux || [T.key];
   const did = touched.length > 0;
   if(did){
-    if(T.key === 'labour')  STAT.labour  += touched.length;
-    if(T.key === 'semis')   STAT.semis   += touched.length;
+    if(TRAVAUX.indexOf('labour') >= 0) STAT.labour += touched.length;
+    if(TRAVAUX.indexOf('semis')  >= 0) STAT.semis  += touched.length;
   }
   for(const id of touched){
     if(T.key === 'engrais'){ fert[id] = 1; continue; }
+    /* L'ENGRAIS DU COMBINÉ SE POSE AVANT TOUT AUTRE TEST, et c'est nécessaire : son état
+       d'arrivée est SEMÉ et son `from` contient SEMÉ, si bien qu'un deuxième passage sur
+       une terre déjà semée sortirait à la ligne suivante — sans avoir rien fertilisé.
+       Repasser doit au moins servir à ça. */
+    if(poseEngrais) fert[id] = 1;
     if(state[id] === T.to) continue;   // déjà à l'état cible : on repeint, on ne retraite pas
     if(T.recolte){
       const C2 = CROPS[cropCell[id]];
@@ -16140,8 +16579,10 @@ function work(m, dt){
         continue;
       }
       setInstance(instOf[id], 0, 0);
-    } else if(T.key === 'semis'){
-      growth[id] = 0; fert[id] = 0; replante[id] = 0; pousser(id);
+    } else if(T.seme){
+      // Un semis ordinaire efface l'engrais du cycle d'avant : la terre repart à zéro.
+      // Celui du combiné, lui, vient de le poser au même passage — il le garde.
+      growth[id] = 0; fert[id] = poseEngrais ? 1 : 0; replante[id] = 0; pousser(id);
       cropCell[id] = T.crop || 0;
       wheatBase[instOf[id]].crop = cropCell[id];
       setInstance(instOf[id], 0, 1);
@@ -16557,7 +16998,7 @@ function ongletEngins(){
   }
   // Ce qui reste fermé, et à quel palier il s'ouvre : sans cette ligne, un engin
   // simplement absent de la liste passe pour un engin qui n'existe pas.
-  const plusTard = MACHINES.filter((m)=> m.verrou && !ouvert('engins', m.key))
+  const plusTard = MACHINES.filter((m)=> enVente(m) && !ouvert('engins', m.key))
     .concat(TOOLS.filter((T)=> T.verrou && !ouvert('outils', T.key)));
   if(plusTard.length){
     titre('Plus tard dans la campagne');
@@ -16686,10 +17127,26 @@ function detailEngin(m){
            + kg(m.v.cargo ? m.v.cargo.capacite : 100);
   if(m.v.cargo)
     return 'Transport sans outil · ' + kg(m.v.cargo.capacite) + ' à bord';
-  return 'Tire tous les outils du parc · vitesse '
-         + Math.round((m.v.vmax0 || m.v.vmax)/VMAX_REF*100) + ' %';
+  const vit = ' · vitesse ' + Math.round((m.v.vmax0 || m.v.vmax)/VMAX_REF*100) + ' %';
+  /* CE QU'IL EST SEUL À TIRER, S'IL Y A QUELQUE CHOSE. « Tire TOUS les outils du parc »
+     est devenu faux le jour où un outil a exigé un engin précis : le vert n'en tire plus
+     que quatre sur cinq, et c'est justement ce qu'on achète en prenant le lourd. La ligne
+     se déduit de la table des outils — aucune liste à tenir à jour. */
+  const sien = TOOLS.filter((T)=> T.pourEngin === m.key);
+  if(sien.length)
+    return 'Le seul à tirer ' + (sien.length > 1 ? sien.length + ' outils' : 'le ' + sien[0].nom)
+           + vit;
+  return 'Tire les outils du parc' + vit;
 }
 function detailOutil(T){
+  /* ET L'ON DIT CE QU'IL FAUT POUR LE TIRER, AU MOMENT DE L'ACHETER. Quinze mille euros
+     pour un outil qui reste au parc faute du bon tracteur serait une mauvaise surprise :
+     l'exigence se lit sur la ligne d'achat, pas une fois payé. */
+  if(T.pourEngin){
+    const m = MACHINES.find((x)=> x.key === T.pourEngin);
+    if(m) return (T.aide || 'Outil') + ' · tracté par le ' + nomEngin(m).toLowerCase()
+                 + ' · largeur ' + dec(T.width0 || T.width, 1) + ' m';
+  }
   return (T.aide || 'Outil') + ' · '
        + (T.cargo ? 'benne ' + kg(T.capacite) : 'largeur ' + dec(T.width0 || T.width, 1) + ' m');
 }
@@ -16708,7 +17165,7 @@ function ligneAchat(o){
     o.cle, o.cle);
 }
 function vueAchatEngins(){
-  const aPrendre = MACHINES.filter((m)=> m.verrou);
+  const aPrendre = MACHINES.filter(enVente);
   if(aPrendre.length){
     titre('À la concession');
     for(const m of aPrendre)
@@ -16722,10 +17179,10 @@ function vueAchatEngins(){
                           setMachine(MACHINES.indexOf(m)); fermerFenetre(); }});
   }
   const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="det">Un deuxième tracteur n\'est pas un ' +
-    'tracteur plus gros : c\'est un ATTELAGE DE PLUS. La charrue reste sur l\'un, le ' +
-    'semoir sur l\'autre, et l\'on cesse de revenir au parc à outils entre deux ' +
-    'passages — deux engins peuvent aussi travailler seuls en même temps.</div></div>';
+  d.innerHTML = '<div class="txt"><div class="det">Le TRACTEUR LOURD est le seul assez ' +
+    'fort pour tirer le COMBINÉ 3-EN-1, qui laboure, sème et fertilise en un seul ' +
+    'passage. On ne rachète pas un tracteur pour garder trois attelages debout : on en ' +
+    'achète un qui n\'en demande qu\'un.</div></div>';
   hote.appendChild(d);
 
   titre('Déjà à la ferme');
@@ -17438,6 +17895,7 @@ function nearestFreeTool(v){
   let best = null, bd = PICKUP_R;
   for(const T of TOOLS){
     if(T.attached || T.verrou) continue;
+    if(!peutAtteler(v, T)) continue;      // il est là, mais pas pour cet engin-là
     const d = Math.hypot(v.pos.x - T.group.position.x, v.pos.z - T.group.position.z);
     if(d < bd){ bd = d; best = T; }
   }
@@ -18484,7 +18942,7 @@ const outilVerrou = (cle)=>{ const T = TOOLS.find((x)=> x.key === cle); return !
 function articlesAVendre(){
   const out = [];
   for(const m of MACHINES)
-    if(m.verrou && ouvert('engins', m.key))
+    if(enVente(m) && ouvert('engins', m.key))
       out.push({quoi:'engin', cle:m.key, m:m, nom:nomEngin(m), prix:m.prix});
   for(const T of TOOLS)
     if(T.verrou && ouvert('outils', T.key))
@@ -18504,7 +18962,7 @@ function refreshVehButton(){
      ce qu'il n'avait pas. Il dit ce qui est EN VENTE MAINTENANT — et la liste s'ouvre
      quand même, pour montrer ce qui vient. */
   const n = articlesAVendre().length;
-  const reste = MACHINES.some((m)=> m.verrou) || TOOLS.some((T)=> T.verrou);
+  const reste = MACHINES.some(enVente) || TOOLS.some((T)=> T.verrou);
   vehEl.style.display = 'block';
   teindre(vehEl, classeGarage());
   vehEl.classList.toggle('no', !reste);
@@ -18518,7 +18976,7 @@ function refreshVehButton(){
                                  : 'TOUT LE MATÉRIEL EST À LA FERME');
 }
 vehEl.addEventListener('pointerdown', ()=>{
-  if(MACHINES.some((m)=> m.verrou) || TOOLS.some((T)=> T.verrou)) ouvrirFenetre('achat');
+  if(MACHINES.some(enVente) || TOOLS.some((T)=> T.verrou)) ouvrirFenetre('achat');
 });
 
 const atelEl = document.getElementById('atelier');
@@ -18633,7 +19091,15 @@ hitchEl.addEventListener('pointerdown', ()=>{
   } else {
     const F = nearestFreeTool(m.v);
     if(F){ attachTool(m.v, F); showHint(F.nom.toUpperCase() + ' ATTELÉ'); }
-    else showHint('AUCUN OUTIL À PORTÉE');
+    else {
+      /* ET L'ON DIT POURQUOI QUAND L'OUTIL EST LÀ MAIS PAS POUR NOUS. « Aucun outil à
+         portée », le nez sur le combiné, se lit comme une panne du bouton : le joueur
+         cherche le défaut au lieu de changer de tracteur. */
+      const R = TOOLS.find((T2)=> !T2.attached && !T2.verrou && !peutAtteler(m.v, T2)
+        && Math.hypot(m.v.pos.x - T2.group.position.x, m.v.pos.z - T2.group.position.z) < PICKUP_R);
+      showHint(R ? R.nom.toUpperCase() + ' — IL FAUT LE ' + nomPourEngin(R) + ' POUR LE TIRER'
+                 : 'AUCUN OUTIL À PORTÉE');
+    }
   }
   refreshHitchButton();
 });
@@ -19046,7 +19512,10 @@ const CARBU = {
 const LMIN = (l)=> l/60;
 const RESERVOIRS = {t1:{max:40, c:LMIN(0.8)}, t2:{max:40, c:LMIN(0.8)}, t3:{max:40, c:LMIN(0.8)},
                     pickup:{max:45, c:LMIN(0.6)}, fourgon:{max:70, c:LMIN(0.8)},
-                    moisson:{max:60, c:LMIN(1.2)}, enjambeuse:{max:50, c:LMIN(1.0)}};
+                    moisson:{max:60, c:LMIN(1.2)}, enjambeuse:{max:50, c:LMIN(1.0)},
+                    // Le lourd tire plus et boit plus, mais il tient les mêmes cinquante
+                    // minutes que les autres : le rapport ne bouge pas, le réservoir suit.
+                    t4:{max:55, c:LMIN(1.1)}};
 for(const m of MACHINES){
   const R = RESERVOIRS[m.key] || {max:40, c:LMIN(0.8)};
   m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;
@@ -19155,7 +19624,7 @@ const parCellSemence = (c)=> (c && c.graineKg ? c.graineKg : 25)/PARC_REF;
    porte maintenant un casier par graine, chacun plafonné à la même capacité — voir
    `cuves` et `poserDansCuve` plus bas. */
 function bacDe(T){
-  if(T.key === 'semis'){
+  if(T.seme){
     const c = CROPS[T.crop || 0];
     if(c && c.perenne) return {plantation: c.plantation/PARC_REF, nom:'PLANTATION', crop:c};
     return {cuve:T, clef: c ? c.cle : 'ble', par: parCellSemence(c), nom:'SEMOIR', crop:c};
@@ -19163,6 +19632,28 @@ function bacDe(T){
   if(T.key === 'engrais')
     return {cuve:T, engrais:true, par:CUVES.parCellEngrais, nom:'ÉPANDEUR'};
   return null;
+}
+/* ---------- UN OUTIL PEUT VIDER PLUSIEURS CASIERS DANS LE MÊME PASSAGE ----------
+   Il n'y en avait jamais qu'un : le semoir sa graine, l'épandeur son engrais, la charrue
+   rien. Le combiné 3-en-1 en vide DEUX à chaque cellule, et c'est la seule chose qui
+   change ici — la règle de chaque casier, elle, ne bouge pas d'une ligne.
+   ON S'ARRÊTE AU PLUS SERRÉ DES DEUX, et l'on nomme celui qui manque : un combiné qui
+   s'arrête doit dire s'il faut aller chercher de la graine ou de l'engrais, sinon le
+   joueur remplit le mauvais casier et repart pour rien. */
+function bacsDe(T){
+  const L = [];
+  const b = bacDe(T);
+  if(b) L.push(b);
+  // L'épandeur a DÉJÀ son engrais par `bacDe` : on ne le lui compterait pas deux fois.
+  /* ET LE SECOND CASIER EST FACULTATIF, ce qui n'est pas un détail. S'il bloquait comme
+     le premier, un combiné à court d'engrais ne LABOURERAIT PLUS ET NE SÈMERAIT PLUS —
+     un outil qui fait trois travaux s'arrêterait pour le moins important des trois. Il
+     fait donc ce qu'un vrai semoir-fertiliseur fait à trémie d'engrais vide : il passe,
+     il sème, et il ne fertilise pas. */
+  if(T.fertilise && T.key !== 'engrais')
+    L.push({cuve:T, engrais:true, par:CUVES.parCellEngrais, option:true,
+            nom:'CASIER D\u2019ENGRAIS'});
+  return L;
 }
 // Ce que la cuve de la cour porte de CETTE nature-là.
 const dansLaCuveDeLaCour = (b)=> b.engrais ? CUVES.engrais : (CUVES.graines[b.clef] || 0);
@@ -19176,13 +19667,25 @@ function dansLaCuve(b){
 // Combien de cellules la cuve permet encore de traiter. `work()` s'en sert pour
 // n'en traiter qu'autant, puis prévient une seule fois.
 let alerteStock = 0;
-function cellulesPossibles(T, voulu){
-  const b = bacDe(T);
-  if(!b) return voulu;
+function cellulesPossibles(T, voulu, besoin){
+  const B = bacsDe(T);
+  if(!B.length) return voulu;
   // Une plantation ne se limite pas au stock mais à la bourse : planter s'arrête où
   // l'argent s'arrête, exactement comme semer s'arrête où la cuve se vide.
-  const possible = b.plantation ? Math.floor(money/b.plantation)
-                                : Math.floor(dansLaCuve(b)/b.par);
+  // Avec deux casiers, c'est le PLUS SERRÉ qui décide — et c'est lui qu'on nommera.
+  let possible = voulu, b = B[0];
+  for(const q of B){
+    if(q.option) continue;              // un casier facultatif n'arrête jamais le passage
+    // Ce que CE casier-là paie sur cet andain. Sans `besoin`, il paie tout l'andain :
+    // c'est le cas de la charrue, du semoir et de l'épandeur, et rien ne change pour eux.
+    const veut = besoin ? besoin(q) : voulu;
+    if(veut <= 0) continue;             // il ne paie rien ici : il ne décide de rien
+    const dispo = q.plantation ? Math.floor(money/q.plantation)
+                               : Math.floor(dansLaCuve(q)/q.par);
+    // ramené au nombre de cellules de l'andain, pour que les casiers se comparent
+    const p = Math.floor(dispo*voulu/veut);
+    if(p < possible){ possible = p; b = q; }
+  }
   if(possible >= voulu) return voulu;
   if(alerteStock <= 0){
     /* Le message dit quoi faire, et ce n'est pas la même chose selon ce qui manque : le
@@ -19197,12 +19700,19 @@ function cellulesPossibles(T, voulu){
   }
   return Math.max(0, possible);
 }
-function consommerStock(T, n){
-  const b = bacDe(T);
-  if(!b) return;
-  if(b.plantation){ money = Math.max(0, money - b.plantation*n); return; }
-  const k = b.engrais ? 'engrais' : b.clef;
-  poserDansCuve(b.cuve, k, Math.max(0, cuveDe(b.cuve, k) - b.par*n));
+function consommerStock(T, n, avecOption, besoin){
+  for(const b of bacsDe(T)){
+    // Le casier facultatif ne se vide QUE s'il a servi — c'est `work()` qui l'a décidé,
+    // en une fois pour tout l'andain : à moitié consommé, on aurait fertilisé la moitié
+    // d'un passage sans que rien ne le montre au sol.
+    if(b.option && !avecOption) continue;
+    // Et il ne se vide QUE de ce qu'il a vraiment donné : voir `besoinCasier` dans work().
+    const q = besoin ? besoin(b) : n;
+    if(q <= 0) continue;
+    if(b.plantation){ money = Math.max(0, money - b.plantation*q); continue; }
+    const k = b.engrais ? 'engrais' : b.clef;
+    poserDansCuve(b.cuve, k, Math.max(0, cuveDe(b.cuve, k) - b.par*q));
+  }
 }
 /* ---------- REMPLIR ET VIDER UNE CUVE ---------- */
 // La cour de la ferme, à deux mètres près, comme pour les autres quais. Elle n'ouvre
@@ -19480,6 +19990,10 @@ const SERVICES = {
       pas à la place du joueur : il l'y conduit avec ses trente kilos, et c'est là que le
       marchand parle. `CAMPAGNE.prise` reste donc faux tout du long, la Coopérative garde
       sa pastille verte de mission à prendre, et rien du reste du guidage ne bouge. */
+/* LA MARCHE À PARTIR DE LAQUELLE LE TRAVAIL DE LA TERRE EST APPRIS. Nommée ici plutôt
+   qu'écrite en chiffre ailleurs : `CAMPAGNE.tuto` est un INDICE dans cette table, et un 3
+   écrit au milieu du répartiteur deviendrait faux le jour où une marche s'ajoute. C'est
+   `combinePret` qui la lit — voir là-bas pourquoi. */
 const TUTO = [
   {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA PARCELLE',
    txt:'PRÉPARER LA PARCELLE — attelle la charrue et travaille le sol',
@@ -19610,6 +20124,9 @@ const TUTO = [
    txt:'PREMIÈRE VENTE — rends-toi à la Coopérative agricole',
    fait: ()=> MODE_LIBRE ? STAT.ventes > 0.01 : true}
 ];
+// La marche à partir de laquelle le travail de la terre est appris — voir le commentaire
+// au-dessus de la table, et `combinePret` qui la lit.
+const TUTO_TERRE = TUTO.findIndex((E)=> E.cle === 'recolte');
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
    cahier des charges veut qu'on aille l'acheter puis le remplir. C'est la même chose
@@ -27434,6 +27951,30 @@ function etapeChantier(C, brut){
 /* CE QU'IL FAUT POUR UNE ÉTAPE : une classe d'engin, et un outil ou rien.
    La vigne et l'olivier se vendangent à l'enjambeuse, les cinq céréales à la
    moissonneuse — c'est la seule différence entre les deux récoltes. */
+/* ---------- LE COMBINÉ REMPLACE LES TROIS OUTILS DÈS QU'IL EST LÀ ----------
+   Il est PRÊT quand il est acheté ET que l'engin qui seul peut le tirer l'est aussi :
+   un combiné au parc derrière un tracteur lourd qu'on n'a pas encore vaut zéro, et le
+   répartiteur enverrait un vert le chercher pour rien. Les deux conditions se lisent
+   ensemble, une fois, et tout le reste du chapitre s'appuie dessus. */
+function combinePret(){
+  const T = TOOLS.find((x)=> x.key === 'combine');
+  if(!T || T.verrou) return false;
+  const m = MACHINES.find((x)=> x.key === T.pourEngin);
+  if(!m || m.verrou) return false;
+  /* ET PAS TANT QUE LE TUTORIEL APPREND LES TROIS OUTILS QU'IL REMPLACE.
+     En campagne la question ne se pose pas — le combiné s'achète au quatorzième palier,
+     le tutoriel est soldé depuis longtemps. En MODE LIBRE, où tout est ouvert dès la
+     première image, elle se posait et elle bloquait : mesuré sur la parcelle de départ,
+     552 cellules, le combiné en laisse UNE dans un coin de fourrière — c'est le reliquat
+     de virage que tout le jeu tolère à cinq pour cent — mais la marche du tutoriel, elle,
+     demande le CHAMP ENTIER, à la demande du joueur (« il faut vraiment que le champ soit
+     fini »). 551 sur 552, et le cliquet ne bouge plus : le tutoriel restait sur
+     « PRÉPARER LA PARCELLE » pour toujours.
+     Le labour et le semis, eux, se font en deux passes de largeurs différentes et
+     finissent par tout couvrir. On apprend donc les trois outils avant de recevoir celui
+     qui les remplace, ce qui est de toute façon l'ordre de la campagne. */
+  return CAMPAGNE.tuto >= TUTO_TERRE;
+}
 function besoinEtape(C, et){
   const c = CROPS[C.crop || 0];
   if(et === ET_MOISSON)
@@ -27441,6 +27982,15 @@ function besoinEtape(C, et){
   const cle = (et === ET_LABOUR) ? 'labour' : (et === ET_SEMIS) ? 'semis'
             : (et === ET_ENGRAIS) ? 'engrais' : null;
   if(!cle) return null;
+  /* ET LES TROIS TRAVAUX DE TERRE N'EN FONT PLUS QU'UN. Rien d'autre ne bouge dans
+     l'ordonnanceur, et c'est ce qui rend le changement sûr : `etapeChantier` continue de
+     lire le SOL, comme toujours. Elle voit une terre nue, elle demande ET_LABOUR ; l'outil
+     rendu ici la laisse semée et fertilisée ; au tour suivant elle voit du semé et passe
+     à ET_POUSSE. Les étapes de semis et d'engrais ne sont pas supprimées — elles ne sont
+     simplement plus atteintes, sauf sur une terre à moitié travaillée à la main, où le
+     combiné les honore aussi. */
+  if(combinePret())
+    return {classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === 'combine')};
   return {classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === cle)};
 }
 /* POURQUOI ÇA N'AVANCE PAS. Un chantier qui se bloque sans le dire est le seul vrai
@@ -27448,25 +27998,35 @@ function besoinEtape(C, et){
    ce qui lui manque, en français, et le chantier le porte jusqu'à ce que ce soit réglé. */
 function blocageEtape(C, et){
   const c = CROPS[C.crop || 0];
-  if(et === ET_SEMIS){
-    if(c && c.perenne) return null;              // une vigne se plante, elle ne se sème pas
-    const T = TOOLS.find((t)=> t.key === 'semis');
-    const enCuve = T ? cuveDe(T, c.cle) : 0;
+  const B = besoinEtape(C, et);
+  /* ON INTERROGE L'OUTIL DE L'ÉTAPE, ET NON LE NOM DE L'ÉTAPE. C'était écrit sur le nom
+     — « si c'est un semis, regarde le semoir » — ce qui ne veut plus rien dire depuis
+     qu'un seul outil fait les trois travaux : le combiné parti labourer se serait arrêté
+     faute de graine sans que rien ne le dise. */
+  const T = (B && B.outil >= 0) ? TOOLS[B.outil] : null;
+  if(T && T.verrou)
+    return T.key === 'engrais' ? 'L’ÉPANDEUR N’EST PAS ENCORE ACHETÉ'
+                               : T.nom.toUpperCase() + ' PAS ENCORE ACHETÉ';
+  /* IL N'Y A RIEN À DIRE QUAND L'ENGIN DU COMBINÉ MANQUE, et c'est délibéré : `besoinEtape`
+     ne rend le combiné que si `combinePret()` — l'outil ET son tracteur — et retombe sinon
+     sur la charrue. Un outil qu'on ne peut pas tirer s'efface ; il n'arrête pas la ferme,
+     et il n'a donc aucun blocage à annoncer. */
+  // Ce qu'il SÈME : une vigne se plante et se paie au champ, elle ne se sème pas.
+  if(T && T.seme && !(c && c.perenne)){
+    const enCuve = cuveDe(T, c.cle);
     if(enCuve < 0.5 && (CUVES.graines[c.cle] || 0) < 0.5)
       return 'PLUS DE SEMENCE DE ' + c.nom.toUpperCase() + ' — À ACHETER AU COMPTOIR';
   }
-  if(et === ET_ENGRAIS){
-    const T = TOOLS.find((t)=> t.key === 'engrais');
-    if(T && T.verrou) return 'L’ÉPANDEUR N’EST PAS ENCORE ACHETÉ';
-    const enCuve = T ? cuveDe(T, 'engrais') : 0;
+  /* Ce qu'il ÉPAND — et seulement quand l'engrais est obligatoire. Le casier du combiné
+     est facultatif : il sème sans, et le dire « bloqué » arrêterait un chantier qui a
+     tout ce qu'il lui faut pour l'essentiel. */
+  if(T && T.key === 'engrais'){
+    const enCuve = cuveDe(T, 'engrais');
     if(enCuve < 0.5 && CUVES.engrais < 0.5)
       return 'PLUS D’ENGRAIS — À ACHETER AU COMPTOIR';
   }
   if(et === ET_MOISSON && siloPlein() && !(c && c.perenne))
     return 'SILO PLEIN — LA MOISSON N’A NULLE PART OÙ ALLER';
-  const B = besoinEtape(C, et);
-  if(B && B.outil >= 0 && TOOLS[B.outil].verrou)
-    return TOOLS[B.outil].nom.toUpperCase() + ' PAS ENCORE ACHETÉ';
   if(B && !MACHINES.some((m)=> !m.verrou && classeDe(m) === B.classe))
     return 'AUCUN ENGIN POUR ' + NOM_ETAPE[et].toUpperCase();
   return null;
@@ -27548,7 +28108,11 @@ function tachesEtape(C, et, B){
   const t = [];
   if(B.outil >= 0){
     t.push({quoi:'outil', t:B.outil});
-    if(et === ET_SEMIS || et === ET_ENGRAIS) t.push({quoi:'reserve'});
+    /* UNE TÂCHE DE RAVITAILLEMENT PAR CASIER, et c'est l'outil qui dit combien il en a.
+       C'était écrit sur le nom de l'étape — semis ou engrais — et le combiné, qui vide
+       les deux au même passage, n'en aurait rempli aucun en partant labourer. */
+    for(const b of bacsDe(TOOLS[B.outil]))
+      if(!b.plantation) t.push({quoi:'reserve', nat: b.engrais ? 'engrais' : 'graine'});
   }
   t.push({quoi:'parcelle', p:C.p});
   return t;
@@ -27791,8 +28355,11 @@ function pisteTerre(C, k){
                                 : ' — EN ATTENTE D’UN ENGIN');
     return;
   }
-  // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait.
-  if(et === ET_SEMIS && B.outil >= 0) TOOLS[B.outil].crop = C.crop || 0;
+  // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait — et c'est vrai
+  // du combiné parti labourer tout autant que du semoir parti semer. On le pose donc sur
+  // ce qui SÈME, quelle que soit l'étape, et AVANT `tachesEtape` : c'est la culture qui
+  // dit quel casier de graine la tâche de ravitaillement ira remplir.
+  if(B.outil >= 0 && TOOLS[B.outil].seme) TOOLS[B.outil].crop = C.crop || 0;
   C.enginTerre = aServi(C, choisi);
   armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
 }
@@ -27984,6 +28551,15 @@ function enginLePlusProche(classe, ou){
    pas d'une ligne. `B.outil` vaut −1 pour la moisson, qui retombe sur l'ancien chemin. */
 function enginPourOutil(classe, ou, io){
   const T = io >= 0 ? TOOLS[io] : null;
+  /* UN OUTIL QUI EXIGE UN ENGIN PRÉCIS DÉSIGNE LUI-MÊME SON PORTEUR, et la distance n'a
+     plus voix au chapitre : le combiné ne part pas avec le tracteur le plus proche, il
+     part avec le seul qui peut le tirer. S'il n'est pas encore acheté ou s'il est pris,
+     on rend −1 et le chantier le dit dans son bandeau. */
+  if(T && T.pourEngin){
+    const k = MACHINES.findIndex((m)=> m.key === T.pourEngin);
+    if(k < 0 || MACHINES[k].verrou) return -1;
+    return (classeDe(MACHINES[k]) === classe && enginLibre(MACHINES[k])) ? k : -1;
+  }
   if(!T || !T.attached) return enginLePlusProche(classe, ou);
   const j = MACHINES.findIndex((m)=> m.v === T.attached);
   /* ET SI L'OUTIL EST ATTELÉ À QUELQUE CHOSE QUI N'EST PAS DU PARC, on retombe sur la

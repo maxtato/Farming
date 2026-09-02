@@ -11324,3 +11324,109 @@ contrôles, zéro échec**.
 
 Il ne reste que neuf produits finis sans image : beurre, yaourt, textile, viande, pain,
 viennoiseries, et les trois pâtisseries.
+
+## Le tracteur lourd et le combiné 3-en-1
+
+Le joueur : « supprime le fait de pouvoir acheter 2 tracteurs supplémentaires (rouge et
+bleu) et intègre ce tracteur plus costaud, le seul capable de tracter la remorque 3 en 1 qui
+est attelée. Charrue semoir épandeur. » Il avait joint la page où les deux modèles sont
+dessinés, sur fond magenta, déjà attelés l'un à l'autre.
+
+**Ce que le rouge et le bleu achetaient n'existe plus.** Ils étaient revenus à la vente au
+nom d'un ATTELAGE DE PLUS — la charrue sur l'un, le semoir sur l'autre, et l'on cesse
+l'aller-retour au parc à outils entre deux passages. Le combiné répond mieux à la même
+question : il n'y a plus trois attelages à garder debout, il n'y en a qu'un, et il fait les
+trois travaux en un passage. Acheter deux tracteurs pour éviter un aller-retour qui n'existe
+plus n'avait plus d'objet.
+
+**Ils sont retirés de la vente, pas effacés.** La table `MACHINES` est sérialisée PAR
+POSITION : supprimer deux entrées ferait repartir chaque partie en cours sur la mauvaise
+machine, et une ferme qui a déjà payé son tracteur rouge le perdrait. Un drapeau `retire`
+ferme la concession et rien d'autre — mesuré au banc, un rouge déjà acheté reste au parc,
+tire ses outils, s'améliore et se sauvegarde exactement comme avant. `verrou` voulait dire
+deux choses à la fois, « pas encore acheté » et « à vendre » ; elles sont séparées.
+
+**Les deux modèles sont portés tels quels**, mêmes cotes et même ordre de pièces que la page
+envoyée. Une seule chose change, l'ÉCHELLE — la page dessine en mètres de maquette, le jeu en
+mètres de terrain — et elle passe par trois enveloppes plutôt que par un `scale` sur le
+groupe : `Vehicle` extrait les roues des enfants du groupe, `essieuAr` relit leur cote et la
+table des lampes est en coordonnées de modèle ; un groupe mis à l'échelle obligerait chacun
+des trois à s'en souvenir. À 1,55 le lourd fait 7,3 m sur des roues de 1,47 m, contre 5,9 m
+et 1,25 pour le vert : plus long d'un quart, plus large d'un quart, et la cabine à la même
+hauteur — un tracteur lourd est long et large, il n'est pas haut.
+
+**Plus fort ne veut pas dire plus rapide** : il plafonne à 11 contre 12, accélère moins fort
+et braque moins court. Ce qu'il a en plus, c'est l'adhérence — 6,4 contre 5,2 — de quoi
+tirer six mètres d'outil chargé sans patiner. Le vert reste le tracteur agile.
+
+**La règle « lui seul » vit sur l'OUTIL**, dans son `pourEngin`, et non sur l'engin : c'est
+l'outil qui sait ce qu'il exige, et le jour où un second engin serait assez fort, une seule
+ligne l'ouvrirait. Tout ce qui attelle la lit au même endroit — le bouton du joueur, le
+ramassage au parc à outils, la tâche du répartiteur, la relecture de sauvegarde. Et le bouton
+DIT pourquoi : « COMBINÉ 3-EN-1 — IL FAUT LE TRACTEUR LOURD POUR LE TIRER », au lieu du
+« aucun outil à portée » qu'on lisait le nez dessus.
+
+### Ce que le combiné a demandé au moteur
+
+**Un outil pouvait vider un casier ; il en vide deux.** Le semoir sa graine, l'épandeur son
+engrais, la charrue rien — `bacDe` rendait un casier, `bacsDe` en rend une liste, et l'on
+s'arrête au plus serré. Le nom de celui qui manque est dit, sinon le joueur remplit le
+mauvais et repart pour rien.
+
+**Le second casier est FACULTATIF**, et ce n'est pas un détail : s'il bloquait comme le
+premier, un combiné à court d'engrais ne labourerait plus et ne sèmerait plus — un outil qui
+fait trois travaux s'arrêterait pour le moins important des trois. Il fait donc ce qu'un vrai
+semoir-fertiliseur fait à trémie vide : il passe, il sème, il ne fertilise pas. La décision se
+prend UNE fois par andain, jamais cellule par cellule — un andain à demi fertilisé laisserait
+au sol une bande qui pousse deux fois plus vite que sa voisine.
+
+**Et il repayait la graine sur sa propre terre.** Son état de départ contient son état
+d'arrivée — il accepte le semé, il rend du semé —, si bien qu'il repassait indéfiniment sur
+ce qu'il venait de faire. Mesuré : **il vidait son casier sur 1 987 cellules pour en semer
+78**, et le champ n'avançait plus. Deux règles referment cela. Une cellule qui n'a plus rien
+à recevoir n'entre pas dans l'andain — c'était déjà écrit pour l'épandeur, dont l'état
+d'arrivée est aussi celui de départ, et c'est la même question. Et chaque casier ne paie que
+ce qu'il donne : un andain de cent vingt cellules peut demander cent semis et vingt
+épandages.
+
+**Le répartiteur ne fait plus qu'une étape de terre.** Rien n'est réécrit dans
+l'ordonnanceur, et c'est ce qui rend le changement sûr : il continue de lire le SOL. Il voit
+une terre nue, il demande un labour ; l'outil qu'on lui rend la laisse semée et fertilisée ;
+au tour suivant il voit du semé et passe à la pousse. Mesuré côte à côte sur la même
+parcelle : **trois étapes contre une**, et la terre finit dans le même état.
+
+**Le combiné désigne lui-même son porteur** — la distance n'a plus voix au chapitre — et
+tant qu'il manque l'outil OU le tracteur, le chantier RETOMBE sur la charrue sans se
+bloquer : un outil qu'on ne peut pas tirer s'efface, il n'arrête pas la ferme.
+
+**Et il ne prend pas la main tant que le tutoriel apprend les trois outils.** En campagne la
+question ne se pose pas : il s'achète au quatorzième palier. En MODE LIBRE, où tout est
+ouvert dès la première image, elle se posait et elle bloquait — mesuré sur la parcelle de
+départ, 552 cellules, le combiné en laisse UNE dans un coin de fourrière (le reliquat de
+virage que tout le jeu tolère à cinq pour cent) quand la marche du tutoriel, elle, demande le
+CHAMP ENTIER. 551 sur 552, et le cliquet ne bougeait plus jamais.
+
+### La campagne ne change pas de forme
+
+Deux paliers changent de contenu, aucun ne change de place. « Deux chaînes à la fois » ouvrait
+le tracteur rouge : c'est le moment où l'aller-retour au parc à outils commence, et c'est là
+qu'un second attelage se justifie — il ouvre le tracteur lourd. « La gamme fermière » ouvrait
+le bleu, un troisième attelage debout pour dix-huit mille euros : il ouvre le combiné, c'est-
+à-dire ce que le tracteur acheté neuf paliers plus tôt attendait.
+
+| | avant | après |
+|---|---|---|
+| tracteurs à vendre | rouge 4 500 €, bleu 18 000 € | **lourd 6 000 €** |
+| outil de terre au palier 14 | — | **combiné 15 000 €** |
+| étapes de terre d'un chantier | labour, semis, engrais | **une seule** |
+| largeur de travail | 4,8 / 6,4 / 12 m | **5,6 m, en un passage** |
+
+Le combiné se range sur une deuxième rangée du parc à outils, à z = 61. La rangée du fond est
+pleine — quatre outils, le passage de la cour en cinquième case, le fourgon en sixième — et
+plus loin à l'est ce n'est plus du parking : la dalle s'arrête à x = −3,4. Un premier jet l'y
+avait rangé, et le tracteur lourd est parti le chercher **quinze minutes sans jamais
+l'atteindre**, sans un message.
+
+Deux planches de menu neuves, rendues depuis le jeu lui-même sur fond magenta et passées
+dans la chaîne des vignettes : **43 clés, 41 planches, 67,0 Ko**. Un banc `combine` de
+**17 contrôles**, et les trente suites à **1 284 contrôles**.
