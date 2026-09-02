@@ -908,10 +908,14 @@
      taille là où il est grand. */
   #brboite{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:auto;
     width:min(92vw,400px);padding:12px 20px 12px;
-    max-height:calc(100vh - 14px);max-height:calc(100dvh - 14px);overflow-y:auto}
+    max-height:calc(100vh - 14px);max-height:calc(100dvh - 14px);overflow-y:auto;
+    /* LE REPÈRE DU TAMPON. Il se pose SUR la boîte et non dans la colonne : un tampon
+       encré est un accident sur le papier, pas une ligne de plus dans la mise en page.
+       `overflow-y` reste : le tampon est posé dans les marges latérales, jamais au-delà. */
+    position:relative}
   /* Un bloc vide ne prend pas de place : les pages ne portent pas toutes les cinq lignes,
      et un `<div>` vide gardait son écart et sa marge. */
-  #brsous:empty,#brprix:empty,#brplus:empty,#brsuite:empty{display:none}
+  #brsous:empty,#brprix:empty,#brplus:empty,#brsuite:empty,#brtampon:empty{display:none}
   #brtitre{font-family:var(--titre);font-size:24px;letter-spacing:2.4px;
     text-transform:uppercase;color:var(--titreC);line-height:1.15;
     transform:scaleY(1.14) rotate(-1deg)}
@@ -964,6 +968,38 @@
      ligne, à la taille du texte courant — ce sont des renseignements, pas la nouvelle. */
   #brplus{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;
     color:var(--sourdine);text-align:center;line-height:1.6;margin-top:1px}
+  /* ---------- LE TAMPON « STOCK PLEIN » ----------
+     Le joueur : « avec comme un tampon rouge sur le côté qui met stock plein ».
+     C'est un tampon de caoutchouc, et un tampon de caoutchouc a trois signes : il est
+     DE TRAVERS — jamais deux fois le même angle sous la main du commerçant —, il est
+     CREUX — un filet d'encre, pas un aplat, sinon c'est une étiquette imprimée —, et il
+     est POSÉ SUR le papier, à cheval sur ce qui est déjà écrit, parce qu'on tamponne un
+     document fini. Le rouge est celui des refus du jeu, pas un rouge de plus.
+     IL SORT DU FLUX, ET IL SE CALE SUR LE PORTRAIT. La colonne empile portrait, titre,
+     texte ; le tampon, lui, est `absolute` dans la marge droite, À CÔTÉ DU VISAGE. Le
+     premier jet l'avait mis au tiers de la hauteur, et il mordait sur le titre : on
+     lisait « JULES, BOULANGERI » sous l'encre. Un tampon se pose sur du papier, pas sur
+     un nom. La marge du portrait est le seul endroit VIDE de la boîte, et il y tient à
+     toutes les tailles — la mesure est au banc, sur trois écrans.
+     ET L'ANCRAGE EST EN PIXELS DEPUIS LE HAUT, pas en pourcentage : un pourcentage suit
+     la hauteur du contenu, si bien que le tampon descendait sur le texte dès qu'un étal
+     proposait quatre débouchés au lieu d'aucun. Depuis le haut, il reste au visage.
+     Il ne prend pas les doigts : on continue de toucher la boîte pour la fermer. */
+  #brtampon{position:absolute;right:10px;top:30px;pointer-events:none;
+    font-family:var(--titre);font-size:13px;letter-spacing:1.5px;line-height:1.05;
+    text-transform:uppercase;text-align:center;white-space:pre-line;
+    color:#C0392B;border:2.5px solid #C0392B;border-radius:5px;padding:5px 9px 4px;
+    box-shadow:inset 0 0 0 1.5px rgba(192,57,43,.30);
+    background:rgba(192,57,43,.07);
+    transform:rotate(-13deg);opacity:.88}
+  /* ET IL S'ABAT. Un tampon ne paraît pas, il TOMBE : il arrive trop grand, il se pose,
+     et c'est fini. Deux propriétés seulement — opacity et transform —, comme tout ce qui
+     s'anime ici : le compositeur s'en charge et la vallée continue de tourner derrière. */
+  @keyframes brtampe{
+    0%  {opacity:0; transform:rotate(-13deg) scale(2.6)}
+    70% {opacity:.95; transform:rotate(-13deg) scale(.94)}
+    100%{opacity:.88; transform:rotate(-13deg) scale(1)}}
+  #bravo.on #brtampon{animation:brtampe .34s cubic-bezier(.2,.8,.3,1) .30s both}
   #brsuite{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
     color:var(--sourdine);margin-top:6px;text-align:center}
   /* Une seule animation, et seulement opacity + transform : le compositeur s'en charge
@@ -1544,6 +1580,7 @@
   <div id="brsous"></div>
   <div id="brprix"></div>
   <div id="brplus"></div>
+  <div id="brtampon"></div>
   <div id="brsuite"></div>
   <div id="brgo" aria-label="Continuer"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 16h16M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 </div></div>
@@ -3856,6 +3893,43 @@ const PORTRAITS = {
   'Comptoir agricole': {r:'comptoir', h:['neutre']},
   'Garage':            {r:'garage',   h:['neutre']}
 };
+/* ---------- ET CHACUN A UN PRÉNOM ----------
+   Le joueur, sur la fenêtre d'étal plein : « tu ne marques pas COMPLET — BOULANGERIE, tu
+   marques Jules, boulangerie. » Un commerce ne refuse pas une livraison : QUELQU'UN la
+   refuse, et c'est cette personne-là qu'on a devant soi, dessinée, avec sa mine de regret.
+   Le nom de l'enseigne disait un lieu ; le prénom dit l'interlocuteur, et il rend la
+   phrase entre guillemets à celui qui la prononce.
+
+   LES QUINZE SONT CHOISIS SUR LES VISAGES, pas au hasard : la Coopérative est une femme
+   âgée à lunettes, le Marché un vieil homme en casquette, l'Atelier textile une femme aux
+   cheveux noirs. Se tromper de personne serait pire que de n'en nommer aucune. JULES est
+   celui que le joueur a nommé — le boulanger roux — et les quatorze autres se changent en
+   un mot, ici, sans que rien d'autre bouge.
+
+   ET LE COMPTOIR ET LE GARAGE EN ONT UN AUSSI, bien qu'ils ne refusent jamais rien : ils
+   tiennent une fenêtre à leur nom, et le jour où elle voudra dire « Marcel » elle le
+   pourra. Une table qui ne couvre que les cas d'aujourd'hui se retrouve à trous demain. */
+const PRENOMS = {
+  'Coopérative':      'Simone',    // la femme aux lunettes vertes, cheveux gris
+  'Comptoir agricole':'Marcel',    // le roux barbu en salopette, un brin de blé aux dents
+  'Garage':           'Roger',     // le vieux à moustache blanche et bras tatoués
+  'Usine céréales':   'Damien',    // le jeune homme à la chemise verte et au presse-papiers
+  'Boulangerie':      'Jules',     // le roux costaud au foulard bleu — nommé par le joueur
+  'Épicerie':         'Gilbert',   // la casquette, la moustache, le tablier vert
+  'Restaurant':       'Margot',    // la femme à la chemise rouge et à l'ardoise
+  'Usine avoine':     'Hélène',    // la veste bleu canard, l'épi à la main
+  'Laiterie':         'Bernard',   // le chauve à moustache, en blouse blanche
+  'Supermarché':      'Sofiane',   // le crâne rasé, le gilet et le badge
+  'Atelier textile':  'Nadia',     // les cheveux noirs, les lunettes, le châle brodé
+  'Fromagerie':       'Odette',    // la rousse bouclée et son plateau
+  'Marché':           'Lucien',    // le vieil homme à la casquette et à la moustache blanche
+  'Caviste':          'Victor',    // le jeune bouclé à lunettes rondes et nœud papillon
+  'Boucherie':        'Henri'      // le calot blanc et le tablier rayé
+};
+/* ET UN COMMERCE SANS PRÉNOM RESTE JOUABLE, comme un commerce sans visage : on retombe
+   sur l'enseigne, qui est ce que le jeu disait avant. C'est ce qui permet d'ajouter un
+   seizième commerce sans toucher à cette table le jour même. */
+const prenomDe = (nom)=> PRENOMS[nom] || null;
 const HUMEURS = ['neutre', 'bravo', 'refus'];
 /* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
    ne refuse jamais un achat — il vend, il n'achète pas : il n'a ni pouce levé ni refus à
@@ -4288,6 +4362,7 @@ function peindreBravo(){
   document.getElementById('brsous').innerHTML = P.sous || '';
   document.getElementById('brprix').textContent = P.prix || '';
   document.getElementById('brplus').innerHTML = P.plus || '';
+  document.getElementById('brtampon').textContent = P.tampon || '';
   document.getElementById('brsuite').textContent = P.suite || '';
   poserVisage(document.getElementById('brface'),
               P.face ? P.face.nom : null, P.face ? P.face.humeur : null);
@@ -20672,7 +20747,19 @@ function menuTuto(){ return appelMenu(); }
    une parcelle de blé rend plus que les 150 kg de la trémie neuve, si bien qu'on est
    forcé d'aller vider avant d'avoir fini le champ. Sans elle, le tutoriel enfermerait le
    joueur dans un champ qu'il ne peut pas terminer d'une traite. */
-const PART_ETAPE = 1;
+/* ---------- QUATRE-VINGT-DIX-HUIT POUR CENT, ET PAS CENT ----------
+   Le joueur : « limite le tutoriel à 98 % du travail de la terre pour passer à l'étape
+   suivante. » Il a raison, et c'est mesuré : le CHAMP ENTIER est un seuil que la conduite
+   ne tient pas. Une passe laisse toujours un RELIQUAT DE VIRAGE — la fourrière, ce coin
+   où l'engin a tourné sans travailler —, et le combiné en laisse UNE cellule sur 552, soit
+   99,8 %. À 1, le cliquet ne bougeait plus jamais et le joueur cherchait un carré de terre
+   qu'il ne voyait pas ; à 0,98 il lui reste onze cellules de marge sur cette parcelle, et
+   la marche se solde quand le champ est fait.
+   ET LA CASCADE TIENT. Chaque étape se compte sur ce que la précédente a laissé, jamais
+   sur la parcelle entière : semer 98 % d'un champ labouré à 98 %, c'est avoir semé tout
+   ce qu'on pouvait semer, et l'étape passe. Ce sont les mêmes 98 % à chaque marche, pas
+   0,98 puissance quatre. */
+const PART_ETAPE = 0.98;
 function partParcelle(quoi){
   let best = 0;
   for(const p of PARCELS){
@@ -22809,11 +22896,17 @@ function montrerRefus(S, cle, q){
   const autres = acheteursDe(cle, S.nom, q).slice(0, 4);
   const l = autres.map((a)=> a.nom + ' — ' + qte(cle, a.prend) + '  ·  ' + eur(a.gain));
   annoncerFenetre({
-    /* « COMPLET — BOULANGERIE », ET NON « BOULANGERIE EST COMPLET ». Quinze commerces,
-       deux genres et deux nombres : « Épicerie est complet » est faux, « complète » est
-       faux pour le Restaurant, et accorder demanderait une table de genres pour un seul
-       titre. Le mot d'abord, le nom ensuite : ça se lit pour les quinze. */
-    titre: 'COMPLET \u2014 ' + S.nom.toUpperCase(),
+    /* LE PRÉNOM D'ABORD, L'ENSEIGNE ENSUITE. Le titre disait « COMPLET — BOULANGERIE »,
+       c'est-à-dire l'état d'un lieu ; il dit maintenant QUI parle — « Jules, boulangerie ».
+       L'état, lui, est passé au tampon : c'est sa place, et cela règle du même coup le
+       problème d'accord qui avait imposé « complet » devant le nom (« Épicerie est
+       complet » est faux, « complète » l'est pour le Restaurant, et accorder quinze
+       enseignes de deux genres demandait une table pour un seul titre). Un tampon
+       n'accorde rien.
+       ET SANS PRÉNOM, ON GARDE L'ENSEIGNE SEULE : la phrase reste juste, elle est
+       seulement moins incarnée. */
+    titre: (prenomDe(S.nom) ? prenomDe(S.nom) + ', ' : '') + S.nom,
+    tampon: 'Stock\nplein',
     // `dNom` pose l'article : « d'œufs », « de blé », « de l'huile ». Écrit à la main,
     // on lisait « prendre de œufs ».
     sous: '<i>\u00ab\u00a0Plus besoin ' + dNom(nomDe(cle).toLowerCase()) +
@@ -28113,17 +28206,18 @@ function combinePret(){
   const m = MACHINES.find((x)=> x.key === T.pourEngin);
   if(!m || m.verrou) return false;
   /* ET PAS TANT QUE LE TUTORIEL APPREND LES TROIS OUTILS QU'IL REMPLACE.
-     En campagne la question ne se pose pas — le combiné s'achète au quatorzième palier,
-     le tutoriel est soldé depuis longtemps. En MODE LIBRE, où tout est ouvert dès la
-     première image, elle se posait et elle bloquait : mesuré sur la parcelle de départ,
-     552 cellules, le combiné en laisse UNE dans un coin de fourrière — c'est le reliquat
-     de virage que tout le jeu tolère à cinq pour cent — mais la marche du tutoriel, elle,
-     demande le CHAMP ENTIER, à la demande du joueur (« il faut vraiment que le champ soit
-     fini »). 551 sur 552, et le cliquet ne bouge plus : le tutoriel restait sur
-     « PRÉPARER LA PARCELLE » pour toujours.
-     Le labour et le semis, eux, se font en deux passes de largeurs différentes et
-     finissent par tout couvrir. On apprend donc les trois outils avant de recevoir celui
-     qui les remplace, ce qui est de toute façon l'ordre de la campagne. */
+     Cette porte a d'abord été posée pour un BLOCAGE, et le blocage n'existe plus : la
+     marche du tutoriel demandait le CHAMP ENTIER, le combiné laisse une cellule sur 552
+     dans un coin de fourrière, et le cliquet ne bougeait plus jamais en mode libre.
+     PART_ETAPE est passé à 98 % depuis, à la demande du joueur, et 551 sur 552 solderait
+     la marche sans rien demander à personne.
+     ELLE RESTE POUR L'AUTRE RAISON, celle qui était la vraie. Le tutoriel enseigne la
+     charrue, le semoir et l'épandeur l'un après l'autre ; un outil qui fait les trois du
+     premier coup priverait le joueur des trois leçons. En campagne la question ne se pose
+     pas — le combiné s'achète au quatorzième palier, le tutoriel est soldé depuis
+     longtemps ; en mode libre, où tout est ouvert dès la première image, c'est cette
+     ligne qui tient l'ordre des leçons. On apprend les trois outils avant de recevoir
+     celui qui les remplace, ce qui est de toute façon l'ordre de la campagne. */
   return CAMPAGNE.tuto >= TUTO_TERRE;
 }
 function besoinEtape(C, et){

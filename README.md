@@ -11556,3 +11556,94 @@ un contrôle de plus au banc `visages` : le portrait devenu élastique doit enco
 son plafond d'avant — 192 × 240 — sur un écran assez haut pour le laisser passer, faute de
 quoi une boîte qui aurait fondu à rien passerait le contrôle du rapport. Les trente-et-une
 suites sont à **1 308 contrôles**.
+
+## Quatre-vingt-dix-huit pour cent, et le tampon de Jules
+
+### La marche du tutoriel ne demande plus le champ entier
+
+Elle l'a demandé pendant un temps, et c'était une demande du joueur : « le message comme quoi
+le champ était bien labouré arrive à 80 %, c'est trop tôt, fais-le au moment où on a fini. »
+`PART_ETAPE` était donc passé de 0,75 à **1**.
+
+Le champ entier s'est révélé hors d'atteinte. Une passe laisse toujours un **reliquat de
+virage** — la fourrière, ce coin où l'engin a tourné sans travailler —, et c'est mesuré : sur
+la parcelle de départ, 552 cellules, le combiné en laisse **une**. 551 sur 552, soit 99,8 %,
+et le cliquet ne bougeait plus jamais : le joueur cherchait un carré de terre qu'il ne voyait
+pas. « Limite le tutoriel à 98 % du travail de la terre pour passer à l'étape suivante. »
+
+La barre est donc à **0,98**, et le banc l'encadre des deux côtés : 535 cellules sur 552 font
+0,9692 et ne passent pas ; 544 font 0,9855 et passent. La cellule oubliée du combiné, elle,
+solde désormais la marche. Dans la chaîne complète jouée par le pilote du jeu, la marche
+tombe entre les 98 % et le champ entier — deux secondes gagnées sur la fourrière, et surtout
+un seuil que la machine sait atteindre.
+
+**La cascade tient sans se composer.** Chaque étape se compte sur ce que la précédente a
+laissé, jamais sur la parcelle entière : semer 98 % d'un champ labouré à 98 %, c'est avoir
+semé tout ce qu'on pouvait semer, et l'étape passe. Ce sont les mêmes 98 % à chaque marche,
+pas 0,98 puissance quatre.
+
+**Et cela retire une béquille au combiné.** La porte qui l'empêchait de prendre la main avant
+la fin du tutoriel avait été posée pour ce blocage précis. Le blocage n'existe plus — mais la
+porte reste, pour l'autre raison, qui était la vraie : le tutoriel enseigne la charrue, le
+semoir et l'épandeur l'un après l'autre, et un outil qui fait les trois du premier coup
+priverait le joueur des trois leçons. Le commentaire dit maintenant cela, et non plus une
+mesure périmée.
+
+### Quinze commerçants ont un prénom
+
+« Tu ne marques pas COMPLET — BOULANGERIE, tu marques **Jules, boulangerie**, avec comme un
+tampon rouge sur le côté qui met stock plein. »
+
+Un commerce ne refuse pas une livraison : **quelqu'un** la refuse, et c'est cette personne-là
+qu'on a devant soi, dessinée, avec sa mine de regret. Le nom de l'enseigne disait un lieu ; le
+prénom dit l'interlocuteur, et il rend la phrase entre guillemets à celui qui la prononce.
+
+Les quinze sont choisis **sur les visages**, pas au hasard : la Coopérative est une femme âgée
+à lunettes vertes — Simone ; le Marché un vieil homme en casquette — Lucien ; l'Atelier
+textile une femme aux cheveux noirs et au châle brodé — Nadia. Se tromper de personne serait
+pire que de n'en nommer aucune. **Jules** est celui que le joueur a nommé, le boulanger roux
+au foulard bleu. Les quatorze autres se changent en un mot, dans `PRENOMS`, sans que rien
+d'autre bouge — et un commerce sans prénom retombe sur son enseigne, comme un commerce sans
+visage garde son filet.
+
+| | avant | après |
+|---|---|---|
+| titre du refus | COMPLET — BOULANGERIE | **Jules, boulangerie** |
+| l'état de l'étal | dans le titre | **au tampon** |
+| l'accord | « complet » forcé devant le nom | plus de question |
+
+Ce dernier point n'est pas un détail. « Épicerie est complet » est faux, « complète » l'est
+pour le Restaurant, et accorder quinze enseignes de deux genres et deux nombres demandait une
+table pour un seul titre : c'est ce qui avait imposé le mot AVANT le nom. **Un tampon
+n'accorde rien**, et le problème disparaît avec lui.
+
+### Le tampon
+
+Un tampon de caoutchouc a trois signes, et il les a tous les trois. Il est **de travers** —
+jamais deux fois le même angle sous la main du commerçant. Il est **creux** — un filet
+d'encre et un rouge à 7 %, pas un aplat, sinon c'est une étiquette imprimée. Et il est **posé
+sur** le papier, hors du flux de la mise en page, parce qu'on tamponne un document fini. Il
+s'abat, aussi : il arrive à deux fois et demie sa taille, dépasse d'un cheveu et se pose — en
+`opacity` et `transform` seulement, comme tout ce qui s'anime ici, si bien que la vallée
+continue de tourner derrière.
+
+**Il se cale sur le portrait, et c'est le premier jet qui l'a appris.** Posé au tiers de la
+hauteur, il mordait sur le titre et l'on lisait « JULES, BOULANGERI » sous l'encre. Un tampon
+se pose sur du papier, pas sur un nom : la marge du portrait est le seul endroit vide de la
+boîte. Et **l'ancrage est en pixels depuis le haut**, jamais en pourcentage — un pourcentage
+suit la hauteur du contenu, et le tampon redescendait sur le texte dès qu'un étal proposait
+quatre débouchés au lieu d'aucun.
+
+Mesuré après la fin des animations, sur quatre commerces : 6,4 px de marge à droite, 22,2 px
+en haut, aucun recouvrement du titre ni du visage, et la fenêtre tient dans l'écran — 287 px
+sur 390 en paysage, 279 sur 360, 398 sur 820.
+
+Une note de méthode, parce qu'elle a coûté une demi-heure : **on ne mesure pas pendant
+l'animation**. `getBoundingClientRect` inclut les transformations, et le tampon part à
+`scale(2.6)` : relevé à l'image zéro, il faisait 183 px de large pour un élément de 74 et
+paraissait déborder de quarante. Le banc attend maintenant que `getAnimations()` soit vide
+avant de mesurer, au lieu de parier sur un délai.
+
+Bancs : `fenetres` passe de 23 à **31 contrôles**, `visages` à 33, `etiquettes` encadre la
+barre des 98 %, `ecrans` et `campagne30` suivent le nouveau seuil. Les trente-et-une suites à
+**1 319 contrôles**.
