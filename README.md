@@ -12830,3 +12830,16 @@ cinq céréales mûres tiennent en 180 triangles, contre 204.
 
 Mesuré sur la parcelle de départ : blé 552 pieds à 3,06 m de moyenne, colza 420 à 2,03.
 `ages`, `plan`, `chantiers`, `escargot`, `pilote`, `regression` relancés, tous verts.
+
+## Le blé, un tout petit peu plus grand
+
+« Augmente un tout petit peu la taille du blé. »
+
+**Un cran sur `large`, et rien d'autre.** 0,92 → 0,97 : plus cinq pour cent sur les trois
+axes, la plante garde ses proportions, son compte de pieds — 552, le plafond de la maille —
+et ses 66 triangles. Mesuré sur la parcelle de départ : **3,06 → 3,22 m** de hauteur
+moyenne, entre le colza (2,03) et l'orge (3,46).
+
+`ages`, `plan`, `chantiers`, `regression` relancés, tous verts ; `cultures` garde ses deux
+échecs d'avant (l'olivier à 490 triangles, la vigne un rang sur deux), qui ne tiennent pas
+au blé.
