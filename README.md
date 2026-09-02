@@ -12028,3 +12028,50 @@ de 5.
 et une leçon compris. Les trente-deux suites à **1 347 contrôles**, dont les 7 échecs
 préexistants de `chaine`.
 
+### Un logo par ligne de marchandise
+
+Le bouton des missions montrait bien les deux marchandises d'une mission qui en demande
+deux, mais **au bord de l'article, l'une sur l'autre**. Le joueur : « on voit le premier
+produit sur une ligne et le deuxième produit sur une ligne en dessous. Il faut donc mettre
+les logos en face de chacune des lignes, un logo sous un autre — la farine en haut et les
+œufs en dessous. Là tu m'as mis la farine et les œufs l'un à côté de l'autre, dont l'un est
+coupé, alors que les textes sont sur deux lignes. »
+
+**Le chevauchement n'était que le symptôme.** Deux planches de 26 px posées côte à côte avec
+un `margin-left:-9px` cachaient 9 px de la première, soit plus du tiers ; à huit marchandises
+— la mission 30 en compte huit — le tas mesurait 145 px de large sur les 400 de la fenêtre et
+n'en laissait voir que la dernière en entier. Mais même sans recouvrement, **le compte n'y
+était pas** : deux images empilées sur 44 px de haut en face de deux lignes de texte de 15 ne
+peuvent pas se faire face. La géométrie l'interdit tant que les marques vivent au bord et le
+texte à l'intérieur.
+
+**La marque descend donc dans la ligne dont elle parle.** `ligneMarch(cle, html)` emballe
+chaque ligne de marchandise dans une boîte `inline-flex` qui porte sa propre planche à
+gauche : *36 / 36 œufs* porte les œufs, *72 / 72 kg de farine* porte le sac. La colonne que le
+joueur demandait n'est plus construite ni mesurée — elle **tombe toute seule** du fait que
+chaque logo est ancré à son texte. Relevé dans le jeu : la mission « farine + œufs » les pose
+à (23, 39) et (23, 57), même abscisse, chacun **centré au pixel près** sur sa ligne ; la
+mission à huit marchandises en aligne huit à x = 23, de y = 98 à y = 224, au pas régulier de
+18 px.
+
+`inline-flex` et non un bloc : les cinq listes du jeu séparent leurs lignes par des `<br>`,
+et un bloc aurait ajouté une ligne vide à chaque saut. 18 px et non 26 : la marque du bord
+remplaçait un filet de 26 px et devait en faire la hauteur, celle-ci se pose sur une écriture
+de 12 et à 26 elle aurait écarté les lignes de moitié. Une marchandise sans planche garde sa
+place — un `<i>` vide de 18 px —, sans quoi une seule ligne sans image tordrait la colonne en
+son milieu. L'article, lui, garde **une** marque au bord, la première : le filet de couleur
+qu'elle remplace n'a jamais compté les marchandises, il ouvre l'article.
+
+**Et le rapprochement a fait tomber un mensonge vieux de tout le panneau.** Mettre les deux
+écrans d'une même mission côte à côte, chacun avec ses logos en colonne, se lit d'un coup
+d'œil : la fenêtre des contrats disait « 36 / 36 œufs », le panneau de campagne disait
+« 2 / 2 œufs ». Le panneau comptait ses marchandises en **kilos bruts** — `Math.round(l.need)`
+— là où la fenêtre passe depuis toujours par `enUnites` et `qte`. Trente-six œufs pèsent
+2,16 kg. Il prend les mêmes fonctions, et un contrôle du banc ouvre désormais les deux écrans
+sur la même mission pour comparer les nombres : remis en kilos bruts, il rend `[72/72] [2/2]`
+contre `[72/72] [36/36]` et échoue.
+
+`vignettes` passe de 41 à **44 contrôles** — dont « elles forment une colonne, même abscisse,
+chacune sous la précédente » et « chacune est en face de sa ligne, au pixel près » —,
+`campagne` de 75 à **76**. Les trente-deux suites à **1 351 contrôles**, dont les 7 échecs
+préexistants de `chaine`.

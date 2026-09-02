@@ -585,20 +585,34 @@
      le jour où l'on en posera une qui ne l'est pas, et il ne coûte rien. */
   .art .vign, .al .vign{width:26px;height:26px;flex-shrink:0;object-fit:contain}
   .al .vign{align-self:center}
-  /* UNE LIGNE PEUT PARLER DE PLUSIEURS PRODUITS. Une mission qui demande de la farine ET
-     des œufs n'en montrait qu'un : « la farine est bien affichée en tant que logo, mais
-     pas les œufs ». Les images se posent donc côte à côte, TOUJOURS à 26 px de haut — la
-     hauteur du filet qu'elles remplacent, celle qui garantit qu'aucune liste ne bouge —
-     et c'est encore la LARGEUR qui paie. Elles se chevauchent d'un tiers, comme des
-     jetons poussés les uns sur les autres : deux produits prennent 44 px au lieu de 55,
-     trois en prennent 62, et la colonne de texte ne part pas au milieu de la ligne.
-     Le chevauchement se fait vers la GAUCHE (`margin-left` négatif) pour que la première
-     image reste entière et au-dessus : c'est celle du produit principal. */
-  .art .vigns{display:flex;flex-shrink:0;align-items:center}
-  .art .vigns .vign + .vign{margin-left:-9px}
-  /* Chacune porte le fond du papier derrière elle : sans quoi le chevauchement laisserait
-     voir le blé à travers les œufs, et l'on ne lirait ni l'un ni l'autre. */
-  .art .vigns .vign{background:var(--ligne);border-radius:6px}
+  /* UNE LIGNE PEUT PARLER DE PLUSIEURS PRODUITS, ET ALORS CHACUN A LA SIENNE.
+     Une mission qui demande de la farine ET des œufs n'en montrait qu'un ; on les a
+     d'abord posés CÔTE À CÔTE au bord de l'article, en les chevauchant d'un tiers pour
+     économiser la largeur. Le joueur : « tu m'as mis la farine et les œufs l'un à côté de
+     l'autre, dont l'un est coupé, alors que les textes sont sur deux lignes. Mets les
+     logos en face de chacune des lignes, un logo sous un autre. »
+     IL A RAISON, ET LE CHEVAUCHEMENT N'ÉTAIT QUE LE SYMPTÔME. Le vrai défaut est que
+     l'article portait au bord un TAS de marques pour un texte qui, lui, énumère
+     proprement une marchandise par ligne. Deux images empilées sur 44 px en face de deux
+     lignes de 15 ne peuvent pas se faire face : la géométrie l'interdit. La marque
+     descend donc DANS la ligne dont elle parle — 30 / 72 kg de farine porte le sac,
+     36 / 36 œufs porte les œufs —, et elles forment d'elles-mêmes la colonne demandée,
+     sans qu'on ait à la construire ni à mesurer quoi que ce soit.
+     `inline-flex` ET NON UN BLOC : les lignes du détail sont séparées par des `<br>` et
+     non par des éléments, dans les cinq listes du jeu. Un bloc aurait ajouté une ligne
+     vide à chaque saut ; une boîte en ligne garde le flux exact d'avant et se contente de
+     grandir de 15 à 18 px pour loger l'image. */
+  .art .det .ml{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+  /* DIX-HUIT PIXELS, ET NON VINGT-SIX. Celle du bord remplace un filet de 26 et doit en
+     faire la hauteur ; celle-ci se pose sur une ligne de texte de 12, et à 26 elle aurait
+     écarté les lignes de moitié. Dix-huit tient sur la ligne sans la faire pousser plus
+     que la hampe d'un « q ». */
+  .art .det .vl{width:18px;height:18px;flex-shrink:0;object-fit:contain;
+    background:var(--ligne);border-radius:4px}
+  /* ET UNE MARCHANDISE SANS PLANCHE GARDE SA PLACE. Sans ce vide de dix-huit pixels, une
+     seule ligne sans image décalerait tout son texte vers la gauche et la colonne que
+     l'on vient de construire se tordrait au milieu. */
+  .art .det i.vl{background:none}
   /* ET LE NOM RESTE COLLE A SON IMAGE. La ligne de la fenetre d'action repartit ses
      enfants aux deux bouts — le nom a gauche, la quantite a droite —, et une vignette de
      plus en faisait TROIS : le nom partait au milieu, entre l image et le nombre. La
@@ -4103,6 +4117,20 @@ const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle
 const ligneProduit = (E)=> (E && E.lignes)
   ? E.lignes.map((l)=> l.cle).filter((c, i, t)=> c && t.indexOf(c) === i)
   : null;
+/* ET VOICI OÙ ELLES VONT VRAIMENT : DANS LEUR PROPRE LIGNE.
+   `ligneProduit` sert encore aux articles qui ne détaillent PAS leurs marchandises — le
+   journal des missions faites, qui dit ce qu'on a livré en une phrase et n'a rien à
+   énumérer. Partout où le texte les compte une par ligne, c'est cette fonction-ci qui
+   pose la marque : le logo à la tête de SA ligne, et le texte derrière.
+   ELLE REND DE L'HTML PARCE QUE LE DÉTAIL EN EST. Les cinq listes concernées construisent
+   leur détail comme une chaîne, jointe par des `<br>` ; rendre un élément aurait demandé
+   de réécrire les cinq, et `article` reçoit de toute façon une chaîne. */
+const ligneMarch = (cle, html)=>{
+  const v = vignetteDe(cle);
+  return '<span class="ml">'
+       + (v ? '<img class="vl" src="' + v + '" alt="">' : '<i class="vl"></i>')
+       + html + '</span>';
+};
 
 /* LES SEUILS D'EXPÉRIENCE SONT ÉCRITS, ET UN CONTRÔLE PROUVE QU'ILS S'ACCORDENT.
    Ils étaient DÉDUITS de la somme des missions, pour la bonne raison que deux tables
@@ -17309,18 +17337,19 @@ function article(couleur, nom, detail, libelle, etat, action, cle, prod){
   /* LA VIGNETTE PREND LA PLACE DU FILET, elle ne s'ajoute pas à lui : deux marques de
      couleur au début de la même ligne diraient deux fois la même chose, et la seconde
      mangerait le texte. Quand la planche n'existe pas encore, le filet reste. */
-  /* `prod` EST UNE CLÉ, OU UNE LISTE DE CLÉS. Soixante-quatre appels en passent une
-     seule ; les lignes d'engagement en passent autant que l'engagement a de marchandises.
-     On normalise ici, une fois, plutôt que d'avoir deux fonctions qui divergeront. */
+  /* `prod` EST UNE CLÉ, OU UNE LISTE DE CLÉS, ET LE BORD N'EN MONTRE QU'UNE.
+     Il a porté un temps jusqu'à trois images chevauchées, pour qu'une mission à deux
+     marchandises les montre toutes les deux. C'était le mauvais endroit : le bord d'un
+     article porte UNE marque — c'est ce qu'est une marque —, et les marchandises d'un
+     engagement se comptent ligne par ligne dans le détail, où `ligneMarch` leur donne
+     maintenant chacune la sienne. On accepte toujours une liste, parce que `ligneProduit`
+     en rend une et que le journal des missions faites, lui, n'a pas de lignes à marquer :
+     il prend la première, celle du produit principal. */
   const vgs = (Array.isArray(prod) ? prod : [prod])
-    .map(vignetteDe).filter((x, i, t)=> x && t.indexOf(x) === i).slice(0, 3);
+    .map(vignetteDe).filter((x)=> x).slice(0, 1);
   if(vgs.length){
-    const grp = document.createElement('div'); grp.className = 'vigns';
-    for(const src of vgs){
-      const g = document.createElement('img'); g.className = 'vign';
-      g.src = src; g.alt = ''; grp.appendChild(g);
-    }
-    d.appendChild(grp);
+    const g = document.createElement('img'); g.className = 'vign';
+    g.src = vgs[0]; g.alt = ''; d.appendChild(g);
   } else {
     const p = document.createElement('div'); p.className = 'pastille';
     p.style.background = '#' + couleur.toString(16).padStart(6,'0'); d.appendChild(p);
@@ -18599,30 +18628,35 @@ function vueContrats(){
   if(M){
     rien = false;
     const part = avanceMission(), O = objectifMission();
+    /* UNE MISSION « FAIRE » N'A PAS DE MARCHANDISE, donc pas de logo : elle a un
+       pourcentage, et il reste seul sur sa ligne. Les autres comptent ligne par ligne,
+       et chaque ligne porte la sienne. */
     const compte = M.faire
       ? '<span class="q">' + Math.round(part*100) + ' %</span>'
-      : M.lignes.map((l, i)=> '<span class="q">' +
+      : M.lignes.map((l, i)=> ligneMarch(l.cle, '<span class="q">' +
           Math.round(enUnites(l.cle, Math.min(l.need, CAMPAGNE.faits[i] || 0))) + ' / ' +
-          qte(l.cle, l.need) + '</span>').join('<br>');
+          qte(l.cle, l.need) + '</span>')).join('<br>');
     article(0x8BE07A, titreMission(M),
       M.texte + '<br>' + compte +
       (O ? '<br><span class="det2">À faire maintenant : ' + O.txt + '  ·  ' +
            Math.round(Math.hypot(v.pos.x - O.x, v.pos.z - O.z)) + ' m</span>' : '') +
       '<br><span class="det2">' + (M.prime ? eur(M.prime) + '  ·  ' : '') +
       '+' + M.xp + ' XP</span>',
-      Math.round(part*100) + ' %', 'vert', null, null, ligneProduit(M));
+      /* Plus de marque au bord : les logos sont sur les lignes, et la même image deux
+         fois dirait deux fois la même chose. Le filet vert de la mission revient. */
+      Math.round(part*100) + ' %', 'vert', null, null, null);
   }
   for(const C of CONTRATS){
     rien = false;
     const TY = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
     article(parseInt((PRODUITS[C.lignes[0].cle] || {couleur:'#FAD201'}).couleur.slice(1), 16),
       TY.nom + ' – ' + C.lieu,
-      C.lignes.map((l)=> '<span class="q">' + Math.round(l.fait) + ' / ' +
-        Math.round(l.need) + '</span> ' + nomDe(l.cle).toLowerCase()).join('<br>') +
+      C.lignes.map((l)=> ligneMarch(l.cle, '<span class="q">' + Math.round(l.fait) + ' / ' +
+        Math.round(l.need) + '</span> ' + nomDe(l.cle).toLowerCase())).join('<br>') +
       '<br><span class="det2">' + eur(C.prime) + ' de prime  ·  +' + C.xp + ' XP' +
       (C.temps ? '  ·  ' + Math.max(0, Math.ceil(C.temps)) + ' s restantes' : '') +
       '<br>La marchandise est payée en plus, au prix du commerce.</span>',
-      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, ligneProduit(C));
+      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, null);
   }
   if(rien)
     article(0x8A9298, 'Rien en cours',
@@ -27130,13 +27164,25 @@ function ongletCampagne(){
       'grossissent avec la ferme.', 'Terminée', 'ok', null);
   else {
     const part = avanceMission();
-    const det = M.texte + '<br><span class="q">' +
-      (M.faire ? Math.round(part*100) + ' %'
-               : M.lignes.map((l, i)=> Math.round(Math.min(l.need, CAMPAGNE.faits[i] || 0)) +
-                   ' / ' + Math.round(l.need) + ' ' + nomDe(l.cle).toLowerCase()).join('  ·  ')) +
-      '</span>' + (M.prime ? '  ·  ' + eur(M.prime) : '') + '  ·  +' + M.xp + ' XP';
+    /* ICI AUSSI, UNE MARCHANDISE PAR LIGNE. Elles étaient jointes par des points médians
+       sur une seule ligne — « 30 / 72 farine · 4 / 36 œufs » —, ce qui tenait tant qu'il
+       y en avait deux et devenait un paragraphe à huit. Elles prennent la même forme que
+       dans la fenêtre des contrats, logo compris : deux endroits qui disent la même chose
+       doivent la dire pareil, sans quoi le joueur croit qu'ils parlent d'autre chose. */
+    const det = M.texte + '<br>' +
+      (M.faire ? '<span class="q">' + Math.round(part*100) + ' %</span>'
+               /* ET EN UNITÉS DU PRODUIT, PAS EN KILOS BRUTS. Le panneau comptait
+                  `Math.round(l.need)` : trente-six œufs pèsent 2,16 kg, et il affichait
+                  « 2 / 2 œufs ». La fenêtre des contrats, elle, passe par `enUnites` et
+                  `qte` depuis toujours et dit « 36 / 36 œufs ». Deux écrans qui montrent
+                  la même mission ne peuvent pas donner deux nombres différents ; c'est
+                  celui-ci qui avait tort, et il prend les mêmes fonctions. */
+               : M.lignes.map((l, i)=> ligneMarch(l.cle, '<span class="q">' +
+                   Math.round(enUnites(l.cle, Math.min(l.need, CAMPAGNE.faits[i] || 0))) +
+                   ' / ' + qte(l.cle, l.need) + '</span>')).join('<br>')) +
+      '<br>' + (M.prime ? eur(M.prime) + '  ·  ' : '') + '+' + M.xp + ' XP';
     article(0x8BE07A, titreMission(M), det, Math.round(part*100) + ' %', 'vert', null,
-            null, ligneProduit(M));
+            null, null);
   }
   }
 
@@ -27154,12 +27200,12 @@ function ongletCampagne(){
     const T = CMD_TYPES.find((t)=> t.cle === C.type) || CMD_TYPES[0];
     article(parseInt((PRODUITS[C.lignes[0].cle] || {couleur:'#FAD201'}).couleur.slice(1), 16),
       T.nom + ' – ' + C.lieu,
-      C.lignes.map((l)=> '<span class="q">' + Math.round(l.fait) + ' / ' + Math.round(l.need) +
-        '</span> ' + nomDe(l.cle).toLowerCase()).join('<br>') +
+      C.lignes.map((l)=> ligneMarch(l.cle, '<span class="q">' + Math.round(l.fait) + ' / ' +
+        Math.round(l.need) + '</span> ' + nomDe(l.cle).toLowerCase())).join('<br>') +
       '<br>' + eur(C.prime) + ' de prime  ·  +' + C.xp + ' XP' +
       (C.temps ? '  ·  ' + Math.max(0, Math.ceil(C.temps)) + ' s' : '') +
       '<br>La marchandise est payée en plus, au prix du commerce.',
-      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, ligneProduit(C));
+      Math.round(avanceCommande(C)*100) + ' %', 'vert', null, null, null);
   });
 
   /* CE QUE LE VILLAGE PENSE DE NOUS. La renommée ne se voit nulle part ailleurs : elle
