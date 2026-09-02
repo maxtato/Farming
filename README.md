@@ -12539,3 +12539,159 @@ la taille et l'ombre du HUD, insensible au doigt, l'onde blanche), les trois de 
 balise `img` et plus un seul `svg`, 78 pixels d'art pour une boîte de 26, le rendu `auto`) et
 les trois de la comparaison. La suite compte **trente-cinq bancs à 1 429 contrôles**, dont
 les 7 échecs préexistants de `chaine`.
+
+## Le combiné vibre, en deux coups
+
+« Quand il sonne, je veux que tu le fasses vibrer dans la pastille verte, qu'on ait bien le
+sentiment d'une sonnerie de téléphone. »
+
+Il se contentait d'un balancement de neuf degrés à 7,3 Hz, en un coup répété quatre fois et
+demie par seconde : un métronome, pas une sonnerie. Trois choses le font sonner pour de
+bon, et il les faut toutes les trois.
+
+**Le rythme d'abord : deux coups, puis un silence.** Deux salves de 260 ms séparées de 80,
+puis 550 ms de rien — la cadence d'un téléphone fixe. C'est le SILENCE qui fait reconnaître
+une sonnerie : un battement régulier ressemble à un clignotant, deux coups groupés à un
+appel.
+
+**La vibration ensuite, et c'en est une** : le combiné TREMBLE au lieu de se balancer. Il
+tourne de treize degrés, mais il se déplace aussi — 1,6 px en travers, 1,1 px en hauteur —
+et les trois mouvements sont à des fréquences premières entre elles (×1, ×1,37, ×0,83).
+C'est ce qui empêche l'œil de retrouver un cycle : la somme ne se répète qu'au bout de
+plusieurs secondes, et l'on voit un objet qui vibre au lieu d'un objet qui oscille. Mesuré
+au banc : **26 degrés d'amplitude, 3,2 px en travers, 2,2 px en hauteur.**
+
+**La marge enfin.** La planche mesure 26 px dans une pastille de 38 : le combiné y est large
+de 13,7 px et haut de 24,7. Tourné et poussé, son bord passe à 12,8 px du centre en travers
+et 17,7 en hauteur — la pastille en fait 19 de rayon. Il vibre à l'intérieur, il n'en sort
+jamais.
+
+**Et le banc a dû changer d'horloge.** Il échantillonnait à `requestAnimationFrame` ; sous
+SwiftShader la scène tombe à **cinq images par seconde**, quand un coup de sonnerie dure
+260 ms — une image et demie. On ne comptait plus les salves, on comptait les images. Il
+échantillonne maintenant à 125 Hz au `setTimeout`, sur le vrai code (`refreshViseurs` →
+`majTelephone`) : **470 prises en 4 secondes, huit salves pour sept attendues**, et 241
+prises muettes qui prouvent que le silence existe.
+
+## Ce qui se passe derrière le comptoir ne nous regarde pas
+
+Le joueur : « dans le jeu tu parles de pain, de gâteau, etc. Ce sont des choses internes à
+la boulangerie, je n'y ai pas accès, donc je n'ai pas à le savoir. Moi je lui livre de la
+farine, il en fait ce qu'il veut. Pareil pour le boucher qui parle de viande, ou l'usine de
+textile qui parle de textile : ça ne nous regarde pas. On fournit la matière transformée et
+l'usine travaille ce qu'elle veut. Elle peut très bien nous dire dans le scénario “je veux
+de la laine pour des pulls”, mais dans nos améliorations, nos menus, etc., on ne doit pas
+voir que ça devient un pull. »
+
+**D'abord chercher, ensuite corriger.** Une sonde ouvre les douze onglets du menu et les
+quinze pages des fenêtres de régie, tout déverrouillé et tous les magasins pleins, et
+cherche le nom de chaque produit de commerce dans le texte rendu. Elle a rendu **deux
+écrans, trois endroits** :
+
+- l'onglet **Filières**, « Se transforme en : Textile », « Cuisine : Farine → Pain (2,52 €
+  par kg apporté) » ;
+- la fenêtre **Prix**, « Transformé : Pain 1,80 € par kg engagé · Viennoiseries 3,77 ·
+  Pâtisseries 4,05 ».
+
+Rien ailleurs. Le reste du jeu ne parlait déjà que de ce qu'on peut charger.
+
+**La règle s'écrit une fois, dans la table des produits.** `interne` marque ce qui SORT d'un
+commerce et n'entre jamais chez nous : le pain et les quatre pâtisseries de la boulangerie,
+le textile de l'atelier, le beurre et le yaourt de la laiterie, le lait d'avoine et les deux
+céréales des usines — **onze produits**. Le jeu continue de les fabriquer : c'est ce qui
+donne sa valeur à ce qu'on apporte, et c'est ce qui décide de ce qu'une trémie accepte.
+Aucun écran ne les nomme.
+
+Ce n'est pas la même chose qu'un produit qu'on ne sait pas faire : le **fromage** sort de la
+fromagerie ET de notre atelier, la farine, l'huile, la bière et le vin sont à nous. Le
+partage se lit sur `ATELIER_MODULES`, pas sur une seconde liste à tenir — et le banc le
+vérifie en RECALCULANT l'ensemble attendu depuis les tables, puis en le comparant aux
+drapeaux posés à la main. Les deux doivent coïncider exactement.
+
+**La viande a quitté la table.** Elle y figurait à 6,50 € le kilo avec un commentaire
+expliquant que le barème la veut à la bête, jamais au kilo. La boucherie paie la tête depuis
+longtemps ; plus une ligne de code ne lisait cette entrée. Et la fenêtre d'embarquement
+promettait « la boucherie rendra de la viande à charger », ce qui était faux en plus d'être
+indiscret : elle paie sur place.
+
+**Ce qu'un commerce annonce, maintenant, c'est ce qu'il PREND et ce qu'il paie.**
+
+| avant | maintenant |
+|---|---|
+| Cuisine : Farine + Œufs + Miel → Pâtisseries au miel (8,16 € par kg apporté) | Prend : Farine + Œufs + Miel – 8,16 € par kg apporté |
+| Transforme : Laine → Textile (4,72 € par kg apporté) | Prend : Laine – 4,72 € par kg apporté |
+| Se transforme en : Textile | Se livre à : Atelier textile |
+
+L'ordre reste celui des recettes, la plus riche d'abord : chez le boulanger, 8,16 € pour
+trois choses apportées contre 2,52 € pour la farine seule. On lit la progression sur les
+seuls prix.
+
+**Trois choses que ce chantier a révélées, et qui sont des défauts, pas des cosmétiques :**
+
+1. **Une recette impossible était annoncée.** Les pâtisseries premium demandent farine, œufs
+   et BEURRE — or le beurre ne sort que de la laiterie, qui le vend elle-même : personne ne
+   peut en apporter au boulanger. C'est le même défaut que la bière et le miel, corrigés en
+   leur temps. Une recette n'est affichée que si TOUTES ses entrées sont fournissables.
+2. **La boucherie n'avait aucune fiche.** Le test d'entrée était `si le commerce n'achète
+   rien et ne fabrique rien, passer` — or elle ABAT. Le seul commerce qui prend des bêtes
+   était absent de l'écran des filières depuis toujours.
+3. **La laiterie s'annonçait deux fois.** Ses deux recettes prennent le même lait ; en
+   cachant les sorties, les deux lignes devenaient identiques. Deux recettes de même entrée
+   ne font plus qu'une ligne, au meilleur prix.
+
+Enfin, l'écran de fin comptait « X de pain » — le pain du boulanger. Il compte maintenant la
+**farine moulue**, qui est de nous.
+
+Un banc `interne` de **11 contrôles** : la règle recalculée contre les drapeaux, la viande
+absente, le fromage épargné, **les 27 écrans du jeu passés au peigne** (douze mots cherchés,
+zéro trouvé), les quatre fiches de commerce et la ligne « Se livre à ». Il porte aussi la
+garde qui manquait à la sonde : `innerText` d'un élément non rendu retombe sur
+`textContent`, **qui n'a pas de saut de ligne** — les six contrôles de fiche auraient échoué
+en ne mesurant rien, et un contrôle vérifie donc d'abord que l'écran se lit vraiment.
+
+## Le mouton et la brebis n'ont plus qu'un enclos
+
+« On va enlever l'élevage de brebis ; pour faire du lait de brebis, ce sera l'élevage de
+mouton. Dans l'élevage de mouton il y aura des moutons et des brebis. On pourra donc en
+tirer deux produits — du lait de brebis et de la laine — et vendre des bêtes pour la
+viande. »
+
+Le jeu avait **deux élevages pour un seul animal** : le « mouton », qui donnait de la laine,
+et la « brebis », qui donnait la laine ET le lait. Même silhouette — les deux appelaient
+`corpsMouton` et `teteMouton` —, même bergerie, mêmes capacités, mêmes prix de bâtiment,
+deux lignes dans le menu et deux enclos à monter.
+
+**C'est la brebis qui absorbe le mouton, et non l'inverse.** Un troupeau mixte vaut ce que
+valait le troupeau laitier : on ne peut pas obtenir le lait le plus cher de la ferme au prix
+de l'élevage le plus simple. L'enclos (3 000 €), la bête (180 €), sa revente (780 €), sa
+maturité, sa surface et sa ration sont ceux de la brebis ; le nom, l'échelle et le bâtiment
+restent ceux du mouton. La ligne « mouton sans lait » du barème — 2 kg de laine pour 0,8 kg
+d'aliment — disparaît : c'était la seule que le cahier des charges ne citait pas, elle était
+extrapolée.
+
+**Et les six robes se mélangent dans le pré.** Les trois du mouton — dont la noire — et les
+trois de la brebis, plus claires, vivent dans la même table. `ajouterBete` en tire une au
+hasard sur la longueur de la liste : on voit littéralement les deux bêtes brouter ensemble,
+et c'est ce qui a été demandé. Mesuré : **6 robes en table, 4 claires et 1 sombre, et les 6
+sortent en quarante bêtes.**
+
+**Une partie d'avant la fusion ne perd pas son troupeau.** Sa bergerie porte
+`espece:'brebis'`, une clé qui n'existe plus : sans migration, `creerPature` serait retombé
+sur la vache par défaut et le joueur aurait retrouvé des VACHES dans sa bergerie. Le banc ne
+s'en remet pas à une relecture ordinaire — il fabrique une vraie sauvegarde, y remet la main
+pour écrire `'brebis'`, et la recharge : le troupeau revient en bergerie de moutons, avec
+ses bêtes et ses deux produits.
+
+Le retrait est indolore pour le reste parce que la clé était **en fin** de `ESP_CLES` et que
+rien, dans une sauvegarde, n'est un indice dans cette liste. La planche `brebis.png` reste :
+c'est celle que le troupeau de moutons utilise déjà — « la table dit un nom de planche, pas
+un oui », et une espèce s'en va sans qu'un fichier bouge.
+
+**Cinq bancs disaient l'ancienne vérité et ont été portés à la nouvelle** : `elevage` (le
+barème, l'auge, les deux tanks), `campagne` (le troupeau à deux produits, l'espèce désignée),
+`chantiers` (l'élevage automatisé), `vignettes` (un partage et deux renommages au lieu de
+deux partages et un), `decor` (cinq mangeoires au lieu de six, et le compte se lit
+maintenant sur `ESP_CLES` au lieu d'être écrit).
+
+`elevage` rejoint la suite au passage — il en était resté dehors, comme `ages` avant lui.
+**Trente-sept bancs à 1 479 contrôles**, dont les 7 échecs préexistants de `chaine`.
