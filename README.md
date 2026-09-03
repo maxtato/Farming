@@ -14051,3 +14051,44 @@ derrière l'engin, à 24 m et 11 m de haut, l'engin au centre de l'écran ; en r
 reste derrière et l'engin au centre ; en virage le cap de la caméra traîne derrière celui de
 l'engin, l'engin restant au centre ; le virage fini, elle rattrape ; le réglage se sauvegarde
 et la fenêtre des réglages le porte ; un bouton ramène la vue de dessus.
+
+## L'ouverture : on arrive dans le pick-up, et le vieux tracteur attend à côté de la maison
+
+« J'aimerais qu'on change un peu l'arrivée des messages et la mise en place dans l'univers du
+jeu. J'aimerais plutôt qu'on commence dans le pick-up qui arrive devant la maison. Et là le
+personnage principal dit qu'il a hérité de la maison, etc., et de ce vieux tracteur, et là on
+voit le tracteur à l'image, garé juste à côté, et ça dit "allons l'essayer", ou quelque chose
+comme ça, pour commencer le boulot. »
+
+**La partie commençait dans le tracteur, à l'arrêt dans la cour**, deux fenêtres tombant du
+ciel avant qu'on ait touché quoi que ce soit. Elle commence sur la rocade sud, au volant du
+pick-up, commandes éteintes (`INTRO`, `lancerIntro`) : le pilote de route des livraisons
+(`suivreRoute`) le mène jusqu'au cercle de la maison — celui où le téléphone sonne —, à neuf
+mètres par seconde au plus ; les derniers mètres d'herbe se font en droite ligne (`viser`) ;
+il freine, et c'est LÀ que le héros parle (`finIntro`) : l'héritage et le premier jour, mot
+pour mot comme avant, puis une troisième page, LE VIEUX TRACTEUR — « Et le voilà, garé à côté
+de la maison. Allons l'essayer. » —, avec « Au boulot. » pour ligne de suite. La marche du
+labour prend la suite, et c'est elle qui désigne le tracteur, garé à quinze mètres.
+
+**Et l'arrivée s'efface devant tout ce qui la contredit.** Une centaine de bancs entrent dans
+la partie et, dès l'image suivante, sautent le tutoriel ou prennent un autre engin :
+l'arrivée se retire alors sans un mot — pas de fenêtre, pas de marche —, et rien de ce qu'ils
+attendent n'a bougé. Un plafond de quarante-cinq secondes termine une arrivée qui
+n'arriverait pas, et une partie rechargée pendant l'arrivée la rejoue depuis la route.
+
+**Le dernier bout se fait en droite ligne.** Le pilote de route bride la vitesse tant que le
+cap n'est pas repris — c'est fait pour tourner court avec une remorque —, et sur l'herbe des
+derniers mètres le pick-up rampait à un demi-mètre par seconde. Il garde donc un plancher de
+gaz, et à quatorze mètres du cercle il vise le cercle lui-même (`viser`), qui rend les gaz dès
+que le nez est dedans et rend la main une fois à portée : il freine à moins de deux mètres de
+la porte.
+
+Banc `ouverture`, six contrôles : la partie commence dans le pick-up, sur la route, commandes
+éteintes, sans fenêtre ; il roule jusqu'à la maison en quatorze secondes de jeu, à 9,6 m/s au
+plus ; il s'arrête devant la porte et rend les commandes ; à l'arrêt le héros parle — l'héritage,
+le premier jour, le vieux tracteur — ; le tracteur est dans l'image, à 14 m ; les pages lues,
+la marche du labour prend la suite. Banc `vue` (7) vert.
+Le banc `campagne30` attendait encore quatre pages à la fin de la première mission, et la « vente
+libre » en titre de la seconde : il en attend deux, la paie puis LA COOPÉRATIVE — c'est le
+chapitre du téléphone et des déblocages qui l'avait changé sans le lui dire. Bancs `campagne`
+(76) et `campagne30` (72) verts.

@@ -30862,6 +30862,84 @@ function lancerLibre(){
   if(typeof caleEspece === 'function') caleEspece();
   lancerPartie();
 }
+/* ---------- L'OUVERTURE : ON ARRIVE DANS LE PICK-UP ----------
+   Le joueur : « j'aimerais qu'on commence dans le pick-up qui arrive devant la maison. Et
+   là le personnage principal dit qu'il a hérité de la maison, etc., et de ce vieux
+   tracteur ; on voit le tracteur à l'image, garé juste à côté, et ça dit "allons
+   l'essayer", ou quelque chose comme ça, pour commencer le boulot. »
+   La partie commençait dans le tracteur, à l'arrêt dans la cour, deux fenêtres tombant du
+   ciel avant qu'on ait touché quoi que ce soit. Elle commence sur la rocade sud, au volant
+   du pick-up, commandes éteintes : le pilote de route (`suivreRoute`, le même que celui des
+   livraisons) le mène jusqu'au cercle de la maison — celui où le téléphone sonne —, il
+   freine, et c'est LÀ que le héros parle : l'héritage, le premier jour, puis le vieux
+   tracteur qu'on voit garé à quinze mètres, « allons l'essayer ». La marche du labour
+   prend la suite, et c'est elle qui désigne le tracteur.
+   ET ELLE S'EFFACE DEVANT TOUT CE QUI LA CONTREDIT. Une centaine de bancs entrent dans la
+   partie et, dès l'image suivante, sautent le tutoriel ou prennent un autre engin :
+   l'arrivée se retire alors sans un mot — pas de fenêtre, pas de marche —, et rien de ce
+   qu'ils attendent n'a bougé. Un plafond de quarante-cinq secondes termine une arrivée qui
+   n'arriverait pas, et une partie rechargée pendant l'arrivée la rejoue depuis la route. */
+const INTRO = {actif:false, phase:'', t:0};
+const INTRO_DEPART = {x:46, z:ROAD_C - 2.5, cap:-Math.PI/2};   // rocade sud, voie de droite, nez à l'ouest
+function lancerIntro(){
+  const i = MACHINES.findIndex((m)=> m.key === 'pickup');
+  if(i < 0 || MACHINES[i].verrou) return false;
+  const v = MACHINES[i].v;
+  v.pos.x = INTRO_DEPART.x; v.pos.z = INTRO_DEPART.z; v.cap = INTRO_DEPART.cap;
+  v.vel.x = 0; v.vel.y = 0; v.speed = 0; v.auto = false; v.mission = null;
+  v.route = null; v.routeBut = null; v.routeArr = null;
+  setMachine(i);
+  INTRO.actif = true; INTRO.phase = 'route'; INTRO.t = 0;
+  return true;
+}
+// Ce que l'ouverture demande à l'engin, image par image : [braquage, gaz, frein].
+function introDrive(m, dt){
+  const v = m.v;
+  INTRO.t += dt;
+  if(m.key !== 'pickup' || CAMPAGNE.tuto !== 0 || !tutoActif()){ INTRO.actif = false; return [0, 0, false]; }
+  if(INTRO.t > 45){ finIntro(); return [0, 0, true]; }
+  if(INTRO.phase === 'route'){
+    const d = Math.hypot(v.pos.x - MAISON.x, v.pos.z - MAISON.z);
+    /* LA ROUTE, PUIS LA DROITE LIGNE. Le pilote de route bride la vitesse tant que le cap
+       n'est pas repris — c'est fait pour tourner court avec une remorque —, et sur l'herbe
+       des derniers mètres le pick-up rampait à un demi-mètre par seconde. On lui garde donc
+       un plancher de gaz, et à quatorze mètres du cercle on vise le cercle lui-même :
+       `viser` rend les gaz dès que le nez est dedans, et rend [0, 0] une fois à portée. */
+    if(d > 14){
+      const r = suivreRoute(v, MAISON.x, MAISON.z, 'intro', 3.0);
+      if(r) return [r[0], Math.abs(v.speed) > 9 ? 0 : Math.max(0.35, r[1])*0.8, false];
+    }
+    const r2 = viser(v, MAISON.x, MAISON.z, 2.5, 4);
+    if(r2[0] || r2[1]) return [r2[0], Math.abs(v.speed) > 6 ? 0 : Math.max(0.3, r2[1])*0.8, false];
+    INTRO.phase = 'arret';
+  }
+  if(Math.abs(v.speed) > 0.25) return [0, 0, true];
+  finIntro();
+  return [0, 0, true];
+}
+/* À L'ARRÊT, LE HÉROS PARLE. Les deux pages d'avant, dans le même ordre — l'héritage, puis le
+   premier jour, qui dit qu'il faut retourner la terre —, et une troisième qui regarde le
+   tracteur garé à côté et dit d'aller l'essayer : c'est elle qui lance le boulot, et la marche
+   du labour vient juste derrière. */
+function finIntro(){
+  INTRO.actif = false; INTRO.phase = '';
+  if(!(tutoActif() && CAMPAGNE.tuto === 0)) return;
+    annoncerFenetre({titre:'UN HÉRITAGE',
+      sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
+           'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
+      face:{nom:'Moi', humeur:'perplexe'},
+      suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
+    annoncerFenetre({titre:'PREMIER JOUR',  // « il va falloir apprendre » : il se projette
+      sous:'<i>« Apparemment, avant de récolter quoi que ce soit… ' +
+           'il faut commencer par retourner la terre. »</i>',
+      face:{nom:'Moi', humeur:'projette'},
+      suite:'Toucher pour continuer'});
+    annoncerFenetre({titre:'LE VIEUX TRACTEUR',
+      sous:'<i>« Et le voilà, garé à côté de la maison.<br>Allons l’essayer. »</i>',
+      face:{nom:'Moi', humeur:'projette'},
+      suite:'Au boulot.'});
+    annoncerEtape(TUTO[0]);
+}
 function lancerPartie(){
   if(demarre) return;
   demarre = true;
@@ -30876,29 +30954,8 @@ function lancerPartie(){
      centré, une animation, un doigt pour passer, et surtout AUCUNE PAUSE. L'accueil, lui,
      met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
      dans la partie : s'en servir ici les arrêterait tous. */
-  if(tutoActif() && CAMPAGNE.tuto === 0){
-    /* CE QU'ON APPREND EN OUVRANT LA PARTIE A CHANGÉ DE NATURE. La fenêtre disait « cette
-       ferme est maintenant entre vos mains, commençons par votre première récolte » : une
-       consigne, dite par personne, à quelqu'un dont on ne sait rien. Le joueur a demandé
-       « une dimension différente : un agriculteur qui hérite d'une terre, mais qui n'y
-       connaît pas grand-chose ». C'est lui qui parle maintenant, et il le dit avec sa
-       tête des mauvais jours — celle qui regarde de côté et qui n'est sûre de rien. */
-    /* ET IL LE DIT EN DEUX PAGES. « Je n'ai jamais conduit autre chose qu'une voiture »
-       le faisait passer pour incapable ; il est débutant, débrouillard, un peu bougon. La
-       première page est l'héritage, la seconde le premier jour — et la marche du labour
-       vient derrière, dans la même file. */
-    annoncerFenetre({titre:'UN HÉRITAGE',
-      sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
-           'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
-      face:{nom:'Moi', humeur:'perplexe'},
-      suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
-    annoncerFenetre({titre:'PREMIER JOUR',  // « il va falloir apprendre » : il se projette
-      sous:'<i>« Apparemment, avant de récolter quoi que ce soit… ' +
-           'il faut commencer par retourner la terre. »</i>',
-      face:{nom:'Moi', humeur:'projette'},
-      suite:'Au boulot.'});
-    annoncerEtape(TUTO[0]);
-  }
+  // L'ouverture : le pick-up arrive, et le héros parle en arrivant (voir `lancerIntro`).
+  if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
 }
 /* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
    L'ORDRE DES BOUTONS EST UN CONTRAT. Une centaine de bancs entrent dans le jeu en
@@ -31973,6 +32030,7 @@ function loop(now){
     let steerM = steer, thrM = throttle;
     let freinM = frein;
     if(v.auto){ const r = autoDrive(m, dt); steerM = r[0]; thrM = r[1]; freinM = false; }
+    if(INTRO.actif){ const r = introDrive(m, dt); steerM = r[0]; thrM = r[1]; freinM = r[2]; }
     v.augerOut = (m.key === 'moisson' && hopper >= HOP_MAX);
     const st = v.update(dt, steerM, thrM, freinM);
     v.steerVis = steerM ? 0.35 : 0;
@@ -32176,7 +32234,7 @@ function loop(now){
     veillerBulles();
     refreshHitchButton(); refreshBuyButton(); refreshAtelier(); refreshAutoButton(); refreshCropButton(); refreshVehButton();
     // Le volant est-il au pilote ? Les commandes s'éteignent, et ne prennent plus le doigt.
-    hudEl.classList.toggle('robot', !!(MACHINES[cur] && MACHINES[cur].v.auto));
+    hudEl.classList.toggle('robot', !!(MACHINES[cur] && MACHINES[cur].v.auto) || INTRO.actif);
     enginsEl.classList.toggle('appel', !!enginTuto());
     refreshRegie();
     refreshChoix(); refreshService(); refreshJauges(); veillerLivraison(dt);
