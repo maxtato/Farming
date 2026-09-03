@@ -13048,3 +13048,29 @@ le compartiment moteur de chaque côté, l'échelle et les deux marches qui mont
 cabine, la rampe de la passerelle le long de la trémie, deux rétroviseurs, et la grille du
 radiateur à l'arrière. Posées aux cotes de la caisse avant la mise à l'échelle du corps,
 elles grandissent avec lui et laissent la coupe tranquille.
+
+## L'échelle de la moissonneuse, devant la roue et couchée sur le flanc
+
+« L'échelle sur le côté de la moissonneuse : mets-la à plat sur la carrosserie, et
+qu'elle ne touche pas la roue. »
+
+**Elle était dans la roue.** Les montants étaient posés à z 0,9 et 1,4, en plein dans la
+grande roue avant, qui va de z −0,75 à 1,95 ; et ils flottaient à onze centimètres du
+flanc, droits, alors que le flanc penche — la caisse fait 3,50 m de large au sol et
+6,8 cm de moins en haut, à 2,30 m. Vue de côté, l'échelle sortait du pneu.
+
+**Elle passe devant, et suit la pente.** Les montants vont à z 2,15 et 2,55, sous la porte
+de la cabine, dix-huit centimètres devant le pneu ; ils sont inclinés de la pente du
+flanc et collés dessus, à deux centimètres. Les barreaux, posés à la cote du flanc à
+leur hauteur, n'en sortent que de quatre centimètres ; les deux marches, réduites de
+55 à 30 cm, avancent d'autant. Le tout suit l'échelle 1,08 du corps avec le reste.
+
+| | avant | après |
+|---|---|---|
+| montants, z | 0,90 – 1,40 | 2,15 – 2,55 |
+| jeu avec la roue avant | dans la roue | 19 cm (après échelle du corps) |
+| distance au flanc | 11 cm | 2 cm, sur la pente |
+| saillie des barreaux | 30 cm | 4 cm |
+
+Mesuré au banc : boîte de la roue avant gauche z −0,81 à 2,11, échelle z 2,30 à 2,78 ;
+`materiel` 44/44.

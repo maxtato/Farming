@@ -11321,9 +11321,18 @@ function buildMoissonneuse(){
   const GRISm = 0x8A9298, NOIRm = 0x2A2E33, ROUGE2 = 0xB33A30;
   for(const s of [-1, 1]) for(let k = 0; k < 6; k++)                          // ouïes moteur
     g.add(box(0.05, 0.70, 0.16, ROUGE2, s*1.76, 1.75, -3.4 + k*0.40));
-  for(const z of [0.9, 1.4]) g.add(box(0.05, 1.60, 0.05, GRISm, -1.86, 1.20, z));   // échelle : montants
-  for(let k = 0; k < 4; k++) g.add(box(0.05, 0.05, 0.55, GRISm, -1.86, 0.60 + k*0.40, 1.15));   // barreaux
-  for(const y of [0.9, 1.4]) g.add(box(0.55, 0.06, 0.40, GRISm, -1.95, y, 1.9));   // marches
+  /* L'ÉCHELLE EST DEVANT LA ROUE, ET COUCHÉE SUR LE FLANC. Elle était posée à z 0,9–1,4,
+     c'est-à-dire DANS la roue avant (z −0,75 à 1,95), et décollée de onze centimètres.
+     « Mets-la à plat sur la carrosserie et qu'elle ne touche pas la roue. » Elle passe à
+     z 2,15–2,55, dix-huit centimètres devant le pneu, sous la porte de la cabine ; ses
+     montants suivent la pente du flanc (le dessus est 6,8 cm plus étroit que le bas), et
+     les barreaux n'en sortent que de quatre centimètres. Les marches suivent. */
+  const PENTE = 0.068/2.3, flanc = (y)=> -(1.75 - PENTE*y);
+  for(const z of [2.15, 2.55])                                                    // échelle : montants
+    g.add(box(0.04, 1.80, 0.04, GRISm, flanc(1.3) - 0.02, 1.30, z, 0, 0, -Math.atan(PENTE)));
+  for(let k = 0; k < 4; k++){ const y = 0.60 + k*0.40;                           // barreaux
+    g.add(box(0.04, 0.04, 0.44, GRISm, flanc(y) - 0.02, y, 2.35)); }
+  for(const y of [0.9, 1.4]) g.add(box(0.30, 0.05, 0.40, GRISm, flanc(y) - 0.15, y, 2.35));   // marches
   g.add(box(0.05, 0.05, 2.60, GRISm, -1.60, 3.00, -2.0));                         // rampe de passerelle
   for(const z of [-3.1, -2.0, -0.9]) g.add(box(0.05, 0.70, 0.05, GRISm, -1.60, 2.65, z));
   for(const s of [-1, 1]){                                                       // rétroviseurs
