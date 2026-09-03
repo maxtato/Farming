@@ -13275,8 +13275,6 @@ const avanceCommande = (C)=>{
    LES PUCES DE CONTRAT, ELLES, NE REVIENNENT PAS. Le joueur a demandé la mission ; quatre
    puces de plus rendraient au bandeau la moitié d'écran qu'il vient de rendre au jeu. */
 function refreshCommandes(){
-  el.ctr.innerHTML = '';
-  el.ctr.style.display = 'flex';
   // Tant qu'on n'est pas allé la prendre, elle n'est nulle part à l'écran.
   const M = missionVisible();
   refreshContratButton();
@@ -13284,6 +13282,23 @@ function refreshCommandes(){
   // Une distance en mètres, comme la ligne du tutoriel et celle de la leçon la donnent.
   const loin = (O)=> Math.round(Math.hypot(v0.pos.x - O.x, v0.pos.z - O.z)) + ' m';
   const OM = M ? objectifMission() : null;
+  /* ET LE BANDEAU NE SE REBÂTIT QUE S'IL CHANGE. Il se vidait et se refaisait vingt fois
+     par seconde — `innerHTML = ''`, trois éléments recréés — pour afficher la même ligne
+     que le vingtième de seconde d'avant, et chaque reconstruction invalidait la mise en
+     page de tout l'écran, que la première lecture venue devait alors refaire (voir
+     `refreshViseurs`). On résume d'abord ce qu'il y aurait à écrire ; si c'est mot pour
+     mot ce qui est déjà écrit, on ne touche pas au document. */
+  const ET = M ? null : etapeTuto();
+  const LC = leconCourante(), PL = LC ? lieuLecon(LC) : null;
+  const SV = serviceIci(v0);
+  const sig = (M ? (M.nom || titreMission(M)) + '|' + (OM ? (OM.court || OM.txt) : '') : '')
+    + '\n' + (ET ? champEtape(ET, 'titre') : '')
+    + '\n' + (LC ? LC.titre + '|' + LC.txt + '|' + (PL ? loin(PL) : '') : '')
+    + '\n' + (SV ? SV.nom : '');
+  if(el.ctr._sig === sig) return;
+  el.ctr._sig = sig;
+  el.ctr.innerHTML = '';
+  el.ctr.style.display = 'flex';
   if(OM){
     /* LE NOM DE LA MISSION ET CE QU'ELLE ATTEND — ET RIEN D'AUTRE.
        Le joueur : « dans le bandeau en papier en haut à gauche qui résume la mission, ne
@@ -13313,7 +13328,6 @@ function refreshCommandes(){
      mission au-dessus — celle-ci RAPPELLE, celle-là APPREND, et elle ne dure que le temps
      de l'apprentissage : elle a donc droit à ses deux lignes là où la mission n'en a
      qu'une. */
-  const ET = M ? null : etapeTuto();
   if(ET){
     /* ET LA MARCHE DE TUTORIEL N'Y MET PLUS SON RÉCIT. La même règle que pour la mission :
        le bandeau rappelle ce qu'il y a à faire, il ne raconte pas. « On ne sème pas sur de
@@ -13331,9 +13345,7 @@ function refreshCommandes(){
      l'une est une marche d'une chaîne obligée, l'autre une chose qu'on peut faire — et
      trois bancs comptent les `.tuto` du premier tour de jeu pour vérifier que le bandeau
      ne dit qu'UNE chose à ce moment-là. */
-  const LC = leconCourante();
   if(LC){
-    const PL = lieuLecon(LC);
     const le = document.createElement('div'); le.className = 'lecon';
     const n1 = document.createElement('span'); n1.textContent = LC.titre;
     const f1 = document.createElement('span'); f1.className = 'tf';
@@ -13349,7 +13361,6 @@ function refreshCommandes(){
      nom et sa fonction — celle du cahier des charges, la même que sous la flèche du
      bord — et l'efface dès qu'on en sort. C'est du contexte, pas une tâche : ni barre
      d'avancement, ni puce, et il ne survit pas au fait de repartir. */
-  const SV = serviceIci(MACHINES[cur].v);
   if(SV){
     const sv = document.createElement('div'); sv.className = 'serv';
     const n1 = document.createElement('span'); n1.textContent = SV.nom.toUpperCase();
@@ -21449,9 +21460,17 @@ function ambianceAt(h){
   const k = t*t*(3-2*t);             // adoucissement : pas de cassure au passage d'un palier
   return {a, b, k};
 }
+let jourNuitT = 0;
 function updateJourNuit(dt){
   JOUR.heure += dt * 24 / JOUR.sec;
   if(JOUR.heure >= 24){ JOUR.heure -= 24; JOUR.jours++; }
+  /* DIX FOIS PAR SECONDE SUFFISENT AU CIEL. Une journée dure des minutes : entre deux
+     images, le soleil ne bouge pas d'un pixel, et l'on recalculait quand même six
+     couleurs, quatre intensités et les phares de tout le parc à chaque image — un
+     cinquième de milliseconde, soixante fois par seconde. L'horloge, elle, avance à
+     chaque image ; c'est la peinture qui attend son dixième de seconde. Un appel sans
+     durée — une remise à l'heure au chargement — passe toujours. */
+  if(dt > 0){ jourNuitT -= dt; if(jourNuitT > 0) return; jourNuitT = 0.1; }
   const {a, b, k} = ambianceAt(JOUR.heure);
   const mix = (ha, hb, out)=> out.setHex(ha).lerp(_cB.setHex(hb), k);
   mix(a.ciel, b.ciel, _ciel);
@@ -22671,7 +22690,11 @@ function solderLecon(cle){
    est donc calculée par `veillerLecons` et LUE partout ailleurs — même mécanique et même
    cadence que la couleur des anneaux. */
 let leconActive = null, leconT = 0;
-const LECON_PERIODE = 0.125;
+/* DEUX FOIS PAR SECONDE, ET NON HUIT. Chercher la leçon du moment, c'est évaluer les
+   conditions des vingt leçons — et certaines comptent des cellules sur toute la grille :
+   mesuré, un tiers de milliseconde par image en moyenne, pour une fenêtre qui peut
+   attendre une demi-seconde sans que personne ne s'en aperçoive. */
+const LECON_PERIODE = 0.5;
 // Ce que TOUT LE RESTE lit : le bandeau, la flèche du bord, le battement des menus.
 // Jamais la table, jamais les conditions — une seule lecture, huit fois par seconde.
 const leconCourante = ()=> leconActive;
@@ -26655,7 +26678,7 @@ const viseursEl = document.getElementById('viseurs');
 /* La marge du haut tient compte de la deuxième rangée du bandeau : le bouton de graine
    descend à 94 px, et une vignette de viseur mesure 42 px autour de son centre. À 100 la
    pointe de la flèche — la moitié qui porte la direction — passait DERRIÈRE lui. */
-const VISEUR = {haut:120, bas:158, cote:64, pool:[], acquis:{}};
+const VISEUR = {haut:120, bas:158, cote:64, pool:[], acquis:{}, W:0, H:0, mesT:-1e9, cibles:null, ciblesT:-1e9};
 /* UNE FOIS QU'ON Y EST ALLÉ, LA FLÈCHE SE TAIT — ET LONGTEMPS.
    Le joueur : « quand on laboure un champ, à peine on est au bout du champ, on a le texte
    qui réapparaît avec la flèche, alors qu'on sait très bien qu'on doit être ici ; c'est
@@ -26859,13 +26882,32 @@ function refreshViseurs(){
      flèche placée d'après `innerWidth` serait poussée hors du cadre d'autant. Le
      conteneur, lui, donne la bonne mesure quel que soit le zoom — et vaut exactement
      `innerWidth` quand il n'y en a pas. */
-  const W = viseursEl.clientWidth, H = viseursEl.clientHeight;
+  /* ---------- LA FONCTION LA PLUS CHÈRE DE LA BOUCLE, ET CE N'ÉTAIT PAS LE CALCUL ----------
+     Mesuré fonction par fonction : 1,2 ms par image, six fois le pilote, dix fois les
+     collisions — pour projeter trois points et poser trois vignettes. La dépense était
+     dans le NAVIGATEUR : lire `clientWidth` à chaque image force une mise en page si
+     quelque chose a écrit dans le document depuis la dernière, et le bandeau écrit vingt
+     fois par seconde ; puis chaque mètre parcouru changeait le texte « 37 m », et
+     `offsetWidth` forçait une seconde mise en page pour remesurer une vignette dont la
+     largeur n'avait pas bougé. Trois remèdes, et l'image est la même au pixel près :
+     la taille du cadre se relit deux fois par seconde (elle ne change qu'à la rotation
+     de l'écran), la vignette ne se remesure que si son texte change de LONGUEUR — « 9 m »
+     puis « 10 m », pas « 37 » puis « 36 » —, et la liste des cibles se recalcule dix fois
+     par seconde : ce sont des lieux, ils ne bougent pas entre deux images. */
+  const tNow = performance.now();
+  if(tNow - VISEUR.mesT > 500 || !VISEUR.W){
+    VISEUR.W = viseursEl.clientWidth; VISEUR.H = viseursEl.clientHeight; VISEUR.mesT = tNow;
+  }
+  if(tNow - VISEUR.ciblesT > 100 || !VISEUR.cibles){
+    VISEUR.cibles = ciblesGuidage(); VISEUR.ciblesT = tNow;
+  }
+  const W = VISEUR.W, H = VISEUR.H;
   const mL = VISEUR.cote, mR = W - VISEUR.cote;
   const mT = VISEUR.haut, mB = H - VISEUR.bas;
   const cx = W/2, cy = (mT + mB)/2;
   const v = MACHINES[cur].v;
   let n = 0;
-  for(const S of ciblesGuidage()){
+  for(const S of VISEUR.cibles){
     /* LE CLIQUET, AVANT TOUT CALCUL D'ÉCRAN. On y est allé une fois : la vignette se tait
        jusqu'à ce qu'on soit reparti pour de bon. Voir VIS_PRES et VIS_REPRISE. */
     const dS = Math.hypot(v.pos.x - S.x, v.pos.z - S.z);
@@ -26903,7 +26945,10 @@ function refreshViseurs(){
     e.firstChild.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
     const nm = e.lastChild;
     const txt = S.nom + '  ·  ' + d + ' m';
-    if(nm.textContent !== txt){ nm.textContent = txt; e._w = 0; }
+    if(nm.textContent !== txt){ nm.textContent = txt;
+      // Même lieu, même nombre de caractères : même largeur, à un chiffre près.
+      const cle = S.nom + '|' + txt.length;
+      if(cle !== e._cle){ e._w = 0; e._cle = cle; } }
     /* LE LIBELLÉ NE SORT PAS DE L'ÉCRAN. La flèche est centrée sur le point du bord ;
        sur un bord latéral, la moitié du nom passait dehors et l'on lisait « COOPÉRATIV ».
        On rentre donc la vignette entière dans le cadre. La largeur n'est mesurée que

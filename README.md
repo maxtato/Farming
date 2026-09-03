@@ -13917,3 +13917,70 @@ responsable parle au féminin, nomme ses cinq céréales, ses 7 tonnes et ses 15
 et la boulangerie disent leur prix par unité apportée et leur trémie ; le supermarché, le
 caviste, l'épicerie, la boucherie et le restaurant, chacun son prix et son volume. Bancs
 `son` (22), `chocs` (24) et `acces` (5) verts.
+
+## Le jeu rame : la mesure dit les cultures et l'ombre, pas les sons — et la boucle perd un tiers
+
+« Le jeu rame plus qu'avant : est-ce le fait d'avoir ajouté des sons, ou est-ce depuis que
+j'avais demandé de modifier les champs, les parcelles, les moissons au niveau des visuels ?
+Allège encore le jeu sans toucher à la résolution ; s'il faut, rogne un tout petit peu sur
+les formes des cultures, surtout le blé. Analyse vraiment tout et dis-moi où on peut gagner,
+quels sont les objets les plus lourds visuellement. »
+
+**On a mesuré avant de toucher.** Un banc (`_perf`) charge le jeu, plante la parcelle de
+départ en blé mûr — puis, dans un second passage, toute la ferme, chaque parcelle d'une
+culture —, inventorie les triangles de la scène objet par objet, compte ce qui projette une
+ombre, puis conduit neuf secondes en chronométrant chaque fonction de la boucle. Le même
+banc a tourné sur trois versions : l'actuelle, celle d'AVANT LES SONS (`a521e93`) et celle
+d'AVANT LA REFONTE DES CULTURES (`34b2418`, la veille des « neuf demandes »).
+
+**Les sons ne coûtent rien de mesurable.** Le moteur, la caisse, le trafic et la clochette
+prennent ensemble deux dixièmes de milliseconde par image sur la machine du banc ; la version
+d'avant les sons a la même boucle à un dixième près, et exactement les mêmes triangles. Le
+graphe audio, lui, tourne sur le fil du son, pas sur celui de l'image.
+
+**Ce qui a changé, c'est le nombre de triangles des cultures, et la définition.** Sur la
+parcelle de départ, le blé mûr est passé de 9 936 triangles à 17 640 (plus soixante-dix-huit
+pour cent : toutes les cellules au lieu de trois sur quatre, et deux tiges par pied) ; sur la
+ferme entière, l'image est passée de 64 000 triangles à 118 000, dont la vigne 46 800 au lieu
+de 11 900 — un cep adulte pèse 242 à 260 triangles, un olivier 460 à 490, contre 24 à 42 pour
+une céréale. Et le grain d'image « 1 par défaut » rend vingt et un pour cent de pixels de plus
+que le réglage d'avant (1 000 × 640 sur le banc contre 909 × 582) — sur un téléphone à trois
+points par pixel, en netteté « Maximale », c'est TROIS fois la définition CSS, trois millions
+de pixels par image, avant même l'ombre.
+
+**Les plus gros objets de l'image, comptés.** Ferme pleine, caméra du jeu : la vigne 46 800,
+le colza 21 500, le maïs 21 200, les olives 9 800, l'orge 7 700, le blé 6 800 ; puis, loin
+derrière, le tracteur lourd 3 200, le combiné 3 000, l'enjambeuse 3 000, chaque anneau
+2 900 en tout, la fumée 2 600. La PASSE D'OMBRE, elle, est comptée à part parce que
+`renderer.info` ne la voit pas : 85 000 triangles projetants redessinés à chaque image dans
+une carte de 2 048 × 2 048 — quatre millions de pixels de profondeur, plus que l'image
+elle-même —, filtrés en `PCFSoft` (neuf prises bilinéaires par pixel d'ombre) sur tout ce qui
+la reçoit, cultures comprises. C'est le premier poste de la carte graphique, et le banc ne
+peut pas le chiffrer : le rendu logiciel du navigateur sans écran facture les appels de
+dessin, pas les pixels — on l'a vérifié en divisant la définition par deux sans que le temps
+bouge. Ce qui suit sur l'ombre est donc un raisonnement sur les nombres, pas une mesure.
+
+**La boucle, elle, se mesure, et elle perd un tiers sans changer un pixel.** Fonction par
+fonction, le premier poste n'était ni le pilote ni les collisions : `refreshViseurs`, les
+trois flèches du bord, 1,2 ms par image — parce qu'elle lisait `clientWidth` à chaque image
+(une mise en page forcée dès que le bandeau a écrit, vingt fois par seconde) et remesurait
+la vignette à chaque mètre parcouru. Quatre remèdes, tous invisibles : la taille du cadre se
+relit deux fois par seconde et les cibles dix fois ; le bandeau (`refreshCommandes`) ne se
+rebâtit que si son texte change — il se vidait et se refaisait vingt fois par seconde à
+l'identique — ; la leçon du moment se cherche deux fois par seconde au lieu de huit
+(`LECON_PERIODE`) ; le ciel, le soleil et les phares se recalculent dix fois par seconde,
+l'horloge continuant à chaque image (`updateJourNuit`). Mesuré sur la même conduite : 2,80 →
+1,87 ms par image sur la parcelle de départ, 3,49 → 3,15 sur la ferme pleine, les flèches à
+0,46 et 0,52 au lieu de 1,21 et 1,08.
+
+**Ce qui reste est visuel, et se décide.** Par ordre de gain probable sur un téléphone : la
+carte d'ombre à 1 024 au lieu de 2 048 (quatre fois moins de pixels d'ombre par image, 7,9
+points par mètre au lieu de 15,7 — ombres un peu plus douces) ; le filtre `PCF` au lieu de
+`PCFSoft` (trois à quatre fois moins de lectures par pixel ombré, bords un peu plus nets) ;
+les cultures qui ne reçoivent plus l'ombre (plus de lecture d'ombre sur la majorité des
+pixels, mais plus d'ombre des arbres ni des engins sur les champs) ; le blé « légèrement plus
+basique » — 3 + 1 grains (36 triangles au lieu de 42), 2 + 1 (30) ou une seule tige (24), en
+image, montage envoyé au joueur — ; la vigne et l'olivier allégés, qui pèsent dix fois une
+céréale ; et, hors de ce qu'on touche, les réglages qui existent déjà : netteté « Élevée »
+ou « Douce » (deux fois ou une fois et demie la définition CSS au lieu de trois) et
+« Fluidité 30 images ».
