@@ -13984,3 +13984,38 @@ image, montage envoyé au joueur — ; la vigne et l'olivier allégés, qui pès
 céréale ; et, hors de ce qu'on touche, les réglages qui existent déjà : netteté « Élevée »
 ou « Douce » (deux fois ou une fois et demie la définition CSS au lieu de trois) et
 « Fluidité 30 images ».
+
+## Les sons se font simples : le pick-up parle fourgon, le plateau s'efface, le crissement attend
+
+« Pour les sons, essaye de les faire le plus simple possible, faut pas que ça fasse trop
+réaliste. Utilise pour le pick-up le même son que pour le fourgon, mais avec un pitch un peu
+plus aigu. Je veux que ça fasse très jeu minimaliste : qu'on entende l'accélération, mais
+qu'une fois qu'on plafonne le son se baisse, soit léger en arrière-plan, pour ne pas
+fatiguer. Et pour le couinement pendant le dérapage, je veux qu'il se fasse vraiment quand on
+dérape pendant plus d'un certain temps, et que ce soit assez léger. »
+
+**Le pick-up lit la voix du fourgon, dix-huit pour cent plus haut.** Sa fiche dit maintenant
+`timbre:'fourgon', ton:1.18` : boucle et montée du Zastava, même plage que le fourgon, et c'est
+le ton qui fait la différence. Le SUV enregistré — sa boucle verrouillée période par période,
+sa montée raccourcie de 4,85 à 3,2 s — sort du jeu avec sa chaîne « essence » : moins 85 Ko
+de base64, deux entrées de moins dans `sons.json`, deux fichiers `.b64` de moins.
+
+**Au plateau, la boucle se met en retrait.** La montée garde son volume — c'est elle qu'on
+doit entendre. La boucle, une fois le régime arrivé là où le gaz le demande (gaz enfoncé,
+régime à trois centièmes de la charge), attend huit dixièmes de seconde puis descend en une
+seconde et demie à 42 % de son volume (`RETRAIT_PLATEAU`) ; lâcher le gaz, freiner, repartir
+remet le compteur à zéro, et la boucle revient pleine pour la montée suivante. La condition
+lit le régime et non la vitesse : un tracteur qui tire sa charrue à mi-vitesse, gaz au
+plancher, est au plateau lui aussi.
+
+**Le crissement attend une demi-seconde de dérive continue**, puis monte en 0,35 s
+(`DERAPE_AVANT`, `DERAPE_MONTE`) ; le compteur retombe dès que ça ne glisse plus. Un virage
+un peu vif, un coup de frein, ne le déclenchent plus. Et les deux voix sont à peu près à
+moitié : 0,25 au plus sur la terre (0,41 avant), 0,135 sur le bitume (0,225).
+
+Bancs `son` et `sons2` réécrits pour la nouvelle voix : le pick-up décode la boucle du fourgon
+(2,9 s) et joue sa montée de 9 s à 1,18, reprend à 30 % à 2,7 s, plafonne à 0,74–0,96 fois
+1,18 ; au plateau la boucle joue plein puis, installée, descend sous la moitié, et lâcher le
+gaz remet le compteur à zéro ; l'égalisation et le raccord montée → boucle valent pour les
+trois timbres ; un tiers de seconde de dérive ne fait aucun son, une seconde et demie donne
+0,228 sur la terre et 0,123 sur la route.
