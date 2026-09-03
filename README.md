@@ -13592,3 +13592,41 @@ quart de seconde ; la rampe de synthèse ne joue plus qu'à mi-gaz, sous 0,7. Le
 tout compris. Banc `son` : la boucle diesel dure 2,9 s, et le plein gaz se mesure une fois la
 montée finie ; sonde `sons2` : cinq contrôles de plus, vingt-neuf en tout, la rampe vérifiée à
 mi-gaz, là où elle joue encore.
+
+**Le tracteur jaune, le Zastava du fourgon, la caisse qui cliquette, et quatre klaxons.** Trois
+sons de plus, et une consigne sur le klaxon. « Ce son-là pour le tracteur jaune » : le même
+IMT 533, mais enregistré au pas. Il tourne au ralenti huit secondes, monte de 46 à 68 Hz de
+8,8 à 13,8 s, grimpe encore jusqu'à 78, puis redescend à 68 et S'Y TIENT cinquante secondes
+durant — la boucle est prise là (45 à 48 s), la montée est celle de 8,8 à 13,8, cinq secondes.
+Le lourd (t4) ne se lit donc plus sur le diesel du vert à 0,70 : il a son timbre `lourd`, sa
+chaîne, sa montée, son ton à 1, et sa `plage` [0,68 ; 1,0]. « Plutôt ce son-là pour le
+fourgon » : le Massey cède la place à un camion Zastava 35.8 de 1978. Le suivi du régime lui
+trouve une montée longue et sans creux, de 46 à 60 Hz entre 23 et 32 s — neuf secondes, on la
+prend entière —, et une croisière à 62 Hz tenue de 34 à 45 s ; boucle de 36 à 39, `plage`
+[0,74 ; 1,0].
+
+« Pour chaque véhicule de livraison, et pour toutes les remorques lorsqu'elles sont attelées à
+un véhicule, ce son-là tout doucement, en complément du son du véhicule : c'est le son du
+matériel qui se balade dans la caisse. » Deux minutes de cliquetis d'un utilitaire qui roule ;
+on en garde six secondes bien fournies (61 à 67 s), à 8 000 Hz — le cliquetis a de l'aigu —,
+fondues en boucle : cent vingt-trois kilo-octets en base64. Une chaîne de plus, `cargaison`,
+toujours prête et muette, que `cargaisonUpdate` ouvre pour le pick-up, le fourgon, et tout
+tracteur qui tire quelque chose — benne, semoir, épandeur, charrue, combiné. Rien à l'arrêt,
+rien ne bouge ; ça monte avec la vitesse, en racine pour être là dès le pas, et gonfle de
+moitié sur une secousse de la suspension (`v.bump`, celle du terrain). Au plus 0,18, contre
+0,47 pour le moteur : tout doucement.
+
+« Dans le son il y a trois coups de klaxon : fais des variantes, pour que certains véhicules à
+certains moments mettent un coup, ou deux, ou les trois ; et un klaxon beaucoup plus grave
+quand c'est un fourgon, encore plus grave quand c'est un semi-remorque. » Les trois coups
+sont à 0,08-0,20, 0,30-0,42 et 0,54-0,64 s, et rien entre : on arrête l'échantillon à la fin
+du coup demandé (0,27, 0,51 ou 0,83 s, `KLAXON_COUPS`), dans le silence, sans clic — c'est
+le troisième argument de `start`, qui se compte dans le son et non dans le temps lu, donc
+juste à toute hauteur. Quatre voix, `KLAXON_TAUX` : la voiture telle quelle, le fourgon —
+camping-car, fourgonnette postale — à 0,62, le camion rigide (la table des porteurs) à 0,5,
+l'attelage articulé à 0,42, un peu plus fort. Chaque voiture du trafic qui pile tire son
+nombre de coups : un (45 %), deux (35 %) ou trois (20 %), de la voix de sa carrosserie
+(`KLAXON_TRAFIC`). Le jeu pèse 2,7 Mo. Sonde `sons2` : sept contrôles de plus, trente-six en
+tout — le jaune joue sa montée à son ton et le diesel du vert se tait ; un tracteur seul ne
+cliquette pas, une benne attelée si, le pick-up qui roule aussi, plus sur une secousse, rien
+à l'arrêt ; un semi klaxonne à 0,42 et un coup s'arrête à 0,27 s.
