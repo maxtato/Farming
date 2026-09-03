@@ -247,7 +247,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le blé, la coopérative, une parcelle*
 
 #### 1. Livrer 30 kg de blé – Coopérative
-- **Chez** : Coopérative  ·  **Demande** : 30 kg de blé  ·  **Prime** : 200 €  ·  **XP** : 60  ·  **En-tête** : UNE PREMIÈRE COMMANDE
+- **Chez** : Coopérative  ·  **Demande** : 30 kg de blé  ·  **Prime** : 150 €  ·  **XP** : 60  ·  **En-tête** : UNE PREMIÈRE COMMANDE
 
 > **À la prise** — *« Alors c’est vous qui avez repris la vieille ferme ? Bienvenue. Si votre première récolte est prête, apportez-moi 30 kg de blé. On va commencer tranquillement. »*
 
@@ -260,7 +260,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 > *Page suivante — **LE VILLAGE VOUS A REPÉRÉ** : Votre première récolte n’est pas passée inaperçue. / D’autres entreprises pourraient bientôt appeler.*
 
 #### 2. Livrer 80 kg de blé – Usine céréales
-- **Chez** : Usine céréales  ·  **Demande** : 80 kg de blé  ·  **Prime** : 300 €  ·  **XP** : 80
+- **Chez** : Usine céréales  ·  **Demande** : 80 kg de blé  ·  **Prime** : 220 €  ·  **XP** : 80
 
 > **À la prise** — *« La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 80 kg. »*
 
@@ -271,7 +271,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *L'épandeur : la même terre, plus vite*
 
 #### 3. Livrer 150 kg de blé – Coopérative
-- **Chez** : Coopérative  ·  **Demande** : 150 kg de blé  ·  **Prime** : 600 €  ·  **XP** : 100
+- **Chez** : Coopérative  ·  **Demande** : 150 kg de blé  ·  **Prime** : 450 €  ·  **XP** : 100
 
 > **À la prise** — *« J’ai une commande un peu plus grosse : 150 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses. »*
 
@@ -282,7 +282,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 > *Préambule — **REMPLIR L’ÉPANDEUR** : REMPLIR L’ÉPANDEUR — La cuve blanche de la cour est pleine d’engrais. Autant s’en servir.*
 
 #### 4. Livrer 250 kg de blé – Usine céréales
-- **Chez** : Usine céréales  ·  **Demande** : 250 kg de blé  ·  **Prime** : 900 €  ·  **XP** : 120
+- **Chez** : Usine céréales  ·  **Demande** : 250 kg de blé  ·  **Prime** : 680 €  ·  **XP** : 120
 
 > **À la prise** — *« Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume. »*
 
@@ -293,7 +293,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le moulin, la farine, la boulangerie*
 
 #### 5. Livrer 72 kg de farine – Boulangerie
-- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine  ·  **Prime** : 1400 €  ·  **XP** : 150
+- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine  ·  **Prime** : 1050 €  ·  **XP** : 150
 
 > **À la prise** — *« Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste. »*
 
@@ -304,14 +304,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Une deuxième parcelle, le broyeur, le poulailler*
 
 #### 6. Livrer 180 kg de maïs – Usine céréales
-- **Chez** : Usine céréales  ·  **Demande** : 180 kg de maïs  ·  **Prime** : 1800 €  ·  **XP** : 170
+- **Chez** : Usine céréales  ·  **Demande** : 180 kg de maïs  ·  **Prime** : 1350 €  ·  **XP** : 170
 
 > **À la prise** — *« Le blé fonctionne. Passons au maïs. 180 kg pour un premier test. »*
 
 > **À la livraison** — *« Très bien. Continuez comme ça. Une exploitation capable de fournir plusieurs céréales nous intéresse beaucoup plus. »*
 
 #### 7. Livrer 24 œufs – Boulangerie
-- **Chez** : Boulangerie  ·  **Demande** : 24 œufs  ·  **Prime** : 2500 €  ·  **XP** : 180
+- **Chez** : Boulangerie  ·  **Demande** : 24 œufs  ·  **Prime** : 1880 €  ·  **XP** : 180
 
 > **À la prise** — *« La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 24 œufs pour moi. »*
 
@@ -322,7 +322,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La farine ET les œufs dans la même tournée*
 
 #### 8. Livrer 72 kg de farine et 36 œufs – Boulangerie
-- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs  ·  **Prime** : 2800 €  ·  **XP** : 200
+- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs  ·  **Prime** : 2100 €  ·  **XP** : 200
 
 > **À la prise** — *« Cette fois je veux le panier complet : 72 kg de farine et 36 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps. »*
 
@@ -333,14 +333,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *L'orge, la cuve de brassage, le restaurant*
 
 #### 9. Livrer 140 L de bière – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 140 L de bière  ·  **Prime** : 3200 €  ·  **XP** : 220
+- **Chez** : Restaurant  ·  **Demande** : 140 L de bière  ·  **Prime** : 2400 €  ·  **XP** : 220
 
 > **À la prise** — *« On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 140 litres. »*
 
 > **À la livraison** — *« Très bonne. Et surtout : brassée juste à côté. Celle-là, je vais pouvoir la mettre en avant sur la carte. »*
 
 #### 10. Livrer 60 L de bière et 120 kg de farine – Épicerie
-- **Chez** : Épicerie  ·  **Demande** : 60 L de bière, 120 kg de farine  ·  **Prime** : 3600 €  ·  **XP** : 240
+- **Chez** : Épicerie  ·  **Demande** : 60 L de bière, 120 kg de farine  ·  **Prime** : 2700 €  ·  **XP** : 240
 
 > **À la prise** — *« J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 60 litres de bière et 120 kg de farine. »*
 
@@ -351,7 +351,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *L'avoine et son usine*
 
 #### 11. Livrer 200 kg d’avoine – Usine avoine
-- **Chez** : Usine avoine  ·  **Demande** : 200 kg d’avoine  ·  **Prime** : 4000 €  ·  **XP** : 260
+- **Chez** : Usine avoine  ·  **Demande** : 200 kg d’avoine  ·  **Prime** : 3000 €  ·  **XP** : 260
 
 > **À la prise** — *« Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 200 kg et nous testerons votre récolte. »*
 
@@ -362,14 +362,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le mélangeur premium, l'étable, la laiterie*
 
 #### 12. Produire 184 kg d’aliment premium
-- **Chez** : —  ·  **Demande** : alimentPlus  ·  **Prime** : 4500 €  ·  **XP** : 280  ·  **Qui parle** : Moi  ·  **En-tête** : NOURRIR MIEUX
+- **Chez** : —  ·  **Demande** : alimentPlus  ·  **Prime** : 3380 €  ·  **XP** : 280  ·  **Qui parle** : Moi  ·  **En-tête** : NOURRIR MIEUX
 
 > **À la prise** — *« Maïs, orge, avoine… j’ai tout ce qu’il faut. Avec un mélangeur, je pourrais fabriquer mon propre aliment premium. Deux lots devraient donner 184 kg. »*
 
 > **À la livraison** — *« Voilà. Maintenant même les animaux mangent mieux que moi. »*
 
 #### 13. Livrer 200 L de lait – Laiterie
-- **Chez** : Laiterie  ·  **Demande** : 200 L de lait  ·  **Prime** : 5500 €  ·  **XP** : 300
+- **Chez** : Laiterie  ·  **Demande** : 200 L de lait  ·  **Prime** : 4120 €  ·  **XP** : 300
 
 > **À la prise** — *« On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres. »*
 
@@ -380,14 +380,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La fromagerie de la ferme*
 
 #### 14. Livrer 350 L de lait – Laiterie
-- **Chez** : Laiterie  ·  **Demande** : 350 L de lait  ·  **Prime** : 6000 €  ·  **XP** : 320
+- **Chez** : Laiterie  ·  **Demande** : 350 L de lait  ·  **Prime** : 4500 €  ·  **XP** : 320
 
 > **À la prise** — *« J’aurais besoin de 350 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir. »*
 
 > **À la livraison** — *« Parfait. Là, on ne parle plus d’un essai. Votre production laitière commence à compter. »*
 
 #### 15. Livrer 28 kg de fromage – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 28 kg de fromage  ·  **Prime** : 7000 €  ·  **XP** : 340
+- **Chez** : Restaurant  ·  **Demande** : 28 kg de fromage  ·  **Prime** : 5250 €  ·  **XP** : 340
 
 > **À la prise** — *« Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 28 kg de fromage. »*
 
@@ -398,7 +398,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le supermarché et son rayon fermier*
 
 #### 16. Livrer 56 kg de fromage et 48 œufs – Supermarché
-- **Chez** : Supermarché  ·  **Demande** : 56 kg de fromage, 48 œufs  ·  **Prime** : 8000 €  ·  **XP** : 360
+- **Chez** : Supermarché  ·  **Demande** : 56 kg de fromage, 48 œufs  ·  **Prime** : 6000 €  ·  **XP** : 360
 
 > **À la prise** — *« Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour. »*
 
@@ -409,14 +409,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Les moutons et leurs brebis : la laine et le lait*
 
 #### 17. Livrer 40 kg de laine – Atelier textile
-- **Chez** : Atelier textile  ·  **Demande** : 40 kg de laine  ·  **Prime** : 8500 €  ·  **XP** : 380
+- **Chez** : Atelier textile  ·  **Demande** : 40 kg de laine  ·  **Prime** : 6380 €  ·  **XP** : 380
 
 > **À la prise** — *« Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 40 premiers kilos. »*
 
 > **À la livraison** — *« Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver. »*
 
 #### 18. Livrer 160 L de lait de brebis – Fromagerie
-- **Chez** : Fromagerie  ·  **Demande** : 160 L de lait de brebis  ·  **Prime** : 9000 €  ·  **XP** : 400
+- **Chez** : Fromagerie  ·  **Demande** : 160 L de lait de brebis  ·  **Prime** : 6750 €  ·  **XP** : 400
 
 > **À la prise** — *« Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis. »*
 
@@ -427,7 +427,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le produit le mieux payé de la ferme*
 
 #### 19. Livrer 40 kg de fromage de brebis – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 40 kg de fromage de brebis  ·  **Prime** : 9500 €  ·  **XP** : 420
+- **Chez** : Restaurant  ·  **Demande** : 40 kg de fromage de brebis  ·  **Prime** : 7120 €  ·  **XP** : 420
 
 > **À la prise** — *« J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos. »*
 
@@ -438,14 +438,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le rucher, le miel, le marché du village*
 
 #### 20. Livrer 100 kg de laine – Atelier textile
-- **Chez** : Atelier textile  ·  **Demande** : 100 kg de laine  ·  **Prime** : 10000 €  ·  **XP** : 450
+- **Chez** : Atelier textile  ·  **Demande** : 100 kg de laine  ·  **Prime** : 7500 €  ·  **XP** : 450
 
 > **À la prise** — *« La première série est partie plus vite que prévu. Cette fois j’en veux 100 kg. »*
 
 > **À la livraison** — *« Parfait. Votre bergerie est officiellement devenue mon fournisseur. »*
 
 #### 21. Livrer 12 kg de miel – Marché
-- **Chez** : Marché  ·  **Demande** : 12 kg de miel  ·  **Prime** : 11000 €  ·  **XP** : 480
+- **Chez** : Marché  ·  **Demande** : 12 kg de miel  ·  **Prime** : 8250 €  ·  **XP** : 480
 
 > **À la prise** — *« On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos. »*
 
@@ -456,7 +456,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Farine, œufs et miel dans la même commande*
 
 #### 22. Livrer 72 kg de farine et 36 œufs et 12 kg de miel – Boulangerie
-- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs, 12 kg de miel  ·  **Prime** : 12000 €  ·  **XP** : 500
+- **Chez** : Boulangerie  ·  **Demande** : 72 kg de farine, 36 œufs, 12 kg de miel  ·  **Prime** : 9000 €  ·  **XP** : 500
 
 > **À la prise** — *« J’ai une idée : votre farine, vos œufs et votre miel. Si ça fonctionne comme je l’imagine, on tient quelque chose. »*
 
@@ -467,14 +467,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *Le colza et le pressoir*
 
 #### 23. Livrer 300 kg de colza – Coopérative
-- **Chez** : Coopérative  ·  **Demande** : 300 kg de colza  ·  **Prime** : 13000 €  ·  **XP** : 520
+- **Chez** : Coopérative  ·  **Demande** : 300 kg de colza  ·  **Prime** : 9750 €  ·  **XP** : 520
 
 > **À la prise** — *« Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 300 kg pour commencer. »*
 
 > **À la livraison** — *« Très bien. Et avant de tout revendre brut, regardez ce qu’un pressoir peut en tirer. »*
 
 #### 24. Livrer 68 L d’huile de colza – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 68 L d’huile de colza  ·  **Prime** : 14500 €  ·  **XP** : 560
+- **Chez** : Restaurant  ·  **Demande** : 68 L d’huile de colza  ·  **Prime** : 10880 €  ·  **XP** : 560
 
 > **À la prise** — *« J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 68 litres d’huile de colza. »*
 
@@ -485,7 +485,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *L'oliveraie, l'enjambeuse, l'huile d'olive*
 
 #### 25. Livrer 200 kg d’olives – Supermarché
-- **Chez** : Supermarché  ·  **Demande** : 200 kg d’olives  ·  **Prime** : 17000 €  ·  **XP** : 600
+- **Chez** : Supermarché  ·  **Demande** : 200 kg d’olives  ·  **Prime** : 12750 €  ·  **XP** : 600
 
 > **À la prise** — *« Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 200 kg d’olives. »*
 
@@ -496,14 +496,14 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La vigne, et ce qu'elle promet*
 
 #### 26. Livrer 40 L d’huile d’olive – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 40 L d’huile d’olive  ·  **Prime** : 18000 €  ·  **XP** : 650
+- **Chez** : Restaurant  ·  **Demande** : 40 L d’huile d’olive  ·  **Prime** : 13500 €  ·  **XP** : 650
 
 > **À la prise** — *« Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 40 litres de votre huile. »*
 
 > **À la livraison** — *« Voilà. Là, on change de catégorie. Cette huile vaut clairement plus que les olives vendues brutes. »*
 
 #### 27. Livrer 200 kg de raisin – Supermarché
-- **Chez** : Supermarché  ·  **Demande** : 200 kg de raisin  ·  **Prime** : 20000 €  ·  **XP** : 700
+- **Chez** : Supermarché  ·  **Demande** : 200 kg de raisin  ·  **Prime** : 15000 €  ·  **XP** : 700
 
 > **À la prise** — *« On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 200 kg fera l’affaire. »*
 
@@ -514,7 +514,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La cave et le caviste*
 
 #### 28. Livrer 140 L de vin – Caviste
-- **Chez** : Caviste  ·  **Demande** : 140 L de vin  ·  **Prime** : 22000 €  ·  **XP** : 750
+- **Chez** : Caviste  ·  **Demande** : 140 L de vin  ·  **Prime** : 16500 €  ·  **XP** : 750
 
 > **À la prise** — *« Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée. »*
 
@@ -525,7 +525,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La porcherie et la boucherie*
 
 #### 29. Livrer quatre porcs à la boucherie
-- **Chez** : —  ·  **Demande** : porcs4  ·  **Prime** : 26000 €  ·  **XP** : 850  ·  **Qui parle** : Boucherie
+- **Chez** : —  ·  **Demande** : porcs4  ·  **Prime** : 19500 €  ·  **XP** : 850  ·  **Qui parle** : Boucherie
 
 > **À la prise** — *« Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes. »*
 
@@ -536,7 +536,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 *La grande réception, et toute la vallée à prendre*
 
 #### 30. Livrer 72 kg de farine et 60 œufs et 28 kg de fromage et 20 kg de fromage de brebis et 12 kg de miel et 34 L d’huile de colza et 20 L d’huile d’olive et 140 L de vin – Restaurant
-- **Chez** : Restaurant  ·  **Demande** : 72 kg de farine, 60 œufs, 28 kg de fromage, 20 kg de fromage de brebis, 12 kg de miel, 34 L d’huile de colza, 20 L d’huile d’olive, 140 L de vin  ·  **Prime** : 40000 €  ·  **XP** : 1000  ·  **En-tête** : UNE GRANDE COMMANDE
+- **Chez** : Restaurant  ·  **Demande** : 72 kg de farine, 60 œufs, 28 kg de fromage, 20 kg de fromage de brebis, 12 kg de miel, 34 L d’huile de colza, 20 L d’huile d’olive, 140 L de vin  ·  **Prime** : 30000 €  ·  **XP** : 1000  ·  **En-tête** : UNE GRANDE COMMANDE
 
 > **À la prise** — *« J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.
 Farine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous. »*
