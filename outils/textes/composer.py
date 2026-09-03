@@ -126,16 +126,22 @@ QUAND_TUTO = {
  'labour':  ("Dès la première seconde de la campagne, après la fenêtre « UN HÉRITAGE ».",
              "Quand 98 % de la parcelle est labourée."),
  'semis':   ("Dès que le labour est fini.", "Quand 98 % de la parcelle est semée."),
- 'pousse':  ("Dès que le semis est fini.", "Quand 98 % du blé est mûr."),
+ 'pousse':  ("Dès que le semis est fini.", "Quand tout le blé semé est mûr — le dernier épi, pas 98 %."),
  'recolte': ("Dès que le blé est mûr.",
              "Quand 98 % de la parcelle est moissonnée ET qu'au moins 30 kg sont rentrés."),
  'silo':    ("Dès que le champ est moissonné.", "Quand 30 kg de blé sont entrés au silo."),
  'parking': ("Dès que le silo a reçu la récolte.",
              "Quand la moissonneuse est garée au parc à outils."),
- 'pickup':  ("Dès que la moissonneuse est rangée.", "Quand on conduit le pick-up."),
- 'vente':   ("MODE LIBRE UNIQUEMENT — dès qu'on a repris le pick-up.",
+ 'auto':    ("Dès que la moissonneuse est rangée. Le bouton A bat en jaune ; la carte qui "
+             "s'ouvre fait battre la parcelle, puis la destination, puis LANCER.",
+             "Quand un premier chantier est lancé."),
+ 'pickup':  ("Dès que le premier chantier est lancé.", "Quand on conduit le pick-up."),
+ 'explorer': ("Dès qu'on conduit le pick-up. Cercle jaune au croisement des chemins, en haut "
+              "des parcelles ; à l'arrivée, la fenêtre « DES POSSIBILITÉS D'EXPANSION ».",
+              "Deux secondes après l'arrivée au croisement : le téléphone sonne."),
+ 'vente':   ("MODE LIBRE UNIQUEMENT — dès que le tour de reconnaissance est fait.",
              "À la première vente, quel que soit le commerce."),
- 'appel':   ("CAMPAGNE UNIQUEMENT — dès qu'on a repris le pick-up. C'est la marche qui "
+ 'appel':   ("CAMPAGNE UNIQUEMENT — deux secondes après le croisement. C'est la marche qui "
              "fait sonner le téléphone chez soi.",
              "Quand on prend la mission, au cercle vert de la ferme."),
 }

@@ -13127,3 +13127,68 @@ la botte la plus proche.
 
 Bancs : `bandeau` 47/47 (point libre : pas d'obstacle à moins de 3,2 m, pas de route à
 moins de 3, hors parcelle, chemin et dalle), `contrat` 93/93.
+
+## La première mission refaite : l'automatisation, le tour de reconnaissance, l'appel
+
+« Refais la toute première mission : on laboure, on remplit le silo, et quand on prend le
+pick-up, pas forcément une indication comme quoi on va au village — on prend le pick-up
+pour aller explorer les environs, avec un point jaune au croisement, au milieu en haut des
+parcelles. Une fois dessus, un message : eh ben dis donc, des possibilités d'expansion par
+ici. Et là on l'appelle à la ferme ; il se demande qui ça peut bien être. C'est la première
+mission de la Coopérative. Revérifie aussi que le message de la moisson arrive à l'instant
+où le blé est à 100 %. Et l'automatisation, explique-la juste avant de prendre le pick-up,
+sans parler de carte : appuyer sur le bouton A, choisir la parcelle sur la carte, et sur
+la carte mets en évidence les boutons à toucher, en jaune comme les autres. »
+
+**Le message de la récolte arrive au dernier épi.** Il y avait bien un délai, et il venait
+de deux compteurs qui ne comptaient pas la même chose : l'étiquette du champ arrondissait
+la MOYENNE des pousses — « 100 % » dès 99,5 — pendant que la marche du tutoriel attendait
+que 98 % des CELLULES soient mûres. Les cellules semées en fin de passe ont encore quelques
+secondes devant elles à ce moment-là. La marche attend maintenant le dernier épi (`>= 1` :
+une plante mûrit toujours, il n'y a pas de reliquat de virage à payer comme au labour), et
+l'étiquette, tronquée et plafonnée à 99, ne dit plus jamais « 100 % » : elle passe de 99 à
+« à moissonner » à l'instant où la fenêtre PREMIÈRE RÉCOLTE s'ouvre. Elle se relit deux
+fois par seconde au lieu d'une.
+
+**L'automatisation s'enseigne juste avant le pick-up.** Une marche `auto` s'intercale entre
+le parking de la moissonneuse et le pick-up : « Le bouton A lance l'automatisation :
+j'appuie dessus, je choisis ma parcelle sur la carte, et le tracteur se débrouille. » Elle
+n'a pas de lieu, elle a un bouton : le A bat en jaune comme le bouton du parc, et la marche
+se solde au premier chantier posé — le champ qu'on vient de moissonner est en chaume, c'est
+le moment exact où l'on a envie que quelqu'un d'autre le relaboure.
+
+**La carte guide, comme les menus.** Pendant cette marche, une seule chose bat à la fois,
+la prochaine à toucher : la parcelle, encadrée de jaune sur la carte (le cadre suit le zoom
+et le glissement), puis la destination SILO, puis LANCER ; l'aide sous la carte dit le geste.
+Rien ne bat hors de la marche.
+
+**Le pick-up part voir les environs.** Plus de « descendre au village » : « avant d'aller
+plus loin, j'irais bien voir à quoi ressemblent les environs ». Monter dedans solde la
+marche ; la suivante, EXPLORER LES ENVIRONS, pose le cercle jaune au croisement du chemin
+qui longe la cour (x = 0) et du chemin le plus haut de la trame (z = −80,3) : tout droit
+vers le nord, jusqu'en haut des champs.
+
+**Au croisement, il le dit, puis le téléphone sonne.** À huit mètres du carrefour, la
+fenêtre DES POSSIBILITÉS D'EXPANSION — « Eh ben dis donc… Des terres à vendre de tous les
+côtés. Il y a de quoi voir grand, par ici. » — puis les deux secondes du téléphone, qui ne
+courent plus depuis la montée dans le pick-up mais depuis l'arrivée : LE TÉLÉPHONE SONNE,
+« Qui ça peut bien être, qui appelle sur ce numéro ? Personne n'est censé l'avoir. Rentrons
+voir. » Chez soi, on décroche : c'est la Coopérative et ses trente kilos, comme avant.
+
+**Les sauvegardes suivent.** Table version 4, deux marches insérées (6 et 8) : une partie
+d'avant glisse d'un ou deux crans selon son rang — l'ancien pick-up (6) devient 7, l'ancien
+appel (7) devient 9, l'ancienne vente (8) devient 10. Le souvenir du croisement n'est pas
+sauvegardé : au rechargement, on y repasse.
+
+| marche | avant | après |
+|---|---|---|
+| 6 | pickup — « pour descendre au village » | **auto** — le bouton A, la carte guidée |
+| 7 | appel — 2 s après le pick-up | pickup — « voir les environs » |
+| 8 | vente (mode libre) | **explorer** — cercle au croisement, découverte |
+| 9 | | appel — 2 s après le croisement |
+| 10 | | vente (mode libre) |
+
+Bancs : le nouveau fil de bout en bout (`_flux`, 32 contrôles : pousse, marche auto et
+carte guidée, pick-up, croisement, appel, mission prise) ; `campagne30` 72/72, `bandeau`
+47/47, `ecrans` 81/81, `guidage` 106/106, `lecons` 25/25, `contrat` 93/93, `chantiers`
+44/44, `fenetres` 36/36, `hud` — adaptés à la chaîne à onze marches. `TEXTES.md` refait.

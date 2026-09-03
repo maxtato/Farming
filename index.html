@@ -773,7 +773,7 @@
      le moulin, et le joueur cherchait la fenêtre sans que rien la désigne. Aucun de ces
      quatre-là n'est coupé par un conteneur : ils peuvent porter le cadre qui GRANDIT,
      qui est le plus visible des deux appels. */
-  #engins,#regie .rgb,#hitch,#carnet{position:relative}
+  #engins,#regie .rgb,#hitch,#auto,#carnet{position:relative}
   /* ET LE BOUTON QUI APPELLE EST PLEIN, LUI AUSSI. C'est l'action que le jeu demande à
      l'instant : s'il restait le seul bordé de jaune au milieu de boutons pleins, il
      aurait l'air de celui qu'on ne peut pas toucher. Le halo qui s'écarte reste par-
@@ -783,11 +783,11 @@
      dire, c'est « c'est CELUI-CI que l'étape attend, maintenant ». Même halo que le
      bouton du parc, et pour la même raison : ce sont les deux gestes que la première
      demi-heure de jeu demande sans qu'on puisse les deviner. */
-  #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel,#hitch.appel{
+  #engins.appel,#regie .rgb.appel,#service.appel,#atelier.appel,#veh.appel,#hitch.appel,#auto.appel{
     background:#FAD201;color:#10171B;--act:#FAD201;--actOmb:#B49700;
     box-shadow:0 3px 0 #B49700, 0 5px 11px rgba(0,0,0,.3)}
   #engins.appel::after,#regie .rgb.appel::after,#service.appel::after,
-  #hitch.appel::after,
+  #hitch.appel::after,#auto.appel::after,
   #atelier.appel::after,#veh.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:15px;border:3px solid #FAD201;pointer-events:none;
     animation:appel 1.05s ease-out infinite}
@@ -823,7 +823,7 @@
     23%{transform:translateX(-50%) rotate(2.4deg)}
     37%{transform:translateX(-50%) rotate(-1.4deg)}
     48%{transform:translateX(-50%) rotate(.7deg)}}
-  #engins.appel,#regie .rgb.appel,#hitch.appel{animation:appelDodeline 2.1s ease-in-out infinite}
+  #engins.appel,#regie .rgb.appel,#hitch.appel,#auto.appel{animation:appelDodeline 2.1s ease-in-out infinite}
   #service.appel,#atelier.appel,#veh.appel{animation:appelDodelineC 2.1s ease-in-out infinite}
   /* ET LE MÊME APPEL SE POURSUIT DANS LES MENUS. Le bouton du parc bat, on l'ouvre, et
      la LIGNE de la machine à prendre bat à son tour ; au garage, l'onglet des outils bat,
@@ -1512,6 +1512,17 @@
   #plan .pb.pri.no{background:var(--pale);color:var(--sourdine);
     box-shadow:0 3px 0 var(--paleOmb);opacity:.55}
   #plan .pb.pri.no:active{transform:none;box-shadow:0 3px 0 var(--paleOmb)}
+  /* LA CARTE APPELLE COMME LES MENUS. Pendant la marche de l'automatisation, la puce ou
+     le bouton à toucher prend le jaune du guidage et bat comme une ligne de menu ; la
+     parcelle à désigner porte un cadre jaune posé sur la carte, qui suit le zoom. */
+  #plan .pc.appel,#plan .pb.appel{background:#FAD201;color:#10171B;position:relative;
+    box-shadow:0 3px 0 #B49700;animation:appelRespire .95s ease-in-out infinite}
+  #plan .pc.appel::after,#plan .pb.appel::after{content:'';position:absolute;inset:-3px;
+    border-radius:12px;border:3px solid #FAD201;pointer-events:none;
+    animation:appel 1.05s ease-out infinite}
+  #plancible{position:absolute;display:none;border:3px solid #FAD201;border-radius:4px;
+    pointer-events:none;box-shadow:0 0 0 2px rgba(0,0,0,.35);
+    animation:appelPlat 1.05s ease-in-out infinite}
   #rot{position:absolute;inset:0;background:#1B2429;display:none;align-items:center;justify-content:center;
     flex-direction:column;gap:14px;text-align:center;padding:30px;pointer-events:auto;z-index:40}
   #rot b{font-size:13px;letter-spacing:3px}
@@ -1722,7 +1733,7 @@
     <div id="plantete"><div id="plantitre">Plan de travail</div><div id="planfermer">✕</div></div>
     <div id="planengins" class="rang"></div>
     <div id="planmodes" class="rang"></div>
-    <div id="plancarte"><canvas id="plancv"></canvas></div>
+    <div id="plancarte"><canvas id="plancv"></canvas><div id="plancible"></div></div>
     <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
          légende tient sur une ligne sous la carte, et elle suffit puisque les couleurs
          veulent dire la même chose partout ailleurs. -->
@@ -3738,7 +3749,7 @@ function acheteursDe(cle, sauf, quantite){
    en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0};
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false};
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
    d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
@@ -4091,7 +4102,11 @@ const MISSIONS = [
    sauvegarde d'avant les DEUX insertions passe par les deux décalages, dans l'ordre où
    ils ont eu lieu. Écrire `< TUTO_V` pour les deux les appliquerait ensemble à une
    sauvegarde qui n'a manqué que la dernière — d'où un seuil par version. */
-const TUTO_V = 3, TUTO_INSERE = 5, TUTO_INSERE3 = 6;
+/* ET DEUX MARCHES DE PLUS, EN VERSION 4 : « lancer l'automatisation » en septième
+   position et « explorer les environs » en neuvième. Une sauvegarde d'avant passe par les
+   deux décalages, dans l'ordre : l'ancien pick-up (6) devient 7, l'ancien appel (7) devient
+   9, l'ancienne vente (8) devient 10. */
+const TUTO_V = 4, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
 const MISSIONS_V = 2;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
@@ -4752,6 +4767,12 @@ function chargerCampagne(S){
       CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
     if((C.tv | 0) < 3 && CAMPAGNE.tuto >= TUTO_INSERE3 && CAMPAGNE.tuto < 99)
       CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
+    if((C.tv | 0) < 4 && CAMPAGNE.tuto < 99){
+      if(CAMPAGNE.tuto >= TUTO_INSERE4)  CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
+      if(CAMPAGNE.tuto >= TUTO_INSERE4B) CAMPAGNE.tuto = Math.min(99, CAMPAGNE.tuto + 1);
+    }
+    // Le croisement se revisite : c'est un souvenir de séance, pas un état de la ferme.
+    CAMPAGNE.explore = false;
     // Un délai ne se relit pas : la mission du moment est là, tout de suite.
     CAMPAGNE.retard = 0;
     /* MÊME RÈGLE POUR LES LEÇONS, ET POUR LA MÊME RAISON QUE LE TUTORIEL. Le champ
@@ -12906,14 +12927,25 @@ function updateCommandes(dt){
     }
   }
   /* LES DEUX COMPTES À REBOURS. Celui de la mission court tout seul ; celui de l'appel
-     ne court QUE pendant la marche du pick-up, et il repart si l'on redescend de la
-     machine — sans quoi on pourrait armer les deux secondes puis reprendre la
-     moissonneuse et voir le téléphone sonner à sa place. */
+     ne court QUE pendant la marche du tour de reconnaissance, et seulement une fois le
+     croisement atteint. Il sonnait deux secondes après la montée dans le pick-up ; le
+     joueur a déplacé la sonnerie : « une fois qu'on arrive sur le croisement, un message
+     — eh ben dis donc, des possibilités d'expansion par ici — et là on l'appelle à la
+     ferme. » La découverte se dit à l'arrivée, une seule fois ; l'appel suit, et la
+     marche se solde à ce moment-là (voir `TUTO`). */
   if(CAMPAGNE.retard > 0) CAMPAGNE.retard = Math.max(0, CAMPAGNE.retard - dt);
   const ET0 = etapeTuto();
-  if(ET0 && ET0.cle === 'pickup')
-    appelT = (MACHINES[cur] && MACHINES[cur].key === 'pickup')
-      ? Math.max(0, appelT - dt) : APPEL_DELAI;
+  if(ET0 && ET0.cle === 'explorer'){
+    if(!CAMPAGNE.explore && auCroisement()){
+      CAMPAGNE.explore = true;
+      annoncerFenetre({titre:'DES POSSIBILITÉS D’EXPANSION', etape:true, duree:5.0,
+        face:{nom:'Moi', humeur:'surpris'},
+        sous:'<i>« Eh ben dis donc… Des terres à vendre de tous les côtés.<br>'
+           + 'Il y a de quoi voir grand, par ici. »</i>',
+        suite:'Chaque parcelle à vendre porte son panneau et son prix'});
+    }
+    appelT = CAMPAGNE.explore ? Math.max(0, appelT - dt) : APPEL_DELAI;
+  }
   remplirCommandes(dt);
   veillerMission();
 }
@@ -19813,6 +19845,8 @@ function ouvrirPlan(){
     MODE_LIBRE ? 'Contrat disponible' : 'Mission disponible';
   planEl.style.display = 'block';
   paused = true;
+  // Le bouton A s'éteint sous la fenêtre : on y est, c'est à la carte de battre.
+  refreshAutoButton();
   majPlan();
 }
 function fermerPlan(){
@@ -19863,12 +19897,13 @@ function majPlan(){
       b.appendChild(x);
       rE.appendChild(b);
     }
-    document.getElementById('planaide').textContent =
-      'Touche une parcelle : tu diras quoi en faire, une fois ou en continu.'
-      + (planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.');
+    document.getElementById('planaide').textContent = tutoPlan()
+      ? 'Touche ta parcelle : celle qui bat en jaune sur la carte.'
+      : 'Touche une parcelle : tu diras quoi en faire, une fois ou en continu.'
+        + (planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.');
     lancer.classList.add('no'); lancer.textContent = 'LANCER';
     boucle.classList.remove('on');
-    dessinerCarte();
+    guiderPlan(); dessinerCarte(); poserCible();
     return;
   }
 
@@ -19882,9 +19917,10 @@ function majPlan(){
   rE.appendChild(planPuce(chLot.length > 1 ? chLot.length + ' parcelles'
                                            : 'Parcelle ' + (chSel + 1), false,
                           ()=>{ chLot = []; planTaches = []; majPlan(); }));
-  rE.appendChild(planPuce('Culture', chQuoi === 'culture',
+  const bCult = planPuce('Culture', chQuoi === 'culture',
     p.pature ? null : ()=>{ chQuoi = 'culture'; chProduit = CROPS[chCrop].cle;
-                            chEdit = chProduit; chDest = {}; majPlan(); }));
+                            chEdit = chProduit; chDest = {}; majPlan(); });
+  bCult.dataset.k = 'culture'; rE.appendChild(bCult);
   rE.appendChild(planPuce('Élevage', chQuoi === 'elevage',
     p.pature ? ()=>{ chQuoi = 'elevage'; chDest = {};
                      const P = patureDe(chSel), l = P ? produitsElevage(P) : [];
@@ -19929,11 +19965,12 @@ function majPlan(){
     for(const d of dests){
       const L = lieuPoint(d);
       const ouvertL = demandeChez(d, chEdit);
-      rP.appendChild(planPuce((L ? L.nom : d) + (ouvertL ? '' : ' · plein'),
+      const bD = planPuce((L ? L.nom : d) + (ouvertL ? '' : ' · plein'),
         chDest[chEdit] === d,
         ()=>{ chDest[chEdit] = (chDest[chEdit] === d) ? undefined : d;
               if(!chDest[chEdit]) delete chDest[chEdit];
-              majPlan(); }));
+              majPlan(); });
+      bD.dataset.dest = d; rP.appendChild(bD);
     }
   }
   rP.style.display = rP.children.length ? '' : 'none';
@@ -19953,7 +19990,10 @@ function majPlan(){
             + chLot.length + ' parcelles.'
           : 'Une fois ou en continu, puis LANCER.  ·  Touche une autre parcelle pour en'
             + ' ajouter une au lot.'));
-  document.getElementById('planaide').textContent = aide;
+  document.getElementById('planaide').textContent = !tutoPlan() ? aide
+    : chQuoi !== 'culture' ? 'Touche CULTURE : on va y remettre du blé.'
+    : !chDest[chProduit] ? 'Où livrer le blé ? Le silo est tout indiqué.'
+    : 'Touche LANCER : le tracteur part travailler seul.';
   boucle.classList.toggle('on', chContinu);
   const pret = chQuoi === 'culture'
     ? (!!chProduit && !!chDest[chProduit])
@@ -19967,7 +20007,42 @@ function majPlan(){
   lancer.classList.toggle('stop', enCours);
   lancer.textContent = enCours ? (chLot.length > 1 ? 'ARRÊTER LES ' + chLot.length : 'ARRÊTER')
                                : (chLot.length > 1 ? 'LANCER LES ' + chLot.length : 'LANCER');
-  dessinerCarte();
+  guiderPlan(); dessinerCarte(); poserCible();
+}
+/* ---------- LA CARTE GUIDE, PENDANT LA MARCHE DE L'AUTOMATISATION ----------
+   Le joueur : « sur la carte, quand elle apparaît, fais aussi un système de tutoriel où
+   tu mets en évidence les boutons sur lesquels il faut cliquer, en jaune comme tu fais
+   pour les boutons du reste. » Même cascade que les menus : une seule chose bat à la
+   fois, et c'est la prochaine à toucher — la parcelle sur la carte, puis la destination
+   du blé, puis LANCER. Rien ne bat hors de la marche `auto` : le jaune est la couleur de
+   ce que le jeu demande, pas une décoration de l'écran. */
+const tutoPlan = ()=>{ const E = etapeTuto(); return !!(E && E.cle === 'auto'); };
+let planCible = -1;                     // la parcelle encadrée sur la carte, ou −1
+function poserCible(){
+  const c = document.getElementById('plancible');
+  if(planCible < 0 || !tutoPlan() || chLot.length){ c.style.display = 'none'; return; }
+  const p = PARCELS[planCible];
+  const x0 = planOx + (p.x - p.w/2 - X0)*planEch, y0 = planOy + (p.z - p.h/2 - Z0)*planEch;
+  c.style.left = (x0 - 4) + 'px'; c.style.top = (y0 - 4) + 'px';
+  c.style.width = (p.w*planEch + 2) + 'px'; c.style.height = (p.h*planEch + 2) + 'px';
+  c.style.display = 'block';
+}
+function guiderPlan(){
+  for(const e of planEl.querySelectorAll('.appel')) e.classList.remove('appel');
+  planCible = -1;
+  if(!tutoPlan()) return;
+  if(!chLot.length){ planCible = PARCELS.findIndex((q)=> q.owned && !q.pature); return; }
+  if(chQuoi !== 'culture'){
+    const b = planEl.querySelector('[data-k="culture"]'); if(b) b.classList.add('appel');
+    return;
+  }
+  if(!chDest[chProduit]){
+    const rP = document.getElementById('planprod');
+    const b = rP.querySelector('[data-dest="silo"]') || rP.querySelector('.pc');
+    if(b) b.classList.add('appel');
+    return;
+  }
+  document.getElementById('planlancer').classList.add('appel');
 }
 
 /* LA CARTE. Vue de dessus, à l'échelle, dessinée au canevas 2D : c'est la seule vue
@@ -20207,7 +20282,7 @@ planCv.addEventListener('pointermove', (ev)=>{
     planCz = vise.z + (planCz - vise.z)/f;
     planPince = ec1;
   }
-  dessinerCarte();
+  dessinerCarte(); poserCible();
 });
 const planDoigtFin = (ev)=>{
   const p = planDoigts.get(ev.pointerId);
@@ -20327,6 +20402,9 @@ document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenet
 document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
 function refreshAutoButton(){
   autoEl.classList.toggle('on', MACHINES.some((m)=> !m.verrou && m.v.mission));
+  // ET IL APPELLE pendant la marche qui l'enseigne, tant que sa fenêtre n'est pas ouverte.
+  const E = etapeTuto();
+  autoEl.classList.toggle('appel', !!(E && E.bouton === 'auto') && planEl.style.display !== 'block');
 }
 /* --- la concession : au GARAGE DU VILLAGE, et nulle part ailleurs ---
    On achetait un véhicule devant la remise de la ferme, et aussi depuis le menu, sans
@@ -21413,6 +21491,16 @@ const SERVICES = {
    qu'écrite en chiffre ailleurs : `CAMPAGNE.tuto` est un INDICE dans cette table, et un 3
    écrit au milieu du répartiteur deviendrait faux le jour où une marche s'ajoute. C'est
    `combinePret` qui la lit — voir là-bas pourquoi. */
+/* LE CROISEMENT DU TOUR DE RECONNAISSANCE. Le joueur : « quand on prend le pick-up, pas
+   forcément une indication comme quoi on va au village : on prend le pick-up pour aller
+   explorer les environs, avec un point jaune qui se met vers le haut, au croisement au
+   milieu en haut des parcelles. » C'est le carrefour du chemin nord-sud qui longe la cour
+   (x = 0) et du chemin est-ouest le plus haut de la trame (z = −80,3) : depuis la ferme,
+   tout droit vers le nord, jusqu'en haut des champs. Huit mètres : on y est quand le
+   pick-up est sur le carrefour, pas quand il passe à côté. */
+const CROISEMENT = {x:PATHS_V[1], z:PATHS_H[0]};
+const auCroisement = ()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup'
+  && Math.hypot(MACHINES[cur].v.pos.x - CROISEMENT.x, MACHINES[cur].v.pos.z - CROISEMENT.z) < 8;
 const TUTO = [
   {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA TERRE',
    txt:'PRÉPARER LA TERRE – Première leçon : on ne sème pas directement dans l’herbe. '
@@ -21425,7 +21513,16 @@ const TUTO = [
   {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
    txt:'LAISSER POUSSER – Et maintenant… on attend. Je découvre que l’agriculture demande '
      + 'beaucoup de patience.',
-   fait:()=> partParcelle('pousse') >= PART_ETAPE},
+   /* CENT POUR CENT, ET PAS 98 : LA POUSSE N'EST PAS UNE PASSE DE TRACTEUR. Les 98 % de
+      `PART_ETAPE` paient le reliquat de virage d'un engin ; une plante, elle, mûrit
+      toujours. Le joueur : « le message arrive pour dire qu'il faut moissonner à l'instant
+      même où le blé arrive à 100 % — il me semble qu'il y avait un petit délai. » Il y en
+      avait un, et il venait de deux compteurs : l'étiquette du champ arrondissait la
+      MOYENNE des pousses — « 100 % » dès 99,5 —, pendant que la marche attendait que 98 %
+      des CELLULES soient mûres. Les dernières semées, celles de la fin de la passe, ont
+      encore quelques secondes devant elles à ce moment-là. La marche attend donc le
+      dernier épi, et l'étiquette ne dit « 100 % » qu'à lui : voir la jauge du champ. */
+   fait:()=> partParcelle('pousse') >= 1},
   /* LA MOISSON SE SOLDE COMME LE LABOUR ET LE SEMIS : AU CHAMP ENTIER.
      Le joueur : « pour les messages du tutoriel qui apparaissent pendant le travail de la
      terre, fais pareil pour la moisson : fais apparaître le message pour aller livrer au
@@ -21486,6 +21583,23 @@ const TUTO = [
    fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
      return !!(M && M.v.parc
        && Math.hypot(M.v.pos.x - M.v.parc.x, M.v.pos.z - M.v.parc.z) < 6); }},
+  /* LANCER L'AUTOMATISATION, JUSTE AVANT LE PICK-UP.
+     Le joueur : « quand tu parles de l'automatisation, il faut que tu le fasses à ce
+     moment-là, au moment où on va commencer à aller se balader avec le pick-up, juste
+     avant de prendre le pick-up. Et parle pas de carte, parce qu'au début on ne la voit
+     pas : dis qu'il faut appuyer sur le bouton A pour lancer l'automatisation, choisir la
+     parcelle sur la carte, et sur la carte quand elle apparaît, mets en évidence les
+     boutons sur lesquels il faut cliquer, en jaune comme les autres. »
+     LA MARCHE N'A PAS DE LIEU, ELLE A UN BOUTON. `ou` est nul : pas de cercle au sol, pas
+     de flèche — le bouton A bat en jaune (`refreshAutoButton`), la fenêtre qui s'ouvre
+     fait battre la parcelle, puis la destination, puis LANCER (`guiderPlan`). Elle se
+     solde au premier chantier posé : le champ qu'on vient de moissonner est en chaume,
+     c'est exactement le moment où l'on a envie que quelqu'un d'autre le relaboure. */
+  {cle:'auto', ou:null, bouton:'auto', fen:'plan', titre:'LANCER L’AUTOMATISATION',
+   txt:'LANCER L’AUTOMATISATION – Je ne vais pas tout conduire moi-même jusqu’à la fin '
+     + 'de mes jours. Le bouton A lance l’automatisation : j’appuie dessus, je choisis ma '
+     + 'parcelle sur la carte, et le tracteur se débrouille.',
+   fait:()=> CHANTIERS.length > 0},
   /* REPRENDRE LE PICK-UP, ET ATTENDRE DEUX SECONDES.
      Le joueur : « une fois qu'on a garé la moissonneuse, le système nous demande de
      reprendre notre pick-up, mais pas d'aller directement charger au silo ; il faut que,
@@ -21505,10 +21619,24 @@ const TUTO = [
      « reprendre le pick-up » pendant qu'on s'installe, et que la sonnerie tombe dans le
      silence qui suit. Le compte à rebours ne court que pendant CETTE marche et que si
      l'on est bien dans le pick-up : voir `updateCommandes`. */
+  /* ET LE PICK-UP NE DESCEND PLUS AU VILLAGE : IL VA VOIR. Le joueur : « quand on prend
+     le pick-up, il ne faut pas forcément une indication comme quoi on va au village ; on
+     prend le pick-up pour aller explorer les environs. » La marche se solde dès qu'on est
+     dedans ; les deux secondes du téléphone ne courent plus ici mais au croisement. */
   {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP',
-   txt:'REPRENDRE LE PICK-UP – Pour descendre au village, le pick-up sera plus discret '
-     + 'que la moissonneuse.',
-   fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0},
+   txt:'REPRENDRE LE PICK-UP – Le grain est à l’abri, la machine est garée. Avant d’aller '
+     + 'plus loin, j’irais bien voir à quoi ressemblent les environs. Le pick-up fera '
+     + 'l’affaire.',
+   fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup'},
+  /* EXPLORER LES ENVIRONS : un cercle jaune au croisement, en haut des parcelles. Quand
+     on y arrive, le fermier le dit — « eh ben dis donc, des possibilités d'expansion par
+     ici » — et deux secondes plus tard le téléphone sonne à la ferme (voir `appelT` dans
+     `updateCommandes`). La marche se solde à la sonnerie, pas à l'arrivée : la fenêtre
+     de l'appel vient APRÈS celle de la découverte, dans cet ordre. */
+  {cle:'explorer', ou:'croisement', engin:'pickup', titre:'EXPLORER LES ENVIRONS',
+   txt:'EXPLORER LES ENVIRONS – Un tour de reconnaissance. Jusqu’au croisement, là-haut au '
+     + 'milieu des parcelles, pour voir à quoi ressemble le coin.',
+   fait:()=> CAMPAGNE.explore && appelT <= 0},
   /* LA DERNIÈRE MARCHE EST LA SEULE DU TUTORIEL QUI SE DÉDOUBLE, ET C'EST LE MODE QUI
      TRANCHE.
      EN CAMPAGNE, LE TÉLÉPHONE SONNE. La mission se prenait chez le CLIENT, au moment
@@ -21543,8 +21671,8 @@ const TUTO = [
    txt:  ()=> MODE_LIBRE
      ? 'PRÉPARER UNE VENTE – Trente kilos devraient suffire pour voir ce que vaut notre '
      + 'première récolte.'
-     : 'LE TÉLÉPHONE SONNE – Ah. Le téléphone. Soit quelqu’un veut acheter mon blé… '
-     + 'soit mon tracteur est déjà en panne.',
+     : 'LE TÉLÉPHONE SONNE – Le téléphone de la ferme. Qui ça peut bien être, qui appelle '
+     + 'sur ce numéro ? Personne n’est censé l’avoir. Rentrons voir.',
    quoi: ()=> MODE_LIBRE ? 'charger' : 'tuto',
    prod: ()=> MODE_LIBRE ? 'ble' : null,
    fait: ()=> MODE_LIBRE ? bleABord() >= 29.9 : CAMPAGNE.prise},
@@ -22099,6 +22227,8 @@ function lieuTuto(E){
   }
   // CHEZ SOI : le point d'herbe où le cercle des missions est posé, à côté de la maison.
   if(ou === 'ferme') return {lieu:'Ferme', x:MAISON.x, z:MAISON.z};
+  // LE CARREFOUR DU TOUR DE RECONNAISSANCE, en haut des parcelles.
+  if(ou === 'croisement') return {lieu:'croisement', x:CROISEMENT.x, z:CROISEMENT.z};
   // LA CUVE BLANCHE DE LA COUR, celle où l'épandeur se sert.
   if(ou === 'cuveEngrais')
     return {lieu:'cuve à engrais', x:RES_ENGRAIS.quai.x, z:RES_ENGRAIS.quai.z};
@@ -22131,9 +22261,12 @@ function annoncerEtape(E){
     ? 'Le cercle jaune est sur l\'outil, au parc de la ferme'
     // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions, et il ne
     // ressemble à aucun autre. La phrase doit dire la bonne couleur.
+    // UNE MARCHE SANS LIEU DÉSIGNE SON BOUTON : c'est lui qui bat, pas le sol.
+    : E.bouton ? 'Le bouton A clignote en jaune sur l\u2019écran de jeu'
     : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
+    : (ou === 'croisement' ? 'Le cercle jaune est au croisement des chemins, en haut des parcelles'
     : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
-                      : 'Suis le cercle jaune – ' + ou));
+                      : 'Suis le cercle jaune – ' + ou)));
   /* ET C'EST LUI QUI DIT LA MARCHE, PAS L'INTERFACE. Une marche de tutoriel est le
      moment où il découvre le geste suivant : il le dit à voix haute, avec la tête de
      quelqu'un qui cherche. La DERNIÈRE, elle, est celle où ça a marché — il y sourit,
@@ -26572,7 +26705,7 @@ let pousseT = 0;
 function majPousseParcelles(dt){
   pousseT -= dt;
   if(pousseT > 0) return;
-  pousseT = 1.0;
+  pousseT = 0.5;      // deux fois par seconde : l'étiquette suit la marche de près
   for(const p of PARCELS){
     p.pousse = 0; p.pousseN = 0; p.murN = 0; p.labN = 0; p.nCell = 0;
     if(!p.owned || p.pature) continue;
@@ -26959,7 +27092,12 @@ function majJauges(dt){
     } else {                                          // tout est semé : ça pousse
       const mur = p.murN >= p.pousseN;
       part = p.pousse; nom = C2.nom;
-      dit = mur ? 'à moissonner' : Math.round(p.pousse*100) + ' % de pousse';
+      /* 99 AU PLUS TANT QU'IL RESTE UN ÉPI VERT. La moyenne arrondie disait « 100 % »
+         dès 99,5 — quelques secondes avant que la marche du tutoriel, qui attend le
+         dernier épi, ne passe. Le joueur l'a vu : « il me semble qu'il y avait un petit
+         délai, c'était pas tout à fait bien calé. » Tronquée et plafonnée à 99, elle ne
+         peut plus dire cent avant que « à moissonner » ne la remplace. */
+      dit = mur ? 'à moissonner' : Math.min(99, Math.floor(p.pousse*100)) + ' % de pousse';
       teinte = mur ? '#FFD21E' : '#8BE07A';
     }
     /* 10,5, ET C'EST LA PLAQUE DE L'ENGIN QUI L'A FAIT MONTER. Elle était à 8,0 —

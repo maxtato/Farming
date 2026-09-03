@@ -26,7 +26,7 @@ Quatre surfaces disent quelque chose au joueur, et elles n'ont ni le même ton n
 
 ---
 
-## 2. Le tutoriel — 9 marches
+## 2. Le tutoriel — 11 marches
 
 Une marche **attend le doigt** : elle ne part pas toute seule. Elle allume aussi un cercle jaune au sol et une flèche au bord de l'écran vers l'endroit à rejoindre.
 
@@ -48,7 +48,7 @@ Une marche **attend le doigt** : elle ne part pas toute seule. Elle allume aussi
 > LAISSER POUSSER — Et maintenant… on attend. Je découvre que l’agriculture demande beaucoup de patience.
 
 - **Arrive** : Dès que le semis est fini.
-- **Se solde** : Quand 98 % du blé est mûr.
+- **Se solde** : Quand tout le blé semé est mûr — le dernier épi, pas 98 %.
 - **Où elle envoie** : champ
 
 ### 4. PREMIÈRE RÉCOLTE
@@ -72,25 +72,38 @@ Une marche **attend le doigt** : elle ne part pas toute seule. Elle allume aussi
 - **Se solde** : Quand la moissonneuse est garée au parc à outils.
 - **Où elle envoie** : parc
 
-### 7. REPRENDRE LE PICK-UP
-> REPRENDRE LE PICK-UP — Pour descendre au village, le pick-up sera plus discret que la moissonneuse.
+### 7. LANCER L’AUTOMATISATION
+> LANCER L’AUTOMATISATION — Je ne vais pas tout conduire moi-même jusqu’à la fin de mes jours. Le bouton A lance l’automatisation : j’appuie dessus, je choisis ma parcelle sur la carte, et le tracteur se débrouille.
 
-- **Arrive** : Dès que la moissonneuse est rangée.
+- **Arrive** : Dès que la moissonneuse est rangée. Le bouton A bat en jaune ; la carte qui s'ouvre fait battre la parcelle, puis la destination, puis LANCER.
+- **Se solde** : Quand un premier chantier est lancé.
+
+### 8. REPRENDRE LE PICK-UP
+> REPRENDRE LE PICK-UP — Le grain est à l’abri, la machine est garée. Avant d’aller plus loin, j’irais bien voir à quoi ressemblent les environs. Le pick-up fera l’affaire.
+
+- **Arrive** : Dès que le premier chantier est lancé.
 - **Se solde** : Quand on conduit le pick-up.
 - **Où elle envoie** : parc
 
-### 8. LE TÉLÉPHONE SONNE
-> LE TÉLÉPHONE SONNE — Ah. Le téléphone. Soit quelqu’un veut acheter mon blé… soit mon tracteur est déjà en panne.
+### 9. EXPLORER LES ENVIRONS
+> EXPLORER LES ENVIRONS — Un tour de reconnaissance. Jusqu’au croisement, là-haut au milieu des parcelles, pour voir à quoi ressemble le coin.
 
-- **Arrive** : CAMPAGNE UNIQUEMENT — dès qu'on a repris le pick-up. C'est la marche qui fait sonner le téléphone chez soi.
+- **Arrive** : Dès qu'on conduit le pick-up. Cercle jaune au croisement des chemins, en haut des parcelles ; à l'arrivée, la fenêtre « DES POSSIBILITÉS D'EXPANSION ».
+- **Se solde** : Deux secondes après l'arrivée au croisement : le téléphone sonne.
+- **Où elle envoie** : croisement
+
+### 10. LE TÉLÉPHONE SONNE
+> LE TÉLÉPHONE SONNE — Le téléphone de la ferme. Qui ça peut bien être, qui appelle sur ce numéro ? Personne n’est censé l’avoir. Rentrons voir.
+
+- **Arrive** : CAMPAGNE UNIQUEMENT — deux secondes après le croisement. C'est la marche qui fait sonner le téléphone chez soi.
 - **Se solde** : Quand on prend la mission, au cercle vert de la ferme.
 - **Où elle envoie** : ferme
 - **En mode libre, elle dit autre chose** : **PRÉPARER UNE VENTE** — PRÉPARER UNE VENTE — Trente kilos devraient suffire pour voir ce que vaut notre première récolte.
 
-### 9. PREMIÈRE VENTE
+### 11. PREMIÈRE VENTE
 > PREMIÈRE VENTE — La Coopérative achète le grain directement. Voyons maintenant si tout ce travail rapporte quelque chose.
 
-- **Arrive** : MODE LIBRE UNIQUEMENT — dès qu'on a repris le pick-up.
+- **Arrive** : MODE LIBRE UNIQUEMENT — dès que le tour de reconnaissance est fait.
 - **Se solde** : À la première vente, quel que soit le commerce.
 - **Où elle envoie** : Coopérative
 
