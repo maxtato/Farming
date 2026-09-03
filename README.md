@@ -13630,3 +13630,42 @@ nombre de coups : un (45 %), deux (35 %) ou trois (20 %), de la voix de sa carro
 tout — le jaune joue sa montée à son ton et le diesel du vert se tait ; un tracteur seul ne
 cliquette pas, une benne attelée si, le pick-up qui roule aussi, plus sur une secousse, rien
 à l'arrêt ; un semi klaxonne à 0,42 et un coup s'arrête à 0,27 s.
+
+**Le plateau est uniforme, et le pick-up monte plus franchement.** « Pour le son des véhicules,
+fais-le plafonné au régime tant qu'on accélère, plutôt qu'une espèce de coup d'accélérateur
+quand on est à fond pendant longtemps : il faut que ça reste un son uniforme à plein régime.
+Et pour le pick-up, une accélération un petit peu plus rapide, un peu plus franche. » Mesuré
+d'abord en conduite réelle, gaz pincé seize secondes sur la rocade (`_z_plein`) : le régime
+suit la montée puis reste à 1, sans re-déclenchement — le coup ne venait pas de là. Il venait
+de trois endroits, et les trois sont corrigés.
+
+*Le régime suivait la vitesse.* `charge` mêlait vitesse et gaz ; gaz au plancher, chaque
+ralentissement — virage, herbe, remorque, mur — faisait baisser la hauteur, puis remonter :
+un coup d'accélérateur que personne n'avait donné. Le régime visé ne dépend plus que du gaz
+tant qu'il est enfoncé : dès sept dixièmes c'est 1, quoi que fassent les roues. La vitesse ne
+compte qu'au lâcher — 0,55 de régime en roue libre à pleine vitesse, le ralenti à l'arrêt.
+
+*Le raccord montée → boucle faisait un saut de niveau.* Chaque son est normalisé à part, à la
+crête, et la crête ne dit rien du niveau perçu : la boucle du tracteur jaune sonnait 20 % plus
+fort que la fin de sa montée, celle du fourgon 12 % — un coup, au moment précis où l'on
+atteint le plein régime. `egaliser` mesure une fois par timbre le niveau (RMS) de la boucle et
+celui de la dernière demi-seconde de la montée, et la montée se joue au rapport : voiture 0,94,
+tracteur 1,02, fourgon 1,15, jaune 1,26. Elle finit exactement où la boucle reprend.
+
+*Les boucles ondulaient.* Relevé à cent millisecondes (`_son_plat`, hauteur par
+autocorrélation et niveau) : la boucle du tracteur variait de 1,4 % en hauteur et 3 % en
+niveau, celle du fourgon de 0,9 %, le pick-up de 3 % et 9 %, et l'IMT au pas chasse de 3 % —
+c'est le moteur. Les trois diesels sont repris dans les trois secondes LES PLUS PLATES de
+leur enregistrement — tracteur 37,8 à 40,8 s (0,8 %), fourgon 40,2 à 43,2 (0,3 %), jaune 41,6
+à 44,6 — et l'encodeur sait maintenant APLANIR le niveau (`plat`) : RMS par 50 ms, lissé sur
+un quart de seconde, ramené au niveau moyen, ±6 dB, la hauteur intacte. Sur les montées
+c'est net — 21 % → 7 % pour le tracteur, 16 % → 8 % pour le pick-up — ; sur les boucles il ne
+reste que le battement propre du moteur.
+
+*Le pick-up.* Sa montée perd sa première demi-seconde hésitante (36,5 à 40,9 s au lieu de
+36,0) et se lit à 1,18 — un réglage par machine, `montee` — : 3,7 s au lieu de 4,9, de 68 à
+113 Hz ; la boucle suit, `plage` [0,62 ; 1,24], pour reprendre pile où la montée finit. La
+position dans la montée se compte désormais à la vitesse de lecture, sans quoi le son
+finissait avant que le jeu ne le sache. Sonde `sons2` : trois contrôles de plus, trente-neuf
+en tout — à 1 m/s contre un mur et dès 0,8 de gaz, le régime reste à 1 ; roue libre 0,55,
+arrêt 0, demi-gaz 0,5 ; les quatre égalisations entre 0,5 et 2.
