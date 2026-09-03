@@ -13518,3 +13518,12 @@ coup, puis quatre secondes et demie de silence.
 
 Sonde `sons2` (14 contrôles) : l'échantillon décodé dure 0,83 s et pèse dix-sept kilo-octets ;
 une voiture le joue à sa vitesse, un camion à 0,82 ; à deux cents mètres on ne sonne pas.
+
+**Puis le dérapage sur la terre.** « Quand le véhicule dérape sur la terre » : des roues sur du
+gravier, quarante secondes, stéréo 44 100 Hz. Le son est égal d'un bout à l'autre et n'a
+presque rien au-dessus de 2 000 Hz. On en prend deux secondes au milieu (16 à 18 s), à
+8 000 Hz mono, et l'encodeur sait maintenant faire une BOUCLE : la fin se fond dans le début
+sur quatre-vingts millisecondes, sans clic (`boucle` dans `sons.json`). Il remplace le souffle
+de bruit blanc dès qu'il est décodé, dans la même chaîne et sous le même volume — le pilote
+du dérapage ne sait pas la différence. Le crissement sur la route reste synthétisé, en
+attendant son échantillon.
