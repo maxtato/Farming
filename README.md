@@ -14206,3 +14206,16 @@ Banc `sansvue` (9) : plus une variable ni un réglage ; caméra à `CAM_OFF` de 
 tournée vers elle à l'arrêt, en virage et en ligne droite ; boîte d'ombre sur la cible ; zoom
 le long de l'axe ; sauvegarde sans le champ, ancienne sauvegarde relue. Le banc `vue` est
 retiré avec la vue.
+
+## Le son revient
+
+« Remet le son. » L'essai a rendu son verdict — « non, toujours pareil » sans un nœud audio —,
+le son n'y était pour rien. `SON_COUPE` repasse à `false` : `AUDIO.init()` recrée le contexte
+et les chaînes, décode les échantillons, et la bande-son revient telle quelle — le pick-up
+sur la voix du fourgon, le plateau en retrait, le crissement qui attend, les trois voix de
+choc, la clochette au pied de la maison. L'interrupteur reste dans le fichier : un booléen,
+et l'essai se refait en une lettre si un jour on doute encore.
+
+Bancs `son` (22) et `sons2` (60) verts — le premier passage de `sons2` a trébuché sur un
+point de cadence du banc (la caisse sous le pick-up, lue entre deux images lentes), le
+second est passé en entier.
