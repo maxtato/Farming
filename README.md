@@ -13386,3 +13386,29 @@ Bancs adaptés : `campagne` (le barème doublé, la vigne à 420 et 300), `campa
 primes ; l'expérience de la première mission compte maintenant les soixante euros de la vente,
 un centième par euro), `contrat` (l'échelle fois quatre : le blé ne bouge pas d'un kilo),
 `guidage` (150 € au règlement). `chaine` garde ses neuf échecs d'avant.
+
+## Le curseur part de ce que la mission attend, et le bouton s'allume
+
+« Pour la première mission, on demande de charger 30 kg de blé, sauf que quand le pick-up
+arrive, le curseur est mis sur 120 kg, et tant que je n'ai pas pris la charge complète je
+n'avance pas. Fais que le curseur soit mis par défaut sur 30 kg, et mets en surbrillance le
+bouton Valider, pour qu'on valide tout de suite sans bouger le curseur — à ce moment-là on
+peut aller livrer. »
+
+**Ce qui se passait.** Chaque ligne de la fenêtre d'action partait du maximum — tout le
+silo, ou toute la place de la caisse —, mission ou pas. Au silo avec cent vingt kilos de blé,
+le pick-up en prenait cent vingt ; l'objectif, lui, ne bascule sur LIVRER que lorsque trente
+sont à bord, et rien ne disait que le curseur était à pousser.
+
+**Maintenant.** Quand la ligne est celle que l'objectif attend — même lieu, même marchandise,
+même sens, le test qui colorait déjà le bouton de la colonne —, le curseur part de ce qu'il
+reste à charger pour solder la commande, ce qu'on porte déjà déduit (`resteACharger`). La
+ligne le dit sous le nombre : « jusqu'à 120 kg · la mission en veut 30 kg ». Le bouton Charger
+de la fenêtre prend le jaune du guidage et bat comme les lignes de menu (`#actego.appel`) :
+on valide sans rien toucher, trente kilos descendent, l'objectif dit LIVRER. Le maximum reste
+au bout du curseur pour qui veut en prendre plus. Une fois la mission servie à bord, ou en
+vente libre, rien ne change : tout le silo, pas de jaune.
+
+Sonde `charge30` (10 contrôles) : objectif CHARGER BLÉ 30 KG, curseur au quart (30 sur 120),
+bouton jaune qui respire, validation sans toucher, 30 kg à bord en 38 images, objectif
+LIVRER BLÉ 30 KG ; second passage et vente libre au maximum, sans jaune.

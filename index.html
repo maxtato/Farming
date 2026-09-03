@@ -1553,9 +1553,9 @@
   /* LA CARTE APPELLE COMME LES MENUS. Pendant la marche de l'automatisation, la puce ou
      le bouton à toucher prend le jaune du guidage et bat comme une ligne de menu ; la
      parcelle à désigner porte un cadre jaune posé sur la carte, qui suit le zoom. */
-  #plan .pc.appel,#plan .pb.appel{background:#FAD201;color:#10171B;position:relative;
+  #plan .pc.appel,#plan .pb.appel,#actego.appel{background:#FAD201;color:#10171B;position:relative;
     box-shadow:0 3px 0 #B49700;animation:appelRespire .95s ease-in-out infinite}
-  #plan .pc.appel::after,#plan .pb.appel::after{content:'';position:absolute;inset:-3px;
+  #plan .pc.appel::after,#plan .pb.appel::after,#actego.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:12px;border:3px solid #FAD201;pointer-events:none;
     animation:appel 1.05s ease-out infinite}
   #plancible{position:absolute;display:none;border:3px solid #FAD201;border-radius:4px;
@@ -12961,6 +12961,24 @@ function livraison(lieu, cle, q){
    Zéro veut dire « rien n'attend » : c'est de la vente libre, et le joueur décide seul de
    ce qu'il en fait. Une ligne SOLDÉE est gardée faute de mieux — elle rend bien un manque
    nul, et elle sait dire « 29 / 29 ». */
+/* CE QU'IL RESTE À CHARGER POUR LA MISSION, ce qu'on porte déjà déduit. C'est le compte
+   que fait `objectifMission` pour dire « CHARGER BLÉ 30 KG » : la ligne de la mission
+   moins ce qui est livré, moins ce qui est à bord d'un engin quelconque. Zéro quand
+   rien n'attend — la vente libre, ou une marchandise qui n'est pas dans la commande. */
+function resteACharger(cle){
+  const M = missionVisible();
+  if(!M || M.faire || !M.lignes) return 0;
+  let r = 0;
+  M.lignes.forEach((l, i)=>{ if(l.cle === cle) r += l.need - Math.min(l.need, CAMPAGNE.faits[i] || 0); });
+  if(r <= 0.01) return 0;
+  let aBord = 0;
+  for(const m2 of MACHINES){
+    if(m2.verrou) continue;
+    const C2 = caisseDe(m2);
+    if(C2) aBord += chargeDe(C2, cle);
+  }
+  return Math.max(0, r - aBord);
+}
 function avanceChez(lieu, cle){
   let A = null;
   const voir = (fait, need)=>{
@@ -25739,6 +25757,7 @@ let acteLignes = [];              // {A, max, q, maj}
 let acteLivraison = null;         // le lieu, quand la fenêtre est une livraison
 function fermerActes(){
   acteEl.style.display = 'none';
+  document.getElementById('actego').classList.remove('appel');
   acteLignes = []; acteLivraison = null; acteListeEl.innerHTML = '';
 }
 /* CE QU'UNE LIGNE DIT, ET DANS QUEL ORDRE. Le nom d'abord — c'est ce qu'on cherche —,
@@ -25762,7 +25781,10 @@ function ligneActe(e, livraison){
   const q = document.createElement('span'); q.className = 'q';
   const det = document.createElement('div'); det.className = 'ald';
   const c = document.createElement('input');
-  c.type = 'range'; c.min = 0; c.max = 1000; c.step = 1; c.value = 1000;
+  c.type = 'range'; c.min = 0; c.max = 1000; c.step = 1;
+  // La ligne peut arriver avec sa quantité (ce que la mission attend) : le curseur s'y pose.
+  const q0 = (e.q > 0 && e.q < e.max) ? e.q : e.max;
+  c.value = e.max > 0 ? Math.round(1000*q0/e.max) : 1000;
   t.appendChild(b); t.appendChild(q);
   d.appendChild(t); d.appendChild(det); d.appendChild(c);
   e.maj = ()=>{
@@ -25774,7 +25796,7 @@ function ligneActe(e, livraison){
     e.q = e.max*(+c.value)/1000;
     e.maj(); majTotalActes();
   });
-  e.q = e.max; e.maj();
+  e.q = q0; e.maj();
   return d;
 }
 function majTotalActes(){
@@ -25821,6 +25843,11 @@ function ouvrirActes(o){
   const go = document.getElementById('actego');
   go.textContent = o.mot || 'Valider';
   go.style.display = acteLignes.length ? '' : 'none';
+  /* LE BOUTON PREND LE JAUNE DE LA MISSION. Le bouton de la colonne était déjà jaune
+     quand l'un de ses gestes est celui que la mission attend ; la fenêtre qu'il ouvre
+     ne le disait plus, et l'on cherchait quoi toucher. Même jaune, même battement que
+     les lignes de menu et les boutons de la carte : on valide, et l'on va livrer. */
+  go.classList.toggle('appel', !!o.appel && acteLignes.length > 0);
   acteEl.style.display = 'block';
 }
 /* LA VALIDATION POSE LA FILE, ET RIEN D'AUTRE. Aucun kilo ne bouge ici : c'est
@@ -26120,13 +26147,28 @@ function refreshChoix(){
                         : A.lieu === 'entrepot' ? 'Entrepôt'
                         : A.P ? (ESPECES[A.P.espece] || ESPECES.vache).pluriel
                         : A.lieu;
+    /* LE CURSEUR PART DE CE QUE LA MISSION ATTEND. Le joueur : « pour la première
+       mission, on demande de charger 30 kg de blé, sauf que quand le pick-up arrive, le
+       curseur est mis sur 120 kg, et tant que je n'ai pas pris la charge complète je
+       n'avance pas. Fais que le curseur soit mis par défaut sur 30 kg, et mets en
+       surbrillance le bouton Valider, pour qu'on valide tout de suite sans bouger le
+       curseur — à ce moment-là on peut aller livrer. »
+       Le curseur partait du maximum — tout le silo, ou toute la place — pour chaque
+       ligne, mission ou pas. Quand la ligne est CELLE que l'objectif attend (même lieu,
+       même marchandise, même sens : `estMission`), elle part de ce qu'il reste à charger
+       pour solder la commande, ce qu'on porte déjà déduit (`resteACharger`) — trente kilos
+       pour la première mission, et l'objectif bascule sur LIVRER dès qu'ils sont à bord.
+       Le maximum reste à portée de pouce : le curseur va toujours jusqu'au bout. */
     const lignesDe = (L2)=> L2.map((A)=>{
       const max = quantiteMax(m, A);
-      return {A:A, max:max, q:max,
+      const veut = estMission(A) ? resteACharger(A.cle) : 0;
+      const q0 = (veut > 0.05 && veut < max - 0.05) ? veut : max;
+      return {A:A, max:max, q:q0,
               nom:(A.cle && PRODUITS[A.cle]) ? nomDe(A.cle) : A.txt,
               dispo:(MOT_ACTE[A.sens] ? MOT_ACTE[A.sens] + '  ·  ' : '')
                     + 'jusqu\u2019à ' + qteHaut(A.cle, max)
-                    + (A.commande ? '  ·  commande' : ''),
+                    + (A.commande ? '  ·  commande' : '')
+                    + (q0 < max ? '  ·  la mission en veut ' + qteHaut(A.cle, q0) : ''),
               prix:A.S ? prixChez(A.S, A.cle) : 0};
     });
     /* À L'ENCLOS, LES GESTES DE SERVICE REJOIGNENT LE VERBE. Acheter une bête, en
@@ -26153,6 +26195,7 @@ function refreshChoix(){
                      sur:lieu, titre:MOT_VERBE[vb],
                      lignes:lignesDe(L2), gestes:gestes,
                      mot:vb === 'elevage' ? 'Valider' : MOT_VERBE[vb],
+                     appel:jaune,          // la mission attend ce geste : le bouton bat
                      livraison:vb === 'livrer' ? lieu : null})});
     }
     // Hors enclos, les services gardent leur ligne : ce sont des gestes d'un lieu, pas
