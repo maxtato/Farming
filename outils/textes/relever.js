@@ -34,7 +34,7 @@ const srv = http.createServer((q, r) => {
          var r = TUTO.map(function(E, i){ return {i:i, cle:E.cle,
             titre:lire(E, 'titre'), txt:lire(E, 'txt'), ou:lire(E, 'ou'),
             engin:E.engin || null, outil:E.outil || null,
-            fen:E.fen || null, onglet:E.onglet || null}; });
+            fen:E.fen || null, onglet:(typeof E.onglet === 'function' ? E.onglet() : E.onglet) || null}; });
          MODE_LIBRE = av; return r; };
        var camp = pour(false), lib = pour(true);
        return camp.map(function(E, i){
@@ -43,7 +43,7 @@ const srv = http.createServer((q, r) => {
          return E; });
      })(),
     lecons: LECONS.map(function(L, i){ return {i:i, cle:L.cle, nom:L.nom || null, titre:L.titre, txt:L.txt,
-       ou:L.ou || null, mur:!!L.mur, tot:!!L.tot, fen:L.fen || null, onglet:L.onglet || null,
+       ou:L.ou || null, mur:!!L.mur, tot:!!L.tot, fen:L.fen || null, onglet:(typeof L.onglet === 'function' ? L.onglet() : L.onglet) || null,
        quand: String(L.quand || '').replace(/\\s+/g, ' ')}; }),
     missions: MISSIONS.map(function(M, i){ return {i:i, niv:M.niv, lieu:M.lieu || null,
        texte:M.texte, prime:M.prime, xp:M.xp, faire:M.faire || null,

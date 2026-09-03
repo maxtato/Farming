@@ -277,7 +277,7 @@ Une mission se **prend chez soi** : le téléphone sonne, on rentre à la ferme,
 
 > **À la livraison** — *« Très bien. Vous commencez à produire régulièrement. C’est généralement à ce moment-là qu’on commence à acheter trop de machines. »*
 
-> *Préambule — **PRENDRE L’ÉPANDEUR** : PRENDRE L’ÉPANDEUR — Il est au garage du village, 250 €. On verra vite si l’engrais vaut son prix.*
+> *Préambule — **PRENDRE L’ÉPANDEUR** : PRENDRE L’ÉPANDEUR — Si la ferme doit grandir, il faudra passer par le garage du village. L’épandeur y est, 250 € : on verra vite si l’engrais vaut son prix.*
 
 > *Préambule — **REMPLIR L’ÉPANDEUR** : REMPLIR L’ÉPANDEUR — La cuve blanche de la cour est pleine d’engrais. Autant s’en servir.*
 

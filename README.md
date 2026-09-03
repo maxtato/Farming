@@ -13412,3 +13412,38 @@ vente libre, rien ne change : tout le silo, pas de jaune.
 Sonde `charge30` (10 contrôles) : objectif CHARGER BLÉ 30 KG, curseur au quart (30 sur 120),
 bouton jaune qui respire, validation sans toucher, 30 kg à bord en 38 images, objectif
 LIVRER BLÉ 30 KG ; second passage et vente libre au maximum, sans jaune.
+
+## Le garage attend l'appel de la Coopérative, et pointe le bon onglet
+
+« Après la mission des céréales, on nous envoie au garage acheter l'épandeur. Le problème,
+c'est que quand on ouvre le garage, on clique sur le bouton jaune qui clignote pour acheter
+quelque chose, et le bouton en surépaisseur est le bouton Véhicules, alors qu'on ne peut pas
+acheter de véhicule : ça devrait être les outils qui clignotent pour acheter l'épandeur. Et je
+veux que ça arrive après que le téléphone sonne de nouveau et que la dame de la Coopérative
+nous dise que pour produire plus gros, il faudrait regarder du côté de l'épandeur ; à ce
+moment-là, un message qui dit que si on veut s'agrandir, il faut aller faire un tour au
+garage, puis on achète l'épandeur, et on se met à cultiver avec l'engrais. »
+
+**Ce qui se passait.** La leçon « Le garage » se levait dès qu'on avait de quoi acheter
+l'article le moins cher de la vitrine — l'épandeur, 250 €, c'est-à-dire juste après la
+première mission — et son onglet était écrit en dur : Véhicules. Le bouton Acheter battait,
+la fenêtre s'ouvrait sur les véhicules, et rien n'y était à vendre.
+
+**Maintenant.** La leçon attend la troisième mission — celle dont l'appel parle de
+l'épandeur — et son onglet est celui de l'article qu'elle désigne, outil ou engin ; la leçon
+des améliorations suit la même règle (`LECONS`, `appelMenu`). Le préambule de cette mission,
+qui ne commence qu'une fois l'appel pris, dit le garage avant l'épandeur : « Si la ferme doit
+grandir, il faudra passer par le garage du village. L'épandeur y est, 250 € : on verra vite si
+l'engrais vaut son prix. » Au garage, l'onglet Outils & remorques bat, puis la ligne de
+l'épandeur ; ensuite REMPLIR L'ÉPANDEUR, et le champ se cultive à l'engrais.
+
+**Et le bloc Livrer de la fenêtre des chantiers** ne répète plus « Blé » sous son titre :
+sans atelier, la seule chose à livrer est la récolte elle-même, la puce ne posait aucune
+question. Elle ne revient qu'avec un second produit possible — la farine du moulin.
+
+Sonde `garage3` : à la deuxième mission, avec 400 €, la leçon ne se lève pas ; à la troisième,
+l'étape dit le garage, l'onglet des outils bat et la ligne de l'épandeur aussi ; en mode
+libre, la leçon pointe les outils pour l'épandeur ; le bloc Livrer sans atelier ne montre que
+les destinations, et retrouve Blé / Farine avec le moulin. Bancs `lecons`, `plan`, `guidage`,
+`ecrans`, `campagne30`, `fenetres` verts. `TEXTES.md` regénéré ; l'outil des textes sait
+lire un onglet calculé.

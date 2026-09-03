@@ -4019,8 +4019,14 @@ const MISSIONS = [
      et qui ne bloquent rien : la mission se solde en livrant, épandeur ou pas. */
   {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:450, xp:100,
    prep:[
-     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L’ÉPANDEUR',
-      txt:'PRENDRE L’ÉPANDEUR – Il est au garage du village, 250 €. On verra vite si l’engrais vaut son prix.',
+     /* Le joueur : « je veux que ça arrive après que le téléphone sonne et que la dame
+        de la Coopérative dise que pour produire plus gros, regarder du côté de l'épandeur ;
+        à ce moment-là, un message qui dit que si on veut s'agrandir, il faut aller faire
+        un tour au garage, puis on achète l'épandeur. » L'étape dit donc le garage AVANT
+        l'épandeur, et elle ne peut venir qu'après l'appel : c'est un préambule de mission,
+        et un préambule ne commence qu'une fois la mission prise. */
+     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L’ÉPANDEUR', humeur:'projette',
+      txt:'PRENDRE L’ÉPANDEUR – Si la ferme doit grandir, il faudra passer par le garage du village. L’épandeur y est, 250 € : on verra vite si l’engrais vaut son prix.',
       // le bouton ACHETER du garage ouvre cette fenêtre : l'onglet des outils bat,
       // puis la ligne de l'épandeur
       fen:'achat', onglet:'outils', art:'engrais',
@@ -20236,11 +20242,18 @@ function majPlan(){
       okE ? ()=>{ chEngrais = !chEngrais; majPlan(); } : null);
     if(!okE) bE.classList.add('gris');
     rO.appendChild(bE);
-    /* ---------- BLOC 4 : ce qu'on livre — la matière brute, ou ce que l'atelier en fait ---------- */
-    for(const k of produitsPossibles(CROPS[chCrop].cle))
-      rT.appendChild(planPuce(nomDe(k), chProduit === k,
-        ()=>{ chProduit = k; chEdit = k; chDest = {}; majPlan(); },
-        (PRODUITS[k] || {}).couleur));
+    /* ---------- BLOC 4 : ce qu'on livre — la matière brute, ou ce que l'atelier en fait ----------
+       ET SEULEMENT S'IL Y A À CHOISIR. Le joueur : « quand on choisit la destination de
+       livraison, je ne vois pas pourquoi le mot blé apparaît à nouveau en bas ; on devrait
+       juste choisir la destination. » Sans atelier, la seule chose à livrer est la récolte
+       elle-même : la puce ne posait aucune question. Elle ne revient qu'avec un second
+       produit possible — la farine du moulin, l'huile du pressoir. */
+    const prodsC = produitsPossibles(CROPS[chCrop].cle);
+    if(prodsC.length > 1)
+      for(const k of prodsC)
+        rT.appendChild(planPuce(nomDe(k), chProduit === k,
+          ()=>{ chProduit = k; chEdit = k; chDest = {}; majPlan(); },
+          (PRODUITS[k] || {}).couleur));
   } else {
     /* ---------- BLOC 3 : qui vit là, et de quoi on le nourrit ---------- */
     bloc3.textContent = 'Élevage';
@@ -20289,6 +20302,7 @@ function majPlan(){
     }
   }
   rP.style.display = rP.children.length ? '' : 'none';
+  rT.style.display = rT.children.length ? '' : 'none';    // pas de rangée vide sous le titre
 
   /* L'AIDE DIT LA PROCHAINE QUESTION, jamais l'état. C'est la règle de l'ancien écran et
      elle vaut toujours : une ligne sous la carte qui décrit ce qu'on voit ne sert à rien,
@@ -22108,16 +22122,31 @@ const LECONS = [
                   || (CARBU.cuveMax > 0 && CARBU.cuve < CARBU.cuveMax*0.25))},
 
   /* --- CE QU'ON ACHÈTE, ET QUI CHANGE LA FERME --- */
-  {cle:'garage', humeur:'projette', ou:'Garage', fen:'achat', onglet:'engins',
+  /* LA LEÇON DU GARAGE PARTAIT TROP TÔT, ET SUR LE MAUVAIS ONGLET. Elle se levait dès
+     qu'on avait de quoi acheter l'article le moins cher de la vitrine — l'épandeur, 250 €,
+     c'est-à-dire juste après la première mission — et pointait l'onglet des VÉHICULES,
+     écrit en dur, alors que l'épandeur est un outil. Le joueur : « on clique sur le bouton
+     jaune qui clignote pour acheter quelque chose, et c'est le bouton Véhicules qui est
+     en surépaisseur alors qu'on ne peut pas acheter de véhicule ; ça devrait être les
+     outils qui clignotent pour acheter l'épandeur. » L'onglet est maintenant celui de
+     l'article désigné, et la leçon attend la troisième mission — celle dont l'appel parle
+     de l'épandeur — dont le préambule mène déjà au garage. Elle ne dit plus que ce qui
+     reste vrai ensuite : la ferme grandit par ici. En mode libre, rien ne l'attend. */
+  {cle:'garage', humeur:'projette', ou:'Garage', fen:'achat',
+   onglet:()=>{ const A = articlesAVendre()[0]; return (A && A.quoi === 'outil') ? 'outils' : 'engins'; },
    // La moins chère de la vitrine : c'est celle qu'on prend en premier, et c'est l'ordre
    // dans lequel `articlesAVendre` les range déjà.
    art:()=>{ const A = articlesAVendre()[0]; return A ? A.cle : null; },
    nom:'GARAGE', titre:'LE GARAGE',
    txt:'LE GARAGE – Tracteurs, outils, machines… si la ferme doit grandir, il faudra '
      + 'forcément passer par ici.',
-   quand:()=> articlesAVendre().some((A)=> money >= A.prix)},
+   quand:()=> (MODE_LIBRE || (CAMPAGNE.mission >= 2 && CAMPAGNE.prise))
+              && articlesAVendre().some((A)=> money >= A.prix)},
 
-  {cle:'amelio', humeur:'songeur', ou:'Garage', fen:'amelio', onglet:'engins',
+  {cle:'amelio', humeur:'songeur', ou:'Garage', fen:'amelio',
+   // Même règle : l'onglet est celui de l'amélioration désignée, outil ou engin.
+   onglet:()=>{ const c = LECONS.find((L)=> L.cle === 'amelio').art();
+                return (c && TOOLS.some((T)=> T.key === c)) ? 'outils' : 'engins'; },
    art:()=> ameliorationsPossibles()
               .filter((c)=> money >= prixCranSuivant(c, niveauMateriel(c)))
               .sort((a, b)=> prixCranSuivant(a, niveauMateriel(a))
@@ -22427,7 +22456,8 @@ function appelMenu(){
      ne voit qu'une chaîne — exactement ce que `article()` compare. */
   const L = leconCourante();
   if(!L || !L.fen) return null;
-  return {fen:L.fen, onglet:L.onglet,
+  // L'onglet aussi peut se calculer : celui de l'article, outil ou engin.
+  return {fen:L.fen, onglet:(typeof L.onglet === 'function') ? L.onglet() : L.onglet,
           art:(typeof L.art === 'function') ? L.art() : L.art};
 }
 // L'ancien nom, gardé pour ce qui ne regarde que le tutoriel.
