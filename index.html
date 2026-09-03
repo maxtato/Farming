@@ -2030,7 +2030,16 @@ function appliquerPixel(){
    n'est appliqué nulle part n'est pas un défaut, c'est une variable. */
 appliquerPixel();
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+/* ---------- L'OMBRE COÛTE MOINS : PCF, ET UNE CARTE DE 1 024 ----------
+   La mesure (voir le README, « Le jeu rame ») a placé l'ombre en tête des dépenses de la
+   carte graphique : une carte de 2 048 × 2 048 — quatre millions de pixels de profondeur,
+   plus que l'image elle-même — redessinée à chaque image, puis lue en `PCFSoft`, neuf prises
+   bilinéaires par pixel ombré, sur tout ce qui reçoit l'ombre, cultures comprises. Le joueur
+   a choisi les deux premiers leviers : le filtre `PCF` (neuf prises simples, trois à quatre
+   fois moins de lectures par pixel) et la carte à 1 024 (quatre fois moins de pixels d'ombre
+   par image, 7,9 points par mètre au lieu de 15,7 sur les 130 m de la boîte — ombres un peu
+   plus douces, ce qui va au trait du jeu). */
+renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -2140,7 +2149,7 @@ scene.add(hemi);
 const SUN_DIR = new THREE.Vector3(50, 78, 24);
 const sun = new THREE.DirectionalLight(0xFFE6C0, 0.95);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);                 // 2 048 avant : voir `renderer.shadowMap.type`
 /* LA BOÎTE D'OMBRE SE DÉDUIT DE LA PORTÉE D'UNE OMBRE, ET NON D'UNE MARGE AU JUGÉ.
    Elle couvrait 170 m de côté pour une caméra qui voit 93 m de large — presque le double,
    et personne ne l'avait mesuré, pour une raison simple : `renderer.info.render.calls` NE
@@ -2157,7 +2166,8 @@ sun.shadow.mapSize.set(2048, 2048);
    la plus longue ombre du jeu réclame. Relevé — cultures 250 → 118 appels d'ombre
    (−53 %), village 169 → 92 (−46 %), cour de ferme 316 → 265 (−16 %) — et les captures
    avant/après sont les mêmes au trafic près. La carte y GAGNE d'ailleurs en finesse :
-   2048 pixels sur 130 m font 15,7 px/m au lieu de 12,0.
+   2048 pixels sur 130 m font 15,7 px/m au lieu de 12,0 (1 024 depuis, soit 7,9 : le joueur
+   a préféré la fluidité, voir `renderer.shadowMap.type`).
    ET L'ON NE DESCEND PAS PLUS BAS. À 110 m la marge tombe à 8,5 m, très exactement la
    portée de l'ombre d'un arbre : le premier peuplier au bord du cadre verrait la sienne
    apparaître d'un coup. C'est la marge qui fixe le nombre, pas le gain. */
@@ -6016,10 +6026,16 @@ function tigeBle(P, grains){
    larges empilés sur une tige plus épaisse : quatre pièces, 24 triangles. La seconde
    tige de la touffe n'en a que deux : 42 triangles par pied contre 114, soit 17 640 la
    parcelle contre 47 880, moins soixante-trois pour cent. */
+/* ET ENCORE UN CRAN PLUS BASIQUE : 2 + 1 GRAINS. Le joueur, devant le montage des cinq
+   variantes : « s'il faut, rogne un tout petit peu sur les formes des cultures, surtout le
+   blé, il y a encore de la marge pour une forme légèrement plus basique » — puis « fais 1, 2
+   et 4 ». La première tige garde deux grains, la seconde un : 30 triangles par pied au lieu
+   de 42, 12 600 la parcelle de départ au lieu de 17 640, la touffe de deux tiges et la
+   densité intactes. Le 3 + 1 (36) ne se distinguait pas de l'actuel sur le montage. */
 function adulteBle(){
   const P = [];
-  tigeBle(P, 3);
-  const d = tigeBle(P, 2);
+  tigeBle(P, 2);
+  const d = tigeBle(P, 1);
   const M = new THREE.Matrix4().makeScale(0.92, 0.92, 0.92)
     .premultiply(new THREE.Matrix4().makeRotationY(2.1))
     .premultiply(new THREE.Matrix4().makeTranslation(0.34, 0, 0.18));

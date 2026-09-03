@@ -14092,3 +14092,27 @@ Le banc `campagne30` attendait encore quatre pages à la fin de la première mis
 libre » en titre de la seconde : il en attend deux, la paie puis LA COOPÉRATIVE — c'est le
 chapitre du téléphone et des déblocages qui l'avait changé sans le lui dire. Bancs `campagne`
 (76) et `campagne30` (72) verts.
+
+## L'ombre en PCF sur une carte de 1 024, et le blé en 2 + 1 grains
+
+« Fais 1, 2 et 4. » Sur la liste des leviers visuels du chapitre « Le jeu rame », le joueur a
+retenu la carte d'ombre à 1 024, le filtre `PCF`, et le blé légèrement plus basique.
+
+**La carte d'ombre passe de 2 048 à 1 024** (`sun.shadow.mapSize`) : quatre fois moins de
+pixels de profondeur à dessiner à chaque image — un million au lieu de quatre, moins que
+l'image elle-même —, 7,9 points par mètre au lieu de 15,7 sur les 130 m de la boîte. **Et le
+filtre est `PCF`** au lieu de `PCFSoft` (`renderer.shadowMap.type`) : neuf prises simples par
+pixel ombré au lieu de neuf prises bilinéaires, trois à quatre fois moins de lectures sur
+tout ce qui reçoit l'ombre, cultures comprises. Le biais n'a pas eu à bouger : sur la capture
+avant/après de la cour — maison, tracteur, sapin, panneau —, les ombres sont à leur place,
+sans acné ni décollement, juste un peu plus douces, ce qui va au trait du jeu.
+
+**Le blé mûr passe à deux tiges de 2 + 1 grains** (`adulteBle`) : 30 triangles par pied au lieu
+de 42, 12 600 la parcelle de départ au lieu de 17 640 — moins vingt-neuf pour cent —, la
+touffe de deux tiges et la densité intactes. C'est la variante « 2 + 1 » du montage envoyé au
+joueur ; le 3 + 1 (36) ne se distinguait pas de l'actuel. L'échelle de départ de l'âge adulte
+se recalcule d'elle-même sur la nouvelle hauteur (voir `buildField`), et la plante change
+toujours de forme sans changer de taille.
+
+Mesuré à la caméra du jeu sur la parcelle de départ : 28 500 → 24 156 triangles par image.
+Bancs `ages` (29) et `acces` (5) verts.
