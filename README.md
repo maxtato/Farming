@@ -14187,3 +14187,22 @@ et le grain, appels et triangles de la dernière image, taille de la carte d'omb
 JS quand le navigateur la donne, et le nom de la puce graphique. Éteinte, la boucle ne lit
 qu'un booléen ; allumée, deux lectures d'horloge par image et une écriture de texte par
 seconde. Elle ne se sauvegarde pas. Banc `_h_diag` : onze points verts.
+
+## La vue arrière s'en va, tout entière
+
+« Supprime la possibilité de vue arrière, j'aime pas et ça alourdit le jeu, supprime tout ça. »
+
+Tout ce que l'essai avait posé disparaît, et rien d'autre : le bloc `VUE` / `ARRIERE` avec
+`offsetCamera`, `viseeCamera`, `ecartCap` et `poserCamera` ; le réglage « Vue – Dessus /
+Arrière » de Réglages → Image ; le champ `vueArriere` de la sauvegarde et sa relecture (une
+partie qui le porte encore le lit sans bruit, en vue de dessus) ; la branche de la boucle qui
+faisait traîner le cap ; et la boîte d'ombre portée trente mètres devant, qui revient centrée
+sur la cible. Le changement d'engin et le curseur de zoom reposent la caméra comme avant
+l'essai : `camTarget` plus `CAM_OFF`, regard sur la cible. Ce que ça allège par image : deux
+copies de vecteur et un test — l'essai éteint ne coûtait presque rien, mais il n'a plus de
+raison d'être là.
+
+Banc `sansvue` (9) : plus une variable ni un réglage ; caméra à `CAM_OFF` de la cible et
+tournée vers elle à l'arrêt, en virage et en ligne droite ; boîte d'ombre sur la cible ; zoom
+le long de l'axe ; sauvegarde sans le champ, ancienne sauvegarde relue. Le banc `vue` est
+retiré avec la vue.

@@ -2146,44 +2146,6 @@ function appliquerZoom(){
   camera.updateProjectionMatrix();
 }
 const camTarget = new THREE.Vector3();
-/* ---------- L'ESSAI DE LA VUE ARRIÈRE ----------
-   Le joueur : « fais un essai avec un bouton, réglable dans les réglages, qui nous met une
-   vue à l'arrière du véhicule avec un petit peu de balancement léger, comme si la caméra
-   était un peu plus lente à tourner que le véhicule — mais que ce soit le paysage qui bouge
-   plutôt que le véhicule. »
-   La vue de dessus ne tourne jamais : `CAM_OFF` est un vecteur constant, et tout ce qui est
-   plat — enseignes, jauges, étiquettes — est un sprite, donc face à n'importe quelle caméra.
-   La vue arrière se pose derrière l'engin, plus bas (`ARRIERE.recul`, `ARRIERE.haut`,
-   élévation 24°), et regarde quelques mètres devant lui. Ce qui fait le balancement, c'est
-   `VUE.cap` : le cap de la caméra suit celui du véhicule avec un retard du premier ordre
-   (`ARRIERE.tau`, 0,35 s). L'engin, lui, est au centre de l'image et y reste — la cible est
-   sa position, sans anticipation de vitesse : au volant on le voit à peine pivoter, et c'est
-   le paysage qui tourne autour. Le recul et la hauteur suivent le zoom, comme le dessus.
-   La boîte d'ombre est portée trente mètres devant : depuis l'arrière on voit loin devant, et
-   une ombre qui s'arrêterait net à soixante-cinq mètres se verrait. */
-const VUE = {arriere:false, cap:0};
-const ARRIERE = {recul:24, haut:11, avance:6, tau:0.35};
-const _avCam = new THREE.Vector3();
-// L'écart d'angle le plus court, signé.
-const ecartCap = (a, b)=>{ let d = a - b; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; return d; };
-// La position de la caméra pour la vue du moment, à partir de la cible.
-function offsetCamera(out){
-  if(!VUE.arriere) return out.copy(CAM_OFF);
-  const k = zoomK();
-  return out.set(-Math.sin(VUE.cap)*ARRIERE.recul*k, ARRIERE.haut*k, -Math.cos(VUE.cap)*ARRIERE.recul*k);
-}
-// Ce que la caméra regarde : la cible, ou un peu devant l'engin en vue arrière.
-function viseeCamera(out){
-  if(!VUE.arriere) return out.copy(camTarget);
-  return out.set(camTarget.x + Math.sin(VUE.cap)*ARRIERE.avance, 1.2, camTarget.z + Math.cos(VUE.cap)*ARRIERE.avance);
-}
-// Poser la caméra d'un coup, sans lissage : changement d'engin, de zoom, de vue.
-function poserCamera(){
-  const v = MACHINES[cur] && MACHINES[cur].v;
-  if(v){ VUE.cap = v.cap; camTarget.set(v.pos.x, 0, v.pos.z); }   // d'un coup : la cible aussi
-  camera.position.copy(camTarget).add(offsetCamera(_avCam));
-  camera.lookAt(viseeCamera(_avCam));
-}
 appliquerZoom();
 
 /* ÉCLAIRAGE — mesuré sur les vidéos de référence.
@@ -19984,7 +19946,7 @@ function setMachine(i){
   enginsEl.setAttribute('aria-label', MACHINES[i].nom.toUpperCase());
   const v = MACHINES[i].v;
   camTarget.set(v.pos.x, 0, v.pos.z);
-  poserCamera();
+  camera.position.copy(camTarget).add(CAM_OFF);
   showHint(machineLabel(i));
   refreshHitchButton();
 }
@@ -29090,7 +29052,8 @@ function ongletReglages(){
   articleCurseur(0xFAD201, 'Zoom', {
     min: ZOOM.min, max: ZOOM.max, pas: 5, unite: ' %',
     lire: ()=> ZOOM.pc,
-    ecrire: (v)=>{ ZOOM.pc = v; appliquerZoom(); poserCamera(); },
+    ecrire: (v)=>{ ZOOM.pc = v; appliquerZoom();
+      camera.position.copy(camTarget).add(CAM_OFF); camera.lookAt(camTarget); },
     detail: (v)=>{
       const k = 100/Math.max(1, v);
       const d0 = CAM_BASE.length();
@@ -29100,18 +29063,6 @@ function ongletReglages(){
              '  ·  largeur vue au sol&nbsp;: <b>' + (largeurVue()).toFixed(0) + ' m</b>';
     }
   });
-  article(0xFAD201, 'Vue – ' + (VUE.arriere ? 'Arrière' : 'Dessus'),
-    VUE.arriere
-      ? 'La caméra suit derrière l\'engin, un peu plus lente que lui à tourner : c\'est le '
-        + 'paysage qui balance, l\'engin reste au centre. Un essai — la vue de dessus est '
-        + 'celle d\'origine.'
-      : 'La vue d\'origine, de trois quarts au-dessus, qui ne tourne jamais. L\'autre vue se '
-        + 'place derrière l\'engin et le suit en tournant, avec un léger balancement.',
-    VUE.arriere ? 'Vue de dessus' : 'Vue arrière', 'vert', ()=>{
-      VUE.arriere = !VUE.arriere;
-      poserCamera();
-      showHint('VUE – ' + (VUE.arriere ? 'ARRIÈRE' : 'DESSUS'));
-    });
   const NE = NETTETE.choix[NETTETE.i];
   const px = Math.round(renderer.domElement.width) + ' × ' + Math.round(renderer.domElement.height);
   article(0x9FD8E8, 'Netteté – ' + NE.nom,
@@ -30291,7 +30242,6 @@ function etatJeu(){
        UNE fois, puis reçoit la marque — après quoi ce qu'il choisit au menu tient. */
     reglagesV: REGLAGES_V,
     nettete: NETTETE.i,
-    vueArriere: VUE.arriere,        // l'essai de la vue arrière : absent, c'est la vue de dessus
     /* LE PIXEL ART, EN DEUX CHAMPS FACULTATIFS. Absents, ils valent zero et faux,
        c est-a-dire le jeu d avant ce reglage : une partie deja commencee ne voit
        aucune difference tant qu elle n a rien demande. `v` ne bouge pas. */
@@ -30738,7 +30688,6 @@ function chargerPartie(S){
        sauvegarde suivante, et le menu redevient maître. */
     const usine = !S.reglagesV;
     if(!usine && S.nettete !== undefined && NETTETE.choix[S.nettete]) NETTETE.i = S.nettete;
-    if(!usine && S.vueArriere !== undefined) VUE.arriere = !!S.vueArriere;
     /* UN CHAMP ABSENT VAUT LE DÉFAUT DU JEU, PAS « ÉTEINT » — ET C'EST TOUTE LA
        DIFFÉRENCE. Une partie commencée avant ce réglage n'a ni `pixel` ni `pixelUi` ; les
        lire comme des faux aurait forcé l'ancien rendu chez tous ceux qui ont déjà une
@@ -32262,17 +32211,9 @@ function loop(now){
   }
 
   // caméra : orientation fixe, suivi amorti avec anticipation
-  if(VUE.arriere){
-    // Le paysage tourne, pas l'engin : la cible est l'engin lui-même, et le cap traîne.
-    camTarget.lerp(_v3.set(v.pos.x, 0, v.pos.z), 1-Math.pow(0.0005, dt || 0.016));
-    VUE.cap += ecartCap(v.cap, VUE.cap)*(1 - Math.exp(-(dt || 0.016)/ARRIERE.tau));
-    camera.position.lerp(_v3.copy(camTarget).add(offsetCamera(_avCam)), 1-Math.pow(0.001, dt || 0.016));
-    camera.lookAt(viseeCamera(_avCam));
-  } else {
-    camTarget.lerp(_v3.set(v.pos.x + v.vel.x*0.5, 0, v.pos.z + v.vel.y*0.5), 1-Math.pow(0.002, dt || 0.016));
-    camera.position.lerp(_v3.copy(camTarget).add(CAM_OFF), 1-Math.pow(0.004, dt || 0.016));
-    camera.lookAt(camTarget);
-  }
+  camTarget.lerp(_v3.set(v.pos.x + v.vel.x*0.5, 0, v.pos.z + v.vel.y*0.5), 1-Math.pow(0.002, dt || 0.016));
+  camera.position.lerp(_v3.copy(camTarget).add(CAM_OFF), 1-Math.pow(0.004, dt || 0.016));
+  camera.lookAt(camTarget);
   /* LES ÉTIQUETTES NE PIVOTENT PLUS, ET C'EST LA SEULE CHOSE QUI A CHANGÉ ICI.
      Elles se tournaient vers la caméra à chaque image — `atan2` du vecteur étiquette →
      caméra — et l'on voyait les quinze enseignes du village se dévisser lentement en
@@ -32300,8 +32241,7 @@ function loop(now){
   // On quantifie le centre de la carte d'ombre sur une grille de 4 m : sans ça les
   // bords d'ombre grouillent en permanence pendant le déplacement, ce qui donne
   // l'impression que l'ombre bouge alors que sa direction est fixe.
-  const avO = VUE.arriere ? 30 : 0;   // la boîte d'ombre devant l'engin en vue arrière
-  const sx = Math.round((camTarget.x + Math.sin(VUE.cap)*avO)/4)*4, sz = Math.round((camTarget.z + Math.cos(VUE.cap)*avO)/4)*4;
+  const sx = Math.round(camTarget.x/4)*4, sz = Math.round(camTarget.z/4)*4;
   sun.position.set(sx + SUN_DIR.x, SUN_DIR.y, sz + SUN_DIR.z);
   sun.target.position.set(sx, 0, sz); sun.target.updateMatrixWorld();
 
