@@ -1447,9 +1447,46 @@
      engin, ce qu'on lui demande, puis on touche la carte : des parcelles à travailler,
      ou deux lieux entre lesquels faire la navette. La file se lit en bas. */
   #plan{position:absolute;inset:0;display:none;z-index:24;background:var(--voile)}
-  #planboite{position:absolute;inset:calc(12px + env(safe-area-inset-top)) 12px
-    calc(12px + env(safe-area-inset-bottom)) 12px;max-width:820px;margin:auto;
-    display:flex;flex-direction:column;padding:12px 14px 10px}
+  /* PRESQUE TOUT L'ÉCRAN, ET DES BLOCS. Six pixels de marge au lieu de douze ; le corps
+     défile s'il le faut, la carte garde une hauteur qui grandit avec l'écran, l'aide et
+     les deux boutons restent au pied. */
+  #planboite{position:absolute;inset:calc(6px + env(safe-area-inset-top)) 8px
+    calc(6px + env(safe-area-inset-bottom)) 8px;max-width:900px;margin:auto;
+    display:flex;flex-direction:column;padding:8px 12px 8px}
+  #plancorps{flex:1;min-height:0;display:flex;flex-direction:row;gap:10px;padding:2px 0}
+  #planbloc1{flex:0 0 46%;min-width:0;display:flex;flex-direction:column}
+  #plancolonne{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;
+    overflow-y:auto;scrollbar-width:none}
+  #plancolonne::-webkit-scrollbar{display:none}
+  /* EN PORTRAIT, tout s'empile et le corps défile ; la carte reprend une hauteur fixe. */
+  @media (max-aspect-ratio: 5/4){
+    #plancorps{flex-direction:column;overflow-y:auto;scrollbar-width:none}
+    #planbloc1{flex:none}
+    #plancolonne{flex:none;overflow:visible}
+    #plancarte{flex:none;height:clamp(150px, calc(100vh - 372px), 420px)}
+  }
+  #plan .bloc{flex:none;border-radius:12px;background:rgba(60,45,20,.06);
+    box-shadow:inset 0 0 0 1.5px rgba(60,45,20,.10);padding:6px 9px 5px}
+  #plan .bloc.off{opacity:.36;pointer-events:none}
+  #plan .bloctitre{display:flex;align-items:center;gap:7px;font-family:var(--titre);
+    font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--sous);
+    padding:1px 2px 3px}
+  #plan .bloctitre b{width:18px;height:18px;border-radius:9px;background:var(--or);
+    color:var(--encreOr);font-size:10px;line-height:18px;text-align:center;flex:none;
+    box-shadow:0 2px 0 var(--orOmb)}
+  #plan .bloc.off .bloctitre b{background:var(--pale);color:var(--paleEncre);
+    box-shadow:0 2px 0 var(--paleOmb)}
+  /* L'OPTION EN DESSOUS, EN RETRAIT, AVEC SON MOT DEVANT : l'engrais sous la culture, la
+     nourriture sous la bête. Le mot est un pseudo-élément — il ne compte pas parmi les
+     puces de la rangée. */
+  #plan .rang.sous{padding-left:12px;margin-top:-1px}
+  #plan .rang.sous::before{content:'Option ·';flex:none;align-self:center;font-size:9.5px;
+    letter-spacing:.8px;text-transform:uppercase;color:var(--sourdine);padding-right:2px}
+  #plan .rang.sous.nourrir::before{content:'Nourrir ·'}
+  /* GRISÉ, MAIS LÀ : ce qu'on ne peut pas choisir — pas encore ouvert, ou rien en stock —
+     reste visible, avec la raison écrite dessus. */
+  #plan .pc.gris{background:var(--pale);color:var(--sourdine);box-shadow:0 3px 0 var(--paleOmb);
+    opacity:.5;pointer-events:none}
   #plantete{display:flex;align-items:center;gap:10px;padding:0 2px 7px;flex:none}
   #plantitre{font-family:var(--titre);font-size:19px;letter-spacing:1.2px;
     text-transform:uppercase;color:var(--titreC);flex:1;
@@ -1486,7 +1523,8 @@
      elle porte la terre, l'herbe et les bâtiments dans leurs vraies couleurs, et un fond
      crème la ferait passer pour un plan cadastral. Elle est simplement POSÉE sur la
      feuille, comme une photographie collée, avec le même relief que les lignes. */
-  #plancarte{flex:1;min-height:0;position:relative;margin:3px 2px;border-radius:12px;
+  #plancarte{flex:1;min-height:120px;position:relative;
+    margin:3px 2px;border-radius:12px;
     overflow:hidden;background:#26332B;box-shadow:0 3px 0 var(--ligneOmb)}
   /* touch-action:none — sans quoi le navigateur s'empare du pincement pour zoomer la
      PAGE, et la carte ne voit jamais le second doigt. */
@@ -1728,23 +1766,50 @@
   </div>
   <div id="fuel"><span class="jic"></span><span class="jtrack"><i id="fuelfill"></i></span></div>
 </div>
+<!-- QUATRE BLOCS, DANS L'ORDRE DES QUESTIONS. Le joueur : « la fenêtre beaucoup plus
+     haute, qu'elle prenne quasiment toute la taille de l'écran, et des espaces vraiment
+     visibles, que ça fasse bien plusieurs blocs : la parcelle ; culture ou élevage ; ce
+     qu'on cultive ou ce qu'on élève, avec l'engrais EN DESSOUS de la culture pour qu'on
+     voie que c'est une étape en plus, et pour l'élevage le choix de fournir les aliments
+     ou pas ; puis la destination de la récolte. » Les blocs qui n'ont pas encore leur
+     question d'avant sont là, mais éteints : on voit tout le chemin. -->
 <div id="plan">
   <div id="planboite">
     <div id="plantete"><div id="plantitre">Plan de travail</div><div id="planfermer">✕</div></div>
-    <div id="planengins" class="rang"></div>
-    <div id="planmodes" class="rang"></div>
-    <div id="plancarte"><canvas id="plancv"></canvas><div id="plancible"></div></div>
-    <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
-         légende tient sur une ligne sous la carte, et elle suffit puisque les couleurs
-         veulent dire la même chose partout ailleurs. -->
-    <div id="planleg">
-      <span><i style="background:#FFD21E"></i>Objectif actuel</span>
-      <span><i style="background:#62D84E"></i><b id="planlegvert">Mission disponible</b></span>
-      <span><i style="background:#4AA8E0"></i>Service permanent</span>
+    <div id="plancorps">
+      <div id="planbloc1" class="bloc">
+        <div class="bloctitre"><b>1</b><span>La parcelle</span></div>
+        <div id="planengins" class="rang"></div>
+        <div id="plancarte"><canvas id="plancv"></canvas><div id="plancible"></div></div>
+        <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
+             légende tient sur une ligne sous la carte, et elle suffit puisque les couleurs
+             veulent dire la même chose partout ailleurs. -->
+        <div id="planleg">
+          <span><i style="background:#FFD21E"></i>Objectif actuel</span>
+          <span><i style="background:#62D84E"></i><b id="planlegvert">Mission disponible</b></span>
+          <span><i style="background:#4AA8E0"></i>Service permanent</span>
+        </div>
+      </div>
+      <!-- EN PAYSAGE, LA CARTE À GAUCHE ET LES TROIS QUESTIONS À DROITE : tout tient sans
+           défiler sur un écran de téléphone couché, et la carte garde toute la hauteur. -->
+      <div id="plancolonne">
+        <div id="planbloc2" class="bloc off">
+          <div class="bloctitre"><b>2</b><span>Quoi en faire</span></div>
+          <div id="planquoi" class="rang"></div>
+        </div>
+        <div id="planbloc3" class="bloc off">
+          <div class="bloctitre"><b>3</b><span id="planbloc3nom">Culture ou élevage</span></div>
+          <div id="planmodes" class="rang"></div>
+          <div id="planoption" class="rang sous"></div>
+        </div>
+        <div id="planbloc4" class="bloc off">
+          <div class="bloctitre"><b>4</b><span>Livrer</span></div>
+          <div id="plantaches" class="rang"></div>
+          <div id="planprod" class="rang"></div>
+        </div>
+      </div>
     </div>
     <div id="planaide"></div>
-    <div id="plantaches" class="rang"></div>
-    <div id="planprod" class="rang"></div>
     <div id="planpied"><div id="planboucle" class="pb">EN BOUCLE</div><div id="planlancer" class="pb pri">LANCER</div></div>
   </div>
 </div>
@@ -19791,6 +19856,29 @@ let planTaches = [];
 let chLot = [];                       // les parcelles désignées, dans l'ordre des touches
 const chRef = ()=> chLot.length ? chLot[0] : -1;   // celle dont on montre les réglages
 let chQuoi = 'culture', chCrop = 0, chEngrais = false;
+/* NOURRIR, OU PAS, ET AVEC QUOI. Le joueur : « pour l'élevage, il faut qu'on choisisse
+   si on veut fournir les aliments ou pas, auquel cas on peut choisir soit le maïs, soit
+   les aliments, soit les aliments premium ; tout ce qu'on ne peut pas choisir parce que
+   ce n'est pas encore débloqué, tu le grises, et si on n'a pas d'aliments disponibles
+   dans le silo ou dans l'entrepôt, tu grises aussi. » `sans`, ou l'une des trois clés de
+   `RATION` ; `auto` est ce que portent les chantiers d'avant ce choix — n'importe quel
+   fourrage, le meilleur d'abord — et rien ne se casse en rechargeant une vieille partie. */
+let chNourrir = 'sans';
+const ALIMENTS_CHOIX = [['sans', 'Sans'], ['mais', 'Maïs'], ['aliment', 'Aliment'],
+                        ['alimentPlus', 'Aliment premium']];
+const stockAliment = (k)=> (siloStock[k] || 0) + ((ENTREPOT.stock && ENTREPOT.stock[k]) || 0);
+function nourrirEtat(k){
+  if(k === 'sans') return {ok:true, dit:''};
+  const fam = k === 'mais' ? 'cultures' : 'modules';
+  if(!ouvert(fam, k)) return {ok:false, dit:'N' + niveauDe(fam, k)};
+  if(stockAliment(k) <= 0.5) return {ok:false, dit:'aucun stock'};
+  return {ok:true, dit:kg(stockAliment(k))};
+}
+// Ce qu'on proposerait à la main : le plus nourrissant de ce qu'il y a, sinon rien.
+function meilleurAliment(){
+  for(const k of ['alimentPlus', 'aliment', 'mais']) if(nourrirEtat(k).ok) return k;
+  return 'sans';
+}
 let chProduit = null, chDest = {}, chContinu = false, chEdit = null;
 
 /* Ce qu'on peut livrer depuis une culture : la matière brute, et tout ce que l'atelier
@@ -19832,6 +19920,7 @@ function chargerReglages(ip){
   if(chQuoi === 'elevage'){
     const P = patureDe(ip), l = P ? produitsElevage(P) : [];
     chEdit = l[0] || null;
+    chNourrir = (C && C.nourrir && C.nourrir !== 'auto') ? C.nourrir : meilleurAliment();
   } else chEdit = chProduit;
 }
 function ouvrirPlan(){
@@ -19862,12 +19951,16 @@ function planPuce(txt, actif, f, teinte){
   return b;
 }
 function majPlan(){
-  const rE = document.getElementById('planengins'), rM = document.getElementById('planmodes'),
-        rT = document.getElementById('plantaches'), rP = document.getElementById('planprod');
-  rE.innerHTML = ''; rM.innerHTML = ''; rT.innerHTML = ''; rP.innerHTML = '';
-  const lancer = document.getElementById('planlancer');
-  const boucle = document.getElementById('planboucle');
+  const g = (id)=> document.getElementById(id);
+  const rE = g('planengins'), rQ = g('planquoi'), rM = g('planmodes'), rO = g('planoption'),
+        rT = g('plantaches'), rP = g('planprod');
+  for(const r of [rE, rQ, rM, rO, rT, rP]) r.innerHTML = '';
+  const lancer = g('planlancer'), boucle = g('planboucle'), bloc3 = g('planbloc3nom');
   boucle.textContent = 'EN CONTINU';
+  /* LES BLOCS S'ALLUMENT DANS L'ORDRE. Un bloc dont la question d'avant n'a pas de
+     réponse est là, mais éteint : on voit le chemin entier, et où l'on en est. */
+  const allumer = (n)=>{ for(const k of [2, 3, 4]) g('planbloc' + k).classList.toggle('off', k > n); };
+  rO.classList.remove('nourrir'); rO.style.display = ''; rP.style.display = '';
 
   /* ---------- AUCUNE PARCELLE DÉSIGNÉE : on montre les chantiers en cours ---------- */
   if(!chLot.length){
@@ -19897,7 +19990,14 @@ function majPlan(){
       b.appendChild(x);
       rE.appendChild(b);
     }
-    document.getElementById('planaide').textContent = tutoPlan()
+    // Les blocs suivants, éteints, montrent ce qui viendra.
+    rQ.appendChild(planPuce('Culture', false, null)); rQ.appendChild(planPuce('Élevage', false, null));
+    bloc3.textContent = 'Culture ou élevage';
+    rM.appendChild(planPuce('Ce qu’on y sème, ou qui y vit', false, null)).classList.add('vide');
+    rT.appendChild(planPuce('Ce qu’on livre, et où', false, null)).classList.add('vide');
+    rO.style.display = 'none'; rP.style.display = 'none';
+    allumer(1);
+    g('planaide').textContent = tutoPlan()
       ? 'Touche ta parcelle : celle qui bat en jaune sur la carte.'
       : 'Touche une parcelle : tu diras quoi en faire, une fois ou en continu.'
         + (planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.');
@@ -19917,39 +20017,69 @@ function majPlan(){
   rE.appendChild(planPuce(chLot.length > 1 ? chLot.length + ' parcelles'
                                            : 'Parcelle ' + (chSel + 1), false,
                           ()=>{ chLot = []; planTaches = []; majPlan(); }));
+
+  /* ---------- BLOC 2 : culture ou élevage ---------- */
   const bCult = planPuce('Culture', chQuoi === 'culture',
     p.pature ? null : ()=>{ chQuoi = 'culture'; chProduit = CROPS[chCrop].cle;
                             chEdit = chProduit; chDest = {}; majPlan(); });
-  bCult.dataset.k = 'culture'; rE.appendChild(bCult);
-  rE.appendChild(planPuce('Élevage', chQuoi === 'elevage',
+  bCult.dataset.k = 'culture'; if(p.pature) bCult.classList.add('gris'); rQ.appendChild(bCult);
+  const bElev = planPuce('Élevage', chQuoi === 'elevage',
     p.pature ? ()=>{ chQuoi = 'elevage'; chDest = {};
                      const P = patureDe(chSel), l = P ? produitsElevage(P) : [];
-                     chEdit = l[0] || null; majPlan(); } : null));
+                     chEdit = l[0] || null; chNourrir = meilleurAliment(); majPlan(); } : null);
+  bElev.dataset.k = 'elevage'; if(!p.pature) bElev.classList.add('gris'); rQ.appendChild(bElev);
+  allumer(4);
 
   if(chQuoi === 'culture'){
-    // Ce qu'on sème. Une culture verrouillée par le palier reste visible, mais éteinte :
-    // le joueur voit ce qui l'attend au palier suivant.
+    /* ---------- BLOC 3 : ce qu'on sème, et l'engrais EN DESSOUS ---------- */
+    bloc3.textContent = 'Culture';
+    // Une culture verrouillée par le palier reste visible, mais grisée : le joueur voit
+    // ce qui l'attend au palier suivant.
     CROPS.forEach((c, i)=>{
       const ok = ouvert('cultures', c.cle);
-      rM.appendChild(planPuce(c.nom + (ok ? '' : ' · N' + niveauDe('cultures', c.cle)),
+      const b = planPuce(c.nom + (ok ? '' : ' · N' + niveauDe('cultures', c.cle)),
         i === chCrop, ok ? ()=>{ chCrop = i;
           if(produitsPossibles(c.cle).indexOf(chProduit) < 0){ chProduit = c.cle; chEdit = c.cle; }
-          chDest = {}; majPlan(); } : null, c.couleur));
+          chDest = {}; majPlan(); } : null, c.couleur);
+      if(!ok) b.classList.add('gris');
+      rM.appendChild(b);
     });
-    const Tep = TOOLS.find((t)=> t.key === 'engrais');
-    rM.appendChild(planPuce('Engrais', chEngrais,
-      (Tep && !Tep.verrou) ? ()=>{ chEngrais = !chEngrais; majPlan(); } : null));
-    // Ce qu'on livre : la matière brute, ou ce que l'atelier en fait.
+    /* L'ENGRAIS SOUS LA CULTURE, en retrait, avec « option » devant : « pour qu'on voie
+       bien que c'est une étape supplémentaire, optionnelle ». */
+    const Tep = TOOLS.find((t)=> t.key === 'engrais'), okE = !!(Tep && !Tep.verrou);
+    const bE = planPuce('Engrais' + (okE ? '' : ' · épandeur au garage'), chEngrais,
+      okE ? ()=>{ chEngrais = !chEngrais; majPlan(); } : null);
+    if(!okE) bE.classList.add('gris');
+    rO.appendChild(bE);
+    /* ---------- BLOC 4 : ce qu'on livre — la matière brute, ou ce que l'atelier en fait ---------- */
     for(const k of produitsPossibles(CROPS[chCrop].cle))
       rT.appendChild(planPuce(nomDe(k), chProduit === k,
         ()=>{ chProduit = k; chEdit = k; chDest = {}; majPlan(); },
         (PRODUITS[k] || {}).couleur));
   } else {
+    /* ---------- BLOC 3 : qui vit là, et de quoi on le nourrit ---------- */
+    bloc3.textContent = 'Élevage';
     const P = patureDe(chSel);
     const prods = P ? produitsElevage(P) : [];
-    if(!P) rM.appendChild(planPuce('Cette parcelle n’est pas encore un enclos', false, null));
-    else rM.appendChild(planPuce((ESPECES[P.espece] || {}).nom + ' · '
-                                 + P.betes.length + '/' + P.places, false, null));
+    if(!P){
+      rM.appendChild(planPuce('Cette parcelle n’est pas encore un enclos', false, null)).classList.add('vide');
+      rO.style.display = 'none';
+    } else {
+      const E = ESPECES[P.espece] || ESPECES.vache;
+      rM.appendChild(planPuce(E.nom + ' · ' + P.betes.length + '/' + P.places, false, null));
+      rO.classList.add('nourrir');
+      if(!E.rationCycle)
+        rO.appendChild(planPuce('Elles ne se nourrissent pas', false, null)).classList.add('vide');
+      else for(const [k, nom] of ALIMENTS_CHOIX){
+        const et = nourrirEtat(k);
+        const b = planPuce(nom + (et.dit ? ' · ' + et.dit : ''), chNourrir === k,
+          et.ok ? ()=>{ chNourrir = k; majPlan(); } : null,
+          k === 'sans' ? null : (PRODUITS[k] || {}).couleur);
+        b.dataset.nourrir = k;
+        if(!et.ok) b.classList.add('gris');
+        rO.appendChild(b);
+      }
+    }
     // UN PRODUIT À LA FOIS, ET CHACUN SA DESTINATION. « Pour le même élevage, fournir les
     // deux produits soit au même endroit, soit un endroit spécifique pour chacun. »
     for(const k of prods)
@@ -19990,7 +20120,7 @@ function majPlan(){
             + chLot.length + ' parcelles.'
           : 'Une fois ou en continu, puis LANCER.  ·  Touche une autre parcelle pour en'
             + ' ajouter une au lot.'));
-  document.getElementById('planaide').textContent = !tutoPlan() ? aide
+  g('planaide').textContent = !tutoPlan() ? aide
     : chQuoi !== 'culture' ? 'Touche CULTURE : on va y remettre du blé.'
     : !chDest[chProduit] ? 'Où livrer le blé ? Le silo est tout indiqué.'
     : 'Touche LANCER : le tracteur part travailler seul.';
@@ -20360,7 +20490,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
   if(!pret) return;
   for(const i of lot)
     poserChantier(i, {quoi:chQuoi, continu:chContinu, crop:chCrop,
-                      engrais:chEngrais, produit:chProduit,
+                      engrais:chEngrais, produit:chProduit, nourrir:chNourrir,
                       // Chaque chantier a SA copie des destinations : partager l'objet
                       // ferait qu'en retoucher un les retoucherait tous.
                       dest:Object.assign({}, chDest)});
@@ -28945,7 +29075,7 @@ function etatJeu(){
     chantiers: CHANTIERS.map((C)=> ({q:C.quoi, p:C.p, c:CROPS[C.crop || 0].cle,
       e:!!C.engrais, pr:C.produit || null,
       d:Object.assign({}, C.dest), k:!!C.continu,
-      r:!!C.recolte, l:!!C.livre})),
+      r:!!C.recolte, l:!!C.livre, n:C.nourrir || 'auto'})),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
     // `graines` est ce qui compte, et il détaille la cuve de la cour sac par sac.
     stock: {semence: grainesTotal(), graines: Object.assign({}, CUVES.graines),
@@ -29546,7 +29676,7 @@ function chargerPartie(S){
       const ic = CROPS.findIndex((c)=> c.cle === q.c);
       const C2 = poserChantier(q.p, {quoi:q.q === 'elevage' ? 'elevage' : 'culture',
                           crop:ic < 0 ? 0 : ic, engrais:!!q.e, produit:q.pr || null,
-                          dest:q.d || {}, continu:!!q.k});
+                          dest:q.d || {}, continu:!!q.k, nourrir:q.n || 'auto'});
       C2.recolte = !!q.r; C2.livre = !!q.l;
     }
     updateJourNuit(0);
@@ -30166,11 +30296,18 @@ function pisteAuge(C){
   // des charges. Lui porter du grain serait un troupeau de plus à ravitailler pour rien.
   if(!E.rationCycle){ C.etape = 'ruche'; C.bloque = null; return; }
   if(C.enginTerre >= 0){ C.bloque = null; return; }
+  /* SANS, OU AVEC QUOI. Le chantier porte le choix du joueur : `sans` — on ne porte rien
+     à l'auge, l'enclos n'est automatisé que pour sa production —, une clé de `RATION`,
+     ou `auto` pour les chantiers d'avant ce choix : n'importe quel fourrage, le meilleur
+     d'abord. Un fourrage choisi qui vient à manquer bloque, et le dit par son nom. */
+  const veut = C.nourrir || 'auto';
+  if(veut === 'sans'){ C.etape = 'sans nourrir'; C.bloque = null; return; }
   if(P.grain >= P.grainMax*SEUIL_AUGE){ C.etape = 'auge pleine'; C.bloque = null; return; }
-  const dispo = alimentsDisponibles();
+  const dispo = alimentsDisponibles().filter((a)=> veut === 'auto' || a.cle === veut);
   if(!dispo.length){
     const mal = 'PLUS D’ALIMENT POUR LES ' + E.pluriel.toUpperCase()
-              + ' – NI GRAIN NI ALIMENT EN CUVES';
+              + (veut === 'auto' ? ' – NI GRAIN NI ALIMENT EN CUVES'
+                                 : ' – PLUS DE ' + nomHaut(veut) + ' EN CUVES');
     if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
     return;
   }
@@ -30541,6 +30678,8 @@ function poserChantier(ip, o){
   const C = {quoi:(o && o.quoi) || 'culture', p:ip, continu:!!(o && o.continu),
              crop:(o && o.crop) || 0, engrais:!!(o && o.engrais),
              produit:(o && o.produit) || null, dest:(o && o.dest) || {},
+             // `auto` : le fourrage qu'il y a, le meilleur d'abord — voir `chNourrir`.
+             nourrir:(o && o.nourrir) || 'auto',
              etape:null, etapeM:null, enginTerre:-1, enginPort:-1,
              bloque:null, bloqueM:null, alternatives:null, malProduit:null};
   CHANTIERS.push(C);

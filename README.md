@@ -13192,3 +13192,54 @@ Bancs : le nouveau fil de bout en bout (`_flux`, 32 contrôles : pousse, marche 
 carte guidée, pick-up, croisement, appel, mission prise) ; `campagne30` 72/72, `bandeau`
 47/47, `ecrans` 81/81, `guidage` 106/106, `lecons` 25/25, `contrat` 93/93, `chantiers`
 44/44, `fenetres` 36/36, `hud` — adaptés à la chaîne à onze marches. `TEXTES.md` refait.
+
+## La fenêtre des chantiers en quatre blocs, et le choix de nourrir
+
+« Retravaille le visuel de la carte : la fenêtre beaucoup plus haute, qu'elle prenne
+quasiment toute la taille de l'écran, et des espaces vraiment visibles, que ça fasse bien
+plusieurs blocs. Premier bloc, on choisit la parcelle. Deuxième, culture ou élevage. Le
+bloc d'après, ce qu'on cultive ou ce qu'on élève ; l'engrais doit apparaître en dessous de
+la culture, pour qu'on voie bien que c'est une étape supplémentaire, optionnelle. Pour
+l'élevage, il faut choisir si on fournit les aliments ou pas — le maïs, les aliments, ou
+les aliments premium ; ce qui n'est pas débloqué, tu le grises, et s'il n'y a rien dans le
+silo ni l'entrepôt, tu grises aussi. Et ensuite la destination de la récolte, comme
+aujourd'hui. »
+
+**Quatre blocs numérotés, dans l'ordre des questions.** 1 · LA PARCELLE (la carte, avec sa
+légende), 2 · QUOI EN FAIRE (Culture / Élevage), 3 · CULTURE ou ÉLEVAGE (ce qu'on sème,
+ou qui vit là), 4 · LIVRER (le produit, puis le preneur). Chaque bloc est une carte posée
+sur la feuille, avec neuf pixels d'air entre elles ; ceux dont la question d'avant n'a pas
+de réponse sont là mais éteints, si bien qu'on voit tout le chemin d'un coup d'œil.
+
+**L'option en dessous, en retrait, avec son mot devant.** Sous la rangée des cultures :
+« Option · Engrais ». Sous la bête : « Nourrir · Sans / Maïs / Aliment / Aliment premium ».
+Le mot est un pseudo-élément — il ne compte pas parmi les puces, et les bancs qui
+comptent les puces ne le voient pas.
+
+**Grisé, mais là.** Une culture ou un fourrage fermé par le palier reste visible avec son
+niveau écrit dessus (« Maïs · N4 ») ; un fourrage ouvert mais absent des cuves porte
+« aucun stock » ; l'engrais sans épandeur porte « épandeur au garage ». Rien ne disparaît :
+on voit ce qui manque.
+
+**Nourrir, ou pas, et avec quoi.** Le chantier d'élevage porte le choix (`nourrir` : `sans`,
+`mais`, `aliment`, `alimentPlus`) ; l'écran propose d'office le plus nourrissant de ce
+qu'il y a. `pisteAuge` l'honore : « sans » ne fait partir personne à l'auge — l'enclos
+n'est automatisé que pour sa production —, un fourrage choisi qui vient à manquer bloque
+et le dit par son nom (« PLUS DE MAÏS EN CUVES »). Les chantiers des parties d'avant
+portent `auto` — n'importe quel fourrage, le meilleur d'abord — et rien ne change pour
+eux ; la sauvegarde garde le choix sous `n`.
+
+**Presque tout l'écran, et deux colonnes en paysage.** Six pixels de marge au lieu de
+douze. En paysage — c'est le mode du jeu — la carte prend la colonne de gauche sur toute
+la hauteur, les trois questions s'empilent à droite et défilent si l'écran est bas ; en
+portrait tout s'empile et le corps défile, la carte gardant une hauteur qui grandit avec
+l'écran. Mesuré : sur 900 × 560 les quatre blocs tiennent sans défiler, avec une carte de
+360 × 342 ; sur un téléphone couché (844 × 390) la carte reste entière et la colonne
+défile.
+
+**La carte guidée du tutoriel suit.** Le cadre jaune de la parcelle, la puce SILO et LANCER
+battent aux mêmes endroits ; le fil de la première mission repasse (32 contrôles).
+
+Bancs : `plan` et `chantiers` sans échec ; la sonde du fourrage (7 contrôles : sans,
+choisi absent, choisi présent, auto, sauvegarde, défaut) ; `ecrans`, `hud`, `fenetres`,
+`lecons`, `campagne30`, `bandeau` relancés.
