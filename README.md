@@ -13074,3 +13074,23 @@ leur hauteur, n'en sortent que de quatre centimètres ; les deux marches, rédui
 
 Mesuré au banc : boîte de la roue avant gauche z −0,81 à 2,11, échelle z 2,30 à 2,78 ;
 `materiel` 44/44.
+
+## Plus d'échelle : deux marches, remontées, sur la carrosserie
+
+« Enlève l'échelle, juste deux petites marches, mais bien sur la carrosserie. Faut pas
+qu'il y ait une marche en dessous de la carrosserie, tu les remontes un peu. »
+
+**Les montants et les barreaux s'en vont.** Il ne reste que deux marches, plus petites
+(26 × 38 cm au lieu de 30 × 40), posées à la cote du flanc à leur hauteur, devant le
+pneu et sous la porte de la cabine. Elles montent de 0,90 et 1,40 m à 1,15 et 1,75 m :
+la caisse fait 2,30 m de haut, son dessus fait la troisième marche, et aucune ne descend
+sous la carrosserie. Six volumes de moins sur la moissonneuse.
+
+| | avant | après |
+|---|---|---|
+| pièces | 2 montants, 4 barreaux, 2 marches | 2 marches |
+| hauteur des marches | 0,90 et 1,40 m | 1,15 et 1,75 m |
+| jeu avec la roue avant | 19 cm | 23 cm (après échelle du corps) |
+
+Mesuré au banc : marches y 1,22 à 1,92, z 2,33 à 2,74 ; roue avant gauche z −0,81 à 2,11 ;
+`materiel` 44/44.
