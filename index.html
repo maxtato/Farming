@@ -29311,13 +29311,28 @@ const AUDIO = {
          `charge` mêlait vitesse et gaz, et le régime — donc la hauteur — bougeait avec
          chaque ralentissement, gaz au plancher. */
       const gazN = Math.min(1, Math.abs(gaz)/0.7);
-      const charge = Math.max(gazN, 0.55*rap);
+      /* … MAIS UN ENGIN STOPPÉ NET NE RESTE PAS DANS LES TOURS. « Quand on a un accident et que
+         le véhicule s'arrête, si on maintient l'accélérateur, il reste dans les tours, alors
+         qu'il devrait avoir ralenti par l'accident ; il devrait repartir de plus bas. Pareil
+         de la marche avant aux freins puis à la marche arrière : il doit revenir au point
+         mort, puis repartir avec une accélération. » Le régime est donc aussi PLAFONNÉ PAR LA
+         VITESSE — mais seulement en dessous de la MOITIÉ de la vitesse maximale : au-dessus, le
+         plateau reste uniforme quoi que fassent les roues, comme demandé la fois d'avant. Le
+         plafond fait 0,3 à l'arrêt et 1 dès la moitié. Un choc qui stoppe l'engin fait donc
+         retomber le régime à 0,3 en moins d'une seconde, la montée en cours lâche, et une
+         nouvelle montée repart à 30 % de sa longueur dès que l'engin reprend de la vitesse ;
+         un demi-tour passe par le point mort. Six dixièmes de seconde entre une montée lâchée
+         par le plafond et la suivante : un engin qui pousse contre un mur ne bégaie pas. */
+      const plafond = 0.30 + 0.70*Math.min(1, Math.abs(v.speed)/(0.5*Math.max(1, v.vmax)));
+      const charge = Math.min(plafond, Math.max(gazN, 0.55*rap));
       // la montée enregistrée : on la lance, on la suit, on la lâche
       const AC = this.accel;
       if(AC){
         const pos = AC.depart + (t - AC.t0)*AC.taux;     // position dans le son : il se lit à `taux`
         const finie = pos >= AC.duree - 0.02;
-        const lache = Math.abs(gaz) < 0.35 || v.sec || AC.timbre !== timbre;
+        const parPlafond = this.regime > plafond + 0.12;               // l'engin a perdu sa vitesse : la montée n'a plus de sens
+        const lache = Math.abs(gaz) < 0.35 || v.sec || AC.timbre !== timbre || parPlafond;
+        if(parPlafond) this.accelT = t;
         if(finie || lache){
           AC.g.gain.setTargetAtTime(0, t, lache ? 0.06 : 0.12);
           try { AC.src.stop(t + 0.5); } catch(e){}
@@ -29327,8 +29342,14 @@ const AUDIO = {
           AC.g.gain.setTargetAtTime(AC.egal*(0.13 + 0.34*(0.65*this.regime + 0.35*charge)), t, 0.09);
         }
       }
-      if(!this.accel && accelBuf && !v.sec
-         && Math.abs(gaz) > 0.7 && this.regime < 0.45 && charge - this.regime > 0.3){
+      /* LA MONTÉE PART SUR L'INTENTION, PAS SUR LE PLAFOND : après un arrêt, la vitesse revient
+         peu à peu et le plafond avec elle ; attendre que la charge plafonnée dépasse le régime
+         de 0,3, c'est laisser la rampe grimper pendant ce temps et rater la montée (mesuré :
+         0,44 de régime au moment où le plafond y arrivait, pour un seuil à 0,45). On regarde
+         donc le gaz, et seulement que l'engin soit libre de bouger (plafond au-dessus du
+         régime) : contre un mur, rien ne repart. */
+      if(!this.accel && accelBuf && !v.sec && t - (this.accelT || 0) > 0.6
+         && Math.abs(gaz) > 0.7 && this.regime < 0.45 && gazN - this.regime > 0.3 && plafond > this.regime + 0.1){
         const src = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
         src.buffer = accelBuf; f.type = 'lowpass'; f.frequency.value = 1400; g.gain.value = 0;
         // la montée prend le ton de la machine, et sa vivacité : `montee` la lit plus vite

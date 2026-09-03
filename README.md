@@ -13762,3 +13762,27 @@ raccourcie, au pic de DFT sur ses trois derniers dixièmes). Tenue, sa raie fait
 3,2 s, un tiers de régime par seconde ; le raccord montée → boucle se mesure maintenant au
 pic de DFT fine, plus sûr que l'autocorrélation sur un son bruité, à moins de 2,5 % pour les
 quatre timbres.
+
+**Un engin stoppé net ne reste pas dans les tours.** « Quand on a un accident et que le
+véhicule s'arrête, si on maintient l'accélérateur, on n'a pas l'impression qu'il a baissé de
+régime : il reste dans les tours, alors qu'il devrait avoir ralenti par l'accident, et
+repartir de plus bas. Pareil de la marche avant aux freins puis à la marche arrière : on ne
+sent pas qu'il doit revenir au point mort pour accélérer en marche arrière ; ça reste un peu
+constant. » C'est la conséquence du plafonnement au gaz de la fois d'avant, qui avait coupé
+tout lien entre le régime et la vitesse. Le lien revient, mais SEULEMENT EN DESSOUS DE LA
+MOITIÉ de la vitesse maximale : le régime est plafonné par la vitesse — 0,3 à l'arrêt, 1 dès
+la moitié —, et au-dessus le plateau reste uniforme quoi que fassent les roues, comme
+demandé. Un choc qui stoppe l'engin fait donc retomber le régime à 0,3 en moins d'une
+seconde ; la montée en cours lâche (« l'engin a perdu sa vitesse, elle n'a plus de sens »),
+et une montée neuve repart à 30 % de sa longueur dès que l'engin reprend de la vitesse. Un
+demi-tour au manche — plein gaz, on tire, ça freine, ça recule — passe par le point mort
+et remonte avec une montée en marche arrière ; en arrière, le régime plafonne d'ailleurs à
+0,93, la marche arrière étant bridée à 45 % de la vitesse. Six dixièmes de seconde entre une
+montée lâchée par le plafond et la suivante : un engin qui pousse contre un mur ne bégaie
+pas. Et la montée part sur l'INTENTION — le gaz — dès que l'engin est libre de bouger, non
+plus sur la charge plafonnée : après un arrêt la vitesse revient peu à peu, et attendre que
+le plafond dépasse le régime de 0,3 laissait la rampe grimper pendant ce temps et rater la
+montée (mesuré : 0,44 de régime quand le plafond y arrivait, pour un seuil à 0,45). Sonde
+`sons2` : deux contrôles de plus, cinquante et un — stoppé net gaz maintenu, 0,3
+puis une montée neuve à 30 % ; de l'avant aux freins puis en arrière, le régime descend,
+passe par 0,3, remonte avec une montée ; et à 60 % de la vitesse, toujours 1.
