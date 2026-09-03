@@ -13688,3 +13688,30 @@ bout de la ferme, ne dit rien. Sonde `sons2` : cinq contrôles de plus, quarante
 tout — un choc à 5 m/s sonne à 0,44, le même dans le tiers de seconde ou un frôlement se
 tait ; le tracteur vert lancé à 6 m/s dans un lampadaire isolé fait sonner le métal, dans un
 bâtiment le mur, dans le tracteur bleu la tôle.
+
+**Le pick-up ne redescend plus pour remonter.** « Pour le pick-up, c'est comme avant : quand
+il arrive à plein régime, le son doit rester statique, et non pas redescendre pour
+remonter. » Le relevé fin l'avait montré sans qu'on en tire la conséquence : la boucle de
+croisière du SUV n'est pas plate, elle MONTE de 85,5 à 96,5 Hz sur ses deux secondes — la
+voiture accélérait doucement quand on l'a enregistrée —, et à chaque tour de boucle on
+entend le moteur retomber puis regrimper. Aucun autre passage de l'enregistrement n'est
+meilleur : le SUV prend des virages tout du long. L'encodeur sait donc maintenant APLANIR LA
+HAUTEUR d'une boucle (`hauteur`, la hauteur nominale) : il la suit par autocorrélation —
+fenêtre de 100 ms, pas de 50 ms — et rééchantillonne à vitesse variable, lu plus vite là où
+le moteur est plus bas, moins vite là où il est plus haut, jusqu'à ce que la hauteur soit
+égale d'un bout à l'autre, à sa moyenne, en plusieurs passes tant que ça s'améliore. Le
+pick-up passe de 85,5 → 96,5 Hz à 87,8 → 89,0, à 89,6 Hz ; le tracteur de ±0,8 % à ±0,4, le
+fourgon de ±0,3 à ±0,14. L'IMT au pas, lui, chasse trop vite pour le lissage (±4 %) : c'est
+le moteur, on le garde.
+
+Et la même mesure sur les MONTÉES dit où chacune finit — ce qu'on n'avait que supposé. À la
+MÉDIANE des six derniers dixièmes, et c'est une leçon : la moyenne de cinq fenêtres avait
+d'abord lu 82,6 Hz à la fin de la montée du tracteur, à cause d'une seule fenêtre folle
+(93,9 sur un plateau à 78), et la boucle s'était retrouvée calée six pour cent trop haut.
+Relu à la médiane : l'IMT finit à 78, comme sa boucle ; le Zastava à 59,4 sur une boucle à
+61,8 — le fourgon REMONTAIT donc de 4 % au moment précis du plein régime ; le jaune à 69,4
+sur 68,5 ; le pick-up à 93 × 1,18 sur 89,5. Chaque `plage` se cale sur la fin mesurée de sa
+montée : tracteurs et moissonneuse [0,56 ; 1,0], fourgon [0,74 ; 0,96], jaune [0,68 ; 1,0],
+pick-up [0,62 ; 1,23]. Sonde `sons2` : un contrôle de plus, quarante-cinq — la hauteur des
+six derniers dixièmes de chaque montée, à son taux, contre celle de sa boucle à `plage[1]`,
+mesurées sur les sons décodés, à la médiane : moins de 2,5 % d'écart pour les quatre.
