@@ -13536,3 +13536,14 @@ cette fois, parce qu'il a des harmoniques jusqu'à 6 000 (le fondamental est à 
 kilo-octets de WAV, seize en base64. Le passe-bas de la chaîne s'ouvre avec la dérive, de
 3 500 à 7 000 Hz : plus ça glisse, plus ça brille. Les deux voix du dérapage sont maintenant
 celles du joueur ; le bruit blanc ne sert plus que le temps du décodage.
+
+**Le moteur du pick-up.** « Bruit de moteur pour le pick-up » : cent quarante-huit secondes
+d'un SUV qui roule, accélère et prend des virages — un moteur qui change de régime tout du
+long, ce qu'une boucle ne peut pas être. On a donc SUIVI SON RÉGIME (`_son_regime` : la
+fréquence dominante entre 40 et 400 Hz, par quart de seconde, et le niveau) et gardé les deux
+secondes les plus stables à un niveau de croisière : de 9,3 à 11,3 s, fondamental à 91 Hz,
+écart-type 1,9 Hz. Fondues en boucle, à 6 000 Hz comme le tracteur : vingt-quatre kilo-octets
+de WAV, trente-deux en base64. La vitesse de lecture fait le reste, de 0,76 au ralenti à 1,24
+à plein régime, et le régime monte toujours en deux secondes et demie. Le trafic garde
+l'ancienne voiture : c'est un décor, et il est bon. Banc `son` adapté : la boucle du pick-up
+dure 1,92 s, non plus 0,4.
