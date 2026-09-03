@@ -13495,3 +13495,26 @@ la rocade le crissement monte et la fumée est grise, sans dérive tout se tait 
 deux voix et ne sonne pas à deux cents mètres ; la sonnerie tinte aux coups de la pastille ;
 une voiture qui pile devant le tracteur klaxonne une fois, pas deux. Banc `son` (22 contrôles)
 adapté : il tient le gaz plus longtemps, le temps que le régime monte.
+
+## La bande-son commence par le klaxon
+
+« Je vais t'envoyer des sons pour refaire la bande-son du jeu ; déjà le klaxon, quand on passe
+devant une voiture et qu'elle freine fortement. »
+
+**La porte d'entrée des sons** (`outils/sons`). Les sons envoyés entrent par la même porte que
+les deux moteurs : un WAV 16 bits mono, rééchantillonné bas, en base64 dans la table `SONS`.
+`sons.json` dit pour chaque clé le fichier envoyé, la fréquence retenue — la moitié de ce que le
+son a de plus aigu, pas plus —, la crête et les bornes ; `encoder.js` le fait décoder par
+Chromium, le rééchantillonne, le met en mono et écrit `<clé>.b64` ; `poser.py` pose le résultat
+dans le jeu. Les fichiers envoyés restent dans le dossier des envois, ils ne sont pas à nous.
+
+**Le klaxon.** Trois coups brefs de klaxon de voiture, 0,83 s, stéréo 44 100 Hz à l'envoi ;
+mesuré, rien au-dessus de 2 000 Hz — le fondamental est à 400, une harmonique à 1 000 —, donc
+8 000 Hz mono suffisent : treize kilo-octets de WAV, dix-sept en base64. Il remplace les deux
+dents de scie synthétisées, qui ne servent plus que le temps du décodage. Une voiture le joue
+tel quel, un camion aux quatre cinquièmes, et le volume tombe au carré de la distance, comme
+avant. Le déclenchement ne change pas : une voiture du trafic qui pile devant le joueur, un
+coup, puis quatre secondes et demie de silence.
+
+Sonde `sons2` (14 contrôles) : l'échantillon décodé dure 0,83 s et pèse dix-sept kilo-octets ;
+une voiture le joue à sa vitesse, un camion à 0,82 ; à deux cents mètres on ne sonne pas.
