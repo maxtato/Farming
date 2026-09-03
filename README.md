@@ -13568,3 +13568,27 @@ lue de 0,55 à 1,10 (`plage` du pick-up) pour reprendre exactement où la monté
 marche. Lâcher le gaz coupe la montée en un cinquième de seconde ; ré-écraser à 30 % de régime
 reprend la montée à 30 % de sa longueur. Les diesels ne changent pas. Sonde `sons2` : six
 contrôles de plus, vingt-quatre en tout.
+
+**Le tracteur et le fourgon.** « Pour le tracteur, utilise ce son-là ; pareil, prends plusieurs
+secondes de l'accélération, entre le début de la montée et la fin, où il arrive à plein régime.
+Pour le fourgon, utilise ce son. » Deux enregistrements de tracteurs, moteur au premier plan :
+un IMT 533 de 1961 pour les tracteurs et la moissonneuse, un Massey Ferguson 6290 de 1999 pour
+le fourgon. Le suivi du régime dit où couper. L'IMT tourne au ralenti à 46 Hz pendant douze
+secondes, puis monte de 44 Hz (13,0 s) à 78 (20,5 s) et s'y tient : la MONTÉE est prise
+entière, de 13,0 à 21,3 s — huit secondes et trois dixièmes, quatre-vingt-dix-sept kilo-octets
+de WAV, cent trente en base64 —, et la BOUCLE dans le plus stable de son plein régime, de 65 à
+68 s, à 78 Hz : trois secondes fondues sur cent millisecondes, 2,9 s, quarante-cinq kilo-octets
+en base64. La montée finit à 78 Hz et la boucle tourne à 78 : la `plage` des diesels devient
+[0,56 ; 1,0], pour que le ralenti de la boucle (0,56 × 78 = 44 Hz) soit le départ de la montée
+et le plein régime la boucle telle quelle. Chaque machine y met toujours son ton, la montée
+aussi : lue à 0,76 pour la moissonneuse, à 0,88 pour le tracteur bleu. Le Massey monte de 44 à
+58 Hz en trois secondes (4,0 à 6,8 s) et tient 58 en croisière (24 à 27 s) : même découpe,
+`plage` [0,76 ; 1,0], et le fourgon a maintenant SA chaîne, la troisième après le diesel et
+l'essence. Quand on change d'engin, les autres voix s'effacent en un dixième de seconde et, si
+une montée était en cours, elle lâche ; celle du nouveau timbre part d'où en est le régime. Le
+régime suit la montée — un huitième par seconde pour le tracteur : huit secondes pour prendre
+ses tours, c'est le son envoyé, pas une rampe — et la boucle se tait dessous jusqu'au dernier
+quart de seconde ; la rampe de synthèse ne joue plus qu'à mi-gaz, sous 0,7. Le jeu pèse 2,4 Mo
+tout compris. Banc `son` : la boucle diesel dure 2,9 s, et le plein gaz se mesure une fois la
+montée finie ; sonde `sons2` : cinq contrôles de plus, vingt-neuf en tout, la rampe vérifiée à
+mi-gaz, là où elle joue encore.
