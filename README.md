@@ -13447,3 +13447,51 @@ libre, la leçon pointe les outils pour l'épandeur ; le bloc Livrer sans atelie
 les destinations, et retrouve Blé / Farine avec le moulin. Bancs `lecons`, `plan`, `guidage`,
 `ecrans`, `campagne30`, `fenetres` verts. `TEXTES.md` regénéré ; l'outil des textes sait
 lire un onglet calculé.
+
+## Le moteur prend ses tours, la terre chuinte, la route crisse, le trafic klaxonne, le téléphone sonne
+
+« Quand une voiture freine brusquement parce qu'on est passé devant, un son de klaxon. Quand
+on tourne sur l'herbe ou la terre, pas de la fumée grise mais une fumée un peu marron, liée à
+la terre, et un bruit de dérapage sur la terre ; sur le revêtement de route, le dérapage crée
+de la fumée grise avec un crissement de pneus. La montée en tonalité du moteur monte trop
+vite dans les tours : fais ça de manière plus fluide, comme s'il prenait vraiment de la vitesse
+petit à petit, qu'on le sente accélérer. Et pour le téléphone, une sonnerie de téléphone
+vintage. »
+
+**Le moteur.** Le ton suivait la charge — vitesse plus gaz — avec un dixième de seconde de
+retard : plein gaz à l'arrêt, le moteur était déjà aux trois quarts avant que l'engin ait
+bougé. Il porte maintenant un RÉGIME qui court après la charge à vitesse bornée : deux
+secondes et demie du ralenti au plein, une et quart pour redescendre (`REGIME_MONTE`,
+`REGIME_DESCEND`). Le ton et le filtre suivent le régime ; le volume sent encore le gaz tout
+de suite, on entend l'effort avant les tours.
+
+**Le dérapage.** La physique calcule déjà la dérive latérale des pneus (`slip`). Mesuré sur
+la rocade à pleine vitesse : un cinquième de braquage donne 0,23 au tracteur et 0,31 au
+pick-up — une courbe, pas un dérapage —, un demi-braquage 0,45 et 0,61, le braquage complet
+0,92. Ça dérape donc au-dessus de 0,45, à fond dès 0,9, et à plus de deux mètres et demi par
+seconde. Le SOL décide
+(`solDur`) : les quatre chaussées de l'anneau et la bande de bitume de la cour, du parking à
+l'atelier, sont durs ; tout le reste — champ, chemin de sable, herbe — est de la terre. Deux
+voix de bruit blanc, toujours prêtes et muettes : la terre est un souffle grave (passe-bande à
+420 Hz, large), la route un sifflement étroit à 2 100 Hz doublé d'une pointe à 2 900, qui monte
+un peu avec la dérive. La poussière sort des roues arrière, brune sur la terre, grise sur le
+bitume (`derapage`, dans la boucle).
+
+**Le klaxon.** Le frein du trafic ne se serre que pour le joueur, ou après l'avoir embouti :
+une décélération de plus de cinq mètres par seconde carrée, c'est donc toujours lui. Deux
+dents de scie à la quinte — 400 et 505 Hz pour une voiture, 250 et 315 pour un camion —,
+passe-bas, attaque d'un pouce qui écrase le volant, volume au carré de la distance. Un coup,
+puis quatre secondes et demie de silence.
+
+**La sonnerie.** Deux clochettes, 1 050 et 1 320 Hz, frappées par un marteau à vingt-deux
+coups par seconde : c'est le trémolo qui fait le « drrring ». Le rythme est celui de la
+pastille — deux coups, puis un silence — et la même horloge sert aux deux : on voit le
+combiné trembler exactement quand on l'entend.
+
+Sonde `sons2` (13 contrôles) : le régime monte de 0,1 par quart de seconde sans à-coup et
+redescend deux fois plus vite ; le champ, le chemin et l'herbe sont de la terre, la rocade et la
+cour du bitume ; en dérapant dans le champ le chuintement monte et la poussière est brune, sur
+la rocade le crissement monte et la fumée est grise, sans dérive tout se tait ; un klaxon fait
+deux voix et ne sonne pas à deux cents mètres ; la sonnerie tinte aux coups de la pastille ;
+une voiture qui pile devant le tracteur klaxonne une fois, pas deux. Banc `son` (22 contrôles)
+adapté : il tient le gaz plus longtemps, le temps que le régime monte.
