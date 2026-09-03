@@ -2879,41 +2879,59 @@ const FRONT_N = FRONT + DZ_NORD;         // la bande nord a suivi son brin de ro
    farine vaut donc 2,22 × 1,5 / 0,72 = 4,63 € le kilo. C'est ce qui garantit qu'une
    transformation est toujours gagnante sans jamais avoir à équilibrer un prix à la
    main : on ne règle qu'un rendement et un palier. */
-const PALIER = {BRUT:1, TRANSFORME:1.5, FINI:2, COMPOSE:2.5, CONTRAT:3};
+/* ---------- LA RÉCOLTE PAIE, ET PAS SEULEMENT LA PRIME ----------
+   Le joueur : « une grosse partie de la rémunération est faite par les primes de fin de
+   mission ; sans ça on ne peut pas faire évoluer notre champ. Livrer du blé à la
+   Coopérative pour faire monter la trésorerie, c'est quasi impossible : on gagne quelques
+   euros, jamais de quoi racheter une amélioration. Change complètement ça. C'est pas grave
+   si les prix sont plus importants que la réalité ; ce qu'il faut, c'est qu'en plusieurs
+   récoltes on puisse quand même faire évoluer notre champ. Et diminue un peu les primes de
+   fin de contrat — que ça reste raisonnable, mais rémunérateur quand on travaille à côté. »
+   MESURÉ AVANT : une parcelle de blé rend 120 kg, soit 70 € au barème (0,588 € le kilo),
+   60 chez la Coopérative ; la première amélioration coûte 600 €. Dix récoltes.
+   TOUS LES PRIX BRUTS FONT FOIS QUATRE — le blé à 2,35 €, l'œuf à 0,80 —, les deux tarifs
+   écrits à la main aussi (la farine à 3,60, l'huile de colza à 13,64), et le reste suit
+   par les paliers : une transformation vaut toujours une fois et demie sa matière. La même
+   parcelle rend maintenant 240 € chez la Coopérative : deux récoltes et demie pour la
+   première amélioration, et une contrat de cent kilos vaut 235 € de vente plus 350 de
+   prime. Les primes de mission, elles, baissent d'un quart (voir `MISSIONS`), et la
+   prime d'un contrat de village passe de deux fois à une fois et demie la marchandise
+   (`PALIER.CONTRAT`) : la commande reste meilleure que la vente sèche, sans l'écraser. */
+const PALIER = {BRUT:1, TRANSFORME:1.5, FINI:2, COMPOSE:2.5, CONTRAT:2.5};
 const PRODUITS = {
   /* --- ce qui sort de la terre --- */
-  ble:    {nom:'Blé',       couleur:'#E3C267', brut:0.588, cereale:true},
-  mais:   {nom:'Maïs',      couleur:'#E8B93A', brut:0.765, cereale:true},
-  orge:   {nom:'Orge',      couleur:'#D8C68A', brut:0.647, cereale:true},
-  avoine: {nom:'Avoine',    couleur:'#E7DCA8', brut:0.706, cereale:true},
-  colza:  {nom:'Colza',     couleur:'#F2D82E', brut:1.059, cereale:true},
-  raisin: {nom:'Raisin',    couleur:'#7A4A82', brut:0.95},
-  olives: {nom:'Olives',    couleur:'#6E7A46', brut:1.03},
+  ble:    {nom:'Blé',       couleur:'#E3C267', brut:2.352, cereale:true},
+  mais:   {nom:'Maïs',      couleur:'#E8B93A', brut:3.06, cereale:true},
+  orge:   {nom:'Orge',      couleur:'#D8C68A', brut:2.588, cereale:true},
+  avoine: {nom:'Avoine',    couleur:'#E7DCA8', brut:2.824, cereale:true},
+  colza:  {nom:'Colza',     couleur:'#F2D82E', brut:4.236, cereale:true},
+  raisin: {nom:'Raisin',    couleur:'#7A4A82', brut:3.8},
+  olives: {nom:'Olives',    couleur:'#6E7A46', brut:4.12},
 
   /* --- ce qui sort de la bête --- */
-  lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:0.53, unite:'L'},
+  lait:   {nom:'Lait',      couleur:'#DCEEF5', brut:2.12, unite:'L'},
   /* LES ŒUFS SE COMPTENT, ILS NE SE PÈSENT PAS. Le barème les tarife à 0,20 € pièce :
      c'est ce chiffre-là qui est écrit, et le prix au kilo s'en déduit tout seul — un œuf
      fait soixante grammes, donc 16,67 œufs au kilo et 3,33 € le kilo. C'est aussi ce qui
      remet la boulangerie à l'endroit : écrire 0,20 le KILO rendait une viennoiserie
      moins chère qu'un pain, faute d'avoir converti. */
-  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:0.20, unite:'œufs', parKg:1/0.060,
+  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:0.80, unite:'œufs', parKg:1/0.060,
            nomme:true},
-  laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:1.807},
+  laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:7.228},
   // Le miel se récolte en petites quantités et se vend cher : c'est le produit brut
   // le mieux payé de la ferme, et un rucher tient sur une parcelle qu'on n'aurait pas
   // labourée. Une ruche donne peu, mais elle donne toute la journée.
-  miel:   {nom:'Miel',      couleur:'#E8A62E', brut:2.75},
+  miel:   {nom:'Miel',      couleur:'#E8A62E', brut:11},
   /* LE LAIT DE BREBIS. Plus riche que celui de vache — une brebis en donne moins, mais
      cent kilos font vingt kilos de fromage là où le lait de vache n'en fait que douze.
      C'est ce qui en fait le produit haut de gamme de la ferme, et c'est ce qui donne
      une raison de monter une bergerie en plus de l'étable. */
-  laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:0.76, unite:'L'},
+  laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:3.04, unite:'L'},
 
   /* --- une transformation --- */
-  farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME', tarif:0.90},
+  farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME', tarif:3.60},
   aliment:    {nom:'Aliment',       couleur:'#D8B24A', de:'mais',   rendement:0.86, palier:'TRANSFORME'},
-  huile:      {nom:'Huile de colza',couleur:'#E8C24A', de:'colza',  rendement:0.34, palier:'TRANSFORME', tarif:3.41, unite:'L'},
+  huile:      {nom:'Huile de colza',couleur:'#E8C24A', de:'colza',  rendement:0.34, palier:'TRANSFORME', tarif:13.64, unite:'L'},
   huileOlive: {nom:'Huile d’olive',couleur:'#B9C24A', de:'olives', rendement:0.20, palier:'TRANSFORME', unite:'L'},
   biere:      {nom:'Bière',         couleur:'#C98A2E', de:'orge',   rendement:0.70, palier:'TRANSFORME', unite:'L'},
   laitAvoine: {nom:'Lait d’avoine',couleur:'#EFE6CE', de:'avoine', rendement:0.80, palier:'TRANSFORME', unite:'L', interne:true},
@@ -3969,6 +3987,11 @@ const parcellesPermises = ()=> (MODE_LIBRE || TOUT_OUVERT) ? NIVEAUX[NIVEAUX.len
    de sa filière ; un tracteur plus rapide, un semoir plus grand ou dix vaches de plus ne
    font que réduire le nombre de trajets, de remplissages et de cycles d'attente. C'est
    exactement là que le joueur choisit de dépenser, et personne ne le lui impose. */
+/* LES PRIMES ONT BAISSÉ D'UN QUART. Elles portaient l'économie à elles seules — 200 € pour
+   trente kilos de blé qui en valaient dix-huit. Les ventes payent maintenant quatre fois
+   plus (voir `PRODUITS`) ; la prime reste ce qui rend une mission plus intéressante que
+   la même livraison sans mission, et rien de plus : 150 € pour la première, 30 000 pour
+   la dernière. */
 const MISSIONS = [
   /* CHAQUE COMMERÇANT A SA VOIX. Le joueur : « certains textes sont très techniques,
      d'autres humoristiques, d'autres presque administratifs » ; « chaque commerçant doit
@@ -3980,21 +4003,21 @@ const MISSIONS = [
      `entete` remplace la suscription « Mission de campagne » de la fenêtre où l'on
      décroche ; `apres` porte des pages de plus, qui peuvent avoir un visage et leur
      propre ligne de suite. */
-  {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:200, xp:60,
+  {niv:1, lieu:'Coopérative', lignes:[{cle:'ble', need:30}], prime:150, xp:60,
    entete:'UNE PREMIÈRE COMMANDE',
    texte:'Alors c’est vous qui avez repris la vieille ferme ? Bienvenue. Si votre première récolte est prête, apportez-moi 30 kg de blé. On va commencer tranquillement.',
    fin:'Voilà, première vente. Pas mal pour un début. Et retenez une chose : même sans contrat, je rachète vos récoltes.',
    apres:[{titre:'VENTE LIBRE DÉBLOQUÉE', txt:'La Coopérative achète vos récoltes à tout moment.<br>Les prix sont modestes, mais elle accepte facilement les gros volumes.'},
           {titre:'LA COOPÉRATIVE', txt:'<i>« Je ne serai pas toujours celui qui paie le mieux. Mais quand il faut vendre vite, vous savez où me trouver. »</i>', face:{nom:'Coopérative', humeur:'bravo'}},
           {titre:'LE VILLAGE VOUS A REPÉRÉ', txt:'Votre première récolte n’est pas passée inaperçue.<br>D’autres entreprises pourraient bientôt appeler.'}]},
-  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:300, xp:80,
+  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:220, xp:80,
    texte:'La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 80 kg.',
    fin:'Hum… bonne tenue, grain régulier. Ça ira très bien. Gardez cette qualité et nous pourrons parler de volumes plus sérieux.'},
   /* LE SEUL PRÉAMBULE DE LA CAMPAGNE. Le cahier des charges veut que l'épandeur soit
      PRÉSENTÉ une fois — on va le chercher, on le remplit, on voit la pousse accélérer —
      et qu'il redevienne facultatif dès la mission suivante. Deux étapes qui indiquent,
      et qui ne bloquent rien : la mission se solde en livrant, épandeur ou pas. */
-  {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:600, xp:100,
+  {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:450, xp:100,
    prep:[
      {cle:'epandeur', ou:'Garage', titre:'PRENDRE L’ÉPANDEUR',
       txt:'PRENDRE L’ÉPANDEUR – Il est au garage du village, 250 €. On verra vite si l’engrais vaut son prix.',
@@ -4016,20 +4039,20 @@ const MISSIONS = [
       fait:()=> cuveDe(TOOLS.find((T)=> T.key === 'engrais'), 'engrais') > 0.5}],
    texte:'J’ai une commande un peu plus grosse : 150 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses.',
    fin:'Très bien. Vous commencez à produire régulièrement. C’est généralement à ce moment-là qu’on commence à acheter trop de machines.'},
-  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:900, xp:120,
+  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:680, xp:120,
    texte:'Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume.',
    fin:'Parfait. Quantité, qualité, délai. Vous commencez à devenir un fournisseur intéressant.'},
-  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1400, xp:150,
+  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1050, xp:150,
    texte:'Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste.',
    fin:'Ah, ça c’est une farine qui me plaît ! Vous voyez ? Même blé… mais déjà beaucoup plus de valeur.'},
-  {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1800, xp:170,
+  {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1350, xp:170,
    texte:'Le blé fonctionne. Passons au maïs. 180 kg pour un premier test.',
    fin:'Très bien. Continuez comme ça. Une exploitation capable de fournir plusieurs céréales nous intéresse beaucoup plus.'},
-  {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:2500, xp:180,
+  {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:1880, xp:180,
    texte:'La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 24 œufs pour moi.',
    fin:'Parfait ! Avec votre farine et vos œufs, je vais finir par ne plus avoir besoin de personne d’autre.'},
   {niv:5, lieu:'Boulangerie',
-   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2800, xp:200,
+   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2100, xp:200,
    texte:'Cette fois je veux le panier complet : 72 kg de farine et 36 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps.',
    fin:'Tout est là, et en même temps. Ça, c’est déjà une vraie organisation de ferme.'},
   /* LE PALIER SIX NE COMPTE PLUS DEUX FOIS LA MÊME ORGE.
@@ -4046,75 +4069,75 @@ const MISSIONS = [
      arriver à 30. » Les primes et les expériences ne bougent PAS de position — 3 200 puis
      3 600, 220 puis 240 — parce que la campagne entière vaut 11 640 XP et qu'un banc compte
      les trente valeurs dans l'ordre. */
-  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:3200, xp:220,
+  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:2400, xp:220,
    texte:'On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 140 litres.',
    fin:'Très bonne. Et surtout : brassée juste à côté. Celle-là, je vais pouvoir la mettre en avant sur la carte.'},
-  {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:60}, {cle:'farine', need:120}], prime:3600, xp:240,
+  {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:60}, {cle:'farine', need:120}], prime:2700, xp:240,
    texte:'J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 60 litres de bière et 120 kg de farine.',
    fin:'Parfait. Votre ferme a maintenant son petit coin dans mon magasin. Essayez de ne pas me laisser les rayons vides.'},
-  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:4000, xp:260,
+  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:3000, xp:260,
    texte:'Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 200 kg et nous testerons votre récolte.',
    fin:'Très bon résultat. Continuez à en produire : ce ne sera probablement pas notre dernière commande.'},
   /* LA SEULE MISSION QUE LE HÉROS SE DONNE À LUI-MÊME. Personne ne commande d'aliment
      premium : c'est lui qui regarde ses trois céréales et décide de mieux nourrir ses
      bêtes. Son visage, ses mots, et à la fin sa réplique — « même les animaux mangent
      mieux que moi ». */
-  {niv:8, faire:'alimentPlus', prime:4500, xp:280, qui:'Moi', entete:'NOURRIR MIEUX',
+  {niv:8, faire:'alimentPlus', prime:3380, xp:280, qui:'Moi', entete:'NOURRIR MIEUX',
    titre:'Produire 184 kg d’aliment premium',
    texte:'Maïs, orge, avoine… j’ai tout ce qu’il faut. Avec un mélangeur, je pourrais fabriquer mon propre aliment premium. Deux lots devraient donner 184 kg.',
    fin:'Voilà. Maintenant même les animaux mangent mieux que moi.'},
-  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:5500, xp:300,
+  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:4120, xp:300,
    texte:'On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres.',
    fin:'Très bon lait. Pour un premier troupeau, c’est prometteur. Si vous augmentez la production, appelez-moi.'},
-  {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:6000, xp:320,
+  {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:4500, xp:320,
    texte:'J’aurais besoin de 350 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir.',
    fin:'Parfait. Là, on ne parle plus d’un essai. Votre production laitière commence à compter.'},
-  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:7000, xp:340,
+  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:5250, xp:340,
    texte:'Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 28 kg de fromage.',
    fin:'Excellent. Celui-là reste sur la carte. Et je veux pouvoir écrire “fabriqué à la ferme”.'},
   {niv:10, lieu:'Supermarché',
-   lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:8000, xp:360,
+   lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:6000, xp:360,
    texte:'Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour.',
    fin:'Parfait. Les quantités sont bonnes. Votre ferme est officiellement référencée chez nous.'},
-  {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:8500, xp:380,
+  {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:6380, xp:380,
    texte:'Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 40 premiers kilos.',
    fin:'Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver.'},
-  {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:9000, xp:400,
+  {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:6750, xp:400,
    texte:'Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis.',
    fin:'Ah oui… beaucoup plus riche que le lait de vache. Avec ça, on peut faire quelque chose de vraiment intéressant.'},
-  {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:9500, xp:420,
+  {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:7120, xp:420,
    texte:'J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos.',
    fin:'Celui-là a du caractère. Gardez-moi une place dans votre prochaine production.'},
-  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:10000, xp:450,
+  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:7500, xp:450,
    texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 100 kg.',
    fin:'Parfait. Votre bergerie est officiellement devenue mon fournisseur.'},
-  {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:11000, xp:480,
+  {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:8250, xp:480,
    texte:'On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos.',
    fin:'Regardez-moi ça… Celui-là ne va pas rester longtemps sur l’étal.'},
   {niv:14, lieu:'Boulangerie',
    lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}, {cle:'miel', need:12}],
-   prime:12000, xp:500,
+   prime:9000, xp:500,
    texte:'J’ai une idée : votre farine, vos œufs et votre miel. Si ça fonctionne comme je l’imagine, on tient quelque chose.',
    fin:'Exactement ! Tout vient de votre ferme. Là, je peux vraiment raconter une histoire aux clients.'},
-  {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:13000, xp:520,
+  {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:9750, xp:520,
    texte:'Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 300 kg pour commencer.',
    fin:'Très bien. Et avant de tout revendre brut, regardez ce qu’un pressoir peut en tirer.'},
-  {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:14500, xp:560,
+  {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:10880, xp:560,
    texte:'J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 68 litres d’huile de colza.',
    fin:'Parfait. Produit à quelques kilomètres de la cuisine : difficile de faire plus local.'},
-  {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:17000, xp:600,
+  {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:12750, xp:600,
    texte:'Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 200 kg d’olives.',
    fin:'Très bien. Les caisses partent directement en rayon. Maintenant, j’attends de voir ce que vous allez faire avec l’huile.'},
-  {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:18000, xp:650,
+  {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:13500, xp:650,
    texte:'Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 40 litres de votre huile.',
    fin:'Voilà. Là, on change de catégorie. Cette huile vaut clairement plus que les olives vendues brutes.'},
-  {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:20000, xp:700,
+  {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:15000, xp:700,
    texte:'On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 200 kg fera l’affaire.',
    fin:'Très bien. Il se vendra facilement comme ça. Mais connaissant le caviste… il ne va pas vouloir le manger.'},
-  {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:22000, xp:750,
+  {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:16500, xp:750,
    texte:'Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée.',
    fin:'Hm… intéressant. Vraiment intéressant. Vous ne cultivez plus seulement des produits. Vous commencez à avoir une signature.'},
-  {niv:19, faire:'porcs4', prime:26000, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
+  {niv:19, faire:'porcs4', prime:19500, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
    texte:'Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes.',
    fin:'Très bien. Bêtes saines, bon gabarit. Si vous augmentez l’élevage, je prendrai des lots plus importants.'},
   /* LA DERNIÈRE. Huit marchandises de sept filières différentes : c'est toute
@@ -4129,7 +4152,7 @@ const MISSIONS = [
            {cle:'fromage', need:28}, {cle:'fromageBrebis', need:20},
            {cle:'miel', need:12}, {cle:'huile', need:34},
            {cle:'huileOlive', need:20}, {cle:'vin', need:140}],
-   prime:40000, xp:1000,
+   prime:30000, xp:1000,
    texte:'J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.\nFarine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous.',
    fin:'Tout est là. Absolument tout. Quand je pense que votre première livraison faisait trente kilos de blé…',
    apres:[{titre:'L’EXPLOITATION', txt:'<i>« Trente kilos de blé…<br>J’avais presque oublié. »</i>', face:{nom:'Moi', humeur:'bravo'}},
@@ -6339,6 +6362,12 @@ const PARC_REF = 552;                    // la parcelle de départ, en cellules
    LE MAÏS PARTAIT DE DEUX TIERS, et une fois et demie fait exactement UN : il n'a donc
    plus de masque du tout, ce qui est aussi la façon la moins chère de le dire — une
    cellule sans masque n'a pas de test à passer. */
+/* LA POUSSE EST DEUX FOIS PLUS LONGUE. Le joueur : « les champs poussent relativement
+   rapidement ; augmente le temps de pousse, ce qui donne vraiment l'intérêt d'utiliser
+   l'engrais — aujourd'hui, à peine on va chercher l'épandeur que le champ a déjà poussé.
+   Tu peux multiplier par deux. » Le blé passe de 75 à 150 secondes, le colza de 140 à 280,
+   la vigne et l'olivier suivent ; l'engrais garde son quart de temps gagné (voir
+   `FERT_ANNUEL`), qui vaut maintenant quarante secondes sur un blé au lieu de vingt. */
 const CROPS = [
   // Le blé montait à 3,40 m et le maïs à 4,75 — plus haut que la moissonneuse, qui
   // culmine à 4,10. Un champ mûr avalait la machine. Les deux rendent 20 %.
@@ -6357,13 +6386,13 @@ const CROPS = [
      tiges, le semis plein ferait le double ; on revient à trois cellules sur quatre :
      420 pieds × 2 tiges = 840 épis, contre 552, soit une fois et demie. */
   {nom:'Blé',  cle:'ble', lo:new THREE.Color(0x8CB831), hi:new THREE.Color(0xFBD143),
-   temps:75, kg:0.2174, haut:1.00, large:1.00, grainePrix:0.18, graineKg:25,
+   temps:150, kg:0.2174, haut:1.00, large:1.00, grainePrix:0.18, graineKg:25,
    masque:(i, j)=> !(i % 2 && j % 2)},
   // Le maïs gagne en épi : le cylindre du fruit passe de 0,07/0,12/0,40 à
   // 0,10/0,17/0,56 dans `adulteMais`. Il n'a plus de masque : une cellule semée est un
   // pied dessiné.
   {nom:'Maïs', cle:'mais', lo:new THREE.Color(0x5E9C2A), hi:new THREE.Color(0xBFD24A),
-   temps:110, kg:0.2536, haut:1.45, large:0.66, cout:600, verrou:true,
+   temps:220, kg:0.2536, haut:1.45, large:0.66, cout:600, verrou:true,
    grainePrix:0.27, graineKg:18},
   /* LE COLZA RAPETISSE ENCORE. « Réduis la taille du colza » : il était le plus large des
      annuels avec l'avoine — 1,84 — et culminait à 3,26 m, plus haut qu'une vigne
@@ -6379,13 +6408,13 @@ const CROPS = [
      plafond de la maille — une fois et trois dixièmes, pas une fois et demie : au-delà il
      faudrait deux plantes par pied, et le colza est déjà une nappe. */
   {nom:'Colza', cle:'colza', lo:new THREE.Color(0x6FA83A), hi:new THREE.Color(0xF2D82E),
-   temps:140, kg:0.1993, haut:0.85, large:1.24, cout:2400, verrou:true,
+   temps:280, kg:0.1993, haut:0.85, large:1.24, cout:2400, verrou:true,
    grainePrix:0.36, graineKg:12},
   {nom:'Avoine', cle:'avoine', lo:new THREE.Color(0x9CB86A), hi:new THREE.Color(0xE7DCA8),
-   temps:90, kg:0.2264, haut:0.95, large:1.87, cout:900, verrou:true,
+   temps:180, kg:0.2264, haut:0.95, large:1.87, cout:900, verrou:true,
    grainePrix:0.22, graineKg:22, masque:(i, j)=> !(i % 2 && j % 2)},
   {nom:'Orge', cle:'orge', lo:new THREE.Color(0x9EB449), hi:new THREE.Color(0xE3C766),
-   temps:95, kg:0.2355, haut:1.10, large:1.01, cout:700, verrou:true,
+   temps:190, kg:0.2355, haut:1.10, large:1.01, cout:700, verrou:true,
    grainePrix:0.20, graineKg:23, masque:(i, j)=> !(i % 2 && j % 2)},
   // Les deux permanentes portent leur propre palette dans la géométrie : la couleur
   // d'instance ne fait plus que les nuancer, du vert de printemps au ton mûr. Elles
@@ -6405,7 +6434,7 @@ const CROPS = [
    // régression d'avant, où la machine survolait un fil qu'elle ne touchait pas — les
    // peignes batteurs, eux, restent accrochés aux jambes dès 0,75 m et brassent toujours
    // le feuillage sur toute sa hauteur.
-   temps:210, repousse:150, kg:0.2536, haut:1.00, large:1.00, cout:6000, verrou:true, perenne:true,
+   temps:420, repousse:300, kg:0.2536, haut:1.00, large:1.00, cout:6000, verrou:true, perenne:true,
    /* DEUX CEPS SUR TROIS LE LONG DU RANG. Le masque ne décidait que de l'écartement des
       RANGS — un sur deux, soit 2,60 m — et posait un pied dans chaque cellule du rang,
       tous les 1,30 m. Le joueur : « sur les lignes de vigne, divise le nombre de vigne
@@ -6445,7 +6474,7 @@ const CROPS = [
       géométrie monte plus haut que la boule de feuillage qu'elle remplace, et à 0,69 le
       plus gros tirage passait à 5,19 m — au-dessus du tunnel de 4,75 que l'enjambeuse
       doit franchir. À 0,60 il culmine à 4,5 m, et l'arbre reste plus grand qu'un maïs. */
-   temps:240, repousse:180, kg:0.2174, haut:1.00, large:0.60, cout:7500, verrou:true, perenne:true,
+   temps:480, repousse:360, kg:0.2174, haut:1.00, large:0.60, cout:7500, verrou:true, perenne:true,
    plantation:1200, masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
 ];
 const CROP_DE = {};                       // clé de produit → indice de culture
@@ -12685,6 +12714,7 @@ const pasCommande = (n)=> n >= 400 ? 50 : (n >= 120 ? 20
 
    Le blé, lui, ne bouge pas d'un kilo : l'échelle en euros est l'ancienne échelle en
    kilos multipliée par son prix, et c'est sur lui qu'elle avait été réglée. */
+const ECH_PRIX = 4;             // les prix ont fait fois quatre : l'échelle des commandes aussi
 function tirerLigne(cle, valeur){
   // Tout se compte ici DANS L'UNITÉ AFFICHÉE : la cible comme le plafond.
   const capaU = enUnites(cle, Math.max(0, capaciteFerme(cle)*0.55));
@@ -12718,11 +12748,12 @@ function tirerCommande(type){
   if(!dispo.length) dispo = faisable;
   if(!dispo.length) return null;
 
-  // EN EUROS DE MARCHANDISE : 14 € au palier 1, 273 € au vingtième. C'est très
+  // EN EUROS DE MARCHANDISE : 56 € au palier 1, 1 092 € au vingtième. C'est très
   // exactement l'ancienne courbe en kilos multipliée par le prix du blé — 25 kg de blé
   // à la première commande hier, 25 kg aujourd'hui — mais elle vaut maintenant pour
-  // tous les produits, chacun dans son unité.
-  const ech = 13 + CAMPAGNE.niveau*CAMPAGNE.niveau*0.65;
+  // tous les produits, chacun dans son unité. Le facteur quatre est celui des prix
+  // (voir `PRODUITS`) : sans lui, la première commande serait tombée à six kilos.
+  const ech = (13 + CAMPAGNE.niveau*CAMPAGNE.niveau*0.65)*ECH_PRIX;
   /* LE CLIENT SE CHOISIT AVANT LES LIGNES, et pas l'inverse. En composant d'abord un
      panier puis en cherchant qui le prend, une commande finissait par réclamer de
      l'huile d'olive à l'usine de céréales : il suffisait qu'une ligne n'ait aucun
@@ -13858,110 +13889,159 @@ const GRILLE_V = PATHS_V.concat([-ROAD_C, ROAD_E]).sort((a, b)=> a - b);
 const GRILLE_H = PATHS_H.concat([ROAD_N, ROAD_C]).sort((a, b)=> a - b);
 const voieProche = (v, liste)=>
   liste.reduce((p, c)=> Math.abs(c - v) < Math.abs(p - v) ? c : p, liste[0]);
-function itineraireGrille(ax, az, bx, bz){
+/* ---------- LA PREMIÈRE ROUTE EST LA PLUS PROCHE, LA DERNIÈRE EST CELLE QUI SERT LE BUT ----------
+   Le joueur : « une fois qu'on quitte la parcelle, hop, on récupère tout de suite une route,
+   la plus proche, sans faire un détour incroyable. Pareil quand on est sur une route : hop,
+   on récupère tout de suite le point de départ du travail, sans faire tout un demi-tour pour
+   se recaler et prendre un virage très large. »
+
+   CE QUI SE PASSAIT, MESURÉ SUR 480 ITINÉRAIRES (`_routes`). La grille choisissait la
+   première route D'APRÈS LE BUT : si le but se dessert par une verticale, on commençait par
+   gagner une horizontale, quelle que soit la route qu'on avait sous les roues. Une machine
+   sortie d'une parcelle par l'est, à trois mètres du chemin nord-sud, partait donc longer le
+   bord du champ voisin sur VINGT ET UN MÈTRES d'herbe pour aller chercher le chemin est-ouest.
+   Quatre-vingts trajets sur trois cent vingt mordaient plus de six mètres d'herbe, 20,6 au
+   pire, et la première branche faisait dix mètres en moyenne.
+
+   LA RÈGLE, MAINTENANT. Le premier tronçon rejoint la route LA PLUS PROCHE du départ —
+   verticale ou horizontale, c'est la distance qui décide. Le dernier tronçon tombe à
+   l'équerre depuis la route qui SERT le but — celle dont il est le plus près, ou, pour un
+   départ de travail, celle qui est PERPENDICULAIRE À LA LIGNE : on arrive alors de côté, jamais
+   de face ni de dos, et il n'y a plus de demi-tour à faire au point d'alignement. Entre les
+   deux, un RACCORD quand la première route et la dernière ont le même sens : la traverse la
+   moins détournante. En distance de Manhattan tout se vaut ; ce qui change, c'est qu'on ne
+   roule plus sur l'herbe pour rejoindre le réseau, et qu'on n'arrive plus à contresens.
+
+   Le reste ne bouge pas : la file de droite, au quart de la voie où l'on est ; le calage sur
+   le but quand il est à moins de deux mètres d'un axe ; la rangée qu'on ne quitte pas quand
+   on y est déjà ; les commerces hors de l'anneau servis par la rocade seule. */
+/* UN CHEMIN DE SABLE A UN BOUT, ET LA GRILLE NE LE SAVAIT PAS. Les quatre chemins nord-sud
+   partent tous de l'accotement de la rocade nord ; ceux de -40 et de 40 descendent jusqu'à
+   la rocade sud, ceux de 0 et de 80 s'arrêtent au bord des dalles (`COUR_Z0`) — au-delà,
+   la cour, le garage et la cour de transformation ne font qu'une aire de bitume, avec
+   les cuves et le silo posés dessus. La grille les tenait pour des droites infinies.
+   Mesuré (`_acces_cour`) : un tracteur posé dans la cour de transformation en (90 ; 60)
+   voyait dans le chemin x = 80 la route « la plus proche », à dix mètres, et allait
+   la prendre… dans les cuves. Quatre-vingt-dix secondes à ramper à 0,1 m/s, jamais
+   arrivé. L'ancienne grille avait le même trou, mais elle choisissait ses routes d'après
+   le but et tombait moins souvent dedans.
+   Chaque chemin porte donc SA PORTÉE, la même que celle de son dessin, et l'itinéraire
+   ne retient, au départ comme à l'arrivée, que les voies qui existent à cette hauteur ;
+   un tronçon qui longerait un chemin au-delà de son bout est reporté sur la voie
+   parallèle la plus proche qui va jusque-là. Les rocades vont partout. */
+function porteeV(v){
+  if(Math.abs(v + ROAD_C) < 0.5 || Math.abs(v - ROAD_E) < 0.5) return [-Infinity, Infinity];
+  const za = ROC.z0 + ROAD_W/2;
+  return [za, (v === 0 || v === 80) ? COUR_Z0 : ROAD_C - ROAD_W/2];
+}
+function porteeH(h){
+  if(Math.abs(h - ROAD_N) < 0.5 || Math.abs(h - ROAD_C) < 0.5) return [-Infinity, Infinity];
+  return [ROC.x0 + ROAD_W/2, ROC.x1 - ROAD_W/2];
+}
+const TOL_BOUT = ROAD_W/2 + 2.0;    // on compte encore dessus à une demi-chaussée du bout
+const spanV = (v, z1, z2)=>{ const p = porteeV(v); return Math.min(z1, z2) >= p[0] - TOL_BOUT && Math.max(z1, z2) <= p[1] + TOL_BOUT; };
+const spanH = (h, x1, x2)=>{ const p = porteeH(h); return Math.min(x1, x2) >= p[0] - TOL_BOUT && Math.max(x1, x2) <= p[1] + TOL_BOUT; };
+const connecteur = (liste, a, b)=>
+  liste.reduce((p, c)=>{
+    const dc = Math.abs(c - a) + Math.abs(c - b) + 0.001*Math.abs(c - a);
+    const dp = Math.abs(p - a) + Math.abs(p - b) + 0.001*Math.abs(p - a);
+    return dc < dp ? c : p; }, liste[0]);
+function itineraireGrille(ax, az, bx, bz, pref){
   /* Déjà sur place. Le raccourci valait dix-huit mètres : on quittait la route et l'on
      visait le point de déchargement en ligne droite bien avant d'y être, en travers de
      tout ce qu'il y avait entre. Huit mètres, c'est la longueur d'un attelage — de quoi
      finir de se ranger, pas de quoi couper. */
   if(Math.hypot(bx - ax, bz - az) < 8) return [{x:bx, z:bz}];
-  /* ET LA VOIE DE TRAVERSE RESTE CELLE QUI PASSE SOUS LES ROUES. Prendre plutôt celle qui
-     est ENTRE le départ et le but a été essayé — c'est la ligne x = 0 que le joueur a
-     tracée pour descendre vers l'entrepôt — et mesuré : le premier tronçon de cet
-     itinéraire se parcourt À LA HAUTEUR COURANTE, ce qui n'est roulable que si l'on est
-     déjà sur une chaussée. En partant du garage, la machine traversait alors soixante-huit
-     mètres de champs à z = 52 pour aller chercher sa voie. En distance de Manhattan les
-     deux choix se valent de toute façon : toutes les voies comprises entre les deux donnent
-     la même longueur, et l'écart de dessin ne vaut que deux fois le décalage de droite. */
-  const vA = voieProche(ax, GRILLE_V), hA = voieProche(az, GRILLE_H);
   /* UN COMMERCE SE DESSERT PAR LA ROCADE, JAMAIS PAR UN CHEMIN DE SABLE. La grille
      mêle les deux, et un chemin de sable s'arrête à la ferme : un commerce planté à
      quelques mètres de la LIGNE d'un chemin se voyait desservi par lui, et l'on partait
      le rejoindre là où il n'y a rien. Hors de l'anneau, seules les quatre chaussées
      comptent. */
   const dehors = (bx < ROC.x0 || bx > ROC.x1 || bz < ROC.z0 || bz > ROC.z1);
-  const vB = voieProche(bx, dehors ? [ROC.x0, ROC.x1] : GRILLE_V);
-  const hB = voieProche(bz, dehors ? [ROC.z0, ROC.z1] : GRILLE_H);
-  const pts = [];
-  /* PAR OÙ L'ON SORT DE LA GRILLE : C'EST LE BUT QUI DÉCIDE, PAS LE DÉPART. Le dernier
-     trajet doit tomber PERPENDICULAIREMENT sur le point jaune, et la voie qui le
-     dessert est celle dont il est le plus proche. On choisissait la voie la plus proche
-     du DÉPART : le dernier trajet se faisait alors toujours en z, ce qui n'est la bonne
-     perpendiculaire que pour les quatre commerces de la bande nord. Les onze autres
-     étaient abordés par le travers — on quittait la chaussée bien avant, on longeait la
-     façade, et l'on arrivait sur l'anneau de côté. */
+  const vA = voieProche(ax, GRILLE_V.filter((v)=> spanV(v, az, az)));
+  const hA = voieProche(az, GRILLE_H.filter((h)=> spanH(h, ax, ax)));
+  const vB = voieProche(bx, dehors ? [ROC.x0, ROC.x1] : GRILLE_V.filter((v)=> spanV(v, bz, bz)));
+  const hB = voieProche(bz, dehors ? [ROC.z0, ROC.z1] : GRILLE_H.filter((h)=> spanH(h, bx, bx)));
+  // Une verticale qu'on longerait au-delà de son bout : la parallèle la plus proche qui y va.
+  const surV = (v, z1, z2, xRef)=> spanV(v, z1, z2) ? v : connecteur(GRILLE_V.filter((u)=> spanV(u, z1, z2)), xRef, xRef);
+  /* ET LA VOIE D'AVANT-DERNIER TRONÇON SE CALE AUSSI SUR LE BUT. Le Restaurant est à 1,3 m
+     de l'axe du chemin x = 80, mais de l'autre côté de la rocade nord, où ce chemin n'existe
+     plus : c'est la rocade qui le sert, et l'on y arrive par le chemin. Sur la file de
+     droite du chemin (81,6) puis celle de la rocade, le dernier tronçon devenait une
+     équerre de trente centimètres EN X, de travers par rapport au point jaune (`pilote`,
+     45 trajets, 1 abordé de travers). Quand la voie qu'on descend passe à moins de deux
+     mètres du but, on la prend à sa hauteur exacte : l'équerre disparaît, et l'on tombe
+     sur le point jaune dans l'axe, comme avant. */
+  const caleSurBut = (v)=> Math.abs(v - bx) < CALE, caleSurButH = (h)=> Math.abs(h - bz) < CALE;
   /* LA VOIE SE CALE SUR LE BUT QUAND ELLE N'EN EST QU'À UN MÈTRE OU DEUX. Une chaussée
      fait dix mètres de large : rouler deux mètres à côté de son axe, c'est toujours
      rouler dessus. Sans ce calage, un but posé à 1,3 m de l'axe de la voie donnait un
-     dernier trajet de 1,3 m PERPENDICULAIRE au bon sens d'approche : l'élagage des
-     points trop rapprochés, plus bas, supprimait le coude d'entrée et le redressement
-     le replaçait au BOUT du parcours. On se rangeait tout droit sur cent mètres pour
-     aborder l'anneau par le travers au dernier mètre. C'est arrivé au restaurant le jour
-     où les dalles ont grandi et où les commerces ont glissé le long de leur bande. */
+     dernier trajet de 1,3 m PERPENDICULAIRE au bon sens d'approche. */
   const CALE = 2.0;
-  const cale = {v: Math.abs(vA - bx) < CALE, h: Math.abs(hA - bz) < CALE};
-  const vA2 = cale.v ? bx : vA;
-  const hA2 = cale.h ? bz : hA;
-  /* ON ROULE SUR LA VOIE DE DROITE, COMME UN VÉHICULE NORMAL. Les points étaient posés
-     sur l'AXE de la chaussée : deux engins se croisant sur la rocade se rentraient
-     dedans, et l'on roulait sur la ligne blanche du milieu devant les maisons.
-
-     LE SENS DE CHAQUE TRONÇON EST CONNU À LA CONSTRUCTION — la polyligne se bâtit de A
-     vers B, les deux bouts sont sous la main — et le repère du jeu est établi : nord en
-     -z, est en +x, et la circulation de fond tourne dans le sens des aiguilles d'une
-     montre. Pour un trajet vers +x la droite est donc en +z ; vers +z elle est en -x.
-     Un quart de chaussée, deux mètres cinquante : c'est à un dixième près le décalage
-     que prend déjà le trafic de fond.
-
-     ATTENTION au piège du fichier : `right(cap)` rend {cos, -sin}, ce qui est la GAUCHE
-     sous cette convention. Les deux seuls usages en sont symétriques — traces de roues,
-     ±s — et personne ne l'avait vu. On ne s'en sert donc pas ici.
-
-     Et l'on ne décale PAS une voie qui a été calée sur le but : ce calage existe parce
-     qu'un quai posé à un mètre de l'axe donnerait sinon un dernier tronçon d'un mètre
-     perpendiculaire au bon sens d'approche. Le décaler l'éloignerait de ce qu'il vise. */
-  /* ET LE QUART SE PREND SUR LA VOIE OÙ L'ON EST, PAS SUR LA PLUS LARGE DU JEU. Le
-     décalage valait ROAD_W/4 partout, soit 2,50 m : le quart d'une ROCADE. Or la grille
-     mêle rocades et chemins de sable, et un chemin ne fait que 6,40 m. Se ranger à 2,50 m
-     de son axe, c'est se ranger à 70 cm du bas-côté — et surtout dans ce que le décor
-     déborde par là.
-
-     MESURÉ, ET C'EST LE BLOCAGE QUE LE JOUEUR SIGNALE. Le silo à graines est planté en
-     z = 46 avec un disque de collision de 2,256 m ; en comptant la demi-machine, son
-     emprise remonte à z = 42,394. La file de droite du chemin z = 40 tombait à 42,50 :
-     ELLE PASSAIT DANS LA CITERNE, de onze centimètres. Onze centimètres suffisent — la
-     collision ne repousse pas seulement, elle multiplie la vitesse par 0,4 À CHAQUE
-     IMAGE tant qu'on est dedans. Relevé sur la physique du jeu, plein gaz, attelage
-     complet : 11,97 m/s à l'entrée, 0,10 m/s devant la citerne, 241 pas pour franchir
-     les dix mètres — contre 51 sur la même course tracée un mètre plus au nord. L'engin
-     ne s'arrête pas tout à fait ; il rampe, et de loin cela se voit comme un blocage.
-
-     Un quart de 6,40 m fait 1,60 m : la file passe à z = 41,60, à 79 cm de l'emprise de
-     la citerne et à 1,60 m du bas-côté. Deux machines s'y croisent encore — 2,70 m de
-     large chacune, deux files de 3,20 m. */
+  const caleV = Math.abs(vB - bx) < CALE, caleH = Math.abs(hB - bz) < CALE;
+  /* ON ROULE SUR LA VOIE DE DROITE, COMME UN VÉHICULE NORMAL — nord en -z, est en +x, et
+     la circulation tourne dans le sens des aiguilles d'une montre : vers +x la droite est
+     en +z, vers +z elle est en -x. Le quart se prend sur la voie où l'on est : 2,50 m sur
+     une rocade, 1,60 sur un chemin de sable (voir la citerne du silo, plus haut dans
+     l'histoire de ce fichier). Une voie calée sur le but ne se décale pas. */
   const ROCADES_V = [-ROAD_C, ROAD_E], ROCADES_H = [ROAD_N, ROAD_C];
   const largeVoie = (v, roc)=> roc.some((r)=> Math.abs(r - v) < 0.5) ? ROAD_W : PATH_W;
-  const QV = largeVoie(vA2, ROCADES_V)/4, QH = largeVoie(hA2, ROCADES_H)/4;
-  const QVB = largeVoie(vB, ROCADES_V)/4, QHB = largeVoie(hB, ROCADES_H)/4;
   const sgn = (a, b)=> (b > a ? 1 : (b < a ? -1 : 0));
+  const fileV = (v, z1, z2, cale)=> cale ? bx : v - largeVoie(v, ROCADES_V)/4*sgn(z1, z2);
+  const fileH = (h, x1, x2, cale)=> cale ? bz : h + largeVoie(h, ROCADES_H)/4*sgn(x1, x2);
+  // La dernière route : celle qui sert le but, ou la perpendiculaire à la ligne de travail.
+  let butV = Math.abs(bx - vB) <= Math.abs(bz - hB);
+  if(pref && pref.dir) butV = Math.abs(pref.dir.z) >= Math.abs(pref.dir.x);
   /* ET L'ON NE CHANGE PAS DE RANGÉE QUAND ON Y EST DÉJÀ. Une chaussée fait dix mètres :
      partant du silo à z = 74 pour aller à l'entrepôt à z = 74, la machine partait quand même
-     chercher une voie de traverse — elle roulait jusqu'à x = 40 pour n'y rien faire. Si le
-     départ est déjà sur la rangée qui dessert le but, on longe, un point c'est tout. */
-  const memeRangee = Math.abs(az - hB) <= ROAD_W/2 + CALE;
-  const memeVoie   = Math.abs(ax - vB) <= ROAD_W/2 + CALE;
-  if(Math.abs(bx - vB) <= Math.abs(bz - hB)){
-    // on suit une horizontale (en x) puis une verticale (en z)
-    const zH = cale.h ? hA2 : (memeVoie ? az : hA2 + QH*sgn(ax, vB));
-    const xV = cale.v ? vB  : vB  - QVB*sgn(zH, bz);
-    pts.push({x:ax, z:zH});          // on gagne la voie horizontale la plus proche
-    pts.push({x:xV, z:zH});          // on la suit jusqu'à la voie qui dessert le but
-    pts.push({x:xV, z:bz});          // puis celle-ci jusqu'à la hauteur du but
+     chercher une voie de traverse. Si le départ est déjà sur la route qui sert le but, on
+     longe, un point c'est tout. */
+  const memeRangee = !butV && Math.abs(az - hB) <= ROAD_W/2 + CALE;
+  const memeVoie   =  butV && Math.abs(ax - vB) <= ROAD_W/2 + CALE;
+  // La première route : la plus proche du départ.
+  let depV = Math.abs(ax - vA) <= Math.abs(az - hA);
+  if(memeRangee) depV = false;
+  if(memeVoie)   depV = true;
+  const pts = [];
+  if(butV){
+    if(depV){
+      const vS = memeVoie ? vB : vA;
+      if(Math.abs(vS - vB) < 0.5 && spanV(vB, az, bz)){
+        const xV = fileV(vB, az, bz, caleV);
+        pts.push({x:xV, z:az}); pts.push({x:xV, z:bz});
+      } else {
+        const zC = connecteur(GRILLE_H, az, bz);
+        const v1 = surV(vS, az, zC, ax), v2 = surV(vB, zC, bz, bx);
+        const xS = fileV(v1, az, zC, false);
+        const zH = fileH(zC, xS, v2, caleSurButH(zC));
+        const xV = fileV(v2, zC, bz, caleV && Math.abs(v2 - vB) < 0.5);
+        pts.push({x:xS, z:az}); pts.push({x:xS, z:zH}); pts.push({x:xV, z:zH}); pts.push({x:xV, z:bz});
+      }
+    } else {
+      const v2 = surV(vB, hA, bz, bx);
+      const zH = fileH(hA, ax, v2, caleSurButH(hA));
+      const xV = fileV(v2, zH, bz, caleV && Math.abs(v2 - vB) < 0.5);
+      pts.push({x:ax, z:zH}); pts.push({x:xV, z:zH}); pts.push({x:xV, z:bz});
+    }
   } else {
-    const xV = cale.v ? vA2 : (memeRangee ? ax : vA2 - QV*sgn(az, hB));
-    const zH = hB + QHB*sgn(xV, bx);
-    pts.push({x:xV, z:az});
-    pts.push({x:xV, z:zH});
-    pts.push({x:bx, z:zH});
+    if(!depV){
+      const hS = memeRangee ? hB : hA;
+      if(Math.abs(hS - hB) < 0.5){
+        const zH = fileH(hB, ax, bx, caleH);
+        pts.push({x:ax, z:zH}); pts.push({x:bx, z:zH});
+      } else {
+        const xC = surV(connecteur(GRILLE_V, ax, bx), hS, hB, (ax + bx)/2);
+        const zS = fileH(hS, ax, xC, false);
+        const xV = fileV(xC, zS, hB, caleSurBut(xC));
+        const zH = fileH(hB, xC, bx, caleH);
+        pts.push({x:ax, z:zS}); pts.push({x:xV, z:zS}); pts.push({x:xV, z:zH}); pts.push({x:bx, z:zH});
+      }
+    } else {
+      const v1 = surV(vA, az, hB, ax);
+      const xV = fileV(v1, az, hB, caleSurBut(v1));
+      const zH = fileH(hB, xV, bx, caleH);
+      pts.push({x:xV, z:az}); pts.push({x:xV, z:zH}); pts.push({x:bx, z:zH});
+    }
   }
   pts.push({x:bx, z:bz});            // et l'équerre, en dernier
   /* Deux points confondus font tourner l'engin sur place : on les élague. Mais élaguer
@@ -14182,12 +14262,12 @@ function voieDirecteChamp(ax, az, bx, bz, cible){
   }
   return true;
 }
-function itineraire(ax, az, bx, bz){
+function itineraire(ax, az, bx, bz, pref){
   // Déjà sur place : la voie ne sert à rien, et l'y faire passer ferait faire un tour.
   if(Math.hypot(bx - ax, bz - az) < 8) return [{x:bx, z:bz}];
   const L = voiesAcces();
   const dep = accesDe(ax, az, L), arr = accesDe(bx, bz, L);
-  if(!dep && !arr) return itineraireGrille(ax, az, bx, bz);
+  if(!dep && !arr) return itineraireGrille(ax, az, bx, bz, pref);
   // le même couloir aux deux bouts : on y roule, et l'on n'en sort pas
   if(dep && arr && dep.nom === arr.nom)
     return equerrer([{x:dep.voie, z:az}, {x:arr.voie, z:bz}, {x:bx, z:bz}], {x:ax, z:az});
@@ -14206,7 +14286,7 @@ function itineraire(ax, az, bx, bz){
       pts.push({x:dep.voie, z:zS});    // on la suit jusqu'à son bout
       sx = dep.voie; sz = zS;
     }
-    for(const q of itineraireGrille(sx, sz, arr ? arr.voie : bx, arr ? zE : bz)) pts.push(q);
+    for(const q of itineraireGrille(sx, sz, arr ? arr.voie : bx, arr ? zE : bz, arr ? null : pref)) pts.push(q);
     if(arr){
       pts.push({x:arr.voie, z:bz});    // on entre dans la voie par son bout
       pts.push({x:bx, z:bz});          // et l'on va au but tout droit
@@ -14261,7 +14341,7 @@ function itineraire(ax, az, bx, bz){
   return mieux.r;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
-function suivreRoute(v, bx, bz, cle, rayon, impasse){
+function suivreRoute(v, bx, bz, cle, rayon, impasse, pref){
   const R = rayon || 3.0;
   const d0 = Math.hypot(bx - v.pos.x, bz - v.pos.z);
   /* ARRIVÉ, ET ON Y RESTE. Sans cette mémoire, l'engin qui vient de toucher son but
@@ -14281,7 +14361,8 @@ function suivreRoute(v, bx, bz, cle, rayon, impasse){
     v.route = null; v.routeBut = null; v.routeArr = cle; return null;
   }
   if(!v.route || v.routeBut !== cle){
-    v.route = itineraire(v.pos.x, v.pos.z, bx, bz); v.routeI = 0; v.routeBut = cle;
+    v.route = itineraire(v.pos.x, v.pos.z, bx, bz, pref); v.routeI = 0; v.routeBut = cle;
+    v.routeDep = {x:v.pos.x, z:v.pos.z};     // d'où part le premier tronçon : voir plus bas
     v.routeArr = null;
     /* LE COUDE SE RETIENT À LA CONSTRUCTION, PAS À L'ARRIVÉE. Le dernier point de passage
        se valide à cinq mètres et demi, et l'itinéraire est jeté dès qu'il ne reste plus
@@ -14333,9 +14414,53 @@ function suivreRoute(v, bx, bz, cle, rayon, impasse){
      TOUJOURS le rayon qui décide de l'arrivée, et que les derniers mètres se font dans
      l'axe, à l'équerre, comme le reste du dernier tronçon. */
   const dernier = v.routeI >= v.route.length - 1;
-  const tol = dernier ? Math.min(5.5, R*0.5) : 5.5;
+  /* ON FREINE AVANT LE COIN, ET ON LE PREND SERRÉ. Un croisement se validait à cinq mètres
+     et demi, à pleine allure : lancée à douze mètres par seconde, la machine coupait le
+     coin par l'extérieur et allait chercher l'herbe — quatre secondes de bas-côté par
+     trajet en moyenne (`_conduite`, 160 trajets), vingt et une au pire. On mesure donc
+     l'angle du coin — le tronçon qu'on suit contre le suivant — et, s'il tourne à plus
+     de 35°, on ne valide le point qu'à trois mètres et l'on descend à quatre mètres par
+     seconde en l'abordant — le rayon de braquage est proportionnel à la vitesse, et à
+     quatre mètres par seconde un attelage tourne dans la largeur d'un chemin de sable.
+     Trois mètres par seconde ont été essayés : même herbe au dixième près, et un trajet
+     plus long d'une seconde et demie. Le tronçon droit garde le cran de vitesse acheté. */
+  let virage = 0;
+  if(!dernier){
+    const A0 = v.routeI > 0 ? v.route[v.routeI - 1] : (v.routeDep || v.pos);
+    const N1 = v.route[v.routeI + 1];
+    const ux = wp.x - A0.x, uz = wp.z - A0.z, lu = Math.hypot(ux, uz);
+    const wx = N1.x - wp.x, wz = N1.z - wp.z, lw = Math.hypot(wx, wz);
+    if(lu > 0.5 && lw > 0.5)
+      virage = Math.acos(Math.max(-1, Math.min(1, (ux*wx + uz*wz)/(lu*lw))));
+  }
+  const serre = !dernier && virage > 0.6;
+  const tol = dernier ? Math.min(5.5, R*0.5) : (serre ? 3.0 : 5.5);
   if(Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z) < tol){ v.routeI++; return [0, 0.5]; }
-  const cmd = viser(v, wp.x, wp.z, dernier ? 1.2 : 2.4);
+  /* ON SUIT LA FILE, ON NE COURT PAS APRÈS LE COIN. Viser le point de passage suivant
+     — parfois à cent quarante mètres — c'est la queue de billard du champ : décalée de
+     trois mètres sur l'herbe en sortant d'une parcelle, la machine ne voyait qu'un degré
+     et demi d'écart et rejoignait sa file en soixante mètres de bas-côté, à douze mètres
+     par seconde. Relevé (`_conduite`) : x = −46 à −42 sur tout le chemin x = −40, la file
+     étant à −41,6. On vise donc un point DE LA FILE, quelques mètres devant sa propre
+     projection — quatre au pas, douze à pleine allure —, et l'écart se corrige sur la
+     longueur d'un attelage. Le point de passage lui-même ne sert qu'à dire quand tourner. */
+  let tx = wp.x, tz = wp.z;
+  {
+    const A0 = v.routeI > 0 ? v.route[v.routeI - 1] : (v.routeDep || v.pos);
+    const sx = wp.x - A0.x, sz = wp.z - A0.z, sl = Math.hypot(sx, sz);
+    if(sl > 3){
+      const ux = sx/sl, uz = sz/sl;
+      const s = Math.max(0, Math.min(sl, (v.pos.x - A0.x)*ux + (v.pos.z - A0.z)*uz));
+      const avance = Math.max(4, Math.min(12, Math.abs(v.speed)));
+      const s2 = Math.min(sl, s + avance);
+      tx = A0.x + ux*s2; tz = A0.z + uz*s2;
+    }
+  }
+  const cmd = viser(v, tx, tz, dernier ? 1.2 : 2.4);
+  if(serre && cmd[1] > 0){
+    const d = Math.hypot(wp.x - v.pos.x, wp.z - v.pos.z);
+    cmd[1] = Math.min(cmd[1], Math.max(VIRAGE_ROUTE, d*0.8)/Math.max(1, v.vmax));
+  }
   /* ON LÈVE LE PIED EN APPROCHANT, ET C'EST NEUF : rien ne freinait, nulle part.
      Le quatrième paramètre de `viser` est un RAYON D'ARRÊT, pas une vitesse — on lui
      passait 1,2 en croyant brider l'allure, et il rendait donc plein gaz jusqu'au bout.
@@ -14359,6 +14484,7 @@ function suivreRoute(v, bx, bz, cle, rayon, impasse){
   return cmd;
 }
 const APPROCHE_PENTE = 0.5;      // m/s de vitesse par mètre restant
+const VIRAGE_ROUTE = 4.0;        // m/s : l'allure à laquelle on prend un coin de chemin
 const APPROCHE_POSER = 1.5;      // m/s : l'allure à laquelle on se pose
 /* De combien on recule AU-DELÀ du coude. Relevé sur la sortie du silo, la plus serrée du
    jeu — la tour se dresse à sept mètres de la grille : 4 m de recul laissent 1,55 m entre
@@ -14594,6 +14720,37 @@ function tacheSuivante(m){
   v.mission = null; v.auto = false;
   showHint(m.nom.toUpperCase() + ' – PLAN TERMINÉ');
 }
+/* ---------- PAR OÙ L'ON ABORDE LE DÉPART DU TRAVAIL, ÉCRIT UNE FOIS ----------
+   Le point d'alignement est en amont de la première ligne ; y arriver par la ligne droite
+   quand celle-ci vient de l'autre bout, c'est se retourner sur place au bord du champ,
+   attelage compris — 47 des 124 lignes droites du banc arrivaient ainsi à plus de 120°
+   de la ligne. Passé cet angle (`deDos`) on prend les routes, et la grille sait servir un
+   départ de travail par le côté (`itineraireGrille`, `pref`) : on arrive de travers,
+   jamais de face ni de dos. Le point de reprise d'une passe interrompue, lui, se rejoint
+   comme avant : on y était, on y retourne.
+   DEUX PILOTES, UNE RÈGLE. La campagne (`missionDrive`) et l'automatisation (`autoDrive`)
+   rejoignent le premier point par le même code écrit deux fois, et le premier jet de cette
+   règle n'avait touché que la campagne : depuis la cour de transformation, un chantier
+   partait encore chercher le chemin x = -40 pour finir par trente-huit mètres de ligne
+   droite dans son propre champ (`_acces_cour`, (90 ; 60)). La règle vit donc ici.
+   ET ELLE NE VAUT QUE DE LOIN. Le joueur : « ne retouche pas à l'accès aux parcelles. »
+   Depuis SA PROPRE TERRE, ou à moins de vingt-cinq mètres du départ, on y va tout droit
+   comme avant, et l'on pivote au bout s'il le faut — c'est court, et c'est ce que fait
+   un engin qui vient de finir la parcelle d'à côté. Sans cette borne, un tracteur posé
+   au milieu de son champ ressortait par la route pour rentrer par le bon côté : trois
+   fois la distance à vol d'oiseau (`acces`, départ « dedans », x3,12 pour x1,05). */
+const ABORD_LOIN = 25;          // m : en deçà, la ligne droite garde ses droits
+function abordDepart(v, wp, cx, cz, R0, P){
+  let pref = null, deDos = false;
+  if(!R0 && v.plan.pts.length > 1){
+    const P1 = v.plan.pts[1], ddx = P1.x - wp.x, ddz = P1.z - wp.z, ld = Math.hypot(ddx, ddz) || 1;
+    pref = {dir:{x:ddx/ld, z:ddz/ld}};
+    const ax = cx - v.pos.x, az = cz - v.pos.z, la = Math.hypot(ax, az) || 1;
+    const dedans = !!P && Math.abs(v.pos.x - P.x) < P.w/2 && Math.abs(v.pos.z - P.z) < P.h/2;
+    deDos = !dedans && la > ABORD_LOIN && (ax*pref.dir.x + az*pref.dir.z)/la < -0.5;
+  }
+  return {pref:pref, deDos:deDos};
+}
 function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
@@ -14675,11 +14832,13 @@ function missionDrive(m, dt){
     if(!v.plan.entre){
       const R0 = v.plan.reprise;
       const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
-      if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, PARCELS[t.p])){
+      // Et l'on n'arrive pas de dos : voir `abordDepart`.
+      const ab = abordDepart(v, wp, cx, cz, R0, PARCELS[t.p]);
+      if(!ab.deDos && voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, PARCELS[t.p])){
         const r = approcheChamp(v, cx, cz, dt);
         if(r){ v.route = null; v.routeBut = null; return r; }
       } else {
-        const r = suivreRoute(v, cx, cz, 'p' + t.p);
+        const r = suivreRoute(v, cx, cz, 'p' + t.p, undefined, undefined, ab.pref);
         if(r) return r;
       }
       v.plan.entre = true; v.plan.reprise = null;
@@ -14901,11 +15060,12 @@ function autoDrive(m, dt){
   if(!v.plan.entre){
     const R0 = v.plan.reprise;
     const cx = R0 ? R0.x : wp.x, cz = R0 ? R0.z : wp.z;
-    if(voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, v.plan.p)){
+    const ab = abordDepart(v, wp, cx, cz, R0, v.plan.p);      // de côté, jamais de dos
+    if(!ab.deDos && voieDirecteChamp(v.pos.x, v.pos.z, cx, cz, v.plan.p)){
       const r = approcheChamp(v, cx, cz, dt);
       if(r){ v.route = null; v.routeBut = null; return r; }
     } else {
-      const r = suivreRoute(v, cx, cz, 'a' + PARCELS.indexOf(v.plan.p));
+      const r = suivreRoute(v, cx, cz, 'a' + PARCELS.indexOf(v.plan.p), undefined, undefined, ab.pref);
       if(r) return r;
     }
     v.plan.entre = true; v.plan.reprise = null;
@@ -18003,7 +18163,7 @@ function right(cap){ return {x:Math.cos(cap), z:-Math.sin(cap)}; }
    L'ENGRAIS NE GAGNE PAS AUTANT PARTOUT. Il faisait pousser tout 80 % plus vite, ce
    qui rendait la même terre presque deux fois plus productive pour trois euros
    d'épandage — la décision n'en était plus une. Il gagne maintenant un peu plus d'un
-   quart de temps sur les annuelles (75 s de blé tombent à 55) et un sixième sur les
+   quart de temps sur les annuelles (150 s de blé tombent à 110) et un sixième sur les
    permanentes, dont le cycle est plus long et moins dépendant de la fumure. */
 const FERT_ANNUEL = 1.365;      // 1/1,365 = 0,733 : 26,7 % de temps en moins
 const FERT_PERENNE = 1.20;      // 1/1,20  = 0,833 : 16,7 % de temps en moins
@@ -23287,7 +23447,9 @@ const ESPECES = {
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
     pature:800, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
-    cycle:300, rationCycle:0.25, batiment:'Poulailler',
+    /* LES ŒUFS SORTENT DEUX FOIS PLUS VITE : « les œufs sont un petit peu longs à sortir ».
+       Cent cinquante secondes par cycle au lieu de trois cents, deux œufs par poule. */
+    cycle:150, rationCycle:0.25, batiment:'Poulailler',
     capacites:[6, 12, 20, 32], prixTaille:[600, 1500, 3500],
     produit:'oeufs', nomProduit:'Œufs', parCycle:2,
     acheteur:()=> BAKERY, acheteurNom:'LA BOULANGERIE',

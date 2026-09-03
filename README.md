@@ -13279,3 +13279,110 @@ marche (bravo), un mur le contrarie, une porte le surprend.
 Le banc `visages` compte douze humeurs et relit la tête de la première marche (songeur) et
 celle d'une porte (projette).
 
+## Les engins prennent la route la plus proche, et la tiennent
+
+« Je veux que tu retravailles tout le système d'automatisation pour que les véhicules
+rejoignent vraiment au plus vite les routes sur lesquelles ils doivent circuler, et restent
+bien sur les routes sans mordre sur l'herbe — pour ne pas risquer de collision avec le
+paysage. Mais ne retouche pas à l'accès aux parcelles. C'est juste : une fois qu'on quitte la
+parcelle, hop, on récupère tout de suite la route la plus proche sans faire un détour
+incroyable. Pareil quand on est sur une route : hop, on récupère tout de suite le point de
+départ du travail, sans faire tout un demi-tour pour se recaler et prendre un virage très
+large. »
+
+**Ce qui se passait, mesuré.** Deux sondes : la géométrie de 480 itinéraires (`_routes`, 80
+sorties de parcelle vers le silo et le parc, 160 abords d'un départ de travail depuis une
+route), et la conduite réelle, physique comprise, de 160 trajets de sortie de parcelle
+(`_conduite`). La grille choisissait sa première route D'APRÈS LE BUT : sortie d'une
+parcelle à trois mètres d'un chemin nord-sud, une machine partait longer le champ voisin sur
+vingt et un mètres d'herbe pour aller chercher le chemin est-ouest. Et une fois sur la
+route, elle VISAIT LE PROCHAIN CROISEMENT, parfois à cent quarante mètres : décalée de trois
+mètres en sortant, elle ne voyait qu'un degré et demi d'écart et rejoignait sa file sur
+soixante mètres de bas-côté (relevé x = −46 à −42 le long du chemin x = −40, file à −41,6).
+Les croisements se prenaient à pleine allure, validés à cinq mètres et demi, par l'extérieur.
+
+**Quatre règles, dans `itineraireGrille` et `suivreRoute`.**
+- *La première route est la plus proche du départ*, verticale ou horizontale — c'est la
+  distance qui décide, sauf si l'on est déjà sur la rangée qui sert le but. *La dernière est
+  celle qui sert le but*, et pour un départ de travail, c'est la PERPENDICULAIRE à la ligne :
+  on arrive de côté, jamais de face ni de dos, plus de demi-tour au point d'alignement. Entre
+  les deux, un raccord quand les deux ont le même sens.
+- *Un chemin de sable a un bout.* Ceux de 0 et de 80 s'arrêtent au bord des dalles, les deux
+  autres à la rocade sud ; la grille les tenait pour infinis, et un tracteur posé dans la
+  cour de transformation allait « prendre » le chemin x = 80… dans les cuves, sans jamais
+  arriver. Chaque voie porte sa portée (`porteeV`, `porteeH`), et un tronçon qui la
+  dépasserait est reporté sur la parallèle la plus proche qui va jusque-là.
+- *On suit la file, on ne court pas après le coin* : on vise un point DE LA FILE quelques
+  mètres devant sa propre projection — quatre au pas, douze à pleine allure — et l'écart se
+  corrige sur la longueur d'un attelage. Le point de passage ne sert plus qu'à dire quand
+  tourner.
+- *On freine avant le coin* : au-delà de 35° on ne valide le croisement qu'à trois mètres et
+  l'on descend à quatre mètres par seconde (`VIRAGE_ROUTE`) — le rayon de braquage est
+  proportionnel à la vitesse, et à cette allure un attelage tourne dans la largeur d'un
+  chemin. Trois mètres par seconde ont été essayés : même herbe au dixième, une seconde et
+  demie de plus par trajet.
+
+**Et depuis la route, on aborde le départ par le côté.** Le point d'alignement est en amont
+de la première ligne ; y arriver en ligne droite quand celle-ci vient de l'autre bout, c'est
+se retourner sur place au bord du champ, attelage compris — 47 des 124 lignes droites du banc
+arrivaient à plus de 120° de la ligne. À plus de vingt-cinq mètres et de dos, on prend donc les
+routes, qui savent maintenant servir un départ par le côté. Depuis SA PROPRE TERRE, ou à
+moins de vingt-cinq mètres, la ligne droite garde ses droits : c'est l'accès aux parcelles,
+et il ne bouge pas. La règle est écrite une fois (`abordDepart`) pour les deux pilotes, la
+campagne et l'automatisation — le premier jet n'avait touché que la campagne.
+
+| | avant | après |
+|---|---|---|
+| géométrie, 320 sorties : herbe moyenne / au pire | 4,6 m / 20,6 m | 1,0 m / 3,9 m |
+| trajets à plus de 6 m d'herbe | 80 | 0 |
+| première branche, longueur moyenne | 10 m | 5 m |
+| conduite réelle, 160 trajets : arrivés | 159 (un coincé 100 s) | 160 |
+| secondes sur l'herbe, moyenne / au pire | 2,4 / 21,5 | 1,3 / 1,9 |
+| trajets à plus de 3 s d'herbe | 42 | 0 |
+| temps moyen d'un trajet | 17,6 s | 19,6 s |
+| abords depuis une route à contresens (>120°) | 0 | 0 |
+
+Les deux secondes de plus, c'est le freinage aux coins ; la dérive de file a disparu. Bancs :
+`acces` (le départ « cour » partait du centre de l'atelier, DANS le mur depuis que les
+bâtiments sont solides ; il part de la dalle), `pilote` (45 abords de commerce dans l'axe :
+la voie qu'on descend se cale sur le but quand elle passe à moins de deux mètres), `chantiers`,
+`combine`, `escargot`, `guidage`, `campagne30`.
+
+## La récolte paie : prix fois quatre, primes moins un quart, pousse doublée
+
+« Une grosse partie de la rémunération est faite par les primes de fin de contrat. Livrer du
+blé à la Coopérative pour faire monter la trésorerie, c'est quasi impossible : on gagne
+quelques euros, jamais de quoi racheter une amélioration. Change complètement ça. C'est pas
+grave si les prix sont plus importants que la réalité ; il faut qu'en plusieurs récoltes on
+puisse faire évoluer notre champ — et diminue un petit peu les primes de fin de contrat, que
+ça reste raisonnable, mais rémunérateur quand on travaille à côté. Change aussi les durées de
+production : les œufs sont un peu longs à sortir, alors que les champs poussent relativement
+vite ; augmente le temps de pousse d'un champ, ça donne l'intérêt de mettre de l'engrais. Tu
+peux multiplier par deux. »
+
+**Mesuré avant.** Une parcelle de blé rend 120 kg, soit 70 € au barème et 60 chez la
+Coopérative ; la première amélioration coûte 600 €, la première parcelle 1 000. Dix récoltes
+pour un cran de vitesse, et la première mission payait 200 € de prime pour trente kilos qui
+en valaient dix-huit.
+
+**Tous les prix bruts font fois quatre** (`PRODUITS`) : le blé à 2,35 € le kilo, l'œuf à
+0,80, la farine et l'huile de colza — les deux tarifs écrits à la main — suivent, et le reste
+par les paliers. La même parcelle de blé rend 240 € chez la Coopérative : deux récoltes et
+demie pour la première amélioration, quatre pour la première parcelle ; le maïs 430, le colza
+465. **Les primes de mission baissent d'un quart**, arrondies à la dizaine : 150 € pour la
+première, 30 000 pour la dernière (`MISSIONS`) ; la prime d'un contrat de village passe de
+deux fois à une fois et demie la marchandise (`PALIER.CONTRAT`). La commande reste meilleure
+que la vente sèche, sans l'écraser. **Et l'échelle des commandes suit les prix** (`ECH_PRIX`) :
+elle est en euros, et sans ce facteur la première commande de blé serait tombée de vingt-cinq
+kilos à six.
+
+**La pousse est deux fois plus longue** (`CROPS`) : le blé de 75 à 150 s, l'avoine 180, l'orge
+190, le maïs 220, le colza 280 ; la vigne et l'olivier s'installent en 420 et 480 s et
+repartent en 300 et 360. L'engrais garde son quart de temps gagné, qui vaut maintenant
+quarante secondes sur un blé au lieu de vingt. **Les œufs sortent deux fois plus vite** : cent
+cinquante secondes par cycle au lieu de trois cents, deux œufs par poule (`ESPECES`).
+
+Bancs adaptés : `campagne` (le barème doublé, la vigne à 420 et 300), `campagne30` (les trente
+primes ; l'expérience de la première mission compte maintenant les soixante euros de la vente,
+un centième par euro), `contrat` (l'échelle fois quatre : le blé ne bouge pas d'un kilo),
+`guidage` (150 € au règlement). `chaine` garde ses neuf échecs d'avant.
