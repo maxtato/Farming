@@ -13556,3 +13556,15 @@ passe à SIX secondes (12 à 18 s, quatre-vingt-douze kilo-octets de WAV, cent v
 base64) ; le crissement est gardé EN ENTIER, silences ôtés (0,15 à 1,60 s : la montée, le
 chant, la retombée), et se répète tant que ça dérive, comme un pneu qui accroche et lâche
 (trente-trois kilo-octets, quarante-quatre en base64). Le jeu pèse 2,1 Mo tout compris.
+
+**L'accélération du pick-up est celle de l'enregistrement.** « Pour l'accélération du pick-up,
+utilise ce son : arrive à choper dans la boucle l'accélération elle-même. » Le suivi du régime
+trouve, dans les cent quarante-huit secondes, une montée franche et sans creux : de 36,0 à
+40,9 s, le régime double, de 50 à 100 Hz, puis la boîte passe un rapport. On la garde telle
+quelle — cinq secondes, cinquante-sept kilo-octets — et on la JOUE : le pied au plancher à
+moins de 45 % de régime lance la montée, la boucle de croisière se tait dessous, et c'est la
+montée qui donne l'heure au régime, un cinquième par seconde. La boucle, prise à 91 Hz, est
+lue de 0,55 à 1,10 (`plage` du pick-up) pour reprendre exactement où la montée finit, sans
+marche. Lâcher le gaz coupe la montée en un cinquième de seconde ; ré-écraser à 30 % de régime
+reprend la montée à 30 % de sa longueur. Les diesels ne changent pas. Sonde `sons2` : six
+contrôles de plus, vingt-quatre en tout.
