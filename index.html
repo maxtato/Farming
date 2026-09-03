@@ -11927,6 +11927,73 @@ class Vehicle {
   }
   fwd(){ return {x:Math.sin(this.cap), z:Math.cos(this.cap)}; }
   right(){ return {x:Math.cos(this.cap), z:-Math.sin(this.cap)}; }
+  /* LE DÉCOR CONTRE TOUTES LES GÉLULES. Pour chaque gélule de l'engin (corps, tête, outil),
+     chaque cercle du décor est testé au point de la gélule le plus proche de son centre, et
+     chaque boîte en quelques points d'appui le long de la gélule (un par mètre), le plus
+     enfoncé l'emportant. Après un contact, les gélules sont relues : l'engin a bougé. */
+  decorGabarits(){
+    const G = gabarits(this, _gabA);
+    for(let ci = 0; ci < G.length; ci++){
+      let cap = G[ci];
+      for(const o of obstacles){
+        const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, l2 = lx*lx + lz*lz;
+        let u = 0; if(l2 > 1e-6){ u = ((o.x - cap.x1)*lx + (o.z - cap.z1)*lz)/l2; u = Math.max(0, Math.min(1, u)); }
+        const px = cap.x1 + lx*u, pz = cap.z1 + lz*u;
+        const dx = px - o.x, dz = pz - o.z, R = o.r + cap.r + (o.soft ? 0.15 : 0);
+        const d2 = dx*dx + dz*dz;
+        if(d2 >= R*R || d2 < 1e-4) continue;
+        const d = Math.sqrt(d2);
+        this.contact(px, pz, dx/d, dz/d, R - d, o.soft ? o : null, (o.k && o.k.lampe) ? 'lampadaire' : 'autre', cap.part);
+        gabarits(this, G); cap = G[ci];
+      }
+      for(const o of boxObs){
+        const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, n = Math.max(2, Math.ceil(Math.hypot(lx, lz)) + 1);
+        let best = null;
+        for(let i = 0; i < n; i++){
+          const u = i/(n - 1), px = cap.x1 + lx*u, pz = cap.z1 + lz*u;
+          const cx = Math.max(o.x - o.hw, Math.min(o.x + o.hw, px)), cz = Math.max(o.z - o.hd, Math.min(o.z + o.hd, pz));
+          const dx = px - cx, dz = pz - cz, d2 = dx*dx + dz*dz;
+          if(d2 >= cap.r*cap.r) continue;
+          let nx, nz, pen;
+          if(d2 < 1e-4){                       // dedans : on sort par le côté le plus proche
+            const ex = o.hw - Math.abs(px - o.x), ez = o.hd - Math.abs(pz - o.z);
+            if(ex < ez){ nx = Math.sign(px - o.x || 1); nz = 0; pen = ex + cap.r; }
+            else { nx = 0; nz = Math.sign(pz - o.z || 1); pen = ez + cap.r; }
+          } else { const d = Math.sqrt(d2); nx = dx/d; nz = dz/d; pen = cap.r - d; }
+          if(!best || pen > best.pen) best = {px:px, pz:pz, nx:nx, nz:nz, pen:pen};
+        }
+        if(best){ this.contact(best.px, best.pz, best.nx, best.nz, best.pen, null, 'autre', cap.part); gabarits(this, G); cap = G[ci]; }
+      }
+    }
+  }
+  /* UN CONTACT, ET CE QU'IL FAIT. Le point touché, la normale (du décor vers l'engin), la
+     pénétration. Un renversable ploie ou tombe et renvoie l'engin — sauf une clôture fauchée
+     par l'OUTIL, qu'il passe en la couchant, sans presque ralentir. Un dur fait ressortir
+     l'engin, en partie par un PIVOT autour de son centre quand le point est loin de lui
+     (`pivotChoc` : c'est ce qui fait qu'un arrière de fourgon qui touche un mur en
+     tournant se bloque et tourne au lieu de glisser dedans), lui ôte sa vitesse vers le
+     mur avec un léger rebond, et le ralentit d'un cinquième : ça racle. */
+  contact(px, pz, nx, nz, pen, o, genre, part){
+    const vn = -(this.vel.x*nx + this.vel.y*nz);
+    if(typeof MACHINES !== 'undefined' && MACHINES[cur] && MACHINES[cur].v === this) AUDIO.impact(genre, vn);
+    if(o){
+      renverse(o.k, -nx, -nz, this.speed);
+      if(o.k && o.k.type === 'plat' && part === 'outil'){ this.vel.multiplyScalar(0.9); return; }
+      const imp = Math.min(7, 2 + this.speed*0.55);
+      this.vel.x = this.vel.x*0.25 + nx*imp; this.vel.y = this.vel.y*0.25 + nz*imp;
+      this.pos.x += nx*pen; this.pos.z += nz*pen;
+      puff(px - nx*0.5, 1.0, pz - nz*0.5, 0xE8E0CC, 0.6, 0.5);
+      return;
+    }
+    const rot = pivotChoc(this, px, pz, nx, nz, pen);
+    this.cap += rot;
+    const f = this.fwd(), s = (px - this.pos.x)*f.x + (pz - this.pos.z)*f.z, lat = f.z*nx - f.x*nz;
+    const rendu = Math.min(pen, Math.abs(rot*s*lat));
+    this.pos.x += nx*(pen - rendu*0.5); this.pos.z += nz*(pen - rendu*0.5);
+    const vN = this.vel.x*nx + this.vel.y*nz;
+    if(vN < 0){ this.vel.x -= nx*vN*1.2; this.vel.y -= nz*vN*1.2; }
+    this.vel.multiplyScalar(0.8);
+  }
   update(dt, steerX, throttle, frein){
     // Le carburant se consomme AVANT le calcul du mouvement : un réservoir vide bride
     // la commande des gaz, il ne coupe pas net. L'engin finit sa course au ralenti.
@@ -12005,20 +12072,20 @@ class Vehicle {
     // limites + obstacles
     this.pos.x = Math.max(X0+6, Math.min(X1-6, this.pos.x));
     this.pos.z = Math.max(Z0+6, Math.min(Z1-6, this.pos.z));
-    /* LE CHOC S'ENTEND, POUR L'ENGIN QU'ON CONDUIT. La vitesse d'approche se lit AVANT le
-       renvoi — c'est elle qui dit la violence du coup —, et sa voix dépend de ce qu'on
-       heurte : un lampadaire sonne métal, tout le reste du décor sonne mur (voir
-       `AUDIO.impact`). Un engin qui racle ne mitraille pas : une fois renvoyé, il ne
-       revient au contact qu'au pas, et sous un mètre par seconde rien ne sonne. */
+    /* LE DÉCOR CONTRE TOUTES LES GÉLULES DE L'ENGIN CONDUIT — corps, tête, outil attelé
+       (`decorGabarits`) —, et le cercle d'avant pour les autres : un engin en automatique
+       suit un tracé calculé, et un épandeur de douze mètres qui frôlerait les piquets de
+       clôture au bord de sa parcelle l'en sortirait. Le choc s'entend pour l'engin conduit :
+       la vitesse d'approche se lit AVANT le renvoi, sa voix dépend de ce qu'on heurte. */
     const moi = (typeof MACHINES !== 'undefined' && MACHINES[cur] && MACHINES[cur].v === this);
+    if(moi && !fantomeAuto(this)) this.decorGabarits();
+    else {
     for(const o of obstacles){
-
       const dx = this.pos.x-o.x, dz = this.pos.z-o.z;
       const R = o.r + (o.soft ? 1.5 : 1.35);
       const d2 = dx*dx+dz*dz;
       if(d2 < R*R && d2 > 0.01){
         const d = Math.sqrt(d2), nx = dx/d, nz = dz/d;
-        if(moi) AUDIO.impact((o.k && o.k.lampe) ? 'lampadaire' : 'autre', -(this.vel.x*nx + this.vel.y*nz));
         if(o.soft){
           // arbre ou poteau : il ploie, la machine est renvoyée sans rester coincée
           renverse(o.k, -nx, -nz, this.speed);
@@ -12040,7 +12107,6 @@ class Vehicle {
       let dx = this.pos.x-cx, dz = this.pos.z-cz;
       const d2 = dx*dx+dz*dz;
       if(d2 > R*R) continue;
-      if(moi) AUDIO.impact('autre', d2 > 0.0001 ? -(this.vel.x*dx + this.vel.y*dz)/Math.sqrt(d2) : this.speed);
       if(d2 < 0.0001){ // à l'intérieur : sortir par le côté le plus proche
         const px = o.hw - Math.abs(this.pos.x-o.x), pz = o.hd - Math.abs(this.pos.z-o.z);
         if(px < pz) this.pos.x = o.x + Math.sign(this.pos.x-o.x||1)*(o.hw+R);
@@ -12050,6 +12116,7 @@ class Vehicle {
         this.pos.x = cx + dx/d*R; this.pos.z = cz + dz/d*R;
       }
       this.vel.multiplyScalar(0.4);
+    }
     }
     this.speed = Math.hypot(this.vel.x, this.vel.y);
 
@@ -17010,6 +17077,85 @@ function segSeg(p1x, p1z, q1x, q1z, p2x, p2z, q2x, q2z){
   }
   return {x1:p1x + d1x*u, z1:p1z + d1z*u, x2:p2x + d2x*w, z2:p2z + d2z*w};
 }
+/* ---------- LES GABARITS : TOUT CE QUI ROULE EST UNE LISTE DE GÉLULES ----------
+   Le joueur : « il faut vraiment que chacun des volumes — la caisse des camions, n'importe
+   quoi — réagisse au choc. Aujourd'hui, quand on fait un demi-tour avec un camion et que la
+   caisse arrière va percuter quelque chose, ça passe au-dessus, à travers ; pareil pour les
+   charrues, tout ce qu'on traîne, toutes les remorques doivent être des volumes. »
+   CE QUI TRAVERSAIT, ET POURQUOI. Contre le DÉCOR, un engin n'était qu'un cercle sous son
+   centre (1,35 m) : l'avant et l'arrière d'un fourgon de sept mètres passaient dans les murs
+   dès qu'il tournait, et l'outil attelé — charrue, épandeur de douze mètres, benne — n'y
+   touchait pas du tout. Contre les VÉHICULES, la gélule du corps existait, mais l'outil
+   n'en avait pas, et la remorque d'un semi n'était que le prolongement en ligne droite de
+   son tracteur.
+   UN ENGIN, C'EST MAINTENANT UNE LISTE DE GÉLULES (`gabarits`) : son corps (la gélule
+   d'`emprise`, du nez à l'arrière), sa TÊTE quand il en a une (la coupe de huit mètres de la
+   moissonneuse, le tunnel de l'enjambeuse : une gélule EN TRAVERS à l'avant), et son OUTIL
+   attelé, mesuré une fois sur sa géométrie (`gabaritOutil`) : en travers pour ce qui est
+   large et court — charrue, semoir, épandeur, combiné —, dans l'axe pour ce qui est long, la
+   benne. Toutes servent au décor (`decorGabarits`), aux autres engins et au trafic, et un
+   choc reçu par l'outil est rendu à l'engin qui le tire. Et l'attelage du trafic a DEUX
+   gélules, tracteur et remorque, chacune sur son cap (`gabaritsTrafic`). */
+function gabaritOutil(T){
+  if(T._gab) return T._gab;
+  let g = null;
+  try {
+    const grp = T.group, rot = grp.rotation.y, px = grp.position.x, pz = grp.position.z;
+    grp.rotation.y = 0; grp.position.set(0, 0, 0); grp.updateMatrixWorld(true);
+    const b = new THREE.Box3(), bo = new THREE.Box3(); b.makeEmpty();
+    grp.traverse((o)=>{
+      if(!o.isMesh || !o.geometry) return;
+      if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      bo.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); b.union(bo);
+    });
+    grp.rotation.y = rot; grp.position.set(px, 0, pz); grp.updateMatrixWorld(true);
+    const W = b.max.x - b.min.x, Lz = b.max.z - b.min.z;
+    if(isFinite(W) && isFinite(Lz) && W > 0.3 && Lz > 0.3){
+      const cx = (b.max.x + b.min.x)/2, cz = (b.max.z + b.min.z)/2;
+      if(W > 1.6*Lz){ const r = Math.max(0.6, Math.min(2.6, Lz/2)); g = {travers:true,  cx:cx, cz:cz, demi:Math.max(0, W/2 - r),  r:r}; }
+      else          { const r = Math.max(0.8, Math.min(2.2, W/2));  g = {travers:false, cx:cx, cz:cz, demi:Math.max(0, Lz/2 - r), r:r}; }
+    }
+  } catch(e){}
+  return (T._gab = g || {travers:true, cx:0, cz:-(T.L || 2), demi:Math.max(0, (T.width || 2)/2 - 1), r:1});
+}
+function teteDe(v){
+  if(v._tete !== undefined) return v._tete;
+  let t = null;
+  try {
+    const H = v.group && v.group.userData && v.group.userData.head;
+    if(H){
+      const cap0 = v.group.rotation.y; v.group.rotation.y = 0; v.group.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(H);
+      v.group.rotation.y = cap0; v.group.updateMatrixWorld(true);
+      const W = b.max.x - b.min.x, Lz = b.max.z - b.min.z;
+      if(isFinite(W) && isFinite(Lz) && W > 3){
+        const r = Math.max(0.5, Math.min(1.5, Lz/2));
+        t = {cz:(b.max.z + b.min.z)/2 - v.group.position.z, demi:Math.max(0, W/2 - r), r:r};
+      }
+    }
+  } catch(e){}
+  return (v._tete = t);
+}
+const _gabA = [], _gabB = [], _gabT = [];
+function gabarits(v, out){
+  out.length = 0;
+  const f = v.fwd(), r = v.right(), c = emprise(v);
+  out.push({x1:v.pos.x - f.x*c.h, z1:v.pos.z - f.z*c.h, x2:v.pos.x + f.x*c.h, z2:v.pos.z + f.z*c.h, r:c.r, part:'corps'});
+  const tete = teteDe(v);
+  if(tete){
+    const cx = v.pos.x + f.x*tete.cz, cz = v.pos.z + f.z*tete.cz;
+    out.push({x1:cx - r.x*tete.demi, z1:cz - r.z*tete.demi, x2:cx + r.x*tete.demi, z2:cz + r.z*tete.demi, r:tete.r, part:'tete'});
+  }
+  const T = v.tool;
+  if(T && T.attached === v && T.group){
+    const g = gabaritOutil(T), ft = {x:Math.sin(T.cap), z:Math.cos(T.cap)}, rt = {x:ft.z, z:-ft.x};
+    const hx = T.group.position.x, hz = T.group.position.z;
+    const cx = hx + ft.x*g.cz + rt.x*g.cx, cz = hz + ft.z*g.cz + rt.z*g.cx;
+    const ax = g.travers ? rt : ft;
+    out.push({x1:cx - ax.x*g.demi, z1:cz - ax.z*g.demi, x2:cx + ax.x*g.demi, z2:cz + ax.z*g.demi, r:g.r, part:'outil'});
+  }
+  return out;
+}
 /* ET LA GÉLULE D'UNE VOITURE DU TRAFIC. `avant` et `arriere` sont ses porte-à-faux depuis
    la sellette et `larg` sa largeur : les trois sont déjà mesurés sur la carrosserie à la
    construction du pool, on n'a rien à remesurer. Elle change à chaque naissance — une
@@ -17021,6 +17167,31 @@ const empriseTrafic = (t)=>{
   const r = Math.max(1.0, Math.min(2.2, 0.90*(t.larg || 1.2) + 0.10));
   return {r:r, h:Math.max(0, Math.min(6.5, (t.avant + t.arriere)*0.5 - r))};
 };
+/* LES GÉLULES D'UNE VOITURE DU TRAFIC, ET LES DEUX D'UN ATTELAGE. La gélule d'une voiture
+   est CENTRÉE ENTRE SES PORTE-À-FAUX — elle l'était sur l'origine du modèle, ce qui, pour un
+   attelage dont l'origine est la sellette, la faisait dépasser de neuf mètres devant la
+   cabine. L'attelage en a deux : le tracteur, du nez à la sellette, et la remorque, de la
+   sellette à son bout, sur SON cap (`tcap`, celui de la corde) — c'est elle qu'on heurtait
+   sans la toucher dans les virages, et qu'on traversait. */
+const ARR_REM = Math.max(1, DIM_LOURD.arriere - SELLETTE_TRAFIC);
+function gabaritsTrafic(t, out){
+  out.length = 0;
+  const r = Math.max(1.0, Math.min(2.2, 0.90*(t.larg || 1.2) + 0.10));
+  const tx = t.m.position.x, tz = t.m.position.z;
+  if(!t.lourd){
+    const h = Math.max(0, Math.min(6.5, (t.avant + t.arriere)*0.5 - r)), o = (t.avant - t.arriere)*0.5;
+    const cx = tx + t.fx*o, cz = tz + t.fz*o;
+    out.push({x1:cx - t.fx*h, z1:cz - t.fz*h, x2:cx + t.fx*h, z2:cz + t.fz*h, r:r, part:'corps'});
+  } else {
+    const arr = SELLETTE_TRAFIC + 0.6, hT = Math.max(0, (t.avant + arr)*0.5 - r), oT = (t.avant - arr)*0.5;
+    const cx = tx + t.fx*oT, cz = tz + t.fz*oT;
+    out.push({x1:cx - t.fx*hT, z1:cz - t.fz*hT, x2:cx + t.fx*hT, z2:cz + t.fz*hT, r:r, part:'corps'});
+    const hx = tx - t.fx*SELLETTE_TRAFIC, hz = tz - t.fz*SELLETTE_TRAFIC;
+    const fx = Math.sin(t.tcap), fz = Math.cos(t.tcap);
+    out.push({x1:hx - fx*r, z1:hz - fz*r, x2:hx - fx*Math.max(r, ARR_REM - r), z2:hz - fz*Math.max(r, ARR_REM - r), r:r, part:'remorque'});
+  }
+  return out;
+}
 /* LA SECOUSSE DE LA CARROSSERIE. Un choc qui ne ferait que dévier la trajectoire se
    verrait à peine : ce qui le rend physique, c'est la caisse qui plonge et se redresse.
    On injecte donc dans la suspension — celle qui existe déjà — une vitesse de tangage et
@@ -17036,81 +17207,98 @@ function secouer(v, force){
    supplément de l'engin conduit s'ajoute APRÈS le partage : il ne prend rien à l'autre,
    il rend le choc plus vif pour celui qui tient le volant. */
 function choquerEngins(a, b){
-  const ca = emprise(a), cb = emprise(b);
-  const fa = a.fwd(), fb = b.fwd();
-  const R = ca.r + cb.r;
-  const P = segSeg(a.pos.x - fa.x*ca.h, a.pos.z - fa.z*ca.h,
-                   a.pos.x + fa.x*ca.h, a.pos.z + fa.z*ca.h,
-                   b.pos.x - fb.x*cb.h, b.pos.z - fb.z*cb.h,
-                   b.pos.x + fb.x*cb.h, b.pos.z + fb.z*cb.h);
-  let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
-  let d2 = dx*dx + dz*dz;
-  if(d2 >= R*R) return;
-  /* DEUX AXES QUI SE CROISENT N'ONT PAS DE NORMALE, et ce n'est pas un cas d'école : c'est
-     exactement ce qui arrive quand on rentre dans l'arrière d'un véhicule en le suivant —
-     les deux gélules sont alignées, leurs axes se coupent, et la distance entre eux est
-     nulle. Une garde qui renoncerait là laisserait passer le choc le plus fréquent du jeu.
-     On prend alors la direction des CENTRES, et à défaut le travers de celui qui arrive :
-     il y a toujours un sens dans lequel se dégager. */
-  if(d2 < 1e-4){
-    dx = b.pos.x - a.pos.x; dz = b.pos.z - a.pos.z;
-    d2 = dx*dx + dz*dz;
-    if(d2 < 1e-4){ const r0 = right(a.cap); dx = r0.x; dz = r0.z; d2 = 1; }
+  const GA = gabarits(a, _gabA), GB = gabarits(b, _gabB);
+  for(const ca of GA) for(const cb of GB){
+    const R = ca.r + cb.r;
+    const P = segSeg(ca.x1, ca.z1, ca.x2, ca.z2, cb.x1, cb.z1, cb.x2, cb.z2);
+    let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
+    let d2 = dx*dx + dz*dz;
+    if(d2 >= R*R) continue;
+    /* DEUX AXES QUI SE CROISENT N'ONT PAS DE NORMALE, et ce n'est pas un cas d'école : c'est
+       exactement ce qui arrive quand on rentre dans l'arrière d'un véhicule en le suivant —
+       les deux gélules sont alignées, leurs axes se coupent, et la distance entre eux est
+       nulle. Une garde qui renoncerait là laisserait passer le choc le plus fréquent du jeu.
+       On prend alors la direction des CENTRES, et à défaut le travers de celui qui arrive :
+       il y a toujours un sens dans lequel se dégager. */
+    if(d2 < 1e-4){
+      dx = b.pos.x - a.pos.x; dz = b.pos.z - a.pos.z;
+      d2 = dx*dx + dz*dz;
+      if(d2 < 1e-4){ const r0 = right(a.cap); dx = r0.x; dz = r0.z; d2 = 1; }
+    }
+    const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = (R - Math.min(d, R))*0.5;
+    a.pos.x -= nx*pen; a.pos.z -= nz*pen;
+    b.pos.x += nx*pen; b.pos.z += nz*pen;
+    // et chacun pivote un peu autour de son centre, selon le bras de levier du point touché
+    a.cap += pivotChoc(a, P.x1, P.z1, -nx, -nz, pen);
+    b.cap += pivotChoc(b, P.x2, P.z2,  nx,  nz, pen);
+    const vn = (b.vel.x - a.vel.x)*nx + (b.vel.y - a.vel.y)*nz;
+    if(vn >= 0) return;                       // ils s'éloignent déjà : rien à faire
+    const j = -vn*0.5*(1 + CHOC.rebond);
+    const ka = (a === MACHINES[cur].v) ? CHOC.jouer : 1;
+    const kb = (b === MACHINES[cur].v) ? CHOC.jouer : 1;
+    a.vel.x -= nx*j*ka; a.vel.y -= nz*j*ka;
+    b.vel.x += nx*j*kb; b.vel.y += nz*j*kb;
+    secouer(a, -vn*ka); secouer(b, -vn*kb);
+    if(ka > 1 || kb > 1) AUDIO.impact('vehicule', -vn*CHOC.jouer);   // l'engin conduit est de la partie : ça sonne
+    a.speed = Math.hypot(a.vel.x, a.vel.y);
+    b.speed = Math.hypot(b.vel.x, b.vel.y);
+    if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.2, (P.z1 + P.z2)/2, 0xE8E0CC, 0.5, 0.4);
+    return;                                   // une paire de gélules par image suffit
   }
-  const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = (R - Math.min(d, R))*0.5;
-  a.pos.x -= nx*pen; a.pos.z -= nz*pen;
-  b.pos.x += nx*pen; b.pos.z += nz*pen;
-  const vn = (b.vel.x - a.vel.x)*nx + (b.vel.y - a.vel.y)*nz;
-  if(vn >= 0) return;                       // ils s'éloignent déjà : rien à faire
-  const j = -vn*0.5*(1 + CHOC.rebond);
-  const ka = (a === MACHINES[cur].v) ? CHOC.jouer : 1;
-  const kb = (b === MACHINES[cur].v) ? CHOC.jouer : 1;
-  a.vel.x -= nx*j*ka; a.vel.y -= nz*j*ka;
-  b.vel.x += nx*j*kb; b.vel.y += nz*j*kb;
-  secouer(a, -vn*ka); secouer(b, -vn*kb);
-  if(ka > 1 || kb > 1) AUDIO.impact('vehicule', -vn*CHOC.jouer);   // l'engin conduit est de la partie : ça sonne
-  a.speed = Math.hypot(a.vel.x, a.vel.y);
-  b.speed = Math.hypot(b.vel.x, b.vel.y);
-  if(siSouvent(0.6)) puff((a.pos.x + b.pos.x)/2, 1.2, (a.pos.z + b.pos.z)/2,
-                          0xE8E0CC, 0.5, 0.4);
+}
+/* LE PIVOT D'UN CHOC. Un point touché loin du centre fait tourner l'engin : c'est ce qui
+   distingue un arrière de fourgon qui racle un mur d'un cercle qui glisse. `s` est le bras
+   de levier le long de l'axe, `lat` la part de la normale qui est en travers ; une rotation
+   de `rot` déplace le point de `s·rot` en travers, on lui laisse six dixièmes de la
+   pénétration, jamais plus de quatre degrés par image. */
+function pivotChoc(v, px, pz, nx, nz, pen){
+  const f = v.fwd(), s = (px - v.pos.x)*f.x + (pz - v.pos.z)*f.z, lat = f.z*nx - f.x*nz;
+  return Math.max(-0.07, Math.min(0.07, 0.6*pen*(s*lat)/(s*s*lat*lat + 0.6)));
 }
 /* UN ENGIN ET UNE VOITURE. L'engin est repoussé comme par un obstacle — il a une masse et
    une adhérence, il encaisse — et la voiture reçoit un ÉCART, qui la déporte hors de sa
    voie avant que le ressort ne l'y ramène. Elle freine aussi : une voiture qu'on vient
    d'emboutir ne repart pas à sa vitesse de croisière dans la seconde. */
 function choquerTrafic(v, t){
-  const cv = emprise(v), ct = empriseTrafic(t);
-  const fv = v.fwd();
+  const GV = gabarits(v, _gabA), GT = gabaritsTrafic(t, _gabT);
   const tx = t.m.position.x, tz = t.m.position.z;
-  const R = cv.r + ct.r;
-  const P = segSeg(v.pos.x - fv.x*cv.h, v.pos.z - fv.z*cv.h,
-                   v.pos.x + fv.x*cv.h, v.pos.z + fv.z*cv.h,
-                   tx - t.fx*ct.h, tz - t.fz*ct.h,
-                   tx + t.fx*ct.h, tz + t.fz*ct.h);
-  let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
-  let d2 = dx*dx + dz*dz;
-  if(d2 >= R*R) return;
-  // même repli que pour deux engins : voir le commentaire ci-dessus
-  if(d2 < 1e-4){
-    dx = tx - v.pos.x; dz = tz - v.pos.z;
-    d2 = dx*dx + dz*dz;
-    if(d2 < 1e-4){ const r0 = right(v.cap); dx = r0.x; dz = r0.z; d2 = 1; }
+  for(const cv of GV) for(const ct of GT){
+    const R = cv.r + ct.r;
+    const P = segSeg(cv.x1, cv.z1, cv.x2, cv.z2, ct.x1, ct.z1, ct.x2, ct.z2);
+    let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
+    let d2 = dx*dx + dz*dz;
+    if(d2 >= R*R) continue;
+    // même repli que pour deux engins : voir le commentaire ci-dessus
+    if(d2 < 1e-4){
+      dx = (ct.x1 + ct.x2)/2 - v.pos.x; dz = (ct.z1 + ct.z2)/2 - v.pos.z;
+      d2 = dx*dx + dz*dz;
+      if(d2 < 1e-4){ const r0 = right(v.cap); dx = r0.x; dz = r0.z; d2 = 1; }
+    }
+    const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = R - Math.min(d, R);
+    // deux tiers pour l'engin, un tiers pour la voiture : c'est elle qui a une voie à tenir
+    v.pos.x -= nx*pen*0.66; v.pos.z -= nz*pen*0.66;
+    v.cap += pivotChoc(v, P.x1, P.z1, -nx, -nz, pen*0.66);
+    t.ox += nx*pen*0.34; t.oz += nz*pen*0.34;
+    const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
+    const force = Math.max(Math.abs(vn), 1);
+    const k = (v === MACHINES[cur].v) ? CHOC.jouer : 1;
+    v.vel.x -= nx*force*0.5*k; v.vel.y -= nz*force*0.5*k;
+    v.speed = Math.hypot(v.vel.x, v.vel.y);
+    secouer(v, force*k);
+    if(k > 1) AUDIO.impact('vehicule', force*k);
+    t.vox += nx*force*CHOC.trafic*0.1; t.voz += nz*force*CHOC.trafic*0.1;
+    /* LA SECOUSSE VA D'ABORD À CE QU'ON A TOUCHÉ — la cabine si c'est le tracteur, la
+       remorque si c'est elle, chacune sur sa suspension —, ET L'AUTRE MOITIÉ EN REÇOIT LA
+       MOITIÉ : une cabine qui roulait seule sur une remorque restée plate, c'était le
+       « pli » qu'on voyait à la sellette. Et l'attelage entier se déplace d'un bloc (voir
+       `updateTrafic`). */
+    const sensRem = nx*Math.cos(t.tcap) - nz*Math.sin(t.tcap) > 0 ? 1 : -1, sensCab = nx*t.fz - nz*t.fx > 0 ? 1 : -1;
+    if(ct.part === 'remorque'){ t.rPitchV -= 0.5; t.rRollV += 0.45*sensRem; t.pitchV -= 0.25; t.rollV += 0.25*sensCab; }
+    else { t.pitchV -= 0.7; t.rollV += 0.5*sensCab; t.rPitchV -= 0.35; t.rRollV += 0.3*sensRem; }
+    t.choc = 1.1;                             // elle reste au ralenti une seconde
+    if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.3, (P.z1 + P.z2)/2, 0xE8E0CC, 0.55, 0.45);
+    return;
   }
-  const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = R - Math.min(d, R);
-  // deux tiers pour l'engin, un tiers pour la voiture : c'est elle qui a une voie à tenir
-  v.pos.x -= nx*pen*0.66; v.pos.z -= nz*pen*0.66;
-  t.ox += nx*pen*0.34; t.oz += nz*pen*0.34;
-  const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
-  const force = Math.max(Math.abs(vn), 1);
-  const k = (v === MACHINES[cur].v) ? CHOC.jouer : 1;
-  v.vel.x -= nx*force*0.5*k; v.vel.y -= nz*force*0.5*k;
-  v.speed = Math.hypot(v.vel.x, v.vel.y);
-  secouer(v, force*k);
-  if(k > 1) AUDIO.impact('vehicule', force*k);
-  t.vox += nx*force*CHOC.trafic*0.1; t.voz += nz*force*CHOC.trafic*0.1;
-  t.pitchV -= 0.7; t.rollV += nx*t.fz - nz*t.fx > 0 ? 0.5 : -0.5;
-  t.choc = 1.1;                             // elle reste au ralenti une seconde
-  if(siSouvent(0.6)) puff(tx, 1.3, tz, 0xE8E0CC, 0.55, 0.45);
 }
 /* LE JUGE UNIQUE, APPELÉ UNE FOIS PAR IMAGE. Toutes les paires y passent : sept engins
    entre eux — vingt et une paires — et sept engins contre seize voitures. Les voitures
@@ -17234,6 +17422,13 @@ function updateTrafic(dt){
       const fx = Math.sin(cap), fz = Math.cos(cap);
       const hx = p.x - fx*SELLETTE_TRAFIC, hz = p.z - fz*SELLETTE_TRAFIC;
       const pa = surItineraire(t.route, t.s - SELLETTE_TRAFIC - TIMON_TRAFIC);
+      /* ET L'ÉCART D'UN CHOC S'APPLIQUE AUSSI À SON ESSIEU. Le joueur : « les grosses
+         semi-remorques, au choc, on dirait qu'elles se plient en deux entre le tracteur et
+         la remorque. » L'écart (`ox`, `oz`) ne déplaçait que le point du tracteur ; la
+         sellette partait avec lui, l'essieu de la remorque restait sur le tracé, et la
+         corde entre les deux tournait : la remorque pivotait autour de son essieu, d'où
+         le pli. Le même écart posé sur l'essieu, l'attelage se déplace d'un BLOC. */
+      pa.x += t.ox; pa.z += t.oz;
       let dx2 = hx - pa.x, dz2 = hz - pa.z;
       const dd = Math.hypot(dx2, dz2) || 1; dx2 /= dd; dz2 /= dd;
       const tcap = Math.atan2(dx2, dz2);

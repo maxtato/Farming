@@ -13803,3 +13803,58 @@ rééchantillonnage donnait 1,4 avec trois bosses et un centroïde tombé à 879
 26-29 s, plus stable en hauteur, était plus sourd (918). Les diesels se calent sur la fin de
 la montée mesurée au pic de DFT, 78,5 sur 77,25 : `plage` [0,56 ; 1,02]. Bancs `son` et
 `sons2` recalés.
+
+## Tout ce qui roule est une liste de gélules, et l'attelage du trafic ne se plie plus
+
+« Retravaille vraiment les volumes : il faut que chacun — la caisse des camions, n'importe
+quoi — réagisse au choc. Aujourd'hui, quand on fait un demi-tour avec un camion et que la
+caisse arrière va percuter quelque chose, ça passe au-dessus, à travers ; pareil pour les
+charrues, tout ce qu'on traîne, toutes les remorques doivent être des volumes. Reprends
+vraiment tout, fais quelque chose de parfait. Et retravaille le comportement des grosses
+semi-remorques au choc : on dirait qu'elles se plient en deux entre le tracteur et la
+remorque. »
+
+**Ce qui traversait, et pourquoi.** Contre le décor, un engin n'était qu'un CERCLE SOUS SON
+CENTRE (1,35 m) : le fourgon fait 8,2 m d'un bout à l'autre, son arrière était à trois
+mètres du mur quand son centre y était encore « libre ». L'outil attelé — charrue, épandeur
+de douze mètres, benne — n'y touchait pas du tout. Contre les véhicules la gélule du corps
+existait, mais pas celle de l'outil, et la remorque d'un semi n'était que le prolongement en
+ligne droite de son tracteur, centrée sur sa sellette : elle dépassait de neuf mètres devant
+la cabine et manquait la vraie remorque dans les virages.
+
+**Un engin, c'est maintenant une liste de gélules** (`gabarits`) : son corps (l'`emprise`, du
+nez à l'arrière), sa TÊTE quand il en a une (la coupe de la moissonneuse, 8,4 m en travers ;
+le tunnel de l'enjambeuse), et son OUTIL attelé, mesuré une fois sur sa géométrie
+(`gabaritOutil`) : en travers pour ce qui est large et court — charrue 4,8 m, semoir 6,4,
+épandeur 12,0 —, dans l'axe pour ce qui est long — la benne, 7,9 m. Toutes servent au décor
+(`decorGabarits` : chaque cercle testé au point de la gélule le plus proche, chaque boîte en
+un point d'appui par mètre), aux autres engins et au trafic, toutes paires de gélules
+confondues ; un choc reçu par l'outil est rendu à l'engin qui le tire. Et un contact loin du
+centre fait PIVOTER (`pivotChoc`) : six dixièmes de la pénétration par rotation, quatre
+degrés par image au plus — c'est ce qui fait qu'un arrière de fourgon qui touche un mur en
+tournant se bloque et tourne au lieu de glisser dedans. Un dur ôte la vitesse vers le mur
+avec un léger rebond et ralentit d'un cinquième, ça racle ; un renversable ploie ou tombe et
+renvoie — sauf une clôture fauchée par l'outil, qu'il couche sans presque ralentir. Le cercle
+d'avant reste aux engins EN AUTOMATIQUE : ils suivent un tracé calculé, et un épandeur de
+douze mètres qui frôlerait les piquets au bord de sa parcelle les en sortirait.
+
+**L'attelage du trafic a deux gélules**, tracteur et remorque, chacune sur son cap
+(`gabaritsTrafic`), et le pli avait deux causes. L'écart d'un choc (`ox`, `oz`) ne déplaçait
+que le point du tracteur : la sellette partait, l'essieu de la remorque restait sur le tracé,
+et la corde tournait — la remorque pivotait autour de son essieu. Le même écart est posé sur
+l'essieu : l'attelage se déplace d'un bloc. Et la secousse n'allait qu'à la cabine, qui
+roulait seule sur une remorque restée plate ; elle va d'abord à ce qu'on a touché — cabine
+ou remorque, chacune sur sa suspension — et l'autre moitié en reçoit la moitié.
+
+Banc `chocs`, sept contrôles de plus, vingt-quatre : le fourgon est une gélule de 8,2 m et la
+moissonneuse a sa coupe ; l'arrière du fourgon, 0,40 m dans un mur en tournant avec son
+centre à 3,05 m, en ressort à 1,93 m et le fourgon pivote ; la charrue attelée, à 7,25 m de
+la tour du silo de loin, la mord — le tracteur, à 4,75 m du silo, est repoussé de 2,35 m et
+la charrue ressort ; le semi heurté au tracteur est déplacé d'un mètre sans que l'angle à la
+sellette bouge (0 rad), sa remorque roule avec la cabine (écart de roulis 0,023 pour 0,054) ;
+la remorque est un volume de 12,6 m sur son propre cap, heurtée en son milieu elle repousse
+l'engin et sa caisse plonge. Les vingt-quatre passent, l'inventaire des 386 volumes de la
+scène n'a toujours pas un trou ; bancs `son`, `sons2` et `acces` verts, et la conduite
+réelle sur la rocade (`_z_plein`) file droit sans un accroc. Le banc `livraison`, lui, échoue
+à l'identique sur le commit d'avant : ses attentes datent de l'ancienne économie, il n'a
+rien à voir avec les volumes.
