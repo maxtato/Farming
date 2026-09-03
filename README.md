@@ -14019,3 +14019,35 @@ Bancs `son` et `sons2` réécrits pour la nouvelle voix : le pick-up décode la 
 gaz remet le compteur à zéro ; l'égalisation et le raccord montée → boucle valent pour les
 trois timbres ; un tiers de seconde de dérive ne fait aucun son, une seconde et demie donne
 0,228 sur la terre et 0,123 sur la route.
+
+## L'essai de la vue arrière : la caméra traîne derrière l'engin, et c'est le paysage qui balance
+
+« Fais un essai avec un bouton, réglable dans les réglages, qui nous met une vue à l'arrière
+du véhicule avec un petit peu de balancement léger, comme si la caméra était un peu plus
+lente à tourner que le véhicule — mais que ce soit le paysage qui bouge plutôt que le
+véhicule. »
+
+**Un réglage « Vue – Dessus / Arrière »** dans la fenêtre des réglages, sauvegardé avec la
+netteté et le zoom (`vueArriere`), et la vue de dessus reste celle d'origine au mètre près :
+`CAM_OFF` n'a pas bougé. En vue arrière, la caméra se pose derrière l'engin — 24 m de recul,
+11 m de haut, élévation 24°, le recul et la hauteur suivant le zoom (`ARRIERE`) — et regarde
+six mètres devant lui.
+
+**Le balancement vient d'un cap qui traîne.** `VUE.cap` suit le cap de l'engin avec un retard
+du premier ordre de 0,35 s (`ecartCap`, le plus court chemin autour du tour) ; la position de
+la caméra en découle. L'engin, lui, est au centre de l'image et y reste : la cible est sa
+position même, sans l'anticipation de vitesse de la vue de dessus. Au volant, on le voit à
+peine pivoter ; c'est le paysage qui tourne autour de lui, puis se cale.
+
+**Rien d'autre n'avait à changer**, et c'est parce que tout ce qui est plat est déjà un sprite
+— enseignes, étiquettes, jauges — donc face à n'importe quelle caméra ; les panneaux de prix
+des parcelles restent des panneaux plantés, comme au bord d'un vrai champ. La boîte d'ombre
+est portée trente mètres devant l'engin en vue arrière : on voit loin devant, et une ombre
+qui s'arrêterait net à soixante-cinq mètres se verrait. Les changements d'engin et de zoom
+passent par `poserCamera()`, qui pose la caméra d'un coup dans la vue du moment.
+
+Banc `vue` : la vue de dessus vaut (38, 62, 38) ; en vue arrière à l'arrêt la caméra est
+derrière l'engin, à 24 m et 11 m de haut, l'engin au centre de l'écran ; en roulant droit elle
+reste derrière et l'engin au centre ; en virage le cap de la caméra traîne derrière celui de
+l'engin, l'engin restant au centre ; le virage fini, elle rattrape ; le réglage se sauvegarde
+et la fenêtre des réglages le porte ; un bouton ramène la vue de dessus.
