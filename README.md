@@ -13858,3 +13858,62 @@ scène n'a toujours pas un trou ; bancs `son`, `sons2` et `acces` verts, et la c
 réelle sur la rocade (`_z_plein`) file droit sans un accroc. Le banc `livraison`, lui, échoue
 à l'identique sur le commit d'avant : ses attentes datent de l'ancienne économie, il n'a
 rien à voir avec les volumes.
+
+## Le téléphone se tait quand on décroche, et chaque commerce annonce lui-même son ouverture
+
+« Quand le téléphone sonne et qu'on va prendre la mission, dès le moment qu'on ouvre la
+fenêtre où la mission est affichée, le téléphone doit s'arrêter de sonner ; il ne doit pas
+sonner en arrière-plan jusqu'au lancement de la mission, et fais-le sonner plus doucement.
+Quand on finit la première mission à la Coopérative, on a trop de fenêtres. Après, il faut
+juste une fenêtre qui dit qu'on a débloqué la Coopérative, et que ce soit la dame de la
+Coopérative qui parle — regarde si ce sont des hommes ou des femmes et attribue le texte en
+conséquence, parce que là ça marque "je ne suis pas celui qui paie le mieux" alors que c'est
+une femme. Un petit texte sur le volume qu'ils prennent et le prix auquel ils achètent grosso
+modo, tourné comme si c'était la responsable qui expliquait ; et pareil pour tous les
+commerces : une fois qu'on débloque, un petit message qui dit c'est bon, c'est débloqué. »
+
+**Le téléphone est décroché dès qu'on lit l'appel.** La clochette suivait `missionAPrendre`,
+qui ne change qu'au bouton PRENDRE : elle sonnait donc sous la fenêtre, pendant qu'on lisait.
+`ouvrirContrat` retient maintenant l'indice de la mission dont on ouvre l'appel
+(`telDecroche`), et `majTelephone` coupe pour celle-là la clochette et le tremblement du
+combiné — fenêtre ouverte ou refermée sans prendre ; la pastille reste, elle dit toujours où
+c'est. La mission suivante a un autre indice, et sonne à son tour. Et la clochette passe de
+0,20 à 0,14 (`TEL_VOL`) : 0,14 au pied de la maison, 0,042 de loin.
+
+**La page d'un commerce qui s'ouvre est sa réplique, et elle se lit dans la table du
+négoce.** Elle était écrite par le jeu — « NOUVEAU CLIENT · Ce commerce achète désormais
+certains de vos produits » — sous le visage d'un commerçant qui n'avait donc rien dit.
+`pageDeblocage(S)` la compose depuis `NEGOCE` : ce qu'il achète (ou ce qu'une usine prend en
+trémie), combien — son étal, refait en deux minutes —, et à quel prix, dit en écart au PRIX
+DU JOUR, le mot de la fenêtre de contrat. Un étal : « C'est bon, c'est débloqué. Blé, maïs,
+orge, avoine et colza : je vous les achète à tout moment, sans contrat. J'en prends jusqu'à
+7 tonnes de chaque, et mon étal se refait en 2 minutes. Je ne serai pas celle qui paie le
+mieux — 15 % sous le prix du jour —, mais je prends tout, et tout de suite. » Le supermarché
+paie le prix du jour « ni plus ni moins » et prend 9 tonnes, le caviste 33 % au-dessus pour
+600 kg, l'épicerie 18 % pour 1,2 tonne, le restaurant 28 % pour 900 kg ; au-delà de six
+produits, il en nomme quatre « et presque tout ce qui sort de votre ferme », les vignettes
+disent le reste. Une usine dit ce qu'elle paie par unité apportée, avec le calcul de la
+fiche du menu — la laiterie 4,52 € par litre, la boulangerie jusqu'à 27,18 € par kilo quand
+on apporte tout — et sa trémie de 335 kg ; la boucherie, qui n'a ni étal ni trémie et
+n'était jamais annoncée, dit qu'elle prend les bêtes au double de leur valeur. Le titre est
+le nom avec son article — LA LAITERIE, L'USINE AVOINE, LE SUPERMARCHÉ.
+
+**Et chacun parle à son genre.** Les portraits décident (`GENRE_SITE`) : cinq femmes —
+Coopérative, Restaurant, Usine avoine, Atelier textile, Fromagerie —, dix hommes. « Celle
+qui paie le mieux » à la Coopérative, « celui » ailleurs.
+
+**La première mission finit sur deux pages au lieu de quatre.** La paie — CONTRAT TERMINÉ,
+avec la prime et la réplique de la responsable, « Voilà, première vente… » — puis LA
+COOPÉRATIVE, qui explique elle-même la vente libre. Les trois pages d'après — la vente libre
+expliquée par le jeu, la réplique au masculin, « le village vous a repéré » — sont remplacées
+par `apres:[{deblocage:'Coopérative'}]`, que `ouvrirBravo` développe avec la même
+`pageDeblocage`. Les vingt-neuf autres missions ne changent pas.
+
+Banc `sons2`, sept contrôles de plus, cinquante-huit : la clochette fait 0,14 au pied de la
+maison et 0,042 de loin ; la fenêtre de mission ouverte, elle se tait et le combiné ne
+tremble plus, la pastille reste ; refermée sans prendre, toujours muette, et une autre
+mission sonnerait ; la première mission finit sur deux pages, la paie puis la Coopérative ; sa
+responsable parle au féminin, nomme ses cinq céréales, ses 7 tonnes et ses 15 % ; la laiterie
+et la boulangerie disent leur prix par unité apportée et leur trémie ; le supermarché, le
+caviste, l'épicerie, la boucherie et le restaurant, chacun son prix et son volume. Bancs
+`son` (22), `chocs` (24) et `acces` (5) verts.
