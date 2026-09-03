@@ -74,9 +74,15 @@ PX_JEU = 1.0/3.0
 # moitie a l affichage, seule de ses cinq planches a etre floue. Son calme porte donc son
 # propre nom — et `perplexe` decrit mieux ce qu il montre : un homme qui regarde de cote et
 # qui n est sur de rien.
+# ET CINQ DE PLUS, POUR QU IL NE FASSE PAS LA MEME TETE A CHAQUE PHRASE. Le joueur :
+# « lorsqu il parle il a toujours la meme expression ; change un peu quand il reflechit,
+# quand il se projette. » Un regard en coin (dubitatif), les sourcils inquiets (inquiet),
+# un demi-sourire (serein), la tete tournee qui rumine (songeur), les yeux au ciel qui
+# font des plans (projette). Memes 192 : toutes dans la fenetre d annonce.
 POSES  = {'neutre': 96, 'bravo': 192, 'refus': 192,
           'perplexe': 192, 'pensif': 192, 'surpris': 192, 'rire': 192,
-          'abattu': 192, 'contrarie': 192}
+          'abattu': 192, 'contrarie': 192,
+          'dubitatif': 192, 'inquiet': 192, 'serein': 192, 'songeur': 192, 'projette': 192}
 def largeurDe(h):
     """La planche d une humeur : sa boite divisee par la grille. 288 ou 576."""
     return int(round(POSES[h]/PX_JEU))

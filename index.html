@@ -4249,8 +4249,15 @@ const PORTRAITS = {
      fabriqué à 288 et fait agrandir de moitié à l'affichage, seule de ses planches à
      être floue. La chaîne `outils/portraits` lit les humeurs dans sa table au lieu de les
      tenir en dur, et fabrique donc les sept à 576. */
+  /* ET CINQ DE PLUS, POUR QU'IL NE FASSE PAS LA MÊME TÊTE À CHAQUE PHRASE. Le joueur :
+     « lorsqu'il parle il a toujours la même expression ; change un peu quand il est en
+     train de réfléchir, ou de se projeter — il va falloir que je fasse ça. » Un regard en
+     coin qui doute (dubitatif), les sourcils qui se soucient (inquiet), un demi-sourire
+     (serein), la tête tournée qui rumine (songeur), les yeux au ciel qui font des plans
+     (projette). Chaque marche du tutoriel et chaque leçon nomme la sienne. */
   'Moi': {r:'fermier', h:['perplexe', 'bravo', 'pensif', 'surpris', 'rire',
-                          'contrarie', 'abattu']}
+                          'contrarie', 'abattu',
+                          'dubitatif', 'inquiet', 'serein', 'songeur', 'projette']}
 };
 const HUMEURS = ['neutre', 'bravo', 'refus'];
 /* ET UN COMMERCE PEUT N'EN AVOIR QU'UNE. Le comptoir agricole ne donne pas de mission et
@@ -21632,15 +21639,17 @@ const CROISEMENT = {x:PATHS_V[1], z:PATHS_H[0]};
 const auCroisement = ()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup'
   && Math.hypot(MACHINES[cur].v.pos.x - CROISEMENT.x, MACHINES[cur].v.pos.z - CROISEMENT.z) < 8;
 const TUTO = [
-  {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA TERRE',
+  /* `humeur` : la tête qu'il fait en le disant — voir `PORTRAITS['Moi']`. Sans elle, il
+     cherche (pensif), et sourit à la dernière marche (bravo). */
+  {cle:'labour', ou:'champ', engin:'t1', outil:'labour', titre:'PRÉPARER LA TERRE', humeur:'songeur',
    txt:'PRÉPARER LA TERRE – Première leçon : on ne sème pas directement dans l’herbe. '
      + 'La charrue est au parc. Il faut l’atteler au tracteur.',
    fait:()=> partParcelle('labour') >= PART_ETAPE},
-  {cle:'semis', ou:'champ', engin:'t1', outil:'semis', titre:'SEMER DU BLÉ',
+  {cle:'semis', ou:'champ', engin:'t1', outil:'semis', titre:'SEMER DU BLÉ', humeur:'projette',
    txt:'SEMER DU BLÉ – La terre est prête. Maintenant, il faudrait peut-être y mettre '
      + 'quelque chose. Le semoir est au parc.',
    fait:()=> partParcelle('semis') >= PART_ETAPE},
-  {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER',
+  {cle:'pousse', ou:'champ', titre:'LAISSER POUSSER', humeur:'dubitatif',
    txt:'LAISSER POUSSER – Et maintenant… on attend. Je découvre que l’agriculture demande '
      + 'beaucoup de patience.',
    /* CENT POUR CENT, ET PAS 98 : LA POUSSE N'EST PAS UNE PASSE DE TRACTEUR. Les 98 % de
@@ -21666,7 +21675,7 @@ const TUTO = [
      se lève dès que la trémie est pleine et s'éteint au premier déchargement. Une marche
      de tutoriel dit où l'on en est dans le tour ; une leçon dit ce qu'on ne pouvait pas
      deviner. Ce n'était pas la même chose. */
-  {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE',
+  {cle:'recolte', ou:'champ', engin:'moisson', titre:'PREMIÈRE RÉCOLTE', humeur:'surpris',
    txt:'PREMIÈRE RÉCOLTE – Ça y est. Le blé est mûr. La grosse machine avec la barre '
      + 'devant ? C’est notre moissonneuse.',
    fait:()=> bleRentre() >= 30 && partParcelle('moisson') >= PART_ETAPE},
@@ -21686,7 +21695,7 @@ const TUTO = [
      ranger la moissonneuse avec le dernier andain encore dans le ventre, et le blé de la
      fin du champ restait à bord. La marche demande donc ce qu'elle dit : DÉCHARGE — la
      trémie vide, et du blé dans la tour. */
-  {cle:'silo', ou:'silo', engin:'moisson', titre:'VIDER AU SILO',
+  {cle:'silo', ou:'silo', engin:'moisson', titre:'VIDER AU SILO', humeur:'projette',
    txt:'VIDER AU SILO – La moissonneuse ne va pas garder le grain éternellement. '
      + 'Direction le silo.',
    quoi:'vider', prod:'ble',
@@ -21707,7 +21716,7 @@ const TUTO = [
      constructeur du véhicule, et c'est par lui que le moteur de chantier renvoie un engin
      au repos une fois son travail fini — au même rayon de six mètres. On réutilise donc
      le nombre du jeu plutôt que d'en écrire un second qui pourrait diverger. */
-  {cle:'parking', ou:'parc', engin:'moisson', titre:'RANGER LA MOISSONNEUSE',
+  {cle:'parking', ou:'parc', engin:'moisson', titre:'RANGER LA MOISSONNEUSE', humeur:'serein',
    txt:'RANGER LA MOISSONNEUSE – Première récolte terminée. On va déjà essayer de rendre '
      + 'la machine entière.',
    fait:()=>{ const M = MACHINES.find((x)=> x.key === 'moisson');
@@ -21725,7 +21734,7 @@ const TUTO = [
      fait battre la parcelle, puis la destination, puis LANCER (`guiderPlan`). Elle se
      solde au premier chantier posé : le champ qu'on vient de moissonner est en chaume,
      c'est exactement le moment où l'on a envie que quelqu'un d'autre le relaboure. */
-  {cle:'auto', ou:null, bouton:'auto', fen:'plan', titre:'LANCER L’AUTOMATISATION',
+  {cle:'auto', ou:null, bouton:'auto', fen:'plan', titre:'LANCER L’AUTOMATISATION', humeur:'projette',
    txt:'LANCER L’AUTOMATISATION – Je ne vais pas tout conduire moi-même jusqu’à la fin '
      + 'de mes jours. Le bouton A lance l’automatisation : j’appuie dessus, je choisis ma '
      + 'parcelle sur la carte, et le tracteur se débrouille.',
@@ -21753,7 +21762,7 @@ const TUTO = [
      le pick-up, il ne faut pas forcément une indication comme quoi on va au village ; on
      prend le pick-up pour aller explorer les environs. » La marche se solde dès qu'on est
      dedans ; les deux secondes du téléphone ne courent plus ici mais au croisement. */
-  {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP',
+  {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP', humeur:'serein',
    txt:'REPRENDRE LE PICK-UP – Le grain est à l’abri, la machine est garée. Avant d’aller '
      + 'plus loin, j’irais bien voir à quoi ressemblent les environs. Le pick-up fera '
      + 'l’affaire.',
@@ -21763,7 +21772,7 @@ const TUTO = [
      ici » — et deux secondes plus tard le téléphone sonne à la ferme (voir `appelT` dans
      `updateCommandes`). La marche se solde à la sonnerie, pas à l'arrivée : la fenêtre
      de l'appel vient APRÈS celle de la découverte, dans cet ordre. */
-  {cle:'explorer', ou:'croisement', engin:'pickup', titre:'EXPLORER LES ENVIRONS',
+  {cle:'explorer', ou:'croisement', engin:'pickup', titre:'EXPLORER LES ENVIRONS', humeur:'pensif',
    txt:'EXPLORER LES ENVIRONS – Un tour de reconnaissance. Jusqu’au croisement, là-haut au '
      + 'milieu des parcelles, pour voir à quoi ressemble le coin.',
    fait:()=> CAMPAGNE.explore && appelT <= 0},
@@ -21796,6 +21805,7 @@ const TUTO = [
      franchie. C'était la seule façon de garder UNE table indicée — « des champs, jamais
      des lignes » — avec deux ordres de lecture. */
   {cle:'appel', engin:'pickup',
+   humeur:()=> MODE_LIBRE ? 'projette' : 'dubitatif',
    ou:   ()=> MODE_LIBRE ? 'silo' : 'ferme',
    titre:()=> MODE_LIBRE ? 'PRÉPARER UNE VENTE' : 'LE TÉLÉPHONE SONNE',
    txt:  ()=> MODE_LIBRE
@@ -21902,7 +21912,7 @@ const LECONS = [
    txt:'TRÉMIE PLEINE – Plus de place. Il faut vider le grain au silo avant de continuer.',
    quand:()=> hopper >= HOP_MAX - 0.5},
 
-  {cle:'gazole', ou:'gazole', tot:true, mur:true, nom:'CARBURANT', titre:'LA JAUGE BAISSE',
+  {cle:'gazole', humeur:'inquiet', ou:'gazole', tot:true, mur:true, nom:'CARBURANT', titre:'LA JAUGE BAISSE',
    txt:'LA JAUGE BAISSE – Il serait peut-être temps de penser au plein avant de finir à '
      + 'pied. La citerne est dans la cour.',
    quand:()=> CARBU.cuve > 1 && MACHINES.some((m)=> !m.verrou && m.v.fuel < m.v.resMax*0.4)},
@@ -21910,7 +21920,7 @@ const LECONS = [
   /* ET ELLE SE LÈVE QUAND UNE CUVE SE VIDE, en part de sa contenance et non en kilos :
      « quand elles sont quasiment vides, on doit retourner au comptoir agricole pour les
      re-remplir ». Un dixième pour les deux cuves de la cour, un quart pour le gazole. */
-  {cle:'courses', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
+  {cle:'courses', humeur:'projette', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
    nom:'COMPTOIR AGRICOLE', titre:'LE COMPTOIR AGRICOLE',
    txt:'LE COMPTOIR AGRICOLE – Graines, engrais, carburant… quand les réserves de la ferme '
      + 'baissent, c’est ici qu’on se ravitaille.',
@@ -21920,7 +21930,7 @@ const LECONS = [
                   || (CARBU.cuveMax > 0 && CARBU.cuve < CARBU.cuveMax*0.25))},
 
   /* --- CE QU'ON ACHÈTE, ET QUI CHANGE LA FERME --- */
-  {cle:'garage', ou:'Garage', fen:'achat', onglet:'engins',
+  {cle:'garage', humeur:'projette', ou:'Garage', fen:'achat', onglet:'engins',
    // La moins chère de la vitrine : c'est celle qu'on prend en premier, et c'est l'ordre
    // dans lequel `articlesAVendre` les range déjà.
    art:()=>{ const A = articlesAVendre()[0]; return A ? A.cle : null; },
@@ -21929,7 +21939,7 @@ const LECONS = [
      + 'forcément passer par ici.',
    quand:()=> articlesAVendre().some((A)=> money >= A.prix)},
 
-  {cle:'amelio', ou:'Garage', fen:'amelio', onglet:'engins',
+  {cle:'amelio', humeur:'songeur', ou:'Garage', fen:'amelio', onglet:'engins',
    art:()=> ameliorationsPossibles()
               .filter((c)=> money >= prixCranSuivant(c, niveauMateriel(c)))
               .sort((a, b)=> prixCranSuivant(a, niveauMateriel(a))
@@ -21940,7 +21950,7 @@ const LECONS = [
    quand:()=> ameliorationsPossibles().some((c)=>
                 money >= prixCranSuivant(c, niveauMateriel(c)))},
 
-  {cle:'culture', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
+  {cle:'culture', humeur:'serein', ou:'Comptoir agricole', fen:'comptoir', onglet:'semences',
    art:()=>{ const c = CROPS.filter((x)=> x.verrou && auNiveau(niveauDe('cultures', x.cle))
                                        && money >= x.cout)
                            .sort((a, b)=> a.cout - b.cout)[0];
@@ -21951,33 +21961,33 @@ const LECONS = [
    quand:()=> CROPS.some((c)=> c.verrou && auNiveau(niveauDe('cultures', c.cle))
                                         && money >= c.cout)},
 
-  {cle:'semoirCulture', ou:null, nom:'CHANGER DE CULTURE', titre:'CHOISIR LA SEMENCE',
+  {cle:'semoirCulture', humeur:'songeur', ou:null, nom:'CHANGER DE CULTURE', titre:'CHOISIR LA SEMENCE',
    txt:'CHOISIR LA SEMENCE – Le semoir sait maintenant planter plusieurs cultures. Le bouton '
      + 'de culture permet de choisir laquelle.',
    quand:()=>{ const T = toolOf(MACHINES[cur]);
      return !!(T && T.seme && CROPS.filter((c)=> !c.verrou).length >= 2); }},
 
-  {cle:'parcelle', ou:'parcelle', nom:'ACHETER UNE PARCELLE', titre:'UNE TERRE À VENDRE',
+  {cle:'parcelle', humeur:'projette', ou:'parcelle', nom:'ACHETER UNE PARCELLE', titre:'UNE TERRE À VENDRE',
    txt:'UNE TERRE À VENDRE – Une parcelle voisine est disponible. Arrêtez-vous dessus pour '
      + 'connaître son prix.',
    quand:()=>{ if(!peutAcheterParcelle()) return false;
      return PARCELS.some((q)=> !q.owned && q.signPos && money >= q.price); }},
 
   /* --- LE PLAN DE TRAVAIL : LA MACHINE TRAVAILLE SEULE --- */
-  {cle:'plan', ou:null, nom:'PLAN DE TRAVAIL', titre:'LE PLAN DE TRAVAIL',
+  {cle:'plan', humeur:'serein', ou:null, nom:'PLAN DE TRAVAIL', titre:'LE PLAN DE TRAVAIL',
    txt:'LE PLAN DE TRAVAIL – On n’est pas obligé de tout conduire soi-même. Depuis la '
      + 'carte, une machine peut être envoyée travailler seule sur une parcelle.',
    quand:()=> TOOLS.some((T)=> !T.verrou && T.from)
               && PARCELS.some((q)=> q.owned && !q.pature)},
 
-  {cle:'silo', ou:'silo', fen:'stockage', onglet:'agrandir',
+  {cle:'silo', humeur:'inquiet', ou:'silo', fen:'stockage', onglet:'agrandir',
    nom:'SILO', titre:'LE SILO SE REMPLIT',
    txt:'LE SILO SE REMPLIT – Il commence à manquer de place. Sa capacité peut être '
      + 'augmentée depuis le menu Stockage.',
    quand:()=> siloTotal() > siloMax()*0.85 && !!coutSilo() && money >= coutSilo()},
 
   /* --- L'ATELIER : LA MATIÈRE DEVIENT UN PRODUIT --- */
-  {cle:'metier', ou:'atelier', fen:'production', onglet:'metiers',
+  {cle:'metier', humeur:'projette', ou:'atelier', fen:'production', onglet:'metiers',
    art:()=>{ const M = ATELIER_MODULES.filter((X)=> !atelierA(X.cle)
                          && auNiveau(niveauDe('modules', X.cle)) && money >= X.prix)
                        .sort((a, b)=> a.prix - b.prix)[0];
@@ -21988,20 +21998,20 @@ const LECONS = [
    quand:()=> ATELIER_MODULES.some((M)=> !atelierA(M.cle)
                 && auNiveau(niveauDe('modules', M.cle)) && money >= M.prix)},
 
-  {cle:'produire', ou:'atelier', fen:'production', onglet:'produire',
+  {cle:'produire', humeur:'serein', ou:'atelier', fen:'production', onglet:'produire',
    nom:'LANCER UNE PRODUCTION', titre:'LANCER UN LOT',
    txt:'LANCER UN LOT – La matière est prête. Choisissez une recette et lancez la '
      + 'production depuis l’atelier.',
    quand:()=> HALLE.modules.length > 0 && !HALLE.file.length
               && ATELIER_MODULES.some((M)=> atelierA(M.cle) && potentiel(M.cle).sortie >= 1)},
 
-  {cle:'entrepot', ou:'entrepot', nom:'ENTREPÔT', titre:'L’ENTREPÔT',
+  {cle:'entrepot', humeur:'songeur', ou:'entrepot', nom:'ENTREPÔT', titre:'L’ENTREPÔT',
    txt:'L’ENTREPÔT – Le silo garde les récoltes en vrac. L’entrepôt accueille les produits '
      + 'transformés.',
    quand:()=>{ const T = caisseDe(MACHINES[cur]);
      return !!(ENTREPOT.quai && T && naturesDe(T).some((k)=> entrepotAccepte(k))); }},
 
-  {cle:'reglages', ou:'atelier', fen:'production', onglet:'reglages',
+  {cle:'reglages', humeur:'songeur', ou:'atelier', fen:'production', onglet:'reglages',
    nom:'RÉGLAGES DE L’ATELIER', titre:'AMÉLIORER L’ATELIER',
    txt:'AMÉLIORER L’ATELIER – Des lots plus gros, une production plus rapide ou davantage '
      + 'de commandes en attente. À vous de choisir ce qui vous ralentit le plus.',
@@ -22009,31 +22019,31 @@ const LECONS = [
               && ['capa', 'vite', 'queue'].some((q)=> !!coutUp(q) && money >= coutUp(q))},
 
   /* --- LES BÊTES --- */
-  {cle:'elevage', ou:'champ', nom:'ÉLEVAGE', titre:'INSTALLER UN ÉLEVAGE',
+  {cle:'elevage', humeur:'projette', ou:'champ', nom:'ÉLEVAGE', titre:'INSTALLER UN ÉLEVAGE',
    txt:'INSTALLER UN ÉLEVAGE – Une parcelle libre peut devenir un enclos. Après ça, il '
      + 'faudra encore acheter les animaux… et les nourrir. Évidemment.',
    quand:()=> PATURES.length === 0
               && ESP_CLES.some((c, k)=> ouvert('especes', c) && money >= prixPature(c))
               && PARCELS.some((q)=> q.owned && !q.pature)},
 
-  {cle:'bete', ou:'pature', nom:'ACHETER UN ANIMAL', titre:'PEUPLER L’ENCLOS',
+  {cle:'bete', humeur:'serein', ou:'pature', nom:'ACHETER UN ANIMAL', titre:'PEUPLER L’ENCLOS',
    txt:'PEUPLER L’ENCLOS – L’enclos est prêt. Approchez-vous et utilisez INTERAGIR pour '
      + 'acheter vos premiers animaux.',
    quand:()=> PATURES.some((P)=> P.betes.length < P.places
                 && money >= (ESPECES[P.espece] || ESPECES.vache).prix)},
 
-  {cle:'mangeoire', ou:'pature', nom:'MANGEOIRE', titre:'ILS ONT FAIM',
+  {cle:'mangeoire', humeur:'inquiet', ou:'pature', nom:'MANGEOIRE', titre:'ILS ONT FAIM',
    txt:'ILS ONT FAIM – Pas de nourriture, pas de production. Chargez de l’aliment et '
      + 'remplissez la mangeoire.',
    quand:()=> PATURES.some((P)=> P.betes.length > 0 && P.grain < P.grainMax*0.35)},
 
-  {cle:'traire', ou:'pature', nom:'PRODUCTION ANIMALE', titre:'PRODUCTION À RÉCUPÉRER',
+  {cle:'traire', humeur:'serein', ou:'pature', nom:'PRODUCTION ANIMALE', titre:'PRODUCTION À RÉCUPÉRER',
    txt:'PRODUCTION À RÉCUPÉRER – Il y a quelque chose à récupérer dans l’élevage. Revenez '
      + 'avec un véhicule adapté et utilisez INTERAGIR.',
    quand:()=> PATURES.some((P)=> P.produit > 0.5 || P.produit2 > 0.5)},
 
   /* --- ET LE VILLAGE, QUI FINIT PAR PROPOSER SES PROPRES AFFAIRES --- */
-  {cle:'contrat', ou:null, nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
+  {cle:'contrat', humeur:'dubitatif', ou:null, nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
    txt:'UN CONTRAT DISPONIBLE – Un commerce cherche un fournisseur. Sa pastille bleue '
      + 'indique qu’un contrat est disponible.',
    quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)}
@@ -22164,7 +22174,7 @@ function veillerLecons(dt){
      t'arrête ». Les faire porter par le même drapeau tiendrait tant que la coïncidence
      tient, et mentirait le jour où l'on ajoutera un mur tardif. */
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' – ').slice(1).join(' – ') || L.txt,
-    etape:true, duree:5.5, face:{nom:'Moi', humeur:L.mur ? 'contrarie' : 'surpris'},
+    etape:true, duree:5.5, face:{nom:'Moi', humeur:L.humeur || (L.mur ? 'contrarie' : 'surpris')},
     suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }
@@ -22404,7 +22414,7 @@ function annoncerEtape(E){
   const L = listeEtapes() || [];
   const dernier = L.length && L[L.length - 1] === E;
   annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', etape:true,
-                   face:{nom:'Moi', humeur:dernier ? 'bravo' : 'pensif'},
+                   face:{nom:'Moi', humeur:dernier ? 'bravo' : (champEtape(E, 'humeur') || 'pensif')},
                    duree:5.0, suite:suite});
 }
 function veillerTuto(){
@@ -29781,10 +29791,10 @@ function lancerPartie(){
            'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
       face:{nom:'Moi', humeur:'perplexe'},
       suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
-    annoncerFenetre({titre:'PREMIER JOUR',
+    annoncerFenetre({titre:'PREMIER JOUR',  // « il va falloir apprendre » : il se projette
       sous:'<i>« Apparemment, avant de récolter quoi que ce soit… ' +
            'il faut commencer par retourner la terre. »</i>',
-      face:{nom:'Moi', humeur:'pensif'},
+      face:{nom:'Moi', humeur:'projette'},
       suite:'Au boulot.'});
     annoncerEtape(TUTO[0]);
   }

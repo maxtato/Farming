@@ -13243,3 +13243,39 @@ battent aux mêmes endroits ; le fil de la première mission repasse (32 contrô
 Bancs : `plan` et `chantiers` sans échec ; la sonde du fourrage (7 contrôles : sans,
 choisi absent, choisi présent, auto, sauvegarde, défaut) ; `ecrans`, `hud`, `fenetres`,
 `lecons`, `campagne30`, `bandeau` relancés.
+
+## Cinq têtes de plus pour le fermier, et chaque phrase la sienne
+
+« Lorsqu'il parle, il a toujours la même expression. Change un peu quand il est en train de
+réfléchir, ou de se projeter — il va falloir que je fasse ça… — avec ces nouvelles
+expressions, pour qu'il y ait un peu de variété dans les dialogues. »
+
+**Cinq planches, cinq humeurs.** Le regard en coin qui doute (`dubitatif`), les sourcils
+qui se soucient (`inquiet`), le demi-sourire (`serein`), la tête tournée qui rumine
+(`songeur`), les yeux au ciel qui font des plans (`projette`). Douze humeurs au lieu de
+sept, toutes en 576 pour la fenêtre d'annonce, fabriquées par la même chaîne
+(`outils/portraits`, table `commerces.json`), aux deux palettes.
+
+**Et chaque moment nomme sa tête.** Une marche du tutoriel et une leçon portent maintenant
+`humeur` ; sans elle, l'ancienne règle vaut — il cherche (pensif), il sourit à la dernière
+marche (bravo), un mur le contrarie, une porte le surprend.
+
+| moment | tête |
+|---|---|
+| PREMIER JOUR — « il va falloir apprendre à s'en servir » | projette |
+| PRÉPARER LA TERRE · SEMER · VIDER AU SILO · LANCER L'AUTOMATISATION | songeur · projette · projette · projette |
+| LAISSER POUSSER — « beaucoup de patience » | dubitatif |
+| PREMIÈRE RÉCOLTE · EXPLORER LES ENVIRONS | surpris · pensif |
+| RANGER LA MOISSONNEUSE · REPRENDRE LE PICK-UP | serein · serein |
+| LE TÉLÉPHONE SONNE — « qui ça peut bien être ? » (mode libre : PRÉPARER UNE VENTE) | dubitatif (projette) |
+| leçons qui ouvrent une porte (comptoir, garage, parcelle, métier, élevage) | projette |
+| leçons qui installent quelque chose (culture, plan, production, bête, traite) | serein |
+| leçons qui demandent un réglage (améliorations, semence, entrepôt, réglages) | songeur |
+| leçons qui préviennent (jauge de gazole, silo qui se remplit, mangeoire) | inquiet |
+| un contrat disponible | dubitatif |
+| le semoir vide, la trémie pleine | contrarie |
+| la panne sèche | abattu |
+
+Le banc `visages` compte douze humeurs et relit la tête de la première marche (songeur) et
+celle d'une porte (projette).
+
