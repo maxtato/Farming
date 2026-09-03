@@ -13021,3 +13021,30 @@ de deux grains, rachis et barbe devient trois grains larges empilés sur une tig
 épaisse ; la seconde tige de la touffe n'en a que deux. **114 → 42 triangles par pied**,
 17 640 la parcelle contre 47 880, moins soixante-trois pour cent ; `large` 0,97 → 1,00
 pour garder la hauteur.
+
+## Des jantes partout, et une moissonneuse moins cubique
+
+« Sur le pick-up, la moissonneuse et le tracteur vert, fais des petits effets sur les
+jantes comme t'as fait sur les autres. Rajoute quelques petits détails à la moissonneuse,
+elle fait trop cubique sans rien d'autre. »
+
+**La roue commune reçoit le dessin de celle du tracteur lourd.** `wheelMesh` — la roue du
+tracteur vert, du pick-up, de la moissonneuse, du fourgon, du semoir, de l'épandeur et de
+l'enjambeuse — n'avait qu'un pneu et un disque crème. Elle a maintenant deux flancs plus
+sombres, la jante crème, un voile plus clair en creux, six boulons, un moyeu gris et une
+valve. Tout est à l'échelle du rayon : les boulons du pick-up ne font pas la taille du
+moyeu de la moissonneuse. Treize volumes par roue au lieu de deux, de cinq à dix segments
+chacune — quelques centaines de triangles par engin.
+
+**Et chaque roue reste un seul appel de dessin.** Treize maillages par roue, quatre roues
+par engin, huit engins : quatre cents objets de plus dans le graphe, et le banc
+`regression` l'a vu tout de suite — la part des objets gelés tombait de 25 à 21 %. Une roue
+tourne d'un bloc : ses pièces sont recuites en une géométrie par `fusionnerGroupe`, comme un
+commerce du village, et le groupe ne porte plus qu'un maillage, un de moins qu'avant les
+détails. La roue du tracteur lourd est recuite de la même façon.
+
+**La moissonneuse porte ce qu'une vraie porte sur ses flancs.** Six ouïes rouge sombre sur
+le compartiment moteur de chaque côté, l'échelle et les deux marches qui montent à la
+cabine, la rampe de la passerelle le long de la trémie, deux rétroviseurs, et la grille du
+radiateur à l'arrière. Posées aux cotes de la caisse avant la mise à l'échelle du corps,
+elles grandissent avec lui et laissent la coupe tranquille.

@@ -10548,7 +10548,30 @@ function wheelMesh(r, w, hex){
      plane, quel que soit l'angle. */
   g.rotation.order = 'YXZ';
   const t = cyl(r,r,w,10,hex||C.dark,0,0,0,0,0,Math.PI/2); g.add(t);
+  /* LA JANTE A DES DÉTAILS, COMME CELLE DU TRACTEUR LOURD. « Sur le pick-up, la
+     moissonneuse et le tracteur vert, fais des petits effets sur les jantes comme t'as
+     fait sur les autres. » Deux flancs un peu plus sombres, la jante crème, un voile
+     plus clair en creux, six boulons, un moyeu gris et une valve — tout à l'échelle du
+     rayon, pour que la roue du pick-up et celle de la moissonneuse aient le même dessin
+     sans que les boulons de l'une fassent la taille du moyeu de l'autre. */
+  const NOIR2 = 0x2E3438, GRIS = 0x6E767C, GRIS2 = 0x8A9298, CREME2 = 0xF7EEDC;
+  for(const s of [-1, 1])
+    g.add(cyl(r*0.96, r*0.96, 0.04, 10, NOIR2, s*(w/2 - 0.015), 0, 0, 0, 0, Math.PI/2));   // flancs
   const rim = cyl(r*0.55,r*0.55,w+0.06,8,C.cream,0,0,0,0,0,Math.PI/2); g.add(rim);
+  g.add(cyl(r*0.36, r*0.36, w+0.10, 8, CREME2, 0, 0, 0, 0, 0, Math.PI/2));               // voile
+  const rb = Math.max(0.02, r*0.032);
+  for(let k = 0; k < 6; k++){                                                             // boulons
+    const a = k*Math.PI/3;
+    g.add(cyl(rb, rb, w+0.14, 5, GRIS, 0, Math.cos(a)*r*0.22, Math.sin(a)*r*0.22, 0, 0, Math.PI/2));
+  }
+  g.add(cyl(r*0.13, r*0.13, w+0.16, 8, GRIS2, 0, 0, 0, 0, 0, Math.PI/2));                // moyeu
+  g.add(cyl(0.022, 0.022, 0.10, 5, GRIS, w/2 + 0.02, r*0.62, r*0.38, 0.6));               // valve
+  /* ET LA ROUE RESTE UN SEUL APPEL DE DESSIN. Treize volumes par roue, quatre roues par
+     engin, huit engins : quatre cents maillages de plus, et la part du graphe qui ne
+     bouge pas tombait sous le seuil du banc `regression`. La roue tourne d'un bloc : ses
+     pièces sont recuites en une géométrie, comme un commerce du village, et le groupe
+     ne porte plus qu'un maillage — un de moins qu'avant les détails. */
+  fusionnerGroupe(g);
   return g;
 }
 
@@ -10832,6 +10855,7 @@ function buildTracteurLourd(){
     }
     g.add(c2(0.15, 0.15, larg + 0.16, 8, GRIS2, 0, 0, 0, 0, 0, Math.PI/2));         // moyeu
     g.add(c2(0.03, 0.03, 0.12, 6, GRIS, 0, r*0.62, r*0.38, 0.6));                   // valve
+    fusionnerGroupe(g);                       // un seul maillage par roue, comme `wheelMesh`
     return g;
   }
   /* MARCHEPIED AJOURÉ : deux marches en caillebotis tenues par une équerre. Visible
@@ -11288,6 +11312,26 @@ function buildMoissonneuse(){
     const w1 = wheelMesh(1.35,0.85); w1.position.set(s2*1.7,1.35,0.6); g.add(w1); wr.push(w1);
     const w2 = wheelMesh(0.72,0.5);  w2.position.set(s2*1.15,0.72,-3.4); g.add(w2); wf.push(w2);
   }
+  /* ELLE ÉTAIT TROP CUBIQUE. « Rajoute quelques petits détails, elle fait trop cubique
+     sans rien d'autre. » Ce qu'une vraie moissonneuse porte sur ses flancs : les ouïes du
+     compartiment moteur, l'échelle et les marches qui montent à la cabine, la rampe de
+     la passerelle le long de la trémie, deux rétroviseurs, et la grille du radiateur à
+     l'arrière. Des pièces de quelques centimètres, posées aux cotes de la caisse, qui
+     suivent son échelle avec le reste du corps. */
+  const GRISm = 0x8A9298, NOIRm = 0x2A2E33, ROUGE2 = 0xB33A30;
+  for(const s of [-1, 1]) for(let k = 0; k < 6; k++)                          // ouïes moteur
+    g.add(box(0.05, 0.70, 0.16, ROUGE2, s*1.76, 1.75, -3.4 + k*0.40));
+  for(const z of [0.9, 1.4]) g.add(box(0.05, 1.60, 0.05, GRISm, -1.86, 1.20, z));   // échelle : montants
+  for(let k = 0; k < 4; k++) g.add(box(0.05, 0.05, 0.55, GRISm, -1.86, 0.60 + k*0.40, 1.15));   // barreaux
+  for(const y of [0.9, 1.4]) g.add(box(0.55, 0.06, 0.40, GRISm, -1.95, y, 1.9));   // marches
+  g.add(box(0.05, 0.05, 2.60, GRISm, -1.60, 3.00, -2.0));                         // rampe de passerelle
+  for(const z of [-3.1, -2.0, -0.9]) g.add(box(0.05, 0.70, 0.05, GRISm, -1.60, 2.65, z));
+  for(const s of [-1, 1]){                                                       // rétroviseurs
+    g.add(box(0.50, 0.05, 0.05, GRISm, s*1.50, 3.30, 2.90));
+    g.add(box(0.06, 0.30, 0.20, NOIRm, s*1.76, 3.15, 2.90));
+  }
+  g.add(box(1.00, 0.70, 0.06, NOIRm, 0, 1.30, -3.94));                            // grille arrière
+  for(let k = 0; k < 5; k++) g.add(box(0.05, 0.60, 0.08, GRISm, -0.40 + k*0.20, 1.30, -3.95));
   /* LA MACHINE GRANDIT, SA COUPE NON. « Grossir un tout petit peu la moissonneuse, sans
      grossir son outil, juste la moissonneuse elle-même. » Tout ce qui n'est pas la tête
      passe dans un corps à l'échelle MOISSON_K ; la tête reste enfant direct du groupe,
