@@ -13547,3 +13547,12 @@ de WAV, trente-deux en base64. La vitesse de lecture fait le reste, de 0,76 au r
 à plein régime, et le régime monte toujours en deux secondes et demie. Le trafic garde
 l'ancienne voiture : c'est un décor, et il est bon. Banc `son` adapté : la boucle du pick-up
 dure 1,92 s, non plus 0,4.
+
+**Pas de micro-boucle.** « Pour le crissement du bitume, et pour la terre aussi, utilise la
+boucle en entier, ou un son un peu plus long : là tu vas juste faire une micro-boucle de ce
+son, mise en long ça ne va pas du tout. » Il a raison : une boucle de deux secondes de gravier
+se reconnaît, et une demi-seconde de crissement répétée n'est plus un crissement. Le gravier
+passe à SIX secondes (12 à 18 s, quatre-vingt-douze kilo-octets de WAV, cent vingt-trois en
+base64) ; le crissement est gardé EN ENTIER, silences ôtés (0,15 à 1,60 s : la montée, le
+chant, la retombée), et se répète tant que ça dérive, comme un pneu qui accroche et lâche
+(trente-trois kilo-octets, quarante-quatre en base64). Le jeu pèse 2,1 Mo tout compris.
