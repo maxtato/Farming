@@ -13715,3 +13715,19 @@ montée : tracteurs et moissonneuse [0,56 ; 1,0], fourgon [0,74 ; 0,96], jaune [
 pick-up [0,62 ; 1,23]. Sonde `sons2` : un contrôle de plus, quarante-cinq — la hauteur des
 six derniers dixièmes de chaque montée, à son taux, contre celle de sa boucle à `plage[1]`,
 mesurées sur les sons décodés, à la médiane : moins de 2,5 % d'écart pour les quatre.
+
+**Le téléphone sonne depuis la maison.** « Je veux qu'il sonne uniquement tant qu'il est dans
+le champ de vision ; dès qu'on part du champ de vision, il s'arrête. Fais monter le son quand
+on se rapproche du point de la mission et de la maison. Le son du téléphone doit monter ;
+baisse un tout petit peu le crissement des pneus sur la route, et monte un tout petit peu
+celui sur la terre. » Il sonnait dans le dos : `majTelephone` sait depuis longtemps si la
+maison est dans le cadre — c'est ce qui éteint la pastille —, mais en sortant il ne disait
+rien à la clochette, qui restait sur son dernier coup, en continu. Hors cadre, elle se tait
+maintenant avec la pastille. Dans le cadre, elle vient de la maison : `sonnerieUpdate(fort,
+pres)` prend la proximité — 1 à moins de douze mètres, 0 à cent vingt — et en garde le tiers
+de loin, pour qu'on l'entende dès qu'on la voit et qu'on la sache proche quand elle est
+forte. Et elle monte : 0,20 au pied de la maison au lieu de 0,13 (`TEL_VOL`). Les deux
+crissements : la terre passe de 0,06 + 0,30 n à 0,07 + 0,34 n, la route de 0,04 + 0,22 n à
+0,035 + 0,19 n. Sonde `sons2` : quatre contrôles de plus, quarante-neuf — 0,20 près, 0,06
+loin ; une mission à prendre et la maison sous les yeux, ça sonne fort ; la maison hors
+cadre, plus un son ; à 0,85 de dérive, la terre 0,37 et la route 0,20.
