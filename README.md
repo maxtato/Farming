@@ -13094,3 +13094,36 @@ sous la carrosserie. Six volumes de moins sur la moissonneuse.
 
 Mesuré au banc : marches y 1,22 à 1,92, z 2,33 à 2,74 ; roue avant gauche z −0,81 à 2,11 ;
 `materiel` 44/44.
+
+## Le cercle vert des missions, dans l'axe de la porte
+
+« Le cercle vert devant la maison, mets-le un peu plus devant la porte, là il est trop sur
+le côté de la maison. La porte de la maison, mais pas trop collé à la maison non plus. »
+
+**Il était à gauche de la porte.** La maison regarde vers (sin ry, cos ry) avec
+ry = 0,4 + π/2 ; sa porte est au milieu de la façade avant, à 4,94 m du centre, en
+(−53,45 ; 55,07). Le cercle, posé en (−47 ; 56) par le relevé de la couronne, était bien à
+5,6 m devant cette façade, mais à 3,4 m à gauche de l'axe de la porte, vers le puits : on
+le lisait comme une marque du pignon plutôt que du seuil.
+
+**Il passe devant la porte, à 6,5 m.** Relevé au demi-mètre sur l'axe de la porte et de
+part et d'autre : `MAISON` va en (−47,5 ; 52,5), à six centimètres de l'axe, 6,5 m devant
+la façade — un peu plus loin qu'avant, pas collé —, 11,4 m du centre de la maison. Le
+combiné du HUD ne borne plus la distance : il se pose sur le faîtage et reste dans le cadre
+tant que le pied de la maison y est.
+
+**Et le buisson s'écarte.** Le buisson de la parcelle, placé à la main en (−50,5 ; 50,5),
+était dans l'axe de la porte à 2,3 m du nouveau point, et tout cercle veut 3,2 m libres
+autour de lui. Six emplacements mesurés (distance au cercle, aux bottes, au mur, au chemin) ;
+il va en (−50 ; 47,5), entre les bottes et le chemin, à 4,5 m du bord du cercle et 1,9 m de
+la botte la plus proche.
+
+| | avant | après |
+|---|---|---|
+| cercle | (−47 ; 56) | (−47,5 ; 52,5) |
+| devant la façade / écart à l'axe de la porte | 5,6 m / 3,4 m à gauche | 6,5 m / 6 cm |
+| distance au centre de la maison | 11,05 m | 11,42 m |
+| buisson | (−50,5 ; 50,5) | (−50 ; 47,5) |
+
+Bancs : `bandeau` 47/47 (point libre : pas d'obstacle à moins de 3,2 m, pas de route à
+moins de 3, hors parcelle, chemin et dalle), `contrat` 93/93.
