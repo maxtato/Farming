@@ -13731,3 +13731,34 @@ crissements : la terre passe de 0,06 + 0,30 n à 0,07 + 0,34 n, la route de 0,04
 0,035 + 0,19 n. Sonde `sons2` : quatre contrôles de plus, quarante-neuf — 0,20 près, 0,06
 loin ; une mission à prendre et la maison sous les yeux, ça sonne fort ; la maison hors
 cadre, plus un son ; à 0,85 de dérive, la terre 0,37 et la route 0,20.
+
+**Le pick-up : de plus bas, plus vite en haut, et une tonalité verrouillée.** « Refais la
+plage d'accélération en commençant plus bas avec le régime moteur ; reviens un peu en arrière
+sur la montée que je t'ai dit plus rapide : je veux que ça démarre de plus bas, mais qu'il
+atteigne son régime maximal un peu plus rapidement, et que tu me bloques avant que ça
+redescende ; que ça reste avec exactement la même tonalité maintenue tout du long — ce n'est
+encore pas le cas. » Une mesure d'abord, qui remet les précédentes à leur place : la LARGEUR
+DE LA RAIE du fondamental sur toute la boucle (`_b64_spectre`, une DFT au cinquième de hertz
+sous fenêtre de Hann). Une hauteur tenue fait une raie de 1,44 / durée ; les trois diesels
+font 0,6 Hz pour 0,5 possible — ils étaient déjà parfaitement tenus, et le « chasse de 4 % »
+de l'IMT au pas n'était que le tremblement du suivi. Le pick-up, lui, faisait 2,0 Hz, et
+2,2 après l'aplanissement par rééchantillonnage, avec une bosse à 92 : le suivi tremblait
+sur cet enregistrement bruité, et l'on injectait ce tremblement. Donc une autre méthode,
+`tenue` : on marque chaque période de l'onde — la suivante cherchée autour de la précédente
+plus une période, au maximum de ressemblance des deux cycles —, on découpe un grain de deux
+périodes par marque, et on les repose à espacement exact d'une période cible : la hauteur est
+constante à la période près, la matière du son est gardée ; c'est le PSOLA des synthèses de
+voix. Un nombre entier de périodes, la boucle se referme en phase, fondu d'une période.
+
+La montée, relue à la DFT fine sur une fenêtre de trois dixièmes : ralenti à 47-49 Hz jusqu'à
+35,6 s, départ à 50 Hz à 35,9, sommet à 96,5 à 40,6-40,8, puis 95 et la chute du rapport à
+41,1. On la prend de 35,9 à 40,75 — de plus bas, et bloquée avant que ça redescende —, soit
+4,85 s, et on la RACCOURCIT à 3,2 s SANS CHANGER DE HAUTEUR (`duree`, recouvrement-addition à
+similarité : des grains de 50 ms tous les 25 ms, chacun pris là où il ressemble le plus à la
+suite du précédent) : plus de lecture à 1,18, `montee` 1, la voix du SUV telle quelle. La
+boucle, tenue à 90 Hz, va de 0,55 (50 Hz, le ralenti) à 1,06 (95,5 : la fin de la montée
+raccourcie, au pic de DFT sur ses trois derniers dixièmes). Tenue, sa raie fait 1,0 Hz pour
+0,73 possible, contre 2,2 avant. Sonde `sons2` : mêmes quarante-neuf contrôles, recalés —
+3,2 s, un tiers de régime par seconde ; le raccord montée → boucle se mesure maintenant au
+pic de DFT fine, plus sûr que l'autocorrélation sur un son bruité, à moins de 2,5 % pour les
+quatre timbres.

@@ -27,6 +27,77 @@ const cles = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(
       src.start(0, d0, d1 - d0);
       const out = await ctx.startRendering();
       let d = out.getChannelData(0);
+      /* UNE TENUE (`tenue`, en Hz) : la hauteur VERROUILLÉE, période par période. Le joueur, du
+         pick-up : « je veux que ça reste avec exactement la même tonalité, maintenue tout du
+         long. » Suivre la hauteur par fenêtres puis rééchantillonner (`hauteur`) ne suffisait
+         pas — le suivi lui-même tremblait sur cet enregistrement bruité, et l'on injectait ce
+         tremblement. Ici on marque chaque PÉRIODE de l'onde (la suivante est cherchée autour de
+         la précédente plus une période, au maximum de ressemblance des deux cycles), on découpe
+         un grain de deux périodes par marque, et l'on repose ces grains à espacement EXACT
+         d'une période cible : la hauteur est constante à la période près, la matière du son —
+         chaque cycle différent du voisin — est gardée. C'est le PSOLA des synthèses de voix. On
+         finit sur un nombre ENTIER de périodes : la boucle se referme en phase, un fondu d'une
+         période suffit (`boucle`). Mesuré à la raie du fondamental (`_b64_spectre`) : la boucle
+         du pick-up faisait 2,2 Hz de large pour 0,74 possible ; tenue, elle fait le minimum. */
+      let tenue = null;
+      if(S.tenue){
+        const T = S.hz/S.tenue, Tn = Math.round(T), x = d;
+        const marques = [];
+        { let best = -Infinity, m0 = 0; for(let i = 0; i < Tn; i++) if(x[i] > best){ best = x[i]; m0 = i; } marques.push(m0); }
+        while(true){
+          const prev = marques[marques.length - 1];
+          const lo = Math.round(prev + T*0.85), hi = Math.round(prev + T*1.15);
+          if(hi + Tn >= x.length) break;
+          let best = -Infinity, bm = prev + Tn;
+          for(let c = lo; c <= hi; c++){ let q = 0; for(let i = 0; i < Tn; i++) q += x[prev+i]*x[c+i]; if(q > best){ best = q; bm = c; } }
+          marques.push(bm);
+        }
+        const nOut = Math.round((marques.length - 1)*T) + 2*Tn;
+        const y = new Float32Array(nOut), norm = new Float32Array(nOut), gl = 2*Tn;
+        for(let k = 1; k < marques.length - 1; k++){
+          const g0 = marques[k] - Tn; if(g0 < 0 || g0 + gl > x.length) continue;
+          const c = Math.round((k - 1)*T) + Tn;
+          for(let i = 0; i < gl; i++){ const w = 0.5 - 0.5*Math.cos(2*Math.PI*i/(gl - 1)); const o = c - Tn + i; if(o >= 0 && o < nOut){ y[o] += x[g0+i]*w; norm[o] += w; } }
+        }
+        for(let i = 0; i < nOut; i++) if(norm[i] > 1e-3) y[i] /= norm[i];
+        const nP = Math.floor((nOut - 2*Tn)/T);
+        d = y.slice(Tn, Tn + Math.round(nP*T));
+        const ecarts = marques.slice(1).map((m, i)=> m - marques[i]), mp = ecarts.reduce((q, z)=> q + z, 0)/ecarts.length;
+        tenue = {periodes:nP, marques:marques.length, periodeMesuree:+(S.hz/mp).toFixed(2), periodeCible:S.tenue};
+      }
+      /* UNE DURÉE (`duree`, en secondes) : le son est RACCOURCI SANS CHANGER DE HAUTEUR — pour une
+         montée qu'on veut plus prompte sans la rendre plus aiguë (le pick-up : « qu'il atteigne
+         son régime maximal un peu plus rapidement », et « reviens en arrière » sur la lecture
+         accélérée qui montait tout d'un cinquième). Recouvrement-addition à similarité (WSOLA) :
+         des grains de 50 ms, posés tous les 25 ms, chacun pris dans l'entrée là où il ressemble
+         le plus à la suite naturelle du précédent (recherche ±12 ms, une période) — c'est ce qui
+         évite le battement des grains mal alignés. */
+      let duree = null;
+      if(S.duree && S.duree < d.length/S.hz){
+        const x = d, alpha = S.duree*S.hz/x.length, N = Math.round(S.hz*0.05), Ha = Math.round(N/2), Hs = Ha/alpha, tol = Math.round(S.hz*0.012);
+        const win = new Float32Array(N); for(let i = 0; i < N; i++) win[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/(N - 1));
+        const outLen = Math.round(x.length*alpha), y = new Float32Array(outLen + N), norm = new Float32Array(outLen + N);
+        let posA = 0, prevStart = 0;
+        for(let posS = 0; posS + N <= y.length; posS += Ha){
+          let a = Math.round(posA);
+          if(posS > 0){
+            const ref = prevStart + Ha; if(ref + N > x.length) break;
+            let best = -Infinity, bo = 0;
+            for(let off = -tol; off <= tol; off++){
+              const c = Math.round(posA) + off; if(c < 0 || c + N > x.length) continue;
+              let q = 0; for(let i = 0; i < N; i += 2) q += x[c+i]*x[ref+i];
+              if(q > best){ best = q; bo = off; }
+            }
+            a = Math.round(posA) + bo;
+          }
+          if(a < 0 || a + N > x.length) break;
+          for(let i = 0; i < N; i++){ y[posS+i] += x[a+i]*win[i]; norm[posS+i] += win[i]; }
+          prevStart = a; posA += Hs;
+        }
+        for(let i = 0; i < y.length; i++) if(norm[i] > 1e-3) y[i] /= norm[i];
+        d = y.slice(0, outLen);
+        duree = {avant:+(x.length/S.hz).toFixed(2), apres:+(d.length/S.hz).toFixed(2)};
+      }
       /* UNE HAUTEUR PLATE (`hauteur`, la hauteur nominale en Hz). On suit la hauteur par
          autocorrélation — fenêtre de 100 ms, pas de 50 ms, ±30 % autour de la nominale —,
          et pour une BOUCLE on rééchantillonne à vitesse variable : lu plus vite là où le
@@ -61,7 +132,7 @@ const cles = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(
         hauteur = {avant:stat(P0), passes:0};
         // Plusieurs passes : la première ôte la dérive lente, les suivantes ce qui reste de
         // plus rapide que le lissage ; on s'arrête quand l'écart ne baisse plus.
-        if(S.boucle && P0.length > 4){
+        if(S.boucle && !S.tenue && P0.length > 4){
           const cible = hauteur.avant.moy;
           let sd = hauteur.avant.sd;
           for(let passe = 0; passe < 4; passe++){
@@ -120,10 +191,12 @@ const cles = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(
       str(36, 'data'); w.setUint32(40, d.length*2, true);
       for(let i = 0; i < d.length; i++){ const v = Math.max(-1, Math.min(1, d[i]*g)); w.setInt16(44 + i*2, v < 0 ? v*32768 : v*32767, true); }
       let s = ''; const u = new Uint8Array(w.buffer); for(let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
-      return {b64:btoa(s), duree:+(d.length/S.hz).toFixed(3), sr0:buf.sampleRate, canaux:buf.numberOfChannels, crete0:+crete.toFixed(3), octets:u.length, plat:plat, hauteur:hauteur};
+      return {b64:btoa(s), duree:+(d.length/S.hz).toFixed(3), sr0:buf.sampleRate, canaux:buf.numberOfChannels, crete0:+crete.toFixed(3), octets:u.length, plat:plat, hauteur:hauteur, tenue:tenue, raccourci:duree};
     }, [b64, S]);
     fs.writeFileSync(path.join(ICI, cle + '.b64'), r.b64);
     console.log(cle.padEnd(10), S.src.slice(0, 40).padEnd(42), r.sr0 + ' Hz ×' + r.canaux + ' → ' + S.hz + ' Hz mono', r.duree + ' s', Math.round(r.octets/1024) + ' Ko WAV,', Math.round(r.b64.length/1024) + ' Ko en base64', 'crête ' + r.crete0, r.plat ? 'niveau aplani : écart ' + r.plat.avant + ' % → ' + r.plat.apres + ' %' : '',
+                r.tenue ? '| tenue à ' + r.tenue.periodeCible + ' Hz (' + r.tenue.periodes + ' périodes, mesurée ' + r.tenue.periodeMesuree + ')' : '',
+                r.raccourci ? '| raccourci ' + r.raccourci.avant + ' → ' + r.raccourci.apres + ' s' : '',
                 r.hauteur ? '| hauteur ' + r.hauteur.avant.moy + ' Hz ±' + r.hauteur.avant.sd + ' % (' + r.hauteur.avant.debut + ' → ' + r.hauteur.avant.fin + ')'
                             + (r.hauteur.apres ? ' aplanie : ' + r.hauteur.apres.moy + ' Hz ±' + r.hauteur.apres.sd + ' % (' + r.hauteur.apres.debut + ' → ' + r.hauteur.apres.fin + ')' : '') : '');
   }
