@@ -13669,3 +13669,22 @@ position dans la montée se compte désormais à la vitesse de lecture, sans quo
 finissait avant que le jeu ne le sache. Sonde `sons2` : trois contrôles de plus, trente-neuf
 en tout — à 1 m/s contre un mur et dès 0,8 de gaz, le régime reste à 1 ; roue libre 0,55,
 arrêt 0, demi-gaz 0,5 ; les quatre égalisations entre 0,5 et 2.
+
+**Les chocs ont trois voix.** « Impact dans les lampadaires métalliques ; impact dans les
+véhicules ; impact dans tout le reste. » Trois enregistrements, dont on garde le premier coup
+avec sa résonance : un réservoir de métal frappé (1,6 s), l'avant d'une épave de voiture qu'on
+cogne (1,2 s), une fenêtre qui fait trembler son mur (1,5 s) — à 8 000 Hz, quatre-vingt-neuf
+kilo-octets en base64 les trois. `AUDIO.impact(genre, force)` les joue une fois : la force est
+la VITESSE D'APPROCHE, lue avant le renvoi — rien sous un mètre par seconde, frôler n'est pas
+heurter —, elle fait le volume (0,18 à 1 m/s, 0,7 à 9) et baisse un peu la hauteur, les gros
+coups sonnent plus grave ; un tirage de ±5 % fait que deux coups ne se ressemblent pas ; une
+voix ne rejoue pas avant un tiers de seconde, un engin qui racle un mur ne mitraille pas. Le
+genre vient de ce qu'on heurte : le lampadaire porte maintenant une marque (`lampe`, posée
+par `addLamp` sur son renversable) ; les deux engins qui se touchent et l'engin qui emboutit
+une voiture du trafic sonnent tôle, avec la force déjà calculée pour la secousse ; tout le
+reste du décor — cercles et boîtes, clôtures, arbres, réserves, silo, bâtiments — sonne mur.
+Seul l'engin qu'on conduit sonne : un engin en automatique qui bute sur le décor, à l'autre
+bout de la ferme, ne dit rien. Sonde `sons2` : cinq contrôles de plus, quarante-quatre en
+tout — un choc à 5 m/s sonne à 0,44, le même dans le tiers de seconde ou un frôlement se
+tait ; le tracteur vert lancé à 6 m/s dans un lampadaire isolé fait sonner le métal, dans un
+bâtiment le mur, dans le tracteur bleu la tôle.
