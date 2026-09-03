@@ -13527,3 +13527,12 @@ sur quatre-vingts millisecondes, sans clic (`boucle` dans `sons.json`). Il rempl
 de bruit blanc dès qu'il est décodé, dans la même chaîne et sous le même volume — le pilote
 du dérapage ne sait pas la différence. Le crissement sur la route reste synthétisé, en
 attendant son échantillon.
+
+**Et le crissement sur le bitume.** « Quand le véhicule dérape sur la route en bitume » : un coup
+de frein qui crisse, 1,9 s, qui monte, chante et retombe. Un crissement ne se joue pas en
+entier à chaque dérive — la dérive dure ce qu'elle dure — : on garde le cœur du coup, de 0,55 à
+1,10 s, là où le pneu chante à plein, fondu en boucle sur soixante millisecondes. À 12 000 Hz
+cette fois, parce qu'il a des harmoniques jusqu'à 6 000 (le fondamental est à 1 000) : douze
+kilo-octets de WAV, seize en base64. Le passe-bas de la chaîne s'ouvre avec la dérive, de
+3 500 à 7 000 Hz : plus ça glisse, plus ça brille. Les deux voix du dérapage sont maintenant
+celles du joueur ; le bruit blanc ne sert plus que le temps du décodage.
