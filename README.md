@@ -14130,3 +14130,60 @@ ligne. Pas un nœud audio, pas un appel par image ; le bouton du son dit « SON 
 L'ESSAI » au lieu de faire semblant. Les bancs `son` et `sons2` échouent par construction
 tant que l'essai dure ; `acces` (5) et `ouverture` (6) passent sans son. À remettre à `false`
 sur un mot du joueur : la bande-son revient telle quelle.
+
+## Le ralentissement sans son ni cultures : dix versions mesurées, et une fiche de diagnostic
+
+« Non, toujours pareil. C'est beaucoup plus long qu'avant l'autre changement que j'avais
+fait, c'était de prendre des volumes partout dans le jeu pour les collisions — est-ce que
+c'est ça qui peut avoir joué ? » Puis : « j'avais testé avec le blé déjà surdimensionné,
+c'était un tout petit peu lent mais très léger. Là ça a vraiment ralenti, et quand ça ralentit
+le champ n'a pas encore poussé : rien sur les parcelles, à part le décor de base. »
+
+**Ce qui a été mesuré.** Dix versions depuis le 2 septembre (la veille des collisions,
+les collisions elles-mêmes, le blé en touffes, les nouveaux engins, les jantes, les routes,
+les gélules du trafic, le téléphone, l'allègement, le son coupé), chacune sur un téléphone
+émulé en paysage à trois pixels physiques par pixel CSS, le tracteur au pied de la maison,
+rien de semé. Quatre bancs : `_h_bench` (canevas, appels et triangles des deux passes,
+lumières, matériaux, transparents, éléments du document avec flou, filtre ou animation),
+`_h_dyn` (rendus par image, octets d'attributs et d'instances renvoyés au processeur
+graphique, textures et matériaux revus, programmes compilés, mémoire produite par image),
+`_h_cpu` (profil du processeur, ramasse-miettes compris) et `_h_tex` (inventaire des
+textures et des géométries).
+
+**Ce qui n'a pas bougé, ou s'est allégé.** Deux lumières, mêmes matériaux (Lambert et Phong,
+aucun standard), 26 textures envoyées pour 51 Mo dans toutes les versions, cinq kilo-octets
+d'attributs renvoyés par image partout, un rendu par image, aucun programme recompilé,
+aucune texture redessinée en roulant, 400 à 550 Ko de mémoire produite par image partout ;
+le JS de la boucle hors rendu passe de 1,9 ms (2 septembre) à 1,1 ms (aujourd'hui), les
+collisions coûtent 0,04 ms ; les appels de dessin vont de 188 à 200, les triangles à l'image
+de 15 000 à 20 000 (les jantes en ont mis 4 000), la carte d'ombre est descendue de 2 048
+en PCF doux à 1 024 en PCF. Le document, lui, porte le même flou (la pastille de l'argent,
+un pour cent de l'écran) et les mêmes animations avant et après.
+
+**La seule chose qui a grossi, et quand.** Le nombre de pixels rendus. Le 1er septembre à
+10 h 19, le grain d'image par défaut valait 1,25 : sur un écran à trois pixels par pixel CSS,
+2 026 × 936, soit 1,9 million de pixels. À 11 h 05 il passe à 1,1 : 2 302 × 1 064, 2,45
+millions. Le 2 septembre à 15 h 23 — la validation « Neuf demandes : le grain, les fenêtres,
+le bandeau, les cultures, les collisions », celle des volumes partout — il passe à 1 : 2 532
+× 1 170, 2,96 millions, et `REGLAGES_V` l'impose à la partie en cours. C'est plus vingt et un
+pour cent sur la matinée, plus cinquante-six sur la veille, à la seconde même où le joueur
+situe le ralentissement ; et une image qui coûte sa surface — le téléphone remplit chaque
+pixel avec l'ombre, le brouillard et l'éclairage Phong — ne se mesure pas au banc, dont le
+rendu logiciel ne suit pas les pixels. Rien d'autre dans cette validation, ni dans celles
+d'après, ne pèse davantage par image.
+
+**L'épreuve qui tranche, en dix secondes.** Réglages → Image → Netteté → « Élevée » : deux
+pixels de rendu par pixel CSS, 1 688 × 780, 2,25 fois moins de pixels. Si le jeu redevient
+fluide, la cause est la surface ; on décidera alors du défaut ensemble (grain 1,1 ou 1,25,
+ou Élevée). S'il ne change rien, la surface est hors de cause et il faut des chiffres du
+téléphone lui-même.
+
+**La fiche de diagnostic** (`DIAG`, Réglages → Image → Diagnostic) est là pour ça : une
+petite fiche à chasse fixe en haut à droite, sans flou d'arrière-plan, remise à
+jour chaque seconde — images par seconde, écart le plus long entre deux images et nombre
+d'images longues (la saccade), temps de calcul par image et son maximum (ce que fait le
+processeur hors dessin), définition rendue avec le facteur d'écran, le réglage de netteté
+et le grain, appels et triangles de la dernière image, taille de la carte d'ombre, mémoire
+JS quand le navigateur la donne, et le nom de la puce graphique. Éteinte, la boucle ne lit
+qu'un booléen ; allumée, deux lectures d'horloge par image et une écriture de texte par
+seconde. Elle ne se sauvegarde pas. Banc `_h_diag` : onze points verts.

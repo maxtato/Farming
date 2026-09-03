@@ -140,6 +140,14 @@
     backdrop-filter:blur(6px)}
   #stats{top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));flex-direction:column;align-items:flex-start;gap:4px;padding:9px 13px}
   .stat{display:flex;align-items:center;gap:8px;font-weight:bold;font-size:13px;letter-spacing:.5px}
+  /* LA FICHE DE DIAGNOSTIC (voir `DIAG`) : du texte à chasse fixe, en haut à droite sous
+     les boutons du menu et de la pause — l'endroit que ni la pastille de l'argent, ni le
+     bandeau de leçon (qui court jusqu'au milieu de l'écran), ni la jauge de gazole ne
+     recouvrent —, et SANS flou d'arrière-plan : une fiche qui mesure ne doit rien coûter. */
+  #diag{display:none;top:calc(58px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
+    font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#E8EEF1;letter-spacing:0;
+    background:rgba(20,28,33,.8);backdrop-filter:none;-webkit-backdrop-filter:none;padding:6px 9px;border-radius:10px}
+  #diag.on{display:block}
   .dot{width:9px;height:9px;border-radius:2px;flex:none}
   #goalwrap{position:absolute;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
     display:flex;align-items:center;gap:9px}
@@ -1642,6 +1650,7 @@
     <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span></div>
     <div class="stat"><span class="dot" style="background:#7FD1E8"></span><span id="heure">09:00</span></div>
   </div>
+  <div class="pill" id="diag"></div>
   <div id="goalwrap"><div id="bar"><div id="barfill"></div></div><div id="star">★</div></div>
   <div id="goaltxt"></div>
   <div id="ctr"></div>
@@ -2071,6 +2080,53 @@ const ZOOM = {pc:100, min:55, max:160};  // 100 % : le cadrage d'origine, au mè
    voir contre ce qu'on demande à la machine. Voir `loop()` pour ce que le plafond fait
    vraiment, et surtout pour ce qu'il ne fait pas. */
 const IMAGES = {cible: 60};
+/* ---------- LA FICHE DE DIAGNOSTIC ----------
+   Le joueur : « il y a toujours ce ralentissement incroyable », sans son, sans rien sur les
+   parcelles. Tout ce qui se mesure ici — appels de dessin, triangles, temps de calcul,
+   mémoire, envois au processeur graphique — est égal ou plus léger qu'au 2 septembre,
+   version après version ; et le seul appareil qui sache ce qui rame, c'est le téléphone
+   du joueur. Cette fiche lui fait dire ce qu'il fait : images par seconde, écart le plus
+   long entre deux images (la saccade), temps de calcul par image (ce que le processeur
+   fait, hors dessin), définition rendue avec le facteur d'écran et le réglage, appels et
+   triangles de la dernière image, taille de la carte d'ombre, mémoire JS quand le
+   navigateur la donne, et le nom de la puce graphique. Réglages → Image → Diagnostic.
+   Elle ne se sauvegarde pas : on l'allume pour relever, puis on l'éteint.
+   ELLE NE COÛTE QUE SI ELLE EST ALLUMÉE : deux lectures d'horloge par image, et une
+   écriture de texte par seconde. Éteinte, la boucle ne lit qu'un booléen. */
+const DIAG = {on:false, el:null, gpu:'', n:0, js:0, pireJs:0, pireEcart:0, longues:0, dernier:0, t0:0,
+  basculer(){
+    this.on = !this.on;
+    if(!this.el) this.el = document.getElementById('diag');
+    if(this.on && !this.gpu){
+      try{
+        const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+        this.gpu = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 46);
+      } catch(e){ this.gpu = 'puce inconnue'; }
+    }
+    this.n = 0; this.js = 0; this.pireJs = 0; this.pireEcart = 0; this.longues = 0; this.dernier = 0; this.t0 = 0;
+    if(this.el){ this.el.classList.toggle('on', this.on); if(this.on) this.el.textContent = 'relevé en cours…'; }
+  },
+  /* Appelée en fin de boucle, après le rendu : `t0` est l'horloge prise en tête de boucle,
+     `now` le temps de l'image donné par le navigateur. */
+  image(t0, now){
+    const js = performance.now() - t0;
+    this.n++; this.js += js; if(js > this.pireJs) this.pireJs = js;
+    if(this.dernier){ const e = now - this.dernier; if(e > this.pireEcart) this.pireEcart = e; if(e > 50) this.longues++; }
+    this.dernier = now;
+    if(!this.t0){ this.t0 = now; return; }
+    if(now - this.t0 < 1000) return;
+    const s = (now - this.t0)/1000, ips = this.n/s, js1 = this.js/this.n;
+    const c = renderer.domElement, dpr = devicePixelRatio || 1, inf = renderer.info.render;
+    const mem = performance.memory ? '  ' + Math.round(performance.memory.usedJSHeapSize/1048576) + ' Mo JS' : '';
+    if(this.el) this.el.textContent =
+      ips.toFixed(0) + ' img/s   écart max ' + this.pireEcart.toFixed(0) + ' ms   longues ' + this.longues + '\n' +
+      'calcul ' + js1.toFixed(1) + ' ms/img (max ' + this.pireJs.toFixed(0) + ')   plafond ' + IMAGES.cible + '\n' +
+      c.width + '×' + c.height + ' px   écran ×' + dpr.toFixed(2) + '   ' + NETTETE.choix[NETTETE.i].nom + '   grain ' + PIXEL.px.toFixed(2) + '\n' +
+      inf.calls + ' appels   ' + (inf.triangles/1000).toFixed(1) + ' k tri   ombre ' + sun.shadow.mapSize.x + mem + '\n' +
+      this.gpu;
+    this.n = 0; this.js = 0; this.pireJs = 0; this.pireEcart = 0; this.longues = 0; this.t0 = now;
+  }
+};
 const CAM_OFF = CAM_BASE.clone();
 const zoomK = ()=> 100/Math.max(1, ZOOM.pc);
 /* Ce que la caméra embrasse au sol, en mètres. C'est la seule mesure qui parle vraiment
@@ -29068,6 +29124,16 @@ function ongletReglages(){
       applyResolution();
       showHint('NETTETÉ – ' + NETTETE.choix[NETTETE.i].nom.toUpperCase());
     });
+  /* LA FICHE DE DIAGNOSTIC — voir `DIAG`, à côté du plafond d'images. */
+  article(0x9FD8E8, 'Diagnostic – ' + (DIAG.on ? 'affiché' : 'caché'),
+    'Une petite fiche en haut à droite, remise à jour chaque seconde : images par seconde, '
+    + 'écart le plus long entre deux images, temps de calcul par image, définition rendue, '
+    + 'appels de dessin et nom de la puce graphique. À relever quand le jeu rame, avant et '
+    + 'après un changement de réglage.',
+    DIAG.on ? 'Cacher' : 'Afficher', 'vert', ()=>{
+      DIAG.basculer();
+      showHint('DIAGNOSTIC – ' + (DIAG.on ? 'AFFICHÉ' : 'CACHÉ'));
+    });
 
   /* ======================= PIXEL ART =======================================
      LE JOUEUR : « fais les modifications que je puisse visualiser dans le jeu, mais garde
@@ -32034,6 +32100,7 @@ function loop(now){
      `last` n'avance qu'aux images RENDUES : le `dt` d'une image plafonnée vaut donc bien
      les deux battements écoulés, et rien de la simulation ne ralentit. */
   if(IMAGES.cible < 60 && now - last < 1000/IMAGES.cible - 4) return;
+  const _tDiag = DIAG.on ? performance.now() : 0;
   let dt = Math.min(0.05, (now-last)/1000); last = now;
   _dtImage = dt || 1/60;
   if(paused) dt = 0;
@@ -32276,6 +32343,7 @@ function loop(now){
   // trois quarts des plantes du monde ne coûtent plus rien.
   masquerChampsHorsVue();
   renderer.render(scene, camera);
+  if(DIAG.on) DIAG.image(_tDiag, now);
 }
 requestAnimationFrame(loop);
 </script>
