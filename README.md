@@ -14116,3 +14116,17 @@ toujours de forme sans changer de taille.
 
 Mesuré à la caméra du jeu sur la parcelle de départ : 28 500 → 24 156 triangles par image.
 Bancs `ages` (29) et `acces` (5) verts.
+
+## L'essai sans son : un interrupteur, et tout le son s'éteint
+
+« Il y a toujours ce ralentissement incroyable depuis qu'on a mis les sons. Coupe toute la
+gestion du son juste une seconde, jusqu'à ce que je te dise de la remettre, pour voir ce que
+ça fait. »
+
+`SON_COUPE`, juste au-dessus de `AUDIO` : à `true`, `AUDIO.init()` ne crée ni contexte ni
+chaîne et ne décode aucun échantillon ; `dispo` reste faux, et chaque mise à jour par image
+— moteur, caisse, trafic, dérapage, clochette, klaxon, chocs — rend la main sur sa première
+ligne. Pas un nœud audio, pas un appel par image ; le bouton du son dit « SON COUPÉ POUR
+L'ESSAI » au lieu de faire semblant. Les bancs `son` et `sons2` échouent par construction
+tant que l'essai dure ; `acces` (5) et `ouverture` (6) passent sans son. À remettre à `false`
+sur un mot du joueur : la bande-son revient telle quelle.

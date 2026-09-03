@@ -29470,6 +29470,15 @@ const TEL_VOL = 0.14;                                // la clochette au pied de 
 const FILTRE_PLEIN = 1600;                           // le passe-bas des moteurs à plein régime, boucle et montée (voir `moteurUpdate`)
 const RETRAIT_PLATEAU = 0.42;                        // la boucle au plateau, une fois installée : moins de la moitié (« léger en arrière-plan »)
 const DERAPE_AVANT = 0.5, DERAPE_MONTE = 0.35;       // le crissement attend une demi-seconde de dérive continue, puis monte en 0,35 s
+/* ---------- L'ESSAI SANS SON ----------
+   Le joueur : « il y a toujours ce ralentissement incroyable depuis qu'on a mis les sons ;
+   coupe toute la gestion du son juste une seconde, jusqu'à ce que je te dise de la remettre,
+   pour voir ce que ça fait. » Un seul interrupteur : à `true`, `AUDIO.init()` ne crée ni
+   contexte ni chaîne, ne décode aucun échantillon, et toutes les mises à jour par image
+   rendent la main sur `dispo` faux — pas un nœud audio, pas un appel par image. Le bouton du
+   son le dit au lieu de faire semblant. À remettre à `false` sur un mot du joueur : la bande-son
+   revient telle quelle, rien d'autre n'a bougé. */
+const SON_COUPE = true;
 const AUDIO = {
   on: true, volume: 0.5, ctx: null, maitre: null, dispo: false,
   derapage: null, tel: null,
@@ -29479,6 +29488,7 @@ const AUDIO = {
   cargaison: null,        // le matériel qui se balade dans la caisse (voir `cargaisonUpdate`)
   accelBufs: {},          // une montée enregistrée par timbre : tracteur, voiture, fourgon
   init(){
+    if(SON_COUPE) return;                 // l'essai sans son : voir `SON_COUPE`
     if(this.ctx || !this.on) return;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -29608,6 +29618,7 @@ const AUDIO = {
   },
   majVolume(){ if(this.maitre) try { this.maitre.gain.value = this.volume*0.5; } catch(e){} },
   basculer(){
+    if(SON_COUPE){ showHint('SON COUPÉ POUR L’ESSAI'); return; }
     this.on = !this.on;
     if(this.on){ this.init(); if(this.ctx) try { this.ctx.resume(); } catch(e){} }
     else try {
