@@ -13786,3 +13786,20 @@ montée (mesuré : 0,44 de régime quand le plafond y arrivait, pour un seuil à
 `sons2` : deux contrôles de plus, cinquante et un — stoppé net gaz maintenu, 0,3
 puis une montée neuve à 30 % ; de l'avant aux freins puis en arrière, le régime descend,
 passe par 0,3, remonte avec une montée ; et à 60 % de la vitesse, toujours 1.
+
+**Le tracteur vert n'est plus sourd au plateau.** « Quand il arrive à plein régime, il fait un
+bruit sourd, il perd son bruit de moteur standard. » Deux causes, mesurées. LA CHAÎNE d'abord :
+le passe-bas de la boucle ouvrait à 1 130 Hz à plein régime (230 + 900 r²), celui de la montée
+à 1 400. Sur un passe-bas du second ordre, la bande du cognement d'un diesel (1 500-3 000 Hz)
+sort 10,6 dB sous son niveau à 1 130 et 6,7 dB à 1 400 : la boucle arrivait 4 dB plus sourde
+que la fin de la montée, au moment précis du plateau. Les deux ouvrent maintenant à la même
+fréquence, `FILTRE_PLEIN` = 1 600 Hz (−4,3 dB sur cette bande), la boucle par la même courbe
+en carré du régime. LE SEGMENT ensuite : la boucle prise à 37,8 s pour sa hauteur plate avait
+un centroïde spectral de 952 Hz contre 1 032 à la fin de la montée. On la prend maintenant
+dans le plateau qui SUIT DIRECTEMENT la montée, 21,6 à 24,6 s — même micro, même timbre —,
+et comme ce plateau retombe de 78 à 75 Hz, c'est le verrouillage de période (`tenue`, à sa
+hauteur naturelle, 77,2) qui le tient : raie de 0,8 Hz pour 0,49 possible, là où le
+rééchantillonnage donnait 1,4 avec trois bosses et un centroïde tombé à 879. Le segment
+26-29 s, plus stable en hauteur, était plus sourd (918). Les diesels se calent sur la fin de
+la montée mesurée au pic de DFT, 78,5 sur 77,25 : `plage` [0,56 ; 1,02]. Bancs `son` et
+`sons2` recalés.
