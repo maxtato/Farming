@@ -14716,3 +14716,29 @@ remorque à quai est à la mesure des camions du jeu.
 grillage ferme la zone. Régressions vertes : bois 22, grandes 7, chocs 24, ouverture 6,
 accès 5, sans vue 9, diagnostic 11, campagne 72. Les captures ont été regardées — le quai
 vu du ciel et depuis l'eau, l'entrepôt et ses remorques, le village où rien ne déborde.
+
+## Les rectangles du port sont une couleur, pas une épaisseur
+
+Le joueur : « Les rectangles sur l'eau et le sol du port ne doivent pas être en
+surépaisseur, c'est juste une couleur. »
+
+Une moucheture de dalle était un pavé de douze millimètres et une vaguelette un pavé de
+quatre centimètres. Vus de la caméra, qui regarde de biais et non d'aplomb, ils montraient
+leur tranche et leur ombre : le sol du quai avait l'air carrelé de plaquettes collées, et la
+mer d'être couverte de petits blocs. Un rectangle de couleur n'a pas de tranche à montrer :
+c'est un PLAN, posé à plat, sans une seule face verticale. Il faut quand même le décoller de
+quelques millimètres de ce qu'il décore, sinon les deux surfaces se disputent le même plan et
+scintillent — mais quelques millimètres sur un plan sans épaisseur ne se voient pas, là où
+l'arête d'un pavé se voyait.
+
+Une seule géométrie partagée, `PLAQUE_G` — un carré unité couché dans le plan XZ, la normale
+vers le ciel —, bâtie une fois et mise à l'échelle par ce qui s'en sert. Elle porte les
+mouchetures de toutes les dalles hors tuiles (quai, jetée, ateliers du bois, entrepôt, criée,
+conserverie), les quatre cent vingt vaguelettes de la mer, et les quatre bandes de sable et
+d'écume des deux plages, qui n'ont plus leur lèvre de béton au bord : c'est une plage, pas un
+trottoir. Le nombre de pièces dessinées ne bouge pas — elles sont cuites comme avant — et
+chacune passe de douze triangles à deux.
+
+**Mesuré.** Bancs `port` (28), `chocs` (24) et `bois` (22) verts. Les captures ont été
+regardées, du ciel et depuis l'eau : les vaguelettes et les mouchetures se lisent comme des
+taches de couleur, sans arête ni ombre portée.

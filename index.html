@@ -7832,15 +7832,35 @@ const dansSpot = (v)=> PORT.spots.find((S)=> Math.hypot(v.pos.x - S.x, v.pos.z -
    posées à fleur de dalle, cuites en une seule pièce, semées sur le flux à graine fixe :
    une tous les quarante-cinq mètres carrés, là où la dalle peinte en met une tous les
    vingt-huit. */
+/* UNE PLAQUE, ET NON UNE BOÎTE. Le joueur : « les rectangles sur l'eau et le sol du port ne
+   doivent pas être en surépaisseur, c'est juste une couleur. » Une moucheture était un pavé
+   de douze millimètres et une vaguelette un pavé de quatre centimètres : vus de la caméra,
+   qui regarde de biais, ils montraient leur tranche et leur ombre portée, et le sol du port
+   avait l'air carrelé de plaquettes collées. Un rectangle de couleur n'a pas de tranche à
+   montrer : c'est un PLAN, posé à plat, sans une seule face verticale. Il faut quand même le
+   décoller de quelques millimètres du sol qu'il décore, sinon les deux surfaces se disputent
+   le même plan et scintillent ; mais quelques millimètres sur un plan sans épaisseur ne se
+   voient pas, là où l'arête d'un pavé se voyait.
+   La géométrie est partagée par tout ce qui en est fait, et bâtie une fois : un carré unité
+   couché dans le plan XZ, la normale vers le ciel. Ce qui la met à l'échelle la met en x et
+   en z ; le facteur en y ne porte sur rien, puisqu'il n'y a pas de y. */
+const PLAQUE_G = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI/2).toNonIndexed();
+// Une plaque isolée : même chose, mais posée seule plutôt que cuite avec ses semblables.
+function plaque(w, d, hex, x, y, z){
+  const m = new THREE.Mesh(PLAQUE_G, mat(hex));
+  m.scale.set(w, 1, d); m.position.set(x, y || 0, z);
+  m.castShadow = false; m.receiveShadow = true;
+  return m;
+}
 function mouchetures(x0, z0, x1, z1, y, n, base){
   if(n <= 0 || x1 - x0 < 4 || z1 - z0 < 4) return null;
   const cl = new THREE.Color(base).lerp(new THREE.Color(0xFFFFFF), 0.10).getHex();
   const cd = new THREE.Color(base).lerp(new THREE.Color(0x000000), 0.13).getHex();
-  const parts = [], G = new THREE.BoxGeometry(1, 0.012, 1).toNonIndexed();
+  const parts = [];
   for(let k = 0; k < n; k++){
     const w = 0.5 + alea()*1.4, d = 0.4 + alea()*0.9;
     const x = x0 + 1 + alea()*(x1 - x0 - 2 - w), z = z0 + 1 + alea()*(z1 - z0 - 2 - d);
-    parts.push({g:G, c:alea() < 0.5 ? cl : cd, m:new THREE.Matrix4().compose(
+    parts.push({g:PLAQUE_G, c:alea() < 0.5 ? cl : cd, m:new THREE.Matrix4().compose(
       new THREE.Vector3(x + w/2, y, z + d/2), new THREE.Quaternion(), new THREE.Vector3(w, 1, d))});
   }
   const m = new THREE.Mesh(mergeParts(parts), MAT_FUSION);
@@ -7883,21 +7903,25 @@ function construirePort(){
                              new THREE.MeshLambertMaterial({color:PO_.EAU}));
   eau.rotation.x = -Math.PI/2; eau.position.set((EAU.x0 + EAU.x1)/2, 0.05, (EAU.z0 + EAU.z1)/2);
   eau.receiveShadow = true; scene.add(eau); PORT.eau = eau;
-  const vagues = [], VG = new THREE.BoxGeometry(1, 0.04, 1).toNonIndexed();
+  // Les vaguelettes : des plaques de couleur à la surface, un centimètre et demi au-dessus
+  // du plan d'eau — de quoi ne pas scintiller, et rien de plus. Voir `PLAQUE_G`.
+  const vagues = [];
   for(let k = 0; k < 420; k++){
     const x = EAU.x0 + 6 + alea()*(largeur - 12), z = EAU.z0 + 6 + alea()*(hauteur - 12);
-    vagues.push({g:VG, c:PO_.EAU2, m:new THREE.Matrix4().compose(
-      new THREE.Vector3(x, 0.08, z), new THREE.Quaternion(), new THREE.Vector3(1.0 + alea()*2.4, 1, 0.5 + alea()*0.9))});
+    vagues.push({g:PLAQUE_G, c:PO_.EAU2, m:new THREE.Matrix4().compose(
+      new THREE.Vector3(x, 0.065, z), new THREE.Quaternion(), new THREE.Vector3(1.0 + alea()*2.4, 1, 0.5 + alea()*0.9))});
   }
   const vm = new THREE.Mesh(mergeParts(vagues), MAT_FUSION); scene.add(vm);
   /* Les deux plages, et l'écume au ras de l'eau : le long de la côte nord-sud, du quai au
      bout du monde ; le long de la côte est-ouest, de la jetée au bout du monde. Entre les
      deux, le port — la dalle du quai et la jetée —, et pas de sable. */
-  scene.add(box(4.0, 0.06, hauteur, PO_.SABLE, PORT.cote + 2.0, 0.03, (EAU.z0 + EAU.z1)/2));
-  scene.add(box(1.2, 0.05, hauteur, 0xDCE6E4, PORT.cote - 0.6, 0.07, (EAU.z0 + EAU.z1)/2));
+  // Le sable et l'écume sont eux aussi de simples plaques de couleur, sans lèvre de béton
+  // au bord : c'est une plage, pas un trottoir.
+  scene.add(plaque(4.0, hauteur, PO_.SABLE, PORT.cote + 2.0, 0.03, (EAU.z0 + EAU.z1)/2));
+  scene.add(plaque(1.2, hauteur, 0xDCE6E4, PORT.cote - 0.6, 0.065, (EAU.z0 + EAU.z1)/2));
   const lOuest = (PORT.jetee.x - PORT.jetee.w/2) - EAU.x0;
-  scene.add(box(lOuest, 0.06, 4.0, PO_.SABLE, EAU.x0 + lOuest/2, 0.03, PORT.quaiZ - 2.0));
-  scene.add(box(lOuest, 0.05, 1.2, 0xDCE6E4, EAU.x0 + lOuest/2, 0.07, PORT.quaiZ + 0.6));
+  scene.add(plaque(lOuest, 4.0, PO_.SABLE, EAU.x0 + lOuest/2, 0.03, PORT.quaiZ - 2.0));
+  scene.add(plaque(lOuest, 1.2, 0xDCE6E4, EAU.x0 + lOuest/2, 0.065, PORT.quaiZ + 0.6));
   /* CE QUI ARRÊTE UN ENGIN À ROUES : L'EAU, EN TROIS RECTANGLES MARQUÉS `eau` — un bateau
      ne les voit pas, c'est justement là qu'il vit. Trois et non un : la jetée est posée
      SUR l'eau, et l'on y roule ; un seul rectangle l'aurait couverte et aucune roue n'y
