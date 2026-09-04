@@ -14579,9 +14579,15 @@ class Vehicle {
     const f = this.fwd(), s = (px - this.pos.x)*f.x + (pz - this.pos.z)*f.z, lat = f.z*nx - f.x*nz;
     const rendu = Math.min(pen, Math.abs(rot*s*lat));
     this.pos.x += nx*(pen - rendu*0.5); this.pos.z += nz*(pen - rendu*0.5);
-    const vN = this.vel.x*nx + this.vel.y*nz;
-    if(vN < 0){ this.vel.x -= nx*vN*1.2; this.vel.y -= nz*vN*1.2; }
-    this.vel.multiplyScalar(0.8);
+    /* LA NORMALE EST REPRISE, LA TANGENTE EST GARDÉE. Voir l'en-tête de `CHOC` : c'est
+       ici que se joue la différence entre taper un mur et le longer. `nx, nz` va du décor
+       vers l'engin — entrer dedans, c'est donc une composante normale NÉGATIVE. */
+    const vN = this.vel.x*nx + this.vel.y*nz, tx = -nz, tz = nx;
+    const vT = this.vel.x*tx + this.vel.y*tz;
+    const vNs = (vN < 0) ? -vN*CHOC.rebondMur : vN;
+    const vTs = vT*Math.exp(-CHOC.frotMur*_dtImage);
+    this.vel.x = nx*vNs + tx*vTs;
+    this.vel.y = nz*vNs + tz*vTs;
   }
   update(dt, steerX, throttle, frein){
     // Le carburant se consomme AVANT le calcul du mouvement : un réservoir vide bride
@@ -19729,7 +19735,35 @@ const COLLISIONS = {on:true};
    `jouer` est le supplément demandé pour l'engin qu'on conduit : il reçoit deux fois et
    demie l'impulsion des autres, et c'est ce qui fait l'auto-tamponneuse — on SENT le
    choc, l'engin part de travers, et l'on reprend la main. */
-const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9};
+const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
+/* ---------- FRONTAL OU FROTTEMENT ----------
+   Le joueur : « fais qu'au niveau des chocs, quand on est en frontal contre un objet ça
+   nous stoppe, mais que quand on frotte un objet sur le côté ça frotte et qu'on puisse
+   continuer tranquillement — que ça bouge le véhicule un tout petit peu ; pareil quand on
+   frotte une voiture, on la décale un peu sur le côté : un petit glissement, un
+   frottement latéral, sans que ce soit un gros choc. L'auto-tamponneuse, c'est uniquement
+   quand on tape, un choc réel, pas lorsqu'on frotte contre l'autre. »
+   C'EST L'ANGLE QUI DÉCIDE, ET RIEN D'AUTRE. On décompose la vitesse au point de contact
+   en deux : ce qui va DANS l'obstacle (la normale) et ce qui GLISSE le long (la tangente).
+   De face, tout est normale — on la reprend, et l'engin s'arrête. De biais, presque tout
+   est tangente — on la garde, moins un frottement, et l'on continue. La même règle rend
+   les deux comportements sans qu'on ait à choisir entre eux : il n'y a pas de « mode
+   frottement », il y a une projection.
+   CE QUI N'ALLAIT PAS TENAIT EN UNE LIGNE : `vel.multiplyScalar(0.8)` prenait un cinquième
+   de TOUTE la vitesse à chaque image de contact, tangente comprise. En longeant une
+   clôture à soixante images par seconde il ne restait plus rien au bout d'un dixième de
+   seconde — 0,8 puissance 6 vaut 0,26 —, et frôler revenait à taper de face. Et côté
+   trafic, `Math.max(|vn|, 1)` mettait un plancher d'une unité à la force : le plus léger
+   frôlement sonnait, secouait et repoussait comme un vrai choc.
+   `frontal` est la vitesse de RAPPROCHEMENT, en mètres par seconde, au-dessus de laquelle
+   c'est un choc : secousse, son, auto-tamponneuse. En dessous, c'est un frottement : on
+   se sépare, la voiture touchée se décale d'un cheveu, et personne ne sonne.
+   `frotMur` est le frottement de la tangente, PAR SECONDE et non par image — un contact
+   dure autant de temps quelle que soit la cadence d'affichage. À 0,5, longer un mur une
+   seconde entière coûte 39 % de la vitesse de glissement : on ralentit franchement, on ne
+   s'arrête pas. `rebondMur` est le petit renvoi qui décolle de la paroi au lieu de s'y
+   coller, et `glisse` le pas de côté qu'on donne à une voiture qu'on frotte. */
+             frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6};
 /* UN ENGIN EN AUTOMATIQUE TRAVERSE TOUT, et c'est une demande explicite. La raison tient
    en une ligne : le pilote automatique suit un tracé calculé d'avance, il ne sait pas
    éviter ; un camion arrêté sur sa voie d'accès le bloquerait pour toujours, et le
@@ -19963,16 +19997,25 @@ function choquerEngins(a, b){
     b.cap += pivotChoc(b, P.x2, P.z2,  nx,  nz, pen);
     const vn = (b.vel.x - a.vel.x)*nx + (b.vel.y - a.vel.y)*nz;
     if(vn >= 0) return;                       // ils s'éloignent déjà : rien à faire
-    const j = -vn*0.5*(1 + CHOC.rebond);
-    const ka = (a === MACHINES[cur].v) ? CHOC.jouer : 1;
-    const kb = (b === MACHINES[cur].v) ? CHOC.jouer : 1;
+    /* L'AUTO-TAMPONNEUSE N'EST QUE POUR LES VRAIS CHOCS. `appro` est la vitesse de
+       rapprochement le long de la normale : elle vaut tout quand on se rentre dedans de
+       face, et presque rien quand on se frôle. En dessous de `CHOC.frontal`, on se sépare
+       et l'on repart — sans supplément pour l'engin conduit, sans secousse et sans bruit
+       de tôle. L'impulsion, elle, est déjà proportionnelle à `appro` : un frôlement ne
+       pousse presque pas, et c'est bien ce qu'on veut. */
+    const appro = -vn, franc = appro > CHOC.frontal;
+    const j = appro*0.5*(1 + CHOC.rebond);
+    const ka = (franc && a === MACHINES[cur].v) ? CHOC.jouer : 1;
+    const kb = (franc && b === MACHINES[cur].v) ? CHOC.jouer : 1;
     a.vel.x -= nx*j*ka; a.vel.y -= nz*j*ka;
     b.vel.x += nx*j*kb; b.vel.y += nz*j*kb;
-    secouer(a, -vn*ka); secouer(b, -vn*kb);
-    if(ka > 1 || kb > 1) AUDIO.impact('vehicule', -vn*CHOC.jouer);   // l'engin conduit est de la partie : ça sonne
+    if(franc){
+      secouer(a, appro*ka); secouer(b, appro*kb);
+      if(ka > 1 || kb > 1) AUDIO.impact('vehicule', appro*CHOC.jouer);   // l'engin conduit est de la partie : ça sonne
+    }
     a.speed = Math.hypot(a.vel.x, a.vel.y);
     b.speed = Math.hypot(b.vel.x, b.vel.y);
-    if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.2, (P.z1 + P.z2)/2, 0xE8E0CC, 0.5, 0.4);
+    if(franc && siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.2, (P.z1 + P.z2)/2, 0xE8E0CC, 0.5, 0.4);
     return;                                   // une paire de gélules par image suffit
   }
 }
@@ -20009,24 +20052,46 @@ function choquerTrafic(v, t){
     v.pos.x -= nx*pen*0.66; v.pos.z -= nz*pen*0.66;
     v.cap += pivotChoc(v, P.x1, P.z1, -nx, -nz, pen*0.66);
     t.ox += nx*pen*0.34; t.oz += nz*pen*0.34;
+    /* `vn` EST LA VITESSE DE SÉPARATION : négative, on se rapproche. Elle n'a plus de
+       plancher — c'était `Math.max(|vn|, 1)`, et ce plancher faisait sonner, secouer et
+       repousser le plus léger frôlement comme un vrai choc. */
     const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
-    const force = Math.max(Math.abs(vn), 1);
-    const k = (v === MACHINES[cur].v) ? CHOC.jouer : 1;
-    v.vel.x -= nx*force*0.5*k; v.vel.y -= nz*force*0.5*k;
+    const appro = Math.max(0, -vn), franc = appro > CHOC.frontal;
+    const k = (franc && v === MACHINES[cur].v) ? CHOC.jouer : 1;
+    /* L'ENGIN : sa vitesse VERS la voiture lui est reprise, celle qui GLISSE le long lui
+       reste, moins le frottement — exactement la règle du mur. `nx, nz` va de l'engin vers
+       la voiture : rentrer dedans, c'est donc une normale POSITIVE. */
+    const vN = v.vel.x*nx + v.vel.y*nz, tx = -nz, tz = nx;
+    const vT = v.vel.x*tx + v.vel.y*tz;
+    const vNs = (vN > 0) ? -vN*CHOC.rebondMur*k : vN;
+    const vTs = vT*Math.exp(-CHOC.frotMur*_dtImage);
+    v.vel.x = nx*vNs + tx*vTs; v.vel.y = nz*vNs + tz*vTs;
     v.speed = Math.hypot(v.vel.x, v.vel.y);
-    secouer(v, force*k);
-    if(k > 1) AUDIO.impact('vehicule', force*k);
-    t.vox += nx*force*CHOC.trafic*0.1; t.voz += nz*force*CHOC.trafic*0.1;
-    /* LA SECOUSSE VA D'ABORD À CE QU'ON A TOUCHÉ — la cabine si c'est le tracteur, la
-       remorque si c'est elle, chacune sur sa suspension —, ET L'AUTRE MOITIÉ EN REÇOIT LA
-       MOITIÉ : une cabine qui roulait seule sur une remorque restée plate, c'était le
-       « pli » qu'on voyait à la sellette. Et l'attelage entier se déplace d'un bloc (voir
-       `updateTrafic`). */
     const sensRem = nx*Math.cos(t.tcap) - nz*Math.sin(t.tcap) > 0 ? 1 : -1, sensCab = nx*t.fz - nz*t.fx > 0 ? 1 : -1;
-    if(ct.part === 'remorque'){ t.rPitchV -= 0.5; t.rRollV += 0.45*sensRem; t.pitchV -= 0.25; t.rollV += 0.25*sensCab; }
-    else { t.pitchV -= 0.7; t.rollV += 0.5*sensCab; t.rPitchV -= 0.35; t.rRollV += 0.3*sensRem; }
-    t.choc = 1.1;                             // elle reste au ralenti une seconde
-    if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.3, (P.z1 + P.z2)/2, 0xE8E0CC, 0.55, 0.45);
+    if(franc){
+      secouer(v, appro*k);
+      if(k > 1) AUDIO.impact('vehicule', appro*k);
+      t.vox += nx*appro*CHOC.trafic*0.1; t.voz += nz*appro*CHOC.trafic*0.1;
+      /* LA SECOUSSE VA D'ABORD À CE QU'ON A TOUCHÉ — la cabine si c'est le tracteur, la
+         remorque si c'est elle, chacune sur sa suspension —, ET L'AUTRE MOITIÉ EN REÇOIT
+         LA MOITIÉ : une cabine qui roulait seule sur une remorque restée plate, c'était le
+         « pli » qu'on voyait à la sellette. Et l'attelage entier se déplace d'un bloc
+         (voir `updateTrafic`). */
+      if(ct.part === 'remorque'){ t.rPitchV -= 0.5; t.rRollV += 0.45*sensRem; t.pitchV -= 0.25; t.rollV += 0.25*sensCab; }
+      else { t.pitchV -= 0.7; t.rollV += 0.5*sensCab; t.rPitchV -= 0.35; t.rRollV += 0.3*sensRem; }
+      t.choc = 1.1;                           // elle reste au ralenti une seconde
+      if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.3, (P.z1 + P.z2)/2, 0xE8E0CC, 0.55, 0.45);
+    } else {
+      /* ON LA FROTTE : elle fait un PAS DE CÔTÉ et se balance à peine sur ses ressorts,
+         le temps qu'on la longe. Elle lève le pied un tiers de seconde — de quoi qu'on
+         sente qu'on l'a touchée — puis reprend sa voie, que le ressort de `t.ox` ramène
+         tout seul au plus court. Pas de secousse d'auto-tamponneuse, pas de tôle qui
+         sonne : on frotte, on ne tape pas. */
+      t.vox += nx*CHOC.glisse; t.voz += nz*CHOC.glisse;
+      t.rollV += 0.10*sensCab; t.rRollV += 0.08*sensRem;
+      t.choc = Math.max(t.choc, 0.35);
+      if(siSouvent(0.25)) puff((P.x1 + P.x2)/2, 1.0, (P.z1 + P.z2)/2, 0xE8E0CC, 0.35, 0.30);
+    }
     return;
   }
 }

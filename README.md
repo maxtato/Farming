@@ -15436,3 +15436,59 @@ exprès : c'est un portique de bienvenue, pas un tunnel.
 `village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11)
 et `campagne` (72) verts. La capture a été regardée : fourgon, camion bordeaux, porteur,
 abatteuse, caseyeur et chalutier alignés à la verticale sur la même route, vus du ciel.
+
+## Frontal ou frottement : c'est l'angle qui décide
+
+**Le joueur.** « Fais qu'au niveau des chocs, quand on est en frontal contre un objet ça nous
+stoppe, mais que quand on frotte un objet sur le côté ça frotte et qu'on puisse continuer
+tranquillement — que ça bouge le véhicule un tout petit peu ; pareil quand on frotte une
+voiture, on la décale un peu sur le côté : un petit glissement, un frottement latéral, sans
+que ce soit un gros choc. L'auto-tamponneuse, c'est uniquement quand on tape, un choc réel,
+pas lorsqu'on frotte contre l'autre. »
+
+**Une seule règle rend les deux comportements.** On décompose la vitesse au point de contact
+en deux : ce qui va **dans** l'obstacle (la normale) et ce qui **glisse** le long (la
+tangente). La normale est reprise — c'est elle qui arrête un choc de face. La tangente est
+gardée, moins un frottement — c'est elle qui fait qu'on longe une clôture en raclant au lieu
+de s'y coller. Il n'y a pas de « mode frottement » avec son seuil et ses exceptions : il y a
+une projection, et l'angle d'arrivée décide tout seul.
+
+**Ce qui n'allait pas tenait en une ligne.** Contre le décor, `vel.multiplyScalar(0.8)` prenait
+un cinquième de **toute** la vitesse à chaque image de contact, tangente comprise. En longeant
+un mur à soixante images par seconde il ne restait rien au bout d'un dixième de seconde — 0,8
+puissance 6 vaut 0,26 — et frôler revenait à taper de face. Côté trafic, le coupable était
+`Math.max(|vn|, 1)` : un plancher d'une unité sur la force du choc, si bien que le plus léger
+frôlement sonnait, secouait la voiture et la repoussait comme une vraie collision.
+
+**L'auto-tamponneuse est maintenant réservée aux vrais chocs.** `CHOC.frontal` — 2,2 m/s de
+vitesse de **rapprochement** le long de la normale — sépare les deux mondes. Au-dessus :
+secousse de carrosserie, tôle qui sonne, supplément d'impulsion pour l'engin conduit, voiture
+au ralenti une seconde. En dessous : on se sépare, la voiture touchée fait un pas de côté et se
+balance à peine, elle lève le pied un tiers de seconde, et personne ne sonne.
+
+**Mesuré, et les trois quarts échouent sur la version d'avant.** Deux murs d'essai sont posés
+sur le même bitume de la rocade — l'un en travers, l'autre le long :
+
+| | avant | après |
+|---|---|---|
+| de face dans un mur | s'arrête, nez au contact | **inchangé** — c'est ce qu'on veut garder |
+| volant braqué dans le mur, 6 s | 3,77 m puis collé | **14,5 m**, il racle et il avance |
+| on frotte une voiture — sa secousse | 2,4 | **0,3** |
+| on frotte une voiture — son ralenti | 1,10 s | **0,35 s** |
+| on frotte une voiture — son écart | 0,15 m | **0,15 m** (elle se décale pareil) |
+| on frotte une voiture — notre vitesse | 14,96 m/s | **14,96 m/s** |
+| on la tape — sa secousse | 19,2 | 13 |
+| on la tape — son écart | 0,05 m | **0,15 m** |
+
+Le dernier chiffre valait à lui seul le détour : en tapant une voiture de plein fouet on la
+poussait **trois fois moins** qu'en la frôlant, parce que le plancher d'une unité dominait la
+vraie force du choc dans un cas et pas dans l'autre. Quatre contrôles neufs au banc `chocs`,
+qui passe à **28** ; trois d'entre eux échouent sur la version précédente. Bancs `port` (31),
+`bois` (22), `camion` (18), `export` (12), `village` (16), `grandes` (7), `acces` (5),
+`sansvue` (9), `ouverture` (6), `diagnostic` (11) et `campagne` (72) verts.
+
+**Un piège du banc, noté au passage.** Le nouveau bloc de contrôles tombait à zéro partout : un
+contrôle antérieur éteint les collisions, et un autre laisse des engins en pilotage automatique
+— or un engin automatique est un fantôme, pour le décor comme pour les voitures. Le bloc remet
+donc lui-même `COLLISIONS.on`, décroche les outils et sort tout le monde du mode automatique
+avant de mesurer. Un banc qui hérite de l'état du précédent ne mesure pas ce qu'il croit.
