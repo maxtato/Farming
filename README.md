@@ -14817,3 +14817,80 @@ conserverie sont bâties SUR la plate-forme et n'ont plus de dalle à elles ; un
 entre les deux monte jusqu'au grillage du fond, quarante mètres plus loin qu'avant. Bancs
 `chocs` (24), `campagne` (72) et `grandes` (7) verts. La capture du ciel a été regardée : un
 seul béton de l'eau aux commerces, la route qui s'arrête au bord, plus un arbre dessus.
+
+## La route est droite, un brin redescend après la forêt, et le bois a sa piste de terre
+
+Le joueur : « Finalement, l'espèce de grande route qui amène jusqu'à l'entrepôt, fais-la
+toute droite. Et quand on est sur la grande route jusqu'à l'entrepôt, juste après la forêt,
+fais une route qui part vers la droite et qui vient récupérer en bas la route où il y a le
+supermarché, agrémentée avec des maisons par-ci par-là de temps en temps sur le bord de la
+route. Mais le supermarché, mets-le un peu plus loin sur la route du bas, pas tout de suite
+après le garage : mets quelques maisons, un peu de vide, un peu d'arbres, et le supermarché.
+Pour le bois, fais une route en sable comme celle qu'on a au niveau de la ferme, qui descend
+pour aller jusqu'à l'endroit où on va couper le bois, et là tu mets le dépôt à grumes à côté
+de cet endroit ; d'ailleurs fais une place avec la couleur de la route, mais que tu feras de
+couleur marron. Tu fais exactement le même design et le même style que les routes en sable
+qu'on a au niveau de la ferme, pas tout à fait droit, etc., exactement comme ça mais en
+marron, comme si on roulait dans la boue ; et tu arrives sur une espèce de place où on a le
+dépôt à grumes. »
+
+**La grande route redevient droite.** Elle ondulait après les ateliers du bois — une amplitude
+d'un mètre vingt sur cent dix de période, demandée pour qu'on la sente au volant sans la voir.
+`zRouteNord(x)` rend maintenant la même cote partout. La fonction reste : une quinzaine
+d'endroits demandent la cote de la route à une abscisse, et c'est à elle qu'ils la demandent
+— le jour où une route ondulera de nouveau, il n'y aura qu'à ce seul endroit à écrire.
+
+**Un brin nord-sud ferme la boucle.** Il tombe de la route nord dix mètres après les ateliers
+du bois, vingt-cinq avant la bande de l'entrepôt, et descend jusqu'à la route du bas, qui est
+prolongée jusqu'à lui. On monte au bois par le nord et l'on revient par le sud sans faire
+demi-tour. Le trafic ne le prend pas : les quatre chaussées de la rocade lui suffisent, et une
+voiture qui naîtrait au milieu d'un carrefour se verrait. `surRoute` le connaît en revanche,
+et le connaît BORNÉ — entre les deux chaussées horizontales seulement, sans quoi rien ne
+pousserait sur son axe d'un bout à l'autre de la carte.
+
+**Deux maisons de chaque côté.** Deux nouvelles bandes, `RO` à l'ouest et `RE` à l'est,
+déclarent leur bord sur ce brin plutôt que sur la rocade. Elles n'ont pas de commerce : une
+bande de plans sans site traverse `repartirBandes` comme une autre. Les maisons sont décalées
+d'une bande à l'autre pour qu'aucune ne se fasse face, et des bosquets occupent les creux.
+
+**Le supermarché recule.** Sa bande commençait quarante et un mètres après le carrefour et
+n'avait que lui. Elle commence maintenant huit mètres après, avec deux maisons ; puis DEUX
+creux à la suite — le plafond d'un seul les tiendrait à douze mètres, et le vide demandé en
+fait vingt-quatre — plantés d'arbres ; puis le supermarché ; puis un dernier bosquet. Cent
+cinquante mètres de bande au lieu de soixante-six.
+
+**Le dépôt à grumes descend au fond du bois.** Il était posé contre la route, et la forêt
+commençait derrière : on n'y entrait jamais vraiment. Une piste de terre part maintenant du
+bord de la route et descend soixante mètres entre les arbres jusqu'à une place de quarante-six
+mètres sur trente-neuf, et c'est là qu'est le dépôt. La piste tombe sur son CERCLE de
+chargement et non sur le tas de grumes : on descend en ligne droite et l'on s'arrête au
+cercle, le dépôt à main droite.
+
+**Le même dessin que les chemins de sable de la ferme, en marron.** Ceux de la ferme sont
+peints sur les tuiles : `fillPoly` y trace un polygone dont les deux bords ondulent et se
+referment d'équerre aux bouts. La forêt est à cent mètres à l'est des tuiles, où il n'y a rien
+à peindre ; d'où `solOndule`, un maillage qui reprend le même dessin — quatre bords ondulés,
+l'ondulation s'éteignant sur les cinq derniers mètres de chaque côté pour que les bouts
+restent carrés — et les mêmes éclats dispersés, en terre plutôt qu'en sable.
+
+**La clairière n'est plus que la place et la piste.** Elle était un rectangle de quarante
+mètres de large qui montait jusqu'à la route : le bois s'ouvrait d'un coup sur toute cette
+largeur. On ne dégage plus que la place et la piste, quatre mètres de part et d'autre de son
+bord ; entre les deux, les arbres se referment sur elle.
+
+**La forêt s'agrandit de ce qu'on lui a pris.** La place et la piste coûtent trois fois ce que
+coûtait l'ancienne clairière, et il ne restait plus que quatre-vingt-quatre arbres — un
+bosquet, pas un bois. Elle gagne quinze mètres à l'ouest, où il n'y avait qu'un pré entre les
+tuiles et elle, et seize au sud, où il n'y a rien jusqu'à la route du bas : cent vingt-sept
+arbres. Elle perd en revanche quinze mètres à l'est, et c'est une correction : les deux
+maisons du bord ouest du nouveau brin occupent x = 395 à 416, et la trame plantait dedans.
+
+**Mesuré.** Banc `bois` (22) vert : cent vingt-sept arbres mûrs, aucun sur la route ni sur le
+cercle, aucun collé à un autre, les deux engins garés sur la place sans obstacle ni voisin ;
+et le porteur descend de la route au cercle en ligne droite, sans un écart de quarante
+centimètres, en 11,3 s de piste. Deux attentes du banc réécrites : le compte d'arbres se
+mesure sur la forêt agrandie, et la descente porte sur soixante mètres au lieu de quatorze.
+Bancs `port` (31), `export` (12), `chocs` (24), `grandes` (7), `acces` (5), `sansvue` (9),
+`campagne` (72) verts. Les captures ont été regardées, du ciel et depuis la route : la piste
+qui quitte le bitume, la place et ses deux engins au fond du bois, le brin bordé de maisons,
+et le supermarché loin du garage.

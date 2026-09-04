@@ -2868,12 +2868,22 @@ function rubanRoute(pts, largeur){
    dix mètres de période, ce qui se sent au volant et ne se voit pas — jusqu'à l'entrepôt.
    Le trafic, lui, roule droit sur l'axe : à 2,6 m de l'axe, ses roues restent sur le
    bitume même au creux de l'onde. */
-const SINUEUX = {debut:X1 + 174, montee:30, amp:1.2, periode:110};   // 416 : après les ateliers du bois
-function zRouteNord(x){
-  if(x <= SINUEUX.debut) return ROAD_N;
-  const k = Math.min(1, (x - SINUEUX.debut)/SINUEUX.montee);
-  return ROAD_N + SINUEUX.amp*k*Math.sin((x - SINUEUX.debut)*Math.PI*2/SINUEUX.periode);
-}
+/* PUIS TOUTE DROITE. Le joueur avait demandé une ondulation « quasiment imperceptible à
+   l'œil » après la forêt ; il la reprend : « finalement, l'espèce de grande route qui amène
+   jusqu'à l'entrepôt, fais-la toute droite. » La fonction reste — une quinzaine d'endroits
+   demandent la cote de la route à une abscisse, et c'est à elle qu'ils la demandent — mais
+   elle rend la même partout. Le jour où une route ondulera de nouveau, il n'y aura qu'ici
+   à écrire. */
+function zRouteNord(x){ return ROAD_N; }
+/* LA ROUTE QUI REDESCEND APRÈS LA FORÊT. Le joueur : « quand on est sur la grande route
+   jusqu'à l'entrepôt, juste après la forêt, fais une route qui part vers la droite et qui
+   vient récupérer en bas la route où il y a le supermarché. » Elle ferme la boucle : on
+   monte au bois par le nord et l'on revient par le sud sans faire demi-tour. Elle tombe dix
+   mètres après les ateliers du bois, vingt-cinq avant la bande de l'entrepôt, et la route du
+   bas est prolongée jusqu'à elle. Le trafic, lui, ne la prend pas : les quatre chaussées de
+   la rocade lui suffisent, et une voiture qui naîtrait au beau milieu d'un carrefour se
+   verrait. */
+const ROUTE_BOIS = X1 + 182;                 // 424 : le brin nord-sud, après la forêt
 /* ---------- LE PORT (quatrième étape de la carte, refait à la cinquième) ----------
    Le joueur : « à gauche on aura une prolongation de la route aussi à faire de l'autre
    côté du village qui nous emmènera un port où on aura une grande étendue d'eau, faudrait
@@ -2939,8 +2949,10 @@ const PORT = {
 // sud du quai, à l'ouest de la côte.
 const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:PORT.quaiZ, z1:MONDE.z1 - 3};
 (function(){
-  const est = []; for(let x = X1 - 0.5; x <= MONDE.x1; x += 3) est.push([x, zRouteNord(x)]);
-  rubanRoute(est);
+  rubanRoute([[X1 - 0.5, ROAD_N], [MONDE.x1, ROAD_N]]);        // vers l'est, droite jusqu'au bout du monde
+  // la route du bas, prolongée jusqu'au brin qui redescend ; et ce brin lui-même
+  rubanRoute([[X1 - 0.5, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
+  rubanRoute([[ROUTE_BOIS, ROAD_N - ROAD_W/2], [ROUTE_BOIS, ROAD_C + ROAD_W/2]]);
   rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au bord de la dalle du port
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
@@ -5558,12 +5570,39 @@ const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −282 à −20
    La bande regarde comme la bande nord (face 'N'), mais elle ne borde pas la même
    chaussée : elle déclare donc son `bord` et sa ligne de façades `front`, que BORD_BANDE
    et FRONT_N donnaient jusqu'ici pour toute bande tournée vers le sud. */
-const SU_X0 = ROAD_E + ROAD_W/2 + 41, SU_X1 = SU_X0 + 66;   // 160 à 226
-const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 309 à 399 : la forêt, au sud de la route
-               z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 107,   // −58 à 38
+const SU_X0 = ROAD_E + ROAD_W/2 + 8, SU_X1 = SU_X0 + 150;   // 127 à 277 : deux maisons, du vide, puis le supermarché
+/* LA FORÊT S'AGRANDIT DE CE QUE LA PLACE LUI PREND. Elle tenait quatre-vingt-dix mètres
+   sur quatre-vingt-seize, et sa clairière ne coûtait qu'un millier de mètres carrés ; la
+   place et la piste en prennent trois fois plus, et il ne restait plus que quatre-vingt-
+   quatre arbres — un bosquet, pas un bois. Elle gagne donc quinze mètres à l'ouest, où il
+   n'y avait qu'un pré entre les tuiles et elle, et seize au sud, où il n'y a rien jusqu'à
+   la route du bas : cent vingt-sept arbres, la moitié de plus qu'avant la piste.
+   ELLE PERD EN REVANCHE QUINZE MÈTRES À L'EST, et c'est une correction : les deux maisons du
+   bord ouest de la nouvelle route occupent x = 395 à 416, et la trame plantait dedans. Sa
+   lisière est s'arrête maintenant onze mètres avant leur terrain, tapis compris. */
+const FORET = {x0:ZI_X1, x1:ZI_X1 + 90,            // 294 à 384 : la forêt, au sud de la route
+               z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 123,   // −58 à 54
                arbres:[], sol:null};
-const DEPOT_BOIS = {x:FORET.x0 + 44, z:FORET.z0 + 3, r:6.5, stock:0, max:1200,
-                    quai:null, piles:null};        // (353, −55) : la place de dépôt, à la lisière
+/* LE DÉPÔT N'EST PLUS À LA LISIÈRE, IL EST AU FOND DU BOIS. Le joueur : « pour le bois,
+   fais une route en sable comme celle qu'on a au niveau de la ferme qui descend pour aller
+   jusqu'à l'endroit où on va couper le bois, et là tu mets le dépôt à grumes à côté de cet
+   endroit [...] tu arrives sur une espèce de place où on a le dépôt à grumes. » Il était
+   posé contre la route, et la forêt commençait derrière : on n'y entrait jamais vraiment.
+   Une PISTE DE TERRE part maintenant de la route et descend cinquante mètres entre les
+   arbres jusqu'à une PLACE, et c'est là qu'est le dépôt. */
+const DEPOT_BOIS = {x:FORET.x0 + 59, z:FORET.z0 + 50, r:6.5, stock:0, max:1200,
+                    quai:null, piles:null};        // (353, −8) : la place de dépôt, au fond du bois
+/* La piste et la place, en terre battue : leurs cotes servent au décor comme au semis des
+   arbres, qui les laisse libres.
+   LA PISTE TOMBE SUR LE CERCLE DU DÉPÔT, ET NON SUR LE DÉPÔT. Elle descendait dans l'axe
+   du tas de grumes : on arrivait en plein dessus, et le cercle de chargement, qui est sur
+   son flanc est, se retrouvait à onze mètres de la piste, au milieu des arbres. Elle est
+   décalée d'autant : on descend de la route en ligne droite et l'on s'arrête au cercle,
+   le dépôt à main droite — « le dépôt à grumes à côté de cet endroit ». */
+const QUAI_DEPOT_DX = 11.5;                        // le cercle de chargement, sur le flanc est du dépôt
+const PISTE_BOIS = {x:DEPOT_BOIS.x + QUAI_DEPOT_DX, z0:ROAD_N + ROAD_W/2, z1:DEPOT_BOIS.z - 21, w:9};
+const PLACE_BOIS = {x0:DEPOT_BOIS.x - 23, x1:DEPOT_BOIS.x + 23,
+                    z0:DEPOT_BOIS.z - 20, z1:DEPOT_BOIS.z + 19};
 const BANDE_DEF = {
   W:  {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
@@ -5573,7 +5612,16 @@ const BANDE_DEF = {
   EX: {face:'N', d0:EX_X0, d1:EX_X1},              // l'entrepôt d'export, au bout de la route
   PO: {face:'N', d0:PO_X0, d1:PO_X1},              // la criée et la conserverie, au port
   SU: {face:'N', d0:SU_X0, d1:SU_X1,               // le supermarché, au nord de la route sud prolongée
-       bord:ROC.z1 - ROAD_W/2, front:ROC.z1 - ROAD_W/2 - RECUL_ROCADE}
+       bord:ROC.z1 - ROAD_W/2, front:ROC.z1 - ROAD_W/2 - RECUL_ROCADE},
+  /* LES DEUX BORDS DE LA ROUTE QUI REDESCEND APRÈS LA FORÊT. Le joueur : « agrémente avec
+     des maisons par-ci par-là, de temps en temps, sur le bord de la route. » Deux bandes,
+     deux maisons chacune, décalées l'une par rapport à l'autre pour qu'aucune ne se fasse
+     face, et des bosquets entre. Elles n'ont pas de commerce : une bande de plans sans site
+     traverse `repartirBandes` comme une autre. */
+  RO: {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
+       bord:ROUTE_BOIS - ROAD_W/2},
+  RE: {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
+       bord:ROUTE_BOIS + ROAD_W/2}
 };
 const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
 // La ligne des façades d'une bande tournée vers le sud : −FRONT_N pour celles de la route
@@ -5777,10 +5825,29 @@ const BANDES = {
   PO: [{paquet:['Criée']},
        {creux:'dalle', poids:1},
        {paquet:['Conserverie']}],
-  // Le supermarché, seul sur sa bande, un bosquet après lui : l'abord du carrefour est
-  // du côté du village, et les arbres du côté de la campagne.
-  SU: [{paquet:['Supermarché']},
-       {creux:'verdure', poids:1}]
+  /* LE SUPERMARCHÉ N'EST PLUS TOUT DE SUITE APRÈS LE GARAGE. Le joueur : « mets-le un peu
+     plus loin sur la route du bas, pas tout de suite après le garage ; mets quelques
+     maisons, un peu de vide, un peu d'arbres, et le supermarché. » La bande commence donc
+     huit mètres après le carrefour, avec deux maisons ; puis DEUX creux à la suite — le
+     plafond d'un seul les tiendrait à douze mètres, et le vide demandé en fait
+     vingt-quatre — plantés d'arbres ; puis le supermarché ; puis un dernier bosquet. */
+  SU: [{paquet:['maison', 'maison']},
+       {creux:'verdure', poids:1},
+       {creux:'verdure', poids:1},
+       {paquet:['Supermarché']},
+       {creux:'verdure', poids:1}],
+  // Les deux bords de la route qui redescend après la forêt : deux maisons de chaque
+  // côté, décalées, et des bosquets entre.
+  RO: [{creux:'verdure', poids:1},
+       {paquet:['maison']},
+       {creux:'verdure', poids:1.4},
+       {paquet:['maison']},
+       {creux:'verdure', poids:1}],
+  RE: [{creux:'verdure', poids:1.4},
+       {paquet:['maison']},
+       {creux:'verdure', poids:1},
+       {paquet:['maison']},
+       {creux:'verdure', poids:1.2}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -5934,6 +6001,10 @@ const MARCHE  = SITES.find(S=>S.supermarche);
    deux gardes, le test est plus court et il est juste. */
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
+  // Le brin qui redescend après la forêt ne traverse pas tout le monde : il ne compte
+  // qu'entre les deux chaussées horizontales, sans quoi rien ne pousserait sur son axe
+  // d'un bout à l'autre de la carte.
+  if(Math.abs(x - ROUTE_BOIS) < lim && z > ROC.z0 - lim && z < ROC.z1 + lim) return true;
   return Math.abs(x - ROC.x0) < lim || Math.abs(x - ROC.x1) < lim ||
          Math.abs(z - ROC.z0) < lim || Math.abs(z - ROC.z1) < lim;
 }
@@ -7681,8 +7752,14 @@ function construireForet(){
   for(let i = 0; i < nx; i++) for(let j = 0; j < nz; j++){
     const x = F.x0 + PAS_X*(i + 0.5) + (alea() - 0.5)*3.4;
     const z = F.z0 + PAS_Z*(j + 0.5) + (alea() - 0.5)*3.4;
-    // La clairière : la place de dépôt, son cercle, et les deux engins garés devant.
-    if(x > DEPOT_BOIS.x - 17 && x < DEPOT_BOIS.x + 24 && z < DEPOT_BOIS.z + 23) continue;
+    /* LA PLACE ET LA PISTE RESTENT LIBRES, ET RIEN DE PLUS. La clairière était un
+       rectangle de quarante mètres de large qui montait jusqu'à la route : le bois s'ouvrait
+       d'un coup sur toute cette largeur. On ne dégage plus que la place — où l'engin
+       manœuvre et où les deux machines dorment — et la piste qui y mène, quatre mètres de
+       part et d'autre de son bord : entre les deux, les arbres se referment sur elle. */
+    if(x > PLACE_BOIS.x0 - 3 && x < PLACE_BOIS.x1 + 3 &&
+       z > PLACE_BOIS.z0 - 3 && z < PLACE_BOIS.z1 + 3) continue;
+    if(Math.abs(x - PISTE_BOIS.x) < PISTE_BOIS.w/2 + 4 && z < PISTE_BOIS.z1 + 3) continue;
     if(surRoute(x, z, 5.5)) continue;
     const s = 0.85 + alea()*0.35, conif = alea() < 0.82;
     const m = new THREE.Mesh(TREE_GEOS[conif ? 1 : 3], treeMat);
@@ -7695,7 +7772,18 @@ function construireForet(){
     F.arbres.push({x, z, s, ry:m.rotation.y, mesh:m, ob, k, etat:0, t:0, chute:null, souche:null,
                    kg:Math.round(34 + 14*s)});
   }
-  // Le dépôt : la place de terre battue, ses piles, son cercle et son enseigne.
+  /* LA PISTE ET LA PLACE, DANS LE STYLE DES CHEMINS DE SABLE DE LA FERME. Le joueur : « tu
+     fais exactement le même design et le même style que les routes en sable qu'on a au
+     niveau de la ferme, pas tout à fait droit, etc., mais en marron, comme si on roulait
+     dans la boue. » Ceux de la ferme sont PEINTS sur les tuiles ; ici on est cent mètres au
+     delà, et il faut un maillage — d'où `solOndule`, qui rend le même bord ondulé qui
+     s'éteint aux deux bouts, et les mêmes éclats dispersés, en terre plutôt qu'en sable. */
+  const PI = PISTE_BOIS, PL = PLACE_BOIS;
+  solOndule(PI.x - PI.w/2, PI.z0, PI.x + PI.w/2, PI.z1 + 6, BO.TERRE, 0.02, 0.8);
+  solOndule(PL.x0, PL.z0, PL.x1, PL.z1, BO.TERRE, 0.02, 1.8);
+  mouchetures(PI.x - PI.w/2, PI.z0, PI.x + PI.w/2, PI.z1, 0.03, Math.round(PI.w*(PI.z1 - PI.z0)/22), BO.TERRE);
+  mouchetures(PL.x0, PL.z0, PL.x1, PL.z1, 0.03, Math.round((PL.x1 - PL.x0)*(PL.z1 - PL.z0)/22), BO.TERRE);
+  // Le dépôt : ses piles, son cercle et son enseigne.
   const D = DEPOT_BOIS;
   const g = modeleDepotBois();
   g.scale.setScalar(ECH_COMMERCE); g.position.set(D.x, 0, D.z);
@@ -7705,7 +7793,7 @@ function construireForet(){
   obstacles.push({x:D.x - 3.6*ECH_COMMERCE, z:D.z - 1.6*ECH_COMMERCE, r:2.6*ECH_COMMERCE/1.18});
   obstacles.push({x:D.x - 2.8*ECH_COMMERCE, z:D.z + 2.4*ECH_COMMERCE, r:2.2*ECH_COMMERCE/1.18});
   obstacles.push({x:D.x + 1.6*ECH_COMMERCE, z:D.z - 2.2*ECH_COMMERCE, r:2.0*ECH_COMMERCE/1.18});
-  D.quai = {x:D.x + 11.5, z:D.z - 1.0};
+  D.quai = {x:D.x + QUAI_DEPOT_DX, z:D.z - 1.0};   // dans l'axe de la piste : voir PISTE_BOIS
   const agirDepot = ()=> actionsDepotBois(MACHINES[cur]).length > 0;
   anneauAction(D.quai.x, D.quai.z, 1.7,
     ()=> couleurPoste('depotBois', agirDepot) !== GUIDE.GRIS,
@@ -7847,6 +7935,29 @@ const QUAI_PECHE = {stock:{}, max:1500, pose:false};
 const quaiPecheTotal = ()=>{ let t = 0; for(const k in QUAI_PECHE.stock) t += QUAI_PECHE.stock[k]; return t; };
 const aChantier = (v)=> !!v && Math.hypot(v.pos.x - PORT.chantierQuai.x, v.pos.z - PORT.chantierQuai.z) <= PORT.r;
 const dansSpot = (v)=> PORT.spots.find((S)=> Math.hypot(v.pos.x - S.x, v.pos.z - S.z) <= PORT.spotR) || null;
+/* UN SOL ONDULÉ, EN MAILLAGE. Un chemin de sable de la ferme est peint sur les tuiles :
+   `fillPoly` y trace un polygone dont les deux bords ondulent et se referment d'équerre aux
+   extrémités. Hors des tuiles — la forêt est à cent mètres à l'est — il n'y a rien à
+   peindre, et il faut un maillage. Celui-ci reprend le même dessin : un rectangle dont les
+   quatre bords ondulent, l'ondulation s'éteignant sur les cinq derniers mètres de chaque
+   côté pour que les bouts restent carrés et joignent proprement ce qu'ils touchent. */
+function solOndule(x0, z0, x1, z1, couleur, y, amp){
+  const A = amp === undefined ? 0.9 : amp, FONDU = 5;
+  const larg = x1 - x0, haut = z1 - z0, cx = (x0 + x1)/2, cz = (z0 + z1)/2;
+  const attn = (t, l)=> Math.max(0, Math.min(1, (l/2 - Math.abs(t))/FONDU));
+  const nx = Math.max(2, Math.round(larg/2.4)), nz = Math.max(2, Math.round(haut/2.4));
+  const pts = [];
+  for(let k = 0; k <= nx; k++){ const x = x0 + larg*k/nx; pts.push([x, z0 - ondul(x + 11, A, 7)*attn(x - cx, larg)]); }
+  for(let k = 1; k <= nz; k++){ const z = z0 + haut*k/nz; pts.push([x1 + ondul(z + 29, A, 7)*attn(z - cz, haut), z]); }
+  for(let k = 1; k <= nx; k++){ const x = x1 - larg*k/nx; pts.push([x, z1 + ondul(x + 47, A, 7)*attn(x - cx, larg)]); }
+  for(let k = 1; k < nz; k++){ const z = z1 - haut*k/nz; pts.push([x0 - ondul(z + 63, A, 7)*attn(z - cz, haut), z]); }
+  const sh = new THREE.Shape();
+  pts.forEach((p, i)=>{ if(i) sh.lineTo(p[0], -p[1]); else sh.moveTo(p[0], -p[1]); });
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), mat(couleur));
+  m.rotation.x = -Math.PI/2; m.position.y = (y === undefined) ? 0.02 : y;
+  m.castShadow = false; m.receiveShadow = true; scene.add(m);
+  return m;
+}
 /* LES MOUCHETURES D'UNE DALLE EN VOLUME. Une dalle peinte sur les tuiles reçoit de petites
    taches claires et sombres (`buildCommerce`) qui lui donnent son grain ; une dalle en
    maillage — hors des tuiles — n'en avait pas et sortait lisse comme du plastique. Le
@@ -7916,7 +8027,8 @@ function habillerLesHerbes(){
   semer(10, EX_X0, EX_X1, MONDE.z0 + 8, -178, presDalle);
   // au sud de la route, à l'est des tuiles : avant la forêt, puis au-delà d'elle jusqu'au bout du monde
   semer(12, X1 + 8, FORET.x0 - 10, ROAD_N + 14, 40);
-  semer(48, FORET.x1 + 12, MONDE.x1 - 12, ROAD_N + 14, MONDE.z1 - 8);
+  semer(48, FORET.x1 + 12, MONDE.x1 - 12, ROAD_N + 14, MONDE.z1 - 8,
+        (x, z)=> Math.abs(x - ROUTE_BOIS) < 14);
 }
 function construirePort(){
   /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
