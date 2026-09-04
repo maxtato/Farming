@@ -9644,11 +9644,33 @@ function quaiBeton(g, x, z, w, d, ry){
    La coque se lit alors comme une cuvette, et la pointe comme le devant de la cuvette. */
 function coqueBateau(g, L, W, H, c, y0){
   const h = new THREE.Group();
-  // Le contour RÉEL du pont, conicité de `slab` comprise : voir l'en-tête.
-  const tw = W*(0.66 + 0.34*SHAPE), td = L*(0.88 + 0.12*SHAPE);
-  h.add(slab({w:W*0.66, h:H, d:L*0.88, tw:W, td:L, c:c, y:0}));
-  h.add(box(W + 0.06, 0.18, L + 0.06, PO_.COQUE2, 0, H*0.34, 0));
-  h.add(box(W*0.92, 0.22, L*0.98, 0x8E2A22, 0, H*0.12, 0));
+  /* LA COQUE ÉVASE JUSQU'AU LIVET, ET C'EST LÀ QUE TOUT SE RACCROCHE. Le joueur : « pour
+     les bateaux, je voulais que les garde-corps soient à l'aplomb de la coque. » Ils ne
+     l'étaient pas, et la faute en revient à `slab` : il ne prend qu'une FRACTION du
+     fuselage qu'on lui demande — `SHAPE`, 0,34, le dosage global du jeu —, si bien qu'un
+     pont demandé à W s'arrêtait en vrai à 0,78 W. Tout ce qui se pose dessus était donc en
+     dedans du bordé : le pavois, que le joueur a vu tout de suite, mais aussi le plancher
+     du chalutier, dessiné à 2,70 m sur un pont qui n'en faisait que 2,33. On demande donc
+     à `slab` ce que sa fraction REND — c'est ce que fait `evase` — et le pont mesure
+     enfin W sur L au millimètre : le pavois monte dans le prolongement exact du bordé. */
+  const evase = (bas, haut)=> bas + (haut - bas)/SHAPE;
+  const tw = W, td = L;
+  h.add(slab({w:W*0.66, h:H, d:L*0.88, tw:evase(W*0.66, W), td:evase(L*0.88, L), c:c, y:0}));
+  /* LES DEUX CEINTURES SUIVENT LE BORDÉ. Le liston et la bande de flottaison étaient
+     taillés sur W et L PLEINS, à des hauteurs où la coque n'en fait que les trois quarts :
+     deux étagères qui débordaient de plus d'un dixième du maître-bau, et c'est contre
+     elles que le pavois avait l'air en retrait — c'était le vrai coupable. Chacune est
+     maintenant taillée sur la largeur de coque au HAUT de sa propre bande : la coque se
+     rétrécissant vers le bas, la ceinture déborde alors sur toute sa hauteur et ne
+     s'enfonce nulle part, et ce qu'elle déborde est la saillie d'un liston, sept
+     centimètres, et non le quart d'un bateau. */
+  const larg = (t)=> W*(0.66 + 0.34*t), prof = (t)=> L*(0.88 + 0.12*t);
+  const ceinture = (yc, demiEp, saillie, hex)=>{
+    const t = (yc + demiEp)/H;
+    h.add(box(larg(t) + saillie*2, demiEp*2, prof(t) + saillie*2, hex, 0, yc, 0));
+  };
+  ceinture(H*0.34, 0.09, 0.05, PO_.COQUE2);        // le liston
+  ceinture(H*0.12, 0.11, 0.025, 0x8E2A22);         // la bande de flottaison
   /* Le pavois : un quart de la hauteur de coque — c'est ce que fait un vrai, un mètre sur un
      bateau de vingt — et trois centimètres d'épaisseur pour un mètre de large. « Très fine ». */
   const hP = Math.max(0.16, H*0.25), ep = Math.max(0.06, W*0.032), yP = H;

@@ -15198,3 +15198,37 @@ volumes, zéro trou), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6)
 douze engins alignés vus du ciel, le portique avec un camion dessous puis le porteur grue
 dressée, le ponton et ses trois bateaux, la rue du chantier vue du ciel, et la halte de la
 route du bas.
+
+## Le pavois à l'aplomb du bordé
+
+**Le joueur.** « Pour les bateaux, je voulais que les garde-corps soient à l'aplomb de la
+coque. »
+
+**Ils ne l'étaient pas, et le coupable n'était pas le pavois.** `slab` ne prend qu'une
+FRACTION du fuselage qu'on lui demande — `SHAPE`, 0,34, le dosage global du jeu. Une coque
+demandée à `W` au livet s'arrêtait donc en vrai à **0,78 W**, et tout ce qui se posait dessus
+était en dedans du bordé. Le chalutier le dit mieux qu'un discours : son pont fait 2,33 m quand
+son propre plancher est dessiné à 2,70 et que ses deux bouées pendent à 3,10 d'un bord à
+l'autre — la coque avait rétréci sous ses aménagements, et personne ne l'avait vu.
+
+**Et deux ceintures débordaient de tout ce que le pavois rentrait.** Le liston et la bande de
+flottaison étaient taillés sur `W` et `L` PLEINS, à des hauteurs où la coque n'en fait que les
+trois quarts. Mesuré sur le chalutier : la coque fait 2,10 m à la hauteur du liston, qui en
+faisait 3,06 — **48 cm de débord de chaque bord, un sixième du maître-bau**. Deux étagères, et
+c'est contre elles, pas contre la coque, que le pavois avait l'air en retrait.
+
+**Ce qui a été fait, en deux gestes.** `evase(bas, haut)` demande à `slab` ce que sa fraction
+REND, si bien que le pont mesure enfin **W sur L au millimètre** : le pavois monte dans le
+prolongement exact du bordé, et le plancher comme les bouées du chalutier retombent où ils ont
+été dessinés. Puis chaque ceinture est taillée sur la largeur de coque au HAUT de sa propre
+bande — la coque se rétrécissant vers le bas, elle déborde alors sur toute sa hauteur et ne
+s'enfonce nulle part — plus la saillie d'un vrai liston. Le débord passe de **48 à 7,7 cm** pour
+le liston et de **37 à 5,8** pour la bande de flottaison : deux traits posés sur le bordé, au
+lieu de deux corniches.
+
+**Mesuré.** Les six bateaux en héritent — barque, chalutier, caseyeur et les trois bateaux de
+plaisance de la marina. Bancs `port` (31), `chocs` (24), `bois` (22), `village` (16), `camion`
+(18), `export` (12), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic`
+(11) et `campagne` (72) verts. Les captures ont été regardées de trois quarts et de profil, sur
+le chalutier, sur la barque et sur le ponton de la marina : la muraille est d'un seul tenant de
+la flottaison à la lisse.
