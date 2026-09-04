@@ -15492,3 +15492,61 @@ contrôle antérieur éteint les collisions, et un autre laisse des engins en pi
 — or un engin automatique est un fantôme, pour le décor comme pour les voitures. Le bloc remet
 donc lui-même `COLLISIONS.on`, décroche les outils et sort tout le monde du mode automatique
 avant de mesurer. Un banc qui hérite de l'état du précédent ne mesure pas ce qu'il croit.
+
+## Le contact se reprend par l'axe qui convient
+
+**Le joueur, une fois le frottement en place.** « Fais aussi que ce frottement arrive dès le
+moment qu'on est en latéral contre un objet. Je ne veux pas qu'on soit stoppé par l'objet quand
+on frotte latéralement : on doit être stoppé par un objet quand on percute de face ; si on
+frotte latéralement, on est juste réaligné par rapport à cet objet, mais on peut continuer à
+avancer. »
+
+**Ce qui manquait encore.** La règle précédente séparait la vitesse selon la **normale du
+contact**. Elle marchait tant qu'on longeait droit ; mais dès qu'on braquait un peu vers la
+paroi, le cap tournait, la normale se mettait à mordre sur l'axe de l'engin, et l'avance
+repartait dans la reprise. Mesuré, volant tenu dans le mur six secondes : 14,5 m, puis plus
+rien.
+
+**La bonne question n'est pas « où va la vitesse » mais « où est le contact sur la
+carrosserie ».** On projette donc la normale sur les axes **propres** de l'engin. La reprise
+doit annuler ce qui rentre — et il y a deux façons de le faire, l'une par l'avance et l'autre
+par le travers :
+
+- contact sur le **flanc** — on corrige **en travers**. L'engin est repoussé de côté, remis
+  dans l'axe du mur, et son avance n'est pas touchée du tout : il longe en raclant, aussi
+  longtemps qu'il veut.
+- contact sur le **nez** ou la **poupe** — on corrige **dans l'axe**, et c'est cela qui arrête.
+
+`CHOC.flanc` vaut 0,5 : au-delà de trente degrés entre la normale et l'axe, c'est déjà du
+flanc, et un coup de nez donné en biais ripe au lieu de coller — ce que fait une vraie tôle.
+
+| volant tenu dans le mur, 6 s | distance |
+|---|---|
+| au départ de ce chantier | 3,77 m puis collé |
+| séparation normale / tangente | 14,5 m |
+| **reprise par le bon axe** | **58,5 m** (pour 77,7 m en roulant libre) |
+
+**Et « flanc » ne dit PAS si c'est un vrai choc** — il dit seulement par quel axe reprendre la
+vitesse. Ce qui distingue le choc du frottement reste la vitesse de **rapprochement** : se
+jeter en crabe sur le flanc d'une remorque à huit mètres par seconde est un vrai choc, même si
+le contact est latéral des deux côtés. Le banc l'a dit tout seul — le contrôle de la remorque
+du semi, qui fait exactement cela, est tombé dès que j'ai voulu faire décider le flanc.
+
+**Deux défauts trouvés en chemin :**
+
+- **le frottement se comptait sur la mauvaise horloge.** Il lisait `_dtImage`, le pas de la
+  dernière image *affichée* ; un banc qui avance la simulation à la main sans rien dessiner
+  mesurait donc un frottement au hasard — 58 m à un essai, 29 m au suivant. Il lit maintenant
+  le pas que l'engin vient vraiment d'intégrer : trois lancers de suite donnent 58,46 m.
+- **la secousse d'un choc était FIXE.** Un tamponnement à quinze mètres par seconde levait la
+  caisse d'autant qu'une touchette à trois. Cela ne se voyait pas tant que l'engin restait
+  collé à la voiture image après image — la secousse s'accumulait sur dix images —, mais depuis
+  que la reprise renvoie proprement, le choc ne dure plus que deux images : il fallait qu'elles
+  portent. Elle suit désormais la violence du coup, de 0,8 au seuil du vrai choc à 2,4 au
+  maximum.
+
+**Mesuré.** Les quatre contrôles du banc `chocs` sont conservés et deux d'entre eux ont été
+resserrés sur les nouveaux chiffres — celui du flanc échoue sur le commit précédent (12,45 m
+contre 58,46). `chocs` (28), `port` (31), `bois` (22), `camion` (18), `export` (12), `village`
+(16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11) et
+`campagne` (72) verts.

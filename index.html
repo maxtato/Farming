@@ -14579,20 +14579,16 @@ class Vehicle {
     const f = this.fwd(), s = (px - this.pos.x)*f.x + (pz - this.pos.z)*f.z, lat = f.z*nx - f.x*nz;
     const rendu = Math.min(pen, Math.abs(rot*s*lat));
     this.pos.x += nx*(pen - rendu*0.5); this.pos.z += nz*(pen - rendu*0.5);
-    /* LA NORMALE EST REPRISE, LA TANGENTE EST GARDÉE. Voir l'en-tête de `CHOC` : c'est
-       ici que se joue la différence entre taper un mur et le longer. `nx, nz` va du décor
-       vers l'engin — entrer dedans, c'est donc une composante normale NÉGATIVE. */
-    const vN = this.vel.x*nx + this.vel.y*nz, tx = -nz, tz = nx;
-    const vT = this.vel.x*tx + this.vel.y*tz;
-    const vNs = (vN < 0) ? -vN*CHOC.rebondMur : vN;
-    const vTs = vT*Math.exp(-CHOC.frotMur*_dtImage);
-    this.vel.x = nx*vNs + tx*vTs;
-    this.vel.y = nz*vNs + tz*vTs;
+    // La reprise se fait par l'axe qui convient au contact : voir `repousser`.
+    repousser(this, nx, nz);
   }
   update(dt, steerX, throttle, frein){
     // Le carburant se consomme AVANT le calcul du mouvement : un réservoir vide bride
     // la commande des gaz, il ne coupe pas net. L'engin finit sa course au ralenti.
     throttle = limiteSec(this, throttle);
+    // Le pas de temps du moment, retenu pour `repousser` : c'est celui-là qu'il faut au
+    // frottement, et non celui de la dernière image affichée.
+    this._dt = dt;
     brulerCarburant(this, throttle, dt);
     const f = this.fwd(), r = this.right();
     let vf = this.vel.x*f.x + this.vel.y*f.z;
@@ -19763,7 +19759,53 @@ const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
    seconde entière coûte 39 % de la vitesse de glissement : on ralentit franchement, on ne
    s'arrête pas. `rebondMur` est le petit renvoi qui décolle de la paroi au lieu de s'y
    coller, et `glisse` le pas de côté qu'on donne à une voiture qu'on frotte. */
-             frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6};
+             frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6, flanc:0.5};
+/* ---------- REPRENDRE LA VITESSE QUI RENTRE, MAIS PAR LE BON AXE ----------
+   Le joueur, une fois le frottement en place : « fais aussi que ce frottement arrive dès
+   le moment qu'on est en latéral contre un objet. Je ne veux pas qu'on soit stoppé par
+   l'objet quand on frotte latéralement : on doit être stoppé par un objet quand on
+   percute de face ; si on frotte latéralement, on est juste réaligné par rapport à cet
+   objet, mais on peut continuer à avancer. »
+   CE QUI MANQUAIT ENCORE. La règle précédente séparait la vitesse selon la NORMALE DU
+   CONTACT : elle marchait tant qu'on longeait droit, mais dès qu'on braquait un peu vers
+   la paroi le cap tournait, la normale se mettait à mordre sur l'axe de l'engin, et
+   l'avance repartait dans la reprise. Mesuré : volant tenu dans le mur, quatorze mètres
+   en six secondes puis presque plus rien.
+   LA BONNE QUESTION N'EST PAS « OÙ VA LA VITESSE » MAIS « OÙ EST LE CONTACT SUR LA
+   CARROSSERIE ». On projette donc la normale sur les axes PROPRES de l'engin : `nF` sur
+   l'axe, `nR` sur le travers. La reprise doit annuler ce qui rentre — c'est
+   `vf·nF + vr·nR` — et il y a deux façons de le faire, l'une par l'avance et l'autre par
+   le travers. On choisit celle qui préserve ce que le joueur veut garder :
+     · contact sur le FLANC (`|nR|` grand) — on corrige EN TRAVERS. L'engin est repoussé
+       de côté, remis dans l'axe du mur, et son avance n'est pas touchée du tout : il
+       longe en raclant, aussi longtemps qu'il veut.
+     · contact sur le NEZ ou la POUPE (`|nR|` petit) — on corrige DANS L'AXE, et c'est
+       cela qui arrête. `CHOC.flanc` vaut 0,5 : au-delà de trente degrés entre la normale
+       et l'axe, c'est déjà du flanc, et un coup de nez donné en biais ripe au lieu de
+       coller — ce que fait une vraie tôle.
+   Le frottement s'applique à ce qui reste : sur l'avance quand on longe, sur le travers
+   quand on tape. Il se compte sur `v._dt`, le pas de temps que l'engin vient VRAIMENT
+   d'intégrer, et non sur celui de la dernière image affichée : un banc qui avance la
+   simulation à la main sans rien dessiner mesurerait sinon un frottement au hasard.
+   ET « FLANC » NE DIT PAS SI C'EST UN VRAI CHOC. Il dit par quel axe reprendre la
+   vitesse, rien d'autre. Ce qui distingue le choc du frottement reste la vitesse de
+   RAPPROCHEMENT : se jeter en crabe sur le flanc d'une remorque à huit mètres par
+   seconde est un vrai choc, même si le contact est latéral des deux côtés. */
+function repousser(v, nx, nz){                 // `n` va de l'obstacle VERS l'engin
+  const f = v.fwd(), r = v.right();
+  const nF = nx*f.x + nz*f.z, nR = nx*r.x + nz*r.z;
+  let vf = v.vel.x*f.x + v.vel.y*f.z, vr = v.vel.x*r.x + v.vel.y*r.z;
+  const vIn = vf*nF + vr*nR, flanc = Math.abs(nR) > CHOC.flanc;
+  if(vIn < 0){
+    if(flanc) vr -= vIn/nR*(1 + CHOC.rebondMur);
+    else      vf -= vIn/nF*(1 + CHOC.rebondMur);
+  }
+  const k = Math.exp(-CHOC.frotMur*(v._dt || 1/60));
+  if(flanc) vf *= k; else vr *= k;
+  v.vel.x = f.x*vf + r.x*vr; v.vel.y = f.z*vf + r.z*vr;
+  v.speed = Math.hypot(v.vel.x, v.vel.y);
+  return flanc;
+}
 /* UN ENGIN EN AUTOMATIQUE TRAVERSE TOUT, et c'est une demande explicite. La raison tient
    en une ligne : le pilote automatique suit un tracé calculé d'avance, il ne sait pas
    éviter ; un camion arrêté sur sa voie d'accès le bloquerait pour toujours, et le
@@ -20057,16 +20099,16 @@ function choquerTrafic(v, t){
        repousser le plus léger frôlement comme un vrai choc. */
     const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
     const appro = Math.max(0, -vn), franc = appro > CHOC.frontal;
+    /* L'ENGIN : même règle que contre un mur, et `repousser` dit si le contact était sur
+       le flanc. `nx, nz` va de l'engin VERS la voiture : on le retourne pour le lui
+       présenter comme une normale d'obstacle. */
+    repousser(v, -nx, -nz);
     const k = (franc && v === MACHINES[cur].v) ? CHOC.jouer : 1;
-    /* L'ENGIN : sa vitesse VERS la voiture lui est reprise, celle qui GLISSE le long lui
-       reste, moins le frottement — exactement la règle du mur. `nx, nz` va de l'engin vers
-       la voiture : rentrer dedans, c'est donc une normale POSITIVE. */
-    const vN = v.vel.x*nx + v.vel.y*nz, tx = -nz, tz = nx;
-    const vT = v.vel.x*tx + v.vel.y*tz;
-    const vNs = (vN > 0) ? -vN*CHOC.rebondMur*k : vN;
-    const vTs = vT*Math.exp(-CHOC.frotMur*_dtImage);
-    v.vel.x = nx*vNs + tx*vTs; v.vel.y = nz*vNs + tz*vTs;
-    v.speed = Math.hypot(v.vel.x, v.vel.y);
+    // et le supplément d'auto-tamponneuse, qui ne s'ajoute qu'à un VRAI choc de nez
+    if(k > 1){
+      v.vel.x -= nx*appro*(CHOC.jouer - 1)*0.5; v.vel.y -= nz*appro*(CHOC.jouer - 1)*0.5;
+      v.speed = Math.hypot(v.vel.x, v.vel.y);
+    }
     const sensRem = nx*Math.cos(t.tcap) - nz*Math.sin(t.tcap) > 0 ? 1 : -1, sensCab = nx*t.fz - nz*t.fx > 0 ? 1 : -1;
     if(franc){
       secouer(v, appro*k);
@@ -20077,8 +20119,16 @@ function choquerTrafic(v, t){
          LA MOITIÉ : une cabine qui roulait seule sur une remorque restée plate, c'était le
          « pli » qu'on voyait à la sellette. Et l'attelage entier se déplace d'un bloc
          (voir `updateTrafic`). */
-      if(ct.part === 'remorque'){ t.rPitchV -= 0.5; t.rRollV += 0.45*sensRem; t.pitchV -= 0.25; t.rollV += 0.25*sensCab; }
-      else { t.pitchV -= 0.7; t.rollV += 0.5*sensCab; t.rPitchV -= 0.35; t.rRollV += 0.3*sensRem; }
+      /* ET LA SECOUSSE SUIT LA VIOLENCE DU COUP. Elle était FIXE : un tamponnement à
+         quinze mètres par seconde levait la caisse d'autant qu'une touchette à trois. On
+         ne le voyait pas tant que l'engin restait collé à la voiture image après image —
+         la secousse s'accumulait alors sur dix images et finissait par se voir —, mais
+         depuis que la reprise renvoie proprement, le choc ne dure plus que deux images :
+         il fallait qu'elles portent. `g` va de 0,8 au seuil du vrai choc à 2,4 au maximum,
+         et l'on ne monte pas plus haut pour que la caisse ne parte pas à la verticale. */
+      const g = Math.min(2.4, 0.5 + appro*0.13);
+      if(ct.part === 'remorque'){ t.rPitchV -= 0.5*g; t.rRollV += 0.45*g*sensRem; t.pitchV -= 0.25*g; t.rollV += 0.25*g*sensCab; }
+      else { t.pitchV -= 0.7*g; t.rollV += 0.5*g*sensCab; t.rPitchV -= 0.35*g; t.rRollV += 0.3*g*sensRem; }
       t.choc = 1.1;                           // elle reste au ralenti une seconde
       if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.3, (P.z1 + P.z2)/2, 0xE8E0CC, 0.55, 0.45);
     } else {
