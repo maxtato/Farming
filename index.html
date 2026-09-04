@@ -2950,7 +2950,21 @@ const PORT = {
      l'endroit où elle arrive sur scène, qui doit commencer à l'aplomb de la dalle actuelle
      où il y a le chantier naval. » La route ne traverse donc plus le port : elle vient
      mourir contre la grille, à x = −166, et l'on roule sur le béton au-delà. */
-  cale:{x0:-196, x1:-166, z0:-120, z1:-26},
+  /* PUIS ELLE DEVIENT UNE RUE. Le joueur : « je veux que le quai où se trouve le chantier
+     naval soit aussi élargi en dalle un peu plus loin, que ça fasse vraiment une rue du
+     chantier naval — à part la petite descente qui arrive à la mer. » Elle s'arrêtait
+     quinze mètres après le chantier ; elle descend maintenant quarante mètres plus au sud,
+     le long de la plage, et l'on roule sur trente mètres de large et cent trente-quatre de
+     long entre les hangars et le sable. La « petite descente », c'est la bande de sable de
+     quatre mètres qui la borde à l'ouest et qui plonge dans l'eau : elle ne bouge pas. */
+  cale:{x0:-196, x1:-166, z0:-120, z1:14},
+  /* LA MARINA. Le joueur : « après, tu fais comme une marina, une petite jetée avec trois
+     bateaux amarrés. » Un ponton de bois part de la plage, au bout de la rue du chantier,
+     et s'avance de trente-six mètres dans le bassin ; trois bateaux de plaisance sont à
+     couple le long de son flanc sud. Il n'est PAS roulable, et c'est voulu : le bassin est
+     de l'eau pleine pour tout ce qui a des roues, et un ponton de plaisance n'est pas un
+     quai de chargement — on va le regarder, pas s'y garer. */
+  marina:{z:-2, x0:-236, x1:-197, w:5},
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
   r:6.5, spotR:8, eau:null
 };
@@ -8096,6 +8110,27 @@ function habillerLesHerbes(){
      autres — il est au milieu de ce couloir, mais il en déborde de vingt mètres. */
   semer(48, FORET.x1 + 12, MONDE.x1 - 12, ROAD_N + 14, MONDE.z1 - 8,
         (x, z)=> Math.abs(x - ROUTE_BOIS) < 34 || presDalle(x, z));
+  /* LES DEUX VERGES QUI N'AVAIENT RIEN. Le joueur : « rajoute quelques arbres en bord de
+     route à l'endroit où il n'y a rien. » Deux bandes n'étaient semées par personne : le SUD
+     de la route du bas, du village au brin de la forêt — cinq cents mètres de pré nu qu'on
+     longe à chaque tournée —, et la lisière NORD de la route nord entre le village et les
+     ateliers du bois. On les sème comme le reste, avec parcimonie et à graine fixe, en
+     laissant leurs dalles tranquilles. */
+  semer(34, X0 + 12, ROUTE_BOIS - 24, ROC.z1 + 17, MONDE.z1 - 10, presDalle);
+  semer(9, X1 + 12, FO_X0 - 16, ROAD_N - 40, ROAD_N - 17, presDalle);
+  /* ET TROIS HALTES, PAS UNE DE PLUS. « De temps en temps, pas beaucoup. » Une sur la route
+     du bas entre le village et le hameau, une en face de la forêt, une sur la route du port :
+     trois longueurs de route qu'on parcourt souvent et où l'œil n'avait rien à quoi
+     s'accrocher. Elles regardent la chaussée, et un bosquet les adosse. */
+  /* Les trois emplacements sont CHOISIS, et vérifiés : le rang de maisons du bord sud tient
+     x = −65 à 105 sur z = 82 à 105, et un lot de plus va de 116 à 138. La première halte se
+     pose donc à 175, après eux et avant le hameau de la route du bas ; la deuxième à 332,
+     en face de la forêt ; la troisième sur la route du port, à l'ouest des tuiles. */
+  for(const H of [[175, ROC.z1 + 18, Math.PI], [332, ROC.z1 + 19, Math.PI], [-148, ROAD_N - 18, 0]]){
+    poserBloc(vilHalte, H[0], H[1], H[2]);
+    for(let k = 0; k < 3; k++)
+      addTree(H[0] - 9 + alea()*18, H[1] + (H[2] ? 8 : -8) + alea()*7, 0.9 + alea()*0.5, (alea()*5)|0);
+  }
 }
 function construirePort(){
   /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
@@ -8257,6 +8292,94 @@ function construirePort(){
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
   for(const Q of [PORT.quai, PORT.grue])
     boxObs.push({x:Q.x, z:Q.z - 0.3*ECH_COMMERCE, hw:4.6*ECH_COMMERCE, hd:2.1*ECH_COMMERCE});   // laisse le couloir de roulage, derrière
+  /* ---------- LE PORTIQUE DE LA MARINA ----------
+     Le joueur : « à l'endroit où on arrive près du port, quand on passe la barrière pour
+     arriver sur la dalle, mets une espèce de portique de bienvenue assez haut pour qu'on
+     puisse passer dessous avec un camion, qui soit juste au-dessus de la porte du grillage
+     pour rentrer dans le port, avec marqué MARINA ou quelque chose comme ça. »
+     Il enjambe l'entrée à l'aplomb de la grille, entre les deux piliers qui y sont déjà.
+     DOUZE MÈTRES QUATRE-VINGTS SOUS LA POUTRE, et ce n'est pas une coquetterie : c'est
+     MESURÉ sur le plus haut engin du parc, le porteur du bois, qui fait douze mètres pile
+     grue dressée depuis qu'il a grandi — l'enjambeuse en fait neuf, le chalutier sept, le
+     camion américain six et demi. Le portique a été dessiné à onze mètres, sur la mesure
+     d'AVANT l'agrandissement des engins ; le porteur passait donc au travers de sa poutre.
+     Et la poutre n'a AUCUNE emprise : seuls ses deux montants sont solides, et ils sont
+     hors de la chaussée. Rien de ce qui passe la grille ne peut se cogner dedans. */
+  (function(){
+    const X = C.x1, Z = ROAD_N, DEMI = RB + 1.8, H = 12.6, EP = 1.2;
+    /* LES MONTANTS SONT POSÉS UN PAR UN, ET NON RECUITS AVEC LA POUTRE. Recuire tout le
+       portique en un seul maillage donnait un volume de quinze mètres de large dont le
+       CENTRE est le milieu de la chaussée — juste ce qu'un portique laisse vide. Le banc
+       des collisions, qui cherche une emprise sous le centre de chaque volume, y voyait
+       un trou de quinze mètres, et il avait raison de le dire : le volume qu'on lui
+       présentait n'était pas celui qu'on a bâti. Deux montants séparés, chacun à
+       l'aplomb de son emprise, et une poutre seule au-dessus : chaque volume est
+       maintenant là où il est. Un mètre de côté au lieu de quatre-vingts centimètres,
+       aussi — c'est la taille d'un pied de portique, et c'est ce qui en fait un volume
+       plein aux yeux du banc plutôt qu'un poteau qu'il écarte. */
+    for(const sz of [-1, 1]){
+      const zz = Z + sz*DEMI;
+      scene.add(box(EP, H, EP, PO_.BETON2, X, H/2, zz));
+      scene.add(box(EP + 0.34, 0.34, EP + 0.34, PO_.BETON, X, H + 0.17, zz));
+      scene.add(box(EP + 0.5, 0.5, EP + 0.5, PO_.BETON, X, 0.25, zz));
+      obstacles.push({x:X, z:zz, r:0.85});
+    }
+    const g = new THREE.Group();
+    const LP = DEMI*2 + EP;
+    g.add(box(0.5, 1.1, LP, PO_.BLEUF, X, H + 0.9, Z));                // la poutre
+    g.add(box(0.66, 0.18, LP + 0.2, PO_.BLEU, X, H + 1.54, Z));        // sa lisse haute
+    g.add(box(0.66, 0.16, LP + 0.2, PO_.BLEU, X, H + 0.28, Z));        // sa lisse basse
+    /* Les goussets se tiennent au-dessus des trottoirs, pas de la route : ils pendent
+       cinquante centimètres sous la poutre, et le tirant d'air doit valoir sur TOUTE la
+       largeur roulée. Leur face intérieure est donc à l'aplomb du bord de chaussée. */
+    for(const sz of [-1, 1])
+      g.add(box(0.28, 0.9, 1.8, PO_.BLEUF, X, H - 0.05, Z + sz*(DEMI - 0.9)));
+    scene.add(g); fusionnerGroupe(g);
+    /* LA PLAQUE, DEUX FOIS : une par face, tournée vers l'extérieur. Une seule plaque à
+       deux faces se lirait à l'envers d'un côté — c'est la même image vue par derrière — et
+       « MARINA » à l'envers ne dit plus rien. Deux plans opposés, et le mot est droit qu'on
+       arrive de la route ou qu'on reparte du quai. Style boutique : fond crème, filet et
+       lettres de la couleur du port, ce qui se lit de loin sur un ciel sombre. */
+    const tex = enseigneTex('Marina', PO_.BLEUF, 'boutique');
+    for(const sx of [-1, 1]){
+      const pan = new THREE.Mesh(new THREE.PlaneGeometry(LP*0.66, LP*0.198),
+                                 new THREE.MeshBasicMaterial({map:tex}));
+      pan.rotation.y = sx*Math.PI/2; pan.position.set(X + sx*0.32, H + 0.9, Z);
+      scene.add(pan);
+    }
+  })();
+  /* ---------- LE PONTON DE LA MARINA, ET SES TROIS BATEAUX ----------
+     Un tablier de bois sur pilotis, à cinquante centimètres au-dessus de l'eau, qui part de
+     la plage au bout de la rue du chantier. Trois bateaux de plaisance à couple le long de
+     son flanc sud, de trois couleurs et de trois tailles — c'est ce qui fait un port de
+     plaisance plutôt qu'un alignement. */
+  (function(){
+    const M = PORT.marina, ML = M.x1 - M.x0, yP = 0.52;
+    const g = new THREE.Group();
+    g.add(box(ML, 0.16, M.w, PO_.BOIS3, (M.x0 + M.x1)/2, yP, M.z));
+    for(let k = 0; k < Math.round(ML/1.6); k++)                        // les lattes
+      g.add(box(1.1, 0.05, M.w - 0.3, PO_.BOIS, M.x0 + 0.9 + k*1.6, yP + 0.11, M.z));
+    for(let k = 0; k <= Math.round(ML/6); k++) for(const sz of [-1, 1]){
+      const px = M.x0 + 1.5 + k*6;
+      if(px > M.x1 - 0.5) continue;
+      g.add(cyl(0.18, 0.18, 1.3, 8, PO_.BOIS2, px, yP - 0.55, M.z + sz*(M.w/2 - 0.3)));
+      g.add(cyl(0.16, 0.16, 0.5, 8, PO_.BOIS2, px, yP + 0.33, M.z + sz*(M.w/2 - 0.3)));  // taquet
+    }
+    scene.add(g); fusionnerGroupe(g);
+    /* Les trois bateaux, à couple au sud du ponton. Ils sont DÉCOR : pas de collision — on
+       n'y va qu'en bateau, et un bateau du joueur qui viendrait s'y frotter n'a rien à
+       heurter d'invisible. */
+    const flotte = [[PO_.BLEU, 5.2, 2.0, 1.0], [0xE8E2D4, 6.4, 2.4, 1.2], [PO_.VERT, 4.6, 1.8, 0.9]];
+    flotte.forEach((f, i)=>{
+      const b = new THREE.Group();
+      coqueBateau(b, f[1], f[2], f[3], f[0], 0.12);
+      timonerieBateau(b, 0, f[3] + 0.1, -f[1]*0.10, f[2]*0.58, f[3]*0.8, f[1]*0.24, PO_.CREME);
+      matFanions(b, 0, f[1]*0.26, f[3]*2.6, PO_.CREME);
+      b.position.set(M.x0 + 5 + i*12, 0, M.z + M.w/2 + f[2]*0.75);
+      b.rotation.y = Math.PI/2 + (i % 2 ? 0.03 : -0.02);
+      scene.add(b); fusionnerGroupe(b);
+    });
+  })();
   // Le chantier naval, sur la côte du bassin, sa cale vers l'eau ; son cercle ouvre la
   // vitrine des bateaux.
   poser(modeleChantierNaval, PORT.chantier.x, PORT.chantier.z, -Math.PI/2);
@@ -9501,20 +9624,51 @@ function quaiBeton(g, x, z, w, d, ry){
 }
 /* COQUE : bordé évasé vers le haut, étrave en coin, ligne de flottaison plus sombre — c'est
    elle qui fait lire un bateau plutôt qu'une caisse posée sur l'eau. */
+/* ---------- LA COQUE, ET SON PAVOIS ----------
+   Le joueur : « pour les bateaux, rajoute sur tout le pourtour du bateau comme un garde-corps
+   très fin, de la hauteur de la pointe du bateau à l'avant — parce que la pointe est vachement
+   en surépaisseur, très haute par rapport au reste du bateau, ça fait bizarre. Fais donc comme
+   si ça faisait une cuvette complète qui fait tout le tour du bateau, à la même hauteur que la
+   pointe, mais très fine et de la couleur du bateau. »
+   IL AVAIT RAISON, ET MESURÉ C'ÉTAIT PIRE QUE ÇA. L'étrave était un prisme posé à z = L/2,
+   c'est-à-dire QUATRE DIXIÈMES DE MÈTRE DEVANT le dessus de la coque, et large de W quand ce
+   dessus ne fait que 0,776 W : sur le chalutier, un bloc de 3,90 m de large accolé à un pont
+   de 3,02, et haut de toute la coque. Vu de la mer, une pointe rapportée.
+   D'OÙ VIENT L'ÉCART. `slab` ne donne que le tiers de la conicité qu'on lui demande — c'est
+   `SHAPE`, le dosage global des déformations du jeu — si bien que le dessus de la coque n'est
+   ni W ni 0,66 W mais entre les deux. L'étrave, elle, était écrite sur les cotes ANNONCÉES. On
+   calcule donc le contour réel du pont, et tout ce qui le borde s'y aligne.
+   CE QUE LE PAVOIS AJOUTE. Un pont plat au sommet de la coque, un bord mince tout autour —
+   deux flancs et un tableau arrière — et une étrave qui n'est plus qu'un bloc mais la POINTE
+   de ce bord : elle part du contour du pont, à sa largeur, et monte à la même hauteur que lui.
+   La coque se lit alors comme une cuvette, et la pointe comme le devant de la cuvette. */
 function coqueBateau(g, L, W, H, c, y0){
   const h = new THREE.Group();
+  // Le contour RÉEL du pont, conicité de `slab` comprise : voir l'en-tête.
+  const tw = W*(0.66 + 0.34*SHAPE), td = L*(0.88 + 0.12*SHAPE);
   h.add(slab({w:W*0.66, h:H, d:L*0.88, tw:W, td:L, c:c, y:0}));
   h.add(box(W + 0.06, 0.18, L + 0.06, PO_.COQUE2, 0, H*0.34, 0));
   h.add(box(W*0.92, 0.22, L*0.98, 0x8E2A22, 0, H*0.12, 0));
+  /* Le pavois : un quart de la hauteur de coque — c'est ce que fait un vrai, un mètre sur un
+     bateau de vingt — et trois centimètres d'épaisseur pour un mètre de large. « Très fine ». */
+  const hP = Math.max(0.16, H*0.25), ep = Math.max(0.06, W*0.032), yP = H;
+  h.add(box(tw - 0.02, 0.06, td - 0.02, PO_.COQUE2, 0, yP + 0.03, 0));      // le pont
+  for(const sx of [-1, 1]) h.add(box(ep, hP, td, c, sx*(tw/2 - ep/2), yP + hP/2, 0));
+  h.add(box(tw, hP, ep, c, 0, yP + hP/2, -td/2 + ep/2));                     // le tableau arrière
+  /* L'ÉTRAVE. Six points, comme avant : la base au ras de l'eau, le haut à la hauteur du
+     pavois, et la pointe un peu plus basse — c'est la ligne d'un vrai brion. Elle part
+     maintenant DU contour du pont et à SA largeur : plus de marche, plus de trou. */
+  const zA = td/2, yH = yP + hP;
   const e = new THREE.BufferGeometry();
-  const Pp = [[-W/2, 0, 0], [W/2, 0, 0], [0, 0, L*0.3], [-W/2, H, 0], [W/2, H, 0], [0, H*0.9, L*0.34]];
+  const Pp = [[-tw/2, 0, zA], [tw/2, 0, zA], [0, 0, zA + L*0.26],
+              [-tw/2, yH, zA], [tw/2, yH, zA], [0, yH - hP*0.4, zA + L*0.30]];
   const F = [[0,1,2],[3,5,4],[0,3,4],[0,4,1],[1,4,5],[1,5,2],[0,2,5],[0,5,3]];
   const pos = [];
   for(const f of F) for(const i of f) pos.push(Pp[i][0], Pp[i][1], Pp[i][2]);
   e.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   e.computeVertexNormals();
   const m = new THREE.Mesh(e, mat(c));
-  m.position.set(0, 0, L/2); m.castShadow = true; m.receiveShadow = true; h.add(m);
+  m.castShadow = true; m.receiveShadow = true; h.add(m);
   h.position.y = y0 || 0;
   g.add(h);
   return h;
@@ -11794,6 +11948,46 @@ function vilLavoir(){
     g.add(box(0.7, 0.12, 0.5, D_PIERRE2, -1.2 + k*1.2, 1.06, D/2 - 0.35));
   return {g, r:3.4, w:5.6};
 }
+/* ---------- LA HALTE DE BORD DE ROUTE ----------
+   Le joueur : « rajoute quelques arbres en bord de route à l'endroit où il n'y a rien ; tu
+   peux mettre aussi un abri, une espèce de petit auvent avec la table en dessous — enfin
+   bref, tes éléments de décor pour habiller un petit peu, de temps en temps, pas beaucoup. »
+   C'est une aire de pique-nique : quatre poteaux, un toit à une seule pente — un auvent n'est
+   pas une maison —, la table et ses deux bancs dessous, une poubelle et un panneau. Elle ne
+   rejoint PAS la table du mobilier de village (`MOB`) : celui-là garnit les creux entre deux
+   dalles, à l'intérieur du village, et se tire au sort ; la halte, elle, se pose à la main,
+   là où la route est longue et vide. */
+function vilHalte(){
+  const g = new THREE.Group();
+  const W = 4.8, D = 3.8, H = 2.6, PENTE = 0.62;
+  for(const sx of [-W/2 + 0.25, W/2 - 0.25]) for(const sz of [-D/2 + 0.25, D/2 - 0.25]){
+    const hp = H + (sz < 0 ? PENTE : 0);
+    g.add(box(0.22, hp, 0.22, D_BOIS2, sx, hp/2, sz));
+    g.add(box(0.42, 0.16, 0.42, D_PIERRE2, sx, 0.08, sz));
+  }
+  // Les deux pannes, puis le toit posé dessus : une seule pente, du haut vers la route.
+  for(const sx of [-W/2 + 0.25, W/2 - 0.25]){
+    const p = box(0.18, 0.2, D + 0.5, D_BOIS2, sx, H + PENTE/2, 0);
+    p.rotation.x = Math.atan2(PENTE, D); g.add(p);
+  }
+  const t = box(W + 0.7, 0.16, D + 0.9, D_TUILE, 0, H + PENTE/2 + 0.16, 0);
+  t.rotation.x = Math.atan2(PENTE, D); g.add(t);
+  const t2 = box(W + 0.5, 0.08, D + 0.7, D_TUILE2, 0, H + PENTE/2 + 0.27, 0);
+  t2.rotation.x = Math.atan2(PENTE, D); g.add(t2);
+  // La table, dessous, et ses deux bancs.
+  g.add(box(2.4, 0.14, 1.0, D_BOIS3, 0, 0.75, 0));
+  for(const sx of [-0.95, 0.95]){
+    const p1 = box(0.14, 0.85, 0.14, D_BOIS2, sx, 0.42, -0.3); p1.rotation.x = 0.25; g.add(p1);
+    const p2 = box(0.14, 0.85, 0.14, D_BOIS2, sx, 0.42, 0.3); p2.rotation.x = -0.25; g.add(p2);
+  }
+  for(const sz of [-0.85, 0.85]) dBanc(g, 0, sz, 2.2, sz > 0 ? Math.PI : 0);
+  // La poubelle et le panneau de halte, au bord.
+  g.add(cyl(0.28, 0.24, 0.85, 8, D_VERT, W/2 - 0.9, 0.42, D/2 + 0.7));
+  g.add(cyl(0.3, 0.3, 0.08, 8, 0x2F5238, W/2 - 0.9, 0.89, D/2 + 0.7));
+  g.add(box(0.12, 1.5, 0.12, D_BOIS2, -W/2 + 0.6, 0.75, D/2 + 0.8));
+  g.add(box(0.9, 0.55, 0.09, D_VOLET, -W/2 + 0.6, 1.62, D/2 + 0.8));
+  return {g, r:3.1, w:5.6};
+}
 function vilPiqueNique(){
   const g = new THREE.Group();
   g.add(box(2.4, 0.14, 1.0, D_BOIS3, 0, 0.75, 0));
@@ -13467,7 +13661,7 @@ function buildAbatteuse(){
      conifères et le porteur dépassait le fourgon d'un quart : les deux engins du bois
      écrasaient la forêt qu'ils servent. À 1,30 l'abatteuse fait six mètres, comme la
      moissonneuse, et le porteur dix mètres et demi. */
-  g.scale.setScalar(1.30);
+  g.scale.setScalar(1.60);
   g.userData = {wr, wf, gyro, feux:F, bras, scie,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 1.95, w:0.34, h:0.22},
             arriere:{x:[-0.8, 0.8], y:1.5, z:-2.75, w:0.30, h:0.20},
@@ -13505,7 +13699,7 @@ function buildPorteur(){
       const b2 = wheelMesh(0.7, 0.46); b2.position.set(sx, 0.7, sz); g.add(b2); wr.push(b2);
     }
   }
-  g.scale.setScalar(1.30);
+  g.scale.setScalar(1.65);
   g.userData = {wr, wf, gyro, feux:F, pile,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 3.9,  w:0.34, h:0.22},
             arriere:{x:[-0.8, 0.8], y:1.5, z:-4.05, w:0.30, h:0.20},
@@ -13534,7 +13728,7 @@ function buildBarque(){
   casierPeche(g, 0.35, 0.86, 0.9, 0.3); casierPeche(g, -0.35, 0.86, 1.5, -0.2);
   boueePeche(g, 0.9, 1.0, -0.2); boueePeche(g, -0.9, 1.0, 0.4);
   const F = feuxBateau(g, 5.0, 1.0);
-  g.scale.setScalar(1.30);
+  g.scale.setScalar(1.50);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.0, z:2.4, w:0.18, h:0.12}, arriere:{x:[0], y:1.0, z:-2.45, w:0.16, h:0.11}, nez:2.6}};
   return g;
@@ -13554,7 +13748,7 @@ function buildChalutier(){
   for(let k = 0; k < 4; k++) bacPoisson(g, -0.9 + (k % 2)*1.8, 1.0, -1.6 - Math.floor(k/2)*0.7);
   boueePeche(g, 1.55, 1.6, -0.6); boueePeche(g, -1.55, 1.6, -0.6);
   const F = feuxBateau(g, 8.5, 1.6);
-  g.scale.setScalar(1.30);
+  g.scale.setScalar(1.55);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.6, z:4.15, w:0.18, h:0.12}, arriere:{x:[0], y:1.6, z:-4.2, w:0.16, h:0.11}, nez:4.3}};
   return g;
@@ -13573,7 +13767,7 @@ function buildCaseyeur(){
       casierPeche(g, -0.6 + (k % 2)*1.2, 1.16 + rang*0.5, -0.8 - i*0.72, (k % 3)*0.2);
   boueePeche(g, 1.25, 1.31, -1.0); boueePeche(g, -1.25, 1.31, -1.6);
   const F = feuxBateau(g, 6.6, 1.3);
-  g.scale.setScalar(1.30);
+  g.scale.setScalar(1.60);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.3, z:3.2, w:0.18, h:0.12}, arriere:{x:[0], y:1.3, z:-3.25, w:0.16, h:0.11}, nez:3.4}};
   return g;
@@ -13605,7 +13799,7 @@ function buildFrigo(){
     for(const sz of [-1.3, -2.4]){ const b2 = wheelMesh(0.48, 0.34); b2.position.set(sx, 0.48, sz); g.add(b2); wr.push(b2); }
   }
   const gyro = gyrophare(g, 0.8, 3.4, 2.2);
-  g.scale.setScalar(1.40);
+  g.scale.setScalar(1.90);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.0, z: 3.24, w:0.28, h:0.17},
             arriere:{x:[-0.8, 0.8], y:1.0, z:-3.66, w:0.30, h:0.22},

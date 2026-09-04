@@ -15078,3 +15078,123 @@ n'a pas changé). Bancs `port` (31), `bois` (22), `export` (12), `village` (16),
 `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6) et `campagne` (72) verts. Les
 captures ont été regardées : le parc à remorques du ciel, le camion sur la route, et les trois
 attelages en marche.
+
+## Le pavois des bateaux, les engins à l'échelle, et le port devient une marina
+
+### Une cuvette qui fait le tour de la coque
+
+**Le joueur.** « Pour les bateaux, rajoute surtout au pourtour du bateau comme un garde-corps
+très fin, de la hauteur de la pointe du bateau à l'avant — parce que la pointe est vachement en
+surépaisseur, très haute par rapport au reste du bateau, ça fait bizarre. Fais donc comme si ça
+faisait une cuvette complète qui fait tout le tour du bateau, à la même hauteur que la pointe,
+mais très fine et de la couleur du bateau. »
+
+**Pourquoi la pointe dépassait.** La coque est un `slab` : un pavé dont la face du haut est plus
+petite que celle du bas. Mais `slab` ne prend qu'une FRACTION du fuselage qu'on lui demande —
+`SHAPE`, 0,34, le dosage global du jeu —, si bien que le pont mesure `W*(0,66 + 0,34*SHAPE)` de
+large et non `W`. Le prisme de l'étrave, lui, était bâti sur `L` et `W` pleins : il était donc
+PLUS LARGE que le pont d'où il sortait, et il montait seul, à pic, au-dessus d'un pont nu. Ce
+n'était pas une proue trop haute, c'était une proue posée à côté du bateau.
+
+**Ce qui a été fait.** Le contour du pont est calculé une fois (`tw`, `td`), et tout se
+raccroche à lui : une tôle de pont posée dessus, puis un pavois de six centimètres d'épaisseur
+(`max(0,06, W*0,032)`) et d'un quart de la hauteur de coque (`max(0,16, H*0,25)`) le long des
+deux bordés et du tableau arrière — et l'étrave rebâtie SUR ce même contour, jusqu'à la même
+arête. Le pourtour est à une seule hauteur, et la pointe n'est plus qu'un bout effilé de la
+cuvette. Les six bateaux du jeu en héritent d'un coup : barque, chalutier, caseyeur, et les
+trois bateaux de plaisance de la marina.
+
+### Les engins grandissent, le fourgon pour étalon
+
+**Le joueur.** « Agrandis tous les nouveaux véhicules que tu as intégrés : ils sont trop petits
+par rapport au reste des véhicules. Tous les véhicules de la forêt, les véhicules du port, etc.
+Prends en référence le fourgon. »
+
+**L'étalon, mesuré.** Le fourgon fait 11,9 m de long, 3,9 de large, 4,9 de haut. Autour de lui :
+la moissonneuse 10,5, le pick-up 9,3, le T4 7,5, le semi-remorque 15,9. Les six engins ajoutés
+depuis étaient tous restés au facteur 1,30 (1,40 pour le frigo) hérité de leur planche, ce qui
+les mettait entre 8,3 et 11,2 m : à côté du fourgon, des jouets.
+
+| engin | échelle | longueur |
+|---|---|---|
+| abatteuse | 1,30 → **1,60** | 10,9 → **13,4 m** |
+| porteur | 1,30 → **1,65** | 11,2 → **14,2 m** |
+| caseyeur | 1,30 → **1,60** | 10,9 → **13,4 m** |
+| chalutier | 1,30 → **1,55** | 14,0 → **16,7 m** |
+| barque | 1,30 → **1,50** | 8,3 → **9,6 m** |
+| camion frigo | 1,40 → **1,90** | 9,8 → **13,3 m** |
+
+Le frigo est celui qui monte le plus : son maillage d'origine est le plus petit des six, et il
+lui fallait ce saut pour venir se ranger entre le fourgon et le semi. La barque reste le plus
+petit du parc, et c'est voulu — c'est une barque.
+
+### Le port devient une marina
+
+**Le portique de bienvenue.** Le joueur : « à l'endroit où on arrive près du port, quand on
+passe la barrière pour arriver sur la dalle, mets une espèce de portique de bienvenue assez
+haut pour qu'on puisse passer dessous avec un camion, qui soit juste au-dessus de la porte du
+grillage pour rentrer dans le port, avec marqué MARINA ou quelque chose comme ça. » Il enjambe
+l'entrée à l'aplomb exact de la grille, entre les deux piliers qui y étaient déjà : deux
+montants de béton d'un mètre vingt, une poutre bleue à deux lisses et deux goussets, et une
+plaque crème sur CHAQUE face — une seule plaque à deux faces afficherait « MARINA » à l'envers
+d'un côté. La poutre n'a aucune emprise, les deux montants en ont une : on passe dessous, on ne
+passe pas dedans.
+
+**Douze mètres quatre-vingts sous la poutre, et c'est mesuré.** Le portique avait d'abord été
+dessiné à onze mètres, sur la hauteur du porteur du bois AVANT son agrandissement. Une fois
+grandi, le porteur fait douze mètres pile grue dressée — il traversait la poutre. Le tirant
+d'air a donc été repris sur la mesure d'après : douze quatre-vingts, et les goussets remontés
+pour que ce tirant vaille sur toute la largeur roulée et pas seulement au milieu.
+
+**La rue du chantier naval.** Le joueur : « je veux que le quai où se trouve le chantier naval
+soit aussi élargi en dalle un peu plus loin, que ça fasse vraiment une rue du chantier naval —
+à part la petite descente qui arrive à la mer. » La dalle est descendue de quarante mètres
+(`PORT.cale.z1`, de −26 à 14) : cent trente-quatre mètres de béton sur trente de large, du fond
+des deux commerces jusqu'au sud du chantier, entre les hangars et le sable. La « petite
+descente », ce sont les quatre mètres de sable qui la bordent à l'ouest et qui plongent dans
+l'eau ; ils n'ont pas bougé. Le grillage du bord est suit la rue jusqu'en bas, et un pan neuf
+ferme le fond sud, du bord de l'eau au bout est.
+
+**La jetée et ses trois bateaux.** Le joueur : « et qu'après, tu fasses comme une marina, une
+petite jetée avec trois bateaux amarrés. » Un ponton de bois de trente-neuf mètres part de la
+plage au bout de la rue, à cinquante centimètres au-dessus de l'eau : tablier, lattes, pilotis
+et taquets tous les six mètres. Trois bateaux de plaisance sont à couple le long de son flanc
+sud — trois couleurs, trois tailles, et chacun un peu de travers par rapport au voisin, ce qui
+fait un port de plaisance plutôt qu'un alignement. Le ponton est du DÉCOR : pas d'emprise, parce qu'on y va en
+bateau et que le bassin arrête déjà tout ce qui a des roues.
+
+### Quelques haltes au bord des routes vides
+
+**Le joueur.** « Rajoute quelques arbres en bord de route à l'endroit où y a rien ; tu peux
+mettre aussi une espèce de petit auvent avec la table en dessous. Enfin bref, tes éléments de
+décor, pour habiller un petit peu, de temps en temps, pas beaucoup. »
+
+**La halte.** Un auvent de 4,80 m sur 3,80, deux mètres soixante sous la panne : quatre poteaux
+sur leurs plots de pierre, deux pannes, un toit d'une seule pente en deux lits de tuiles, et
+sous l'abri la table de pique-nique et ses deux bancs, avec une poubelle et un panneau. Trois
+haltes en tout, chacune avec trois arbres autour : deux sur la route du bas — après le rang de
+maisons, puis avant le hameau de l'est — et une sur la route du port. Et quarante-trois arbres
+semés là où il n'y avait rien — deux verges que personne ne semait, le sud de la route du bas
+et la lisière nord de la route du port —, toujours au-delà du bas-côté et à huit mètres au moins
+de l'emprise d'un commerce.
+
+**La première halte était dans le jardin des gens.** Posée à (52, 92), elle tombait en plein
+dans `RANG`, le rang de maisons du bord sud, qui court de x = −65 à x = 105 : la capture
+montrait l'auvent entre deux clôtures de ferme. Elle est allée à x = 175, après le rang et
+après le lotissement, dans le vide qui restait avant le hameau.
+
+**Mesuré.** Deux contrôles sont tombés, et aucun des deux ne mentait. Le banc `chocs` signalait
+un trou de quinze mètres au milieu de l'entrée du port : c'était le portique, recuit en UN SEUL
+maillage de quinze mètres de large dont le centre est, par construction, le vide qu'un portique
+laisse au-dessus de la route. Le volume qu'on présentait au banc n'était pas celui qu'on avait
+bâti ; les montants sont maintenant posés un par un, chacun à l'aplomb de son emprise, et la
+poutre est recuite seule. Le banc `port` voyait le fourgon lancé vers la mer s'arrêter à
+159 mètres au lieu de la plage : la rue du chantier descend désormais jusqu'à z = 14 et son
+grillage avec elle, si bien qu'un fourgon lancé depuis la lande tape ce grillage — ce qui est
+juste. Le contrôle part maintenant du béton, du bon côté de la clôture, et retrouve sa plage.
+Bancs `port` (31), `bois` (22), `export` (12), `village` (16), `camion` (18), `chocs` (24 — 699
+volumes, zéro trou), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic`
+(11) et `campagne` (72) verts. Les captures ont été regardées : le pavois du chalutier, les
+douze engins alignés vus du ciel, le portique avec un camion dessous puis le porteur grue
+dressée, le ponton et ses trois bateaux, la rue du chantier vue du ciel, et la halte de la
+route du bas.
