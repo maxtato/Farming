@@ -15273,3 +15273,41 @@ l'angle du tableau.
 `diagnostic` (11) et `campagne` (72) verts. Les captures ont été regardées de face, de trois
 quarts et de profil, sur le chalutier, le caseyeur et la barque : la muraille monte d'un trait
 de la quille à la lisse, et l'étrave en est le bout effilé.
+
+## Le raccord du nez et de la coque
+
+**Le joueur.** « C'est pas bien raccordé entre le nez et la coque du bateau, ajuste bien ou
+refais l'ensemble. »
+
+**Le bordé de l'étrave était réglé sur une corde, pas sur la coque.** L'arrière de l'étrave
+n'est pas une droite : il monte en biais avec le bordé jusqu'au livet, puis À LA VERTICALE le
+long du pavois — il y a un COUDE, au livet, là où la coque cesse de s'évaser et où le pavois
+prend le relais. Le bordé de l'étrave, lui, était tendu tout droit du pied à la tête : il
+coupait au plus court et passait **en dedans** du coude. Mesuré sur le chalutier : **dix
+centimètres de retrait au livet**, comblés tant bien que mal par une languette qui regardait
+vers l'arrière. C'était exactement la marche que le joueur voyait.
+
+**Il passe maintenant par les trois points.** Un éventail depuis la pointe —
+pointe→pied→brion, pointe→livet→pied, pointe→tête→livet — pose le bordé exactement sur le plan
+de la coque sous le livet et exactement sur le plan du pavois au-dessus. Plus de corde, plus de
+languette, plus de marche : la muraille et l'étrave partagent leurs arêtes.
+
+**Et la couture s'est déplacée sur l'arête même de la coque.** Les trois centimètres de recul
+qui noyaient l'arrière de l'étrave dans la coque laissaient dépasser, devant la couture, trois
+centimètres de bordé que l'étrave ne recouvrait plus — un listel de deux centimètres tout le
+long de l'épaule. Le recul tombe à **zéro**. La face arrière de l'étrave est alors, au
+millimètre, la face avant de la coque — mêmes quatre points — : on ne la dessine donc plus du
+tout. C'est la coque qui ferme le volume, et deux surfaces confondues ne peuvent plus
+scintiller puisqu'il n'en reste qu'une. Le pont, lui, vient buter pile sur la paroi de
+l'étrave : sa tranche regarde vers l'avant et la paroi vers l'arrière, dos à dos dans le même
+plan, si bien que depuis le pont on ne voit jamais que la paroi.
+
+**Dix facettes au lieu de douze**, et chaque orientation vérifiée au produit vectoriel — le
+bordé d'une étrave n'est pas plan, il va d'une ligne brisée à une pointe sur l'axe, et un
+éventail pris dans l'ordre du contour en retourne certaines, qui disparaissent alors purement
+et simplement à l'écran.
+
+**Mesuré.** Les six bateaux en héritent. Bancs `port` (31), `chocs` (24), `bois` (22), `village`
+(16), `camion` (18), `export` (12), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6),
+`diagnostic` (11) et `campagne` (72) verts. Les captures ont été regardées de près sur
+l'épaule : chalutier de trois quarts et de profil, barque, et les deux bateaux du ponton.

@@ -9682,9 +9682,12 @@ function coqueBateau(g, L, W, H, c, y0){
   /* Le pavois : un quart de la hauteur de coque — c'est ce que fait un vrai, un mètre sur un
      bateau de vingt — et trois centimètres d'épaisseur pour un mètre de large. « Très fine ». */
   const hP = Math.max(0.16, H*0.25), ep = Math.max(0.06, W*0.032), yP = H;
-  const yH = yP + hP, rec = 0.03, zAv = td/2 - rec, zAr = -td/2 + 0.01;
-  // Le pont va du tableau arrière à la paroi de l'étrave, et pas un centimètre au-delà :
-  // débordant, sa tranche crème ressortait sur l'avant, qui est de la couleur de la coque.
+  const yH = yP + hP, zAv = td/2, zAr = -td/2 + 0.01;
+  /* Le pont va du tableau arrière à la paroi de l'étrave, et pas un centimètre au-delà :
+     débordant, sa tranche crème ressortait sur l'avant, qui est de la couleur de la coque.
+     Il s'arrête EXACTEMENT sur cette paroi, sans jeu : sa tranche avant regarde vers
+     l'avant et la paroi de l'étrave vers l'arrière, dos à dos dans le même plan — depuis
+     le pont on ne voit donc jamais que la paroi, et l'on ne peut pas voir les deux. */
   h.add(box(tw - 0.02, 0.06, zAv - zAr, PO_.COQUE2, 0, yP + 0.03, (zAv + zAr)/2));
   for(const sx of [-1, 1]) h.add(box(ep, hP, td, c, sx*(tw/2 - ep/2), yP + hP/2, 0));
   h.add(box(tw, hP, ep, c, 0, yP + hP/2, -td/2 + ep/2));                     // le tableau arrière
@@ -9697,28 +9700,44 @@ function coqueBateau(g, L, W, H, c, y0){
      étrave POSÉE DEVANT le bateau, et non taillée dedans.
      Elle part maintenant de la SECTION du bordé, aux mêmes cotes : étroite à la quille
      (W*0,33), pleine au livet (W/2), et sur la même oblique — la coque s'arrête à L*0,44
-     au fond et à L/2 en haut, l'étrave reprend ces deux-là. Trois centimètres de recul
-     noient sa face arrière DANS la coque, pour que les deux plans ne se disputent pas le
-     même millimètre. Au-dessus du livet elle monte droit jusqu'à la lisse et ferme le
-     pavois à l'avant : c'est cette paroi-là, et elle seule, qu'on voit depuis le pont.
-     Le brion recule d'autant — L*0,70 au lieu de L*0,76 — et la pointe ne bouge pas, à
-     L*0,80 : l'étrave est plus inclinée, ce qui est la ligne d'une vraie. */
+     au fond et à L/2 en haut, l'étrave reprend ces deux-là. Au-dessus du livet elle monte
+     droit jusqu'à la lisse et ferme le pavois à l'avant : c'est cette paroi-là, et elle
+     seule, qu'on voit depuis le pont. Le brion recule — L*0,70 au lieu de L*0,76 — et la
+     pointe ne bouge pas, à L*0,80 : l'étrave est plus inclinée, ce qui est la ligne d'une
+     vraie.
+     ET LE BORDÉ EST RÉGLÉ SUR LA LIGNE BRISÉE, PAS SUR SA CORDE. C'est le défaut de
+     raccord que le joueur voit encore. L'arrière de l'étrave n'est pas une droite : il
+     monte en biais avec le bordé jusqu'au livet (0 → 2), puis À LA VERTICALE le long du
+     pavois (2 → 4) — un coude, au livet. Un bordé tendu directement du pied (0) à la tête
+     (4) coupe donc au plus court et passe EN DEDANS du coude : mesuré sur le chalutier,
+     dix centimètres de retrait au livet, comblés tant bien que mal par une languette qui
+     regardait vers l'arrière. C'était ça, la marche entre le nez et la coque.
+     Le bordé est maintenant un éventail depuis la pointe qui passe par les TROIS points
+     de l'arrière — pointe→pied→brion, pointe→livet→pied, pointe→tête→livet : il se pose
+     exactement sur le plan du bordé sous le livet, et exactement sur le plan du pavois
+     au-dessus. Plus de corde, plus de languette, plus de marche.
+     ET LA COUTURE EST SUR L'ARÊTE MÊME DE LA COQUE. Les trois centimètres de recul qui
+     noyaient l'arrière de l'étrave dans la coque laissaient dépasser, devant la couture,
+     trois centimètres de bordé que l'étrave ne recouvrait plus : un listel de deux
+     centimètres tout le long de l'épaule. Le recul tombe à zéro. La face arrière de
+     l'étrave est alors, au millimètre, la face avant de la coque — même quatre points —,
+     donc on ne la dessine plus du tout : c'est la coque qui ferme le volume, et deux
+     surfaces confondues ne peuvent plus scintiller puisqu'il n'y en a plus qu'une. */
   const bw = W*0.33, bz = L*0.44, dw = W/2, dz = td/2;
   const e = new THREE.BufferGeometry();
-  const Pp = [[-bw, 0, bz - rec], [bw, 0, bz - rec],           // 0,1  au pied, à la quille
-              [-dw, H, dz - rec], [dw, H, dz - rec],           // 2,3  au livet
-              [-dw, yH, dz - rec], [dw, yH, dz - rec],         // 4,5  en tête du pavois
+  const Pp = [[-bw, 0, bz], [bw, 0, bz],                       // 0,1  au pied, à la quille
+              [-dw, H, dz], [dw, H, dz],                       // 2,3  au livet
+              [-dw, yH, dz], [dw, yH, dz],                     // 4,5  en tête du pavois
               [0, 0, bz + L*0.26],                             // 6    le brion
               [0, yH - hP*0.4, dz + L*0.30]];                  // 7    la pointe
   /* L'orientation de chaque facette a été VÉRIFIÉE au produit vectoriel, une par une : le
-     bordé de l'étrave n'est pas plan — il va d'une arête oblique à une pointe sur l'axe —,
-     si bien qu'un éventail pris dans l'ordre du contour retourne sa dernière facette, qui
-     disparaîtrait alors à l'écran. */
+     bordé de l'étrave n'est pas plan — il va d'une ligne brisée à une pointe sur l'axe —,
+     si bien qu'un éventail pris dans l'ordre du contour retourne certaines facettes, qui
+     disparaîtraient alors à l'écran. */
   const F = [[0,1,6], [4,7,5],                                 // le dessous, le dessus
-             [0,6,7], [0,7,4], [0,2,4],                        // le bordé bâbord
-             [1,7,6], [1,5,7], [1,5,3],                        // le bordé tribord
-             [2,4,5], [2,5,3],                                 // la paroi vue du pont
-             [0,2,3], [0,3,1]];                                // le fond, noyé dans la coque
+             [7,0,6], [7,2,0], [7,4,2],                        // le bordé bâbord
+             [6,1,7], [1,3,7], [3,5,7],                        // le bordé tribord
+             [2,4,5], [2,5,3]];                                // la paroi vue du pont
   const pos = [];
   for(const f of F) for(const i of f) pos.push(Pp[i][0], Pp[i][1], Pp[i][2]);
   e.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
