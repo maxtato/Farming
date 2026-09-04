@@ -14588,3 +14588,76 @@ banc des chocs recompte : 1 239 cercles et 65 boîtes, pas un volume qui se trav
 Régressions vertes : campagne 72, accès 5, bois 22. Les captures ont été regardées : le
 fourgon au bout de la jetée devant le phare, entre les deux files de bites et leurs chaînes,
 et à l'angle du quai, le grillage derrière lui.
+
+## Les bâtiments à l'échelle du pick-up, le quai à nu, les bosquets et les traits de route
+
+Le joueur, après le quai fermé : « Pour le port, tous les bâtiments et éléments que tu as mis
+sur le quai sont sur une dalle en superposition : enlève les dalles et mets-les directement
+sur le quai. Tu peux mettre des petits rectangles de détails sur le sol du quai, un peu
+comme sur le reste du jeu, pas trop, avec parcimonie comme autour du village. N'hésite pas
+aussi à mettre des arbres sur les parties en herbe, plutôt pour habiller un peu. Je veux
+aussi que tu grossisses tous ces nouveaux bâtiments et même les anciens : il faut que les
+portes des bâtiments soient équivalentes à la taille des véhicules ; prends le pick-up en
+comparaison et ajuste les tailles des éléments et des bâtiments par rapport à ça. Je veux
+aussi que tu modifies le design des routes : les traits de séparation blancs sont trop
+ternes et trop épais, fais des traits plus fins, plus petits et plus blancs, dans l'esprit
+des traits sur les parkings. »
+
+**Le quai à nu.** Le quai de débarque et la grue avaient chacun leur plate-forme de béton
+de quatre-vingts centimètres, posée sur la dalle. Elles sont parties : casiers, bacs,
+filets, bouées, cabane, grue et tas de caisses sont à même le quai, dans deux rectangles
+compacts qui laissent le couloir de roulage derrière eux — le contrepoids de la grue est
+monté au-dessus du toit d'un camion. Leurs boîtes d'emprise suivent.
+
+**Les mouchetures.** Une dalle peinte sur les tuiles a son grain — de petites taches
+claires et sombres — ; une dalle en maillage, hors des tuiles, n'en avait pas et sortait
+lisse. `mouchetures()` pose de fines plaquettes à fleur de dalle, cuites en une pièce,
+semées à graine fixe, une tous les quarante-cinq mètres carrés là où la dalle peinte en
+met une tous les vingt-huit : sur la dalle du quai, sur la jetée, et sur toutes les dalles
+en maillage — les usines, les ateliers du bois, l'entrepôt, la criée et la conserverie.
+
+**Les bosquets.** Le semis général s'arrête aux tuiles ; au-delà, seuls les creux, la
+forêt et la lande du port étaient plantés. `habillerLesHerbes()` sème des bosquets clairs
+à graine fixe sur l'herbe nue : entre le port et le village au sud de la route (le chantier
+naval épargné), derrière la zone industrielle et les ateliers du bois, entre les ateliers et
+l'entrepôt et derrière lui, avant la forêt et au-delà d'elle jusqu'au bout du monde — à
+distance des routes (c'est `addTree` qui y veille) et des dalles.
+
+**L'échelle du pick-up.** Mesuré : le pick-up fait 3,6 m de large et 3,7 de haut ; une
+porte de boutique fait 1,7 sur 2,8 dans les modèles, soit 2,0 sur 3,3 m à l'échelle 1,18 —
+le pick-up n'y passait ni en largeur ni en hauteur. Une nouvelle constante, `ECH_COMMERCE`
+= 1,7, porte les commerces, les usines, les ateliers du bois, la criée, la conserverie, le
+chantier naval, le phare, le dépôt de bois, le mobilier de village et, dans leur rapport de
+1,30, les maisons : la porte fait 2,9 sur 4,8 m — la largeur du pick-up sans ses
+rétroviseurs, une fois et quart sa hauteur, une porte de remise. L'entrepôt d'export, aux
+cotes réelles de sa planche, ne bouge pas. LA COUR DE LA FERME GARDE `BAT_ECHELLE` : la
+maison, l'atelier, l'entrepôt de la ferme et le silo ont été dessinés autour des engins qui
+y dorment, leurs portes les prennent déjà, et la cour est un agencement serré qu'on ne
+refait pas d'un facteur.
+
+**Ce que le grossissement a coûté à la carte.** Une boutique de dix mètres fait
+maintenant une dalle de vingt, une maison un lot de vingt-six à trente-huit. Les bandes du
+village se sont vidées de leurs maisons : l'ouest garde ses trois commerces et une maison,
+le nord ses trois commerces et deux maisons, l'est ses trois commerces et rien d'autre —
+avec sur chacune deux creux de douze mètres (`CREUX_MAX` a grandi dans le même rapport
+que les bâtiments, et l'abri, la tonnelle, le banc et le bûcher y entrent encore). Les
+maisons du village sont désormais surtout celles du rang du bord sud, cinq au lieu de
+huit. La zone industrielle s'allonge à 172 m, les ateliers du bois à 108 ; la forêt, le
+dépôt, l'ondulation de la route et l'entrepôt reculent d'autant, et le bout du monde
+passe à 555. La dalle du quai fait quatre-vingt-dix mètres, la jetée cinquante-deux, la
+bande du supermarché soixante-six. Les deux grandes parcelles du nord reculent de huit
+mètres : la dalle du Comptoir agricole descend à −121, et il leur faut neuf mètres de
+tournière derrière elle. Les quatre objets de coin reculent de trois mètres et demi du
+carrefour.
+
+**Les traits de route.** Le tiret faisait 4,2 m sur 70 cm, blanc à 42 %, tous les neuf
+mètres ; il fait 2,4 m sur 34 cm — la largeur d'un trait de place —, blanc à 92 %, tous
+les huit mètres, sur les tuiles peintes comme sur le ruban, dont la texture double sa
+définition pour que le trait garde des bords nets.
+
+**Mesuré.** Sonde des bandes : aucun débordement, aucun conflit. Banc `port` (28), `bois`
+(22), `export` (11), `grandes` (7), `chocs` (24 — 1 302 cercles et 59 boîtes, pas un volume
+qui se traverse), `accès` (5), `ouverture` (6), `sans vue` (9), `diagnostic` (11),
+`campagne` (72). Les captures ont été regardées : le pick-up devant l'épicerie et le
+restaurant, le fourgon devant l'usine à céréales, le quai à nu avec la grue et les
+casiers, le fourgon sur la jetée devant le phare, les bosquets et les traits fins.

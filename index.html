@@ -2582,7 +2582,7 @@ const X1 = X0 + WX, Z1 = Z0 + WZ;        // 242,3 à l'est, 132,3 au sud (Z0 : �
    jusqu'où l'on peut rouler et jusqu'où le trafic existe ; `X0`/`X1`/`Z0`/`Z1` ne
    parlent plus que des tuiles. */
 // À l'ouest, le monde va jusqu'à −420 : les deux cent vingt derniers mètres sont la mer.
-const MONDE = {x0:-420, x1:540, z0:Z0 - 12, z1:Z1 + 12};
+const MONDE = {x0:-420, x1:555, z0:Z0 - 12, z1:Z1 + 12};
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
 for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
@@ -2820,19 +2820,25 @@ const ROAD_E = ROAD_C + 40;                              // 114
 const ROAD_N = -(ROAD_C + DZ_NORD);                      // −74 : en carré, depuis que la rangée nord est partie
 const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:ROAD_N, z1:ROAD_C};
 /* LA ROUTE EN RUBAN. Même bitume et mêmes tirets que la route peinte sur les tuiles —
-   dix mètres de large, un tiret de 4,2 m tous les neuf mètres —, mais en maillage :
+   dix mètres de large, un tiret de 2,4 m tous les huit mètres —, mais en maillage :
    une bande de quadrilatères le long d'une polyligne, la texture répétée en long. C'est
    ce qui permet à la route de SERPENTER : le joueur veut, après la forêt, une route
    « très légèrement sinusoïdale, quasiment imperceptible à l'œil, mais pas parfaitement
    droite ». Un ruban suit n'importe quelle courbe ; un rectangle peint ne sait pas. */
+/* LE TRAIT AXIAL, FIN ET BLANC COMME UN TRAIT DE PARKING. Le joueur : « les traits de
+   séparation blancs sont trop ternes et trop épais ; fais des traits plus fins, plus petits
+   et plus blancs, dans l'esprit des traits sur les parkings ». Le tiret faisait 4,2 m sur
+   70 cm, blanc à 42 % ; il fait 2,4 m sur 34 cm — la largeur d'un trait de place —, blanc
+   à 92 %, tous les huit mètres. La texture double sa définition (12,8 points par mètre)
+   pour qu'un trait de 34 cm garde des bords nets. */
 const TEX_ROUTE = (function(){
-  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 288;   // 10 m × 45 m, cinq tirets
-  const c = cv.getContext('2d'); const k = 64/ROAD_W;
-  c.fillStyle = C.road; c.fillRect(0, 0, 64, 288);
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 512;   // 10 m × 40 m, cinq tirets
+  const c = cv.getContext('2d'); const k = 128/ROAD_W;
+  c.fillStyle = C.road; c.fillRect(0, 0, 128, 512);
   for(let i = 0; i < 90; i++){ c.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.12)';
-    c.fillRect(Math.random()*64, Math.random()*288, 2 + Math.random()*5, 1 + Math.random()*3); }
-  c.fillStyle = 'rgba(255,255,255,.42)';
-  for(let d = 0; d < 5; d++) c.fillRect(32 - 0.35*k, (4.5 + d*9 - 2.1)*k, 0.7*k, 4.2*k);
+    c.fillRect(Math.random()*128, Math.random()*512, 4 + Math.random()*10, 2 + Math.random()*6); }
+  c.fillStyle = 'rgba(232,236,238,.92)';
+  for(let d = 0; d < 5; d++) c.fillRect(64 - 0.17*k, (4 + d*8 - 1.2)*k, 0.34*k, 2.4*k);
   const t = new THREE.CanvasTexture(cv); t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
   return t;
@@ -2846,7 +2852,7 @@ function rubanRoute(pts, largeur){
     if(i) L += Math.hypot(pts[i][0] - pts[i-1][0], pts[i][1] - pts[i-1][1]);
     const px = -dz*w, pz = dx*w;                    // la perpendiculaire, à gauche
     pos.push(pts[i][0] + px, 0, pts[i][1] + pz, pts[i][0] - px, 0, pts[i][1] - pz);
-    uv.push(0, L/45, 1, L/45);
+    uv.push(0, L/40, 1, L/40);
     if(i){ const k = 2*i; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
   }
   const g = new THREE.BufferGeometry();
@@ -2862,7 +2868,7 @@ function rubanRoute(pts, largeur){
    dix mètres de période, ce qui se sent au volant et ne se voit pas — jusqu'à l'entrepôt.
    Le trafic, lui, roule droit sur l'axe : à 2,6 m de l'axe, ses roues restent sur le
    bitume même au creux de l'onde. */
-const SINUEUX = {debut:X1 + 112, montee:30, amp:1.2, periode:110};   // 354 : après les ateliers du bois
+const SINUEUX = {debut:X1 + 174, montee:30, amp:1.2, periode:110};   // 416 : après les ateliers du bois
 function zRouteNord(x){
   if(x <= SINUEUX.debut) return ROAD_N;
   const k = Math.min(1, (x - SINUEUX.debut)/SINUEUX.montee);
@@ -2892,14 +2898,14 @@ const PORT = {
   quaiZ:-64,                                   // la côte est-ouest : le bord du quai, l'eau est au sud
   routeX0:-186,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
   routeFin:-197,                               // le bout du bitume ; la dalle du quai le continue
-  dalle:{x0:-274, x1:-196, z0:-82, z1:-64},    // la dalle du quai, de la ligne des façades au bord de l'eau
-  jetee:{x:-269, z0:-64, z1:-18, w:10},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
-  quai:{x:-224, z:-67},                        // le quai de débarque, sur la dalle, face à l'eau
-  grue:{x:-254, z:-67},                        // la grue de quai, à l'autre bout
-  charge:{x:-239, z:-74},                      // le cercle des camions : sur la dalle, entre les deux
-  debarque:{x:-239, z:-56},                    // le cercle des bateaux : dans l'eau, en face
+  dalle:{x0:-286, x1:-196, z0:-82, z1:-64},    // la dalle du quai, de la ligne des façades au bord de l'eau (quatre-vingt-dix mètres)
+  jetee:{x:-281, z0:-64, z1:-12, w:10},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
+  quai:{x:-230, z:-68},                        // le quai de débarque, à même la dalle, face à l'eau
+  grue:{x:-264, z:-68},                        // la grue de quai, à l'autre bout
+  charge:{x:-247, z:-75},                      // le cercle des camions : sur la dalle, entre les deux
+  debarque:{x:-247, z:-56},                    // le cercle des bateaux : dans l'eau, en face
   chantier:{x:-194, z:-44},                    // le chantier naval, sur la côte du bassin
-  chantierQuai:{x:-181, z:-44},                // le cercle du chantier naval
+  chantierQuai:{x:-176, z:-44},                // le cercle du chantier naval
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
   r:6.5, spotR:8, eau:null
 };
@@ -2950,11 +2956,12 @@ for(const c of P_COLS) for(const r of P_ROWS){
    `grande` les marque : le plan de travail, les prix et les étiquettes les traitent comme
    les autres — c'est la même terre, en plus grand. */
 const GRANDE_COTE = 2*30.4;
-// 122 m : la bande nord va plus loin qu'un lot de maison — la dalle du Comptoir agricole,
-// mesurée avec ses cuves, descend à z = −113,2 —, et il faut derrière elle les neuf mètres
-// de tournière où l'engin fait demi-tour au bout de chaque ligne. FRONT_N n'est déclarée
-// que plus bas, et les cotes relevées des commerces plus bas encore : d'où le chiffre.
-const GRANDES_Z = -(122 + GRANDE_COTE/2);
+// 130 m : la bande nord va plus loin qu'un lot de maison — la dalle du Comptoir agricole,
+// mesurée avec ses cuves à l'échelle 1,7, descend à z = −121 —, et il faut derrière elle
+// les neuf mètres de tournière où l'engin fait demi-tour au bout de chaque ligne. FRONT_N
+// n'est déclarée que plus bas, et les cotes relevées des commerces plus bas encore : d'où
+// le chiffre. (C'était 122 m quand la dalle s'arrêtait à −113,2.)
+const GRANDES_Z = -(130 + GRANDE_COTE/2);
 PARCELS.push({x:-ROAD_C + ROAD_W/2 + 1.6 + GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_COTE, h:GRANDE_COTE,
               owned:false, decor:[], sign:null, grande:true});
 PARCELS.push({x: ROAD_E - ROAD_W/2 - 1.6 - GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_COTE, h:GRANDE_COTE,
@@ -3007,6 +3014,19 @@ const GYARD = {x:-YARD.x, z:YARD.z, w:YARD.w, h:YARD.h};  // dalle du garage, en
    dit où leurs cercles tombent. Le raisonnement qui donne 1,18 est resté à sa place, au
    milieu des gabarits de commerce ; seul le nombre a bougé. */
 const BAT_ECHELLE = 1.18;
+/* L'ÉCHELLE DES COMMERCES, DU PORT, DU BOIS, DES MAISONS ET DU MOBILIER — à part de celle
+   de la cour. Le joueur : « grossis tous ces nouveaux bâtiments et même les anciens, il
+   faut que les portes des bâtiments soient équivalentes à la taille des véhicules ; prends
+   le pick-up en comparaison et ajuste les tailles des éléments et des bâtiments par
+   rapport à ça ». Mesuré : le pick-up fait 3,6 m de large et 3,7 de haut ; une porte de
+   boutique fait 1,7 sur 2,8 dans les modèles, soit 2,0 sur 3,3 m à 1,18 — le pick-up n'y
+   passait ni en largeur ni en hauteur. À 1,7, elle fait 2,9 sur 4,8 : la largeur du
+   pick-up sans ses rétroviseurs, et une fois et quart sa hauteur — une porte de remise,
+   ce que le joueur demande. Les maisons gardent leur rapport de 1,30 aux commerces, le
+   mobilier suit les commerces. La cour de la ferme, elle, garde BAT_ECHELLE : ses
+   bâtiments ont été dessinés autour des engins qui y dorment, et leurs portes les
+   prennent déjà. */
+const ECH_COMMERCE = 1.7;
 const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
 const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
 /* ---------- L'ENTREPÔT, SES COTES, ET LES DEUX RÉSERVES QUI EN DÉPENDENT ----------
@@ -5456,7 +5476,8 @@ const ZI_X0 = ROAD_E + ROAD_W/2 + RECUL_ROCADE;    // 122 : tout de suite après
    qu'il y ait de maison ni de commerce qui déborde sur les routes ». La bande s'allonge
    donc de dix-sept mètres, ce qui rend au bosquet ses 8,5 m ; les ateliers du bois, la
    forêt et le début de l'ondulation de la route reculent d'autant. */
-const ZI_X1 = ZI_X0 + 132;                         // 254 : la zone industrielle, au nord de la route (cotes relevées, pas annoncées)
+/* PUIS QUARANTE DE PLUS : à l'échelle 1,7, les cinq usines font 157 m de dalles. */
+const ZI_X1 = ZI_X0 + 172;                         // 294 : la zone industrielle, au nord de la route (cotes relevées, pas annoncées)
 /* ---------- LE BOIS (deuxième étape de la carte) ----------
    Le joueur : « ensuite tu prolonges encore la route et ça nous amène sur une forêt qui
    sera cultivable pour couper du bois ». La route nord continue donc après la zone
@@ -5472,8 +5493,8 @@ const ZI_X1 = ZI_X0 + 132;                         // 254 : la zone industrielle
    TOUT CELA EST HORS DES TUILES. Le sol peint s'arrête à X1 ; ici le sol est un maillage
    — le tapis de la forêt, la terre battue du dépôt, la dalle de chaque atelier —, ce qui
    coûte quelques appels de dessin et pas un octet de texture de plus. */
-const FO_X0 = ZI_X1 + 12;                          // 266 : après la zone industrielle et un creux
-const FO_X1 = FO_X0 + 88;                          // 354 : avant que la route ne commence à onduler
+const FO_X0 = ZI_X1 + 12;                          // 306 : après la zone industrielle et un creux
+const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route ne commence à onduler (quatre ateliers à l'échelle 1,7)
 /* ---------- L'ENTREPÔT D'EXPORT (troisième étape de la carte) ----------
    Le joueur : « la route se continue très légèrement sinusoïdale [...] et elle nous
    amènerait à un entrepôt [...] qui te permettra de faire notre travail d'export parce que
@@ -5483,10 +5504,10 @@ const FO_X1 = FO_X0 + 88;                          // 354 : avant que la route n
    planche du joueur, soixante-douze mètres de long, douze portes de quai, deux remorques
    à quai —, entre deux bosquets. La route continue au-delà : le trafic vient de plus
    loin, et c'est ce qui fait un entrepôt d'export. */
-const EX_X0 = 425, EX_X1 = 525;                    // la bande de l'entrepôt, quinze mètres avant le bout du monde
+const EX_X0 = 440, EX_X1 = 540;                    // la bande de l'entrepôt, quinze mètres avant le bout du monde
 // La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
 // camions et le bord des tuiles.
-const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −270 à −204 : au-dessus de la dalle du quai
+const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −282 à −204 : au-dessus de la dalle du quai
 /* LA BANDE DU SUPERMARCHÉ (cinquième étape). Le joueur : « pour le supermarché, fais-le
    plus grand, et mets-le sur la grande route qui est en bas à droite qu'on a prolongé, il
    faut qu'il soit un petit peu à l'extérieur du village ». Vue de la caméra, la route qui
@@ -5495,12 +5516,12 @@ const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −270 à −20
    La bande regarde comme la bande nord (face 'N'), mais elle ne borde pas la même
    chaussée : elle déclare donc son `bord` et sa ligne de façades `front`, que BORD_BANDE
    et FRONT_N donnaient jusqu'ici pour toute bande tournée vers le sud. */
-const SU_X0 = ROAD_E + ROAD_W/2 + 41, SU_X1 = SU_X0 + 52;   // 160 à 212
-const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 269 à 359 : la forêt, au sud de la route
+const SU_X0 = ROAD_E + ROAD_W/2 + 41, SU_X1 = SU_X0 + 66;   // 160 à 226
+const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 309 à 399 : la forêt, au sud de la route
                z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 107,   // −58 à 38
                arbres:[], sol:null};
 const DEPOT_BOIS = {x:FORET.x0 + 44, z:FORET.z0 + 3, r:6.5, stock:0, max:1200,
-                    quai:null, piles:null};        // (313, −55) : la place de dépôt, à la lisière
+                    quai:null, piles:null};        // (353, −55) : la place de dépôt, à la lisière
 const BANDE_DEF = {
   W:  {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
@@ -5584,7 +5605,7 @@ function ajusterSitesAuxModeles(){
        à corriger derrière. Mise après, elle n'aurait agrandi que le volume et laissé la
        dalle, la clôture et la collision à leurs anciennes cotes : les murs auraient
        traversé leur propre clôture. */
-    corps.scale.setScalar(BAT_ECHELLE);
+    corps.scale.setScalar(ECH_COMMERCE);
     corps.updateMatrixWorld(true);
     bb.setFromObject(corps);
     // Le parvis : le même pour les seize, sauf à le demander plus profond. Il doit
@@ -5667,21 +5688,27 @@ const BANDES = {
      Marché y passe, et l'ouest, l'est et le nord perdent chacun une maison. Les trois
      bandes tiennent avec deux creux pleins de 8,5 m chacune — un objet de village devant,
      des arbres derrière — et un abord de carrefour dégagé. */
+  /* À L'ÉCHELLE 1,7 DES BÂTIMENTS, LES BANDES SE VIDENT DE LEURS MAISONS. Une boutique
+     de dix mètres fait maintenant une dalle de vingt, une maison un lot de vingt-six à
+     trente-huit : la bande ouest ne tient plus que ses trois commerces et une maison, la
+     bande nord ses trois commerces et deux maisons, la bande est ses trois commerces et
+     rien d'autre — avec, sur chacune, deux creux de douze mètres. Les maisons du village
+     sont désormais surtout celles du rang du bord sud. */
   W: [{paquet:['maison', 'Épicerie']},
       {creux:'village', poids:1},
       {paquet:['Caviste']},
       {creux:'village', poids:0.9},
-      {paquet:['Boucherie', 'maison']}],
-  N: [{paquet:['Boulangerie', 'maison', 'Comptoir agricole']},
+      {paquet:['Boucherie']}],
+  N: [{paquet:['Boulangerie', 'maison']},
       {creux:'village', poids:1},
-      {paquet:['maison', 'maison']},
+      {paquet:['Comptoir agricole']},
       {creux:'village', poids:0.9},
-      {paquet:['maison', 'Restaurant', 'maison']}],
-  /* Est : la Coopérative à un bout, le Garage à l'autre, le Marché entre deux maisons au
-     milieu, un creux planté de chaque côté. */
+      {paquet:['maison', 'Restaurant']}],
+  /* Est : la Coopérative à un bout, le Garage à l'autre, le Marché au milieu, un creux
+     planté de chaque côté. */
   E: [{paquet:['Coopérative']},
       {creux:'village', poids:1},
-      {paquet:['maison', 'Marché', 'maison']},
+      {paquet:['Marché']},
       {creux:'village', poids:0.9},
       {paquet:['Garage']}],
   /* LA ZONE INDUSTRIELLE : cinq usines en deux paquets séparés d'un bosquet, au nord de
@@ -5723,7 +5750,11 @@ const BANDE_JEU = 2.0;
    une rue de village, et non celui d'en face. On le prend pour plafond, arrondi à 8,5 m.
    Le plafond ne mord jamais sur une bande serrée : dès que les dalles s'élargissent, les
    parts tombent d'elles-mêmes sous 8,5 m et la règle du prorata reprend la main. */
-const CREUX_MAX = 8.5;
+/* DOUZE MÈTRES DEPUIS QUE LES BÂTIMENTS SONT À 1,7 : le creux a grandi avec eux, dans le
+   même rapport (8,5 × 1,44), pour rester une respiration entre deux dalles et non une
+   fente ; et l'abri de bus, la tonnelle, le banc et le bûcher, à 1,7 eux aussi, y entrent
+   encore — à 8,5 m, il n'y serait resté que le puits et le poteau. */
+const CREUX_MAX = 12;
 /* VERS OÙ REGARDE UNE MAISON. Une maison est bâtie face à son +z ; tournée de `ry`,
    elle regarde (sin ry, cos ry). Il lui faut faire face à la chaussée qu'elle borde :
    la bande ouest est à l'ouest de sa rocade et regarde donc vers l'est, la bande est
@@ -5959,13 +5990,14 @@ function paintStaticGround(){
       gr() < 0.5 ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.15)', AX);
   }
 
-  // route périphérique bitumée, bande axiale pointillée
+  // route périphérique bitumée, bande axiale pointillée : le même tiret fin et blanc que
+  // le ruban (TEX_ROUTE), 2,4 m sur 34 cm tous les huit mètres
   const roadStrip = (x,z,l,vert)=>{
     fillRect(x, z, vert?ROAD_W:l, vert?l:ROAD_W, C.road, AX);
-    const n = Math.floor(l/9);
+    const n = Math.floor(l/8);
     for(let k=0;k<n;k++){
-      const t = -l/2 + 4.5 + k*9;
-      fillRect(vert?x:x+t, vert?z+t:z, vert?0.7:4.2, vert?4.2:0.7, 'rgba(255,255,255,.42)', AX);
+      const t = -l/2 + 4 + k*8;
+      fillRect(vert?x:x+t, vert?z+t:z, vert?0.34:2.4, vert?2.4:0.34, 'rgba(232,236,238,.92)', AX);
     }
   };
   // Les quatre brins de la rocade. Ils se recouvrent aux angles de la demi-largeur,
@@ -7621,13 +7653,13 @@ function construireForet(){
   // Le dépôt : la place de terre battue, ses piles, son cercle et son enseigne.
   const D = DEPOT_BOIS;
   const g = modeleDepotBois();
-  g.scale.setScalar(BAT_ECHELLE); g.position.set(D.x, 0, D.z);
+  g.scale.setScalar(ECH_COMMERCE); g.position.set(D.x, 0, D.z);
   scene.add(g); fusionnerGroupe(g);
   D.piles = g.userData.piles;
   for(const P of D.piles) P.visible = false;
-  obstacles.push({x:D.x - 3.6*BAT_ECHELLE, z:D.z - 1.6*BAT_ECHELLE, r:2.6});
-  obstacles.push({x:D.x - 2.8*BAT_ECHELLE, z:D.z + 2.4*BAT_ECHELLE, r:2.2});
-  obstacles.push({x:D.x + 1.6*BAT_ECHELLE, z:D.z - 2.2*BAT_ECHELLE, r:2.0});
+  obstacles.push({x:D.x - 3.6*ECH_COMMERCE, z:D.z - 1.6*ECH_COMMERCE, r:2.6*ECH_COMMERCE/1.18});
+  obstacles.push({x:D.x - 2.8*ECH_COMMERCE, z:D.z + 2.4*ECH_COMMERCE, r:2.2*ECH_COMMERCE/1.18});
+  obstacles.push({x:D.x + 1.6*ECH_COMMERCE, z:D.z - 2.2*ECH_COMMERCE, r:2.0*ECH_COMMERCE/1.18});
   D.quai = {x:D.x + 11.5, z:D.z - 1.0};
   const agirDepot = ()=> actionsDepotBois(MACHINES[cur]).length > 0;
   anneauAction(D.quai.x, D.quai.z, 1.7,
@@ -7770,6 +7802,57 @@ const QUAI_PECHE = {stock:{}, max:1500, pose:false};
 const quaiPecheTotal = ()=>{ let t = 0; for(const k in QUAI_PECHE.stock) t += QUAI_PECHE.stock[k]; return t; };
 const aChantier = (v)=> !!v && Math.hypot(v.pos.x - PORT.chantierQuai.x, v.pos.z - PORT.chantierQuai.z) <= PORT.r;
 const dansSpot = (v)=> PORT.spots.find((S)=> Math.hypot(v.pos.x - S.x, v.pos.z - S.z) <= PORT.spotR) || null;
+/* LES MOUCHETURES D'UNE DALLE EN VOLUME. Une dalle peinte sur les tuiles reçoit de petites
+   taches claires et sombres (`buildCommerce`) qui lui donnent son grain ; une dalle en
+   maillage — hors des tuiles — n'en avait pas et sortait lisse comme du plastique. Le
+   joueur : « tu peux mettre des petits rectangles de détails sur le sol du quai, un peu
+   comme sur le reste du jeu, pas trop, avec parcimonie ». Ce sont de fines plaquettes
+   posées à fleur de dalle, cuites en une seule pièce, semées sur le flux à graine fixe :
+   une tous les quarante-cinq mètres carrés, là où la dalle peinte en met une tous les
+   vingt-huit. */
+function mouchetures(x0, z0, x1, z1, y, n, base){
+  if(n <= 0 || x1 - x0 < 4 || z1 - z0 < 4) return null;
+  const cl = new THREE.Color(base).lerp(new THREE.Color(0xFFFFFF), 0.10).getHex();
+  const cd = new THREE.Color(base).lerp(new THREE.Color(0x000000), 0.13).getHex();
+  const parts = [], G = new THREE.BoxGeometry(1, 0.012, 1).toNonIndexed();
+  for(let k = 0; k < n; k++){
+    const w = 0.5 + alea()*1.4, d = 0.4 + alea()*0.9;
+    const x = x0 + 1 + alea()*(x1 - x0 - 2 - w), z = z0 + 1 + alea()*(z1 - z0 - 2 - d);
+    parts.push({g:G, c:alea() < 0.5 ? cl : cd, m:new THREE.Matrix4().compose(
+      new THREE.Vector3(x + w/2, y, z + d/2), new THREE.Quaternion(), new THREE.Vector3(w, 1, d))});
+  }
+  const m = new THREE.Mesh(mergeParts(parts), MAT_FUSION);
+  m.castShadow = false; m.receiveShadow = true; scene.add(m);
+  return m;
+}
+/* DES ARBRES SUR L'HERBE NUE. Le semis général s'arrête aux tuiles ; au-delà, seuls les
+   creux des bandes, la forêt et la lande du port étaient plantés, et de grandes nappes
+   d'herbe restaient nues — entre le port et le village au sud de la route, derrière les
+   usines et les ateliers du bois, autour de l'entrepôt, et tout l'est au-delà de la forêt.
+   Le joueur : « n'hésite pas à mettre des arbres sur les parties en herbe, plutôt pour
+   habiller un peu ». Des bosquets clairs, semés à graine fixe, à distance des routes (c'est
+   `addTree` qui y veille), des dalles, du chantier naval et de la clairière du dépôt. */
+function habillerLesHerbes(){
+  const semer = (n, x0, x1, z0, z1, refus)=>{
+    for(let k = 0; k < n; k++){
+      const x = x0 + alea()*(x1 - x0), z = z0 + alea()*(z1 - z0);
+      if(refus && refus(x, z)) continue;
+      addTree(x, z, 0.85 + alea()*0.6, (alea()*5)|0);
+    }
+  };
+  const presDalle = (x, z)=> SITES.some((S)=> x > S.emp.x0 - 8 && x < S.emp.x1 + 8 && z > S.emp.z0 - 8 && z < S.emp.z1 + 8);
+  // entre le port et le village, au sud de la route : la côte à l'ouest, les tuiles à l'est, le chantier naval épargné
+  semer(40, PORT.cote + 10, X0 - 10, ROAD_N + 14, MONDE.z1 - 8,
+        (x, z)=> x < PORT.chantier.x + 24 && z > PORT.chantier.z - 24 && z < PORT.chantier.z + 24);
+  // derrière la zone industrielle et les ateliers du bois, jusqu'au bout du monde
+  semer(34, ZI_X0, FO_X1, MONDE.z0 + 8, -136, presDalle);
+  // entre les ateliers du bois et l'entrepôt, au nord de la route ; et derrière l'entrepôt
+  semer(14, FO_X1 + 8, EX_X0 - 8, MONDE.z0 + 8, ROAD_N - 16, presDalle);
+  semer(10, EX_X0, EX_X1, MONDE.z0 + 8, -178, presDalle);
+  // au sud de la route, à l'est des tuiles : avant la forêt, puis au-delà d'elle jusqu'au bout du monde
+  semer(12, X1 + 8, FORET.x0 - 10, ROAD_N + 14, 40);
+  semer(48, FORET.x1 + 12, MONDE.x1 - 12, ROAD_N + 14, MONDE.z1 - 8);
+}
 function construirePort(){
   /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
      des vaguelettes plus sombres semées à graine fixe et cuites en une seule pièce. */
@@ -7850,12 +7933,15 @@ function construirePort(){
   bordQuai(jx0, J.z0, jx0, J.z1, Y_PONT, 1, 0);        // le bord ouest de la jetée, vers le large
   bordQuai(jx1, J.z0, jx1, J.z1, Y_PONT, -1, 0);       // son bord est, vers le bassin
   scene.add(bords); fusionnerGroupe(bords);
+  // Le grain du sol, avec parcimonie : une moucheture tous les quarante-cinq mètres carrés.
+  mouchetures(D.x0, D.z0, D.x1, D.z1, 0.065, Math.round(DW*DD/45), PO_.BETON);
+  mouchetures(jx0, J.z0, jx1, J.z1, Y_PONT + 0.005, Math.round(J.w*JL/45), PO_.BETON);
   // Le phare ferme le bout de la jetée : son bout de jetée enroché regarde le large,
   // c'est-à-dire le sud, et sa plate-forme arrête tout le monde.
-  const phare = modelePhare(); phare.scale.setScalar(BAT_ECHELLE); phare.rotation.y = Math.PI/2;
-  phare.position.set(J.x, 0, J.z1 - 4.2); scene.add(phare); fusionnerGroupe(phare);
-  obstacles.push({x:J.x, z:J.z1 - 4.2 - 1.2*BAT_ECHELLE, r:2.2});
-  boxObs.push({x:J.x, z:J.z1 - 4.0, hw:J.w/2 + 0.4, hd:4.6});
+  const phare = modelePhare(); phare.scale.setScalar(ECH_COMMERCE); phare.rotation.y = Math.PI/2;
+  phare.position.set(J.x, 0, J.z1 - 7); scene.add(phare); fusionnerGroupe(phare);
+  obstacles.push({x:J.x, z:J.z1 - 7 - 1.2*ECH_COMMERCE, r:1.7*ECH_COMMERCE});
+  boxObs.push({x:J.x, z:J.z1 - 6, hw:J.w/2 + 1.5, hd:6.5});
   /* LA ZONE DU PORT EST FERMÉE. Le joueur : « fais un système pour qu'une fois le quai
      dépassé on ne puisse pas aller plus loin en voiture, pour ne pas risquer de tomber
      dans l'eau ; qu'on n'ait accès qu'à cette portion de paysage, clôturée, une espèce de
@@ -7901,15 +7987,15 @@ function construirePort(){
       if(v - u > 0.4) boxObs.push({x:(u + v)/2, z:E.z1, hw:(v - u)/2, hd:e});
   }
   // Le quai de débarque et la grue, sur la dalle, tournés vers l'eau — et vers nous.
-  const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(BAT_ECHELLE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
+  const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(ECH_COMMERCE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
   for(const Q of [PORT.quai, PORT.grue])
-    boxObs.push({x:Q.x, z:Q.z - 1.1*BAT_ECHELLE, hw:5.5*BAT_ECHELLE, hd:3.5*BAT_ECHELLE});
+    boxObs.push({x:Q.x, z:Q.z - 0.3*ECH_COMMERCE, hw:4.6*ECH_COMMERCE, hd:2.1*ECH_COMMERCE});   // laisse le couloir de roulage, derrière
   // Le chantier naval, sur la côte du bassin, sa cale vers l'eau ; son cercle ouvre la
   // vitrine des bateaux.
   poser(modeleChantierNaval, PORT.chantier.x, PORT.chantier.z, -Math.PI/2);
-  boxObs.push({x:PORT.chantier.x, z:PORT.chantier.z, hw:6.0*BAT_ECHELLE, hd:7.0*BAT_ECHELLE});
+  boxObs.push({x:PORT.chantier.x, z:PORT.chantier.z, hw:6.0*ECH_COMMERCE, hd:7.0*ECH_COMMERCE});
   const agirChantier = ()=> MACHINES.some((m)=> enVente(m) && m.bateau && ouvert('engins', m.key) && money >= (m.prix || 0));
   anneauAction(PORT.chantierQuai.x, PORT.chantierQuai.z, 0.9,
     ()=> couleurPoste('chantier', agirChantier) !== GUIDE.GRIS,
@@ -9106,7 +9192,7 @@ function batEntrepotExport(){
 
   // Aux cotes réelles, et les quais vers +z : voir l'en-tête.
   g.rotation.y = Math.PI;
-  g.scale.setScalar(1/BAT_ECHELLE);
+  g.scale.setScalar(1/ECH_COMMERCE);
   const w = new THREE.Group(); w.add(g);
   return w;
 }
@@ -9276,43 +9362,48 @@ function modelePhare(){
 /* Le quai de débarque : casiers en pile, filets et flotteurs, bacs, bouées, cabane. */
 function modeleQuaiDebarque(){
   const g = new THREE.Group();
-  quaiBeton(g, 0, -1.0, 11, 7, 0);
+  /* POSÉ À MÊME LE QUAI, et non plus sur sa propre plate-forme de béton. Le joueur : « tous
+     les bâtiments et éléments que tu as mis sur le quai sont sur une dalle en
+     superposition, enlève les dalles et mets-les directement sur le quai ». Les casiers,
+     les bacs, les filets, les bouées et la cabane sont donc au ras de la dalle, dans un
+     rectangle de neuf mètres sur trois et demi qui laisse le couloir de roulage derrière. */
   let k = 0;
   for(let rang = 0; rang < 3; rang++)
     for(let i = 0; i < 3 - rang; i++, k++)
-      casierPeche(g, -3.8 + i*1.0 + rang*0.5, 0.78 + rang*0.5, -2.6, 0.1*k);
-  for(let i = 0; i < 6; i++) bacPoisson(g, 0.4 + (i % 3)*0.95, 0.78 + Math.floor(i/3)*0.42, -2.8);
+      casierPeche(g, -3.8 + i*1.0 + rang*0.5, 0.02 + rang*0.5, -1.2, 0.1*k);
+  for(let i = 0; i < 6; i++) bacPoisson(g, 0.2 + (i % 3)*0.95, 0.02 + Math.floor(i/3)*0.42, -1.4);
   for(let i = 0; i < 3; i++){
-    g.add(box(1.6, 0.5, 1.4, PO_.FILET, 2.8 + i*0.5, 1.0, -0.2 + i*0.4));
+    g.add(box(1.6, 0.5, 1.4, PO_.FILET, 2.8 + i*0.5, 0.25, 0.2 + i*0.4));
     for(let j = 0; j < 4; j++)
-      g.add(cyl(0.12, 0.12, 0.1, 8, PO_.ORANGE, 2.4 + i*0.5 + j*0.3, 1.3, -0.4 + i*0.4, Math.PI/2));
+      g.add(cyl(0.12, 0.12, 0.1, 8, PO_.ORANGE, 2.4 + i*0.5 + j*0.3, 0.55, i*0.4, Math.PI/2));
   }
-  for(let i = 0; i < 4; i++) boueePeche(g, -4.6, 1.1 + i*0.3, 0.6 + i*0.15);
-  g.add(box(0.9, 1.9, 0.6, PO_.ROUGE, -1.6, 1.65, 1.0));
-  g.add(gable(0.7, 0.4, 1.0, 0x8E2A22, -1.6, 2.6, 1.0, Math.PI/2));
+  for(let i = 0; i < 4; i++) boueePeche(g, -4.4, 0.3 + i*0.3, 0.8 + i*0.15);
+  g.add(box(0.9, 1.9, 0.6, PO_.ROUGE, -1.6, 0.95, 1.0));
+  g.add(gable(0.7, 0.4, 1.0, 0x8E2A22, -1.6, 1.9, 1.0, Math.PI/2));
   matFanions(g, 4.4, 1.6, 3.0, PO_.CREME);
   return g;
 }
 /* La grue de quai et le tas de caisses. */
 function modeleGrueQuai(){
   const g = new THREE.Group();
-  quaiBeton(g, 0, -1.2, 11, 7, 0);
-  g.add(cyl(1.1, 1.3, 0.6, 12, PO_.GRIS2, -2.0, 1.0, -1.0));
-  g.add(cyl(0.55, 0.7, 4.2, 10, PO_.JAUNE, -2.0, 3.4, -1.0));
-  g.add(box(1.6, 1.2, 1.6, PO_.JAUNE, -2.0, 5.9, -1.0));
-  g.add(box(1.2, 0.7, 1.2, C.glass, -2.0, 5.9, -0.7));
-  const fl = box(0.42, 0.42, 6.2, PO_.JAUNE, -2.0, 6.3, 1.4);
+  // La grue, sa base au ras de la dalle ; la flèche et le crochet passent au-dessus de l'eau.
+  g.add(cyl(1.1, 1.3, 0.5, 12, PO_.GRIS2, -2.0, 0.25, -0.6));
+  g.add(cyl(0.55, 0.7, 4.2, 10, PO_.JAUNE, -2.0, 2.6, -0.6));
+  g.add(box(1.6, 1.2, 1.6, PO_.JAUNE, -2.0, 5.1, -0.6));
+  g.add(box(1.2, 0.7, 1.2, C.glass, -2.0, 5.1, -0.3));
+  const fl = box(0.42, 0.42, 6.2, PO_.JAUNE, -2.0, 5.5, 1.8);
   fl.rotation.x = -0.42; g.add(fl);
-  const hb = box(0.3, 0.3, 2.4, PO_.JAUNE, -2.0, 6.0, -2.6);
+  const hb = box(0.3, 0.3, 2.4, PO_.JAUNE, -2.0, 6.0, -2.2);
   hb.rotation.x = 0.5; g.add(hb);
-  g.add(box(0.9, 0.7, 0.9, PO_.GRIS2, -2.0, 5.1, -3.4));
-  g.add(box(0.06, 2.6, 0.06, PO_.GRIS, -2.0, 6.0, 3.9));
-  g.add(box(0.5, 0.4, 0.5, PO_.GRIS2, -2.0, 4.6, 3.9));
-  g.add(box(0.16, 0.5, 0.16, PO_.INOX, -2.0, 4.2, 3.9));
+  g.add(box(0.9, 0.7, 0.9, PO_.GRIS2, -2.0, 5.5, -3.0));    // le contrepoids, au-dessus du toit d'un camion
+  g.add(box(0.06, 2.6, 0.06, PO_.GRIS, -2.0, 5.2, 4.3));
+  g.add(box(0.5, 0.4, 0.5, PO_.GRIS2, -2.0, 3.8, 4.3));
+  g.add(box(0.16, 0.5, 0.16, PO_.INOX, -2.0, 3.4, 4.3));
+  // le tas de caisses et les casiers, à même le quai
   for(let r = 0; r < 3; r++) for(let k = 0; k < 4 - r; k++)
     g.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
-              2.2 + k*1.1 + r*0.55, 0.98 + r*0.52, -1.6));
-  for(let i = 0; i < 4; i++) casierPeche(g, 3.4 + i*1.0, 0.78, 1.4, 0.15*i);
+              0.6 + k*1.1 + r*0.55, 0.25 + r*0.52, -1.2));
+  for(let i = 0; i < 4; i++) casierPeche(g, 0.8 + i*1.0, 0.02, 1.0, 0.15*i);
   return g;
 }
 /* 5 — Usine de lait d'avoine */
@@ -9653,7 +9744,7 @@ function buildCommerce(S){
   // Elle sert d'accroche aux enseignes des trois sites sans modèle — la plaque et le pneu
   // du garage, le totem du comptoir agricole. Sans le facteur, la plaque du garage
   // redescendait aux deux tiers de sa façade et son pneu s'enfonçait dans la toiture.
-  const H = (usine ? 6.8 : 4.8) * BAT_ECHELLE;
+  const H = (usine ? 6.8 : 4.8) * ECH_COMMERCE;
   // Le bâti — modèle dédié ou gabarit générique — a été mesuré puis recentré dans son
   // emprise par ajusterSitesAuxModeles(). On ne fait que le poser à sa place.
   const corps = S.corpsMesh || (S.modele ? S.modele() : corpsGenerique(S));
@@ -9756,6 +9847,7 @@ function buildCommerce(S){
   if(E.x0 < X0 || E.x1 > X1 || E.z0 < Z0 || E.z1 > Z1){
     const d = box(EW, 0.06, ED, S.pompes ? 0x6F767B : 0x5C6367, (E.x0+E.x1)/2, 0.03, (E.z0+E.z1)/2);
     d.castShadow = false; scene.add(d); S.dalleMesh = d;
+    mouchetures(E.x0, E.z0, E.x1, E.z1, 0.065, Math.round(EW*ED/45), S.pompes ? 0x6F767B : 0x5C6367);
   } else {
   fillRect((E.x0+E.x1)/2, (E.z0+E.z1)/2, EW, ED, S.pompes ? '#6F767B' : '#5C6367', AX);
   for(let k=0;k<Math.round(EW*ED/28);k++)
@@ -9787,7 +9879,7 @@ function buildCommerce(S){
       // elles, viennent brutes du modèle. Sans le facteur, la terrasse du restaurant et
       // le plancher de la halle du marché se seraient décalés de leur bâtiment : la
       // peinture aurait suivi le mur en se déplaçant, mais pas en grandissant.
-      fillRect(p.x, p.z, (lat ? So.d : So.w)*BAT_ECHELLE, (lat ? So.w : So.d)*BAT_ECHELLE,
+      fillRect(p.x, p.z, (lat ? So.d : So.w)*ECH_COMMERCE, (lat ? So.w : So.d)*ECH_COMMERCE,
                '#' + So.c.toString(16).padStart(6, '0'), AX);
     }
   }
@@ -10560,6 +10652,7 @@ function buildFarm(){
   for(const S of SITES) buildCommerce(S);
   construireForet();
   construirePort();
+  habillerLesHerbes();
 
   // L'entrepôt : remise fermée de la ferme, sur une dalle de bitume identique à celle
   // du parking voisin. Il s'appelait « Garage » et vendait les utilitaires ; le garage
@@ -11534,8 +11627,10 @@ function vilPoteau(){
    est dessiné aux cotes réelles exactement comme l'étaient les bâtiments, il mérite la
    même correction, et une constante partagée interdit aux deux de se désaccorder. Il
    reste 26 cm de marge sous le plafond mesuré. */
-const VIL_ECHELLE = BAT_ECHELLE;
-const MAI_ECHELLE = 1.30 * BAT_ECHELLE;
+// Depuis que les commerces sont à l'échelle du pick-up (ECH_COMMERCE), le mobilier et les
+// maisons les suivent : le rapport de 1,30 des maisons est gardé.
+const VIL_ECHELLE = ECH_COMMERCE;
+const MAI_ECHELLE = 1.30 * ECH_COMMERCE;
 const MAI_MODELES = [maiChaumiere, maiPierre, maiChalet, maiBourg, maiLongere, maiColombages];
 /* L'ORDRE DES MAISONS DANS LE RANG. Pris à la file — 0,1,2,3,4,5,0,1,2,3 — la moitié
    est du rang était le calque exact de la moitié ouest : six modèles pour dix lots,
@@ -11697,13 +11792,13 @@ const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBuche
    calvaire mordait de dix-sept centimètres sur le bitume, et un véhicule qui longe
    l'accotement se serait senti écarté par une croix qu'il ne touche pas. */
 const COINS_VILLAGE = [
-  {nom:'NO', fab:vilCalvaire, x:-93, z:-86, ox:-82.5, oz:-82.5, ry:0,
+  {nom:'NO', fab:vilCalvaire, x:-93, z:-86, ox:-86, oz:-86, ry:0,
    a0:Math.PI,     aA:Math.PI/2},
-  {nom:'NE', fab:vilAbriBus,  x:127, z:-86, ox:124.6, oz:-84.6, ry:0,
+  {nom:'NE', fab:vilAbriBus,  x:127, z:-86, ox:128.1, oz:-88.1, ry:0,
    a0:Math.PI*1.5, aA:Math.PI/2},
-  {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ox:-84.8, oz:84.8,   ry:Math.PI,
+  {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ox:-88.3, oz:88.3,   ry:Math.PI,
    a0:Math.PI/2,   aA:Math.PI/2},
-  {nom:'SE', fab:vilEntree,   x:127, z:85,   ox:123.9, oz:83.9,   ry:Math.PI,
+  {nom:'SE', fab:vilEntree,   x:127, z:85,   ox:127.4, oz:87.4,   ry:Math.PI,
    a0:0,           aA:Math.PI/2}
 ];
 
