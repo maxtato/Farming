@@ -14219,3 +14219,73 @@ et l'essai se refait en une lettre si un jour on doute encore.
 Bancs `son` (22) et `sons2` (60) verts — le premier passage de `sons2` a trébuché sur un
 point de cadence du banc (la caisse sous le pick-up, lue entre deux images lentes), le
 second est passé en entier.
+
+## La nouvelle carte, première étape : le cœur du monde
+
+Le joueur : « j'aimerais que le village soit plus petit, plus concis, et qu'il y ait moins de
+parcelles cultivables au milieu — juste trois lignes de parcelles en hauteur, pas plus ; ça va
+réduire la taille du village. Limite le village aux commerces de proximité — épicerie,
+boulangerie, boucherie, caviste, restaurant, le garage, etc. — et mets les usines ailleurs ;
+on comble les espaces par des maisons si besoin. Sur la route horizontale la plus haute,
+prolonge-la vers la droite et mets tout de suite après le croisement, en haut de la route, les
+usines de céréales, etc. Prolonge les deux routes verticales vers le haut et mets derrière les
+maisons des nouvelles parcelles, beaucoup plus grandes, l'équivalent de quatre parcelles
+actuelles mises en carré. Il faut qu'on puisse revenir en arrière si jamais je n'aime pas. »
+
+**Ce qui change.** La rangée nord de parcelles s'en va : `DZ_NORD` vaut zéro, la rocade nord
+revient à z = −74 et la trame retrouve ses quatre rangées d'origine — trois de champs
+(−54,6 ; −20 ; 20) et le rang de la ferme —, soit quinze parcelles au lieu de vingt. Le
+chemin de sable de −80,3 part avec elle, et `CROISEMENT` (le tour de reconnaissance du
+tutoriel) suit le chemin le plus haut, à −40. Les deux coins du nord (calvaire, abri de bus)
+reviennent au bord de la nouvelle rocade.
+
+**Les bandes ont une table** (`BANDE_DEF`). Elles n'étaient que trois — `W`, `N`, `E`,
+un côté de rocade chacune — et leur nom faisait tout : l'orientation, la ligne des façades,
+les bouts. Chaque bande porte maintenant sa FACE (qui choisit `SUR_Z`, `SORTANT`, `SDEC`,
+`BORD_BANDE`, `RY_BANDE`) et ses deux bouts le long de la route ; `faceDe(dir)` remplace les
+tests sur le nom dans `disposerSites`, `clotureSite`, le parking, le semis et les creux. La
+quatrième bande est la ZONE INDUSTRIELLE `ZI` : face au sud comme la bande nord, mais de
+122 à 237 m le long de la route nord prolongée, tout de suite après le carrefour nord-est.
+Les cinq usines y vont — céréales et avoine, un bosquet, laiterie, fromagerie, atelier
+textile —, en deux paquets, sans maison. Le village ne garde que dix commerces : ouest
+(Épicerie, Caviste, Marché, Boucherie), nord (Boulangerie, Comptoir agricole, Restaurant),
+est (Coopérative, Supermarché, Garage), et des maisons entre eux — trois par bande
+latérale, six au nord, qui est devenue la rue du village. Le rang dans `SITES` ne bouge
+pas : la sauvegarde y tient.
+
+**Le sol grandit, en tuiles et en herbe.** Trois rangs de tuiles de plus au nord
+(`NORD_GRANDES`, Z0 = −197,7) pour les grandes parcelles, trois colonnes de plus à l'est
+(X1 = 242,3) pour la zone industrielle : 13 × 12 tuiles au lieu de 10 × 10. Au-delà, le
+monde n'est plus une tuile qu'on peint mais un plan d'herbe (`MONDE`, de −280 à 540 en x)
+et des RUBANS DE ROUTE maillés (`rubanRoute`, `TEX_ROUTE`) : même bitume, mêmes tirets,
+mais le long d'une polyligne — la route nord se prolonge droite vers l'ouest jusqu'au futur
+port, droite vers l'est le long des usines et de la future forêt, puis ondule
+(`zRouteNord`, 1,20 m d'amplitude sur 110 m de période) vers le futur entrepôt, comme le
+joueur la veut, « très légèrement sinusoïdale, quasiment imperceptible ». Les engins
+roulent jusqu'aux bornes de `MONDE` ; le trafic a des bouts PAR CHAUSSÉE (`bordsChaussee`) :
+la route nord traverse tout le monde, la route sud et les verticales s'arrêtent avec leurs
+tuiles.
+
+**Les deux grandes parcelles** (`grande`), 60,8 m de côté, longent chacune son brin
+vertical de rocade à 1,6 m du bitume, derrière la bande nord. Deux choses ont été
+mesurées au banc `grandes` et corrigées : la bande nord descend plus bas qu'un lot de
+maison — la dalle du Comptoir agricole, cuves comprises, va jusqu'à z = −113,2 —, et
+l'engin a besoin de neuf mètres de tournière ; les parcelles commencent donc à −122, et le
+semis général ne plante plus rien dedans ni à moins de neuf mètres. Et l'itinéraire :
+depuis la rocade nord, plus proche que les verticales, le pilote partait tout droit vers
+son point d'entrée… à travers les jardins, et restait planté contre une clôture à
+(−7,5 ; −89). Tout but hors de l'anneau et derrière la bande nord se sert maintenant par
+la verticale la plus proche (`itineraireGrille`).
+
+**Revenir en arrière.** La sauvegarde change de clé (`moisson.partie.v2`) : la partie de
+l'ancienne carte reste intacte sous la sienne, et la validation d'avant cette étape
+(f4dc779) la retrouve telle quelle.
+
+**Mesuré.** Vu du ciel (`_carte_shot`, caméra orthographique sur tout le monde) à chaque
+étape. Banc `grandes` (7) : deux parcelles de 60,8 m au prix des terres lointaines
+(198 000 et 241 000 €), plan de 41 points qui couvre la terre sans en sortir de plus de
+quatre mètres cinquante, entrée au champ depuis la cour de transformation (1 708 m), labour
+complet — 1 974 cellules, zéro en jachère, le chantier passe à « semis » — et pas une
+cellule du voisin touchée. `campagne30` (72), `ouverture` (6), `acces` (5), `chocs` (24),
+`sansvue` (9), `_h_diag` (11) verts sur la nouvelle carte. Coût : 156 tuiles au lieu de
+100, soit 62 Mo de textures au lieu de 40 — à surveiller sur la fiche de diagnostic.

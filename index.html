@@ -2527,7 +2527,24 @@ function mergeParts(parts){
 // peut pas reculer de n'importe combien : pour qu'une cellule d'une ancienne
 // sauvegarde retombe sur un indice ENTIER, le décalage doit être un multiple exact du
 // pas de la grille. 31 x 1,3 = 40,3 m, au plus près du pas de trame de 40 m.
-const DZ_NORD = 31*1.3;                  // 40,3 m — 31 cellules pile
+/* ---------- LA NOUVELLE CARTE (première étape : le cœur) ----------
+   Le joueur : « j'aimerais que le village soit plus petit, plus concis, et qu'il y ait
+   moins de parcelles cultivables au milieu — juste trois lignes de parcelles en hauteur,
+   pas plus. » La rangée nord, ajoutée le 30 août, repart : la rocade nord revient à
+   z = −74, en carré avec les trois autres, et la trame intérieure retrouve ses quatre
+   rangées d'origine — trois de champs et le rang de la ferme. `DZ_NORD` valait 40,3 m,
+   il vaut zéro ; on garde le nom pour que tout ce qui s'y référait (la rocade, la ligne
+   des façades nord) retombe seul sur ses cotes d'avant l'élargissement.
+   LE SOL, LUI, GRANDIT VERS LE NORD : deux rangs de tuiles, cinquante-cinq mètres, pour
+   les deux GRANDES PARCELLES que le joueur veut derrière les maisons du nord — « on
+   prolongera légèrement les deux routes verticales vers le haut et on mettra à cet
+   endroit-là, derrière les maisons, des nouvelles parcelles beaucoup plus grandes, qui
+   feront l'équivalent de quatre parcelles actuelles, mises en carré ». Les deux brins
+   verticaux de la rocade, peints d'un bord du monde à l'autre, se prolongent d'eux-mêmes
+   sur ces tuiles. Le reste de la carte — usines déplacées, forêt, entrepôt, port — vient
+   aux étapes suivantes, hors des tuiles. */
+const DZ_NORD = 0;                       // la rangée nord est partie (voir ci-dessus)
+const NORD_GRANDES = 3*27.5;             // trois rangs de tuiles au nord, pour les grandes parcelles
 // Et les deux origines glissent d'un cran de plus, de quatre cellules chacune, pour
 // que les dalles des commerces puissent s'élargir : elles tenaient à quarante
 // centimètres du bord ouest et à un mètre quarante du bord nord, et le tour du
@@ -2536,7 +2553,7 @@ const DZ_NORD = 31*1.3;                  // 40,3 m — 31 cellules pile
 // sauvegarde par simple recopie, en décalant les indices de quatre. Ce qu'on prend à
 // l'ouest et au nord, on le rend à l'est et au sud, où il restait 17 et 55 m de vide.
 const DECAL = 4*1.3;                     // 5,2 m — quatre cellules pile
-const X0 = -110 - DECAL, Z0 = -110 - DZ_NORD - DECAL;
+const X0 = -110 - DECAL, Z0 = -110 - DZ_NORD - DECAL - NORD_GRANDES;
 /* LA TAILLE D'UNE TUILE EST UN BUDGET DE BANDE PASSANTE.
    Le sol était découpé en vingt-cinq tuiles de 55 m rendues sur 640 px. Peindre une
    traînée d'outil salit sa tuile, et une tuile sale est REDONNÉE EN ENTIER à la carte
@@ -2553,9 +2570,18 @@ const X0 = -110 - DECAL, Z0 = -110 - DZ_NORD - DECAL;
    640/55 —, seule la découpe change. Une tuile sale coûte 0,39 Mo au lieu de 1,56, et
    la bande à cheval sur une couture 0,78 au lieu de 3,1. */
 const TSIZE = 27.5, TPX = 320;           // tuiles de 27,5 m rendues sur 320 px
-const TNX = 10, TNZ = 10;                // 10 x 10 tuiles, même emprise qu'avant
-const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 275 x 220
-const X1 = X0 + WX, Z1 = Z0 + WZ;        // 159,8 à l'est, 119,5 au sud
+const TNX = 13, TNZ = 12;                // 13 x 12 tuiles : trois rangs de plus au nord (NORD_GRANDES), trois colonnes de plus à l'est (la zone industrielle)
+const WX = TNX*TSIZE, WZ = TNZ*TSIZE;    // 357,5 x 330
+const X1 = X0 + WX, Z1 = Z0 + WZ;        // 242,3 à l'est, 132,3 au sud (Z0 : −197,7)
+/* ---------- LE MONDE AU-DELÀ DES TUILES ----------
+   Les tuiles sont le sol qu'on peint — labours, chemins, dalles — et chacune coûte
+   quatre cents kilo-octets à la carte graphique : on ne les étend pas jusqu'au port ni
+   jusqu'à l'entrepôt. Au-delà, le monde est un seul plan d'herbe, et ce qui s'y pose
+   apporte son propre sol : la route nord prolongée est un ruban maillé à texture
+   d'asphalte, la forêt son tapis, l'entrepôt sa cour, le port son eau. `MONDE` dit
+   jusqu'où l'on peut rouler et jusqu'où le trafic existe ; `X0`/`X1`/`Z0`/`Z1` ne
+   parlent plus que des tuiles. */
+const MONDE = {x0:-280, x1:540, z0:Z0 - 12, z1:Z1 + 12};
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
 for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
@@ -2575,6 +2601,14 @@ for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
   scene.add(mesh);
   tiles.push({ctx, tex, x0:X0+TSIZE*i, z0:Z0+TSIZE*j, dirty:false, sale:null});
 }
+/* Le plan d'herbe, trois centimètres sous les tuiles : là où elles s'arrêtent, il
+   continue de la même couleur, et la fusion des bords se fait dans le brouillard. */
+(function(){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(MONDE.x1 - MONDE.x0, MONDE.z1 - MONDE.z0),
+                           new THREE.MeshLambertMaterial({color:C.grass}));
+  m.rotation.x = -Math.PI/2; m.position.set((MONDE.x0 + MONDE.x1)/2, -0.03, (MONDE.z0 + MONDE.z1)/2);
+  m.receiveShadow = true; scene.add(m);
+})();
 /* On n'en redonne que quelques-unes par image. Une tuile qui attend une image de plus
    avant d'être renvoyée est invisible à soixante images par seconde — mais quatre
    tuiles renvoyées d'un coup, à l'angle de deux coutures, se sentent. Sans argument,
@@ -2777,13 +2811,67 @@ let arableCount = 0;
 // avec une marge d'herbe, sans jamais mordre sur un chemin.
 const PATH_W = 6.4;
 const PATHS_V = [-40, 0, 40, 80];        // chemins nord-sud
-const PATHS_H = [-80.3, -40, 0, 40];     // chemins est-ouest
+const PATHS_H = [-40, 0, 40];            // chemins est-ouest — le chemin de −80,3 est parti avec la rangée nord
 // La rocade n'est plus un carré : le brin EST a reculé de 40 m — un pas de trame — pour
 // loger la cinquième colonne de parcelles. Les trois autres n'ont pas bougé d'un mètre.
 const ROAD_C = 74, ROAD_W = 10;
 const ROAD_E = ROAD_C + 40;                              // 114
-const ROAD_N = -(ROAD_C + DZ_NORD);                      // -114,3
+const ROAD_N = -(ROAD_C + DZ_NORD);                      // −74 : en carré, depuis que la rangée nord est partie
 const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:ROAD_N, z1:ROAD_C};
+/* LA ROUTE EN RUBAN. Même bitume et mêmes tirets que la route peinte sur les tuiles —
+   dix mètres de large, un tiret de 4,2 m tous les neuf mètres —, mais en maillage :
+   une bande de quadrilatères le long d'une polyligne, la texture répétée en long. C'est
+   ce qui permet à la route de SERPENTER : le joueur veut, après la forêt, une route
+   « très légèrement sinusoïdale, quasiment imperceptible à l'œil, mais pas parfaitement
+   droite ». Un ruban suit n'importe quelle courbe ; un rectangle peint ne sait pas. */
+const TEX_ROUTE = (function(){
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 288;   // 10 m × 45 m, cinq tirets
+  const c = cv.getContext('2d'); const k = 64/ROAD_W;
+  c.fillStyle = C.road; c.fillRect(0, 0, 64, 288);
+  for(let i = 0; i < 90; i++){ c.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.12)';
+    c.fillRect(Math.random()*64, Math.random()*288, 2 + Math.random()*5, 1 + Math.random()*3); }
+  c.fillStyle = 'rgba(255,255,255,.42)';
+  for(let d = 0; d < 5; d++) c.fillRect(32 - 0.35*k, (4.5 + d*9 - 2.1)*k, 0.7*k, 4.2*k);
+  const t = new THREE.CanvasTexture(cv); t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+})();
+function rubanRoute(pts, largeur){
+  const w = (largeur || ROAD_W)/2, pos = [], uv = [], idx = [];
+  let L = 0;
+  for(let i = 0; i < pts.length; i++){
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    let dx = b[0] - a[0], dz = b[1] - a[1]; const n = Math.hypot(dx, dz) || 1; dx /= n; dz /= n;
+    if(i) L += Math.hypot(pts[i][0] - pts[i-1][0], pts[i][1] - pts[i-1][1]);
+    const px = -dz*w, pz = dx*w;                    // la perpendiculaire, à gauche
+    pos.push(pts[i][0] + px, 0, pts[i][1] + pz, pts[i][0] - px, 0, pts[i][1] - pz);
+    uv.push(0, L/45, 1, L/45);
+    if(i){ const k = 2*i; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({map:TEX_ROUTE}));
+  m.position.y = 0.012; m.receiveShadow = true; scene.add(m);
+  return m;
+}
+/* LA ROUTE NORD PROLONGÉE. Vers l'ouest, droite jusqu'au port ; vers l'est, droite le
+   long des usines et de la forêt, puis elle ondule — un mètre vingt d'amplitude sur cent
+   dix mètres de période, ce qui se sent au volant et ne se voit pas — jusqu'à l'entrepôt.
+   Le trafic, lui, roule droit sur l'axe : à 2,6 m de l'axe, ses roues restent sur le
+   bitume même au creux de l'onde. */
+const SINUEUX = {debut:X1 + 90, montee:30, amp:1.2, periode:110};
+function zRouteNord(x){
+  if(x <= SINUEUX.debut) return ROAD_N;
+  const k = Math.min(1, (x - SINUEUX.debut)/SINUEUX.montee);
+  return ROAD_N + SINUEUX.amp*k*Math.sin((x - SINUEUX.debut)*Math.PI*2/SINUEUX.periode);
+}
+(function(){
+  const est = []; for(let x = X1 - 0.5; x <= MONDE.x1; x += 3) est.push([x, zRouteNord(x)]);
+  rubanRoute(est);
+  rubanRoute([[MONDE.x0, ROAD_N], [X0 + 0.5, ROAD_N]]);
+})();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
 // Chaque parcelle est en retrait de 1,6 m dans sa case : il reste donc une bande
@@ -2798,7 +2886,9 @@ const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:ROAD_N, z1:ROAD_C};
 const P_COLS = [{x:-54.6,w:19.6},{x:-20,w:30.4},{x:20,w:30.4},{x:60,w:30.4},{x:94.6,w:19.6}];
 // Cinq rangées depuis l'élargissement vers le nord : la première vient buter contre
 // la rocade nord comme la dernière le fait contre la rocade sud.
-const P_ROWS = [{z:-94.9,h:19.6},{z:-60.3,h:30.4},{z:-20,h:30.4},{z:20,h:30.4},{z:54.6,h:19.6}];
+// Quatre rangées, comme à l'origine : la première et la dernière butent contre leur brin
+// de rocade, d'où leur profondeur réduite ; la dernière est le rang de la ferme.
+const P_ROWS = [{z:-54.6,h:19.6},{z:-20,h:30.4},{z:20,h:30.4},{z:54.6,h:19.6}];
 const PARCELS = [];
 for(const c of P_COLS) for(const r of P_ROWS){
   // Trois cases de la rangée sud sont prises par la ferme elle-même. La quatrième
@@ -2812,6 +2902,24 @@ for(const c of P_COLS) for(const r of P_ROWS){
   if(c.x ===  94.6 && r.z === 54.6) continue;      // cour de transformation, atelier
   PARCELS.push({x:c.x, z:r.z, w:c.w, h:r.h, owned:(c.x === -20 && r.z === 20), decor:[], sign:null});
 }
+/* LES DEUX GRANDES PARCELLES DU NORD. Derrière la bande de maisons de la rocade nord —
+   façades à z = −82, lots de quinze mètres, arrière des jardins vers −100 —, deux carrés
+   de 60,8 m de côté : quatre parcelles pleines (30,4 × 30,4) mises en carré, comme le
+   joueur les a décrites. Chacune longe son brin vertical de rocade à 1,6 m d'herbe du
+   bitume, comme les parcelles de bordure de la trame ; entre les deux il reste un large
+   creux d'herbe et d'arbres, et derrière elles le monde s'arrête à quinze mètres.
+   `grande` les marque : le plan de travail, les prix et les étiquettes les traitent comme
+   les autres — c'est la même terre, en plus grand. */
+const GRANDE_COTE = 2*30.4;
+// 122 m : la bande nord va plus loin qu'un lot de maison — la dalle du Comptoir agricole,
+// mesurée avec ses cuves, descend à z = −113,2 —, et il faut derrière elle les neuf mètres
+// de tournière où l'engin fait demi-tour au bout de chaque ligne. FRONT_N n'est déclarée
+// que plus bas, et les cotes relevées des commerces plus bas encore : d'où le chiffre.
+const GRANDES_Z = -(122 + GRANDE_COTE/2);
+PARCELS.push({x:-ROAD_C + ROAD_W/2 + 1.6 + GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_COTE, h:GRANDE_COTE,
+              owned:false, decor:[], sign:null, grande:true});
+PARCELS.push({x: ROAD_E - ROAD_W/2 - 1.6 - GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_COTE, h:GRANDE_COTE,
+              owned:false, decor:[], sign:null, grande:true});
 // Prix croissant avec l'éloignement de la parcelle de départ : on s'étend de proche
 // en proche, et la carte se lit d'elle-même comme une progression.
 (function(){
@@ -3555,11 +3663,11 @@ const SITES = [
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x3E6B4E, mur:0xF6EFE0},
   // Le plus imposant des seize, et le seul à demander une cour plus profonde : c'est
   // un supermarché, son parking fait partie de ce qu'il est.
-  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'W', bat:18, park:31,
+  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'E', bat:18, park:31,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', supermarche:true,
    parvisPlus:2.0, modele:()=> batSupermarche(),
    w:18.0, d:11.0, pw:15, ph:14, toit:0x2E6BA8, mur:0xF2F4F6},
-  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'E', bat:-150, park:61,
+  {nom:'Usine céréales', enseigne:'facade', picto:'epi', dir:'ZI', bat:-150, park:61,
    style:'usine', crop:0, prix:0.46, cloture:'grillage', modele:()=> batUsineCereales(),
    w:16.0, d:12.0, pw:14, ph:13, toit:0x4A6B8A, mur:0xDCE2E8},
 
@@ -3577,10 +3685,10 @@ const SITES = [
    w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2,
    vend:[{nom:'Semences', prix:'dès ' + tarifKg(0.18)},
          {nom:'Engrais',  prix:tarifKg(PRIX_INTRANT.engrais)}]},
-  {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'N', bat:56, park:69,
+  {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'ZI', bat:56, park:69,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A6A3A, mur:0xEFE4CE},
-  {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'E', bat:-140, park:107,
+  {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'ZI', bat:-140, park:107,
    style:'usine', crop:3, prix:0.55, cloture:'grillage', modele:()=> batUsineAvoine(),
    w:14.0, d:11.0, pw:13, ph:13, toit:0x3E7C52, mur:0xE4EEDC},
 
@@ -3591,10 +3699,10 @@ const SITES = [
    w:15.0, d:10.0, pw:14, ph:14, toit:0x2F7D46, mur:0xE8EFE4,
    vend:[{nom:'Gazole en gros', prix:'1,48 € / L, livré'}],
    propose:[{nom:'Rachète', prix:'toute récolte'}]},
-  {nom:'Atelier textile', enseigne:'facade', picto:'feuille', dir:'E', bat:-64, park:-51,
+  {nom:'Atelier textile', enseigne:'facade', picto:'feuille', dir:'ZI', bat:-64, park:-51,
    style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batTextile(),
    w:14.0, d:10.0, pw:13, ph:13, toit:0x5A6B7A, mur:0xE0E6EA},
-  {nom:'Laiterie', enseigne:'facade', picto:'goutte', dir:'E', bat:-28, park:-15,
+  {nom:'Laiterie', enseigne:'facade', picto:'goutte', dir:'ZI', bat:-28, park:-15,
    style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batLaiterie(),
    w:15.0, d:11.0, pw:14, ph:14, toit:0x4E7FA8, mur:0xF0F4F6,
    demande:'Lait – prévoir des pâtures'},
@@ -5181,6 +5289,27 @@ const MARGE_ARRIERE = 3.0;                // et derrière lui, entre le mur et l
 const PARVIS = 10.0;                      // profondeur de cour devant chaque façade
 const ANNEAU_RECUL = 4.6;                 // l'anneau, à cette distance du bord côté route
 const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle d'une rocade
+/* ---------- LES BANDES ONT UNE TABLE ----------
+   Trois bandes bordaient la rocade, et leur nom disait tout : `W`, `N`, `E` étaient à la
+   fois le côté du village et l'orientation des façades. La nouvelle carte en ajoute une
+   quatrième qui n'est pas un côté de la rocade : la ZONE INDUSTRIELLE, le long de la
+   route nord prolongée vers l'est, tout de suite après le carrefour — le joueur : « sur la
+   route horizontale la plus haute, prolonge-la vers la droite, et mets tout de suite après
+   le croisement, en haut de la route, les usines de céréales, etc. » Elle regarde le sud
+   comme la bande nord, elle en a la ligne de façades et la clôture, mais elle court de
+   122 à 212 m au lieu de −66 à 106.
+   Chaque bande porte donc sa FACE (l'orientation, qui choisit les tables SUR_Z, SORTANT,
+   SDEC, BORD_BANDE et RY_BANDE) et ses deux bouts `d0`/`d1` le long de la route ; le nom
+   de bande ne sert plus qu'à ranger les commerces (`S.dir`) et les plans (`BANDES`). */
+const ZI_X0 = ROAD_E + ROAD_W/2 + RECUL_ROCADE;    // 122 : tout de suite après le carrefour nord-est
+const ZI_X1 = ZI_X0 + 115;                         // 237 : la zone industrielle, au nord de la route (cotes relevées, pas annoncées)
+const BANDE_DEF = {
+  W:  {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
+  N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
+  E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
+  ZI: {face:'N', d0:ZI_X0, d1:ZI_X1}
+};
+const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
 
 /* La disposition est une fonction et non une boucle jouée une fois : les modèles de
    commerce ne sont déclarés que bien plus bas dans le fichier, et il faut les avoir
@@ -5189,10 +5318,11 @@ const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle d'une roca
    seconde fois, juste avant de bâtir le décor, sur les cotes relevées. */
 function disposerSites(){
 for(const S of SITES){
+  const face = S.face = faceDe(S.dir);   // la zone industrielle regarde le sud, comme la bande nord
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
-  if(S.dir === 'E'){
+  if(face === 'E'){
     S.x = FRONT_E + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
-  } else if(S.dir === 'W'){
+  } else if(face === 'W'){
     S.x = -(FRONT + S.d/2); S.z = S.bat; S.rot = Math.PI/2;
   } else {
     S.x = S.bat; S.z = -(FRONT_N + S.d/2); S.rot = 0;
@@ -5201,22 +5331,22 @@ for(const S of SITES){
   // Emprise d'un seul tenant : le bâti et son parvis, un seul rectangle. Un bâtiment
   // tourné d'un quart de tour présente sa profondeur en X et sa largeur en Z : d'où le
   // test sur `dir`. Le parvis, lui, est déjà compté dans S.d.
-  const lat = (S.dir === 'W' || S.dir === 'E');
+  const lat = (face === 'W' || face === 'E');
   const bw = lat ? S.d : S.w, bd = lat ? S.w : S.d;
   S.emp = {x0: S.x - bw/2, x1: S.x + bw/2, z0: S.z - bd/2, z1: S.z + bd/2};
   // Le quai : sur l'AXE du bâtiment, à la même distance du bord côté route pour les
   // seize. C'est là qu'est le cercle jaune et là que la clôture s'ouvre. On entre par
   // la porte, on s'arrête devant l'entrée — un seul geste, le même partout.
-  if(S.dir === 'W'){ S.quaiX = S.emp.x1 - ANNEAU_RECUL; S.quaiZ = S.z; }
-  else if(S.dir === 'E'){ S.quaiX = S.emp.x0 + ANNEAU_RECUL; S.quaiZ = S.z; }
+  if(face === 'W'){ S.quaiX = S.emp.x1 - ANNEAU_RECUL; S.quaiZ = S.z; }
+  else if(face === 'E'){ S.quaiX = S.emp.x0 + ANNEAU_RECUL; S.quaiZ = S.z; }
   else { S.quaiX = S.x; S.quaiZ = S.emp.z1 - ANNEAU_RECUL; }
   // Le parvis lui-même, pour le marquage au sol : toute la largeur de la dalle sur
   // sa profondeur, devant la façade. `pw` se lit en X, `ph` en Z.
   const pv = S.parvis || PARVIS;         // au premier passage, rien n'a encore été mesuré
   S.pw = lat ? pv : S.w;
   S.ph = lat ? S.w : pv;
-  if(S.dir === 'W'){ S.px = S.emp.x1 - pv/2; S.pz = S.z; }
-  else if(S.dir === 'E'){ S.px = S.emp.x0 + pv/2; S.pz = S.z; }
+  if(face === 'W'){ S.px = S.emp.x1 - pv/2; S.pz = S.z; }
+  else if(face === 'E'){ S.px = S.emp.x0 + pv/2; S.pz = S.z; }
   else { S.px = S.x; S.pz = S.emp.z1 - pv/2; }
 }
 }
@@ -5311,25 +5441,43 @@ const BANDES = {
      entre l'épicerie et le caviste — trente-huit mètres et demi de devanture d'un tenant,
      trente-neuf du temps de la brasserie qui l'a précédée — au lieu de la mettre entre le
      marché et le supermarché, qui en feraient cinquante-deux. Les deux plus grosses dalles restent séparées par une maison. */
+  /* LE VILLAGE NE GARDE QUE LES COMMERCES DE PROXIMITÉ. Le joueur : « limite le village
+     à uniquement les commerces de proximité — épicerie, boulangerie, boucherie, caviste,
+     restaurant, le garage, etc. — et mets les usines ailleurs ; on comble les espaces par
+     des maisons si besoin. » Les cinq usines (céréales, avoine, laiterie, fromagerie,
+     textile) partent à la zone industrielle `ZI` ; les trois bandes de la rocade ne
+     portent plus que dix commerces, trois ou quatre par bande, et des maisons entre eux.
+     La rocade nord revenue à −74, la bande ouest et la bande est font 132 m au lieu de
+     172 : trois paquets, deux creux, trois maisons chacune. La bande nord garde ses 172 m
+     et prend sept maisons pour trois commerces — c'est elle, maintenant, la rue du
+     village. */
   W: [{paquet:['maison', 'Épicerie', 'Caviste']},
       {creux:'village', poids:1},
-      {paquet:['Marché', 'maison', 'Supermarché']},
+      {paquet:['Marché', 'maison', 'Boucherie']},
       {creux:'village', poids:0.9},
-      {paquet:['Boucherie']}],
+      {paquet:['maison']}],
   N: [{paquet:['Boulangerie', 'maison', 'Comptoir agricole']},
       {creux:'village', poids:1},
-      {paquet:['maison', 'Fromagerie', 'maison']},
+      {paquet:['maison', 'maison']},
       {creux:'village', poids:0.9},
-      {paquet:['Restaurant', 'maison']}],
+      {paquet:['maison', 'Restaurant', 'maison']},
+      {creux:'village', poids:0.9},
+      {paquet:['maison']}],
   /* Est : LE QUARTIER INDUSTRIEL. Les six usines y sont rassemblées, en deux paquets
      jointifs séparés d'un bosquet. Elles étaient dispersées sur les trois bandes, une
      usine entre deux boutiques : le village n'avait pas de quartiers, il avait un
      alignement. */
-  E: [{paquet:['Coopérative', 'Atelier textile']},
-      {creux:'verdure', poids:1},
-      {paquet:['Laiterie', 'Usine céréales']},
-      {creux:'verdure', poids:1},
-      {paquet:['Usine avoine', 'Garage']}]
+  E: [{paquet:['Coopérative', 'maison']},
+      {creux:'village', poids:1},
+      {paquet:['maison', 'Supermarché']},
+      {creux:'village', poids:0.9},
+      {paquet:['maison', 'Garage']}],
+  /* LA ZONE INDUSTRIELLE : cinq usines en deux paquets séparés d'un bosquet, au nord de
+     la route prolongée, de 122 à 212 m. Pas de maison ici : c'est une zone d'activité,
+     et c'est ce qui la distingue du village. */
+  ZI: [{paquet:['Usine céréales', 'Usine avoine']},
+       {creux:'verdure', poids:1},
+       {paquet:['Laiterie', 'Fromagerie', 'Atelier textile']}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -5358,15 +5506,14 @@ const BANDE_MAISONS = [], BANDE_CREUX = [];
 const RANG = {};
 function repartirBandes(){
   BANDE_MAISONS.length = 0; BANDE_CREUX.length = 0;
-  for(const dir of ['W', 'N', 'E']){
+  for(const dir of Object.keys(BANDE_DEF)){
     const plan = BANDES[dir];
     if(!plan) continue;
     const parNom = {};
     for(const S of SITES) if(S.dir === dir) parNom[S.nom] = S;
     // La bande court d'une rocade perpendiculaire à l'autre, en gardant le même recul
     // qu'entre une dalle et sa propre chaussée.
-    const d0 = (dir === 'N' ? -ROAD_C : ROAD_N) + ROAD_W/2 + RECUL_ROCADE;
-    const d1 = (dir === 'N' ?  ROAD_E : ROAD_C) - ROAD_W/2 - RECUL_ROCADE;
+    const d0 = BANDE_DEF[dir].d0, d1 = BANDE_DEF[dir].d1;   // les bouts de la bande : voir BANDE_DEF
     /* Largeur de chaque paquet : la somme des cotes mesurées, sans le moindre jeu à
        l'intérieur — c'est ce que « collés » veut dire. Les maisons sont bâties tout de
        suite : leur cote de lot n'est connue que du modèle, et c'est elle qui décide de
@@ -5376,7 +5523,7 @@ function repartirBandes(){
       if(b.creux){ poids += (b.poids || 1); continue; }
       b.lots = [];
       for(const e of b.paquet){
-        if(e === 'maison'){ const L = lotMaison(RY_BANDE[dir]); b.lots.push(L); fixe += L.jw; }
+        if(e === 'maison'){ const L = lotMaison(RY_BANDE[faceDe(dir)]); b.lots.push(L); fixe += L.jw; }
         else fixe += (parNom[e] ? parNom[e].w : 0);
       }
     }
@@ -7417,13 +7564,14 @@ function clotureSite(S){
      chacune son pignon sur la même ligne, au centimètre près : deux murets superposés,
      payés deux fois et vus une. Le pan appartient au PREMIER des deux voisins le long
      de la bande, et le second ne pose que son autre pignon. */
-  if(S.dir === 'W' || S.dir === 'E'){
+  const face = faceDe(S.dir);
+  if(face === 'W' || face === 'E'){
     if(!S.colleAvant) bande(LX, EP, cx, E.z0);                 // pignon nord
     bande(LX, EP, cx, E.z1);                                   // pignon sud
-    bande(EP, LZ, S.dir === 'W' ? E.x0 : E.x1, cz);            // fond, dos à la route
+    bande(EP, LZ, face === 'W' ? E.x0 : E.x1, cz);             // fond, dos à la route
     cote(E.z0, E.z1, [[S.quaiZ - PORTE/2, S.quaiZ + PORTE/2]],
-      (u, v)=> bande(EP, v - u, S.dir === 'W' ? E.x1 : E.x0, (u + v)/2));
-    for(const s2 of [-1, 1]) pilier(S.dir === 'W' ? E.x1 : E.x0, S.quaiZ + s2*PORTE/2);
+      (u, v)=> bande(EP, v - u, face === 'W' ? E.x1 : E.x0, (u + v)/2));
+    for(const s2 of [-1, 1]) pilier(face === 'W' ? E.x1 : E.x0, S.quaiZ + s2*PORTE/2);
   } else {
     if(!S.colleAvant) bande(EP, LZ, E.x0, cz);                 // pignon ouest
     bande(EP, LZ, E.x1, cz);                                   // pignon est
@@ -8383,7 +8531,7 @@ function buildCommerce(S){
   const bw = (S.bbW !== undefined) ? S.bbW : W - 2*MARGE_COTE;
   const bd = (S.bbD !== undefined) ? S.bbD : D - MARGE_ARRIERE - (S.parvis || 0);
   const recul = S.d/2 - (S.parvis || 0) - bd/2;      // du centre de dalle au centre du bâti
-  const lat = (S.dir === 'W' || S.dir === 'E');
+  const lat = (faceDe(S.dir) === 'W' || faceDe(S.dir) === 'E');
   boxObs.push({x: S.x + Math.sin(S.rot)*recul, z: S.z + Math.cos(S.rot)*recul,
                hw:(lat ? bd : bw)/2, hd:(lat ? bw : bd)/2});
 
@@ -8397,7 +8545,7 @@ function buildCommerce(S){
              0.5+alea()*1.4, 0.4+alea()*0.9,
              alea()<0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
-  const horizPark = (S.dir === 'W' || S.dir === 'E');
+  const horizPark = (faceDe(S.dir) === 'W' || faceDe(S.dir) === 'E');
   const nPlaces = Math.max(2, Math.floor((horizPark ? S.ph : S.pw)/4.6));
   if(!S.pompes) worldDraw(S.px-S.pw/2-1, S.pz-S.ph/2-1, S.px+S.pw/2+1, S.pz+S.ph/2+1, (c)=>{
     c.fillStyle = '#E2E6E8'; c.beginPath();
@@ -9500,11 +9648,20 @@ function buildFarm(){
     // ni dans un lot de maison de bande, ni sur le mobilier posé dans un creux
     for(const L of BANDE_LOTS)
       if(x > L.x0 - 3 && x < L.x1 + 3 && z > L.z0 - 3 && z < L.z1 + 3) return false;
+    /* LES GRANDES PARCELLES DU NORD ET LEUR TOURNIÈRE. Elles sont hors de l'anneau, là où
+       ce semis a la main, et il y plantait des arbres DEDANS — que l'achat ne retire pas,
+       puisqu'ils ne sont pas dans son `decor` — et tout autour, dans les neuf mètres où
+       l'engin fait demi-tour au bout de chaque ligne. Mesuré (`grandes`) : le tracteur
+       restait planté contre un arbre à trente mètres de son entrée, et le labour ne
+       couvrait que soixante-deux cellules sur deux mille trois cent cinquante-deux.
+       Rien ne pousse donc à moins de neuf mètres d'une grande parcelle, ni dedans. */
+    for(const P of PARCELS)
+      if(P.grande && x > P.x - P.w/2 - 9 && x < P.x + P.w/2 + 9 && z > P.z - P.h/2 - 9 && z < P.z + P.h/2 + 9) return false;
     if(x < X0+4 || x > X1-4 || z < Z0+4 || z > Z1-4) return false;
     for(const S of SITES){
       // emprise du bâtiment : profondeur en X et largeur en Z sur les bords latéraux,
       // l'inverse sur le bord nord
-      const ex = (S.dir === 'N') ? S.w/2 : S.d/2, ez = (S.dir === 'N') ? S.d/2 : S.w/2;
+      const ex = (faceDe(S.dir) === 'N') ? S.w/2 : S.d/2, ez = (faceDe(S.dir) === 'N') ? S.d/2 : S.w/2;
       if(Math.abs(x-S.x) < ex+7 && Math.abs(z-S.z) < ez+7) return false;
       if(x > S.emp.x0-7 && x < S.emp.x1+7 && z > S.emp.z0-7 && z < S.emp.z1+7) return false;
     }
@@ -10319,9 +10476,9 @@ const VIL_MODELES = [vilAbriBus, vilTonnelle, vilLavoir, vilPiqueNique, vilBuche
    calvaire mordait de dix-sept centimètres sur le bitume, et un véhicule qui longe
    l'accotement se serait senti écarté par une croix qu'il ne touche pas. */
 const COINS_VILLAGE = [
-  {nom:'NO', fab:vilCalvaire, x:-93, z:-126, ox:-82.5, oz:-122.8, ry:0,
+  {nom:'NO', fab:vilCalvaire, x:-93, z:-86, ox:-82.5, oz:-82.5, ry:0,
    a0:Math.PI,     aA:Math.PI/2},
-  {nom:'NE', fab:vilAbriBus,  x:127, z:-126, ox:124.6, oz:-124.9, ry:0,
+  {nom:'NE', fab:vilAbriBus,  x:127, z:-86, ox:124.6, oz:-84.6, ry:0,
    a0:Math.PI*1.5, aA:Math.PI/2},
   {nom:'SO', fab:vilLavoir,   x:-93, z:86,   ox:-84.8, oz:84.8,   ry:Math.PI,
    a0:Math.PI/2,   aA:Math.PI/2},
@@ -10402,8 +10559,8 @@ function garnirBandes(putBush, putRock){
      la fois trop loin de la route, et impossible à coller à son voisin. Un même recul
      pour les deux, et la rue a une seule ligne de façades. */
   for(const M of BANDE_MAISONS)
-    poserLotBande(M.lot, M.dir, (M.a + M.b)/2,
-                  BORD_BANDE[M.dir] + SORTANT[M.dir]*RECUL_ROCADE,
+    poserLotBande(M.lot, faceDe(M.dir), (M.a + M.b)/2,
+                  BORD_BANDE[faceDe(M.dir)] + SORTANT[faceDe(M.dir)]*RECUL_ROCADE,
                   M.sansAvant, M.sansApres);
   /* LE MOBILIER SE CHOISIT À LA TAILLE DU CREUX. Il fallait sept mètres pour qu'un creux
      reçoive quoi que ce soit, et l'objet réservait ensuite huit mètres quelle que soit sa
@@ -10455,7 +10612,8 @@ function garnirBandes(putBush, putRock){
     BANDE_LOTS.push({x0:Math.min(K.x, K.ox) - 11, x1:Math.max(K.x, K.ox) + 11,
                      z0:Math.min(K.z, K.oz) - 11, z1:Math.max(K.z, K.oz) + 11});
   for(const C of BANDE_CREUX){
-    const surZ = SUR_Z[C.dir], sortant = SORTANT[C.dir], bord = BORD_BANDE[C.dir];
+    const face = faceDe(C.dir);
+    const surZ = SUR_Z[face], sortant = SORTANT[face], bord = BORD_BANDE[face];
     const centre = (C.a + C.b)/2, l = C.b - C.a;
     const pose = (d, t, fab, ry)=>{
       const x = surZ ? bord + sortant*d : t, z = surZ ? t : bord + sortant*d;
@@ -10480,7 +10638,7 @@ function garnirBandes(putBush, putRock){
            devient une marge — 22 cm au sens de `voieLibre`, 77 au sens de
            `Vehicle.update`. Mesuré après coup : plus un seul objet de village ne touche
            le bitume dans l'une ou l'autre métrique. */
-        const q = pose(5.0*VIL_ECHELLE, centre, objet, RY_BANDE[C.dir]);
+        const q = pose(5.0*VIL_ECHELLE, centre, objet, RY_BANDE[face]);
         poserBloc(objet, q.x, q.z, q.ry);
         // L'emprise réservée est celle de l'objet, et non plus huit mètres pour tout le
         // monde : c'est elle qui écarte la verdure et les lots voisins.
@@ -12228,8 +12386,8 @@ class Vehicle {
     this.pos.z += this.vel.y*dt;
 
     // limites + obstacles
-    this.pos.x = Math.max(X0+6, Math.min(X1-6, this.pos.x));
-    this.pos.z = Math.max(Z0+6, Math.min(Z1-6, this.pos.z));
+    this.pos.x = Math.max(MONDE.x0+6, Math.min(MONDE.x1-6, this.pos.x));   // le monde entier, pas les tuiles
+    this.pos.z = Math.max(MONDE.z0+6, Math.min(MONDE.z1-6, this.pos.z));
     /* LE DÉCOR CONTRE TOUTES LES GÉLULES DE L'ENGIN CONDUIT — corps, tête, outil attelé
        (`decorGabarits`) —, et le cercle d'avant pour les autres : un engin en automatique
        suit un tracé calculé, et un épandeur de douze mètres qui frôlerait les piquets de
@@ -14260,6 +14418,13 @@ function itineraireGrille(ax, az, bx, bz, pref){
   // La dernière route : celle qui sert le but, ou la perpendiculaire à la ligne de travail.
   let butV = Math.abs(bx - vB) <= Math.abs(bz - hB);
   if(pref && pref.dir) butV = Math.abs(pref.dir.z) >= Math.abs(pref.dir.x);
+  /* DERRIÈRE LA BANDE NORD, SEULS LES BRINS VERTICAUX SERVENT. Les grandes parcelles sont
+     de l'autre côté des maisons de la rocade nord : la rocade est plus près d'elles que
+     les verticales, et l'on partait tout droit depuis son bitume… à travers les jardins.
+     Mesuré (`grandes`) : le tracteur restait planté contre une clôture à (−7,5 ; −89).
+     Tout but hors de l'anneau et au-delà de la bande nord se sert donc par la verticale
+     la plus proche, et l'on n'arrive jamais qu'en longeant. */
+  if(dehors && bz < ROC.z0 - ROAD_W/2 - 3) butV = true;
   /* ET L'ON NE CHANGE PAS DE RANGÉE QUAND ON Y EST DÉJÀ. Une chaussée fait dix mètres :
      partant du silo à z = 74 pour aller à l'entrepôt à z = 74, la machine partait quand même
      chercher une voie de traverse. Si le départ est déjà sur la route qui sert le but, on
@@ -16609,8 +16774,16 @@ const CHAUSSEES = [
 ];
 const NB_FILES = CHAUSSEES.length*2;
 const cleFile = (iA, d)=> iA*2 + (d > 0 ? 0 : 1);
-const BORD_TRAFIC = {x0:X0 - MARGE_TRAFIC, x1:X1 + MARGE_TRAFIC,
-                     z0:Z0 - MARGE_TRAFIC, z1:Z1 + MARGE_TRAFIC};
+const BORD_TRAFIC = {x0:MONDE.x0 - MARGE_TRAFIC, x1:MONDE.x1 + MARGE_TRAFIC,
+                     z0:MONDE.z0 - MARGE_TRAFIC, z1:MONDE.z1 + MARGE_TRAFIC};
+/* CHAQUE CHAUSSÉE A SES BOUTS. Seule la route nord traverse tout le monde — vers le
+   port à l'ouest, vers l'entrepôt à l'est ; la route sud et les deux brins verticaux
+   s'arrêtent avec les tuiles où ils sont peints. Un véhicule qui les suivrait jusqu'au
+   bord du grand monde roulerait trois cents mètres sur l'herbe. */
+const bordsChaussee = (A)=> A.h
+  ? (Math.abs(A.c - ROC.z0) < 0.5 ? {u0:MONDE.x0 - MARGE_TRAFIC, u1:MONDE.x1 + MARGE_TRAFIC}
+                                  : {u0:X0 - MARGE_TRAFIC, u1:X1 + MARGE_TRAFIC})
+  : {u0:Z0 - MARGE_TRAFIC, u1:Z1 + MARGE_TRAFIC};
 /* ET LES VÉHICULES DU TRAFIC SONT À L'ÉCHELLE UNE ET DEMIE. Ils avaient été dessinés
    plus petits que les engins de la ferme — une berline de 4,40 m à côté d'un tracteur de
    4,80 — et la route, vue de la cour, avait l'air d'un circuit de voitures miniatures. */
@@ -16762,11 +16935,9 @@ function construireRoute(iA, d, tourne, iB, aDroite){
   const legs = [];
   // La file de droite : vers +x la droite est en +z, vers +z elle est en -x.
   const laneA = A.h ? A.c + d*VOIE_TRAFIC : A.c - d*VOIE_TRAFIC;
-  const uEnt = A.h ? (d > 0 ? BORD_TRAFIC.x0 : BORD_TRAFIC.x1)
-                   : (d > 0 ? BORD_TRAFIC.z0 : BORD_TRAFIC.z1);
+  const bA = bordsChaussee(A), uEnt = d > 0 ? bA.u0 : bA.u1;
   if(!tourne){
-    const uSor = A.h ? (d > 0 ? BORD_TRAFIC.x1 : BORD_TRAFIC.x0)
-                     : (d > 0 ? BORD_TRAFIC.z1 : BORD_TRAFIC.z0);
+    const uSor = d > 0 ? bA.u1 : bA.u0;
     legs.push(A.h ? {t:'d', x:uEnt, z:laneA, dx:d, dz:0, L:Math.abs(uSor - uEnt)}
                   : {t:'d', x:laneA, z:uEnt, dx:0, dz:d, L:Math.abs(uSor - uEnt)});
     const R2 = {legs:legs, L:legs[0].L, tourne:false, gauche:false, cro:null, sArc:0,
@@ -16800,15 +16971,13 @@ function construireRoute(iA, d, tourne, iB, aDroite){
   const h0 = legs[0];
   const sg = (h0.dx*(-Math.sin(a0)) + h0.dz*Math.cos(a0)) >= 0 ? 1 : -1;
   legs.push({t:'a', cx:cx, cz:cz, R:R, a0:a0, sg:sg, L:R*Math.PI/2});
-  const uSor = A.h ? (e > 0 ? BORD_TRAFIC.z1 : BORD_TRAFIC.z0)
-                   : (e > 0 ? BORD_TRAFIC.x1 : BORD_TRAFIC.x0);
+  const bB = bordsChaussee(B), uSor = e > 0 ? bB.u1 : bB.u0;
   legs.push(A.h ? {t:'d', x:laneB, z:p1.z, dx:0, dz:e, L:Math.abs(uSor - p1.z)}
                 : {t:'d', x:p1.x, z:laneB, dx:e, dz:0, L:Math.abs(uSor - p1.x)});
   const sArc = legs[0].L + legs[1].L;
   const L = sArc + legs[2].L;
   // De combien on est déjà engagé sur la file de SORTIE au moment de la rejoindre.
-  const uEntB = B.h ? (e > 0 ? BORD_TRAFIC.x0 : BORD_TRAFIC.x1)
-                    : (e > 0 ? BORD_TRAFIC.z0 : BORD_TRAFIC.z1);
+  const uEntB = e > 0 ? bB.u0 : bB.u1;
   const uJoin = B.h ? p1.x : p1.z;
   const R2 = {legs:legs, L:L, tourne:true, gauche:!aDroite, sArc:sArc,
               cro:{x:(A.h ? B.c : A.c), z:(A.h ? A.c : B.c)},
@@ -17017,7 +17186,9 @@ const I_LOURD = TRAFIC_GEOS.length;
 const TRAFIC = [];
 let tempsTrafic = 0;
 const prochainDepart = new Array(NB_FILES).fill(0);
-const dansMonde = (x, z)=> x > X0 && x < X1 && z > Z0 && z < Z1;
+// Ce qui se voit : les tuiles, et la route nord d'un bout à l'autre du monde.
+const dansMonde = (x, z)=> (x > X0 && x < X1 && z > Z0 && z < Z1)
+                        || (Math.abs(z - ROAD_N) < ROAD_W && x > MONDE.x0 && x < MONDE.x1);
 /* ON FAIT NAÎTRE UN VÉHICULE SUR UNE FILE, SI LA PLACE EST LIBRE DANS LE TEMPS.
    Si le créneau ne passe pas, on RALENTIT plutôt que de renoncer — c'est ce que ferait un
    conducteur qui voit du monde devant lui —, et si même au ralenti il ne passe pas, on
@@ -30041,7 +30212,12 @@ addEventListener('pointerdown', ()=>{ AUDIO.init(); if(AUDIO.ctx) try{ AUDIO.ctx
    La clé de la campagne NE CHANGE PAS — c'est ce qui fait que toute partie existante se
    retrouve où elle était. Le mode libre reçoit la sienne. `v` ne bouge pas non plus : ce
    ne sont pas les sauvegardes qui changent, c'est le tiroir où on les range. */
-const SAVE = {clef:'moisson.partie.v1', clefLibre:'moisson.partie.libre.v1',
+/* LA NOUVELLE CARTE A SA PROPRE CLÉ. Les parcelles n'ont plus le même nombre ni le même
+   rang, et une partie de l'ancienne carte relue ici mettrait le blé du voisin dans le
+   champ de la maison. La partie d'avant reste donc sous son ancienne clé, intacte : le
+   joueur a demandé « qu'on puisse revenir en arrière si jamais je n'aime pas » — on
+   revient à la validation d'avant la carte, et l'on retrouve sa partie telle quelle. */
+const SAVE = {clef:'moisson.partie.v2', clefLibre:'moisson.partie.libre.v2',
               periode:6, t:0, derniere:0, actif:true, pret:false};
 const clefDe = (libre)=> libre ? SAVE.clefLibre : SAVE.clef;
 const clefCourante = ()=> clefDe(MODE_LIBRE);
