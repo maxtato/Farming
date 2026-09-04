@@ -14661,3 +14661,58 @@ qui se traverse), `accès` (5), `ouverture` (6), `sans vue` (9), `diagnostic` (1
 `campagne` (72). Les captures ont été regardées : le pick-up devant l'épicerie et le
 restaurant, le fourgon devant l'usine à céréales, le quai à nu avec la grue et les
 casiers, le fourgon sur la jetée devant le phare, les bosquets et les traits fins.
+
+## Les quatre réglages d'échelle : boutiques, entrepôt, quai, commerces du port
+
+Le joueur, après avoir vu les bâtiments grossis : « Les boutiques sont un petit peu trop
+grandes, réduis un tout petit peu. Par contre le grand entrepôt n'a pas grossi ; grossis-le
+de manière à ce que les remorques de camion sur le parking correspondent à la taille des
+remorques des vrais camions. Pour le quai, fais-le un peu plus large, et pareil, grossis un
+peu les boutiques du quai. »
+
+**Les boutiques, un cran plus bas.** L'échelle commune passe de 1,70 à 1,55 — neuf pour
+cent. La porte de boutique fait 2,64 × 4,34 m au lieu de 2,89 × 4,76 : toujours la largeur
+d'un pick-up moins ses rétroviseurs et une fois et quart sa hauteur, mais chaque dalle rend
+neuf pour cent de sa longueur à sa bande, et les creux du village respirent d'autant.
+
+**Deux bâtiments ont désormais leur propre échelle.** `echPlus` multiplie celle du seul
+site qui le déclare, et tout ce qui se déduit d'un modèle mesuré — dalle, clôture, parvis,
+quai, anneau, emprise, hauteur de bulle — suit sans qu'on ait à y toucher. C'est ce qui
+permet de régler un bâtiment sans toucher aux autres.
+
+**L'entrepôt d'export se règle sur ses remorques.** Il était le seul bâtiment aux cotes
+réelles : sa remorque à quai mesurait 2,55 m de large sur 2,90 de haut — un vrai
+semi-remorque — quand les camions du jeu, eux, sont dessinés plus gros. Relevé à la caméra,
+pièces visibles seulement : la caisse du fourgon fait 3,89 m de large sur 4,92 de haut pour
+11,90 de long. Le rapport des largeurs donne 1,44 ; on prend 1,45. La remorque devient
+3,70 × 4,21 × 19,58 m — la largeur d'un camion du jeu, un peu plus haute, et bien plus
+longue, ce qu'est une semi-remorque à côté d'un porteur. Le bâtiment suit : 122 m de long,
+82 de profond, 26,6 de haut, douze portes de quai à la mesure de ce qui s'y range. Sa bande
+passe à 160 m et le monde s'étire jusqu'à 615.
+
+**Vingt-six mètres de quai.** C'est le bord de l'eau qui descend — la côte est-ouest passe
+de −64 à −56 —, et non la ligne des façades qui remonte : les deux commerces du port gardent
+leur place, la dalle gagne huit mètres devant eux, et l'on manœuvre un camion entre la grue
+et la criée sans reculer jusqu'à la route. La jetée, qui est la suite du quai, passe de dix
+à douze mètres. Les deux cercles, les trois bateaux et le camion frigo ont suivi l'eau.
+
+**La criée et la conserverie, trente pour cent au-dessus.** Une criée est une halle, pas une
+boutique, et on la voit de loin depuis l'eau : `echPlus:1.3`, soit 2,015 — un peu au-dessus
+de ce qu'elles faisaient avant que les boutiques ne redescendent. La criée fait 27 m de
+large, la conserverie 23, et les deux tiennent dans leur bande avec un bosquet entre elles.
+
+**Deux défauts de banc trouvés en route, et corrigés.** Le banc du port avançait les
+véhicules à la main pendant que la boucle de jeu tournait encore, et il posait deux essais
+sur l'axe même où roule le trafic : une camionnette arrêtée là par le hasard d'une graine
+fixe éjectait le camion de dix mètres, toujours au même endroit — l'anomalie ressemblait à
+une collision de décor. Le banc met maintenant la boucle en pause et vide le trafic avant de
+mesurer. Et le banc de l'entrepôt cherchait la remorque dans un modèle déjà cuit par
+`fusionnerGroupe`, où les pièces n'existent plus une à une : il en construit un neuf pour la
+mesurer. Au passage, une vérification de plus, qui dit ce que le joueur a demandé : la
+remorque à quai est à la mesure des camions du jeu.
+
+**Mesuré.** Banc `export` (12), dont la remorque contre le fourgon ; banc `port` (28), quai
+élargi compris : la bordure retient le camion le nez au bord, la jetée le mène au phare, le
+grillage ferme la zone. Régressions vertes : bois 22, grandes 7, chocs 24, ouverture 6,
+accès 5, sans vue 9, diagnostic 11, campagne 72. Les captures ont été regardées — le quai
+vu du ciel et depuis l'eau, l'entrepôt et ses remorques, le village où rien ne déborde.

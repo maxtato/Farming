@@ -2582,7 +2582,7 @@ const X1 = X0 + WX, Z1 = Z0 + WZ;        // 242,3 à l'est, 132,3 au sud (Z0 : �
    jusqu'où l'on peut rouler et jusqu'où le trafic existe ; `X0`/`X1`/`Z0`/`Z1` ne
    parlent plus que des tuiles. */
 // À l'ouest, le monde va jusqu'à −420 : les deux cent vingt derniers mètres sont la mer.
-const MONDE = {x0:-420, x1:555, z0:Z0 - 12, z1:Z1 + 12};
+const MONDE = {x0:-420, x1:615, z0:Z0 - 12, z1:Z1 + 12};
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
 for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
@@ -2895,15 +2895,21 @@ function zRouteNord(x){
    cercle. */
 const PORT = {
   cote:-200,                                   // la côte nord-sud : l'eau est à l'ouest, au sud du quai
-  quaiZ:-64,                                   // la côte est-ouest : le bord du quai, l'eau est au sud
+  quaiZ:-56,                                   // la côte est-ouest : le bord du quai, l'eau est au sud
   routeX0:-186,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
   routeFin:-197,                               // le bout du bitume ; la dalle du quai le continue
-  dalle:{x0:-286, x1:-196, z0:-82, z1:-64},    // la dalle du quai, de la ligne des façades au bord de l'eau (quatre-vingt-dix mètres)
-  jetee:{x:-281, z0:-64, z1:-12, w:10},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
-  quai:{x:-230, z:-68},                        // le quai de débarque, à même la dalle, face à l'eau
-  grue:{x:-264, z:-68},                        // la grue de quai, à l'autre bout
-  charge:{x:-247, z:-75},                      // le cercle des camions : sur la dalle, entre les deux
-  debarque:{x:-247, z:-56},                    // le cercle des bateaux : dans l'eau, en face
+  /* VINGT-SIX MÈTRES DE QUAI, ET NON PLUS DIX-HUIT. Le joueur : « pour le quai, fais-le un
+     peu plus large. » C'est le bord de l'eau qui descend — la côte est-ouest passe de −64 à
+     −56 —, et non la ligne des façades qui remonte : les deux commerces du port gardent leur
+     place, la dalle gagne huit mètres devant eux, et l'on manœuvre un camion entre la grue
+     et la criée sans avoir à reculer jusqu'à la route. La jetée, qui est la suite du quai,
+     s'élargit d'autant : douze mètres au lieu de dix. */
+  dalle:{x0:-286, x1:-196, z0:-82, z1:-56},    // la dalle du quai, de la ligne des façades au bord de l'eau (quatre-vingt-dix mètres sur vingt-six)
+  jetee:{x:-280, z0:-56, z1:-12, w:12},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
+  quai:{x:-230, z:-63},                        // le quai de débarque, à même la dalle, face à l'eau
+  grue:{x:-264, z:-63},                        // la grue de quai, à l'autre bout
+  charge:{x:-247, z:-70},                      // le cercle des camions : sur la dalle, entre les deux
+  debarque:{x:-247, z:-50},                    // le cercle des bateaux : dans l'eau, en face
   chantier:{x:-194, z:-44},                    // le chantier naval, sur la côte du bassin
   chantierQuai:{x:-176, z:-44},                // le cercle du chantier naval
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
@@ -3026,7 +3032,18 @@ const BAT_ECHELLE = 1.18;
    mobilier suit les commerces. La cour de la ferme, elle, garde BAT_ECHELLE : ses
    bâtiments ont été dessinés autour des engins qui y dorment, et leurs portes les
    prennent déjà. */
-const ECH_COMMERCE = 1.7;
+const ECH_COMMERCE = 1.55;
+/* PUIS 1,55 : « les boutiques sont un petit peu trop grandes, réduis un tout petit peu. »
+   Neuf pour cent de moins. La porte de boutique passe de 2,89 × 4,76 m à 2,64 × 4,34 —
+   toujours la largeur d'un pick-up moins ses rétroviseurs et une fois et quart sa hauteur,
+   mais la dalle rend neuf pour cent de sa longueur à la bande, et les creux du village
+   respirent d'autant.
+   ET DEUX BÂTIMENTS ONT LEUR PROPRE ÉCHELLE, déclarée à part : le grand entrepôt d'export,
+   dont les remorques doivent tomber juste, et les deux commerces du quai, que le joueur
+   veut plus grands que les autres. `echPlus` multiplie l'échelle du seul site qui le
+   déclare, et tout ce qui se déduit d'un modèle mesuré — dalle, clôture, parvis, quai,
+   anneau, emprise — suit sans qu'on ait à y toucher. */
+const echDe = (S)=> ECH_COMMERCE*((S && S.echPlus) || 1);
 const PLACES_N = 12, PLACE_PAS = (COUR_X1 - COUR_X0)/PLACES_N;
 const placeCentre = (k)=> COUR_X0 + (k + 0.5)*PLACE_PAS;
 /* ---------- L'ENTREPÔT, SES COTES, ET LES DEUX RÉSERVES QUI EN DÉPENDENT ----------
@@ -3823,11 +3840,16 @@ const SITES = [
   /* --- bande PO, le port --- EN FIN DE TABLE. Les modèles de la planche `port.html` du
      joueur, sans leur socle de béton : la criée, halle ouverte aux vingt bacs alignés, et
      la conserverie aux deux cheminées de fumoir. */
+  /* PLUS GRANDS QUE LES AUTRES COMMERCES : le joueur, en même temps qu'il rapetissait les
+     boutiques du village, « pareil, grossis un peu les boutiques du quai ». Une criée est
+     une halle, pas une boutique, et elle est vue de loin depuis l'eau : trente pour cent
+     de plus que l'échelle commune, soit 2,015 — un peu au-dessus de ce qu'elles faisaient
+     avant que les boutiques ne redescendent. */
   {nom:'Criée', enseigne:'facade', picto:'goutte', dir:'PO', bat:-160, park:-147,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batCriee(),
+   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, modele:()=> batCriee(),
    w:16.0, d:12.0, pw:15, ph:13, toit:0xD6DDE2, mur:0xB9C1C6},
   {nom:'Conserverie', enseigne:'facade', picto:'goutte', dir:'PO', bat:-130, park:-117,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batConserverie(),
+   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, modele:()=> batConserverie(),
    w:13.0, d:10.0, pw:12, ph:13, toit:0xC9C0AE, mur:0xE4DED0}
 ];
 /* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
@@ -5504,7 +5526,7 @@ const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route n
    planche du joueur, soixante-douze mètres de long, douze portes de quai, deux remorques
    à quai —, entre deux bosquets. La route continue au-delà : le trafic vient de plus
    loin, et c'est ce qui fait un entrepôt d'export. */
-const EX_X0 = 440, EX_X1 = 540;                    // la bande de l'entrepôt, quinze mètres avant le bout du monde
+const EX_X0 = 440, EX_X1 = 600;                    // la bande de l'entrepôt, cent soixante mètres pour ses cent vingt-deux
 // La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
 // camions et le bord des tuiles.
 const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −282 à −204 : au-dessus de la dalle du quai
@@ -5605,7 +5627,7 @@ function ajusterSitesAuxModeles(){
        à corriger derrière. Mise après, elle n'aurait agrandi que le volume et laissé la
        dalle, la clôture et la collision à leurs anciennes cotes : les murs auraient
        traversé leur propre clôture. */
-    corps.scale.setScalar(ECH_COMMERCE);
+    corps.scale.setScalar(echDe(S));
     corps.updateMatrixWorld(true);
     bb.setFromObject(corps);
     // Le parvis : le même pour les seize, sauf à le demander plus profond. Il doit
@@ -9190,9 +9212,23 @@ function batEntrepotExport(){
   for(let k = 0; k < 8; k++)
     palette(-L/2 + 4 + (k % 4)*1.5, zF - 6.5 - Math.floor(k/4)*1.4, 0.1*k, 2 + (k % 3));
 
-  // Aux cotes réelles, et les quais vers +z : voir l'en-tête.
+  /* L'ÉCHELLE DE L'ENTREPÔT SE PREND SUR SES REMORQUES. Le joueur : « le grand entrepôt
+     n'a pas grossi ; grossis-le de manière à ce que les remorques de camion sur le parking
+     correspondent à la taille des remorques des vrais camions ». Il était le seul bâtiment
+     aux cotes réelles — sa remorque faisait 2,55 m de large sur 2,90 de haut, celle d'un
+     vrai semi-remorque — quand les camions du jeu, eux, sont dessinés plus gros : la caisse
+     du fourgon mesure 3,67 m de large sur 3,50 de haut, relevée à la caméra. Le rapport
+     des deux largeurs donne 1,44 ; on prend 1,45, et la remorque à quai devient 3,70 sur
+     4,21 pour 19,6 m de long — la caisse d'un camion du jeu, en plus long, ce qu'est une
+     semi-remorque à côté d'un porteur. Le bâtiment suit : 122 m de long, 82 de profond,
+     26,5 de haut, douze portes de quai à la mesure de ce qui s'y range.
+     L'échelle est posée ICI, dans le modèle, et non par `echPlus` : le wrapper annule
+     déjà celle des commerces pour garder les cotes de la planche, et c'est le même
+     endroit qui doit dire de combien on s'en écarte.
+     Aux cotes réelles ×1,45, et les quais vers +z : voir l'en-tête. */
+  const ECH_ENTREPOT = 1.45;
   g.rotation.y = Math.PI;
-  g.scale.setScalar(1/ECH_COMMERCE);
+  g.scale.setScalar(ECH_ENTREPOT/ECH_COMMERCE);
   const w = new THREE.Group(); w.add(g);
   return w;
 }
@@ -9744,7 +9780,7 @@ function buildCommerce(S){
   // Elle sert d'accroche aux enseignes des trois sites sans modèle — la plaque et le pneu
   // du garage, le totem du comptoir agricole. Sans le facteur, la plaque du garage
   // redescendait aux deux tiers de sa façade et son pneu s'enfonçait dans la toiture.
-  const H = (usine ? 6.8 : 4.8) * ECH_COMMERCE;
+  const H = (usine ? 6.8 : 4.8) * echDe(S);
   // Le bâti — modèle dédié ou gabarit générique — a été mesuré puis recentré dans son
   // emprise par ajusterSitesAuxModeles(). On ne fait que le poser à sa place.
   const corps = S.corpsMesh || (S.modele ? S.modele() : corpsGenerique(S));
@@ -9879,7 +9915,7 @@ function buildCommerce(S){
       // elles, viennent brutes du modèle. Sans le facteur, la terrasse du restaurant et
       // le plancher de la halle du marché se seraient décalés de leur bâtiment : la
       // peinture aurait suivi le mur en se déplaçant, mais pas en grandissant.
-      fillRect(p.x, p.z, (lat ? So.d : So.w)*ECH_COMMERCE, (lat ? So.w : So.d)*ECH_COMMERCE,
+      fillRect(p.x, p.z, (lat ? So.d : So.w)*echDe(S), (lat ? So.w : So.d)*echDe(S),
                '#' + So.c.toString(16).padStart(6, '0'), AX);
     }
   }
@@ -19547,7 +19583,7 @@ const MACHINES = [
   {key:'barque', nom:'Barque', teinte:0x2E6BA8, verrou:true, prix:3000, bateau:true,
    livre:'AU PORT', timbre:'fourgon', ton:0.84, plage:[0.74, 0.96],
    peche:{cle:'poisson', lot:10, duree:8}, v:new Vehicle({
-      x:-212, z:-58, cap:-Math.PI/2, vmax:6.5, accel:2.6, turn:1.1, grip:1.6, trackW:0.9, bateau:true,
+      x:-212, z:-48, cap:-Math.PI/2, vmax:6.5, accel:2.6, turn:1.1, grip:1.6, trackW:0.9, bateau:true,
       susp:{k:14, d:2.6, roll:0.09, pitch:0.05, rough:1.6},
       build:buildBarque
     })},
