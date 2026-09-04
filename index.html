@@ -2896,15 +2896,22 @@ function zRouteNord(x){
 const PORT = {
   cote:-200,                                   // la côte nord-sud : l'eau est à l'ouest, au sud du quai
   quaiZ:-56,                                   // la côte est-ouest : le bord du quai, l'eau est au sud
-  routeX0:-186,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
-  routeFin:-197,                               // le bout du bitume ; la dalle du quai le continue
+  routeX0:-156,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
+  routeFin:-166,                               // le bout du bitume, à l'aplomb du bord est de la dalle
   /* VINGT-SIX MÈTRES DE QUAI, ET NON PLUS DIX-HUIT. Le joueur : « pour le quai, fais-le un
      peu plus large. » C'est le bord de l'eau qui descend — la côte est-ouest passe de −64 à
      −56 —, et non la ligne des façades qui remonte : les deux commerces du port gardent leur
      place, la dalle gagne huit mètres devant eux, et l'on manœuvre un camion entre la grue
      et la criée sans avoir à reculer jusqu'à la route. La jetée, qui est la suite du quai,
-     s'élargit d'autant : douze mètres au lieu de dix. */
-  dalle:{x0:-286, x1:-196, z0:-82, z1:-56},    // la dalle du quai, de la ligne des façades au bord de l'eau (quatre-vingt-dix mètres sur vingt-six)
+     s'élargit d'autant : douze mètres au lieu de dix.
+     PUIS ELLE MONTE JUSQU'AUX DEUX COMMERCES. Le joueur : « pour le port et le chantier
+     naval, prolonge la dalle bien plus large jusqu'aux deux commerces, jusqu'aux deux
+     usines. » Elle s'arrêtait à la ligne de leurs façades, et la criée comme la conserverie
+     avaient leur propre dalle, plus sombre, posée dans l'herbe derrière. Le béton du quai va
+     maintenant de l'eau au FOND de leurs terrains, six mètres derrière : leurs deux dalles
+     n'ont plus lieu d'être, et le port est une seule plate-forme d'un seul gris, sur
+     laquelle leurs clôtures dessinent deux enclos. */
+  dalle:{x0:-286, x1:-196, z0:-120, z1:-56},   // la plate-forme du quai, du fond des deux commerces au bord de l'eau (quatre-vingt-dix mètres sur soixante-quatre)
   jetee:{x:-280, z0:-56, z1:-12, w:12},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
   quai:{x:-230, z:-63},                        // le quai de débarque, à même la dalle, face à l'eau
   grue:{x:-264, z:-63},                        // la grue de quai, à l'autre bout
@@ -2916,10 +2923,15 @@ const PORT = {
      chantier naval soit une partie intégrante du quai, comble la dalle sur la partie en
      violet. » Il était posé sur l'herbe, hors de la clôture, avec son propre socle de béton
      — un chantier naval au bord d'un pré, qu'on rejoignait en quittant la route. La dalle
-     du quai tourne donc au sud-est et vient jusqu'à lui : trente mètres sur quarante-trois,
-     bord à bord avec la grande dalle sur treize mètres, le long de la route au nord, et
-     jusqu'au sable à l'ouest, où descend sa cale. */
-  cale:{x0:-196, x1:-166, z0:-69, z1:-26},
+     du quai tourne donc au sud-est et vient jusqu'à lui, et cette aile EST du port va
+     maintenant du fond des commerces jusqu'au sud du chantier, et de la grande dalle jusqu'à
+     l'endroit où arrive la route : trente mètres sur quatre-vingt-quatorze, bord à bord avec
+     la grande dalle sur soixante-quatre, et jusqu'au sable à l'ouest, où descend sa cale.
+     C'EST SON BORD EST QUI ARRÊTE LE BITUME. Le joueur : « fais que la route s'arrête à
+     l'endroit où elle arrive sur scène, qui doit commencer à l'aplomb de la dalle actuelle
+     où il y a le chantier naval. » La route ne traverse donc plus le port : elle vient
+     mourir contre la grille, à x = −166, et l'on roule sur le béton au-delà. */
+  cale:{x0:-196, x1:-166, z0:-120, z1:-26},
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
   r:6.5, spotR:8, eau:null
 };
@@ -2929,7 +2941,7 @@ const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:PORT.quaiZ, z1:MONDE.z1 - 3};
 (function(){
   const est = []; for(let x = X1 - 0.5; x <= MONDE.x1; x += 3) est.push([x, zRouteNord(x)]);
   rubanRoute(est);
-  rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'à la dalle du quai
+  rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au bord de la dalle du port
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
@@ -3854,10 +3866,10 @@ const SITES = [
      de plus que l'échelle commune, soit 2,015 — un peu au-dessus de ce qu'elles faisaient
      avant que les boutiques ne redescendent. */
   {nom:'Criée', enseigne:'facade', picto:'goutte', dir:'PO', bat:-160, park:-147,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, modele:()=> batCriee(),
+   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, surQuai:true, modele:()=> batCriee(),
    w:16.0, d:12.0, pw:15, ph:13, toit:0xD6DDE2, mur:0xB9C1C6},
   {nom:'Conserverie', enseigne:'facade', picto:'goutte', dir:'PO', bat:-130, park:-117,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, modele:()=> batConserverie(),
+   style:'usine', crop:-1, prix:0, cloture:'grillage', echPlus:1.3, surQuai:true, modele:()=> batConserverie(),
    w:13.0, d:10.0, pw:12, ph:13, toit:0xC9C0AE, mur:0xE4DED0}
 ];
 /* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
@@ -5758,9 +5770,12 @@ const BANDES = {
   EX: [{creux:'verdure', poids:1},
        {paquet:['Entrepôt d\'export']},
        {creux:'verdure', poids:1}],
-  // Le port : la criée d'abord — c'est là qu'on vend —, un creux, la conserverie.
+  /* Le port : la criée d'abord — c'est là qu'on vend —, un creux, la conserverie. Un creux
+     DE DALLE : il écarte les deux terrains comme un autre, mais rien n'y pousse, parce que
+     la plate-forme du quai passe dessous. Deux arbres y avaient poussé sur le béton le jour
+     où elle a été prolongée jusqu'au fond de leurs terrains. */
   PO: [{paquet:['Criée']},
-       {creux:'verdure', poids:1},
+       {creux:'dalle', poids:1},
        {paquet:['Conserverie']}],
   // Le supermarché, seul sur sa bande, un bosquet après lui : l'abord du carrefour est
   // du côté du village, et les arbres du côté de la campagne.
@@ -8033,19 +8048,20 @@ function construirePort(){
   };
   grillage(D.x0, D.z0, D.x0, D.z1);                                    // le bout ouest de la dalle
   const RB = ROAD_W/2;
-  grillage(D.x1, D.z0, D.x1, ROAD_N - RB);                             // au nord de l'entrée
-  pilier(D.x1, ROAD_N - RB); pilier(D.x1, ROAD_N + RB);
+  /* LE TOUR PASSE AU FOND DES COMMERCES ET AU BOUT DE LA ROUTE. Il courait sur la ligne des
+     façades et le long de x = −196 : ces deux lignes sont maintenant en plein milieu du
+     béton. Le fond monte donc à l'arrière des deux terrains, et le bout est se tient là où
+     la route arrive, où il porte la grille. */
+  grillage(D.x0, D.z0, C.x1, C.z0);                                    // le fond, derrière les deux commerces
+  grillage(C.x1, C.z0, C.x1, ROAD_N - RB);                             // le bout est, au nord de l'entrée
+  pilier(C.x1, ROAD_N - RB); pilier(C.x1, ROAD_N + RB);
   /* AU SUD DE L'ENTRÉE, LA CLÔTURE NE FERME PLUS À x = −196 : elle fait le tour de l'aire du
      chantier. Le pan qui courait là séparait les deux dalles, et le chantier restait dehors.
      Le tour : le long de la route au nord, le bout à l'est, et le fond au sud — celui-ci
      poussé jusqu'à l'eau pour fermer aussi la bande de sable, seule échappée qui restait. */
-  grillage(C.x0, C.z0, C.x1, C.z0);        // au nord, le long de la route
-  grillage(C.x1, C.z0, C.x1, C.z1);        // le bout est
+  grillage(C.x1, ROAD_N + RB, C.x1, C.z1); // le bout est, au sud de l'entrée
   grillage(EAU.x1, C.z1, C.x1, C.z1);      // le fond sud, du bord de l'eau au bout est
-  const dalles = SITES.filter((S)=> S.dir === 'PO').sort((a, b)=> a.emp.x0 - b.emp.x0);
-  let xg = D.x0;
-  for(const S of dalles){ grillage(xg, D.z0, S.emp.x0, D.z0); xg = S.emp.x1; }
-  grillage(xg, D.z0, D.x1, D.z0);
+  const dalles = SITES.filter((S)=> S.dir === 'PO');
   // Les clôtures des deux commerces, solides : les trois pans pleins et les deux pans de
   // façade de part et d'autre de la porte — la même trouée que clotureSite.
   for(const S of dalles){
@@ -8093,7 +8109,7 @@ function construirePort(){
       addTree(x0 + alea()*(x1 - x0), z0 + alea()*(z1 - z0), 0.85 + alea()*0.6, (alea()*5)|0);
   };
   semer(60, EAU.x0 + 6, D.x0 - 14, MONDE.z0 + 8, PORT.quaiZ - 14);
-  semer(26, D.x0 - 4, PORT.cote + 4, MONDE.z0 + 8, PORT.quaiZ - 70);
+  semer(26, D.x0 - 4, PORT.cote + 4, MONDE.z0 + 8, PORT.dalle.z0 - 10);
   semer(22, PORT.cote + 12, X0 - 14, MONDE.z0 + 8, ROAD_N - 24);
   QUAI_PECHE.pose = true;
 }
@@ -9932,7 +9948,12 @@ function buildCommerce(S){
      posé au-delà — les ateliers du bois — n'aurait ni dalle ni marquage, `stamp` ne
      trouvant aucune tuile sous lui. Une plaque de béton en volume, à fleur de sol, fait
      la même dalle pour un appel de dessin, et ne pèse pas un octet de texture. */
-  if(E.x0 < X0 || E.x1 > X1 || E.z0 < Z0 || E.z1 > Z1){
+  /* SAUF SUR LE QUAI, OÙ LA PLATE-FORME EST DÉJÀ LEUR SOL. La criée et la conserverie sont
+     bâties SUR la dalle du port, qui va de l'eau au fond de leurs terrains : leur donner la
+     leur, du même gris que les autres commerces, remettrait deux rectangles plus sombres au
+     milieu du béton — et, posés au même millimètre de hauteur, les deux surfaces se
+     disputeraient le même plan. `surQuai` dit que le décor s'en charge. */
+  if(!S.surQuai && (E.x0 < X0 || E.x1 > X1 || E.z0 < Z0 || E.z1 > Z1)){
     const d = box(EW, 0.06, ED, S.pompes ? 0x6F767B : 0x5C6367, (E.x0+E.x1)/2, 0.03, (E.z0+E.z1)/2);
     d.castShadow = false; scene.add(d); S.dalleMesh = d;
     mouchetures(E.x0, E.z0, E.x1, E.z1, 0.065, Math.round(EW*ED/45), S.pompes ? 0x6F767B : 0x5C6367);
@@ -12055,7 +12076,9 @@ function garnirBandes(putBush, putRock){
     }
     // La verdure du creux : semée sur le flux à graine fixe, donc la même à chaque
     // partie, et jamais à moins de six mètres du bitume — la vue depuis la route
-    // reste dégagée sur ce qu'il y a derrière.
+    // reste dégagée sur ce qu'il y a derrière. Un creux de DALLE n'en reçoit pas :
+    // il est sur du béton.
+    if(C.quoi === 'dalle') continue;
     const n = Math.max(2, Math.round(l/6));
     for(let k = 0; k < n; k++){
       const t = C.a + 2 + alea()*(l - 4);

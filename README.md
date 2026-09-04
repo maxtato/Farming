@@ -14777,3 +14777,43 @@ lancé de la grande dalle vers l'est passe sur celle du chantier sans rien franc
 s'arrête au grillage du bout. Banc `chocs` (24) vert. Les captures ont été regardées, du ciel
 et depuis la route : un seul béton du quai au chantier, la clôture autour, la cale dans
 l'eau.
+
+## Le port devient une seule plate-forme, et la route s'arrête à son bord
+
+Le joueur : « Pour le port et le chantier naval, prolonge la dalle bien plus large jusqu'aux
+deux commerces, jusqu'aux deux usines. Et fais que la route s'arrête à l'endroit où elle
+arrive sur scène, qui doit commencer à l'aplomb de la dalle actuelle où il y a le chantier
+naval. »
+
+**Le béton monte jusqu'au fond des deux terrains.** Il s'arrêtait à la ligne des façades de
+la criée et de la conserverie, qui avaient chacune leur propre dalle, plus sombre, posée dans
+l'herbe derrière. La plate-forme du quai va maintenant de l'eau jusqu'à six mètres derrière
+leurs clôtures — quatre-vingt-dix mètres sur soixante-quatre. Leurs deux dalles n'ont plus
+lieu d'être : `surQuai` dit que le décor s'en charge. C'était nécessaire autant qu'esthétique
+— deux dalles au même millimètre de hauteur se seraient disputé le même plan.
+
+**L'aile est va d'un bout à l'autre.** Le terre-plein du chantier naval, qui allait de la
+route au sud du chantier, part maintenant du fond des commerces : trente mètres sur
+quatre-vingt-quatorze, bord à bord avec la grande dalle sur soixante-quatre. Le port est une
+seule plate-forme en L, d'un seul gris, sur laquelle les clôtures des deux commerces
+dessinent deux enclos.
+
+**Et le bitume s'arrête à son bord.** La route traversait tout le port jusqu'au quai. Elle
+vient maintenant mourir contre la grille, à l'aplomb du bord est de la dalle ; au-delà, on
+roule sur le béton. Le trafic naît et meurt dix mètres avant, sur l'asphalte.
+
+**La clôture suit.** Elle courait sur la ligne des façades et le long de l'ancien bord est :
+ces deux lignes sont en plein milieu du béton. Le fond passe derrière les deux commerces, et
+le bout est se tient là où la route arrive, où il porte la grille.
+
+**Un creux qui reste dallé.** Le bosquet qui séparait la criée de la conserverie a poussé
+deux arbres sur le béton le jour où la dalle est montée jusqu'à eux. Un creux de bande peut
+désormais être déclaré `dalle` : il écarte les deux terrains comme un creux de verdure, mais
+rien n'y pousse.
+
+**Mesuré.** Banc `port` (31), un contrôle de plus : le bitume s'arrête à l'aplomb du bord est
+de la dalle et le trafic naît dix mètres avant. Deux contrôles réécrits : la criée et la
+conserverie sont bâties SUR la plate-forme et n'ont plus de dalle à elles ; un camion lancé
+entre les deux monte jusqu'au grillage du fond, quarante mètres plus loin qu'avant. Bancs
+`chocs` (24), `campagne` (72) et `grandes` (7) verts. La capture du ciel a été regardée : un
+seul béton de l'eau aux commerces, la route qui s'arrête au bord, plus un arbre dessus.
