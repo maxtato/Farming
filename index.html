@@ -13899,7 +13899,12 @@ function buildFrigo(){
    rien d'autre — le maillage de la planche a justement son origine à la cheville
    d'attelage —, à ceci près qu'elle est LONGUE : `L` vaut seize mètres là où une charrue
    en fait deux, et c'est tout ce qui change. */
-const ECH_SEMI = 1.62;                    // le tracteur fait alors seize mètres, comme un engin du parc
+/* L'ÉCHELLE DU CAMION EST CELLE DE LA ROCADE, ET ELLE EST DÉCLARÉE PLUS BAS. Le joueur :
+   « le camion bordeaux est beaucoup trop gros, fais-le de la même taille que les camions
+   US du trafic. » Il l'était : quinze mètres quatre-vingt-dix contre onze quatre-vingt-dix
+   à ses jumeaux de la rocade, un tiers de trop — parce que son facteur, 1,62, avait été
+   choisi pour le mettre à la taille des ENGINS DU PARC et non des CAMIONS. Voir
+   `ECH_SEMI`, à côté de `SEMI_CHAPE` : `CAMIONS_GEOS` n'est pas encore construit ici. */
 /* « FAIS LE ROUGE TRÈS LÉGÈREMENT BORDEAUX. » Le rouge du jeu est 0xB8342A ; celui-ci
    descend de quelques degrés vers le pourpre et perd un peu de clarté — assez pour qu'on
    lise du bordeaux à côté du rouge du chalutier, pas assez pour qu'on lise du violet. */
@@ -20227,9 +20232,10 @@ flushTiles();
    routier les attend au bout de la même ligne. Les cotes sont posées ICI, une fois, parce
    que la table des engins et celle des outils en ont besoin toutes les deux.
    Le nez à z = −93 : la dalle de l'entrepôt va de −82 au sud à −120 au nord depuis que son
-   parvis a été porté à trente-huit mètres, une remorque en fait vingt-trois, et il reste
-   ainsi onze mètres de voie devant elles et quatre derrière. En x, elles évitent le cercle
-   du quai (520) : deux à l'ouest, une à l'est, et le tracteur tout au bout. */
+   parvis a été porté à trente-huit mètres, une remorque en fait seize à dix-sept depuis
+   que le camion est passé au gabarit de la rocade, et il reste ainsi onze mètres de voie
+   devant elles et une dizaine derrière. En x, elles évitent le cercle du quai (520) :
+   deux à l'ouest, une à l'est, et le tracteur tout au bout. */
 const SEMI_PARC = {z:-93, x:[468, 496, 552], camion:{x:576, z:-93}};
 /* OÙ SE POSE LA CHEVILLE. `CAMIONS_GEOS.sellette` est la cote de la planche déjà rabotée
    par `ECH_LOURD`, qui ne concerne que la rocade : on la ramène à la planche, puis à
@@ -20237,6 +20243,14 @@ const SEMI_PARC = {z:-93, x:[468, 496, 552], camion:{x:576, z:-93}};
    cheville suivrait. Elle est déclarée ICI, et non près de `ECH_SEMI` : là-haut,
    `CAMIONS_GEOS` n'est pas encore construit, et un `const` de tête de fichier se lit à
    l'endroit où il est écrit. */
+/* ET LA MÊME TAILLE QUE LES CAMIONS DE LA ROCADE, AU MILLIÈME. Le trafic pose ses poids
+   lourds à `ECH_TRAFIC` sur une planche déjà rabotée par `ECH_LOURD` : leur facteur
+   effectif est le produit des deux, et c'est celui-là qu'on donne au camion du joueur —
+   même dessin, même facteur, même camion. On l'ÉCRIT plutôt qu'on ne le recopie : le jour
+   où la rocade changerait de gabarit — `ECH_LOURD` se calcule sur la hauteur libre —, le
+   camion du joueur suivrait sans qu'on ait à y penser. Il passe ainsi de 15,89 m à 11,92,
+   et ses trois remorques de 21,5 à 16,1 : la longueur d'une semi-remorque de la rocade. */
+const ECH_SEMI = ECH_LOURD*ECH_TRAFIC;
 const SEMI_CHAPE = CAMIONS_GEOS.sellette/ECH_LOURD*ECH_SEMI;
 const MACHINES = [
   /* LES TROIS TRACTEURS S'APPELLENT TRACTEUR. « Vert », « Rouge », « Bleu » disaient

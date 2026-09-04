@@ -15311,3 +15311,42 @@ et simplement à l'écran.
 (16), `camion` (18), `export` (12), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6),
 `diagnostic` (11) et `campagne` (72) verts. Les captures ont été regardées de près sur
 l'épaule : chalutier de trois quarts et de profil, barque, et les deux bateaux du ponton.
+
+## Le camion bordeaux au gabarit de la rocade
+
+**Le joueur.** « Le camion bordeaux est beaucoup trop gros, fais-le de la même taille que les
+camions US du trafic. »
+
+**Il l'était d'un tiers, et le chiffre dit pourquoi.** Son facteur, 1,62, avait été choisi pour
+le mettre à la taille des ENGINS DU PARC — le semi devait « faire seize mètres, comme un engin
+du parc ». Mais ses jumeaux de la rocade sortent de la MÊME planche à un tout autre facteur :
+le trafic les pose à `ECH_TRAFIC` (1,5) sur un dessin déjà raboté par `ECH_LOURD` (0,8102),
+soit **1,2152** en tout. Mesuré : **15,89 m contre 11,92**, 5,57 de large contre 4,18, 6,40 de
+haut contre 4,84. Deux camions identiques au dessin près, l'un une fois et demie l'autre.
+
+**On lui donne le facteur de la rocade, et on l'ÉCRIT.** `ECH_SEMI` vaut désormais
+`ECH_LOURD * ECH_TRAFIC` — pas 1,2152 recopié à la main. Le jour où la rocade changerait de
+gabarit — `ECH_LOURD` se calcule sur la hauteur libre sous les ponts —, le camion du joueur
+suivrait sans qu'on ait à y penser. Il passe à **11,92 × 4,18 × 4,80**, soit le tracteur de la
+rocade au centimètre, et ses trois remorques de 21,5 m à **16,1 – 17,4**, la longueur exacte
+d'une semi-remorque du trafic. La sellette (`SEMI_CHAPE`) et la distance cheville-essieu
+(`T.L`) sont dérivées du même facteur : elles ont suivi seules.
+
+**La déclaration a dû descendre.** `ECH_SEMI` était en tête de fichier, où `ECH_LOURD` n'existe
+pas encore ; elle est allée rejoindre `SEMI_CHAPE`, qui avait déjà déménagé pour la même
+raison. Un renvoi reste à l'ancienne place.
+
+**Ce qui ne bouge pas :** les capacités. Le grumier porte toujours 1 600 kg, le frigorifique
+1 200, la citerne 900 — le joueur a demandé une taille, pas un déclassement.
+
+**Mesuré.** Le contrôle de taille du banc `camion` a été réécrit : au lieu d'une fourchette
+posée à la main (« entre 14 et 20 mètres »), il compare le camion à la rocade **des deux
+côtés** — par le FACTEUR, qui doit être au milliardième celui que le trafic applique à la même
+planche, et par la MESURE, boîte de carrosserie contre boîte de carrosserie. Le facteur seul se
+laisserait berner par un maillage différent, la mesure seule par un facteur juste appliqué à
+autre chose ; et ce contrôle **échoue sur la version d'avant**. Au passage, la boîte du banc
+ignore désormais les cônes de phares, qui portent à dix mètres devant le capot et gonflaient la
+mesure de 21,6 m pour un camion qui en fait 11,9. Bancs `camion` (18), `export` (12), `chocs`
+(24), `port` (31), `bois` (22), `village` (16), `grandes` (7), `acces` (5), `sansvue` (9),
+`ouverture` (6), `diagnostic` (11) et `campagne` (72) verts. La capture a été regardée : le
+bordeaux et un blanc de la rocade côte à côte sur la même chaussée, même cabine, même longueur.
