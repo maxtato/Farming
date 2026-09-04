@@ -15350,3 +15350,46 @@ mesure de 21,6 m pour un camion qui en fait 11,9. Bancs `camion` (18), `export` 
 (24), `port` (31), `bois` (22), `village` (16), `grandes` (7), `acces` (5), `sansvue` (9),
 `ouverture` (6), `diagnostic` (11) et `campagne` (72) verts. La capture a été regardée : le
 bordeaux et un blanc de la rocade côte à côte sur la même chaussée, même cabine, même longueur.
+
+## Les six engins prennent la réduction du camion
+
+**Le joueur.** « Les autres véhicules que je t'ai dit d'agrandir, tu les as trop agrandis, pas
+que le camion : réduis-les tous de la même manière que tu viens de réduire ce camion. »
+
+**Le camion a été divisé par 1,333 — les six le sont aussi.** Il est passé de 1,62 à
+`ECH_LOURD × ECH_TRAFIC`, soit **0,7502** fois sa taille. L'abatteuse, le porteur, la barque,
+le chalutier, le caseyeur et le camion frigorifique prennent le même quotient, appliqué à ce
+que chacun valait :
+
+| engin | échelle | longueur |
+|---|---|---|
+| abatteuse | 1,60 → **1,20** | 13,4 → **10,0 m** |
+| porteur | 1,65 → **1,24** | 14,2 → **10,7 m** |
+| caseyeur | 1,60 → **1,20** | 13,4 → **10,4 m** |
+| chalutier | 1,55 → **1,16** | 16,7 → **12,8 m** |
+| barque | 1,50 → **1,13** | 9,6 → **7,5 m** |
+| camion frigo | 1,90 → **1,43** | 13,3 → **10,0 m** |
+
+Repères inchangés : le fourgon fait 11,90 m, le camion bordeaux 11,92, la moissonneuse 10,50,
+le pick-up 9,30. Les six se rangent donc entre le pick-up et le fourgon, le chalutier seul
+au-dessus — c'est le plus gros bateau du port, et il doit le rester.
+
+**Les facteurs restent écrits en clair sous chaque modèle**, et non calculés depuis celui du
+camion : c'est là qu'un œil les cherche, et c'est là qu'on en retouchera un seul le jour où il
+faudra. Un tableau récapitulatif en tête de la série dit d'où ils viennent.
+
+**Deux commentaires devenus faux ont été repris**, parce qu'un chiffre périmé dans une
+explication est pire que pas d'explication du tout :
+
+- celui des engins du bois annonçait encore « à 1,30 et non 1,45 », un arbitrage antérieur à
+  l'agrandissement ;
+- celui du portique de la marina disait que ses **12,80 m** de tirant d'air étaient *mesurés*
+  sur le porteur, qui montait à douze mètres grue dressée. Le porteur n'en fait plus que neuf.
+  La cote du portique ne bouge pas — c'est un portique de bienvenue, pas un tunnel, et rien
+  n'oblige un arc de triomphe à raser ce qui passe dessous —, mais le commentaire dit
+  désormais l'histoire vraie : dessiné à onze mètres, relevé pour un engin qui a depuis
+  rapetissé, laissé large exprès.
+
+**Mesuré.** Bancs `port` (31), `bois` (22), `camion` (18), `chocs` (24), `export` (12),
+`village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11)
+et `campagne` (72) verts.

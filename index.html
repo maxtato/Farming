@@ -8298,11 +8298,13 @@ function construirePort(){
      puisse passer dessous avec un camion, qui soit juste au-dessus de la porte du grillage
      pour rentrer dans le port, avec marqué MARINA ou quelque chose comme ça. »
      Il enjambe l'entrée à l'aplomb de la grille, entre les deux piliers qui y sont déjà.
-     DOUZE MÈTRES QUATRE-VINGTS SOUS LA POUTRE, et ce n'est pas une coquetterie : c'est
-     MESURÉ sur le plus haut engin du parc, le porteur du bois, qui fait douze mètres pile
-     grue dressée depuis qu'il a grandi — l'enjambeuse en fait neuf, le chalutier sept, le
-     camion américain six et demi. Le portique a été dessiné à onze mètres, sur la mesure
-     d'AVANT l'agrandissement des engins ; le porteur passait donc au travers de sa poutre.
+     DOUZE MÈTRES QUATRE-VINGTS SOUS LA POUTRE. Cette cote a une histoire : le portique
+     avait été dessiné à onze mètres, puis relevé parce que le porteur du bois, agrandi,
+     montait à douze grue dressée et traversait la poutre. Les engins ont depuis été
+     ramenés au gabarit de la rocade et le porteur ne fait plus que neuf mètres — comme
+     l'enjambeuse, qui est maintenant l'autre plus haut du parc. Le tirant d'air est donc
+     large de près de quatre mètres, et on le LAISSE : c'est un portique de bienvenue, pas
+     un tunnel, et rien n'oblige un arc de triomphe à raser ce qui passe dessous.
      Et la poutre n'a AUCUNE emprise : seuls ses deux montants sont solides, et ils sont
      hors de la chaussée. Rien de ce qui passe la grille ne peut se cogner dedans. */
   (function(){
@@ -13694,6 +13696,22 @@ function buildMoissonneuse(){
    seule façon de récolter une vigne palissée ou un olivier en haie — une moissonneuse
    les coucherait. Le modèle vient de la planche de présentation ; on lui a greffé les
    feux, le gyrophare et les cotes de lampes du reste du parc. */
+/* LES SIX ENGINS AGRANDIS PRENNENT LA RÉDUCTION DU CAMION. Le joueur : « les autres
+   véhicules que je t'ai dit d'agrandir, tu les as trop agrandis, pas que le camion :
+   réduis-les tous de la même manière que tu viens de réduire ce camion. » Le camion est
+   passé de 1,62 à `ECH_LOURD*ECH_TRAFIC`, soit 0,7502 fois sa taille ; l'abatteuse, le
+   porteur, la barque, le chalutier, le caseyeur et le camion frigorifique prennent le
+   même quotient, appliqué à ce que chacun valait. Leurs facteurs restent ÉCRITS EN CLAIR
+   sous chaque modèle — c'est là qu'un œil les cherche, et c'est là qu'on en retouchera un
+   seul le jour où il faudra.
+                      avant   après    longueur
+      abatteuse       1,60    1,20     13,4 → 10,05 m
+      porteur         1,65    1,24     14,2 → 10,67
+      barque          1,50    1,13      9,6 →  7,23
+      chalutier       1,55    1,16     16,7 → 12,50
+      caseyeur        1,60    1,20     13,4 → 10,05
+      camion frigo    1,90    1,43     13,3 → 10,01
+   Repères : le fourgon fait 11,90 m et le camion bordeaux 11,92.                       */
 /* ---------- L'ABATTEUSE : LA MOISSONNEUSE DU BOIS ----------
    Portée de la planche du joueur : six roues, tête qui saisit, coupe et ébranche au bout
    d'un bras de six mètres, la grue prenant appui sur le toit de la cabine. Elle n'a pas de
@@ -13732,11 +13750,11 @@ function buildAbatteuse(){
       const b2 = wheelMesh(0.78, 0.52); b2.position.set(sx, 0.78, sz); g.add(b2); wr.push(b2);
     }
   }
-  /* À 1,30 ET NON 1,45. Mesuré en vue de jeu, à 1,45 le bras montait au faîte des
-     conifères et le porteur dépassait le fourgon d'un quart : les deux engins du bois
-     écrasaient la forêt qu'ils servent. À 1,30 l'abatteuse fait six mètres, comme la
-     moissonneuse, et le porteur dix mètres et demi. */
-  g.scale.setScalar(1.60);
+  /* LES DEUX ENGINS DU BOIS NE DOIVENT PAS ÉCRASER LA FORÊT QU'ILS SERVENT : mesuré en
+     vue de jeu, au-delà de 1,45 le bras du porteur montait au faîte des conifères. À 1,20
+     l'abatteuse fait dix mètres, un peu moins que le fourgon, et le porteur dix et demi
+     grue repliée. */
+  g.scale.setScalar(1.20);
   g.userData = {wr, wf, gyro, feux:F, bras, scie,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 1.95, w:0.34, h:0.22},
             arriere:{x:[-0.8, 0.8], y:1.5, z:-2.75, w:0.30, h:0.20},
@@ -13774,7 +13792,7 @@ function buildPorteur(){
       const b2 = wheelMesh(0.7, 0.46); b2.position.set(sx, 0.7, sz); g.add(b2); wr.push(b2);
     }
   }
-  g.scale.setScalar(1.65);
+  g.scale.setScalar(1.24);
   g.userData = {wr, wf, gyro, feux:F, pile,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 3.9,  w:0.34, h:0.22},
             arriere:{x:[-0.8, 0.8], y:1.5, z:-4.05, w:0.30, h:0.20},
@@ -13803,7 +13821,7 @@ function buildBarque(){
   casierPeche(g, 0.35, 0.86, 0.9, 0.3); casierPeche(g, -0.35, 0.86, 1.5, -0.2);
   boueePeche(g, 0.9, 1.0, -0.2); boueePeche(g, -0.9, 1.0, 0.4);
   const F = feuxBateau(g, 5.0, 1.0);
-  g.scale.setScalar(1.50);
+  g.scale.setScalar(1.13);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.0, z:2.4, w:0.18, h:0.12}, arriere:{x:[0], y:1.0, z:-2.45, w:0.16, h:0.11}, nez:2.6}};
   return g;
@@ -13823,7 +13841,7 @@ function buildChalutier(){
   for(let k = 0; k < 4; k++) bacPoisson(g, -0.9 + (k % 2)*1.8, 1.0, -1.6 - Math.floor(k/2)*0.7);
   boueePeche(g, 1.55, 1.6, -0.6); boueePeche(g, -1.55, 1.6, -0.6);
   const F = feuxBateau(g, 8.5, 1.6);
-  g.scale.setScalar(1.55);
+  g.scale.setScalar(1.16);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.6, z:4.15, w:0.18, h:0.12}, arriere:{x:[0], y:1.6, z:-4.2, w:0.16, h:0.11}, nez:4.3}};
   return g;
@@ -13842,7 +13860,7 @@ function buildCaseyeur(){
       casierPeche(g, -0.6 + (k % 2)*1.2, 1.16 + rang*0.5, -0.8 - i*0.72, (k % 3)*0.2);
   boueePeche(g, 1.25, 1.31, -1.0); boueePeche(g, -1.25, 1.31, -1.6);
   const F = feuxBateau(g, 6.6, 1.3);
-  g.scale.setScalar(1.60);
+  g.scale.setScalar(1.20);
   g.userData = {wr:[], wf:[], feux:F,
     lampes:{avant:{x:[0], y:1.3, z:3.2, w:0.18, h:0.12}, arriere:{x:[0], y:1.3, z:-3.25, w:0.16, h:0.11}, nez:3.4}};
   return g;
@@ -13874,7 +13892,7 @@ function buildFrigo(){
     for(const sz of [-1.3, -2.4]){ const b2 = wheelMesh(0.48, 0.34); b2.position.set(sx, 0.48, sz); g.add(b2); wr.push(b2); }
   }
   const gyro = gyrophare(g, 0.8, 3.4, 2.2);
-  g.scale.setScalar(1.90);
+  g.scale.setScalar(1.43);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.8, 0.8], y:1.0, z: 3.24, w:0.28, h:0.17},
             arriere:{x:[-0.8, 0.8], y:1.0, z:-3.66, w:0.30, h:0.22},
