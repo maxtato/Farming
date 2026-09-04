@@ -15616,3 +15616,47 @@ beaucoup, mais c'était déjà 26,7 ce matin, donc ni nouveau ni ce dont le joue
 `campagne` : 75 sur 76, le contrôle des deux tracteurs retirés tombant à l'identique sur la
 version de ce matin. Les vieux bancs `glisse`, `pilote`, `regression` et `trafic` rendent
 exactement les mêmes comptes qu'avant le correctif.
+
+## Chaque roue roule sur son propre rayon
+
+Le joueur : « j'ai l'impression que ça a changé depuis que tu as grossi les véhicules. »
+
+Il a raison, et voici ce que la mesure a trouvé. Le roulement des roues était écrit **en
+dur** : `spin/1,25` pour toute roue arrière et `spin/0,78` pour toute roue avant — les deux
+rayons du **premier tracteur**, appliqués aux quatorze engins du parc. Un pneu ne tournait donc
+au bon rythme que sur les trois tracteurs, d'où les deux nombres venaient.
+
+| engin | le pneu couvre, pour 100 m de sol | |
+|---|---|---|
+| | arrière | avant |
+| tracteurs | 95 % | 95 % |
+| pick-up | **65 %** | 104 % |
+| fourgon | **70 %** | 113 % |
+| moissonneuse | 111 % | 95 % |
+| enjambeuse | **72 %** | 116 % |
+| t4 | 118 % | 123 % |
+| abatteuse | **80 %** | 127 % |
+| porteur | **74 %** | 118 % |
+| frigo | **58 %** | 94 % |
+| semi | **57 %** | 92 % |
+
+Deux choses s'y voient. **Un pneu qui tourne à 58 % du tour qu'il devrait faire patine** : le
+sol défile deux fois plus vite que la gomme, et l'œil lit une glissade — c'est-à-dire un engin
+qui va plus vite que ses roues ne le justifient. Et **l'avant et l'arrière du même véhicule ne
+tournaient pas au même rythme** : 65 % derrière contre 104 % devant sur le pick-up.
+
+**Pourquoi cela s'est vu au moment où les engins ont grossi.** Les engins mis à l'échelle sont
+précisément ceux qui s'écartent le plus — pick-up, fourgon, porteur, abatteuse, frigo, semi —,
+alors que le tracteur du début, celui qu'on connaît depuis la première mission, est juste. En
+passant de l'un aux autres, on change de règle sans le savoir.
+
+**Le rayon se mesure maintenant sur le modèle**, une fois, à la construction, avant que les
+roues ne quittent le groupe pour le train — `setFromObject` travaille en repère monde et le
+groupe porte déjà son échelle, si bien que le rayon relevé est celui qui touche vraiment le
+sol. `spin` étant un chemin en mètres, `spin/rayon` est l'angle exact du roulement.
+
+**Mesuré.** Banc `_probe_roues2`, six secondes pied au plancher par engin : les vingt-quatre
+relevés (arrière et avant des douze engins à roues) donnent **100 %**, contre 57 à 127 % avant.
+`chocs` (28), `port` (31), `bois` (22), `camion` (18), `export` (12), `village` (16), `grandes`
+(7), `acces` (5), `sansvue` (9), `ouverture` (6) verts ; `regression` garde ses deux contrôles
+de roulis de moissonneuse, rouges à l'identique avant le correctif.

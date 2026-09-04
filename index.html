@@ -14446,6 +14446,29 @@ class Vehicle {
     // on isole la caisse : tout sauf les roues motrices/directrices bascule
     const ud = this.group.userData;
     const wheels = new Set([].concat(ud.wr||[], ud.wf||[]));
+    /* CHAQUE ROUE ROULE SUR SON PROPRE RAYON, ET LE RAYON SE MESURE SUR LE MODÈLE.
+       Le roulement était écrit en dur : `spin/1,25` pour toute roue arrière et
+       `spin/0,78` pour toute roue avant — les deux rayons du PREMIER TRACTEUR, appliqués
+       aux quatorze engins du parc. Un pneu de pick-up fait 0,81 m une fois le groupe mis
+       à l'échelle : il tournait donc à 65 % du tour qu'il devait faire, et patinait sur
+       place pendant que le sol défilait. Sur le même pick-up la roue AVANT tournait, elle,
+       à 104 % : l'avant et l'arrière du même véhicule ne tournaient pas au même rythme.
+       Relevé du parc avant correctif — part du tour juste, arrière puis avant : tracteurs
+       95/95, pick-up 65/104, fourgon 70/113, moissonneuse 111/95, enjambeuse 72/116,
+       t4 118/123, abatteuse 80/127, porteur 74/118, frigo 58/94, semi 57/92. Les seuls
+       justes étaient les trois tracteurs, qui sont l'étalon d'où venaient les deux
+       nombres. Un pneu qui tourne moins vite que le sol se lit comme une glissade, et
+       c'est ce qui fait paraître l'engin plus rapide qu'il ne va.
+       LA MESURE SE PREND ICI, une fois, avant que les roues ne quittent le groupe pour
+       le train : `setFromObject` travaille en repère monde et le groupe porte déjà son
+       échelle, si bien que le rayon relevé est le rayon RÉEL, celui qui touche le sol.
+       `spin` étant un chemin en mètres, `spin/rayon` est l'angle exact du roulement. */
+    this.group.updateMatrixWorld(true);
+    const _bbR = new THREE.Box3(), _tvR = new THREE.Vector3();
+    for(const w of wheels){
+      _bbR.setFromObject(w); _bbR.getSize(_tvR);
+      w.userData.rayon = Math.max(0.15, _tvR.y/2);
+    }
     this.body = new THREE.Group();
     /* ET LES ROUES ONT LEUR PROPRE TRAIN. Elles restaient PLATES quand la caisse prenait
        du roulis : en virage serré, la caisse basculait de dix degrés au-dessus d'un
@@ -14784,9 +14807,10 @@ class Vehicle {
     this.group.rotation.y = this.cap;
     this.spin += vf*dt;
     const ud = this.group.userData;
-    if(ud.wr) ud.wr.forEach(w=>w.rotation.x = this.spin/1.25);
+    // Chacune sur SON rayon : voir le relevé du parc dans le constructeur.
+    if(ud.wr) ud.wr.forEach(w=>w.rotation.x = this.spin/(w.userData.rayon || 1.25));
     if(ud.wf) ud.wf.forEach(w=>{
-      w.rotation.x = this.spin/0.78;
+      w.rotation.x = this.spin/(w.userData.rayon || 0.78);
       // Vingt-deux degrés au braquage maximum, au lieu de vingt-six : de dessus, une
       // roue trop ouverte se lisait comme un pneu déjanté plutôt que comme un virage.
       w.rotation.y = (steerX || 0)*0.38;
