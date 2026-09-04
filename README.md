@@ -15550,3 +15550,69 @@ resserrés sur les nouveaux chiffres — celui du flanc échoue sur le commit pr
 contre 58,46). `chocs` (28), `port` (31), `bois` (22), `camion` (18), `export` (12), `village`
 (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11) et
 `campagne` (72) verts.
+
+## Le contact ne fabrique plus de vitesse
+
+Le joueur : « les véhicules avancent beaucoup trop vite, je ne sais pas ce que tu as fait, mais
+la vitesse n'est plus la même que ce matin. »
+
+**J'ai d'abord mesuré, parce que rien dans les moteurs n'avait bougé.** La table des vitesses
+est identique au caractère près entre la version de ce matin et celle du soir — banc
+`_probe_vitesse` : le tracteur atteint 11,97 m/s pour 12 annoncés, le pick-up 16,95 pour 17, le
+fourgon 14,96 pour 15, dans les deux versions, avec les mêmes temps de reprise. La caméra n'a
+pas bougé non plus (`CAM_BASE` à 38/62/38, zoom à 100 %), ni la taille du monde (tuiles de
+27,5 m, chaussées de 10), ni la cadence du trafic (9,1 m/s de moyenne contre 9,2 ce matin), ni
+le pas de temps de la boucle. Le trop-plein de vitesse ne venait donc pas de la conduite.
+
+**Il venait des contacts, et il datait du soir même.** La règle « reprendre la vitesse par
+l'axe qui convient » annulait ce qui rentre dans l'obstacle — `vf·nF + vr·nR` — en n'agissant
+que sur **un seul axe**, ce qui oblige à diviser la correction par la projection de la normale
+sur cet axe : `vr -= vIn/nR`. Quand `nR` vaut un demi, diviser par un demi **double** la
+correction, et le surplus ne se retire pas de la vitesse : il s'y ajoute, en travers.
+
+| dix mètres par seconde droit devant, normale à | vitesse après le contact |
+|---|---|
+| 0° (de face) | 1,00 m/s — on s'arrête |
+| 30° | 5,03 m/s |
+| **40°** | **16,44 m/s** — soit **+64 %** |
+| 50° | 13,55 m/s |
+| 60° | 11,78 m/s |
+
+Frôler un poteau, l'angle d'un bâtiment ou l'aile d'une voiture **catapultait**. Sur la rocade,
+un pick-up bridé à 17 m/s pointait à 23,9 et un tracteur bridé à 12 pointait à 42,6.
+
+**Ce qui remplace.** Sur le flanc, la vitesse **tourne** le long de la paroi au lieu d'être
+reprise : le module ne change pas, c'est une rotation et non une poussée, et rien ne peut
+naître d'une rotation. De face, la normale est reprise et la tangente gardée, comme avant. Les
+mêmes dix mètres par seconde ressortent à 9,92 m/s quel que soit l'angle du flanc — le
+frottement, rien d'autre.
+
+**Et l'engin se remet dans l'axe de la paroi**, ce qui est le mot même du joueur la veille :
+« on est juste réaligné par rapport à cet objet, mais on peut continuer à avancer. » Sans cela,
+le volant tenu dans le mur fait tourner le cap vers la paroi jusqu'à ce que le contact ne soit
+plus du flanc mais du nez, et l'engin s'arrête — mesuré 15,6 m en six secondes. Le cap se
+rapproche de celui du mur de `CHOC.aligne` fois l'écart **par seconde** (trois, soit un
+vingtième de l'écart par image à soixante) : le joueur garde toute sa direction dès qu'il
+s'écarte, et reste parallèle tant qu'il racle.
+
+| volant tenu dans le mur, 6 s | distance | vitesse à l'arrivée |
+|---|---|---|
+| avant ce chantier | 58,46 m | 0,01 m/s — il avait fini par se coller |
+| **après** | **58,96 m** | **12,48 m/s** — il roule encore |
+
+**Un troisième défaut est tombé avec.** La voiture qu'on frotte prenait un dixième de roulis à
+**chaque image** de contact. Tant que l'engin en était renvoyé au bout de deux images, cela ne
+se voyait pas ; depuis qu'il la longe, le frottement dure des dizaines d'images et la caisse
+finissait par se lever comme sous un vrai choc — 1,70 mesuré contre 0,30. Le balancement est
+maintenant **borné** : on n'ajoute plus rien une fois le plafond atteint. La voiture se
+balance, elle ne s'envole pas.
+
+**Ce qui n'a pas été touché**, faute d'être en cause : le renvoi d'auto-tamponneuse d'un vrai
+choc frontal. Un fourgon à 15 m/s contre une voiture à 12 repart à 21,7 m/s en arrière — c'est
+beaucoup, mais c'était déjà 26,7 ce matin, donc ni nouveau ni ce dont le joueur parle.
+
+**Mesuré.** `chocs` (28, deux fois de suite), `port` (31), `bois` (22), `camion` (18), `export`
+(12), `village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6) verts.
+`campagne` : 75 sur 76, le contrôle des deux tracteurs retirés tombant à l'identique sur la
+version de ce matin. Les vieux bancs `glisse`, `pilote`, `regression` et `trafic` rendent
+exactement les mêmes comptes qu'avant le correctif.

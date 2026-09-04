@@ -19759,7 +19759,7 @@ const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
    seconde entière coûte 39 % de la vitesse de glissement : on ralentit franchement, on ne
    s'arrête pas. `rebondMur` est le petit renvoi qui décolle de la paroi au lieu de s'y
    coller, et `glisse` le pas de côté qu'on donne à une voiture qu'on frotte. */
-             frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6, flanc:0.5};
+             frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6, flanc:0.5, aligne:3.0};
 /* ---------- REPRENDRE LA VITESSE QUI RENTRE, MAIS PAR LE BON AXE ----------
    Le joueur, une fois le frottement en place : « fais aussi que ce frottement arrive dès
    le moment qu'on est en latéral contre un objet. Je ne veux pas qu'on soit stoppé par
@@ -19776,15 +19776,24 @@ const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
    l'axe, `nR` sur le travers. La reprise doit annuler ce qui rentre — c'est
    `vf·nF + vr·nR` — et il y a deux façons de le faire, l'une par l'avance et l'autre par
    le travers. On choisit celle qui préserve ce que le joueur veut garder :
-     · contact sur le FLANC (`|nR|` grand) — on corrige EN TRAVERS. L'engin est repoussé
-       de côté, remis dans l'axe du mur, et son avance n'est pas touchée du tout : il
-       longe en raclant, aussi longtemps qu'il veut.
-     · contact sur le NEZ ou la POUPE (`|nR|` petit) — on corrige DANS L'AXE, et c'est
-       cela qui arrête. `CHOC.flanc` vaut 0,5 : au-delà de trente degrés entre la normale
-       et l'axe, c'est déjà du flanc, et un coup de nez donné en biais ripe au lieu de
-       coller — ce que fait une vraie tôle.
-   Le frottement s'applique à ce qui reste : sur l'avance quand on longe, sur le travers
-   quand on tape. Il se compte sur `v._dt`, le pas de temps que l'engin vient VRAIMENT
+     · contact sur le FLANC (`|nR|` grand) — la vitesse TOURNE le long de la paroi. Son
+       module ne change pas : c'est une rotation, pas une poussée. L'engin est remis dans
+       l'axe du mur et repart en raclant, aussi longtemps qu'il veut, sans jamais gagner
+       un mètre par seconde à ce contact.
+     · contact sur le NEZ ou la POUPE (`|nR|` petit) — la normale est reprise et la
+       tangente gardée, et c'est cela qui arrête. `CHOC.flanc` vaut 0,5 : au-delà de
+       trente degrés entre la normale et l'axe, c'est déjà du flanc, et un coup de nez
+       donné en biais ripe au lieu de coller — ce que fait une vraie tôle.
+   ET LA PREMIÈRE ÉCRITURE DE CETTE RÈGLE ACCÉLÉRAIT L'ENGIN. Elle annulait ce qui rentre
+   — `vf·nF + vr·nR` — en n'agissant que sur UN axe, ce qui oblige à diviser la correction
+   par la projection de la normale sur cet axe : `vr -= vIn/nR`. Quand `nR` vaut un demi,
+   diviser par un demi DOUBLE la correction, et le surplus n'est pas retiré de la vitesse,
+   il s'y ajoute en travers. Mesuré, dix mètres par seconde droit devant : normale à
+   quarante degrés, l'engin ressortait à SEIZE MÈTRES QUARANTE — soixante-quatre pour cent
+   de plus qu'avant le contact. Frôler un poteau, une voiture, l'angle d'un bâtiment
+   catapultait. Une rotation, elle, ne peut rien ajouter : le module est celui d'avant,
+   moins le frottement.
+   Le frottement se compte sur `v._dt`, le pas de temps que l'engin vient VRAIMENT
    d'intégrer, et non sur celui de la dernière image affichée : un banc qui avance la
    simulation à la main sans rien dessiner mesurerait sinon un frottement au hasard.
    ET « FLANC » NE DIT PAS SI C'EST UN VRAI CHOC. Il dit par quel axe reprendre la
@@ -19792,17 +19801,33 @@ const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
    RAPPROCHEMENT : se jeter en crabe sur le flanc d'une remorque à huit mètres par
    seconde est un vrai choc, même si le contact est latéral des deux côtés. */
 function repousser(v, nx, nz){                 // `n` va de l'obstacle VERS l'engin
-  const f = v.fwd(), r = v.right();
-  const nF = nx*f.x + nz*f.z, nR = nx*r.x + nz*r.z;
-  let vf = v.vel.x*f.x + v.vel.y*f.z, vr = v.vel.x*r.x + v.vel.y*r.z;
-  const vIn = vf*nF + vr*nR, flanc = Math.abs(nR) > CHOC.flanc;
-  if(vIn < 0){
-    if(flanc) vr -= vIn/nR*(1 + CHOC.rebondMur);
-    else      vf -= vIn/nF*(1 + CHOC.rebondMur);
-  }
+  const r = v.right();
+  const nR = nx*r.x + nz*r.z;                  // ou le contact porte sur la carrosserie
+  const flanc = Math.abs(nR) > CHOC.flanc;
+  const tx = -nz, tz = nx;                     // la tangente de la paroi
+  const vN = v.vel.x*nx + v.vel.y*nz;          // ce qui rentre dedans est negatif
+  const vT = v.vel.x*tx + v.vel.y*tz;
   const k = Math.exp(-CHOC.frotMur*(v._dt || 1/60));
-  if(flanc) vf *= k; else vr *= k;
-  v.vel.x = f.x*vf + r.x*vr; v.vel.y = f.z*vf + r.z*vr;
+  if(flanc){
+    // ON LONGE : la vitesse TOURNE le long de la paroi. Une rotation, jamais une poussee.
+    const sgn = vT < 0 ? -1 : 1, s = Math.hypot(v.vel.x, v.vel.y)*sgn*k;
+    v.vel.x = tx*s; v.vel.y = tz*s;
+    /* ET L'ENGIN SE REMET DANS L'AXE DE LA PAROI — c'est le mot meme du joueur : « on est
+       juste realigne par rapport a cet objet, mais on peut continuer a avancer ». Sans
+       cela, le volant tenu dans le mur fait tourner le cap vers la paroi jusqu'a ce que
+       le contact ne soit plus du flanc mais du nez, et l'engin s'arrete : mesure, quinze
+       metres en six secondes. Le cap se rapproche donc de celui de la paroi de `aligne`
+       fois l'ecart PAR SECONDE — trois, soit un vingtieme de l'ecart par image a soixante
+       — ce qui laisse au joueur toute sa direction des qu'il s'ecarte, et le tient
+       parallele tant qu'il racle. */
+    let dc = Math.atan2(tx*sgn, tz*sgn) - v.cap;
+    dc = Math.atan2(Math.sin(dc), Math.cos(dc));
+    v.cap += dc*Math.min(1, CHOC.aligne*(v._dt || 1/60));
+  } else {
+    // ON TAPE : la normale est reprise, la tangente est gardee.
+    const vNs = (vN < 0) ? -vN*CHOC.rebondMur : vN, vTs = vT*k;
+    v.vel.x = nx*vNs + tx*vTs; v.vel.y = nz*vNs + tz*vTs;
+  }
   v.speed = Math.hypot(v.vel.x, v.vel.y);
   return flanc;
 }
@@ -20138,7 +20163,13 @@ function choquerTrafic(v, t){
          tout seul au plus court. Pas de secousse d'auto-tamponneuse, pas de tôle qui
          sonne : on frotte, on ne tape pas. */
       t.vox += nx*CHOC.glisse; t.voz += nz*CHOC.glisse;
-      t.rollV += 0.10*sensCab; t.rRollV += 0.08*sensRem;
+      /* LE BALANCEMENT EST BORNE, IL NE SE POMPE PAS. Depuis que l'engin longe la voiture
+         au lieu d'en etre renvoye, le frottement dure des dizaines d'images et non plus
+         deux ou trois : un dixieme de roulis ajoute a CHACUNE finissait par lever la
+         caisse comme un vrai choc — mesure 1,70 contre 0,30. On n'ajoute donc plus rien
+         une fois le plafond atteint : la voiture se balance, elle ne s'envole pas. */
+      if(Math.abs(t.rollV) < 0.25) t.rollV += 0.10*sensCab;
+      if(Math.abs(t.rRollV) < 0.20) t.rRollV += 0.08*sensRem;
       t.choc = Math.max(t.choc, 0.35);
       if(siSouvent(0.25)) puff((P.x1 + P.x2)/2, 1.0, (P.z1 + P.z2)/2, 0xE8E0CC, 0.35, 0.30);
     }
