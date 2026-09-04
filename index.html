@@ -2834,9 +2834,18 @@ const ROC = {x0:-ROAD_C, x1:ROAD_E, z0:ROAD_N, z1:ROAD_C};
 const TEX_ROUTE = (function(){
   const cv = document.createElement('canvas'); cv.width = 128; cv.height = 512;   // 10 m × 40 m, cinq tirets
   const c = cv.getContext('2d'); const k = 128/ROAD_W;
+  /* LE BITUME EST NU. Le joueur : « sur toutes les nouvelles routes que tu as créées, tu as
+     fait des détails avec des petits rectangles sur les routes ; je ne veux pas que tu fasses
+     ça — tu le fais sur l'herbe, etc., mais pas sur les routes. » Quatre-vingt-dix rectangles
+     clairs et sombres étaient semés ici, de quatre à quatorze centimètres de côté : des
+     rustines de goudron, vues de haut comme un damier de plaquettes collées. Ils partent, et
+     avec eux la seule chose qui distinguait la chaussée en maillage — le brin nord-sud, la
+     route du port, celle de l'entrepôt — de la rocade PEINTE sur les tuiles, qui n'en a
+     jamais eu : `paintStaticGround` sème son grain sur la PRAIRIE puis pose le bitume
+     par-dessus, si bien que la rocade a toujours été lisse. Les deux se ressemblent enfin.
+     Ce qui reste tacheté, et que le joueur a demandé lui-même, ce sont l'herbe, la terre
+     battue de la piste du bois et le béton des dalles — jamais le goudron. */
   c.fillStyle = C.road; c.fillRect(0, 0, 128, 512);
-  for(let i = 0; i < 90; i++){ c.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.12)';
-    c.fillRect(Math.random()*128, Math.random()*512, 4 + Math.random()*10, 2 + Math.random()*6); }
   c.fillStyle = 'rgba(232,236,238,.92)';
   for(let d = 0; d < 5; d++) c.fillRect(64 - 0.17*k, (4 + d*8 - 1.2)*k, 0.34*k, 2.4*k);
   const t = new THREE.CanvasTexture(cv); t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping;
@@ -3873,8 +3882,14 @@ const SITES = [
      mètres, et non soixante-douze fois l'échelle des boutiques. Son parvis est plus profond
      de douze mètres : les deux remorques à quai en prennent quinze, et l'anneau doit rester
      devant elles. */
+  /* SON PARVIS DEVIENT UN PARC À REMORQUES. Il en faisait vingt-deux mètres — de quoi
+     manœuvrer devant les douze portes de quai, et rien de plus. Les trois semi-remorques
+     du joueur y attendent maintenant, et elles font vingt-trois mètres de long : à
+     trente-huit, elles se rangent en épi devant les portes et il reste treize mètres de
+     voie de circulation entre leurs nez et le bord de la dalle. Le bâtiment recule
+     d'autant vers le nord — sa dalle s'arrête à cinq mètres du bord du monde. */
   {nom:'Entrepôt d\'export', enseigne:'facade', picto:'graine', dir:'EX', bat:0, park:13,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', parvisPlus:12.0,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', parvisPlus:28.0,
    modele:()=> batEntrepotExport(),
    w:80.0, d:50.0, pw:60, ph:22, toit:0x1F4E8C, mur:0xC9D2D8,
    propose:[{nom:'Achète en gros', prix:'tout ce que la ferme produit'}]},
@@ -4285,8 +4300,13 @@ const NIVEAUX = [
    modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
   {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
    modules:['fromage'], parcelles:4},
-  {nom:'Gros volumes', resume:'Le supermarché, la menuiserie, et l\'entrepôt d\'export',
-   sites:['Supermarché', 'Menuiserie', 'Entrepôt d\'export'], parcelles:5},
+  /* ET LE CAMION AMÉRICAIN S'OUVRE AVEC L'ENTREPÔT, ce qui va de soi : c'est pour lui
+     qu'on l'achète. Le palier s'appelait déjà « Gros volumes » quand il n'ouvrait que des
+     bâtiments ; il ouvre maintenant le tracteur routier et ses trois remorques, qui sont
+     très exactement ce que le nom promettait. */
+  {nom:'Gros volumes', resume:'Le supermarché, l\'entrepôt d\'export et le camion',
+   sites:['Supermarché', 'Menuiserie', 'Entrepôt d\'export'],
+   engins:['semi'], outils:['grumier', 'frigorifique', 'citerne'], parcelles:5},
   /* UN SEUL ÉLEVAGE OUVRE ICI, ET IL EN OUVRAIT DEUX. Le palier donnait le mouton ET la
      brebis : deux enclos pour un seul animal. Il n'en donne plus qu'un, qui porte les
      deux produits — voir la table des espèces. */
@@ -5572,15 +5592,20 @@ const EX_X0 = 440, EX_X1 = 600;                    // la bande de l'entrepôt, c
 // La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
 // camions et le bord des tuiles.
 const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −282 à −204 : au-dessus de la dalle du quai
-/* LA BANDE DU SUPERMARCHÉ (cinquième étape). Le joueur : « pour le supermarché, fais-le
-   plus grand, et mets-le sur la grande route qui est en bas à droite qu'on a prolongé, il
-   faut qu'il soit un petit peu à l'extérieur du village ». Vue de la caméra, la route qui
-   part en bas à droite est la route SUD prolongée vers l'est ; il est posé au nord d'elle,
-   quarante mètres après le carrefour sud-est, façade au sud — vers la route et vers nous.
-   La bande regarde comme la bande nord (face 'N'), mais elle ne borde pas la même
-   chaussée : elle déclare donc son `bord` et sa ligne de façades `front`, que BORD_BANDE
-   et FRONT_N donnaient jusqu'ici pour toute bande tournée vers le sud. */
-const SU_X0 = ROAD_E + ROAD_W/2 + 8, SU_X1 = SU_X0 + 150;   // 127 à 277 : deux maisons, du vide, puis le supermarché
+/* LE SUPERMARCHÉ PASSE SUR LE BRIN NORD-SUD, TOUT À L'EST. Il avait d'abord été mis sur
+   la route du bas prolongée, « un petit peu à l'extérieur du village », puis reculé plus
+   loin encore ; le joueur le déplace une dernière fois : « pour le supermarché, finalement,
+   mets-le tout à droite sur la route qui traverse à la verticale entre l'entrepôt et la
+   route du bas, qui longe le côté est de la forêt ; mets le supermarché à cet endroit-là. »
+   C'est le brin `ROUTE_BOIS`, et il s'installe sur son bord EST — la forêt tient tout
+   l'ouest, et c'est le seul des deux côtés où ses cinquante mètres de façade et ses
+   quarante-huit de profondeur entrent sans toucher au bois. Sa bande est donc la même
+   bande que celle des maisons du bord est, dont il prend la place du milieu : deux bandes
+   sur le même trottoir se recouvriraient.
+   LA ROUTE DU BAS GARDE SON HAMEAU. Le joueur y avait demandé « quelques maisons, un peu
+   de vide, un peu d'arbres » avant le supermarché ; le supermarché parti, les maisons et
+   les bosquets restent, sur une bande un peu plus courte : `RS`. */
+const RS_X0 = ROAD_E + ROAD_W/2 + 8, RS_X1 = RS_X0 + 110;   // 127 à 237 : le hameau de la route du bas
 /* LA FORÊT S'AGRANDIT DE CE QUE LA PLACE LUI PREND. Elle tenait quatre-vingt-dix mètres
    sur quatre-vingt-seize, et sa clairière ne coûtait qu'un millier de mètres carrés ; la
    place et la piste en prennent trois fois plus, et il ne restait plus que quatre-vingt-
@@ -5621,22 +5646,33 @@ const BANDE_DEF = {
   FO: {face:'N', d0:FO_X0, d1:FO_X1},              // les ateliers du bois, en face de la forêt
   EX: {face:'N', d0:EX_X0, d1:EX_X1},              // l'entrepôt d'export, au bout de la route
   PO: {face:'N', d0:PO_X0, d1:PO_X1},              // la criée et la conserverie, au port
-  SU: {face:'N', d0:SU_X0, d1:SU_X1,               // le supermarché, au nord de la route sud prolongée
-       bord:ROC.z1 - ROAD_W/2, front:ROC.z1 - ROAD_W/2 - RECUL_ROCADE},
   /* LES DEUX BORDS DE LA ROUTE QUI REDESCEND APRÈS LA FORÊT. Le joueur : « agrémente avec
      des maisons par-ci par-là, de temps en temps, sur le bord de la route. » Deux bandes,
-     deux maisons chacune, décalées l'une par rapport à l'autre pour qu'aucune ne se fasse
-     face, et des bosquets entre. Elles n'ont pas de commerce : une bande de plans sans site
-     traverse `repartirBandes` comme une autre. */
+     des maisons décalées de l'une à l'autre pour qu'aucune ne se fasse face, et des
+     bosquets entre. La bande OUEST n'a pas de commerce : une bande de plans sans site
+     traverse `repartirBandes` comme une autre. La bande EST, elle, porte le supermarché,
+     et c'est elle qui s'appelle `SU` — c'est le `dir` que le site déclare, et le rang du
+     supermarché dans SITES ne doit pas bouger d'un cran. */
   RO: {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
        bord:ROUTE_BOIS - ROAD_W/2},
-  RE: {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
-       bord:ROUTE_BOIS + ROAD_W/2}
+  SU: {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
+       bord:ROUTE_BOIS + ROAD_W/2, front:ROUTE_BOIS + ROAD_W/2 + RECUL_ROCADE},
+  // Le hameau de la route du bas, là où était le supermarché.
+  RS: {face:'N', d0:RS_X0, d1:RS_X1,
+       bord:ROC.z1 - ROAD_W/2, front:ROC.z1 - ROAD_W/2 - RECUL_ROCADE}
 };
 const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
-// La ligne des façades d'une bande tournée vers le sud : −FRONT_N pour celles de la route
-// nord, la sienne pour la bande du supermarché, qui borde la route sud.
-const frontDe = (dir)=> (BANDE_DEF[dir] && BANDE_DEF[dir].front !== undefined) ? BANDE_DEF[dir].front : -FRONT_N;
+/* LA LIGNE DES FAÇADES D'UNE BANDE. Une bande qui ne l'annonce pas prend celle de la
+   rocade qu'elle borde : −FRONT_N pour les bandes tournées vers le sud, −FRONT à l'ouest,
+   FRONT_E à l'est. Une bande qui borde une AUTRE chaussée — le supermarché, sur le brin
+   nord-sud d'après la forêt — déclare la sienne dans `front`.
+   ET CELA VAUT MAINTENANT POUR LES TROIS FACES. `frontDe` ne servait qu'aux bandes
+   tournées vers le sud ; `disposerSites` écrivait FRONT_E et FRONT en dur dans ses deux
+   branches latérales, si bien qu'un commerce posé sur une bande latérale AUTRE que la
+   rocade se serait retrouvé contre la rocade. */
+const FRONT_FACE = {W:-FRONT, E:FRONT_E, N:-FRONT_N, S:FRONT_N};
+const frontDe = (dir)=> (BANDE_DEF[dir] && BANDE_DEF[dir].front !== undefined)
+                        ? BANDE_DEF[dir].front : FRONT_FACE[faceDe(dir)];
 
 /* La disposition est une fonction et non une boucle jouée une fois : les modèles de
    commerce ne sont déclarés que bien plus bas dans le fichier, et il faut les avoir
@@ -5648,9 +5684,9 @@ for(const S of SITES){
   const face = S.face = faceDe(S.dir);   // la zone industrielle regarde le sud, comme la bande nord
   // façade alignée sur la route, le volume se développe vers l'extérieur de la carte
   if(face === 'E'){
-    S.x = FRONT_E + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
+    S.x = frontDe(S.dir) + S.d/2; S.z = S.bat; S.rot = -Math.PI/2;
   } else if(face === 'W'){
-    S.x = -(FRONT + S.d/2); S.z = S.bat; S.rot = Math.PI/2;
+    S.x = frontDe(S.dir) - S.d/2; S.z = S.bat; S.rot = Math.PI/2;
   } else {
     S.x = S.bat; S.z = frontDe(S.dir) - S.d/2; S.rot = 0;
   }
@@ -5851,29 +5887,30 @@ const BANDES = {
   PO: [{paquet:['Criée']},
        {creux:'dalle', poids:1},
        {paquet:['Conserverie']}],
-  /* LE SUPERMARCHÉ N'EST PLUS TOUT DE SUITE APRÈS LE GARAGE. Le joueur : « mets-le un peu
-     plus loin sur la route du bas, pas tout de suite après le garage ; mets quelques
-     maisons, un peu de vide, un peu d'arbres, et le supermarché. » La bande commence donc
-     huit mètres après le carrefour, avec deux maisons ; puis DEUX creux à la suite — le
-     plafond d'un seul les tiendrait à douze mètres, et le vide demandé en fait
-     vingt-quatre — plantés d'arbres ; puis le supermarché ; puis un dernier bosquet. */
-  SU: [{paquet:['maison', 'maison']},
-       {creux:'verdure', poids:1},
+  /* LE BORD EST DU BRIN : UNE MAISON, UN BOSQUET, LE SUPERMARCHÉ, UN BOSQUET. Le
+     supermarché prend la place de la seconde maison — cinquante mètres de façade sur les
+     cent trente-deux de la bande, il ne reste pas de quoi en garder deux — et se retrouve
+     au milieu du brin, à mi-chemin de l'entrepôt et de la route du bas, ce que le joueur
+     demande. Les trois creux restent au plafond, et il tient huit mètres de verge à chaque
+     carrefour en plus des trois du recul. */
+  SU: [{creux:'verdure', poids:1},
+       {paquet:['maison']},
        {creux:'verdure', poids:1},
        {paquet:['Supermarché']},
        {creux:'verdure', poids:1}],
-  // Les deux bords de la route qui redescend après la forêt : deux maisons de chaque
-  // côté, décalées, et des bosquets entre.
+  // Le bord ouest du brin : deux maisons, décalées de celle d'en face, et des bosquets.
   RO: [{creux:'verdure', poids:1},
        {paquet:['maison']},
        {creux:'verdure', poids:1.4},
        {paquet:['maison']},
        {creux:'verdure', poids:1}],
-  RE: [{creux:'verdure', poids:1.4},
-       {paquet:['maison']},
+  // Le hameau de la route du bas : trois maisons, du vide et des arbres — ce qui était
+  // devant le supermarché, et qui reste quand il s'en va.
+  RS: [{creux:'verdure', poids:1},
+       {paquet:['maison', 'maison']},
        {creux:'verdure', poids:1},
        {paquet:['maison']},
-       {creux:'verdure', poids:1.2}]
+       {creux:'verdure', poids:1}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -8053,8 +8090,12 @@ function habillerLesHerbes(){
   semer(10, EX_X0, EX_X1, MONDE.z0 + 8, -178, presDalle);
   // au sud de la route, à l'est des tuiles : avant la forêt, puis au-delà d'elle jusqu'au bout du monde
   semer(12, X1 + 8, FORET.x0 - 10, ROAD_N + 14, 40);
+  /* Le brin nord-sud et ses deux bords sont GARNIS PAR LEUR BANDE, pas par ce semis :
+     trente-quatre mètres de part et d'autre de l'axe couvrent la chaussée, les deux
+     rangées de lots et leurs creux. Et la dalle du supermarché est épargnée comme les
+     autres — il est au milieu de ce couloir, mais il en déborde de vingt mètres. */
   semer(48, FORET.x1 + 12, MONDE.x1 - 12, ROAD_N + 14, MONDE.z1 - 8,
-        (x, z)=> Math.abs(x - ROUTE_BOIS) < 14);
+        (x, z)=> Math.abs(x - ROUTE_BOIS) < 34 || presDalle(x, z));
 }
 function construirePort(){
   /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
@@ -13571,6 +13612,71 @@ function buildFrigo(){
             nez:3.4}};
   return g;
 }
+/* ---------- LE CAMION AMÉRICAIN DU JOUEUR, ET SES TROIS REMORQUES ----------
+   Le joueur : « fais aussi qu'on puisse acheter un des camions américains, un tracteur, et
+   qu'on puisse atteler plusieurs types de remorques disponibles en attente à l'entrepôt
+   XL. Même type d'accroche qu'on a avec les tracteurs et leur remorque, mais qu'on puisse
+   accrocher une remorque pour transporter des grumes de bois, une caisse réfrigérée, une
+   citerne. Ça nous permettra de faire des gros transports de marchandises entre notre
+   production et l'entrepôt d'export. Le camion, fais le rouge très légèrement bordeaux. »
+   TOUT VIENT DE LA PLANCHE, RIEN N'EST REDESSINÉ. `CAMIONS_GEOS` rend la carrosserie SANS
+   SES ROUES et la liste de ses essieux : on cuit la première en une seule pièce — un appel
+   de rendu pour tout le camion, comme pour ceux de la rocade — et l'on pose sur la seconde
+   de vraies roues, qui tournent et qui braquent, comme sur les treize autres engins du
+   parc. Le jour où la planche changerait, le camion du joueur changerait avec elle.
+   ET LA SELLETTE EST UNE CHAPE COMME UNE AUTRE. Le jeu sait déjà tirer un outil : `hitchDe`
+   dit où il s'accroche, `T.L` à quelle distance roule son essieu, et `Vehicle.update` fait
+   suivre le timon en alignant l'essieu sur le point d'attelage. Une semi-remorque n'est
+   rien d'autre — le maillage de la planche a justement son origine à la cheville
+   d'attelage —, à ceci près qu'elle est LONGUE : `L` vaut seize mètres là où une charrue
+   en fait deux, et c'est tout ce qui change. */
+const ECH_SEMI = 1.62;                    // le tracteur fait alors seize mètres, comme un engin du parc
+/* « FAIS LE ROUGE TRÈS LÉGÈREMENT BORDEAUX. » Le rouge du jeu est 0xB8342A ; celui-ci
+   descend de quelques degrés vers le pourpre et perd un peu de clarté — assez pour qu'on
+   lise du bordeaux à côté du rouge du chalutier, pas assez pour qu'on lise du violet. */
+const SEMI_ROUGE = 0x8E2F35;
+/* Les roues d'un essieu noté par la planche : une paire, ou deux si l'essieu est jumelé.
+   `wheelMesh` est celui de tout le parc — jante, moyeu et flancs compris. */
+function poserRoues(g, essieux, wr, wf){
+  for(const e of essieux){
+    const av = e.z > 0;                    // devant l'origine : c'est la roue directrice
+    for(const s of [-1, 1])
+      for(const x of (e.jumele ? [e.ecart, e.ecart - e.l*1.15] : [e.ecart])){
+        const w = wheelMesh(e.r, e.l);
+        w.position.set(s*x, e.r, e.z);
+        g.add(w); (av ? wf : wr).push(w);
+      }
+  }
+}
+function buildSemi(){
+  const g = new THREE.Group();
+  const M = CAMIONS_GEOS.corpsTracteur(SEMI_ROUGE);
+  const corps = new THREE.Mesh(M.geo, MAT_FUSION);
+  corps.castShadow = true; corps.receiveShadow = true; g.add(corps);
+  const wr = [], wf = [];
+  poserRoues(g, M.essieux, wr, wf);
+  const F = jeuDeFeux();
+  for(const sx of [-M.feux.w, M.feux.w]) optique(g, F, false, sx, M.feux.y, M.feux.zAv, 0.34, 0.26);
+  // Le pot d'échappement : au sommet de la cheminée gauche, là où la fumée sort vraiment.
+  const exh = new THREE.Object3D(); exh.position.set(-1.53, 3.75, -2.1); g.add(exh);
+  g.scale.setScalar(ECH_SEMI);
+  g.userData = {wr, wf, exhaust:exh, feux:F,
+    lampes:{avant:{x:[-M.feux.w, M.feux.w], y:M.feux.y, z:M.feux.zAv, w:0.34, h:0.26}, nez:4.2}};
+  return g;
+}
+function buildRemorqueSemi(quoi){
+  const g = new THREE.Group();
+  const M = CAMIONS_GEOS.corps(CAMIONS_GEOS.remorquesJoueur[quoi]);
+  const corps = new THREE.Mesh(M.geo, MAT_FUSION);
+  corps.castShadow = true; corps.receiveShadow = true; g.add(corps);
+  const wr = [], wf = [];
+  poserRoues(g, M.essieux, wr, wf);
+  g.scale.setScalar(ECH_SEMI);
+  // `essieu` : de la cheville à l'essieu, en mètres de planche. C'est le `L` de l'outil,
+  // et il est relu juste après la construction de TOOLS — voir `SEMI_CHAPE`.
+  g.userData = {wr, wf, essieu:M.essieu};
+  return g;
+}
 function buildEnjambeuse(){
   const g = new THREE.Group();
   const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
@@ -13911,19 +14017,117 @@ function paintFert(x,z,l,w,cap){
    C'est maintenant la MÊME fonction et les MÊMES constantes qui les animent. L'objet
    porte son état (roll, rollV, pitch, pitchV, heave, heaveV, bump), le réglage `S` dit
    sa mollesse, et l'appelant fournit les deux accélérations et la vitesse. */
+/* ---------- LE SOL EST DUR, ET RIEN NE PASSE AU TRAVERS ----------
+   Le joueur : « lors d'un accident entre deux véhicules, certains véhicules s'enfoncent
+   dans le sol ; c'est le cas notamment pour les camions avec des remorques : lorsqu'il
+   tape, la remorque a tendance à s'incliner vers l'arrière et à rentrer dans le sol. Fais
+   en sorte que le sol soit quelque chose de dur qui ne soit jamais franchissable par aucun
+   objet. »
+   TROIS CHOSES S'Y METTAIENT, ET IL FALLAIT LES TROIS.
+   1. LE RESSORT S'EMBALLAIT AUX BASSES CADENCES. L'intégration est un Euler semi-implicite :
+      elle n'est stable que si le pas reste petit devant la période du ressort et devant
+      l'amortissement. Mesuré : à soixante, trente et douze images par seconde le tangage
+      d'un poids lourd qui pile plafonne à 0,11 rad ; à trois images il part à MILLE CINQ
+      CENTS. Le pas d'intégration est donc borné à un vingt-quatrième de seconde — au-delà
+      on sous-échantillonne le ressort, ce qui l'assagit au lieu de le faire diverger — et
+      le jeu, lui, continue de tourner à sa cadence.
+   2. SEULE LA CIBLE ÉTAIT BORNÉE, PAS L'ÉTAT. `rollT` et `pitchT` étaient tenus à 0,17 et
+      0,10 ; `roll` et `pitch`, eux, dépassaient librement par le dépassement du ressort.
+      On borne l'état, et l'on coupe la vitesse au butoir — sans quoi le ressort continue
+      de pousser contre lui et repart d'un coup quand la cible retombe.
+   3. ET LA BORNE NE PEUT PAS ÊTRE LA MÊME POUR UNE VOITURE ET POUR UNE SEMI-REMORQUE.
+      C'est ici qu'était le vrai défaut. Une remorque est modélisée AVEC SON PIVOT À LA
+      SELLETTE, tout à l'avant : son maillage descend jusqu'à y = 0 — les pneus posent — et
+      court seize mètres et demi EN ARRIÈRE du pivot. À 0,11 rad de tangage, sa queue passe
+      un mètre quatre-vingt-cinq sous le sol. Une borne d'angle en degrés n'a donc aucun
+      sens : ce qui compte est le DÉBATTEMENT, c'est-à-dire de combien un coin de
+      carrosserie a le droit de descendre. Chaque corps tire ses deux bornes de sa propre
+      taille — `bornesSuspension` — et un long corps penche d'autant moins qu'il est long,
+      exactement comme une vraie semi-remorque, qui ne tangue pas.
+   Et par-dessus tout cela, `poserSurSol` sert de butoir final : quoi qu'il arrive, on
+   relève l'objet de ce que sa boîte descendrait sous zéro. */
+const DEBATTEMENT = 0.28;                 // ce qu'un coin de carrosserie a le droit de descendre
+const SUSP_LIM = {r:0.17, p:0.10};        // les bornes d'un corps dont on ne sait rien
+/* Les deux bornes d'un corps, calculées une fois sur sa boîte : `bx` et `bz` sont les
+   distances de l'AXE DE ROTATION au point le plus éloigné, et `garde` la hauteur de son
+   point le plus bas — tout en mètres du monde. Ce que le coin le plus éloigné a le droit
+   de descendre, c'est le débattement PLUS la garde au sol : une caisse d'engin, dont les
+   roues sont un groupe à part et qui flotte donc à quarante centimètres du bitume, garde
+   ainsi exactement le plongeon qu'elle avait ; une remorque, dont les pneus font partie du
+   maillage et dont la garde est nulle, n'a plus droit qu'à un degré. */
+function bornesSuspension(bx, bz, garde){
+  const c = DEBATTEMENT + Math.max(0, garde || 0);
+  return {r: Math.min(SUSP_LIM.r, Math.asin(Math.min(1, c/Math.max(0.4, bx)))),
+          p: Math.min(SUSP_LIM.p, Math.asin(Math.min(1, c/Math.max(0.4, bz))))};
+}
+// Un axe borné : on cale au butoir et l'on coupe la vitesse qui poussait dedans.
+function borner(o, cle, lim){
+  const v = cle + 'V';
+  if(o[cle] >  lim){ o[cle] =  lim; if(o[v] > 0) o[v] = 0; }
+  else if(o[cle] < -lim){ o[cle] = -lim; if(o[v] < 0) o[v] = 0; }
+}
+const PAS_SUSP = 1/24;                    // au-delà, le ressort est sous-échantillonné
 function suspension(o, S, dt, aLat, aLon, vf){
+  const h = Math.min(dt, PAS_SUSP);
+  const L = o.lim || SUSP_LIM;
   // secousses du terrain, plus fortes vite et sur la terre travaillée
-  o.bump -= o.bump*3.0*dt;
+  o.bump -= o.bump*3.0*h;
   if(Math.random() < Math.min(0.9, Math.abs(vf)*0.09)) o.bump = (Math.random()-0.5)*0.9*S.rough;
-  const rollT  = Math.max(-0.17, Math.min(0.17,  aLat*S.roll)) + o.bump*0.030;
-  const pitchT = Math.max(-0.10, Math.min(0.10, -aLon*S.pitch));
+  const rollT  = Math.max(-L.r, Math.min(L.r,  aLat*S.roll)) + o.bump*0.030;
+  const pitchT = Math.max(-L.p, Math.min(L.p, -aLon*S.pitch));
   const heaveT = Math.min(0, -Math.abs(aLon)*0.008) + o.bump*0.045;
-  o.rollV  += ((rollT  - o.roll )*S.k - o.rollV *S.d)*dt;
-  o.pitchV += ((pitchT - o.pitch)*S.k - o.pitchV*S.d)*dt;
-  o.heaveV += ((heaveT - o.heave)*S.k*1.4 - o.heaveV*S.d*1.1)*dt;
-  o.roll  += o.rollV *dt;
-  o.pitch += o.pitchV*dt;
-  o.heave += o.heaveV*dt;
+  o.rollV  += ((rollT  - o.roll )*S.k - o.rollV *S.d)*h;
+  o.pitchV += ((pitchT - o.pitch)*S.k - o.pitchV*S.d)*h;
+  o.heaveV += ((heaveT - o.heave)*S.k*1.4 - o.heaveV*S.d*1.1)*h;
+  o.roll  += o.rollV *h;
+  o.pitch += o.pitchV*h;
+  o.heave += o.heaveV*h;
+  borner(o, 'roll', L.r); borner(o, 'pitch', L.p); borner(o, 'heave', 0.16);
+}
+/* LE BUTOIR : PERSONNE NE PASSE SOUS LE SOL. On relève l'objet de ce que sa boîte
+   descendrait sous zéro, une fois tournée. La ligne des y de la matrice de rotation suffit
+   — un lacet ne change aucune hauteur, seuls le roulis et le tangage en changent —, et
+   l'échelle du maillage est prise axe par axe : le trafic lourd est affiné en largeur et
+   pas en longueur. `B` est la boîte du modèle dans SON repère, centre et demi-cotes. */
+const _solRot = new THREE.Matrix4();
+const _solInv = new THREE.Matrix4(), _solLoc = new THREE.Matrix4(), _solBox = new THREE.Box3();
+/* La boîte d'un groupe se prend DANS SON REPÈRE, et non dans celui du monde : `setFromObject`
+   passe par les matrices monde, et rendrait la boîte de la caisse là où l'engin se trouve —
+   utile une fois, fausse dès qu'il roule. On repasse donc chaque géométrie par l'inverse de
+   la matrice du groupe. */
+function boiteLocale(root, sauf){
+  const B = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  _solInv.copy(root.matrixWorld).invert();
+  const dedans = (o)=>{ for(let p = o; p; p = p.parent){ if(p === sauf) return true; if(p === root) return false; } return false; };
+  root.traverse((o)=>{
+    if(!o.geometry) return;
+    if(sauf && dedans(o)) return;
+    if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    _solBox.copy(o.geometry.boundingBox);
+    _solLoc.multiplyMatrices(_solInv, o.matrixWorld);
+    _solBox.applyMatrix4(_solLoc); B.union(_solBox);
+  });
+  return B;
+}
+function boiteDe(objOuGeo, sauf){
+  const B = objOuGeo.isBufferGeometry
+    ? (objOuGeo.boundingBox || (objOuGeo.computeBoundingBox(), objOuGeo.boundingBox))
+    : boiteLocale(objOuGeo, sauf);
+  return {cx:(B.min.x + B.max.x)/2, cy:(B.min.y + B.max.y)/2, cz:(B.min.z + B.max.z)/2,
+          hx:(B.max.x - B.min.x)/2, hy:(B.max.y - B.min.y)/2, hz:(B.max.z - B.min.z)/2,
+          // le bras de levier : du centre de rotation — l'origine du modèle — au plus loin
+          bx:Math.max(Math.abs(B.min.x), Math.abs(B.max.x)),
+          bz:Math.max(Math.abs(B.min.z), Math.abs(B.max.z))};
+}
+function poserSurSol(obj, B){
+  if(!B) return;
+  _solRot.makeRotationFromQuaternion(obj.quaternion);
+  const e = _solRot.elements, S = obj.scale;
+  const a = e[1]*S.x, b = e[5]*S.y, c = e[9]*S.z;
+  const bas = a*B.cx + b*B.cy + c*B.cz
+            - (Math.abs(a)*B.hx + Math.abs(b)*B.hy + Math.abs(c)*B.hz);
+  if(obj.position.y + bas < 0) obj.position.y = -bas;
 }
 
 /* Ce que la coupe GARDE du mouvement de la caisse : un sixième du roulis, un tiers du
@@ -13972,6 +14176,20 @@ class Vehicle {
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.cap;
     scene.add(this.group);
+    /* SA CAISSE DIT DE COMBIEN ELLE A LE DROIT DE PENCHER. La boîte est prise sur le
+       groupe de caisse — roues exclues, ce sont elles qui restent au sol — et à l'échelle
+       du modèle : une moissonneuse de neuf mètres ne tangue pas comme un pick-up. On la
+       garde aussi pour le butoir du sol. Voir `bornesSuspension`. */
+    this.body.updateMatrixWorld(true);
+    /* LA COUPE DE LA MOISSONNEUSE NE COMPTE PAS. Elle est enfant de la caisse, mais elle
+       reçoit la CONTRE-rotation du roulis et du tangage (voir plus bas) : elle reste à
+       plat quoi que fasse la carrosserie, et ses huit mètres de large ne doivent donc
+       décider ni des bornes ni du butoir. Sans cette exception, la moissonneuse était le
+       seul engin du parc à perdre la moitié de son roulis. */
+    this.boite = boiteDe(this.body, ud.head || null);
+    const _es = this.group.scale;
+    this.lim = bornesSuspension(this.boite.bx*(_es.x || 1), this.boite.bz*(_es.z || 1),
+                                (this.boite.cy - this.boite.hy)*(_es.y || 1));
     // état de suspension (ressort-amortisseur, réglage mou)
     this.roll = 0; this.rollV = 0;
     this.pitch = 0; this.pitchV = 0;
@@ -14207,6 +14425,7 @@ class Vehicle {
     this.body.rotation.z = this.roll;
     this.body.rotation.x = this.pitch;
     this.body.position.y = Math.max(-0.16, Math.min(0.16, this.heave));
+    poserSurSol(this.body, this.boite);   // le sol est dur : voir `poserSurSol`
     /* LA COUPE RESTE À PLAT, ET LA CARROSSERIE PENCHE QUAND MÊME.
        Le joueur : « modifie l'outil de travail de la moissonneuse pour qu'il reste
        quasiment horizontal même pendant les virages ; fais que la carrosserie se penche,
@@ -18268,7 +18487,15 @@ const CAMIONS_GEOS = (function(){
      dix-huit roues à dix côtés avec leur moyeu pèsent 1 296 triangles, soit près de la
      moitié de l'attelage. À la taille où on les croise sur la rocade, huit côtés ne se
      distinguent pas de dix : on en descend à 816. */
+  /* LES ROUES SE POSENT, OU SE NOTENT. Le trafic les veut CUITES dans la carrosserie —
+     un appel de rendu par attelage, et elles ne tournent pas, on les voit de trop loin.
+     L'engin du joueur, lui, les veut VIVANTES : elles roulent, la roue directrice braque,
+     et le train prend le roulis. Le même dessin sert aux deux : quand `ROUES_NOTEES` est
+     ouvert, `roues` y écrit l'essieu au lieu de le pousser dans la liste des pièces, et
+     l'appelant en fait ce qu'il veut. */
+  let ROUES_NOTEES = null;
   function roues(P, ecart, positions, r, l, jumele){
+    if(ROUES_NOTEES){ for(const z of positions) ROUES_NOTEES.push({z, ecart, r, l, jumele}); return; }
     for(const z of positions) for(const s of [-1, 1]){
       const liste = jumele ? [ecart, ecart - l*1.15] : [ecart];
       for(let i = 0; i < liste.length; i++){
@@ -18464,6 +18691,53 @@ const CAMIONS_GEOS = (function(){
   /* CHAQUE REMORQUE VIENT AVEC SA CABINE, comme sur la planche : la citerne est bleue,
      la caisse verte, le frigorifique blanc et sans couchette. La cabine se tire donc
      avec la remorque, et l'on ne croise pas deux fois le même attelage. */
+  /* LE GRUMIER, QU'ON AVAIT LAISSÉ DE CÔTÉ. La planche en montrait un ; on ne l'avait
+     pas retenu, faute de forêt sur la carte — « il n'y a pas de forêt sur cette carte ».
+     Il y en a une depuis, et le joueur veut « accrocher une remorque pour transporter des
+     grumes de bois ». Le voici, dans les coordonnées du tracteur comme ses trois sœurs :
+     un plateau nu, quatre paires de ranchers, et trois lits de grumes en quinconce.
+     IL N'ENTRE PAS DANS LE TRAFIC, et c'est délibéré : `ATTELAGES` décide des attelages de
+     la rocade, et sa cabine brun-rouge tomberait encore sous la règle du joueur — plus une
+     seule carrosserie rouge sur la rocade hors le camion de pompiers. */
+  const BOIS_G = 0x8A6A3A, BOIS_G2 = 0x6B4E24, ECORCE_G = 0x5A4632;
+  function grumier(){
+    const P = [], L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    P.push(B(2.05, 0.2, L - 1.0, GRIS2, 0, yS + 0.13, zc));
+    // Quatre paires de ranchers, et leur traverse : c'est ce qui tient la pile.
+    for(let k = 0; k < 4; k++){
+      const z = zc - L/2 + 1.9 + k*(L - 3.8)/3;
+      P.push(B(2.5, 0.18, 0.32, GRIS2, 0, yS + 0.28, z));
+      for(const sx of [-1, 1]){
+        P.push(B(0.18, 2.3, 0.24, GRIS, sx*1.2, yS + 1.4, z));
+        P.push(B(0.3, 0.2, 0.3, GRIS2, sx*1.2, yS + 0.36, z));
+      }
+    }
+    /* LES GRUMES, EN QUINCONCE. Trois lits : cinq en bas, quatre au milieu, trois en
+       haut — chaque lit se love dans le creux de celui d'en dessous, comme une vraie
+       pile. Elles sont un peu plus courtes que le plateau, pour qu'on voie les têtes de
+       coupe dépasser des ranchers plutôt que de toucher la traverse. */
+    const RG = 0.30, LG = L - 1.4;
+    const lits = [[5, yS + 0.6], [4, yS + 1.16], [3, yS + 1.72]];
+    for(let i = 0; i < lits.length; i++){
+      const n = lits[i][0], y = lits[i][1];
+      for(let k = 0; k < n; k++){
+        const x = (k - (n - 1)/2)*(RG*2 + 0.04);
+        P.push(CY(RG, LG, 8, k % 2 ? BOIS_G : BOIS_G2, x, y, zc, Math.PI/2));
+        // Le cœur clair des deux têtes : c'est ce qui dit que c'est du bois coupé.
+        for(const sz of [-1, 1])
+          P.push(CY(RG*0.86, 0.08, 8, 0xC9A96A, x, y, zc + sz*(LG/2 + 0.04), Math.PI/2));
+      }
+    }
+    for(const sx of [-1, 1]) P.push(B(0.14, 0.9, 0.14, ECORCE_G, sx*1.02, yS + 2.5, zc + L/2 - 0.8));
+    cheville(P, yS, Z_SELLETTE);
+    beequille(P, zc + L/2 - 2.4);
+    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
+    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
+    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+            essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
+  }
   const ATTELAGES = [{f:citerne, cab:BLEU,      couchette:true},
                      {f:caisse,  cab:0x2F6B52,  couchette:true},
                      {f:frigo,   cab:0xE4E8EA,  couchette:false}];
@@ -18491,7 +18765,38 @@ const CAMIONS_GEOS = (function(){
     // coupe le virage. Les deux étaient écrits à la main ; ils se lisent maintenant sur
     // la géométrie, et suivraient un dessin qu'on changerait.
     sellette: -Z_SELLETTE,
-    timon: essieu
+    timon: essieu,
+    /* ---------- CE QUE LE JOUEUR EMPORTE DE LA PLANCHE ----------
+       Le joueur : « fais aussi qu'on puisse acheter un des camions américains, un tracteur,
+       et qu'on puisse atteler plusieurs types de remorques disponibles en attente à
+       l'entrepôt XL — même type d'accroche qu'avec les tracteurs et leur remorque, mais
+       qu'on puisse accrocher une remorque pour transporter des grumes de bois, une caisse
+       réfrigérée, une citerne. »
+       C'est LE MÊME DESSIN que celui de la rocade, à trois choses près, et il n'y en a pas
+       de quatrième : la carrosserie est rendue SANS SES ROUES, les essieux sont rendus à
+       côté pour qu'on y pose des roues qui tournent, et la couleur de la cabine est celle
+       qu'on demande. Rien n'est recopié : le jour où la planche changerait, l'engin du
+       joueur changerait avec elle.
+       Les géométries rendues ici ne passent PAS par le rabotage `ECH_LOURD` : il n'existe
+       que pour faire tenir un attelage sous les lampadaires de la rocade, et l'engin du
+       joueur a sa propre échelle. */
+    corps: (f, arg)=>{
+      ROUES_NOTEES = [];
+      const r = f(arg);
+      const ess = ROUES_NOTEES; ROUES_NOTEES = null;
+      return {geo:mergeParts(r.P ? decale(r.P) : decale(r)),
+              essieux:ess.map((e)=> ({z:e.z - Z_SELLETTE, ecart:e.ecart, r:e.r, l:e.l, jumele:e.jumele})),
+              feux:r.feux || null, essieu:r.essieu || 0};
+    },
+    // Le tracteur, dans la couleur demandée, et sa carrosserie a son origine au MILIEU —
+    // ce n'est pas une remorque, il ne se décale pas sur la sellette.
+    corpsTracteur: (couleur)=>{
+      ROUES_NOTEES = [];
+      const p = tracteur(couleur, true);
+      const ess = ROUES_NOTEES; ROUES_NOTEES = null;
+      return {geo:mergeParts(p), essieux:ess, feux:{w:1.06, y:1.62, zAv:3.90}};
+    },
+    remorquesJoueur: {grumier: grumier, frigo: frigo, citerne: citerne}
   };
 })();
 const traficMat = MAT_FUSION;
@@ -19028,6 +19333,19 @@ function faireNaitre(t, modele, lourd, route, v, D){
   t.ox = t.oz = t.vox = t.voz = 0;
   t.avant = D.avant; t.arriere = D.arriere; t.larg = D.larg || 2.4;
   t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
+  /* CE QUE CETTE CARROSSERIE-LÀ A LE DROIT DE PENCHER, et sa boîte pour le butoir du sol.
+     Les deux se lisent sur la géométrie qu'on vient de lui donner et sur l'échelle qu'on
+     vient de poser : une place est reprise seize fois par minute, et jamais avec le même
+     modèle. Les boîtes, elles, sont calculées une fois pour toutes et gardées SUR la
+     géométrie — il n'y en a qu'une vingtaine, et elles ne changent jamais. */
+  const bC = t.m.geometry.userData.boite || (t.m.geometry.userData.boite = boiteDe(t.m.geometry));
+  t.boite = bC;
+  t.lim = bornesSuspension(bC.bx*t.m.scale.x, bC.bz*t.m.scale.z, (bC.cy - bC.hy)*t.m.scale.y);
+  if(lourd){
+    const bR = t.rem.geometry.userData.boite || (t.rem.geometry.userData.boite = boiteDe(t.rem.geometry));
+    t.boiteRem = bR;
+    t.limRem = bornesSuspension(bR.bx*t.rem.scale.x, bR.bz*t.rem.scale.z, (bR.cy - bR.hy)*t.rem.scale.y);
+  } else { t.boiteRem = null; t.limRem = null; }
   // La robe se tire avec le modèle : deux berlines de la même minute ne sont pas jumelles.
   // Et pour un attelage, c'est L'ATTELAGE ENTIER qui se tire — citerne bleue, caisse
   // verte, frigorifique blanc sans couchette : la cabine vient avec sa remorque, comme
@@ -19514,6 +19832,7 @@ function updateTrafic(dt){
     t.m.rotateX(t.pitch);
     t.m.rotateZ(t.roll);
     t.m.position.y = Math.max(-0.16, Math.min(0.16, t.heave))*ECH_TRAFIC;
+    poserSurSol(t.m, t.boite);            // le sol est dur : voir `poserSurSol`
     /* ON LE CACHE DÈS QUE SA CARROSSERIE A ENTIÈREMENT QUITTÉ LE MONDE. La route continue
        quarante mètres au-delà, mais le bitume peint, lui, s'arrête au bord de la carte —
        et il n'y a plus de sol dessous. Le véhicule paraît donc au bout de la route et y
@@ -19554,6 +19873,10 @@ function updateTrafic(dt){
       _susRem.roll = t.rRoll; _susRem.rollV = t.rRollV;
       _susRem.pitch = t.rPitch; _susRem.pitchV = t.rPitchV;
       _susRem.heave = t.rHeave; _susRem.heaveV = t.rHeaveV; _susRem.bump = t.rBump;
+      /* SES BORNES SONT LES SIENNES, ET C'EST TOUT L'ENJEU : son maillage pivote à la
+         SELLETTE et court seize mètres et demi derrière, si bien qu'un demi-degré de plus
+         lui plante la queue dans le bitume. Voir `bornesSuspension`. */
+      _susRem.lim = t.limRem;
       suspension(_susRem, t.susp, dt, t.vit*(-e/Math.max(0.001, dt)), 0, t.vit);
       t.rRoll = _susRem.roll; t.rRollV = _susRem.rollV;
       t.rPitch = _susRem.pitch; t.rPitchV = _susRem.pitchV;
@@ -19563,6 +19886,7 @@ function updateTrafic(dt){
       t.rem.rotateX(t.rPitch);
       t.rem.rotateZ(t.rRoll);
       t.rem.position.y = Math.max(-0.16, Math.min(0.16, t.rHeave))*ECH_TRAFIC;
+      poserSurSol(t.rem, t.boiteRem);     // le sol est dur : voir `poserSurSol`
     }
   }
 }
@@ -19628,6 +19952,23 @@ flushTiles();
    plus bas encore, l'enjambeuse plus haut. Ces deux champs ne sont PAS sauvegardés (la
    sauvegarde n'écrit que verrou, level, position, cap, carburant et paliers) : on peut
    donc les ajouter sans toucher à la version du fichier de partie. */
+/* ---------- LE PARC DE L'ENTREPÔT D'EXPORT ----------
+   Le joueur veut ses remorques « en attente à l'entrepôt XL ». Elles se rangent en épi
+   devant les portes de quai, nez au sud — vers la route, prêtes à partir —, et le tracteur
+   routier les attend au bout de la même ligne. Les cotes sont posées ICI, une fois, parce
+   que la table des engins et celle des outils en ont besoin toutes les deux.
+   Le nez à z = −93 : la dalle de l'entrepôt va de −82 au sud à −120 au nord depuis que son
+   parvis a été porté à trente-huit mètres, une remorque en fait vingt-trois, et il reste
+   ainsi onze mètres de voie devant elles et quatre derrière. En x, elles évitent le cercle
+   du quai (520) : deux à l'ouest, une à l'est, et le tracteur tout au bout. */
+const SEMI_PARC = {z:-93, x:[468, 496, 552], camion:{x:576, z:-93}};
+/* OÙ SE POSE LA CHEVILLE. `CAMIONS_GEOS.sellette` est la cote de la planche déjà rabotée
+   par `ECH_LOURD`, qui ne concerne que la rocade : on la ramène à la planche, puis à
+   l'échelle du camion du joueur. Une seule ligne, et le jour où le dessin bougerait la
+   cheville suivrait. Elle est déclarée ICI, et non près de `ECH_SEMI` : là-haut,
+   `CAMIONS_GEOS` n'est pas encore construit, et un `const` de tête de fichier se lit à
+   l'endroit où il est écrit. */
+const SEMI_CHAPE = CAMIONS_GEOS.sellette/ECH_LOURD*ECH_SEMI;
 const MACHINES = [
   /* LES TROIS TRACTEURS S'APPELLENT TRACTEUR. « Vert », « Rouge », « Bleu » disaient
      leur couleur là où l'écran la montre déjà — une pastille est à côté de chaque nom,
@@ -19824,6 +20165,21 @@ const MACHINES = [
       x:-212, z:-46, cap:-Math.PI/2, vmax:7, accel:2.4, turn:0.95, grip:1.5, trackW:1.1, bateau:true,
       susp:{k:13, d:2.5, roll:0.08, pitch:0.045, rough:1.4},
       build:buildCaseyeur
+    })},
+  /* ---------- LE TRACTEUR ROUTIER, EN TOUTE FIN DE TABLE ----------
+     Il est vif sur la route et pataud à la manœuvre : la vitesse la plus haute du parc,
+     l'accélération la plus molle et le braquage le plus large — c'est un camion. Sa
+     `sellette` n'est pas un ornement : c'est elle qui dit à `peutAtteler` qu'il ne tire que
+     des semi-remorques, et qu'aucune charrue ne viendra se pendre à sa cinquième roue.
+     Sa `chape` est la sellette de la planche, à son échelle : toute remorque s'y accroche
+     au même endroit, comme les outils s'accrochent à la chape du tracteur lourd. */
+  {key:'semi', nom:'Camion', robe:'bordeaux', teinte:SEMI_ROUGE, verrou:true, prix:26000,
+   livre:'À L\'ENTREPÔT D\'EXPORT', timbre:'lourd', ton:0.72, plage:[0.68, 1.0], v:new Vehicle({
+      x:SEMI_PARC.camion.x, z:SEMI_PARC.camion.z, cap:0,
+      vmax:19, accel:8, turn:1.05, grip:5.0, trackW:1.72,
+      sellette:true, chape:SEMI_CHAPE,
+      susp:{k:22, d:4.2, roll:0.05, pitch:0.03, rough:0.9},
+      build:buildSemi
     })}
 ];
 
@@ -19907,8 +20263,37 @@ const TOOLS = [
             from:[ST.JACHERE, ST.LABOURE, ST.SEME, ST.MUR, ST.CHAUME], to:ST.SEME,
             seme:true, fertilise:true, pourEngin:'t4', travaux:['labour', 'semis'],
             aide:'Laboure, sème et fertilise en un passage',
-            verrou:true, prix:15000})
+            verrou:true, prix:15000}),
+  /* ---------- LES TROIS SEMI-REMORQUES, EN FIN DE TABLE ----------
+     Elles n'ont ni `from` ni `to` : elles ne travaillent pas la terre, elles TRANSPORTENT,
+     comme la benne — un `cargo` et une capacité, et rien d'autre. Ce qui les distingue
+     l'une de l'autre est ce qu'elles portent et combien : le grumier est le plus gros
+     volume du jeu, la caisse frigorifique vient après, la citerne ferme la marche mais
+     reste six fois la benne.
+     `semi` est le drapeau qui les lie au tracteur routier, dans les deux sens : lui ne
+     tire qu'elles, elles ne se laissent tirer que par lui (voir `peutAtteler`). Leur
+     `hitch` et leur `L` ne sont pas écrits ici — ils se LISENT sur le dessin, juste après
+     la table : la cheville pour l'un, la distance de la cheville à l'essieu pour l'autre.
+     Le `width` est leur largeur réelle ; il ne sert qu'au plan de travail, qui ne les
+     appellera jamais, mais une cote juste ne coûte rien. */
+  makeTool({key:'grumier', nom:'Grumier', build:()=> buildRemorqueSemi('grumier'),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1600, load:0,
+            aide:'Semi-remorque à grumes · gros volume', verrou:true, prix:9000}),
+  makeTool({key:'frigorifique', nom:'Frigorifique', build:()=> buildRemorqueSemi('frigo'),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1200, load:0,
+            aide:'Semi-remorque frigorifique · denrées fragiles', verrou:true, prix:11000}),
+  makeTool({key:'citerne', nom:'Citerne', build:()=> buildRemorqueSemi('citerne'),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:900, load:0,
+            aide:'Semi-remorque citerne · liquides', verrou:true, prix:8000})
 ];
+/* LEURS DEUX COTES D'ATTELAGE SE LISENT SUR LE DESSIN. `makeTool` construit le modèle ;
+   celui-ci a noté, en le construisant, la distance de sa cheville à son essieu. La cheville
+   elle-même est la sellette du tracteur. Écrire ces deux nombres à la main aurait été s'en
+   remettre à une recopie : ils se déduisent, et ils suivraient un dessin qui changerait. */
+for(const T of TOOLS) if(T.semi){
+  T.hitch = SEMI_CHAPE;
+  T.L = (T.group.userData.essieu || 0)*ECH_SEMI;
+}
 /* ---------- CE QU'UN ENGIN A LE DROIT DE TIRER ----------
    Le joueur : « ce tracteur plus costaud, le seul capable de tracter la remorque 3 en 1 ».
    La règle vit sur l'OUTIL et non sur l'engin, dans son `pourEngin` : c'est l'outil qui
@@ -19919,7 +20304,14 @@ const TOOLS = [
    la tâche `outil` du répartiteur et la relecture de sauvegarde. Une règle écrite deux
    fois est une règle qui diverge. */
 const peutAtteler = (v, T)=>{
-  if(!T || !T.pourEngin) return true;
+  if(!T) return false;
+  /* UNE SELLETTE N'EST PAS UNE CHAPE. Le tracteur routier ne tire que des semi-remorques,
+     et une semi-remorque ne se laisse tirer que par lui : sans cette règle, on aurait pu
+     pendre une charrue de deux mètres à la cinquième roue d'un camion, et traîner
+     vingt-trois mètres de citerne derrière un tracteur de ferme. Les deux sens comptent,
+     d'où le test d'égalité plutôt que deux refus. */
+  if(!!(v && v.sellette) !== !!T.semi) return false;
+  if(!T.pourEngin) return true;
   const m = MACHINES.find((x)=> x.key === T.pourEngin);
   return !!m && m.v === v;
 };
@@ -20007,13 +20399,19 @@ for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
    chercher QUINZE MINUTES sans jamais l'atteindre — pas de message, pas de plan, rien.
    Il se range donc à z = 61, derrière le semoir : sur la dalle, à huit mètres de son bord
    nord, avec de l'air des deux côtés — il est plus large que les quatre autres. */
+/* LES CINQ OUTILS DE LA FERME SONT SUR LE PARKING DE LA COUR, LES TROIS SEMI-REMORQUES
+   DEVANT L'ENTREPÔT D'EXPORT — « en attente à l'entrepôt XL ». Et elles n'y sont pas
+   tournées comme les autres : un outil de ferme est rangé face au nord (`Math.PI`), une
+   semi-remorque attend nez au sud, prête à sortir sur la route. */
 const TOOL_PARK = [[0, 56], [1, 56], [2, 56], [3, 56], [1, 61]]
-  .map((q)=> [placeCentre(q[0]), q[1]]);
+  .map((q)=> [placeCentre(q[0]), q[1], Math.PI])
+  .concat(SEMI_PARC.x.map((x)=> [x, SEMI_PARC.z, 0]));
 TOOLS.forEach((T, i)=>{
   const q = TOOL_PARK[i];
+  if(!q) return;
   T.group.position.set(q[0], 0, q[1]);
-  T.group.rotation.y = Math.PI;
-  T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
+  T.group.rotation.y = q[2];
+  T.x = q[0]; T.z = q[1]; T.cap = q[2];
 });
 
 /* ---------- LE BARÈME DU MATÉRIEL ---------- */
@@ -22027,7 +22425,17 @@ function nearestFreeTool(v){
   for(const T of TOOLS){
     if(T.attached || T.verrou) continue;
     if(!peutAtteler(v, T)) continue;      // il est là, mais pas pour cet engin-là
-    const d = Math.hypot(v.pos.x - T.group.position.x, v.pos.z - T.group.position.z);
+    /* LES CINQ MÈTRES SE COMPTENT DEPUIS LA CHAPE, ET NON DEPUIS LE MILIEU DE L'ENGIN.
+       Tant que la chape était à deux mètres du milieu, la nuance ne se voyait pas. Elle
+       devient tout le problème avec un tracteur routier : sa sellette est à 5,51 m
+       derrière son milieu, si bien qu'une remorque PARFAITEMENT attelée est à 5,51 m de
+       son centre — au-delà des cinq mètres de portée. Le bouton ne s'allumait donc JAMAIS
+       sur une semi-remorque, quelle que soit la manœuvre.
+       On retranche la chape de la distance : la portée ne se rétrécit pour personne — elle
+       s'élargit de deux mètres pour un outil de ferme, de trois et huit pour le tracteur
+       lourd — et le choix entre deux outils voisins ne change pas d'un cran, puisqu'on
+       retranche la même cote à tous ceux qu'un même engin peut tirer. */
+    const d = Math.hypot(v.pos.x - T.group.position.x, v.pos.z - T.group.position.z) - hitchDe(v, T);
     if(d < bd){ bd = d; best = T; }
   }
   return best;

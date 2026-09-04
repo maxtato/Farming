@@ -14961,3 +14961,120 @@ bateau est marqué comme écume quand la trace du pick-up reste de la gomme. Ban
 `bois` (22), `export` (12), `chocs` (24), `grandes` (7), `acces` (5), `sansvue` (9),
 `ouverture` (6) et `campagne` (72) verts. Les captures ont été regardées : la rue ouest du
 ciel et depuis la route, la zone industrielle, et le chalutier en plein virage.
+
+## Le sol devient dur, le camion américain s'achète, et le bitume redevient nu
+
+Le joueur, quatre demandes d'un coup : « Lors d'un accident entre deux véhicules, certains
+véhicules s'enfoncent dans le sol. C'est le cas notamment pour les camions avec des
+remorques : lorsqu'il tape, la remorque a tendance à s'incliner vers l'arrière et à rentrer
+dans le sol. Fais en sorte que le sol soit quelque chose de dur qui ne soit jamais
+franchissable par aucun objet. Fais aussi qu'on puisse acheter un des camions américains, un
+tracteur, et qu'on puisse atteler plusieurs types de remorques disponibles en attente à
+l'entrepôt XL. Même type d'accroche qu'on a avec les tracteurs et leur remorque, mais qu'on
+puisse accrocher une remorque pour transporter des grumes de bois, une caisse réfrigérée, une
+citerne. Ça nous permettra de faire des gros transports de marchandises entre notre production
+et l'entrepôt d'export. Le camion, fais le rouge très légèrement bordeaux. Pour le
+supermarché, finalement, mets-le tout à droite sur la route qui traverse à la verticale entre
+l'entrepôt et la route du bas, qui longe le côté est de la forêt. Sur toutes les nouvelles
+routes que tu as créées, tu as fait des détails avec des petits rectangles sur les routes : je
+ne veux pas que tu fasses ça — tu le fais sur l'herbe, etc., mais pas sur les routes. »
+
+### Le sol est dur
+
+**Trois choses s'y mettaient, et il fallait les trois.** Mesuré avant d'y toucher :
+
+1. **Le ressort de suspension s'emballait aux basses cadences.** L'intégration est un Euler
+semi-implicite : elle n'est stable que si le pas reste petit devant la période du ressort. À
+soixante, trente et douze images par seconde, le tangage d'un poids lourd qui pile plafonne à
+0,11 rad ; à trois images, il partait à **mille cinq cents**. Le pas d'intégration est
+maintenant borné à un vingt-quatrième de seconde — au-delà on sous-échantillonne le ressort,
+ce qui l'assagit au lieu de le faire diverger — et le jeu continue de tourner à sa cadence.
+2. **Seule la CIBLE était bornée, pas l'ÉTAT.** `rollT` et `pitchT` étaient tenus à 0,17 et
+0,10 ; `roll` et `pitch` dépassaient librement par le dépassement du ressort. L'état est borné,
+et la vitesse coupée au butoir.
+3. **Et la borne ne peut pas être la même pour une voiture et pour une semi-remorque.** C'est
+là qu'était le vrai défaut. Une remorque est modélisée **avec son pivot à la sellette**, tout à
+l'avant : son maillage descend jusqu'à y = 0 — les pneus posent — et court **seize mètres et
+demi en arrière** du pivot. À 0,11 rad, sa queue passait **un mètre quatre-vingt-cinq sous le
+sol**. Une borne en degrés n'a donc aucun sens : ce qui compte est le DÉBATTEMENT, de combien
+un coin de carrosserie a le droit de descendre. Chaque corps tire ses bornes de sa propre
+taille et de sa garde au sol (`bornesSuspension`) : une semi-remorque ne tangue plus que d'un
+degré, comme une vraie, et les engins du joueur — dont la caisse est un groupe à part, qui
+flotte à quarante centimètres du bitume — gardent exactement le plongeon et le roulis qu'ils
+avaient.
+
+**Et par-dessus, un butoir.** `poserSurSol` relève l'objet de ce que sa boîte descendrait sous
+zéro, une fois tournée. La ligne des y de la matrice de rotation suffit, et l'échelle est prise
+axe par axe. Il s'applique à la caisse de chaque engin, à chaque carrosserie du trafic et à
+chaque remorque : quoi qu'il arrive, plus rien ne passe sous le sol.
+
+### Le camion américain, et ses trois remorques
+
+**Tout vient de la planche du joueur, rien n'est redessiné.** `CAMIONS_GEOS` — le dessin des
+attelages de la rocade — rend maintenant la carrosserie **sans ses roues** et la liste de ses
+essieux : on cuit la première en une seule pièce, un appel de rendu pour tout le camion, et
+l'on pose sur la seconde de vraies roues, qui tournent et qui braquent, comme sur les treize
+autres engins du parc. Le jour où la planche changerait, le camion du joueur changerait avec
+elle. Sa cabine est **0x8E2F35**, quelques degrés sous le rouge du jeu, vers le pourpre :
+bordeaux à côté du rouge du chalutier, sans virer au violet.
+
+**Le grumier, qu'on avait laissé de côté.** La planche en montrait un ; il avait été écarté
+faute de forêt sur la carte. Il y en a une depuis. Plateau nu, quatre paires de ranchers, trois
+lits de grumes en quinconce, les têtes de coupe claires qui dépassent. Il n'entre pas dans le
+trafic — la règle « plus une carrosserie rouge sur la rocade » tient toujours.
+
+**La sellette est une chape comme une autre.** Le jeu sait déjà tirer un outil : `hitchDe` dit
+où il s'accroche, `T.L` à quelle distance roule son essieu, `Vehicle.update` fait suivre le
+timon. Une semi-remorque n'est rien d'autre — le maillage de la planche a justement son origine
+à la cheville d'attelage — à ceci près qu'elle est LONGUE : `L` vaut seize mètres là où une
+charrue en fait deux. Rien de la mécanique d'attelage n'a été réécrit.
+
+**Deux règles neuves, et deux seulement.** Une sellette n'est pas une chape : le camion ne tire
+que des semi-remorques et une semi-remorque ne se laisse tirer que par lui (`peutAtteler`, dans
+les deux sens). Et la portée du bouton d'attelage se compte **depuis la chape** et non depuis
+le milieu de l'engin : la sellette étant à 5,51 m derrière le milieu, une remorque parfaitement
+attelée était à 5,51 m du centre, soit au-delà des cinq mètres de portée — le bouton ne
+s'allumait jamais. La portée ne se rétrécit pour personne, elle s'élargit de deux mètres pour
+un outil de ferme.
+
+**Elles attendent à l'entrepôt XL.** Le parvis de l'entrepôt d'export passe de vingt-deux à
+trente-huit mètres : c'est devenu son parc à remorques. Les trois s'y rangent en épi devant les
+portes de quai, nez au sud, prêtes à sortir, et le tracteur les attend au bout de la même
+ligne. Le palier « Gros volumes », qui ouvrait déjà l'entrepôt, ouvre le camion (26 000 €) et
+ses trois remorques — grumier 1 600 kg, frigorifique 1 200, citerne 900, contre 135 pour la
+benne de la ferme.
+
+### Le supermarché, et le bitume
+
+**Le supermarché passe sur le brin nord-sud, tout à l'est.** Il s'installe sur son bord EST —
+la forêt tient tout l'ouest, et c'est le seul des deux côtés où ses cinquante mètres de façade
+et ses quarante-huit de profondeur entrent sans toucher au bois. Sa bande est celle des maisons
+de ce bord, dont il prend la place du milieu ; il se retrouve à mi-chemin de l'entrepôt et de la
+route du bas. Pour que ce soit possible, `frontDe` a été généralisé aux trois faces : une bande
+latérale peut désormais border une autre chaussée que la rocade, ce que `disposerSites` écrivait
+jusqu'ici en dur. **La route du bas garde son hameau** — trois maisons, du vide et des arbres,
+sur une bande un peu plus courte.
+
+**Le bitume est nu.** Quatre-vingt-dix rectangles clairs et sombres étaient semés dans la
+texture de route : des rustines de goudron, vues de haut comme un damier de plaquettes collées.
+Elles partent, et avec elles la seule chose qui distinguait la chaussée en maillage — le brin
+nord-sud, la route du port, celle de l'entrepôt — de la rocade PEINTE sur les tuiles, qui n'en a
+jamais eu. Ce qui reste tacheté, et que le joueur a demandé lui-même, ce sont l'herbe, la terre
+battue de la piste du bois et le béton des dalles.
+
+**Mesuré.** Nouveau banc `camion` (18 contrôles) : le camion s'achète au palier 10, sa cabine
+est un rouge légèrement bordeaux mesuré composante par composante, il a ses dix roues, ses
+phares et son pot, il fait 18,8 m contre 13,7 au fourgon ; les trois remorques transportent, se
+paient, s'ouvrent au palier, font vingt et quelques mètres sur huit roues, s'accrochent toutes
+à la sellette et attendent sur la dalle de l'entrepôt ; le camion ne tire que des semi-remorques
+et le tracteur que des outils ; on s'approche, le bouton la prend, elle reste derrière au timon
+en ligne droite comme en virage, et l'entrepôt lui prend ses huit cents kilos. Côté sol : le
+ressort ne s'emballe plus d'une image par seconde à soixante, une semi-remorque ne tangue qu'à
+1,0°, pas un de ses points ne descend sous le sol, et onze engins du joueur sur douze gardent
+leur plongeon et leur roulis. Et la texture de route n'a plus qu'une seule couleur hors de sa
+ligne axiale. Une attente du banc `export` réécrite (le parvis fait 38 m et non plus 22 : c'est
+le parc à remorques, ce qui est vérifié — l'anneau devant les remorques, hors de la bâtisse —
+n'a pas changé). Bancs `port` (31), `bois` (22), `export` (12), `village` (16), `chocs` (24),
+`grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6) et `campagne` (72) verts. Les
+captures ont été regardées : le parc à remorques du ciel, le camion sur la route, et les trois
+attelages en marche.
