@@ -15393,3 +15393,46 @@ explication est pire que pas d'explication du tout :
 **Mesuré.** Bancs `port` (31), `bois` (22), `camion` (18), `chocs` (24), `export` (12),
 `village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11)
 et `campagne` (72) verts.
+
+## Les six se règlent sur le porteur, et le porteur sur le fourgon
+
+**Le joueur, en trois temps.** « Agrandis-les » (ils étaient à 1,30) ; puis « tu les as trop
+agrandis, réduis-les comme le camion » (× 0,7502) ; puis, ce qui tient aujourd'hui : « tu les
+as remis comme au début. Grossis-les, mais qu'un petit peu : je veux que le **porteur** fasse
+la même taille que les fourgons du trafic, que le **camion US** fasse la même taille que les
+camions US du trafic, et que tu grossisses tous les autres au même propos, en comparaison du
+fourgon et du camion US. »
+
+**Deux étalons, et ils se confondent.** Mesuré : le fourgon du joueur fait **11,90 m**, le
+camion bordeaux **11,92** — lui-même au gabarit exact des tracteurs américains de la rocade,
+qui font 11,92 eux aussi ; et les plus gros camions du trafic (camion à caisse, bétaillère)
+font 11,34, le plateau à bottes 11,94. Il y a donc une barre nette autour de **onze mètres
+quatre-vingt-dix**, et c'est celle-là que le joueur désigne.
+
+**Le porteur est amené sur la barre, et les cinq autres prennent son facteur.** Le porteur
+passe de 1,24 à **1,385**, ce qui le met à 11,91 m — le fourgon au centimètre. Les cinq autres
+sont multipliés par le même **1,1163**, ce qui les grossit d'un neuvième sans toucher à leurs
+proportions relatives, que le joueur n'a jamais contestées entre elles :
+
+| engin | échelle | longueur |
+|---|---|---|
+| porteur | 1,24 → **1,385** | 10,66 → **11,91 m** ← l'étalon |
+| caseyeur | 1,20 → **1,34** | 10,35 → **11,56 m** |
+| abatteuse | 1,20 → **1,34** | 10,05 → **11,22 m** |
+| camion frigo | 1,43 → **1,60** | 10,02 → **11,22 m** |
+| chalutier | 1,16 → **1,29** | 12,82 → **14,25 m** |
+| barque | 1,13 → **1,26** | 7,46 → **8,32 m** |
+
+Les cinq se rangent autour des deux étalons, le chalutier seul au-dessus : c'est le plus gros
+bateau du port, et il doit le rester. Le camion US ne bouge pas — il était déjà à la taille des
+camions US du trafic, et c'est de là que part tout le reste.
+
+**Un commentaire suit le mouvement.** Le portique de la marina garde ses 12,80 m de tirant
+d'air ; son explication dit maintenant la bonne cote du plus haut engin du parc — le porteur, à
+**10,10 m** grue dressée, contre neuf à l'enjambeuse. Près de trois mètres de marge, laissés
+exprès : c'est un portique de bienvenue, pas un tunnel.
+
+**Mesuré.** Bancs `port` (31), `bois` (22), `camion` (18), `chocs` (24), `export` (12),
+`village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6), `diagnostic` (11)
+et `campagne` (72) verts. La capture a été regardée : fourgon, camion bordeaux, porteur,
+abatteuse, caseyeur et chalutier alignés à la verticale sur la même route, vus du ciel.
