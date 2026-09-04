@@ -3812,7 +3812,17 @@ const SITES = [
    w:12.5, d:9.0,  pw:13, ph:12, toit:0x6E8AA0, mur:0xF2EAD8, cuves:2,
    vend:[{nom:'Semences', prix:'dès ' + tarifKg(0.18)},
          {nom:'Engrais',  prix:tarifKg(PRIX_INTRANT.engrais)}]},
-  {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'ZI', bat:56, park:69,
+  /* LA FROMAGERIE REVIENT AU VILLAGE, SUR LA BANDE OUEST. Le joueur : « la fromagerie
+     est un des commerces de bouche que je veux voir dans le village ; ajuste en
+     supprimant des maisons ou autre pour pouvoir caler la fromagerie dans le village, à
+     gauche, on va vers le port. » Elle était partie à la zone industrielle le jour où le
+     village n'a gardé que les commerces de proximité — mais une fromagerie n'est pas une
+     usine : c'est une boutique, elle l'a toujours été dans cette table (`style:'boutique'`,
+     `cloture:'muret'`, une enseigne à potence), et elle a sa place entre le caviste et la
+     boucherie. Elle reste ICI dans le tableau, à son rang : `negoce` est sérialisé par
+     INDICE dans la sauvegarde, et la déplacer d'une ligne enverrait la trémie de l'une
+     chez l'autre. Seul `dir` change ; `repartirBandes` fait le reste. */
+  {nom:'Fromagerie', enseigne:'potence', picto:'goutte', dir:'W', bat:56, park:69,
    style:'boutique', crop:-1, prix:0, cloture:'muret', modele:()=> batFromagerie(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A6A3A, mur:0xEFE4CE},
   {nom:'Usine avoine', enseigne:'facade', picto:'feuille', dir:'ZI', bat:-140, park:107,
@@ -5784,9 +5794,17 @@ const BANDES = {
      bande nord ses trois commerces et deux maisons, la bande est ses trois commerces et
      rien d'autre — avec, sur chacune, deux creux de douze mètres. Les maisons du village
      sont désormais surtout celles du rang du bord sud. */
-  W: [{paquet:['maison', 'Épicerie']},
+  /* ET LA BANDE OUEST DEVIENT LA RUE DES COMMERCES DE BOUCHE. La fromagerie y entre à la
+     demande du joueur, et il faut ses 27,9 m : la bande en a 132 pour 89,4 de dalles, et
+     ses deux creux sont déjà au plafond. C'est SA SEULE MAISON qui part — « ajuste en
+     supprimant des maisons ou autre » —, et le compte tombe juste : 93,9 m de dalles,
+     8 de marges, les deux creux gardent leurs douze mètres, et il reste trois mètres de
+     verge à chaque carrefour en plus des trois du recul. La fromagerie se colle au
+     caviste plutôt qu'à la boucherie : cela met les deux plus petites dalles de la bande
+     de part et d'autre du second creux, et laisse l'épicerie seule au bout nord. */
+  W: [{paquet:['Épicerie']},
       {creux:'village', poids:1},
-      {paquet:['Caviste']},
+      {paquet:['Caviste', 'Fromagerie']},
       {creux:'village', poids:0.9},
       {paquet:['Boucherie']}],
   N: [{paquet:['Boulangerie', 'maison']},
@@ -5804,9 +5822,17 @@ const BANDES = {
   /* LA ZONE INDUSTRIELLE : cinq usines en deux paquets séparés d'un bosquet, au nord de
      la route prolongée, de 122 à 212 m. Pas de maison ici : c'est une zone d'activité,
      et c'est ce qui la distingue du village. */
+  /* LA ZONE INDUSTRIELLE N'A PLUS QUE QUATRE USINES, ET TROIS PAQUETS PLUTÔT QUE DEUX.
+     La fromagerie partie au village, le paquet du fond n'en gardait que deux : les
+     vingt-huit mètres rendus seraient tous allés aux deux bouts de la bande, dix-neuf de
+     chaque côté, et la zone aurait eu l'air de s'être vidée par les bords. On sépare donc
+     la laiterie de l'atelier textile par un second bosquet : trois îlots, deux creux au
+     plafond, et onze mètres de dégagement à chaque bout. */
   ZI: [{paquet:['Usine céréales', 'Usine avoine']},
        {creux:'verdure', poids:1},
-       {paquet:['Laiterie', 'Fromagerie', 'Atelier textile']}],
+       {paquet:['Laiterie']},
+       {creux:'verdure', poids:1},
+       {paquet:['Atelier textile']}],
   /* LES ATELIERS DU BOIS : deux paquets de deux, un bosquet entre eux, en face de la
      forêt. La scierie et le séchoir d'abord — c'est là qu'on vend au début —, la
      menuiserie et la tonnellerie ensuite, qui paient mieux et prennent moins. */
@@ -14607,7 +14633,14 @@ function updateTrail(v, now, dt){
     const tx = v.pos.x + fw.x*ea, tz = v.pos.z + fw.z*ea;
     if(!last || Math.hypot(tx-last.x, tz-last.z) > TRAIL_STEP){
       const r = right(v.cap);
-      trail.push({x:tx, z:tz, rx:r.x, rz:r.z, t:now, w:v.trackW});
+      /* CE QUE LE POINT A LAISSÉ SE RETIENT AVEC LUI. La trace est faite de gomme
+         presque noire — c'est un pneu sur la terre — et un bateau y écrivait donc deux
+         raies sombres sur l'eau. Un bateau laisse de l'écume, qui est claire. On ne peut
+         pas en décider à la relecture, à partir de l'engin du moment : la trace vit deux
+         secondes et demie, et l'on change de véhicule sans qu'elle s'efface — le sillage
+         du chalutier deviendrait de la gomme dès qu'on reprend le pick-up. Chaque point
+         garde donc ce qu'il était quand il a été posé. */
+      trail.push({x:tx, z:tz, rx:r.x, rz:r.z, t:now, w:v.trackW, ec:!!v.bateau});
       if(trail.length > TRAIL_N) trail.shift();
     }
   }
@@ -14627,11 +14660,15 @@ function updateTrail(v, now, dt){
         [B.x+B.rx*(oB+TRAIL_HW), B.z+B.rz*(oB+TRAIL_HW), fadeB],
         [B.x+B.rx*(oB-TRAIL_HW), B.z+B.rz*(oB-TRAIL_HW), fadeB]
       ];
+      // La couleur du segment est celle de son premier point : deux points de nature
+      // différente ne se suivent que sur le seul segment de la bascule.
+      const ec = A.ec;
       for(const idx of [0,1,2, 0,2,3]){
         const o3 = q*3, o4 = q*4;
         trailPos[o3] = p[idx][0]; trailPos[o3+1] = 0.055; trailPos[o3+2] = p[idx][1];
-        trailCol[o4] = 0.05; trailCol[o4+1] = 0.04; trailCol[o4+2] = 0.035;
-        trailCol[o4+3] = p[idx][2]*0.5;
+        if(ec){ trailCol[o4] = 0.68; trailCol[o4+1] = 0.86; trailCol[o4+2] = 0.91; }
+        else  { trailCol[o4] = 0.05; trailCol[o4+1] = 0.04; trailCol[o4+2] = 0.035; }
+        trailCol[o4+3] = p[idx][2]*(ec ? 0.62 : 0.5);
         q++;
       }
     }
@@ -33315,7 +33352,17 @@ const siSouvent = (p)=> Math.random() < p*Math.min(4, _dtImage*60);
    bande de bitume de la cour, du parking à l'atelier — : fumée grise et crissement. Tout
    le reste est de la terre ou de l'herbe : poussière brune, et le chuintement d'un pneu
    qui laboure. La poussière sort des roues arrière, là où la trace se pose déjà. */
-const SOL_DUR = {gris:0x9AA1A6, terre:0x8A7357};
+/* ET IL Y A UN TROISIÈME SOL : L'EAU. Le joueur : « pour le port, tu as fait des effets
+   au niveau du bateau quand on tourne, avec de la fumée, comme pour les véhicules sur la
+   route ; change la couleur de ces effets pour que ce soit bleu clair, que ça ressemble à
+   l'écume de l'eau. » `solDur` ne connaissait que deux réponses — le bitume ou la terre —,
+   et l'eau n'étant pas du bitume, un chalutier qui virait sec labourait la baie en
+   POUSSIÈRE BRUNE, sur l'échantillon de gravier par-dessus le marché. Un bateau qui vire
+   brasse de l'écume : elle est bleu clair, elle sort au ras de l'eau, elle retombe, et
+   elle ne fait pas le bruit d'un pneu. La même couleur sert aux trois traces que le
+   bateau laisse — la gerbe de l'étrave, l'écume du virage et le sillage —, et c'est
+   voulu : trois nuances pour une seule matière se verraient. */
+const SOL_DUR = {gris:0x9AA1A6, terre:0x8A7357, ecume:0xAEDCE8};
 function solDur(x, z){
   if(surRoute(x, z)) return true;
   return z >= COUR_Z0 && z <= COUR_Z1 && x >= COUR_X0 && x <= ROC.x1 - ROAD_W/2;
@@ -33325,17 +33372,21 @@ function derapage(v, dt){
   const glisse = v.slip || 0;
   const vit = Math.abs(v.speed);
   const n = (glisse > 0.45 && vit > 2.5) ? Math.min(1, (glisse - 0.45)/0.45) : 0;
-  const dur = solDur(v.pos.x, v.pos.z);
-  AUDIO.derapageUpdate(n, dur, dt);
+  const eau = !!v.bateau;
+  const dur = !eau && solDur(v.pos.x, v.pos.z);
+  // Ni gravier ni crissement sur l'eau : un bateau n'a pas de pneu à faire chanter.
+  AUDIO.derapageUpdate(eau ? 0 : n, dur, dt);
   poussiereT -= dt;
   if(n <= 0 || poussiereT > 0) return;
   poussiereT = 0.07;
   const fw = v.fwd(), r = right(v.cap), ea = v.essieuAr || 0, w = v.trackW || 1;
-  const col = dur ? SOL_DUR.gris : SOL_DUR.terre;
+  const col = eau ? SOL_DUR.ecume : (dur ? SOL_DUR.gris : SOL_DUR.terre);
   for(const side of [-1, 1]){
     const x = v.pos.x + fw.x*ea + r.x*side*w, z = v.pos.z + fw.z*ea + r.z*side*w;
-    puff(x + (Math.random()-0.5)*0.3, 0.3, z + (Math.random()-0.5)*0.3, col,
-         0.45 + 0.55*n, 0.5 + 0.4*n, 0.9, -0.12, dur ? 0.42 : 0.5, 0.5);
+    // L'écume sort au ras de l'eau et retombe ; la poussière monte et se dissipe.
+    puff(x + (Math.random()-0.5)*0.3, eau ? 0.16 : 0.3, z + (Math.random()-0.5)*0.3, col,
+         0.45 + 0.55*n, eau ? 0.30 + 0.30*n : 0.5 + 0.4*n, 0.9,
+         eau ? 0.45 : -0.12, eau ? 0.55 : (dur ? 0.42 : 0.5), eau ? 0.7 : 0.5);
   }
 }
 /* ==========================================================================
@@ -34219,9 +34270,12 @@ function loop(now){
       // sur l'essieu ARRIÈRE, et non au milieu de l'engin : `f` porte le décalage.
       const r = right(v.cap), s = (Math.random() < 0.5 ? -1 : 1)*v.trackW;
       const f = v.fwd(), e = v.essieuAr || 0;
-      // Un bateau ne soulève pas de poussière : c'est de l'écume, et elle est blanche.
+      /* Un bateau ne soulève pas de poussière : c'est de l'écume. Elle était BLANCHE —
+         0xE6F2F4, à peine teintée —, et sur une eau bleu-vert elle passait pour de la
+         vapeur ; elle prend le bleu clair de `SOL_DUR.ecume`, comme les deux autres
+         traces du bateau. */
       puff(v.pos.x + r.x*s + f.x*e, v.bateau ? 0.15 : 0.4, v.pos.z + r.z*s + f.z*e,
-           v.bateau ? 0xE6F2F4 : 0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
+           v.bateau ? SOL_DUR.ecume : 0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
     }
     updateTrail(v, now/1000, dt);
     derapage(v, dt);

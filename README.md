@@ -14894,3 +14894,70 @@ Bancs `port` (31), `export` (12), `chocs` (24), `grandes` (7), `acces` (5), `san
 `campagne` (72) verts. Les captures ont été regardées, du ciel et depuis la route : la piste
 qui quitte le bitume, la place et ses deux engins au fond du bois, le brin bordé de maisons,
 et le supermarché loin du garage.
+
+## La fromagerie revient au village, et le bateau lève de l'écume
+
+Le joueur : « Et au niveau du village, je veux que tu mettes la fromagerie — la fromagerie
+est un des commerces de bouche que je veux voir dans le village —, donc ajuste en supprimant
+des maisons ou autre pour pouvoir caler la fromagerie dans le village, à gauche, on va vers
+le port. Et pour le port, tu as fait des effets au niveau du bateau quand on tourne, avec de
+la fumée, comme pour les véhicules sur la route : change la couleur de ces effets pour que ce
+soit bleu clair, que ça ressemble à l'écume de l'eau. »
+
+**La fromagerie n'était pas à sa place, et elle ne l'était que par accident.** Elle était
+partie à la zone industrielle le jour où le village n'a gardé que les commerces de proximité,
+avec les quatre usines — mais une fromagerie n'est pas une usine, et elle ne l'a jamais été
+dans la table : `style:'boutique'`, `cloture:'muret'`, une enseigne à potence, comme
+l'épicerie et le caviste. Elle rejoint la BANDE OUEST, celle qu'on longe en allant au port :
+l'épicerie, le caviste, la fromagerie, la boucherie. Quatre commerces de bouche d'un bout à
+l'autre de la rue.
+
+**Elle ne change pas de rang dans `SITES`.** Une sauvegarde sérialise `negoce` par INDICE :
+déplacer la ligne d'un cran enverrait la trémie de l'une chez l'autre. Seul `dir` change, et
+`repartirBandes` recalcule tout le reste.
+
+**C'est la maison de la bande ouest qui lui cède la place.** La bande fait 132 m, ses dalles
+en occupaient 89,4 et ses deux creux étaient déjà au plafond des douze mètres : les 27,9 m de
+la fromagerie ne rentraient nulle part. Sa seule maison part — « ajuste en supprimant des
+maisons ou autre » — et le compte tombe juste : 93,9 m de dalles, 8 de marges, les deux creux
+gardent leurs douze mètres, et il reste trois mètres de verge à chaque carrefour en plus des
+trois du recul. La fromagerie se colle au caviste plutôt qu'à la boucherie : cela met les
+deux plus petites dalles de part et d'autre du second creux, et laisse l'épicerie seule au
+bout nord.
+
+**La zone industrielle passe de deux îlots à trois.** À quatre usines, le paquet du fond n'en
+gardait que deux, et les vingt-huit mètres rendus seraient tous allés aux deux bouts de la
+bande — dix-neuf de chaque côté, une zone qui a l'air de s'être vidée par les bords. Un second
+bosquet sépare donc la laiterie de l'atelier textile : trois îlots, deux creux au plafond, et
+onze mètres de dégagement à chaque bout.
+
+**Un bateau qui vire labourait la baie en poussière brune.** `solDur(x, z)` ne connaît que
+deux réponses — le bitume ou la terre —, et l'eau n'étant pas du bitume, un chalutier lancé
+qui braquait à fond levait la POUSSIÈRE DE TERRE des engins agricoles, sur l'échantillon de
+gravier par-dessus le marché. Il y a maintenant un troisième sol : `SOL_DUR.ecume`, un bleu
+clair. L'écume sort au ras de l'eau, elle retombe au lieu de monter, et elle ne fait pas le
+bruit d'un pneu — ni gravier ni crissement, un bateau n'a pas de pneu à faire chanter. Les
+engins de la terre n'ont rien perdu : leur poussière et leur fumée grise sont au mot près
+celles d'avant.
+
+**La même couleur pour les trois traces du bateau.** La gerbe d'étrave était blanche —
+0xE6F2F4, à peine teintée — et passait pour de la vapeur sur une eau bleu-vert ; et le
+SILLAGE était fait de gomme presque noire, puisque c'est la trace de pneu des véhicules :
+un bateau écrivait donc deux raies sombres derrière lui. Les trois prennent le bleu clair,
+parce que trois nuances pour une seule matière se verraient. Chaque point de sillage retient
+ce qu'il était au moment où il a été posé : la trace vit deux secondes et demie et l'on change
+de véhicule sans qu'elle s'efface — décider à la relecture ferait de la gomme du sillage du
+chalutier dès qu'on reprend le pick-up.
+
+**Mesuré.** Nouveau banc `village` (16 contrôles) : la fromagerie est un commerce du village
+sur la bande ouest, à son rang dans `SITES` ; les quatre commerces de bouche sont dans
+l'ordre du nord au sud, tiennent entre les deux rocades, ne se recouvrent pas et ne mordent
+pas le bitume ; la bande ouest n'a plus de maison et ses deux creux gardent douze mètres ; la
+zone industrielle garde quatre usines en trois îlots ; un fourgon descend la rocade et se
+range au quai de la fromagerie en 3,5 s, où elle prend toujours le lait à transformer. Et
+côté port : un bateau qui vire à fond ne lève que de l'écume bleu clair, l'engin de la terre
+lève toujours sa poussière brune, le son de dérapage reste à zéro sur l'eau, et le sillage du
+bateau est marqué comme écume quand la trace du pick-up reste de la gomme. Bancs `port` (31),
+`bois` (22), `export` (12), `chocs` (24), `grandes` (7), `acces` (5), `sansvue` (9),
+`ouverture` (6) et `campagne` (72) verts. Les captures ont été regardées : la rue ouest du
+ciel et depuis la route, la zone industrielle, et le chalutier en plein virage.
