@@ -2912,6 +2912,14 @@ const PORT = {
   debarque:{x:-247, z:-50},                    // le cercle des bateaux : dans l'eau, en face
   chantier:{x:-194, z:-44},                    // le chantier naval, sur la côte du bassin
   chantierQuai:{x:-176, z:-44},                // le cercle du chantier naval
+  /* L'AIRE DU CHANTIER NAVAL, dans le prolongement du quai. Le joueur : « fais que le
+     chantier naval soit une partie intégrante du quai, comble la dalle sur la partie en
+     violet. » Il était posé sur l'herbe, hors de la clôture, avec son propre socle de béton
+     — un chantier naval au bord d'un pré, qu'on rejoignait en quittant la route. La dalle
+     du quai tourne donc au sud-est et vient jusqu'à lui : trente mètres sur quarante-trois,
+     bord à bord avec la grande dalle sur treize mètres, le long de la route au nord, et
+     jusqu'au sable à l'ouest, où descend sa cale. */
+  cale:{x0:-196, x1:-166, z0:-69, z1:-26},
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
   r:6.5, spotR:8, eau:null
 };
@@ -7885,7 +7893,7 @@ function habillerLesHerbes(){
   const presDalle = (x, z)=> SITES.some((S)=> x > S.emp.x0 - 8 && x < S.emp.x1 + 8 && z > S.emp.z0 - 8 && z < S.emp.z1 + 8);
   // entre le port et le village, au sud de la route : la côte à l'ouest, les tuiles à l'est, le chantier naval épargné
   semer(40, PORT.cote + 10, X0 - 10, ROAD_N + 14, MONDE.z1 - 8,
-        (x, z)=> x < PORT.chantier.x + 24 && z > PORT.chantier.z - 24 && z < PORT.chantier.z + 24);
+        (x, z)=> x > PORT.cale.x0 - 6 && x < PORT.cale.x1 + 6 && z > PORT.cale.z0 - 6 && z < PORT.cale.z1 + 6);
   // derrière la zone industrielle et les ateliers du bois, jusqu'au bout du monde
   semer(34, ZI_X0, FO_X1, MONDE.z0 + 8, -136, presDalle);
   // entre les ateliers du bois et l'entrepôt, au nord de la route ; et derrière l'entrepôt
@@ -7947,6 +7955,14 @@ function construirePort(){
   const D = PORT.dalle, DW = D.x1 - D.x0, DD = D.z1 - D.z0;
   const dalle = box(DW, 0.06, DD, PO_.BETON, (D.x0 + D.x1)/2, 0.03, (D.z0 + D.z1)/2);
   dalle.castShadow = false; scene.add(dalle);
+  /* Et le même béton au sud-est, pour le chantier naval : les deux rectangles se touchent
+     bord à bord le long de x = −196, entre la route et le bassin, si bien qu'on passe de
+     l'un à l'autre sans rien franchir. Deux dalles jointives et non une seule en L : deux
+     rectangles ne se recouvrent nulle part, là où un L découpé se disputerait son propre
+     plan sur le recouvrement. */
+  const C = PORT.cale, CW = C.x1 - C.x0, CD = C.z1 - C.z0;
+  const cale = box(CW, 0.06, CD, PO_.BETON, (C.x0 + C.x1)/2, 0.03, (C.z0 + C.z1)/2);
+  cale.castShadow = false; scene.add(cale);
   const JL = J.z1 - J.z0, jz = (J.z0 + J.z1)/2, Y_PONT = 0.12;
   const pont = box(J.w, Y_PONT, JL, PO_.BETON, J.x, Y_PONT/2, jz);
   pont.castShadow = false; scene.add(pont);
@@ -7981,6 +7997,7 @@ function construirePort(){
   scene.add(bords); fusionnerGroupe(bords);
   // Le grain du sol, avec parcimonie : une moucheture tous les quarante-cinq mètres carrés.
   mouchetures(D.x0, D.z0, D.x1, D.z1, 0.065, Math.round(DW*DD/45), PO_.BETON);
+  mouchetures(C.x0, C.z0, C.x1, C.z1, 0.065, Math.round(CW*CD/45), PO_.BETON);
   mouchetures(jx0, J.z0, jx1, J.z1, Y_PONT + 0.005, Math.round(J.w*JL/45), PO_.BETON);
   // Le phare ferme le bout de la jetée : son bout de jetée enroché regarde le large,
   // c'est-à-dire le sud, et sa plate-forme arrête tout le monde.
@@ -8016,8 +8033,15 @@ function construirePort(){
   };
   grillage(D.x0, D.z0, D.x0, D.z1);                                    // le bout ouest de la dalle
   const RB = ROAD_W/2;
-  grillage(D.x1, D.z0, D.x1, ROAD_N - RB); grillage(D.x1, ROAD_N + RB, D.x1, D.z1);   // les deux côtés de l'entrée
+  grillage(D.x1, D.z0, D.x1, ROAD_N - RB);                             // au nord de l'entrée
   pilier(D.x1, ROAD_N - RB); pilier(D.x1, ROAD_N + RB);
+  /* AU SUD DE L'ENTRÉE, LA CLÔTURE NE FERME PLUS À x = −196 : elle fait le tour de l'aire du
+     chantier. Le pan qui courait là séparait les deux dalles, et le chantier restait dehors.
+     Le tour : le long de la route au nord, le bout à l'est, et le fond au sud — celui-ci
+     poussé jusqu'à l'eau pour fermer aussi la bande de sable, seule échappée qui restait. */
+  grillage(C.x0, C.z0, C.x1, C.z0);        // au nord, le long de la route
+  grillage(C.x1, C.z0, C.x1, C.z1);        // le bout est
+  grillage(EAU.x1, C.z1, C.x1, C.z1);      // le fond sud, du bord de l'eau au bout est
   const dalles = SITES.filter((S)=> S.dir === 'PO').sort((a, b)=> a.emp.x0 - b.emp.x0);
   let xg = D.x0;
   for(const S of dalles){ grillage(xg, D.z0, S.emp.x0, D.z0); xg = S.emp.x1; }
@@ -9376,7 +9400,11 @@ function batConserverie(){
 function modeleChantierNaval(){
   const g = new THREE.Group();
   const W = 11, D = 9;
-  g.add(box(W + 3, 0.18, D + 3, PO_.BETON, 0, 0.09, 0));
+  /* PAS DE SOCLE : LE QUAI EST SON SOL. Le modèle portait sa propre plaque de béton de
+     dix-huit centimètres — quatorze mètres sur douze, vingt-huit centimètres de haut une
+     fois à l'échelle. Posée sur la dalle du quai, elle y aurait fait la marche que le joueur
+     a déjà refusée pour le quai de débarque et la grue. On la retire, et ce qui reposait
+     dessus — l'atelier et son tas de planches — descend d'autant. */
   const cale = box(6.0, 0.3, 5.0, PO_.BETON2, 0, 0.5, D/2 + 0.6);
   cale.rotation.x = 0.13; g.add(cale);
   for(let k = 0; k < 6; k++) g.add(box(6.2, 0.16, 0.24, PO_.GRIS, 0, 0.9 - k*0.13, 1.6 + k*0.8));
@@ -9390,10 +9418,10 @@ function modeleChantierNaval(){
   }
   g.add(box(2.2, 3.4, 0.3, PO_.GRIS, -2.4, 1.7, -3.6));
   for(let k = 0; k < 4; k++) g.add(box(2.2, 0.1, 0.4, PO_.GRIS2, -2.4, 0.8 + k*0.8, -3.6));
-  g.add(slab({w:4.6, h:3.2, d:3.6, tw:4.6, td:3.6, c:0xC9C0AE, x:3.6, y:0.18, z:-2.6}));
-  g.add(gable(3.8, 1.2, 4.8, PO_.TUILE, 3.6, 3.38, -2.6, Math.PI/2));
-  g.add(box(2.2, 2.2, 0.2, PO_.BOIS2, 3.6, 1.28, -0.82));
-  for(let k = 0; k < 5; k++) g.add(box(0.24, 0.14, 4.0, PO_.BOIS3, 4.6 + k*0.3, 0.28, 2.4));
+  g.add(slab({w:4.6, h:3.2, d:3.6, tw:4.6, td:3.6, c:0xC9C0AE, x:3.6, y:0, z:-2.6}));
+  g.add(gable(3.8, 1.2, 4.8, PO_.TUILE, 3.6, 3.2, -2.6, Math.PI/2));
+  g.add(box(2.2, 2.2, 0.2, PO_.BOIS2, 3.6, 1.1, -0.82));
+  for(let k = 0; k < 5; k++) g.add(box(0.24, 0.14, 4.0, PO_.BOIS3, 4.6 + k*0.3, 0.1, 2.4));
   return g;
 }
 /* Le phare, au bout de la jetée : son bout de jetée enroché, le fût à bandes rouges, la

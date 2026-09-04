@@ -14742,3 +14742,38 @@ chacune passe de douze triangles à deux.
 **Mesuré.** Bancs `port` (28), `chocs` (24) et `bois` (22) verts. Les captures ont été
 regardées, du ciel et depuis l'eau : les vaguelettes et les mouchetures se lisent comme des
 taches de couleur, sans arête ni ombre portée.
+
+## Le chantier naval entre dans le quai
+
+Le joueur, croquis à l'appui, hachurant en violet le terre-plein d'herbe entre le quai, la
+route et le chantier : « Fais que le chantier naval soit une partie intégrante du quai,
+comble la dalle sur la partie en violet. »
+
+Il était posé sur l'herbe, hors de la clôture, avec son propre socle de béton — un chantier
+naval au bord d'un pré, qu'on rejoignait en quittant la route avant la grille. Trois choses
+ont changé.
+
+**La dalle du quai tourne au sud-est et vient jusqu'à lui.** Trente mètres sur quarante-trois,
+de la route au nord jusqu'au sable à l'ouest, où descend sa cale. Deux rectangles jointifs
+plutôt qu'un seul en L : ils se touchent bord à bord le long de x = −196 sur treize mètres,
+si bien qu'on passe de l'un à l'autre sans rien franchir, et deux rectangles ne se
+recouvrent nulle part — un L découpé se disputerait son propre plan sur le recouvrement.
+Même béton, mêmes mouchetures, à la même hauteur.
+
+**Son socle disparaît.** Le modèle portait sa plaque de béton de dix-huit centimètres —
+vingt-huit une fois à l'échelle. Posée sur la dalle du quai, elle y aurait fait la marche
+que le joueur a déjà refusée pour le quai de débarque et la grue. L'atelier et son tas de
+planches descendent d'autant, et le chantier repose à plat sur le quai.
+
+**La clôture l'englobe.** Le pan qui fermait le port au sud de l'entrée courait entre les
+deux dalles ; il est remplacé par le tour de la nouvelle aire — le long de la route au nord,
+le bout à l'est, le fond au sud, celui-ci poussé jusqu'au bord de l'eau pour fermer aussi la
+bande de sable, seule échappée qui restait. On entre toujours par la même grille, et l'on
+va du quai au chantier sans ressortir.
+
+**Mesuré.** Banc `port` (30), deux contrôles de plus : la dalle du chantier est jointive à la
+grande, le chantier et son cercle sont dessus, et le modèle n'a plus de socle ; un camion
+lancé de la grande dalle vers l'est passe sur celle du chantier sans rien franchir et
+s'arrête au grillage du bout. Banc `chocs` (24) vert. Les captures ont été regardées, du ciel
+et depuis la route : un seul béton du quai au chantier, la clôture autour, la cale dans
+l'eau.
