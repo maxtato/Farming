@@ -2893,7 +2893,7 @@ const PORT = {
   routeX0:-186,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
   routeFin:-197,                               // le bout du bitume ; la dalle du quai le continue
   dalle:{x0:-274, x1:-196, z0:-82, z1:-64},    // la dalle du quai, de la ligne des façades au bord de l'eau
-  jetee:{x:-270, z0:-64, z1:-18, w:8},         // la jetée, du bout du quai vers le large, le phare au bout
+  jetee:{x:-269, z0:-64, z1:-18, w:10},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
   quai:{x:-224, z:-67},                        // le quai de débarque, sur la dalle, face à l'eau
   grue:{x:-254, z:-67},                        // la grue de quai, à l'autre bout
   charge:{x:-239, z:-74},                      // le cercle des camions : sur la dalle, entre les deux
@@ -7793,41 +7793,113 @@ function construirePort(){
   const lOuest = (PORT.jetee.x - PORT.jetee.w/2) - EAU.x0;
   scene.add(box(lOuest, 0.06, 4.0, PO_.SABLE, EAU.x0 + lOuest/2, 0.03, PORT.quaiZ - 2.0));
   scene.add(box(lOuest, 0.05, 1.2, 0xDCE6E4, EAU.x0 + lOuest/2, 0.07, PORT.quaiZ + 0.6));
-  // Ce qui arrête un engin à roues : toute l'eau, d'un seul rectangle marqué `eau` — un
-  // bateau ne le voit pas, c'est justement là qu'il vit.
-  boxObs.push({x:(EAU.x0 + EAU.x1)/2, z:(EAU.z0 + EAU.z1)/2, hw:largeur/2, hd:hauteur/2, eau:true});
+  /* CE QUI ARRÊTE UN ENGIN À ROUES : L'EAU, EN TROIS RECTANGLES MARQUÉS `eau` — un bateau
+     ne les voit pas, c'est justement là qu'il vit. Trois et non un : la jetée est posée
+     SUR l'eau, et l'on y roule ; un seul rectangle l'aurait couverte et aucune roue n'y
+     serait entrée. On découpe donc l'eau autour du pont — à l'ouest de la jetée, à l'est
+     (le bassin), et au sud de son bout. */
+  const J = PORT.jetee, jx0 = J.x - J.w/2, jx1 = J.x + J.w/2;
+  const eauBox = (x0, x1, z0, z1)=> boxObs.push({x:(x0 + x1)/2, z:(z0 + z1)/2, hw:(x1 - x0)/2, hd:(z1 - z0)/2, eau:true});
+  eauBox(EAU.x0, jx0, EAU.z0, EAU.z1);
+  eauBox(jx1, EAU.x1, EAU.z0, EAU.z1);
+  eauBox(jx0, jx1, J.z1, EAU.z1);
   /* LA DALLE DU QUAI. Le bitume s'arrête à −197 ; une dalle de béton le continue sur
-     soixante-dix-huit mètres, de la ligne des façades de la criée au bord de l'eau. On y
-     roule comme sur la route — elle n'a pas d'obstacle propre, c'est l'eau qui arrête — et
-     son bord est un vrai bord de quai : bordure, bollards tous les six mètres, pneus contre
-     le mur, le tout cuit en une pièce. */
+     soixante-dix-huit mètres, de la ligne des façades de la criée au bord de l'eau, puis
+     TOURNE et continue sur la jetée, quarante-six mètres vers le large, jusqu'au phare : un
+     seul quai, à plat, sur toute la longueur de l'angle. Le joueur : « fais que le quai soit
+     continu sur toute la longueur de l'angle, et que ce sur quoi on puisse circuler ne soit
+     pas un bloc avec une collision ». On y roule comme sur la route — ni la dalle ni le pont
+     n'ont d'obstacle propre. Ce qui retient les roues au bord de l'eau, c'est LE BORD DU
+     QUAI : une bordure, des bites d'amarrage tous les six mètres, la chaîne qui les relie et
+     les pneus contre le mur, et tout cela est SOLIDE — la bordure est une boîte d'emprise,
+     chaque bite un obstacle. « Il y aura des bites d'amarrage qui éviteront qu'on tombe dans
+     l'eau avec le véhicule. » Le pont est un peu plus épais que la dalle : sept centimètres
+     au-dessus de l'eau, pour que les deux surfaces ne se disputent pas le même plan. */
   const D = PORT.dalle, DW = D.x1 - D.x0, DD = D.z1 - D.z0;
   const dalle = box(DW, 0.06, DD, PO_.BETON, (D.x0 + D.x1)/2, 0.03, (D.z0 + D.z1)/2);
   dalle.castShadow = false; scene.add(dalle);
-  const bord = new THREE.Group();
-  bord.add(box(DW, 0.24, 0.6, PO_.BETON2, (D.x0 + D.x1)/2, 0.12, D.z1 - 0.3));
-  for(let x = D.x0 + 3; x < D.x1 - 2; x += 6){
-    bord.add(cyl(0.2, 0.24, 0.5, 8, PO_.NOIR, x, 0.42, D.z1 - 0.8));
-    bord.add(cyl(0.28, 0.28, 0.1, 8, PO_.NOIR, x, 0.7, D.z1 - 0.8));
-  }
-  for(let x = D.x0 + 6; x < D.x1 - 2; x += 6)
-    bord.add(cyl(0.34, 0.34, 0.16, 10, 0x2E2A26, x, 0.22, D.z1 + 0.1, Math.PI/2));
-  scene.add(bord); fusionnerGroupe(bord);
-  /* LA JETÉE, du bout du quai vers le large, en angle droit avec lui, le phare au bout :
-     c'est l'angle du port, et le bassin qu'elle abrite est là où dorment les bateaux.
-     Elle arrête tout le monde. */
-  const J = PORT.jetee, JL = J.z1 - J.z0, jz = (J.z0 + J.z1)/2;
-  const jetee = new THREE.Group();
-  jetee.add(box(J.w, 1.0, JL, PO_.BETON, J.x, 0.5, jz));
-  jetee.add(box(J.w + 0.3, 0.18, JL + 0.3, PO_.BETON2, J.x, 1.05, jz));
-  for(let k = 0; k < Math.floor(JL/6); k++)
-    jetee.add(cyl(0.2, 0.24, 0.5, 8, PO_.NOIR, J.x + J.w/2 - 0.6, 1.3, J.z0 + 4 + k*6));
-  scene.add(jetee); fusionnerGroupe(jetee);
-  boxObs.push({x:J.x, z:jz, hw:J.w/2, hd:JL/2});
-  // Le phare : son bout de jetée enroché regarde le large, c'est-à-dire le sud.
+  const JL = J.z1 - J.z0, jz = (J.z0 + J.z1)/2, Y_PONT = 0.12;
+  const pont = box(J.w, Y_PONT, JL, PO_.BETON, J.x, Y_PONT/2, jz);
+  pont.castShadow = false; scene.add(pont);
+  const bords = new THREE.Group();
+  /* Un bord de quai, de (x0, z0) à (x1, z1), sur un plateau à la hauteur `y` ; (nx, nz) est
+     la normale qui rentre dans le quai. La bordure est posée contre le bord, les bites
+     quatre-vingts centimètres en retrait, les pneus pendus par-dessus. */
+  const bordQuai = (x0, z0, x1, z1, y, nx, nz)=>{
+    const L = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0)/L, uz = (z1 - z0)/L;
+    const horiz = Math.abs(ux) > Math.abs(uz);
+    const cx = (x0 + x1)/2 + nx*0.3, cz = (z0 + z1)/2 + nz*0.3;
+    bords.add(box(horiz ? L : 0.6, 0.24, horiz ? 0.6 : L, PO_.BETON2, cx, y + 0.12, cz));
+    boxObs.push({x:cx, z:cz, hw:horiz ? L/2 : 0.3, hd:horiz ? 0.3 : L/2});
+    let px = null, pz = null;
+    for(let t = 1.5; t < L - 1; t += 6){
+      const bx = x0 + ux*t + nx*0.8, bz = z0 + uz*t + nz*0.8;
+      bords.add(cyl(0.2, 0.24, 0.5, 8, PO_.NOIR, bx, y + 0.42, bz));
+      bords.add(cyl(0.28, 0.28, 0.1, 8, PO_.NOIR, bx, y + 0.7, bz));
+      obstacles.push({x:bx, z:bz, r:0.3});
+      if(px !== null)
+        bords.add(box(horiz ? Math.abs(bx - px) : 0.06, 0.06, horiz ? 0.06 : Math.abs(bz - pz), 0x3A3A3A,
+                      (bx + px)/2, y + 0.52, (bz + pz)/2));
+      px = bx; pz = bz;
+    }
+    for(let t = 4.5; t < L - 1; t += 6)
+      bords.add(cyl(0.34, 0.34, 0.16, 10, 0x2E2A26, x0 + ux*t - nx*0.1, y + 0.2, z0 + uz*t - nz*0.1,
+                    horiz ? Math.PI/2 : 0, 0, horiz ? 0 : Math.PI/2));
+  };
+  bordQuai(jx1, D.z1, D.x1, D.z1, 0.06, 0, -1);        // le bord de la dalle, de la jetée à l'entrée de la route
+  bordQuai(jx0, J.z0, jx0, J.z1, Y_PONT, 1, 0);        // le bord ouest de la jetée, vers le large
+  bordQuai(jx1, J.z0, jx1, J.z1, Y_PONT, -1, 0);       // son bord est, vers le bassin
+  scene.add(bords); fusionnerGroupe(bords);
+  // Le phare ferme le bout de la jetée : son bout de jetée enroché regarde le large,
+  // c'est-à-dire le sud, et sa plate-forme arrête tout le monde.
   const phare = modelePhare(); phare.scale.setScalar(BAT_ECHELLE); phare.rotation.y = Math.PI/2;
   phare.position.set(J.x, 0, J.z1 - 4.2); scene.add(phare); fusionnerGroupe(phare);
   obstacles.push({x:J.x, z:J.z1 - 4.2 - 1.2*BAT_ECHELLE, r:2.2});
+  boxObs.push({x:J.x, z:J.z1 - 4.0, hw:J.w/2 + 0.4, hd:4.6});
+  /* LA ZONE DU PORT EST FERMÉE. Le joueur : « fais un système pour qu'une fois le quai
+     dépassé on ne puisse pas aller plus loin en voiture, pour ne pas risquer de tomber
+     dans l'eau ; qu'on n'ait accès qu'à cette portion de paysage, clôturée, une espèce de
+     zone fermée qui nous empêche d'aller plus loin ». Un grillage — celui des usines, mais
+     SOLIDE, là où celui d'un commerce ne l'est pas — ferme tout ce qui n'est ni bitume ni
+     eau : le bout ouest de la dalle, la ligne des façades entre les dalles de la criée et
+     de la conserverie, et les deux côtés de l'entrée de la route, entre deux piliers ; les
+     clôtures des deux commerces du port deviennent solides elles aussi, portes comprises.
+     Côté eau, le bord du quai retient. On n'entre et l'on ne sort que par la route. */
+  const H_G = 2.6;
+  const grillage = (x0, z0, x1, z1)=>{
+    const L = Math.hypot(x1 - x0, z1 - z0); if(L < 0.5) return;
+    const g = new THREE.Group(), horiz = Math.abs(x1 - x0) > Math.abs(z1 - z0);
+    const cx = (x0 + x1)/2, cz = (z0 + z1)/2, n = Math.max(1, Math.round(L/2.4));
+    for(let k = 0; k <= n; k++){ const t = k/n; g.add(box(0.16, H_G, 0.16, 0x6E767C, x0 + (x1 - x0)*t, H_G/2, z0 + (z1 - z0)*t)); }
+    for(const hy of [0.55, H_G*0.55, H_G - 0.25]) g.add(box(horiz ? L : 0.09, 0.09, horiz ? 0.09 : L, 0x8A9298, cx, hy, cz));
+    g.add(box(horiz ? L : 0.05, H_G - 0.3, horiz ? 0.05 : L, 0x7E868C, cx, (H_G - 0.3)/2 + 0.05, cz));
+    scene.add(g); fusionnerGroupe(g);
+    boxObs.push({x:cx, z:cz, hw:horiz ? L/2 : 0.2, hd:horiz ? 0.2 : L/2});
+  };
+  const pilier = (x, z)=>{
+    const g = new THREE.Group();
+    g.add(box(0.5, H_G + 0.4, 0.5, 0x6E767C, x, (H_G + 0.4)/2, z));
+    g.add(box(0.66, 0.16, 0.66, 0x8E969B, x, H_G + 0.48, z));
+    scene.add(g);
+  };
+  grillage(D.x0, D.z0, D.x0, D.z1);                                    // le bout ouest de la dalle
+  const RB = ROAD_W/2;
+  grillage(D.x1, D.z0, D.x1, ROAD_N - RB); grillage(D.x1, ROAD_N + RB, D.x1, D.z1);   // les deux côtés de l'entrée
+  pilier(D.x1, ROAD_N - RB); pilier(D.x1, ROAD_N + RB);
+  const dalles = SITES.filter((S)=> S.dir === 'PO').sort((a, b)=> a.emp.x0 - b.emp.x0);
+  let xg = D.x0;
+  for(const S of dalles){ grillage(xg, D.z0, S.emp.x0, D.z0); xg = S.emp.x1; }
+  grillage(xg, D.z0, D.x1, D.z0);
+  // Les clôtures des deux commerces, solides : les trois pans pleins et les deux pans de
+  // façade de part et d'autre de la porte — la même trouée que clotureSite.
+  for(const S of dalles){
+    const E = S.emp, e = 0.2, PORTE = 12;
+    boxObs.push({x:E.x0, z:(E.z0 + E.z1)/2, hw:e, hd:(E.z1 - E.z0)/2});
+    boxObs.push({x:E.x1, z:(E.z0 + E.z1)/2, hw:e, hd:(E.z1 - E.z0)/2});
+    boxObs.push({x:(E.x0 + E.x1)/2, z:E.z0, hw:(E.x1 - E.x0)/2, hd:e});
+    for(const [u, v] of [[E.x0, S.quaiX - PORTE/2], [S.quaiX + PORTE/2, E.x1]])
+      if(v - u > 0.4) boxObs.push({x:(u + v)/2, z:E.z1, hw:(v - u)/2, hd:e});
+  }
   // Le quai de débarque et la grue, sur la dalle, tournés vers l'eau — et vers nous.
   const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(BAT_ECHELLE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0);

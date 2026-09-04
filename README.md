@@ -14544,3 +14544,47 @@ chargement, la criée, la vitrine du chantier et la sauvegarde. Régressions ver
 campagne 72. Les captures du ciel et de jeu ont été regardées : le village sans rien sur
 les routes et ses creux garnis, le supermarché et son parking au nord de la route sud,
 le quai vu de l'eau avec la conserverie en face, le chalutier dans le bassin, le phare.
+
+## Le quai roulable sur tout l'angle, et la zone du port fermée
+
+Le joueur, devant le port refait : « Fais que le quai soit continu sur toute la longueur de
+l'angle, et que ce sur quoi on puisse circuler ne soit pas un bloc avec une collision — le
+véhicule peut aller jusqu'à ce quai. Il y aura des bites d'amarrage qui éviteront qu'on
+tombe dans l'eau avec le véhicule, et fais un système pour qu'une fois le quai dépassé on
+ne puisse pas aller plus loin en voiture, pour ne pas risquer de tomber dans l'eau : qu'on
+n'ait accès qu'à cette portion de paysage, clôturée, une espèce de zone fermée qui nous
+empêche d'aller plus loin. »
+
+**Un seul quai, à plat, sur tout l'angle.** La jetée était un bloc de béton d'un mètre de
+haut, avec sa boîte de collision : on s'y cognait, on n'y roulait pas. Elle est maintenant
+la suite de la dalle du quai — dix mètres de large, quarante-six de long, à sept
+centimètres au-dessus de l'eau pour que les deux surfaces ne se disputent pas le même
+plan — et l'on y roule comme sur la route : ni la dalle ni le pont n'ont d'obstacle propre.
+Ce qui l'a rendu possible : l'eau qui arrête les roues n'est plus un seul rectangle mais
+trois, découpés autour du pont — à l'ouest de la jetée, à l'est (le bassin), au sud de son
+bout —, sinon aucune roue n'y serait entrée. Les bateaux ne les voient toujours pas.
+
+**Le bord du quai retient.** Sur le bord de la dalle et sur les deux bords de la jetée :
+une bordure, des bites d'amarrage tous les six mètres, la chaîne qui les relie et les
+pneus contre le mur — le tout cuit en une pièce, et le tout SOLIDE : la bordure est une
+boîte d'emprise, chaque bite un obstacle. Un fourgon lancé de la dalle vers l'eau s'arrête
+le nez au bord ; un bateau lancé vers la jetée bute sur son bord, comme avant sur le bloc.
+Au bout, le phare et sa plate-forme enrochée ferment le pont : on va jusqu'au phare, et
+pas plus loin.
+
+**La zone est fermée.** Un grillage — celui des usines, mais solide, là où celui d'un
+commerce ne l'est pas — ferme tout ce qui n'est ni bitume ni eau : le bout ouest de la
+dalle, la ligne des façades entre les dalles de la criée et de la conserverie, et les deux
+côtés de l'entrée de la route, entre deux piliers ; les clôtures des deux commerces du port
+sont solides elles aussi, portes comprises — on entre chez eux par la porte et par rien
+d'autre. On n'entre dans le port et l'on n'en sort que par la route.
+
+**Mesuré.** Banc `port` (28) : trois rectangles d'eau découpés autour de la jetée ; 27 bites
+en obstacles, trois bordures en boîtes, dix pans de grillage ; le fourgon roule de la route
+au bout de la dalle et le grillage l'arrête, lancé vers l'eau la bordure le retient, il
+tourne sur la jetée et roule jusqu'au phare, vers la lande le grillage l'arrête, et par la
+porte de la criée il entre ; la barque bute sur la jetée ; tout le reste comme avant. Le
+banc des chocs recompte : 1 239 cercles et 65 boîtes, pas un volume qui se traverse.
+Régressions vertes : campagne 72, accès 5, bois 22. Les captures ont été regardées : le
+fourgon au bout de la jetée devant le phare, entre les deux files de bites et leurs chaînes,
+et à l'angle du quai, le grillage derrière lui.
