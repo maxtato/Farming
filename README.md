@@ -14395,3 +14395,75 @@ blé, 106,60 € les 50 kg de grumes). Le banc `bois` cesse de demander que les 
 bois soient « les quatre derniers » : ils tiennent les rangs 15 à 18, ce qui est la seule
 chose qui compte. `campagne30` (72), `ouverture` (6), `acces` (5), `sansvue` (9),
 `_h_diag` (11), `grandes` (7) verts.
+
+## La nouvelle carte, quatrième étape : le port
+
+Le joueur : « à gauche on aura une prolongation de la route aussi à faire de l'autre côté
+du village qui nous emmènera un port où on aura une grande étendue d'eau, faudrait que le
+port fasse un angle idéalement et que on gère une activité de pêche. Je te joins aussi un
+fichier HTML avec l'activité de pêche prévue : on pourra conduire des bateaux pour aller
+sur un spot attendre que la pêche soit faite, puis la ramener au port etc. toujours dans la
+même mécanique du jeu et le même visuel, le même design ».
+
+**Où.** Le monde va maintenant jusqu'à −420 à l'ouest : les deux cent vingt derniers mètres
+sont la mer, sur toute la hauteur (`EAU`, `PORT`). La côte est la ligne x = −200 — une
+bande de sable et l'écume au ras de l'eau —, la route nord y arrive et s'arrête contre le
+QUAI DE DÉBARQUE ; trente mètres plus loin vers le village, la JETÉE part de la côte vers le
+large, en angle droit avec elle, le phare à bandes rouges au bout : c'est l'angle du port,
+et le bassin qu'il abrite est là où dorment les bateaux. À terre, le long du quai, la GRUE ;
+sur la côte au sud de la route, le CHANTIER NAVAL et sa cale qui descend à l'eau ; au nord
+de la route, la bande `PO` (de −178 à −121) : la CRIÉE et la CONSERVERIE, un bosquet entre
+elles. Trois SPOTS de pêche au large, marqués d'un cercle. Le trafic naît et meurt dix
+mètres avant le bout de la route (`bordsChaussee`) au lieu du bord du monde.
+
+**L'eau.** Un plan à cinq centimètres au-dessus de l'herbe qui continue dessous, et quatre
+cent vingt vaguelettes semées à graine fixe et cuites en une pièce. Pour les engins à
+roues, c'est un rectangle d'arrêt marqué `eau` ; pour un bateau (`bateau:true`, lu par
+`Vehicle.update`), c'est le monde : la côte est son bord, et le rectangle `eau` ne
+l'arrête pas — la jetée et les quais, eux, arrêtent tout le monde. Mesuré : la barque
+lancée vers la côte s'arrête à −203,5, posée à terre elle est ramenée à l'eau, lancée vers
+la jetée elle bute dessus ; le fourgon lancé vers la mer s'arrête sur la plage.
+
+**Les bateaux.** Ceux de la planche `port.html`, pièce pour pièce et sans leur nappe d'eau :
+la barque (3 000 €, cale de 60 kg, dix kilos de poisson toutes les huit secondes), le
+chalutier (18 000 €, 400 kg, quarante-cinq kilos toutes les neuf secondes) et le caseyeur
+(11 000 €, 200 kg, vingt kilos de crustacés toutes les neuf secondes). Un bateau est un
+engin comme un autre pour le jeu — même classe, même cale, même cercle d'action —, à deux
+choses près : il n'a pas de roues, et il dérive (`grip` bas, la houle pour suspension) ;
+son sillage est de l'écume, pas de la poussière. Ils se vendent au CHANTIER NAVAL et
+nulle part ailleurs : la vitrine dépend d'où l'on est (`articlesAVendre`, `aChantier`) —
+au garage, tout sauf les coques ; au chantier, les seules coques, dans une fenêtre à lui.
+Ils attendent au port, dans le bassin. Le CAMION FRIGO (12 000 €, caisse de 300 kg) se vend
+au garage et attend au port lui aussi, à côté de la grue.
+
+**La pêche.** À l'arrêt dans un spot, la cale se remplit par lots (`travailPeche`, dans
+`work`) ; pleine, elle ne prend plus rien et le dit une fois. Tous les bateaux pêchent, pas
+seulement celui qu'on conduit : on peut poser le chalutier sur un spot et repartir en
+barque — mais il faudra bien le ramener. Le quai de débarque est le silo de la mer
+(`QUAI_PECHE`, 1 500 kg) : un bateau y vide sa cale (DÉBARQUER) au cercle de l'eau, un
+camion y charge (CHARGER) au cercle de terre, et la marée part à la criée — trémie, silo et
+benne, la mécanique du dépôt de bois. Un bateau ne recharge pas ce qu'il vient de débarquer,
+un camion ne débarque rien.
+
+**Ce que ça vaut.** Deux produits bruts, le poisson (3,40 € le kilo, celui du raisin) et
+les crustacés (6,20 €, ce qu'il y a de plus cher après le miel) ; l'échelle des acheteurs, à
+la règle du jeu : la criée est le plancher (1,05, 4 000 kg — un peu au-dessus du supermarché,
+qui ne prend pas de poisson, pour n'être dominée par personne), la conserverie paie mieux et
+ne prend que le poisson (1,15, 1 200), le marché (1,09) et le restaurant (1,28, le meilleur
+prix des crustacés) prennent la marée avec le reste, et l'entrepôt d'export la prend
+d'office. Tout ouvre au douzième palier, « Fromage de brebis », qui n'avait qu'un module.
+
+**Ce qui se garde.** Un champ facultatif de plus, `quaiPeche` ; une leçon (`peche`), dont la
+flèche montre le spot le plus proche et qui se solde au premier lot ; six vignettes
+rendues par le jeu — poisson, crustacés, barque, chalutier, caseyeur, camion frigo.
+
+**Mesuré.** Banc `port` (20) : la mer et son rectangle, la criée et la conserverie en bande
+PO aux rangs 20 et 21, l'échelle des acheteurs, trois bateaux dans le bassin et le frigo à
+terre au douzième palier, rien dans l'eau que le port, le trafic à −186 ; la barque retenue
+par la côte et par la jetée, le fourgon par la plage ; dix kilos au bout de huit secondes et
+la cale pleine à soixante, rien hors du spot, des crustacés au caseyeur ; débarquement,
+chargement, vente à la criée à 1,05 (214,20 € les 60 kg), la conserverie sans crustacés ;
+la vitrine du garage sans bateau, celle du chantier avec les trois seuls, sa fenêtre à lui ;
+la sauvegarde. Les captures de jeu ont été regardées : la jetée et son phare, le bassin et
+ses trois coques, le quai, la grue et le chantier tiennent dans le même cadre. Les
+régressions restent vertes.

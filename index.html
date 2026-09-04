@@ -2581,7 +2581,8 @@ const X1 = X0 + WX, Z1 = Z0 + WZ;        // 242,3 à l'est, 132,3 au sud (Z0 : �
    d'asphalte, la forêt son tapis, l'entrepôt sa cour, le port son eau. `MONDE` dit
    jusqu'où l'on peut rouler et jusqu'où le trafic existe ; `X0`/`X1`/`Z0`/`Z1` ne
    parlent plus que des tuiles. */
-const MONDE = {x0:-280, x1:540, z0:Z0 - 12, z1:Z1 + 12};
+// À l'ouest, le monde va jusqu'à −420 : les deux cent vingt derniers mètres sont la mer.
+const MONDE = {x0:-420, x1:540, z0:Z0 - 12, z1:Z1 + 12};
 const PPU = TPX/TSIZE;                   // pixels par unité (~11.6)
 const tiles = [];
 for(let j=0;j<TNZ;j++) for(let i=0;i<TNX;i++){
@@ -2867,10 +2868,40 @@ function zRouteNord(x){
   const k = Math.min(1, (x - SINUEUX.debut)/SINUEUX.montee);
   return ROAD_N + SINUEUX.amp*k*Math.sin((x - SINUEUX.debut)*Math.PI*2/SINUEUX.periode);
 }
+/* ---------- LE PORT (quatrième étape de la carte) ----------
+   Le joueur : « à gauche on aura une prolongation de la route aussi à faire de l'autre
+   côté du village qui nous emmènera un port où on aura une grande étendue d'eau, faudrait
+   que le port fasse un angle idéalement et que on gère une activité de pêche [...] on
+   pourra conduire des bateaux pour aller sur un spot attendre que la pêche soit faite,
+   puis la ramener au port ».
+   LA CÔTE est la ligne x = −200 : à l'ouest, l'eau jusqu'au bout du monde, deux cent vingt
+   mètres de large sur toute la hauteur — la grande étendue. La route nord y arrive et
+   s'arrête contre le QUAI DE DÉBARQUE ; trente mètres plus loin vers le village, la JETÉE
+   part de la côte vers le large, en angle droit avec elle, le phare au bout : c'est l'angle du port,
+   et le bassin qu'il abrite est là où dorment les bateaux. À terre, le long du quai, la
+   GRUE ; au sud de la route, sur la côte, le CHANTIER NAVAL et sa cale qui descend à
+   l'eau, où l'on achète les bateaux ; au nord de la route, la bande PO : la criée et la
+   conserverie. Trois SPOTS de pêche au large, marqués d'un cercle. */
+const PORT = {
+  cote:-200,                                   // l'eau est à l'ouest de cette ligne
+  routeX0:-186,                                // le trafic naît et meurt là, dix mètres avant le bout de la route
+  routeFin:-197,                               // le bout du bitume, contre le quai de débarque
+  jetee:{z:-44, x0:-262, x1:-200, w:8},        // la jetée, en angle avec la côte, le phare au bout
+  quai:{x:-201, z:-74},                        // le quai de débarque, au bout de la route
+  grue:{x:-201, z:-90},                        // la grue de quai, à côté
+  chantier:{x:-194, z:-56},                    // le chantier naval, sur la côte au sud de la route
+  debarque:{x:-209, z:-74},                    // le cercle des bateaux : dans l'eau, le long du quai
+  charge:{x:-190, z:-88},                      // le cercle des camions : à terre, à côté de la grue
+  chantierQuai:{x:-181, z:-56},                // le cercle du chantier naval
+  spots:[{x:-300, z:-140}, {x:-335, z:-40}, {x:-300, z:60}],
+  r:6.5, spotR:8, eau:null
+};
+// L'eau : le rectangle où un bateau peut aller, et où un engin à roues ne peut pas.
+const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:MONDE.z0 + 3, z1:MONDE.z1 - 3};
 (function(){
   const est = []; for(let x = X1 - 0.5; x <= MONDE.x1; x += 3) est.push([x, zRouteNord(x)]);
   rubanRoute(est);
-  rubanRoute([[MONDE.x0, ROAD_N], [X0 + 0.5, ROAD_N]]);
+  rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au quai
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
@@ -3108,6 +3139,14 @@ const PRODUITS = {
      le raisin : la forêt s'ouvre au septième palier et doit y valoir le détour sans rendre
      les parcelles inutiles. La scierie paie ce chiffre, la tonnellerie 40 % de plus. */
   grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:2.6},
+
+  /* --- ce qui sort de la mer --- */
+  /* LE POISSON ET LES CRUSTACÉS. Une barque en remonte dix kilos toutes les huit secondes,
+     un chalutier quarante-cinq ; le caseyeur ne prend que des crustacés, moitié moins et
+     deux fois plus chers. Le poisson vaut le raisin ; les crustacés, ce qu'il y a de plus
+     cher au kilo après le miel — c'est ce qui paie le caseyeur et le détour par le large. */
+  poisson:   {nom:'Poisson',   couleur:'#5B8FC4', brut:3.4},
+  crustaces: {nom:'Crustacés', couleur:'#C9563A', brut:6.2},
 
   /* --- une transformation --- */
   farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME', tarif:3.60},
@@ -3747,7 +3786,17 @@ const SITES = [
    style:'usine', crop:-1, prix:0, cloture:'grillage', parvisPlus:12.0,
    modele:()=> batEntrepotExport(),
    w:80.0, d:50.0, pw:60, ph:22, toit:0x1F4E8C, mur:0xC9D2D8,
-   propose:[{nom:'Achète en gros', prix:'tout ce que la ferme produit'}]}
+   propose:[{nom:'Achète en gros', prix:'tout ce que la ferme produit'}]},
+
+  /* --- bande PO, le port --- EN FIN DE TABLE. Les modèles de la planche `port.html` du
+     joueur, sans leur socle de béton : la criée, halle ouverte aux vingt bacs alignés, et
+     la conserverie aux deux cheminées de fumoir. */
+  {nom:'Criée', enseigne:'facade', picto:'goutte', dir:'PO', bat:-160, park:-147,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batCriee(),
+   w:16.0, d:12.0, pw:15, ph:13, toit:0xD6DDE2, mur:0xB9C1C6},
+  {nom:'Conserverie', enseigne:'facade', picto:'goutte', dir:'PO', bat:-130, park:-117,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batConserverie(),
+   w:13.0, d:10.0, pw:12, ph:13, toit:0xC9C0AE, mur:0xE4DED0}
 ];
 /* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
 /* La table précédente dit où sont les bâtiments ; celle-ci dit à quoi ils servent.
@@ -3847,11 +3896,12 @@ const NEGOCE = {
      brassage de la halle range la bière du côté du fromage — ce que l'atelier de la ferme
      transforme —, et elle se vend donc comme lui. */
   'Restaurant':      {achete:['oeufs','lait','farine','huile','huileOlive','vin','raisin',
-                              'olives','miel','fromage','fromageBrebis','biere'],
+                              'olives','miel','fromage','fromageBrebis','biere',
+                              'poisson','crustaces'],
                       coef:1.28, etal:900},
   'Marché':          {achete:['olives','raisin','oeufs','lait','laitBrebis','laine','farine',
                               'huile','huileOlive','vin','miel','fromage','fromageBrebis',
-                              'biere'],
+                              'biere','poisson','crustaces'],
                       coef:1.09, etal:2000},
   'Supermarché':     {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
                               'huile','huileOlive','vin','miel','fromage','fromageBrebis',
@@ -3881,7 +3931,15 @@ const NEGOCE = {
      et le volume — et la route, qui est longue. */
   'Entrepôt d\'export': {achete:Object.keys(PRODUITS).filter((k)=> fournissable(k)
                                  && !PRODUITS[k].interne && k !== 'aliment' && k !== 'alimentPlus'),
-                        coef:0.82, etal:30000}
+                        coef:0.82, etal:30000},
+
+  /* LA MARÉE A SON ÉCHELLE. La criée est le plancher du poisson — un peu au-dessus du
+     supermarché, qui ne prend pas de poisson, pour qu'elle ne soit dominée par personne ;
+     la conserverie paie mieux et ne prend que le poisson ; le restaurant et le marché,
+     qui achètent déjà tout ce qui se mange, prennent aussi la marée — le restaurant à
+     1,28, le meilleur prix des crustacés. L'entrepôt d'export les prend d'office. */
+  'Criée':           {achete:['poisson', 'crustaces'], coef:1.05, etal:4000},
+  'Conserverie':     {achete:['poisson'], coef:1.15, etal:1200}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -4138,8 +4196,12 @@ const NIVEAUX = [
      deux produits — voir la table des espèces. */
   {nom:'La bergerie', resume:'Les moutons et leurs brebis : la laine et le lait',
    especes:['mouton'], sites:['Atelier textile', 'Fromagerie'], parcelles:5},
-  {nom:'Fromage de brebis', resume:'Le produit le mieux payé de la ferme',
-   modules:['fromageBrebis'], parcelles:6},
+  /* LE PORT S'OUVRE AVEC LE FROMAGE DE BREBIS. Le palier n'avait qu'un module : il reçoit
+     la mer entière — la criée, la conserverie, le camion frigo et les trois bateaux, que
+     le chantier naval vend dès qu'il est ouvert. */
+  {nom:'Fromage de brebis', resume:'Le produit le mieux payé de la ferme, et le port',
+   modules:['fromageBrebis'], engins:['barque', 'chalutier', 'caseyeur', 'frigo'],
+   sites:['Criée', 'Conserverie'], parcelles:6},
   {nom:'L\'apiculture', resume:'Le rucher, le miel, le marché du village',
    especes:['ruche'], sites:['Marché'], parcelles:6},
   /* ET LE COMBINÉ AU PALIER QUI DEMANDE TROIS FILIÈRES EN MÊME TEMPS. C'était le
@@ -4622,7 +4684,10 @@ const VIGNETTES = {
   labour:'labour', semis:'semis', engrais:'engrais', benne:'benne', combine:'combine',
   // Le bois : les trois planches sont des rendus du jeu lui-même, sur fond magenta,
   // passés par la même chaîne que les planches du joueur.
-  grumes:'grumes', abatteuse:'abatteuse', porteur:'porteur'
+  grumes:'grumes', abatteuse:'abatteuse', porteur:'porteur',
+  // Le port : les mêmes rendus du jeu, sur fond magenta, par la même chaîne.
+  poisson:'poisson', crustaces:'crustaces',
+  barque:'barque', chalutier:'chalutier', caseyeur:'caseyeur', frigo:'frigo'
 };
 const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle] + '.png' : null;
 /* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
@@ -5280,7 +5345,8 @@ function chargerCampagne(S){
    qu'elle n'avait jamais vus. On ne lit donc que ce qui coûtait de l'argent avant :
    les cultures, le pick-up, le fourgon, l'enjambeuse, les paliers d'atelier, les
    enclos et les parcelles. `PAYANT_AVANT` dit lesquels. */
-const PAYANT_AVANT = {pickup:1, fourgon:1, enjambeuse:1, abatteuse:1, porteur:1};
+const PAYANT_AVANT = {pickup:1, fourgon:1, enjambeuse:1, abatteuse:1, porteur:1,
+                      frigo:1, barque:1, chalutier:1, caseyeur:1};
 function niveauRetrouve(){
   let n = 1;
   const atteint = (k)=>{ if(k > n) n = k; };
@@ -5399,6 +5465,9 @@ const FO_X1 = FO_X0 + 88;                          // 337 : avant que la route n
    à quai —, entre deux bosquets. La route continue au-delà : le trafic vient de plus
    loin, et c'est ce qui fait un entrepôt d'export. */
 const EX_X0 = 425, EX_X1 = 525;                    // la bande de l'entrepôt, quinze mètres avant le bout du monde
+// La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
+// camions et le bord des tuiles.
+const PO_X0 = PORT.routeX0 + 8, PO_X1 = X0 - 6;    // −178 à −121
 const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 252 à 342 : la forêt, au sud de la route
                z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 107,   // −58 à 38
                arbres:[], sol:null};
@@ -5410,7 +5479,8 @@ const BANDE_DEF = {
   E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   ZI: {face:'N', d0:ZI_X0, d1:ZI_X1},
   FO: {face:'N', d0:FO_X0, d1:FO_X1},              // les ateliers du bois, en face de la forêt
-  EX: {face:'N', d0:EX_X0, d1:EX_X1}               // l'entrepôt d'export, au bout de la route
+  EX: {face:'N', d0:EX_X0, d1:EX_X1},              // l'entrepôt d'export, au bout de la route
+  PO: {face:'N', d0:PO_X0, d1:PO_X1}               // la criée et la conserverie, au port
 };
 const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
 
@@ -5591,7 +5661,11 @@ const BANDES = {
   // bande se partage aux deux bouts, et il se retrouve au milieu.
   EX: [{creux:'verdure', poids:1},
        {paquet:['Entrepôt d\'export']},
-       {creux:'verdure', poids:1}]
+       {creux:'verdure', poids:1}],
+  // Le port : la criée d'abord — c'est là qu'on vend —, un creux, la conserverie.
+  PO: [{paquet:['Criée']},
+       {creux:'verdure', poids:1},
+       {paquet:['Conserverie']}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -7641,6 +7715,122 @@ function restaurerForet(E){
   });
 }
 
+/* ---------- LE PORT : L'EAU, LES QUAIS, LA PÊCHE ----------
+   Le quai de débarque est le silo de la mer : un bateau y vide sa cale (DÉBARQUER), un
+   camion y charge (CHARGER), et la marée part à la criée — la même mécanique que trémie,
+   silo et benne, et que le dépôt de bois. Deux cercles pour un seul stock : l'un dans
+   l'eau, le long du quai, pour les bateaux ; l'autre à terre, à côté de la grue, pour les
+   camions. La pêche, elle, se fait sur les SPOTS : un bateau à l'arrêt dans un cercle du
+   large remonte un lot toutes les quelques secondes, jusqu'à ce que sa cale soit pleine —
+   « aller sur un spot, attendre que la pêche soit faite, puis la ramener au port ». */
+const QUAI_PECHE = {stock:{}, max:1500, pose:false};
+const quaiPecheTotal = ()=>{ let t = 0; for(const k in QUAI_PECHE.stock) t += QUAI_PECHE.stock[k]; return t; };
+const aChantier = (v)=> !!v && Math.hypot(v.pos.x - PORT.chantierQuai.x, v.pos.z - PORT.chantierQuai.z) <= PORT.r;
+const dansSpot = (v)=> PORT.spots.find((S)=> Math.hypot(v.pos.x - S.x, v.pos.z - S.z) <= PORT.spotR) || null;
+function construirePort(){
+  /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
+     des vaguelettes plus sombres semées à graine fixe et cuites en une seule pièce. */
+  const largeur = EAU.x1 - EAU.x0, hauteur = EAU.z1 - EAU.z0;
+  const eau = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur),
+                             new THREE.MeshLambertMaterial({color:PO_.EAU}));
+  eau.rotation.x = -Math.PI/2; eau.position.set((EAU.x0 + EAU.x1)/2, 0.05, (EAU.z0 + EAU.z1)/2);
+  eau.receiveShadow = true; scene.add(eau); PORT.eau = eau;
+  const vagues = [], VG = new THREE.BoxGeometry(1, 0.04, 1).toNonIndexed();
+  for(let k = 0; k < 420; k++){
+    const x = EAU.x0 + 6 + alea()*(largeur - 12), z = EAU.z0 + 6 + alea()*(hauteur - 12);
+    vagues.push({g:VG, c:PO_.EAU2, m:new THREE.Matrix4().compose(
+      new THREE.Vector3(x, 0.08, z), new THREE.Quaternion(), new THREE.Vector3(1.0 + alea()*2.4, 1, 0.5 + alea()*0.9))});
+  }
+  const vm = new THREE.Mesh(mergeParts(vagues), MAT_FUSION); scene.add(vm);
+  // La plage : une bande de sable le long de la côte, et l'écume au ras de l'eau.
+  scene.add(box(4.0, 0.06, hauteur, PO_.SABLE, PORT.cote + 2.0, 0.03, (EAU.z0 + EAU.z1)/2));
+  scene.add(box(1.2, 0.05, hauteur, 0xDCE6E4, PORT.cote - 0.6, 0.07, (EAU.z0 + EAU.z1)/2));
+  // Ce qui arrête un engin à roues : toute l'eau, d'un seul rectangle marqué `eau` — un
+  // bateau ne le voit pas, c'est justement là qu'il vit.
+  boxObs.push({x:(EAU.x0 + EAU.x1)/2, z:(EAU.z0 + EAU.z1)/2, hw:largeur/2, hd:hauteur/2, eau:true});
+  // La jetée, en angle avec la côte, et le phare au bout. Elle arrête tout le monde.
+  const J = PORT.jetee;
+  scene.add(box(J.x1 - J.x0, 1.0, J.w, PO_.BETON, (J.x0 + J.x1)/2, 0.5, J.z));
+  scene.add(box(J.x1 - J.x0 + 0.3, 0.18, J.w + 0.3, PO_.BETON2, (J.x0 + J.x1)/2, 1.05, J.z));
+  for(let k = 0; k < Math.floor((J.x1 - J.x0)/6); k++)
+    scene.add(cyl(0.2, 0.24, 0.5, 8, PO_.NOIR, J.x0 + 4 + k*6, 1.3, J.z - J.w/2 + 0.6));
+  boxObs.push({x:(J.x0 + J.x1)/2, z:J.z, hw:(J.x1 - J.x0)/2, hd:J.w/2});
+  const phare = modelePhare(); phare.scale.setScalar(BAT_ECHELLE);
+  phare.position.set(J.x0 + 4.2, 0, J.z); scene.add(phare); fusionnerGroupe(phare);
+  obstacles.push({x:J.x0 + 4.2 + 1.2*BAT_ECHELLE, z:J.z, r:2.2});
+  // Le quai de débarque et la grue, tournés vers l'eau : leur dalle déborde de la côte.
+  const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(BAT_ECHELLE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
+  poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, -Math.PI/2);
+  poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, -Math.PI/2);
+  for(const Q of [PORT.quai, PORT.grue])
+    boxObs.push({x:Q.x + 1.0*BAT_ECHELLE, z:Q.z, hw:3.5*BAT_ECHELLE, hd:5.5*BAT_ECHELLE});
+  // Le chantier naval, sa cale vers l'eau ; son cercle ouvre la vitrine des bateaux.
+  poser(modeleChantierNaval, PORT.chantier.x, PORT.chantier.z, -Math.PI/2);
+  boxObs.push({x:PORT.chantier.x, z:PORT.chantier.z, hw:6.0*BAT_ECHELLE, hd:7.0*BAT_ECHELLE});
+  const agirChantier = ()=> MACHINES.some((m)=> enVente(m) && m.bateau && ouvert('engins', m.key) && money >= (m.prix || 0));
+  anneauAction(PORT.chantierQuai.x, PORT.chantierQuai.z, 0.9,
+    ()=> couleurPoste('chantier', agirChantier) !== GUIDE.GRIS,
+    {coulDyn: ()=> couleurPoste('chantier', agirChantier)});
+  poseBulle('Chantier naval', 0x1E4A6B, '', PORT.chantier.x, 4.6, PORT.chantier.z, 0);
+  // Les deux cercles du quai, et les trois spots au large.
+  const agirQuai = ()=> actionsQuaiPeche(MACHINES[cur]).length > 0;
+  for(const Q of [PORT.debarque, PORT.charge])
+    anneauAction(Q.x, Q.z, 1.3,
+      ()=> couleurPoste('quaiPeche', agirQuai) !== GUIDE.GRIS,
+      {coulDyn: ()=> couleurPoste('quaiPeche', agirQuai)});
+  const agirSpot = ()=>{ const m = MACHINES[cur]; return !!(m.peche && m.v.cargo && m.v.cargo.load < m.v.cargo.capacite - 0.01); };
+  for(const Sp of PORT.spots)
+    anneauAction(Sp.x, Sp.z, 2.1,
+      ()=> couleurPoste('spot', agirSpot) !== GUIDE.GRIS,
+      {coulDyn: ()=> couleurPoste('spot', agirSpot)});
+  poseBulle('Quai de débarque', 0x1E4A6B, '', PORT.quai.x - 2, 4.0, PORT.quai.z, 0);
+  QUAI_PECHE.pose = true;
+}
+function actionsQuaiPeche(m){
+  const T = caisseDe(m), out = [];
+  if(!T) return out;
+  const v = m.v;
+  const auLarge = prochePoint(v, PORT.debarque.x, PORT.debarque.z, PORT.r);
+  const aTerre = prochePoint(v, PORT.charge.x, PORT.charge.z, PORT.r);
+  // Un bateau débarque au cercle de l'eau ; un camion charge au cercle de terre. Un bateau
+  // ne recharge pas ce qu'il vient de débarquer.
+  if(auLarge && m.bateau) for(const k of naturesDe(T))
+    if((k === 'poisson' || k === 'crustaces') && quaiPecheTotal() < QUAI_PECHE.max - 0.01)
+      out.push({sens:'debarquer', lieu:'quaiPeche', cle:k, txt:'DÉBARQUER ' + qteNomHaut(k, chargeDe(T, k))});
+  if(aTerre && !m.bateau)
+    for(const k of Object.keys(QUAI_PECHE.stock).sort((a, b)=> QUAI_PECHE.stock[b] - QUAI_PECHE.stock[a]))
+      if(QUAI_PECHE.stock[k] > 0.01 && peutCharger(T, k))
+        out.push({sens:'prendrePeche', lieu:'quaiPeche', cle:k, txt:'CHARGER ' + qteNomHaut(k, QUAI_PECHE.stock[k])});
+  return out;
+}
+/* LA PÊCHE. À l'arrêt dans un spot, la cale se remplit par lots ; pleine, elle ne prend
+   plus rien et le dit une fois. Tous les bateaux pêchent, pas seulement celui qu'on
+   conduit : on peut poser le chalutier sur un spot et repartir en barque — mais il faudra
+   bien le ramener, et c'est ce qui fait le jeu. */
+function travailPeche(m, dt){
+  const v = m.v, K = v.cargo;
+  if(!K || v.speed > 0.6){ v.pecheT = 0; return; }
+  const Sp = dansSpot(v);
+  if(!Sp){ v.pecheT = 0; return; }
+  const cle = m.peche.cle;
+  if(K.load >= K.capacite - 0.01 || (naturesDe(K).some((k)=> k !== cle))){
+    if(m === MACHINES[cur] && !v.pleinDit){ v.pleinDit = true; showHint('CALE PLEINE · DÉBARQUER AU QUAI'); }
+    return;
+  }
+  v.pleinDit = false;
+  v.pecheT = (v.pecheT || 0) + dt;
+  if(siSouvent(0.12)) puff(v.pos.x + (Math.random() - 0.5)*6, 0.2, v.pos.z + (Math.random() - 0.5)*6, 0xE6F2F4, 0.3, 0.2);
+  if(v.pecheT >= m.peche.duree){
+    v.pecheT = 0;
+    const q = Math.min(m.peche.lot, K.capacite - K.load);
+    ajouterCharge(K, cle, q);
+    STAT.peche += q;
+    solderLecon('peche');
+    for(let n = 0; n < 4; n++) puff(v.pos.x + (Math.random() - 0.5)*3, 0.3, v.pos.z + (Math.random() - 0.5)*3, 0xDCE6E4, 0.45, 0.5);
+    if(m === MACHINES[cur]) showHint(nomDe(cle).toUpperCase() + ' · ' + kg(K.load) + (K.load >= K.capacite - 0.01 ? ' · CALE PLEINE' : ''));
+  }
+}
+
 // une ligne de clôture = une seule géométrie fusionnée (piquets + 2 lisses)
 const POST_G = new THREE.BoxGeometry(0.3,2.0,0.3).toNonIndexed();
 const RAIL_G = new THREE.BoxGeometry(0.14,0.2,1).toNonIndexed();
@@ -8764,6 +8954,211 @@ function batEntrepotExport(){
   g.scale.setScalar(1/BAT_ECHELLE);
   const w = new THREE.Group(); w.add(g);
   return w;
+}
+/* ---------- LES MODÈLES DU PORT, portés de la planche `port.html` du joueur ----------
+   Mêmes cotes, mêmes pièces ; les socles de béton et les nappes d'eau de la planche sont
+   retirés — le jeu pose la dalle, et l'eau est un seul plan pour tout le port. */
+const PO_ = {COQUE:0xE8E2D4, COQUE2:0xC9C0AE, ROUGE:0xB8342A, BLEU:0x2E6BA8, BLEUF:0x1E4A6B,
+             VERT:0x2F6B52, JAUNE:0xF0C24A, ORANGE:0xE07B24, BOIS:0x8A6A3A, BOIS2:0x6B4E24,
+             BOIS3:0xA98A5A, GRIS:0x8A9298, GRIS2:0x6E767C, INOX:0xC9CFD3, NOIR:0x2A2622,
+             BETON:0x9BA3A8, BETON2:0x848C91, TUILE:0x9C4A32, CREME:0xF2E7D2, VITRE:0x22303A,
+             EAU:0x3E7A82, EAU2:0x336970, FILET:0x4E7C6A, SABLE:0xC6A560};
+// quai : dalle, bordure, bittes d'amarrage et pneus pare-battage
+function quaiBeton(g, x, z, w, d, ry){
+  const q = new THREE.Group();
+  q.add(box(w, 0.7, d, PO_.BETON, 0, 0.35, 0));
+  q.add(box(w + 0.24, 0.16, d + 0.24, PO_.BETON2, 0, 0.74, 0));
+  for(let k = 0; k < Math.floor(w/3); k++){
+    const bx = -w/2 + 1.8 + k*3;
+    q.add(cyl(0.2, 0.24, 0.5, 8, PO_.NOIR, bx, 1.05, d/2 - 0.5));
+    q.add(cyl(0.28, 0.28, 0.1, 8, PO_.NOIR, bx, 1.3, d/2 - 0.5));
+  }
+  for(let k = 0; k < Math.floor(w/2.2); k++)
+    q.add(cyl(0.34, 0.34, 0.16, 10, 0x2E2A26, -w/2 + 1.1 + k*2.2, 0.5, d/2 + 0.12, Math.PI/2));
+  q.position.set(x, 0, z); if(ry) q.rotation.y = ry;
+  g.add(q);
+  return q;
+}
+/* COQUE : bordé évasé vers le haut, étrave en coin, ligne de flottaison plus sombre — c'est
+   elle qui fait lire un bateau plutôt qu'une caisse posée sur l'eau. */
+function coqueBateau(g, L, W, H, c, y0){
+  const h = new THREE.Group();
+  h.add(slab({w:W*0.66, h:H, d:L*0.88, tw:W, td:L, c:c, y:0}));
+  h.add(box(W + 0.06, 0.18, L + 0.06, PO_.COQUE2, 0, H*0.34, 0));
+  h.add(box(W*0.92, 0.22, L*0.98, 0x8E2A22, 0, H*0.12, 0));
+  const e = new THREE.BufferGeometry();
+  const Pp = [[-W/2, 0, 0], [W/2, 0, 0], [0, 0, L*0.3], [-W/2, H, 0], [W/2, H, 0], [0, H*0.9, L*0.34]];
+  const F = [[0,1,2],[3,5,4],[0,3,4],[0,4,1],[1,4,5],[1,5,2],[0,2,5],[0,5,3]];
+  const pos = [];
+  for(const f of F) for(const i of f) pos.push(Pp[i][0], Pp[i][1], Pp[i][2]);
+  e.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  e.computeVertexNormals();
+  const m = new THREE.Mesh(e, mat(c));
+  m.position.set(0, 0, L/2); m.castShadow = true; m.receiveShadow = true; h.add(m);
+  h.position.y = y0 || 0;
+  g.add(h);
+  return h;
+}
+function timonerieBateau(g, x, y, z, w, h, d, c){
+  const hC = h*0.26, hV = h*0.54, hT = h - hC - hV;
+  g.add(box(w, hC, d, c, x, y + hC/2, z));
+  g.add(box(w, hV, d, C.glass, x, y + hC + hV/2, z));
+  g.add(box(w + 0.14, hT, d + 0.14, c, x, y + hC + hV + hT/2, z));
+  const yV = y + hC + hV/2;
+  for(const sx of [-1, 1]) for(const sz of [-1, 1])
+    g.add(box(0.12, hV, 0.12, c, x + sx*(w/2 - 0.06), yV, z + sz*(d/2 - 0.06)));
+}
+function casierPeche(g, x, y, z, ry){
+  const c = new THREE.Group();
+  c.add(box(0.9, 0.06, 0.6, PO_.BOIS2, 0, 0, 0));
+  for(let k = 0; k < 5; k++) c.add(box(0.06, 0.42, 0.6, PO_.BOIS3, -0.36 + k*0.18, 0.24, 0));
+  c.add(box(0.9, 0.06, 0.6, PO_.BOIS2, 0, 0.46, 0));
+  for(const sz of [-0.28, 0.28]) c.add(box(0.9, 0.42, 0.05, PO_.FILET, 0, 0.24, sz));
+  c.position.set(x, y, z); if(ry) c.rotation.y = ry;
+  g.add(c);
+}
+function bacPoisson(g, x, y, z, c){
+  g.add(box(0.8, 0.4, 0.55, c || 0x3E7CB8, x, y + 0.2, z));
+  g.add(box(0.86, 0.07, 0.6, 0x2E5C88, x, y + 0.4, z));
+}
+function boueePeche(g, x, y, z){
+  g.add(cyl(0.26, 0.26, 0.12, 10, PO_.ORANGE, x, y, z, Math.PI/2));
+  g.add(cyl(0.13, 0.13, 0.14, 8, PO_.CREME, x, y, z, Math.PI/2));
+}
+function matFanions(g, x, z, h, c){
+  g.add(cyl(0.08, 0.11, h, 6, c || PO_.CREME, x, h/2, z));
+  g.add(box(1.1, 0.08, 0.08, c || PO_.CREME, x, h*0.72, z));
+  for(let k = 0; k < 4; k++)
+    g.add(box(0.16, 0.2, 0.03, [PO_.ROUGE, PO_.JAUNE, PO_.BLEU, PO_.CREME][k], x + 0.2 + k*0.22, h*0.62 - k*0.06, z));
+}
+/* La criée : halle ouverte, vingt bacs alignés au sol, balance et palettes. */
+function batCriee(){
+  const g = new THREE.Group();
+  const W = 12, D = 8;
+  for(const sx of [-W/2, 0, W/2]) for(const sz of [-D/2, D/2])
+    g.add(box(0.32, 4.2, 0.32, PO_.GRIS, sx, 2.1, sz));
+  g.add(gable(D + 1.4, 1.6, W + 1.4, 0xD6DDE2, 0, 4.2, 0, Math.PI/2));
+  g.add(box(W, 0.24, D, 0xB9C1C6, 0, 4.0, 0));
+  g.add(box(W + 0.6, 1.1, 0.24, PO_.CREME, 0, 4.8, D/2 + 0.5));
+  g.add(box(W*0.6, 0.6, 0.28, PO_.BLEUF, 0, 4.8, D/2 + 0.56));
+  for(let r = 0; r < 3; r++) for(let k = 0; k < 7; k++)
+    bacPoisson(g, -4.2 + k*1.4, 0.18, -2.2 + r*1.5, [0x3E7CB8, 0x4E8CC8, 0x2E6BA8][(r + k) % 3]);
+  g.add(box(2.0, 1.0, 0.9, PO_.INOX, 5.2, 0.6, 2.6));
+  g.add(box(1.4, 0.12, 0.9, PO_.GRIS, 5.2, 1.16, 2.6));
+  g.add(box(0.5, 0.9, 0.1, 0x2E3438, 5.2, 1.7, 2.4));
+  for(let k = 0; k < 6; k++) g.add(box(1.1, 0.24, 0.8, 0x2E6BA8, -5.6, 0.3 + k*0.26, 3.0));
+  return g;
+}
+/* La conserverie et son fumoir : deux cheminées, c'est ce qui la distingue d'un entrepôt. */
+function batConserverie(){
+  const g = new THREE.Group();
+  const W = 10, D = 7, H = 4.4;
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:0xE4DED0, y:0.18}));
+  g.add(box(W + 0.5, 0.4, D + 0.5, 0xC9C0AE, 0, H + 0.38, 0));
+  for(let k = 0; k < 5; k++) g.add(box(1.2, 0.9, 0.16, C.glass, -3.8 + k*1.9, 3.2, D/2 + 0.04));
+  g.add(box(2.8, 2.8, 0.2, PO_.GRIS2, -2.6, 1.58, D/2 + 0.06));
+  g.add(box(3.0, 0.3, 1.2, 0xC9C0AE, -2.6, 3.1, D/2 + 0.6));
+  for(const sx of [1.6, 3.0]){
+    g.add(box(0.8, 2.2, 0.8, 0xB9B0A0, sx, H + 1.2, -1.0));
+    g.add(box(1.0, 0.24, 1.0, PO_.GRIS2, sx, H + 2.4, -1.0));
+    for(let k = 0; k < 3; k++)
+      g.add(cyl(0.18 + k*0.1, 0.18 + k*0.1, 0.3, 8, 0xE8EDF0, sx, H + 2.7 + k*0.35, -1.0));
+  }
+  g.add(box(3.4, 0.9, 0.16, PO_.BLEUF, 2.4, 3.6, D/2 + 0.05));
+  for(let k = 0; k < 8; k++) bacPoisson(g, 3.2 + (k % 2)*0.95, 0.18 + Math.floor(k/2)*0.42, D/2 + 2.0);
+  g.add(box(1.6, 1.2, 1.2, PO_.INOX, -5.4, 0.78, D/2 + 1.6));
+  return g;
+}
+/* Le chantier naval : la coque au sec sur ses tins, étais, échafaud, cale qui descend à
+   l'eau, atelier au fond. Ce n'est pas un commerce de la bande : il est posé sur la côte,
+   sa cale vers l'eau, et son cercle ouvre la vitrine des bateaux. */
+function modeleChantierNaval(){
+  const g = new THREE.Group();
+  const W = 11, D = 9;
+  g.add(box(W + 3, 0.18, D + 3, PO_.BETON, 0, 0.09, 0));
+  const cale = box(6.0, 0.3, 5.0, PO_.BETON2, 0, 0.5, D/2 + 0.6);
+  cale.rotation.x = 0.13; g.add(cale);
+  for(let k = 0; k < 6; k++) g.add(box(6.2, 0.16, 0.24, PO_.GRIS, 0, 0.9 - k*0.13, 1.6 + k*0.8));
+  const h = coqueBateau(g, 6.4, 2.4, 1.5, PO_.COQUE, 1.5);
+  h.position.x = -2.4;
+  for(const sz of [-2.0, 0, 2.0]) for(const sx of [-3.3, -1.5])
+    g.add(box(0.5, 1.5, 0.5, PO_.BOIS2, sx, 0.75, sz));
+  for(let k = 0; k < 6; k++) for(const sx of [-1, 1]){
+    const e = box(0.16, 2.4, 0.16, PO_.BOIS3, -2.4 + sx*1.9, 1.2, -2.0 + k*0.8);
+    e.rotation.z = sx*0.28; g.add(e);
+  }
+  g.add(box(2.2, 3.4, 0.3, PO_.GRIS, -2.4, 1.7, -3.6));
+  for(let k = 0; k < 4; k++) g.add(box(2.2, 0.1, 0.4, PO_.GRIS2, -2.4, 0.8 + k*0.8, -3.6));
+  g.add(slab({w:4.6, h:3.2, d:3.6, tw:4.6, td:3.6, c:0xC9C0AE, x:3.6, y:0.18, z:-2.6}));
+  g.add(gable(3.8, 1.2, 4.8, PO_.TUILE, 3.6, 3.38, -2.6, Math.PI/2));
+  g.add(box(2.2, 2.2, 0.2, PO_.BOIS2, 3.6, 1.28, -0.82));
+  for(let k = 0; k < 5; k++) g.add(box(0.24, 0.14, 4.0, PO_.BOIS3, 4.6 + k*0.3, 0.28, 2.4));
+  return g;
+}
+/* Le phare, au bout de la jetée : son bout de jetée enroché, le fût à bandes rouges, la
+   galerie et la lanterne. */
+function modelePhare(){
+  const g = new THREE.Group();
+  g.add(box(4.4, 1.0, 9.0, PO_.BETON, -3.6, 0.5, 0));
+  g.add(box(4.7, 0.18, 9.3, PO_.BETON2, -3.6, 1.05, 0));
+  for(let k = 0; k < 6; k++)
+    g.add(box(0.9 + alea()*0.6, 0.7, 0.9, 0x8A8272, -6.2 - alea()*0.6, 0.35, -3.6 + k*1.5));
+  const x = 1.2;
+  g.add(cyl(1.6, 1.8, 0.5, 14, PO_.BETON2, x, 0.25, 0));
+  g.add(cyl(0.95, 1.35, 6.2, 14, PO_.CREME, x, 3.35, 0));
+  for(let k = 0; k < 3; k++) g.add(cyl(1.3 - k*0.11, 1.3 - k*0.11, 0.7, 14, PO_.ROUGE, x, 1.6 + k*1.9, 0));
+  g.add(cyl(1.35, 1.15, 0.3, 14, PO_.GRIS2, x, 6.6, 0));
+  for(let k = 0; k < 12; k++){
+    const a = k*0.52;
+    g.add(box(0.07, 0.5, 0.07, PO_.GRIS, x + Math.cos(a)*1.25, 6.95, Math.sin(a)*1.25));
+  }
+  g.add(cyl(0.8, 0.8, 1.1, 12, C.glass, x, 7.4, 0));
+  g.add(cyl(0.9, 0.5, 0.7, 12, PO_.ROUGE, x, 8.25, 0));
+  g.add(cyl(0.1, 0.1, 0.5, 6, PO_.GRIS, x, 8.75, 0));
+  matFanions(g, -3.6, 3.6, 3.4, PO_.CREME);
+  return g;
+}
+/* Le quai de débarque : casiers en pile, filets et flotteurs, bacs, bouées, cabane. */
+function modeleQuaiDebarque(){
+  const g = new THREE.Group();
+  quaiBeton(g, 0, -1.0, 11, 7, 0);
+  let k = 0;
+  for(let rang = 0; rang < 3; rang++)
+    for(let i = 0; i < 3 - rang; i++, k++)
+      casierPeche(g, -3.8 + i*1.0 + rang*0.5, 0.78 + rang*0.5, -2.6, 0.1*k);
+  for(let i = 0; i < 6; i++) bacPoisson(g, 0.4 + (i % 3)*0.95, 0.78 + Math.floor(i/3)*0.42, -2.8);
+  for(let i = 0; i < 3; i++){
+    g.add(box(1.6, 0.5, 1.4, PO_.FILET, 2.8 + i*0.5, 1.0, -0.2 + i*0.4));
+    for(let j = 0; j < 4; j++)
+      g.add(cyl(0.12, 0.12, 0.1, 8, PO_.ORANGE, 2.4 + i*0.5 + j*0.3, 1.3, -0.4 + i*0.4, Math.PI/2));
+  }
+  for(let i = 0; i < 4; i++) boueePeche(g, -4.6, 1.1 + i*0.3, 0.6 + i*0.15);
+  g.add(box(0.9, 1.9, 0.6, PO_.ROUGE, -1.6, 1.65, 1.0));
+  g.add(gable(0.7, 0.4, 1.0, 0x8E2A22, -1.6, 2.6, 1.0, Math.PI/2));
+  matFanions(g, 4.4, 1.6, 3.0, PO_.CREME);
+  return g;
+}
+/* La grue de quai et le tas de caisses. */
+function modeleGrueQuai(){
+  const g = new THREE.Group();
+  quaiBeton(g, 0, -1.2, 11, 7, 0);
+  g.add(cyl(1.1, 1.3, 0.6, 12, PO_.GRIS2, -2.0, 1.0, -1.0));
+  g.add(cyl(0.55, 0.7, 4.2, 10, PO_.JAUNE, -2.0, 3.4, -1.0));
+  g.add(box(1.6, 1.2, 1.6, PO_.JAUNE, -2.0, 5.9, -1.0));
+  g.add(box(1.2, 0.7, 1.2, C.glass, -2.0, 5.9, -0.7));
+  const fl = box(0.42, 0.42, 6.2, PO_.JAUNE, -2.0, 6.3, 1.4);
+  fl.rotation.x = -0.42; g.add(fl);
+  const hb = box(0.3, 0.3, 2.4, PO_.JAUNE, -2.0, 6.0, -2.6);
+  hb.rotation.x = 0.5; g.add(hb);
+  g.add(box(0.9, 0.7, 0.9, PO_.GRIS2, -2.0, 5.1, -3.4));
+  g.add(box(0.06, 2.6, 0.06, PO_.GRIS, -2.0, 6.0, 3.9));
+  g.add(box(0.5, 0.4, 0.5, PO_.GRIS2, -2.0, 4.6, 3.9));
+  g.add(box(0.16, 0.5, 0.16, PO_.INOX, -2.0, 4.2, 3.9));
+  for(let r = 0; r < 3; r++) for(let k = 0; k < 4 - r; k++)
+    g.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
+              2.2 + k*1.1 + r*0.55, 0.98 + r*0.52, -1.6));
+  for(let i = 0; i < 4; i++) casierPeche(g, 3.4 + i*1.0, 0.78, 1.4, 0.15*i);
+  return g;
 }
 /* 5 — Usine de lait d'avoine */
 function batUsineAvoine(){
@@ -10000,6 +10395,7 @@ function buildFarm(){
 
   for(const S of SITES) buildCommerce(S);
   construireForet();
+  construirePort();
 
   // L'entrepôt : remise fermée de la ferme, sur une dalle de bitume identique à celle
   // du parking voisin. Il s'appelait « Garage » et vendait les utilitaires ; le garage
@@ -12564,6 +12960,106 @@ function buildPorteur(){
             nez:4.0}};
   return g;
 }
+/* ---------- LES TROIS BATEAUX ET LE CAMION FRIGO, portés de la planche `port.html` ----------
+   Un bateau est un engin comme un autre pour le jeu — même classe, même caisson, même
+   cercle d'action —, à deux choses près : il n'a pas de roues, et il reste sur l'eau
+   (`bateau:true`, lu par `Vehicle.update`). Ses feux de position sont ceux du reste du parc,
+   pour que la nuit les allume comme les autres. */
+function feuxBateau(g, L, y){
+  const F = jeuDeFeux();
+  optique(g, F, false, 0, y, L/2 - 0.1, 0.18, 0.12);
+  optique(g, F, true, 0, y, -L/2 + 0.05, 0.16, 0.11);
+  return F;
+}
+function buildBarque(){
+  const g = new THREE.Group();
+  const h = coqueBateau(g, 5.0, 1.9, 0.9, PO_.BLEU, 0.14);
+  h.add(box(1.7, 0.1, 3.4, PO_.BOIS3, 0, 0.62, -0.4));
+  for(const sz of [-1.4, 0.2, 1.4]) h.add(box(1.7, 0.12, 0.34, PO_.BOIS3, 0, 0.86, sz));
+  timonerieBateau(g, 0, 1.04, -1.2, 1.3, 1.1, 1.1, PO_.CREME);
+  g.add(cyl(0.16, 0.16, 0.6, 8, PO_.NOIR, 0, 1.1, -2.2));
+  g.add(box(0.24, 0.5, 0.3, PO_.NOIR, 0, 0.8, -2.45));
+  casierPeche(g, 0.35, 0.86, 0.9, 0.3); casierPeche(g, -0.35, 0.86, 1.5, -0.2);
+  boueePeche(g, 0.9, 1.0, -0.2); boueePeche(g, -0.9, 1.0, 0.4);
+  const F = feuxBateau(g, 5.0, 1.0);
+  g.scale.setScalar(1.30);
+  g.userData = {wr:[], wf:[], feux:F,
+    lampes:{avant:{x:[0], y:1.0, z:2.4, w:0.18, h:0.12}, arriere:{x:[0], y:1.0, z:-2.45, w:0.16, h:0.11}, nez:2.6}};
+  return g;
+}
+function buildChalutier(){
+  const g = new THREE.Group();
+  const h = coqueBateau(g, 8.5, 3.0, 1.7, PO_.ROUGE, 0.3);
+  h.add(box(2.7, 0.12, 5.0, 0x8E2A22, 0, 1.2, -1.0));
+  timonerieBateau(g, 0, 1.6, 1.4, 2.4, 1.9, 2.2, PO_.CREME);
+  g.add(box(2.6, 0.5, 2.0, PO_.CREME, 0, 1.45, 1.4));
+  matFanions(g, 0, 0.4, 4.6, PO_.CREME);
+  for(const sx of [-1.25, 1.25]) g.add(box(0.18, 2.6, 0.18, PO_.JAUNE, sx, 2.7, -3.6));
+  g.add(box(2.9, 0.2, 0.2, PO_.JAUNE, 0, 3.9, -3.6));
+  g.add(cyl(0.55, 0.55, 1.8, 12, PO_.FILET, 0, 2.1, -2.8, 0, 0, Math.PI/2));
+  for(const sx of [-0.9, 0.9]) g.add(cyl(0.6, 0.6, 0.12, 12, PO_.GRIS2, sx, 2.1, -2.8, 0, 0, Math.PI/2));
+  g.add(cyl(0.34, 0.34, 1.4, 10, PO_.GRIS, 0, 1.8, 0.0, 0, 0, Math.PI/2));
+  for(let k = 0; k < 4; k++) bacPoisson(g, -0.9 + (k % 2)*1.8, 1.0, -1.6 - Math.floor(k/2)*0.7);
+  boueePeche(g, 1.55, 1.6, -0.6); boueePeche(g, -1.55, 1.6, -0.6);
+  const F = feuxBateau(g, 8.5, 1.6);
+  g.scale.setScalar(1.30);
+  g.userData = {wr:[], wf:[], feux:F,
+    lampes:{avant:{x:[0], y:1.6, z:4.15, w:0.18, h:0.12}, arriere:{x:[0], y:1.6, z:-4.2, w:0.16, h:0.11}, nez:4.3}};
+  return g;
+}
+function buildCaseyeur(){
+  const g = new THREE.Group();
+  const h = coqueBateau(g, 6.6, 2.4, 1.3, PO_.VERT, 0.24);
+  h.add(box(2.1, 0.12, 4.2, 0x255744, 0, 0.92, -0.6));
+  timonerieBateau(g, 0, 1.18, 1.5, 1.9, 1.6, 1.7, PO_.CREME);
+  matFanions(g, 0, 0.5, 3.4, PO_.CREME);
+  g.add(box(0.9, 0.7, 0.5, PO_.JAUNE, 1.0, 1.36, 0.2));
+  g.add(cyl(0.3, 0.3, 0.16, 10, PO_.GRIS2, 1.0, 1.71, 0.2, Math.PI/2));
+  let k = 0;
+  for(let rang = 0; rang < 2; rang++)
+    for(let i = 0; i < 4; i++, k++)
+      casierPeche(g, -0.6 + (k % 2)*1.2, 1.16 + rang*0.5, -0.8 - i*0.72, (k % 3)*0.2);
+  boueePeche(g, 1.25, 1.31, -1.0); boueePeche(g, -1.25, 1.31, -1.6);
+  const F = feuxBateau(g, 6.6, 1.3);
+  g.scale.setScalar(1.30);
+  g.userData = {wr:[], wf:[], feux:F,
+    lampes:{avant:{x:[0], y:1.3, z:3.2, w:0.18, h:0.12}, arriere:{x:[0], y:1.3, z:-3.25, w:0.16, h:0.11}, nez:3.4}};
+  return g;
+}
+/* Le camion frigorifique : caisse isotherme, groupe froid sur la face avant. Il emporte
+   la marée du quai à la criée ; c'est le fourgon du port, avec deux fois sa caisse. */
+function buildFrigo(){
+  const g = new THREE.Group();
+  g.add(box(2.2, 0.34, 6.6, 0x453D34, 0, 0.68, 0));
+  const y = 0.85, h = 1.9, w = 2.24, d = 2.0, zc = 2.2, c = PO_.BLEU;
+  const hC = h*0.42, hV = h*0.42, hT = h - hC - hV;
+  g.add(box(w, hC, d, c, 0, y + hC/2, zc));
+  g.add(box(w, hV, d, C.glass, 0, y + hC + hV/2, zc));
+  g.add(box(w + 0.14, hT, d + 0.14, c, 0, y + hC + hV + hT/2, zc));
+  for(const sx of [-1, 1]) for(const sz of [-1, 1])
+    g.add(box(0.14, hV, 0.14, c, sx*(w/2 - 0.07), y + hC + hV/2, zc + sz*(d/2 - 0.07)));
+  g.add(box(2.4, 2.4, 4.4, PO_.CREME, 0, 2.05, -1.4));
+  g.add(box(2.46, 0.2, 4.5, 0xD8D2C0, 0, 3.25, -1.4));
+  for(let k = 0; k < 4; k++) g.add(box(2.44, 2.3, 0.07, 0xE4DED0, 0, 2.05, 0.4 - k*1.0));
+  g.add(box(1.5, 0.9, 0.4, PO_.INOX, 0, 3.1, 0.85));
+  for(let k = 0; k < 4; k++) g.add(box(1.3, 0.07, 0.1, PO_.GRIS2, 0, 2.85 + k*0.18, 1.06));
+  g.add(box(1.7, 0.6, 0.14, PO_.BLEU, 0, 2.2, -3.62));
+  const F = jeuDeFeux();
+  for(const sx of [-0.8, 0.8]) optique(g, F, false, sx, 1.0,  3.24, 0.28, 0.17);
+  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.0, -3.66, 0.30, 0.22);
+  const wr = [], wf = [];
+  for(const sx of [-1.05, 1.05]){
+    const a = wheelMesh(0.48, 0.34); a.position.set(sx, 0.48, 2.1); g.add(a); wf.push(a);
+    for(const sz of [-1.3, -2.4]){ const b2 = wheelMesh(0.48, 0.34); b2.position.set(sx, 0.48, sz); g.add(b2); wr.push(b2); }
+  }
+  const gyro = gyrophare(g, 0.8, 3.4, 2.2);
+  g.scale.setScalar(1.40);
+  g.userData = {wr, wf, gyro, feux:F,
+    lampes:{avant:  {x:[-0.8, 0.8], y:1.0, z: 3.24, w:0.28, h:0.17},
+            arriere:{x:[-0.8, 0.8], y:1.0, z:-3.66, w:0.30, h:0.22},
+            nez:3.4}};
+  return g;
+}
 function buildEnjambeuse(){
   const g = new THREE.Group();
   const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
@@ -13011,6 +13507,7 @@ class Vehicle {
         gabarits(this, G); cap = G[ci];
       }
       for(const o of boxObs){
+        if(o.eau && this.bateau) continue;     // l'eau n'arrête pas un bateau
         const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, n = Math.max(2, Math.ceil(Math.hypot(lx, lz)) + 1);
         let best = null;
         for(let i = 0; i < n; i++){
@@ -13136,6 +13633,11 @@ class Vehicle {
     // limites + obstacles
     this.pos.x = Math.max(MONDE.x0+6, Math.min(MONDE.x1-6, this.pos.x));   // le monde entier, pas les tuiles
     this.pos.z = Math.max(MONDE.z0+6, Math.min(MONDE.z1-6, this.pos.z));
+    // Un bateau reste sur l'eau : la côte est son bord du monde.
+    if(this.bateau){
+      this.pos.x = Math.max(EAU.x0 + 4, Math.min(EAU.x1 - 3.5, this.pos.x));
+      this.pos.z = Math.max(EAU.z0 + 4, Math.min(EAU.z1 - 4, this.pos.z));
+    }
     /* LE DÉCOR CONTRE TOUTES LES GÉLULES DE L'ENGIN CONDUIT — corps, tête, outil attelé
        (`decorGabarits`) —, et le cercle d'avant pour les autres : un engin en automatique
        suit un tracé calculé, et un épandeur de douze mètres qui frôlerait les piquets de
@@ -13165,6 +13667,7 @@ class Vehicle {
       }
     }
     for(const o of boxObs){
+      if(o.eau && this.bateau) continue;       // l'eau n'arrête pas un bateau
       const R = 1.35;      // demi-largeur réelle de la machine
       const cx = Math.max(o.x-o.hw, Math.min(o.x+o.hw, this.pos.x));
       const cz = Math.max(o.z-o.hd, Math.min(o.z+o.hd, this.pos.z));
@@ -17529,7 +18032,7 @@ const BORD_TRAFIC = {x0:MONDE.x0 - MARGE_TRAFIC, x1:MONDE.x1 + MARGE_TRAFIC,
    s'arrêtent avec les tuiles où ils sont peints. Un véhicule qui les suivrait jusqu'au
    bord du grand monde roulerait trois cents mètres sur l'herbe. */
 const bordsChaussee = (A)=> A.h
-  ? (Math.abs(A.c - ROC.z0) < 0.5 ? {u0:MONDE.x0 - MARGE_TRAFIC, u1:MONDE.x1 + MARGE_TRAFIC}
+  ? (Math.abs(A.c - ROC.z0) < 0.5 ? {u0:PORT.routeX0, u1:MONDE.x1 + MARGE_TRAFIC}
                                   : {u0:X0 - MARGE_TRAFIC, u1:X1 + MARGE_TRAFIC})
   : {u0:Z0 - MARGE_TRAFIC, u1:Z1 + MARGE_TRAFIC};
 /* ET LES VÉHICULES DU TRAFIC SONT À L'ÉCHELLE UNE ET DEMIE. Ils avaient été dessinés
@@ -18767,6 +19270,38 @@ const MACHINES = [
       x:DEPOT_BOIS.x + 5, z:DEPOT_BOIS.z + 13, cap:0, vmax:10, accel:6.5, turn:1.4, grip:5.4, trackW:1.46,
       susp:{k:22, d:4.2, roll:0.048, pitch:0.03, rough:1.15},
       build:buildPorteur
+    })},
+  /* ---------- LE PORT : UN CAMION ET TROIS BATEAUX, EN FIN DE TABLE ----------
+     Le camion frigo se vend au garage et attend au port, à côté de la grue. Les bateaux se
+     vendent au chantier naval et dorment dans le bassin, entre le quai et la jetée. Un
+     bateau n'a pas d'adhérence : `grip` bas, il dérive en virage, et sa suspension est la
+     houle. `peche` dit ce qu'il remonte : la nature, le lot, et le temps d'un lot. */
+  {key:'frigo', nom:'Camion frigo', teinte:0x2E6BA8, verrou:true, prix:12000,
+   livre:'AU PORT', timbre:'fourgon', ton:0.97, plage:[0.74, 0.96], v:new Vehicle({
+      x:-184, z:-98, cap:0, vmax:16, accel:11, turn:1.9, grip:5.6, trackW:1.47,
+      susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
+      build:buildFrigo
+    })},
+  {key:'barque', nom:'Barque', teinte:0x2E6BA8, verrou:true, prix:3000, bateau:true,
+   livre:'AU PORT', timbre:'fourgon', ton:0.84, plage:[0.74, 0.96],
+   peche:{cle:'poisson', lot:10, duree:8}, v:new Vehicle({
+      x:-206, z:-62, cap:-Math.PI/2, vmax:6.5, accel:2.6, turn:1.1, grip:1.6, trackW:0.9, bateau:true,
+      susp:{k:14, d:2.6, roll:0.09, pitch:0.05, rough:1.6},
+      build:buildBarque
+    })},
+  {key:'chalutier', nom:'Chalutier', teinte:0xB8342A, verrou:true, prix:18000, bateau:true,
+   livre:'AU PORT', timbre:'lourd', ton:0.8, plage:[0.68, 1.0],
+   peche:{cle:'poisson', lot:45, duree:9}, v:new Vehicle({
+      x:-215, z:-55, cap:-Math.PI/2, vmax:7.5, accel:2.2, turn:0.8, grip:1.3, trackW:1.4, bateau:true,
+      susp:{k:12, d:2.4, roll:0.07, pitch:0.04, rough:1.3},
+      build:buildChalutier
+    })},
+  {key:'caseyeur', nom:'Caseyeur', teinte:0x2F6B52, verrou:true, prix:11000, bateau:true,
+   livre:'AU PORT', timbre:'fourgon', ton:0.78, plage:[0.74, 0.96],
+   peche:{cle:'crustaces', lot:20, duree:9}, v:new Vehicle({
+      x:-207, z:-49, cap:-Math.PI/2, vmax:7, accel:2.4, turn:0.95, grip:1.5, trackW:1.1, bateau:true,
+      susp:{k:13, d:2.5, roll:0.08, pitch:0.045, rough:1.4},
+      build:buildCaseyeur
     })}
 ];
 
@@ -18932,6 +19467,11 @@ MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:100, load:0};
 // Les deux caissons du bois : trois arbres pour l'abatteuse, huit pour le porteur.
 MACHINES.find(m=>m.key==='abatteuse').v.cargo = {capacite:150, load:0};
 MACHINES.find(m=>m.key==='porteur').v.cargo = {capacite:400, load:0};
+// Le port : la caisse du frigo, et la cale de chaque bateau.
+MACHINES.find(m=>m.key==='frigo').v.cargo = {capacite:300, load:0};
+MACHINES.find(m=>m.key==='barque').v.cargo = {capacite:60, load:0};
+MACHINES.find(m=>m.key==='chalutier').v.cargo = {capacite:400, load:0};
+MACHINES.find(m=>m.key==='caseyeur').v.cargo = {capacite:200, load:0};
 for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
@@ -19015,6 +19555,11 @@ const PALIERS = {
                      {vite:1.10, caisse:650, prix:1800},
                      {vite:1.20, caisse:950, prix:5000},
                      {vite:1.30, caisse:1300, prix:11000}]},
+  frigo:     {nom:'Camion frigo', donne:'capacité et vitesse',
+              crans:[{vite:1.00, caisse:300},
+                     {vite:1.10, caisse:480, prix:1200},
+                     {vite:1.20, caisse:720, prix:3400},
+                     {vite:1.30, caisse:1000, prix:7500}]},
   pickup:    {nom:'Pick-up',      donne:'capacité et vitesse',
               crans:[{vite:1.00, caisse:150},
                      {vite:1.10, caisse:250, prix:700},
@@ -19163,7 +19708,7 @@ function compter(cle, q, entreeSilo){
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel:0, betes:0,
-              grumes:0,
+              grumes:0, peche:0,
               oeufs:0, laine:0, huile:0, fromage:0,
               // Deux compteurs que la campagne interroge : les porcs vendus à la
               // boucherie, et l'aliment premium jamais sorti de l'atelier.
@@ -19295,6 +19840,8 @@ function work(m, dt){
   const v = m.v;
   // L'abatteuse ne travaille pas la terre : elle travaille la forêt, à l'arrêt.
   if(m.key === 'abatteuse'){ travailForet(m, dt); v.prevWork = null; return; }
+  // Un bateau ne travaille pas la terre non plus : il pêche, à l'arrêt, sur un spot.
+  if(m.peche){ travailPeche(m, dt); v.prevWork = null; return; }
   const T = toolOf(m);
   if(!T || !T.from) { v.prevWork = null; return; }   // sans outil, ou outil de transport
   /* CE QUI COUPE LE MARQUAGE. Il était coupé sous 0,60 m/s, et la position d'outil
@@ -19714,7 +20261,11 @@ const FENETRES = {
   amelio:     {titre:'Améliorer', visage:'Garage',
                                    accroche:'On regarde ce qu\'on peut améliorer ?',
                                    vues:[{id:'engins',   nom:'Véhicules'},
-                                         {id:'outils',   nom:'Outils & remorques'}]}
+                                         {id:'outils',   nom:'Outils & remorques'}]},
+  // Le chantier naval : la même vitrine que le garage, avec les seules coques.
+  chantier:   {titre:'Chantier naval', visage:'Chantier naval',
+                                   accroche:'On vous met une coque à l\'eau ?',
+                                   vues:[{id:'engins',   nom:'Bateaux'}]}
 };
 let fenActive = null, fenVue = {};
 function ouvrirFenetre(id, vue){
@@ -19806,6 +20357,7 @@ function rendreFenetre(){
     comptoir:   {semences:vueComptoirSemences, consos:vueComptoirConsos,
                  cuves:vueComptoirCuves},
     achat:      {engins:vueAchatEngins,   outils:vueAchatOutils},
+    chantier:   {engins:vueAchatEngins},
     amelio:     {engins:vueAmelioEngins,  outils:vueAmelioOutils}
   })[fenActive] || {};
   const f = vues ? T[fenVue[fenActive]] : T._;
@@ -20118,6 +20670,13 @@ function detailEngin(m){
   if(m.key === 'porteur')
     return 'Porte les grumes du dépôt aux ateliers du bois · caisson '
            + kg(m.v.cargo ? m.v.cargo.capacite : 400);
+  if(m.peche)
+    return (m.peche.cle === 'crustaces' ? 'Pêche les crustacés' : 'Pêche le poisson')
+           + ' · ' + kg(m.peche.lot) + ' toutes les ' + m.peche.duree + ' s · cale '
+           + kg(m.v.cargo ? m.v.cargo.capacite : 0);
+  if(m.key === 'frigo')
+    return 'Emporte la marée du quai à la criée · caisse '
+           + kg(m.v.cargo ? m.v.cargo.capacite : 300);
   if(m.v.cargo)
     return 'Transport sans outil · ' + kg(m.v.cargo.capacite) + ' à bord';
   const vit = ' · vitesse ' + Math.round((m.v.vmax0 || m.v.vmax)/VMAX_REF*100) + ' %';
@@ -20158,7 +20717,8 @@ function ligneAchat(o){
     o.cle, o.cle);
 }
 function vueAchatEngins(){
-  const aPrendre = MACHINES.filter(enVente);
+  const chantier = aChantier(MACHINES[cur].v);
+  const aPrendre = MACHINES.filter((m)=> enVente(m) && !!m.bateau === chantier);
   if(aPrendre.length){
     titre('À la concession');
     for(const m of aPrendre)
@@ -20173,15 +20733,18 @@ function vueAchatEngins(){
                           setMachine(MACHINES.indexOf(m)); fermerFenetre(); }});
   }
   const d = document.createElement('div'); d.className = 'art';
-  d.innerHTML = '<div class="txt"><div class="det">Le TRACTEUR LOURD est le seul assez ' +
-    'fort pour tirer le COMBINÉ 3-EN-1, qui laboure, sème et fertilise en un seul ' +
-    'passage. On ne rachète pas un tracteur pour garder trois attelages debout : on en ' +
-    'achète un qui n\'en demande qu\'un.</div></div>';
+  d.innerHTML = '<div class="txt"><div class="det">' + (chantier
+    ? 'Un bateau à l\'arrêt sur un SPOT remplit sa cale tout seul ; on la vide au QUAI DE ' +
+      'DÉBARQUE, et le camion frigo porte la marée à la criée. Le caseyeur ne prend que les ' +
+      'crustacés, deux fois plus chers.'
+    : 'Le TRACTEUR LOURD est le seul assez fort pour tirer le COMBINÉ 3-EN-1, qui laboure, ' +
+      'sème et fertilise en un seul passage. On ne rachète pas un tracteur pour garder trois ' +
+      'attelages debout : on en achète un qui n\'en demande qu\'un.') + '</div></div>';
   hote.appendChild(d);
 
-  titre('Déjà à la ferme');
+  titre(chantier ? 'Déjà au port' : 'Déjà à la ferme');
   MACHINES.forEach((m, i)=>{
-    if(m.verrou) return;
+    if(m.verrou || !!m.bateau !== chantier) return;
     article(m.teinte || 0xFAD201, nomEngin(m),
       detailEngin(m) + ' · niveau ' + m.v.level,
       i === cur ? 'À bord' : 'Possédé', i === cur ? 'ok' : 'no', null, null, m.key);
@@ -22147,10 +22710,13 @@ const outilVerrou = (cle)=>{ const T = TOOLS.find((x)=> x.key === cle); return !
    l'anneau du garage et au catalogue du menu. */
 function articlesAVendre(){
   const out = [];
+  /* LE GARAGE VEND LES ENGINS, LE CHANTIER NAVAL LES BATEAUX. La vitrine dépend d'où l'on
+     est : au chantier on ne voit que les coques, au garage tout le reste et les outils. */
+  const chantier = aChantier(MACHINES[cur].v);
   for(const m of MACHINES)
-    if(enVente(m) && ouvert('engins', m.key))
+    if(enVente(m) && ouvert('engins', m.key) && !!m.bateau === chantier)
       out.push({quoi:'engin', cle:m.key, m:m, nom:nomEngin(m), prix:m.prix});
-  for(const T of TOOLS)
+  if(!chantier) for(const T of TOOLS)
     if(T.verrou && ouvert('outils', T.key))
       out.push({quoi:'outil', cle:T.key, T:T, nom:T.nom, prix:T.prix || 0});
   out.sort((a2, b2)=> a2.prix - b2.prix);
@@ -22162,13 +22728,15 @@ function articlesAVendre(){
    dit maintenant COMBIEN il y a à vendre, et la liste s'ouvre au doigt. */
 function refreshVehButton(){
   const v = MACHINES[cur].v;
-  if(!aQuai(v, GARAGE)){ vehEl.style.display = 'none'; return; }
+  const chantier = aChantier(v);
+  if(!aQuai(v, GARAGE) && !chantier){ vehEl.style.display = 'none'; return; }
   /* IL COMPTE LA VITRINE, PAS LE CATALOGUE. Le premier compte annonçait cinq articles
      au palier 1 alors que trois attendaient un palier de campagne : le bouton promettait
      ce qu'il n'avait pas. Il dit ce qui est EN VENTE MAINTENANT — et la liste s'ouvre
      quand même, pour montrer ce qui vient. */
   const n = articlesAVendre().length;
-  const reste = MACHINES.some(enVente) || TOOLS.some((T)=> T.verrou);
+  const reste = MACHINES.some((m)=> enVente(m) && !!m.bateau === chantier)
+                || (!chantier && TOOLS.some((T)=> T.verrou));
   vehEl.style.display = 'block';
   teindre(vehEl, classeGarage());
   vehEl.classList.toggle('no', !reste);
@@ -22179,10 +22747,13 @@ function refreshVehButton(){
   vehEl.classList.toggle('appel', !!(A && A.fen === 'achat' && fenActive !== 'achat' && reste));
   vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
                         : (reste ? 'RIEN À VENDRE À CE PALIER'
-                                 : 'TOUT LE MATÉRIEL EST À LA FERME');
+                                 : (chantier ? 'TOUS LES BATEAUX SONT AU PORT'
+                                             : 'TOUT LE MATÉRIEL EST À LA FERME'));
 }
 vehEl.addEventListener('pointerdown', ()=>{
-  if(MACHINES.some(enVente) || TOOLS.some((T)=> T.verrou)) ouvrirFenetre('achat');
+  const chantier = aChantier(MACHINES[cur].v);
+  if(chantier){ if(MACHINES.some((m)=> enVente(m) && m.bateau)) ouvrirFenetre('chantier'); return; }
+  if(MACHINES.some((m)=> enVente(m) && !m.bateau) || TOOLS.some((T)=> T.verrou)) ouvrirFenetre('achat');
 });
 
 const atelEl = document.getElementById('atelier');
@@ -22388,7 +22959,7 @@ const COLIS_SOL_MAX = 5;
 // la grille du silo. Ceux-là fument, ils ne s'emballent pas.
 // Les grumes non plus : elles se voient sur les piles du dépôt et dans le caisson du porteur.
 const SANS_COLIS = {tremie:1, tremieVente:1, tremieLivraison:1, auge:1, ranger:1,
-                    deposerBois:1, prendreBois:1};
+                    deposerBois:1, prendreBois:1, debarquer:1, prendrePeche:1};
 function majColis(m, A, dt){
   const v = m.v, T = caisseDe(m);
   const ud = v.group.userData;
@@ -22734,7 +23305,10 @@ const RESERVOIRS = {t1:{max:40, c:LMIN(0.8)}, t2:{max:40, c:LMIN(0.8)}, t3:{max:
                     t4:{max:55, c:LMIN(1.1)},
                     // Le bois : une abatteuse boit comme une moissonneuse, un porteur
                     // comme un fourgon chargé.
-                    abatteuse:{max:60, c:LMIN(1.2)}, porteur:{max:70, c:LMIN(0.9)}};
+                    abatteuse:{max:60, c:LMIN(1.2)}, porteur:{max:70, c:LMIN(0.9)},
+                    // Le port : un hors-bord boit peu, un chalutier comme une moissonneuse.
+                    frigo:{max:45, c:LMIN(0.6)}, barque:{max:20, c:LMIN(0.3)},
+                    chalutier:{max:60, c:LMIN(0.9)}, caseyeur:{max:40, c:LMIN(0.6)}};
 for(const m of MACHINES){
   const R = RESERVOIRS[m.key] || {max:40, c:LMIN(0.8)};
   m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;
@@ -23670,7 +24244,13 @@ const LECONS = [
   {cle:'abattage', humeur:'projette', ou:'foret', nom:'LA FORÊT', titre:'LA FORÊT',
    txt:'LA FORÊT – Avance au ralenti sur un arbre mûr : la tête le scie toute seule et les '
      + 'grumes tombent dans le caisson. Plein, on le vide au dépôt, ou on le vend à la scierie.',
-   quand:()=> MACHINES[cur].key === 'abatteuse'}
+   quand:()=> MACHINES[cur].key === 'abatteuse'},
+  /* LA PREMIÈRE FOIS QU'ON MONTE DANS UN BATEAU : la flèche montre le spot le plus proche,
+     et la leçon se solde au premier lot remonté. */
+  {cle:'peche', humeur:'projette', ou:'spot', nom:'LA PÊCHE', titre:'LA PÊCHE',
+   txt:'LA PÊCHE – Va sur un spot, le cercle au large, et arrête-toi : la cale se remplit '
+     + 'toute seule. Pleine, reviens la vider au quai de débarque.',
+   quand:()=> !!MACHINES[cur].peche}
 ];
 /* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
    le tutoriel de départ ne connaît que le champ, le silo, la ferme et les commerces, là où
@@ -23691,6 +24271,15 @@ function lieuLecon(L){
   if(ou === 'atelier')  return HALLE.quai
     ? {lieu:'atelier', x:HALLE.quai.x, z:HALLE.quai.z} : null;
   if(ou === 'gazole')   return {lieu:'cuve', x:quaiCuve.x, z:quaiCuve.z};
+  if(ou === 'spot'){
+    const v = MACHINES[cur].v;
+    let best = null, bd = 1e9;
+    for(const Sp of PORT.spots){
+      const d = Math.hypot(Sp.x - v.pos.x, Sp.z - v.pos.z);
+      if(d < bd){ bd = d; best = Sp; }
+    }
+    return best ? {lieu:'spot', x:best.x, z:best.z} : null;
+  }
   if(ou === 'foret'){
     // L'arbre mûr le plus proche de l'engin : c'est lui qu'on va couper.
     const v = MACHINES[cur].v;
@@ -26243,6 +26832,9 @@ function actionsIci(m){
     out = out.concat(actionsEntrepot(m));
   if(DEPOT_BOIS.quai && prochePoint(v, DEPOT_BOIS.quai.x, DEPOT_BOIS.quai.z, DEPOT_BOIS.r))
     out = out.concat(actionsDepotBois(m));
+  if(QUAI_PECHE.pose && (prochePoint(v, PORT.debarque.x, PORT.debarque.z, PORT.r)
+                         || prochePoint(v, PORT.charge.x, PORT.charge.z, PORT.r)))
+    out = out.concat(actionsQuaiPeche(m));
   for(const S of SITES) if(aQuai(v, S)){ out = out.concat(actionsAuSite(m, S)); break; }
   return out;
 }
@@ -26295,6 +26887,8 @@ function quantiteMax(m, A){
     case 'prendreEntrepot': return Math.min(place, entrepotStock(A.cle));
     case 'deposerBois': return Math.min(porte, DEPOT_BOIS.max - DEPOT_BOIS.stock);
     case 'prendreBois': return Math.min(place, DEPOT_BOIS.stock);
+    case 'debarquer': return Math.min(porte, QUAI_PECHE.max - quaiPecheTotal());
+    case 'prendrePeche': return Math.min(place, QUAI_PECHE.stock[A.cle] || 0);
     case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
     case 'traire': return Math.min(place, A.P.produit);
     case 'traire2': return Math.min(place, A.P.produit2);
@@ -26310,7 +26904,7 @@ function quantiteMax(m, A){
    pas de troisième cas. C'est ce qui permet de poser au joueur une question en deux
    temps : d'abord DÉCHARGER ou REMPLIR, ensuite quoi. */
 const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
-                    verser:1, rangerEntrepot:1, auge:1, deposerBois:1};
+                    verser:1, rangerEntrepot:1, auge:1, deposerBois:1, debarquer:1};
 const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
 /* ET CE QUE L'OBJECTIF DEMANDE, DANS LE MÊME VOCABULAIRE. `objectifMission` dit où aller
    et quoi y faire — 'charger', 'collecter', 'vider' — mais dans ses mots à lui. Les
@@ -26497,6 +27091,23 @@ function executer(m, A, dt){
       ajouterCharge(T, A.cle, q); entrepotRetire(A.cle, q);
       if(siSouvent(0.3))
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.3);
+      if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
+    case 'debarquer': {
+      const q = Math.min(debit, chargeDe(T, A.cle), QUAI_PECHE.max - quaiPecheTotal());
+      if(q <= 0.0001) return;
+      retirerCharge(T, A.cle, q); QUAI_PECHE.stock[A.cle] = (QUAI_PECHE.stock[A.cle] || 0) + q;
+      if(siSouvent(0.3)) puff(PORT.quai.x, 1.4, PORT.quai.z, teinteDe(A.cle), 0.35, 0.3);
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01) showHint(nomDe(A.cle).toUpperCase() + ' DÉBARQUÉ AU QUAI');
+      return;
+    }
+    case 'prendrePeche': {
+      const q = Math.min(debit, T.capacite - T.load, QUAI_PECHE.stock[A.cle] || 0);
+      if(q <= 0.0001) return;
+      ajouterCharge(T, A.cle, q); QUAI_PECHE.stock[A.cle] = Math.max(0, (QUAI_PECHE.stock[A.cle] || 0) - q);
+      if(siSouvent(0.3)) puff(PORT.charge.x, 1.4, PORT.charge.z, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
       return;
     }
@@ -27232,7 +27843,9 @@ const VERBE_ACTE = {
   prendre:'charger', prendreEntrepot:'charger', reprendre:'charger',
   traire:'charger', traire2:'charger',
   tremie:'deposer', ranger:'deposer', rangerEntrepot:'deposer', auge:'deposer',
-  vendre:'livrer', verser:'livrer', tremieVente:'livrer', tremieLivraison:'livrer'
+  vendre:'livrer', verser:'livrer', tremieVente:'livrer', tremieLivraison:'livrer',
+  // Le dépôt de bois et le quai de débarque : on y dépose, on y charge.
+  deposerBois:'deposer', prendreBois:'charger', debarquer:'deposer', prendrePeche:'charger'
 };
 const MOT_VERBE = {charger:'Charger', deposer:'Déposer', livrer:'Livrer', elevage:'Interagir'};
 /* ET LE MOT DU GESTE, LÀ OÙ LE NOM SEUL NE SUFFIT PAS. Sous les trois verbes ordinaires,
@@ -27240,7 +27853,7 @@ const MOT_VERBE = {charger:'Charger', deposer:'Déposer', livrer:'Livrer', eleva
    chose. Sous INTERAGIR, non : « Blé » remplit la mangeoire et « Lait » vide le tank, et
    rien dans le nom ne le dit. Ces trois-là portent donc leur verbe dans le détail. */
 const MOT_ACTE = {auge:'Remplir la mangeoire', traire:'Récupérer la production',
-                  traire2:'Récupérer la production'};
+                  traire2:'Récupérer la production', debarquer:'Débarquer'};
 // `A.P` est la pâture : elle ne figure que sur les actions d'enclos, et c'est elle qui
 // range les quatre gestes de l'élevage sous le même verbe.
 const verbeActe = (A)=> A.P ? 'elevage' : (VERBE_ACTE[A.sens] || 'charger');
@@ -27607,7 +28220,8 @@ function refreshChoix(){
      colonne devenait celui du moteur JavaScript. C'est le second tank d'une brebis, qui
      donne de la laine en plus de son lait : deux boutons CHARGER au même enclos. */
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
-                auge:1, rangerEntrepot:1, prendre:2, reprendre:2, prendreEntrepot:2,
+                auge:1, rangerEntrepot:1, deposerBois:1, debarquer:1,
+                prendre:2, reprendre:2, prendreEntrepot:2, prendreBois:2, prendrePeche:2,
                 traire:2, traire2:2};
   const rangDe = (A)=> (estMission(A) ? -1 : rang[A.sens]);
   const tri = L.slice().sort((A, B)=> (rangDe(A) - rangDe(B)) || A.txt.localeCompare(B.txt));
@@ -27641,6 +28255,8 @@ function refreshChoix(){
     const nomLieu = (A)=> A.S ? A.S.nom
                         : A.lieu === 'silo' ? 'Silo'
                         : A.lieu === 'entrepot' ? 'Entrepôt'
+                        : A.lieu === 'depotBois' ? 'Dépôt de bois'
+                        : A.lieu === 'quaiPeche' ? 'Quai de débarque'
                         : A.P ? (ESPECES[A.P.espece] || ESPECES.vache).pluriel
                         : A.lieu;
     /* LE CURSEUR PART DE CE QUE LA MISSION ATTEND. Le joueur : « pour la première
@@ -31233,6 +31849,7 @@ function etatJeu(){
     // La forêt et le dépôt de grumes : deux champs FACULTATIFS de plus, `v` ne bouge pas.
     foret: etatForet(),
     depotBois: DEPOT_BOIS.stock,
+    quaiPeche: Object.assign({}, QUAI_PECHE.stock),
     /* LES CHANTIERS SE SAUVEGARDENT, ET RIEN DE LEUR AVANCEMENT.
        C'est le dividende du choix de départ : l'étape ne se mémorise pas, elle SE LIT SUR
        LA TERRE. Un chantier n'est donc qu'un réglage — cette parcelle, cette graine, ce
@@ -31697,6 +32314,10 @@ function chargerPartie(S){
     restaurerForet(S.foret);
     DEPOT_BOIS.stock = Math.max(0, Math.min(DEPOT_BOIS.max, +S.depotBois || 0));
     majPileDepot();
+    // Le quai de pêche d'une partie d'avant le port est vide.
+    for(const k in QUAI_PECHE.stock) delete QUAI_PECHE.stock[k];
+    if(S.quaiPeche) for(const k in S.quaiPeche)
+      if(PRODUITS[k] && S.quaiPeche[k] > 0.005) QUAI_PECHE.stock[k] = Math.min(QUAI_PECHE.max, S.quaiPeche[k]);
     for(const k in HALLE.stock){
       if(HALLE.stock[k] > 0.005) entrepotRange(k, HALLE.stock[k]);
       delete HALLE.stock[k];
@@ -33113,8 +33734,9 @@ function loop(now){
       // sur l'essieu ARRIÈRE, et non au milieu de l'engin : `f` porte le décalage.
       const r = right(v.cap), s = (Math.random() < 0.5 ? -1 : 1)*v.trackW;
       const f = v.fwd(), e = v.essieuAr || 0;
-      puff(v.pos.x + r.x*s + f.x*e, 0.4, v.pos.z + r.z*s + f.z*e,
-           0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
+      // Un bateau ne soulève pas de poussière : c'est de l'écume, et elle est blanche.
+      puff(v.pos.x + r.x*s + f.x*e, v.bateau ? 0.15 : 0.4, v.pos.z + r.z*s + f.z*e,
+           v.bateau ? 0xE6F2F4 : 0xFFF3E0, 0.35 + v.slip*0.5, 0.35);
     }
     updateTrail(v, now/1000, dt);
     derapage(v, dt);
