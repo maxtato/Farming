@@ -3736,7 +3736,18 @@ const SITES = [
    w:12.0, d:10.0, pw:12, ph:13, toit:0x9C4A32, mur:0xF2E7D2},
   {nom:'Tonnellerie', enseigne:'facade', picto:'chope', dir:'FO', bat:48, park:61,
    style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batTonnellerie(),
-   w:11.0, d:9.5,  pw:11, ph:12, toit:0x9C4A32, mur:0xE8DCC0}
+   w:11.0, d:9.5,  pw:11, ph:12, toit:0x9C4A32, mur:0xE8DCC0},
+
+  /* --- bande EX, l'entrepôt d'export --- EN FIN DE TABLE, comme les quatre du bois. Le
+     modèle est celui de la planche `grandentrepot.html`, aux cotes réelles : soixante-douze
+     mètres, et non soixante-douze fois l'échelle des boutiques. Son parvis est plus profond
+     de douze mètres : les deux remorques à quai en prennent quinze, et l'anneau doit rester
+     devant elles. */
+  {nom:'Entrepôt d\'export', enseigne:'facade', picto:'graine', dir:'EX', bat:0, park:13,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', parvisPlus:12.0,
+   modele:()=> batEntrepotExport(),
+   w:80.0, d:50.0, pw:60, ph:22, toit:0x1F4E8C, mur:0xC9D2D8,
+   propose:[{nom:'Achète en gros', prix:'tout ce que la ferme produit'}]}
 ];
 /* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
 /* La table précédente dit où sont les bâtiments ; celle-ci dit à quoi ils servent.
@@ -3858,7 +3869,19 @@ const NEGOCE = {
   'Scierie':         {achete:['grumes'], coef:1.00, etal:5000},
   'Séchoir':         {achete:['grumes'], coef:1.12, etal:1500},
   'Menuiserie':      {achete:['grumes'], coef:1.25, etal:700},
-  'Tonnellerie':     {achete:['grumes'], coef:1.40, etal:350}
+  'Tonnellerie':     {achete:['grumes'], coef:1.40, etal:350},
+
+  /* L'ENTREPÔT D'EXPORT PREND TOUT, EN GROS, ET PAIE MOINS. Tout ce que la ferme sait
+     produire et emporter — les cinq céréales, ce que donnent les bêtes, ce que l'atelier
+     transforme, les grumes — sauf l'aliment du bétail, qui ne s'exporte pas plus qu'il ne
+     se vend au supermarché. Trente tonnes d'étal, refaites en deux minutes comme partout :
+     c'est le débouché des grandes parcelles, celui qu'aucun rayon de village ne peut être.
+     À 0,82 il paie moins que la Coopérative (0,85) sur les céréales et moins que le
+     Supermarché (1,00) sur le reste : personne n'est dominé, et l'on choisit entre le prix
+     et le volume — et la route, qui est longue. */
+  'Entrepôt d\'export': {achete:Object.keys(PRODUITS).filter((k)=> fournissable(k)
+                                 && !PRODUITS[k].interne && k !== 'aliment' && k !== 'alimentPlus'),
+                        coef:0.82, etal:30000}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -4108,8 +4131,8 @@ const NIVEAUX = [
    modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
   {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
    modules:['fromage'], parcelles:4},
-  {nom:'Gros volumes', resume:'Le supermarché et son rayon fermier, la menuiserie',
-   sites:['Supermarché', 'Menuiserie'], parcelles:5},
+  {nom:'Gros volumes', resume:'Le supermarché, la menuiserie, et l\'entrepôt d\'export',
+   sites:['Supermarché', 'Menuiserie', 'Entrepôt d\'export'], parcelles:5},
   /* UN SEUL ÉLEVAGE OUVRE ICI, ET IL EN OUVRAIT DEUX. Le palier donnait le mouton ET la
      brebis : deux enclos pour un seul animal. Il n'en donne plus qu'un, qui porte les
      deux produits — voir la table des espèces. */
@@ -5366,6 +5389,16 @@ const ZI_X1 = ZI_X0 + 115;                         // 237 : la zone industrielle
    coûte quelques appels de dessin et pas un octet de texture de plus. */
 const FO_X0 = ZI_X1 + 12;                          // 249 : après la zone industrielle et un creux
 const FO_X1 = FO_X0 + 88;                          // 337 : avant que la route ne commence à onduler
+/* ---------- L'ENTREPÔT D'EXPORT (troisième étape de la carte) ----------
+   Le joueur : « la route se continue très légèrement sinusoïdale [...] et elle nous
+   amènerait à un entrepôt [...] qui te permettra de faire notre travail d'export parce que
+   nos produits en gros on pourra emmener directement là-bas pour vendre à l'export ».
+   Après la forêt, la route ondule sur cent mètres et arrive devant lui : la bande EX, au
+   nord de la route comme les ateliers du bois, ne porte que lui — un bâtiment de la
+   planche du joueur, soixante-douze mètres de long, douze portes de quai, deux remorques
+   à quai —, entre deux bosquets. La route continue au-delà : le trafic vient de plus
+   loin, et c'est ce qui fait un entrepôt d'export. */
+const EX_X0 = 425, EX_X1 = 525;                    // la bande de l'entrepôt, quinze mètres avant le bout du monde
 const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 252 à 342 : la forêt, au sud de la route
                z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 107,   // −58 à 38
                arbres:[], sol:null};
@@ -5376,7 +5409,8 @@ const BANDE_DEF = {
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
   E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   ZI: {face:'N', d0:ZI_X0, d1:ZI_X1},
-  FO: {face:'N', d0:FO_X0, d1:FO_X1}               // les ateliers du bois, en face de la forêt
+  FO: {face:'N', d0:FO_X0, d1:FO_X1},              // les ateliers du bois, en face de la forêt
+  EX: {face:'N', d0:EX_X0, d1:EX_X1}               // l'entrepôt d'export, au bout de la route
 };
 const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
 
@@ -5552,7 +5586,12 @@ const BANDES = {
      menuiserie et la tonnellerie ensuite, qui paient mieux et prennent moins. */
   FO: [{paquet:['Scierie', 'Séchoir']},
        {creux:'verdure', poids:1},
-       {paquet:['Menuiserie', 'Tonnellerie']}]
+       {paquet:['Menuiserie', 'Tonnellerie']}],
+  // L'entrepôt d'export, seul sur sa bande, un bosquet de chaque côté : le surplus de la
+  // bande se partage aux deux bouts, et il se retrouve au milieu.
+  EX: [{creux:'verdure', poids:1},
+       {paquet:['Entrepôt d\'export']},
+       {creux:'verdure', poids:1}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -8575,6 +8614,156 @@ function modeleDepotBois(){
   g.add(box(0.9, 0.36, 0.12, 0xC0392B, 5.2, 1.7, 3.64));
   g.userData.piles = piles;
   return g;
+}
+/* ---------- L'ENTREPÔT D'EXPORT, porté de la planche `grandentrepot.html` ----------
+   Mêmes cotes, mêmes pièces, mêmes noms — sauf la cour d'asphalte et la clôture du fond,
+   que le jeu pose lui-même (la dalle et le grillage), et les mâts d'éclairage, ramenés
+   dans le parvis. Le tout est rendu AUX COTES RÉELLES : la planche dessine en mètres de
+   terrain, et l'échelle des boutiques (× 1,18) est annulée à l'intérieur ; tourné d'un
+   demi-tour, les quais regardent la route. */
+function batEntrepotExport(){
+  const g = new THREE.Group();
+  const L = 72, W = 38, H = 11.5, NB = 12, PAS = 5.2, hQ = 1.20;
+  const BARD = 0xC9D2D8, BARD2 = 0xAEB8BE, BARD3 = 0xE2E8EC, SOCLE = 0x8A9298, SOCLE2 = 0x6E767C,
+        TOIT = 0x7E888F, TOIT2 = 0x69737A, ACIER = 0x8A9298, ACIER2 = 0x5F676D, NOIR = 0x22262A,
+        NOIR2 = 0x2E3438, VITRE = 0x2E4C5E, VERRE = 0xBFD6DE, ASPH = 0x3A4348,
+        BLEU = 0x1F4E8C, BLANC = 0xF0EDE4, JAUNE = 0xE8B33A;
+  const zF = -W/2;                       // la façade des quais, côté −z du modèle
+  // Porte de quai : rideau à lames, coulisses, coffre, numéro. Répétée douze fois.
+  const porteQuai = (x, z, w, h, num)=>{
+    g.add(box(w + 0.5, h + 0.5, 0.18, ACIER2, x, h/2 + hQ, z - 0.06));
+    g.add(box(w, h, 0.20, 0x2A3238, x, h/2 + hQ, z));
+    const nl = Math.round(h/0.30);
+    for(let k = 0; k < nl; k++)
+      g.add(box(w - 0.12, h/nl*0.66, 0.24, BARD3, x, hQ + h*(k + 0.5)/nl, z - 0.04));
+    for(const s2 of [-1, 1])
+      g.add(box(0.20, h + 0.5, 0.28, ACIER2, x + s2*(w/2 + 0.14), h/2 + hQ, z - 0.05));
+    g.add(box(w + 0.7, 0.55, 0.45, ACIER, x, hQ + h + 0.30, z - 0.10));
+    g.add(box(0.9, 0.55, 0.12, ACIER2, x, hQ + h + 0.95, z - 0.02));
+    for(let k = 0; k < String(num).length; k++)
+      g.add(box(0.20, 0.34, 0.14, JAUNE, x - 0.16 + k*0.30, hQ + h + 0.95, z - 0.07));
+    for(const s2 of [-1, 1])
+      g.add(box(0.36, 0.46, 0.26, NOIR, x + s2*(w/2 - 0.2), hQ - 0.36, z - 0.24));
+  };
+  // Mât d'éclairage : à cette échelle, ce sont eux qui donnent la mesure de la cour.
+  const matEclairage = (x, z)=>{
+    g.add(box(0.9, 0.30, 0.9, SOCLE2, x, 0.15, z));
+    g.add(cyl(0.16, 0.22, 9.0, 8, ACIER2, x, 4.65, z));
+    g.add(box(1.9, 0.16, 0.5, ACIER, x, 9.20, z));
+    for(let k = 0; k < 3; k++){
+      g.add(box(0.5, 0.26, 0.42, NOIR2, x - 0.65 + k*0.65, 9.02, z));
+      g.add(box(0.42, 0.10, 0.36, 0xFFF3C4, x - 0.65 + k*0.65, 8.88, z));
+    }
+  };
+  const palette = (x, z, ry, n)=>{
+    const p = new THREE.Group();
+    for(let k = 0; k < 3; k++) p.add(box(1.15, 0.09, 0.16, 0xA98A5A, 0, 0.05, -0.4 + k*0.4));
+    p.add(box(1.15, 0.07, 1.0, 0xA98A5A, 0, 0.13, 0));
+    for(let k = 0; k < (n || 0); k++)
+      p.add(box(1.0, 0.42, 0.85, k % 2 ? 0xC9B183 : 0xD8C79A, 0, 0.38 + k*0.44, 0));
+    p.position.set(x, 0, z); if(ry) p.rotation.y = ry; g.add(p);
+  };
+  // Une remorque à quai : elle sert d'étalon. Sans elle, on ne voit pas les 72 m.
+  const remorque = (x, z)=>{
+    g.add(box(2.55, 2.90, 13.5, BLANC, x, 2.35, z - 6.6));
+    g.add(box(2.62, 0.22, 13.6, ACIER2, x, 3.85, z - 6.6));
+    for(let k = 0; k < 9; k++) g.add(box(2.60, 2.60, 0.09, 0xDCD8CD, x, 2.35, z - 12.5 + k*1.5));
+    g.add(box(2.45, 0.55, 0.12, ACIER, x, 1.05, z - 13.3));
+    for(const s2 of [-1, 1]) for(let k = 0; k < 3; k++)
+      g.add(cyl(0.52, 0.52, 0.30, 10, NOIR, x + s2*1.05, 0.52, z - 11.2 + k*1.3, 0, 0, Math.PI/2));
+    for(const s2 of [-1, 1]) g.add(cyl(0.12, 0.12, 1.0, 6, ACIER2, x + s2*0.8, 0.5, z - 2.2));
+    g.add(box(2.30, 0.30, 0.30, ACIER2, x, 0.55, z - 2.2));
+  };
+
+  // socle et bardage : une nervure toutes les deux travées
+  g.add(box(L + 1.2, 1.0, W + 1.2, SOCLE, 0, 0.50, 0));
+  g.add(box(L, H, W, BARD, 0, 1.0 + H/2, 0));
+  const nNerv = Math.round(L/2.4);
+  for(let k = 0; k <= nNerv; k++){
+    const x = -L/2 + k*L/nNerv;
+    for(const s2 of [-1, 1]) g.add(box(0.16, H - 0.2, 0.16, BARD2, x, 1.0 + H/2, s2*(W/2 + 0.02)));
+  }
+  const nNervW = Math.round(W/2.4);
+  for(let k = 0; k <= nNervW; k++){
+    const z = -W/2 + k*W/nNervW;
+    for(const s2 of [-1, 1]) g.add(box(0.16, H - 0.2, 0.16, BARD2, s2*(L/2 + 0.02), 1.0 + H/2, z));
+  }
+  g.add(box(L + 0.4, 0.9, W + 0.4, BARD3, 0, 1.0 + H - 0.45, 0));      // bandeau haut
+  g.add(box(L + 0.6, 0.5, W + 0.6, SOCLE2, 0, 1.20, 0));               // bavette basse
+
+  // toiture à deux pentes, ses fermes et ses lanterneaux
+  const HT = 5.2, DEMI = (W + 2.0)/2, yBase = 1.0 + H;
+  const toitY = (z)=> yBase + HT*(1 - Math.abs(z)/DEMI);
+  const pente = Math.atan2(HT, DEMI);
+  g.add(gable(W + 2.0, HT, L + 2.0, TOIT, 0, yBase, 0, Math.PI/2));
+  g.add(box(L + 2.2, 0.26, 0.55, TOIT2, 0, toitY(0) + 0.10, 0));
+  for(const s2 of [-1, 1]) for(let k = 0; k < 3; k++){
+    const zz = s2*(2.5 + k*6.0);
+    const ch = box(L + 2.1, 0.16, 0.30, TOIT2, 0, toitY(zz) + 0.09, zz);
+    ch.rotation.x = -s2*pente; g.add(ch);
+  }
+  for(let k = 0; k < 8; k++){                                           // lanterneaux au faîtage
+    const x = -L/2 + 5 + k*(L - 10)/7;
+    g.add(box(5.0, 0.75, 2.2, VERRE, x, toitY(0) + 0.18, 0));
+    g.add(box(5.2, 0.20, 2.4, ACIER2, x, toitY(0) + 0.52, 0));
+  }
+  for(let k = 0; k < 6; k++){                                           // extracteurs, posés sur la pente
+    const x = -L/2 + 7 + k*(L - 14)/5, zz = -W/4;
+    g.add(cyl(0.7, 0.7, 0.9, 10, ACIER, x, toitY(zz) + 0.30, zz));
+    g.add(cyl(0.85, 0.85, 0.16, 10, ACIER2, x, toitY(zz) + 0.80, zz));
+  }
+  for(const s2 of [-1, 1]){                                             // gouttières et descentes
+    g.add(box(L + 2.2, 0.30, 0.36, ACIER2, 0, yBase + 0.12, s2*(W/2 + 1.0)));
+    for(let k = 0; k <= 8; k++)
+      g.add(cyl(0.14, 0.14, H, 6, ACIER2, -L/2 + 1 + k*(L - 2)/8, 1.0 + H/2, s2*(W/2 + 0.2)));
+  }
+
+  // la façade des quais : douze portes, un quai continu, un auvent
+  const largeQuai = NB*PAS + 4;
+  g.add(box(largeQuai, hQ, 3.6, SOCLE, 0, hQ/2, zF - 1.8));
+  g.add(box(largeQuai + 0.3, 0.16, 3.7, ACIER2, 0, hQ, zF - 1.8));
+  g.add(box(largeQuai + 0.6, 0.45, 4.6, TOIT, 0, 1.0 + H - 3.2, zF - 2.2));   // auvent
+  for(let k = 0; k <= NB; k++){
+    const x = -(NB - 1)*PAS/2 - PAS/2 + k*PAS;
+    g.add(box(0.26, 1.0 + H - 3.4, 0.26, ACIER, x, (1.0 + H - 3.4)/2, zF - 4.2));
+  }
+  for(let k = 0; k < NB; k++) porteQuai(-(NB - 1)*PAS/2 + k*PAS, zF + 0.02, 3.6, 4.4, k + 1);
+
+  // porte de plain-pied à un bout, pour les engins
+  g.add(box(6.5, 1.0, 5.0, ASPH, L/2 - 7, 0.50, zF - 2.2));
+  g.add(box(5.4, 6.0, 0.30, 0x2A3238, L/2 - 7, 3.0, zF + 0.02));
+  for(let k = 0; k < 20; k++) g.add(box(5.2, 0.20, 0.34, BARD3, L/2 - 7, 0.2 + k*0.30, zF - 0.04));
+  for(const s2 of [-1, 1]) g.add(box(0.28, 6.2, 0.34, ACIER2, L/2 - 7 + s2*2.85, 3.1, zF - 0.02));
+  g.add(box(6.0, 0.5, 0.4, ACIER, L/2 - 7, 6.3, zF - 0.08));
+
+  // bloc de bureaux à l'autre bout, deux niveaux vitrés
+  const xB = -L/2 - 5.5;
+  g.add(box(11, 7.6, 14, BARD3, xB, 3.8, zF + 9));
+  g.add(box(11.4, 0.6, 14.4, BLEU, xB, 7.9, zF + 9));
+  for(let n = 0; n < 2; n++) for(let k = 0; k < 5; k++)
+    g.add(box(1.5, 1.9, 0.22, VITRE, xB - 4 + k*2, 2.2 + n*3.2, zF + 2.0));
+  for(let n = 0; n < 2; n++) for(let k = 0; k < 6; k++)
+    g.add(box(0.22, 1.9, 1.6, VITRE, xB - 5.6, 2.2 + n*3.2, zF + 3.6 + k*2.1));
+  g.add(box(3.2, 3.0, 0.3, VITRE, xB + 3.2, 1.7, zF + 2.0));           // entrée
+  g.add(box(4.4, 0.35, 2.2, ACIER, xB + 3.2, 3.6, zF + 1.0));          // marquise
+  for(const s2 of [-1, 1]) g.add(cyl(0.12, 0.12, 3.4, 6, ACIER2, xB + 3.2 + s2*1.9, 1.7, zF + 0.2));
+
+  // enseigne sur le bandeau, côté quais : entre l'auvent et le débord de toiture
+  g.add(box(18, 2.4, 0.5, BLEU, 6, 11.05, zF - 0.30));
+  g.add(box(16, 1.1, 0.26, BLANC, 6, 11.05, zF - 0.58));
+
+  // la cour : deux remorques à quai, quatre mâts dans le parvis, des palettes
+  remorque(-(NB - 1)*PAS/2 + 2*PAS, zF - 2.0);
+  remorque(-(NB - 1)*PAS/2 + 7*PAS, zF - 2.0);
+  for(const x of [-L/2 + 3, -L/6, L/6, L/2 - 3]) matEclairage(x, zF - 17);
+  for(let k = 0; k < 8; k++)
+    palette(-L/2 + 4 + (k % 4)*1.5, zF - 6.5 - Math.floor(k/4)*1.4, 0.1*k, 2 + (k % 3));
+
+  // Aux cotes réelles, et les quais vers +z : voir l'en-tête.
+  g.rotation.y = Math.PI;
+  g.scale.setScalar(1/BAT_ECHELLE);
+  const w = new THREE.Group(); w.add(g);
+  return w;
 }
 /* 5 — Usine de lait d'avoine */
 function batUsineAvoine(){

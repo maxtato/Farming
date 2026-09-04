@@ -14350,3 +14350,48 @@ sauvegarde relue ; le porteur descend de la route au cercle en ligne droite. Les
 engins ont été ramenés de 1,45 à 1,30 : à 1,45, vu de jeu, le bras montait au faîte des
 conifères. `campagne30` (72), `ouverture` (6), `acces` (5), `chocs` (24), `sansvue` (9),
 `_h_diag` (11), `grandes` (7) restent verts.
+
+## La nouvelle carte, troisième étape : l'entrepôt d'export
+
+Le joueur : « la route se continue très légèrement sinusoïdale [...] et elle nous
+amènerait à un entrepôt que je te joins aussi en fichier HTML, qui te permettra de faire
+notre travail d'export parce que nos produits en gros on pourra emmener directement là-bas
+pour vendre à l'export ».
+
+**Où.** Après la forêt, la route ondule sur cent mètres et arrive devant lui : la bande
+`EX` (`BANDE_DEF.EX`, de 425 à 525, quinze mètres avant le bout du monde), au nord de la
+route comme les ateliers du bois, ne porte que lui, entre deux bosquets — le surplus de la
+bande se partage aux deux bouts, et il se retrouve au milieu (x = 475). La route continue
+au-delà : le trafic vient de plus loin, et c'est ce qui fait un entrepôt d'export.
+
+**Le bâtiment.** Celui de la planche `grandentrepot.html`, pièce pour pièce — soixante-douze
+mètres de bardage nervuré, toit à deux pentes avec ses lanterneaux et ses extracteurs posés
+sur la pente, douze portes de quai numérotées sous un auvent, la porte de plain-pied, le
+bloc de bureaux vitré, l'enseigne bleue, deux remorques à quai et les palettes — SAUF la
+cour d'asphalte et la clôture du fond, que le jeu pose lui-même (la dalle en volume, le
+grillage), et les mâts d'éclairage, ramenés dans le parvis. Il est rendu AUX COTES
+RÉELLES : la planche dessine en mètres de terrain, et l'échelle des boutiques (× 1,18) est
+annulée à l'intérieur du modèle ; tourné d'un demi-tour, les quais regardent la route.
+Mesuré : 84,3 × 56,6 m d'emprise bureaux et remorques compris, 18,3 m de haut. Son parvis
+est plus profond de douze mètres (`parvisPlus`) : les deux remorques en prennent quinze, et
+l'anneau doit rester devant elles — il l'est, à 17 m de la bâtisse.
+
+**Ce qu'il fait.** Il achète TOUT ce que la ferme sait produire et emporter — les cinq
+céréales, ce que donnent les bêtes, ce que l'atelier transforme, les grumes : vingt
+produits, la liste se déduit de `fournissable` et n'a pas à être tenue — sauf l'aliment du
+bétail, qui ne s'exporte pas plus qu'il ne se vend au supermarché. Trente tonnes d'étal,
+refaites en deux minutes comme partout : c'est le débouché des grandes parcelles, celui
+qu'aucun rayon de village ne peut être. À 0,82 il paie moins que la Coopérative (0,85) sur
+les céréales et moins que le Supermarché (1,00) sur le reste : personne n'est dominé, et
+l'on choisit entre le prix et le volume — et la route, qui est longue (cinq cents mètres
+depuis la cour). Il ouvre au dixième palier, « Gros volumes », avec le supermarché.
+
+**Mesuré.** Banc `export` (11) : dernier de `SITES`, bande EX, cotes réelles, dans sa
+bande et sur sa dalle, parvis de 22 m et anneau hors de la bâtisse, les vingt produits et
+rien d'autre, 0,82 sur trente tonnes sous la Coopérative et le Supermarché, palier 10 ; le
+fourgon monte de la route au cercle en ligne droite en deux secondes ; il propose le blé et
+les grumes, trente tonnes de place ; il paie 0,82 fois le barème (192,90 € les 100 kg de
+blé, 106,60 € les 50 kg de grumes). Le banc `bois` cesse de demander que les ateliers du
+bois soient « les quatre derniers » : ils tiennent les rangs 15 à 18, ce qui est la seule
+chose qui compte. `campagne30` (72), `ouverture` (6), `acces` (5), `sansvue` (9),
+`_h_diag` (11), `grandes` (7) verts.
