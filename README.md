@@ -14467,3 +14467,80 @@ la vitrine du garage sans bateau, celle du chantier avec les trois seuls, sa fen
 la sauvegarde. Les captures de jeu ont été regardées : la jetée et son phare, le bassin et
 ses trois coques, le quai, la grue et le chantier tiennent dans le même cadre. Les
 régressions restent vertes.
+
+## La nouvelle carte, cinquième étape : le village resserré, le supermarché sur la route du bas, le quai face à nous
+
+Le joueur, après avoir regardé la quatrième étape : « Faut pas qu'il y ait de maison, ni
+de commerce qui déborde sur les routes évidemment, vaut mieux que tu enlèves une maison et
+que tu écartes un petit peu plus, tout en plaçant des arbres et des éléments entre. Pour le
+supermarché, fais-le plus grand, et mets-le sur la grande route qui est en bas à droite
+qu'on a prolongé, il faut qu'il soit un petit peu à l'extérieur du village. Et pour le port,
+fais en sorte que les quais soient face à notre angle de vue, qu'on voie les bâtiments en
+face, donc fais un retour vers le haut de manière à positionner le quai plus ou moins dans
+le prolongement de la route de gauche. »
+
+**Ce qui débordait, mesuré avant.** La sonde des bandes (`_probe_bandes`) le disait sans
+appel : la bande ouest demandait 139,6 m pour 132 disponibles, la bande est 143, la zone
+industrielle 122 pour 115. `repartirBandes` partage un dépassement entre les deux bouts,
+et les trois mètres de recul l'absorbent — mais pas cinq. Les maisons de coin de l'ouest
+mordaient les rocades nord et sud de cinq mètres, la Coopérative et le Garage de six, la
+dalle de l'usine à céréales de soixante centimètres ; et les creux de ces bandes étaient à
+zéro, sans un arbre entre deux dalles.
+
+**Une maison de moins par bande, et le Marché change de trottoir.** Le supermarché parti
+sur sa propre bande, l'est avait vingt-neuf mètres de libre : le Marché y passe, entre deux
+maisons, entre la Coopérative à un bout et le Garage à l'autre. L'ouest garde l'Épicerie,
+le Caviste et la Boucherie avec deux maisons au lieu de trois ; le nord perd sa maison de
+bout de rang ; l'est n'en a plus que deux. Les trois bandes tiennent avec deux creux pleins
+de 8,5 m chacune — un objet de village devant, des arbres et des buissons derrière —, et un
+abord de carrefour dégagé (de deux à sept mètres selon la bande). La zone industrielle
+s'allonge de dix-sept mètres (`ZI_X1` à 254) pour rendre à son bosquet ses 8,5 m ; les
+ateliers du bois, la forêt, le dépôt et le début de l'ondulation de la route reculent
+d'autant, et les bancs du bois, qui mesurent en relatif, n'ont rien vu. Plus une dalle ni
+un lot ne touche une chaussée : la sonde ne rapporte aucun conflit.
+
+**Le supermarché.** Vu de la caméra — qui regarde vers le nord-ouest —, « la grande route
+en bas à droite qu'on a prolongé » est la route sud, prolongée vers l'est jusqu'au bord des
+tuiles. Il est posé au nord d'elle, sur une bande à lui, `SU`, quarante mètres après le
+carrefour sud-est, façade au sud : vers la route et vers nous. La bande regarde comme la
+bande nord (face `N`) mais ne borde pas la même chaussée ; elle déclare donc son `bord` et
+sa ligne de façades `front`, que `BORD_BANDE` et `FRONT_N` donnaient jusqu'ici pour toute
+bande tournée vers le sud (`bordDe`, `frontDe`). Le modèle a grandi pour de bon : vingt-
+quatre mètres de façade au lieu de seize, treize de profondeur au lieu de neuf et demi, six
+et demi de haut, huit travées vitrées, quatre groupes de climatisation, deux files de
+chariots ; et tout ce qui se compte se déduit de la façade au lieu d'être écrit en dur.
+Seize mètres de parvis, une dalle de 39 × 41 m — la plus grande du village, l'entrepôt
+d'export mis à part — et un bosquet après lui, côté campagne. Son rang dans `SITES`, son
+palier et ses prix ne bougent pas : une sauvegarde le retrouve.
+
+**Le port, refait.** La côte fait un angle : du sud elle monte le long de x = −200, et à la
+route elle tourne et repart vers l'ouest le long de z = −64. Au sud-ouest, l'eau jusqu'au
+bout du monde — la grande étendue, 217 × 193 m — ; au nord-ouest, la lande. Le bitume
+s'arrête à −197 et une DALLE DE BÉTON le continue, soixante-dix-huit mètres vers le large,
+de la ligne des façades au bord de l'eau : c'est le quai, dans le prolongement de la route
+de gauche, face au sud — face à la caméra. Son bord est un vrai bord de quai (bordure,
+bollards tous les six mètres, pneus contre le mur, cuits en une pièce). Dessus, le quai de
+débarque et la grue, tournés vers l'eau ; le cercle des camions entre les deux, le cercle
+des bateaux dans l'eau en face ; derrière, sur la lande, la criée et la conserverie — bande
+`PO`, de −270 à −204 —, dont on voit les façades depuis l'eau, et c'est ce que le joueur
+demandait. Au bout du quai, la jetée part vers le large en angle droit, le phare au bout,
+tourné vers le sud : c'est l'angle du port, et le bassin qu'elle abrite est là où dorment
+les trois bateaux, contre le chantier naval et sa cale. Le camion frigo attend sur la dalle.
+Les trois spots ont suivi l'eau. La lande derrière le port est plantée — un bois clair de
+conifères semé à graine fixe, à l'ouest de la jetée, derrière la criée, entre le port et le
+village — pour qu'elle ne soit pas nue jusqu'au bout du monde. On roule de la route sur la
+dalle sans que rien n'arrête, et l'eau arrête toujours les roues ; un bateau lancé vers le
+quai s'arrête à quatre mètres du bord.
+
+**Mesuré.** Sonde des bandes : aucun débordement, aucun conflit dalle-chaussée ni
+lot-chaussée, creux de 8,5 m sur les trois bandes, la zone industrielle et le bois. Banc
+`port` (23) : la mer et le rectangle qui arrête les roues, la dalle qui continue la route
+jusqu'à la jetée et la jetée qui part du bout du quai, la criée et la conserverie au-dessus
+du quai, les trois bateaux dans le bassin et le frigo sur la dalle, la lande plantée et rien
+dans l'eau que le port, la barque retenue par la côte, la jetée et le quai, le fourgon par
+la plage et roulant d'un bout à l'autre de la dalle, puis la pêche, le débarquement, le
+chargement, la criée, la vitrine du chantier et la sauvegarde. Régressions vertes : bois
+22, export 11, chocs 24, grandes 7, ouverture 6, accès 5, sans vue 9, diagnostic 11,
+campagne 72. Les captures du ciel et de jeu ont été regardées : le village sans rien sur
+les routes et ses creux garnis, le supermarché et son parking au nord de la route sud,
+le quai vu de l'eau avec la conserverie en face, le chalutier dans le bassin, le phare.
