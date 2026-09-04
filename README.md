@@ -14289,3 +14289,64 @@ complet — 1 974 cellules, zéro en jachère, le chantier passe à « semis » 
 cellule du voisin touchée. `campagne30` (72), `ouverture` (6), `acces` (5), `chocs` (24),
 `sansvue` (9), `_h_diag` (11) verts sur la nouvelle carte. Coût : 156 tuiles au lieu de
 100, soit 62 Mo de textures au lieu de 40 — à surveiller sur la fiche de diagnostic.
+
+## La nouvelle carte, deuxième étape : le bois
+
+Le joueur : « ensuite tu prolonges encore la route et ça nous amène sur une forêt qui sera
+cultivable pour couper du bois etc. je te joins un fichier HTML de l'activité forestière à
+prévoir ». La planche `bois.html` portait dix modèles ; en voici sept dans le jeu, et une
+activité entière qui se joue comme un champ.
+
+**Où.** La route nord continue après la zone industrielle. Au SUD, la forêt (`FORET`, de
+252 à 342 en x, de −58 à 38 en z) : cent vingt-quatre conifères sur une trame de sept
+mètres et demi secouée d'un mètre sept, chacun un obstacle qui ploie, sur un tapis
+d'aiguilles maillé aux bords ondulés (`texSolForet`, `ondul`). Au NORD, en face, la bande
+`FO` (`BANDE_DEF.FO`, 249 à 337) porte les quatre ateliers du bois — Scierie et Séchoir,
+un bosquet, Menuiserie et Tonnellerie —, rangés par `repartirBandes` comme la zone
+industrielle. À la lisière, côté route, le DÉPÔT DE BOIS (`DEPOT_BOIS`) : terre battue,
+souches, panneau de coupe, trois piles de grumes qui se montrent à mesure que le stock
+monte, un cercle d'action et une enseigne. Tout cela est hors des tuiles : la dalle d'un
+commerce posé au-delà de X1 est une plaque de béton en volume (`S.dalleMesh`), et pas un
+octet de texture de plus.
+
+**Comment ça se joue.** L'abatteuse (14 000 €, caisson de 150 kg, six roues, tête au bout
+d'un bras) et le porteur (9 500 €, caisson de 400 kg, huit roues, grue repliée au-dessus du
+chargement) s'achètent au garage au septième palier, avec l'avoine, et ATTENDENT AU DÉPÔT
+— la cour n'a que six cases par rangée, les cases 7 à 9 tombent dans le garage de la ferme,
+mesuré — ce que le garage dit en vendant. On conduit l'abatteuse au ralenti sur un arbre
+mûr : la tête le prend, la scie tourne, la sciure vole, l'arbre tremble deux secondes et
+quelques puis tombe de l'autre côté, et quarante à cinquante kilos de grumes entrent au
+caisson (`travailForet`, dans `work`). Trois arbres le remplissent ; on le vide au dépôt
+(DÉPOSER) ou on le vend. Le porteur charge au dépôt (CHARGER) et porte aux ateliers. Une
+abatteuse garée ne coupe rien, comme la coupe de la moissonneuse ne tourne que si on la
+conduit ; l'abatteuse ne recharge jamais ce qu'elle vient de déposer.
+
+**Ce que ça vaut.** Les grumes sont un produit brut (`PRODUITS.grumes`, 2,60 € le kilo) et
+les quatre ateliers en sont l'échelle, à la règle du jeu — plus on paie cher, moins on
+tient : Scierie 1,00 pour 5 000 kg, Séchoir 1,12 pour 1 500, Menuiserie 1,25 pour 700,
+Tonnellerie 1,40 pour 350. Aucun ne fabrique rien qu'on voie : « ce qui se passe derrière
+le comptoir ne nous regarde pas », et une scierie qui fabriquerait des planches à notre
+place paierait deux fois, comme les usines. La Menuiserie ouvre au dixième palier, la
+Tonnellerie au dix-huitième, avec le vin.
+
+**Ce qui repousse.** Une souche redevient un jeune plant en quatre-vingt-dix secondes, un
+jeune plant un arbre mûr en deux cent dix, l'obstacle grandissant avec lui (`majForet`,
+`poserEtatArbre`). La forêt se refait plus vite qu'on ne la coupe : c'est une ressource
+qu'on cultive.
+
+**Ce qui se garde.** Deux champs facultatifs de plus dans la sauvegarde, `foret` (0 pour
+un arbre mûr, [état, âge] pour les autres) et `depotBois` ; `v` ne bouge pas, et une
+partie d'avant le bois repart forêt mûre et dépôt vide. Une leçon de plus (`abattage`),
+qui se lève la première fois qu'on monte dans l'abatteuse et se solde au premier arbre.
+Trois vignettes de plus — grumes, abatteuse, porteur — rendues par le jeu lui-même sur
+fond magenta et passées par la chaîne `outils/produits`, comme les planches du joueur.
+
+**Mesuré.** Banc `bois` (22) : 124 arbres mûrs hors des tuiles, aucun sur la route ni sur
+le cercle du dépôt, chacun un obstacle ; quatre ateliers en bande FO avec leur dalle, sans
+se recouvrir, les quatre derniers de `SITES` ; abattage en 3,2 s pour 49 kg, la souche
+sans obstacle ; trois arbres pleins et le quatrième refusé ; dépôt, porteur, scierie au
+prix du barème, tonnellerie 40 % plus cher et 350 kg ; repousse en 95 puis 315 s ;
+sauvegarde relue ; le porteur descend de la route au cercle en ligne droite. Les deux
+engins ont été ramenés de 1,45 à 1,30 : à 1,45, vu de jeu, le bras montait au faîte des
+conifères. `campagne30` (72), `ouverture` (6), `acces` (5), `chocs` (24), `sansvue` (9),
+`_h_diag` (11), `grandes` (7) restent verts.

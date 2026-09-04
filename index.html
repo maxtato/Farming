@@ -3102,6 +3102,13 @@ const PRODUITS = {
      une raison de monter une bergerie en plus de l'étable. */
   laitBrebis: {nom:'Lait de brebis', couleur:'#EFF3F0', brut:3.04, unite:'L'},
 
+  /* --- ce qui sort de la forêt --- */
+  /* LES GRUMES. Un arbre mûr en donne quarante à cinquante kilos à l'échelle du jeu — trois
+     arbres remplissent le caisson d'une abatteuse neuve. Le prix se place entre le blé et
+     le raisin : la forêt s'ouvre au septième palier et doit y valoir le détour sans rendre
+     les parcelles inutiles. La scierie paie ce chiffre, la tonnellerie 40 % de plus. */
+  grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:2.6},
+
   /* --- une transformation --- */
   farine:     {nom:'Farine',        couleur:'#F2E7D2', de:'ble',    rendement:0.72, palier:'TRANSFORME', tarif:3.60},
   aliment:    {nom:'Aliment',       couleur:'#D8B24A', de:'mais',   rendement:0.86, palier:'TRANSFORME'},
@@ -3712,7 +3719,24 @@ const SITES = [
    demande:'Viande – prévoir des enclos'},
   {nom:'Restaurant', enseigne:'potence', picto:'baguette', dir:'N', bat:130, park:57,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batRestaurant(),
-   w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2}
+   w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2},
+
+  /* --- bande FO, les quatre ateliers du bois --- EN FIN DE TABLE, et c'est impératif :
+     `negoce` est sérialisé par rang. Les modèles viennent de la planche `bois.html` du
+     joueur ; leur socle de béton est retiré comme pour les seize autres, le jeu pose la
+     dalle. */
+  {nom:'Scierie', enseigne:'facade', picto:'feuille', dir:'FO', bat:-40, park:-27,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batScierie(),
+   w:15.0, d:11.0, pw:14, ph:13, toit:0x6E767C, mur:0xD6DDE2},
+  {nom:'Séchoir', enseigne:'facade', picto:'feuille', dir:'FO', bat:-10, park:3,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batSechoir(),
+   w:12.0, d:10.0, pw:12, ph:13, toit:0x9C4A32, mur:0xD8CFC0},
+  {nom:'Menuiserie', enseigne:'facade', picto:'feuille', dir:'FO', bat:20, park:33,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batMenuiserie(),
+   w:12.0, d:10.0, pw:12, ph:13, toit:0x9C4A32, mur:0xF2E7D2},
+  {nom:'Tonnellerie', enseigne:'facade', picto:'chope', dir:'FO', bat:48, park:61,
+   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batTonnellerie(),
+   w:11.0, d:9.5,  pw:11, ph:12, toit:0x9C4A32, mur:0xE8DCC0}
 ];
 /* ---------- CE QUE CHAQUE COMMERCE FAIT DE CE QU'ON LUI APPORTE ---------- */
 /* La table précédente dit où sont les bâtiments ; celle-ci dit à quoi ils servent.
@@ -3821,7 +3845,20 @@ const NEGOCE = {
   'Supermarché':     {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
                               'huile','huileOlive','vin','miel','fromage','fromageBrebis',
                               'biere'],
-                      coef:1.00, etal:9000}
+                      coef:1.00, etal:9000},
+
+  /* LE BOIS A SON ÉCHELLE, ET ELLE OBÉIT À LA MÊME RÈGLE : plus on paie cher, moins on
+     tient. La scierie est le plancher du bois comme la coopérative celui du grain — elle
+     prend tout, au tarif de référence ; le séchoir paie un peu mieux et tient moins ; la
+     menuiserie mieux encore ; la tonnellerie, qui relie le bois à la cave à vin, est le
+     caviste du bois : le meilleur prix, le plus petit rayon. Aucun n'est dominé.
+     ET AUCUN NE FABRIQUE RIEN QU'ON VOIE : « ce qui se passe derrière le comptoir ne nous
+     regarde pas ». Une scierie qui fabriquerait des planches à notre place les paierait
+     deux fois — au versement et à la sortie, comme les usines — et écraserait l'échelle. */
+  'Scierie':         {achete:['grumes'], coef:1.00, etal:5000},
+  'Séchoir':         {achete:['grumes'], coef:1.12, etal:1500},
+  'Menuiserie':      {achete:['grumes'], coef:1.25, etal:700},
+  'Tonnellerie':     {achete:['grumes'], coef:1.40, etal:350}
 };
 for(const S of SITES){
   Object.assign(S, NEGOCE[S.nom] || {});
@@ -4059,14 +4096,20 @@ const NIVEAUX = [
   {nom:'L\'orge', resume:'L\'orge, la cuve de brassage, le restaurant',
    cultures:['orge'], engins:['fourgon'], modules:['biere'],
    sites:['Épicerie', 'Restaurant'], parcelles:3},
-  {nom:'L\'avoine', resume:'L\'avoine et son usine',
-   cultures:['avoine'], sites:['Usine avoine'], parcelles:3},
+  /* LA FORÊT S'OUVRE AVEC L'AVOINE. Le palier était le plus mince de la table — une
+     culture, une usine — et c'est justement là qu'une activité neuve trouve sa place :
+     assez tôt pour changer le jeu, assez tard pour qu'on ait de quoi payer l'abatteuse.
+     La scierie et le séchoir ouvrent avec elle ; la menuiserie et la tonnellerie attendent
+     leurs paliers, comme le caviste attend le vin. */
+  {nom:'L\'avoine', resume:'L\'avoine et son usine, la forêt et sa scierie',
+   cultures:['avoine'], engins:['abatteuse', 'porteur'],
+   sites:['Usine avoine', 'Scierie', 'Séchoir'], parcelles:3},
   {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',
    modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
   {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
    modules:['fromage'], parcelles:4},
-  {nom:'Gros volumes', resume:'Le supermarché et son rayon fermier',
-   sites:['Supermarché'], parcelles:5},
+  {nom:'Gros volumes', resume:'Le supermarché et son rayon fermier, la menuiserie',
+   sites:['Supermarché', 'Menuiserie'], parcelles:5},
   /* UN SEUL ÉLEVAGE OUVRE ICI, ET IL EN OUVRAIT DEUX. Le palier donnait le mouton ET la
      brebis : deux enclos pour un seul animal. Il n'en donne plus qu'un, qui porte les
      deux produits — voir la table des espèces. */
@@ -4089,8 +4132,8 @@ const NIVEAUX = [
    cultures:['olives'], engins:['enjambeuse'], modules:['huileOlive'], parcelles:8},
   {nom:'Le raisin', resume:'La vigne, et ce qu\'elle promet',
    cultures:['raisin'], parcelles:8},
-  {nom:'Le vin', resume:'La cave et le caviste',
-   modules:['vin'], sites:['Caviste'], parcelles:9},
+  {nom:'Le vin', resume:'La cave, le caviste et la tonnellerie',
+   modules:['vin'], sites:['Caviste', 'Tonnellerie'], parcelles:9},
   {nom:'Les cochons', resume:'La porcherie et la boucherie',
    especes:['cochon'], sites:['Boucherie'], parcelles:9},
   {nom:'Exploitation complète', resume:'La grande réception, et toute la vallée à prendre',
@@ -4553,7 +4596,10 @@ const VIGNETTES = {
   poule:'poule', ruche:'abeille',
   t1:'t1', t2:'t2', t3:'t3', t4:'t4', pickup:'pickup', fourgon:'fourgon',
   moisson:'moisson', enjambeuse:'enjambeuse',
-  labour:'labour', semis:'semis', engrais:'engrais', benne:'benne', combine:'combine'
+  labour:'labour', semis:'semis', engrais:'engrais', benne:'benne', combine:'combine',
+  // Le bois : les trois planches sont des rendus du jeu lui-même, sur fond magenta,
+  // passés par la même chaîne que les planches du joueur.
+  grumes:'grumes', abatteuse:'abatteuse', porteur:'porteur'
 };
 const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle] + '.png' : null;
 /* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
@@ -5211,7 +5257,7 @@ function chargerCampagne(S){
    qu'elle n'avait jamais vus. On ne lit donc que ce qui coûtait de l'argent avant :
    les cultures, le pick-up, le fourgon, l'enjambeuse, les paliers d'atelier, les
    enclos et les parcelles. `PAYANT_AVANT` dit lesquels. */
-const PAYANT_AVANT = {pickup:1, fourgon:1, enjambeuse:1};
+const PAYANT_AVANT = {pickup:1, fourgon:1, enjambeuse:1, abatteuse:1, porteur:1};
 function niveauRetrouve(){
   let n = 1;
   const atteint = (k)=>{ if(k > n) n = k; };
@@ -5303,11 +5349,34 @@ const RECUL_ROCADE = 3.0;                 // ce qui sépare une dalle d'une roca
    de bande ne sert plus qu'à ranger les commerces (`S.dir`) et les plans (`BANDES`). */
 const ZI_X0 = ROAD_E + ROAD_W/2 + RECUL_ROCADE;    // 122 : tout de suite après le carrefour nord-est
 const ZI_X1 = ZI_X0 + 115;                         // 237 : la zone industrielle, au nord de la route (cotes relevées, pas annoncées)
+/* ---------- LE BOIS (deuxième étape de la carte) ----------
+   Le joueur : « ensuite tu prolonges encore la route et ça nous amène sur une forêt qui
+   sera cultivable pour couper du bois ». La route nord continue donc après la zone
+   industrielle, et la forêt la borde AU SUD, sur quatre-vingt-dix mètres de large et
+   presque cent de profond : des conifères plantés sur une trame irrégulière, chacun un
+   obstacle qu'on contourne, chacun un arbre qu'on peut abattre et qui repousse. AU NORD
+   de la route, en face, la bande FO porte les quatre ateliers du bois de la planche du
+   joueur — scierie, séchoir, menuiserie, tonnellerie —, rangés comme la zone industrielle
+   l'est : jointifs par paquets, un creux de verdure entre les deux, et une dalle devant.
+   ET LE DÉPÔT DE GRUMES, à la lisière, côté route : c'est le silo du bois. L'abatteuse y
+   vide son caisson, le porteur y charge le sien — la même mécanique que trémie, silo et
+   benne, pour que la forêt se joue comme un champ et non comme un autre jeu.
+   TOUT CELA EST HORS DES TUILES. Le sol peint s'arrête à X1 ; ici le sol est un maillage
+   — le tapis de la forêt, la terre battue du dépôt, la dalle de chaque atelier —, ce qui
+   coûte quelques appels de dessin et pas un octet de texture de plus. */
+const FO_X0 = ZI_X1 + 12;                          // 249 : après la zone industrielle et un creux
+const FO_X1 = FO_X0 + 88;                          // 337 : avant que la route ne commence à onduler
+const FORET = {x0:ZI_X1 + 15, x1:ZI_X1 + 105,      // 252 à 342 : la forêt, au sud de la route
+               z0:ROAD_N + ROAD_W/2 + 11, z1:ROAD_N + ROAD_W/2 + 107,   // −58 à 38
+               arbres:[], sol:null};
+const DEPOT_BOIS = {x:FORET.x0 + 44, z:FORET.z0 + 3, r:6.5, stock:0, max:1200,
+                    quai:null, piles:null};        // (296, −55) : la place de dépôt, à la lisière
 const BANDE_DEF = {
   W:  {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
   E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
-  ZI: {face:'N', d0:ZI_X0, d1:ZI_X1}
+  ZI: {face:'N', d0:ZI_X0, d1:ZI_X1},
+  FO: {face:'N', d0:FO_X0, d1:FO_X1}               // les ateliers du bois, en face de la forêt
 };
 const faceDe = (dir)=> (BANDE_DEF[dir] || BANDE_DEF.N).face;
 
@@ -5477,7 +5546,13 @@ const BANDES = {
      et c'est ce qui la distingue du village. */
   ZI: [{paquet:['Usine céréales', 'Usine avoine']},
        {creux:'verdure', poids:1},
-       {paquet:['Laiterie', 'Fromagerie', 'Atelier textile']}]
+       {paquet:['Laiterie', 'Fromagerie', 'Atelier textile']}],
+  /* LES ATELIERS DU BOIS : deux paquets de deux, un bosquet entre eux, en face de la
+     forêt. La scierie et le séchoir d'abord — c'est là qu'on vend au début —, la
+     menuiserie et la tonnellerie ensuite, qui paient mieux et prennent moins. */
+  FO: [{paquet:['Scierie', 'Séchoir']},
+       {creux:'verdure', poids:1},
+       {paquet:['Menuiserie', 'Tonnellerie']}]
 };
 // Deux blocs de nature différente ne partagent pas leur clôture — un muret de commerce
 // et une palissade de jardin n'ont ni la même hauteur ni la même couleur. On leur laisse
@@ -7321,6 +7396,212 @@ function addTree(x,z,s,variant,parcel){
   }
 }
 
+/* ---------- LA FORÊT : DES ARBRES QU'ON ABAT, ET QUI REPOUSSENT ----------
+   Chaque arbre est un objet à trois états : MÛR (debout, un obstacle qui ploie, bon à
+   couper), SOUCHE (abattu, plus d'obstacle, un moignon au sol) et JEUNE (il regrandit,
+   et son obstacle avec lui). Une souche redevient un jeune plant en une minute et demie,
+   un jeune plant un arbre mûr en trois minutes et demie : la forêt entière — cent
+   quarante arbres — se refait bien plus vite qu'on ne la coupe, et elle est donc une
+   ressource qu'on cultive, pas un stock qu'on épuise.
+   LA COUPE SE FAIT À L'ARRÊT, sous la main du joueur : l'abatteuse qu'on conduit, presque
+   immobile, prend l'arbre mûr le plus proche de sa tête, le scie en deux secondes et
+   quelques, et l'arbre tombe — de l'autre côté — pendant que les grumes entrent au
+   caisson. Une abatteuse garée dans la forêt ne coupe rien : c'est la même règle que la
+   coupe de la moissonneuse, qui ne tourne que si on la conduit. */
+const PORTEE_ABATTAGE = 5.5, DUREE_ABATTAGE = 2.3, DUREE_CHUTE = 0.9;
+const BRAS_REPOS = -0.25;                 // l'angle du bras de l'abatteuse au repos, tête à deux mètres
+const REPOUSSE = {souche:90, jeune:210};
+const texSolForet = (function(){
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#3D5535'; c.fillRect(0, 0, 128, 128);
+  // Des taches d'aiguilles et de terre, semées sur le flux à graine fixe.
+  for(let i = 0; i < 90; i++){
+    c.fillStyle = alea() < 0.55 ? 'rgba(88,64,40,.32)' : 'rgba(30,48,28,.35)';
+    c.beginPath(); c.ellipse(alea()*128, alea()*128, 3 + alea()*9, 2 + alea()*6, alea()*3.1, 0, 7);
+    c.fill();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1/22, 1/22);
+  t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+})();
+function construireForet(){
+  const F = FORET;
+  // Le tapis : un polygone aux bords ondulés, posé entre la prairie et la route.
+  const sh = new THREE.Shape();
+  const M = 5, pts = [];
+  const x0 = F.x0 - M, x1 = F.x1 + M, z0 = F.z0 - 5, z1 = F.z1 + M;
+  const bord = (t, cote)=> ondul(t + cote*71, 4.0, 9.0);
+  for(let x = x0; x < x1; x += 4) pts.push([x, z0 + bord(x, 1)]);
+  for(let z = z0; z < z1; z += 4) pts.push([x1 + bord(z, 2), z]);
+  for(let x = x1; x > x0; x -= 4) pts.push([x, z1 + bord(x, 3)]);
+  for(let z = z1; z > z0; z -= 4) pts.push([x0 + bord(z, 4), z]);
+  pts.forEach((p, i)=>{ if(i) sh.lineTo(p[0], -p[1]); else sh.moveTo(p[0], -p[1]); });
+  const geo = new THREE.ShapeGeometry(sh);
+  const sol = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({map:texSolForet}));
+  sol.rotation.x = -Math.PI/2; sol.position.y = 0.006; sol.receiveShadow = true;
+  scene.add(sol); F.sol = sol;
+  // Les arbres : une trame de sept mètres et demi, secouée d'un mètre sept, et une
+  // clairière autour du dépôt — l'engin y manœuvre, et la route y mène.
+  const PAS_X = 7.5, PAS_Z = 7.4, nx = Math.floor((F.x1 - F.x0)/PAS_X), nz = Math.floor((F.z1 - F.z0)/PAS_Z);
+  for(let i = 0; i < nx; i++) for(let j = 0; j < nz; j++){
+    const x = F.x0 + PAS_X*(i + 0.5) + (alea() - 0.5)*3.4;
+    const z = F.z0 + PAS_Z*(j + 0.5) + (alea() - 0.5)*3.4;
+    // La clairière : la place de dépôt, son cercle, et les deux engins garés devant.
+    if(x > DEPOT_BOIS.x - 17 && x < DEPOT_BOIS.x + 24 && z < DEPOT_BOIS.z + 23) continue;
+    if(surRoute(x, z, 5.5)) continue;
+    const s = 0.85 + alea()*0.35, conif = alea() < 0.82;
+    const m = new THREE.Mesh(TREE_GEOS[conif ? 1 : 3], treeMat);
+    m.position.set(x, 0, z); m.scale.setScalar(s);
+    m.rotation.order = 'YXZ'; m.rotation.y = alea()*6.28;
+    m.castShadow = true; m.receiveShadow = true;
+    scene.add(m);
+    const k = renversable(m, x, z, 0.9*s);
+    const ob = obstacles[obstacles.length - 1];
+    F.arbres.push({x, z, s, ry:m.rotation.y, mesh:m, ob, k, etat:0, t:0, chute:null, souche:null,
+                   kg:Math.round(34 + 14*s)});
+  }
+  // Le dépôt : la place de terre battue, ses piles, son cercle et son enseigne.
+  const D = DEPOT_BOIS;
+  const g = modeleDepotBois();
+  g.scale.setScalar(BAT_ECHELLE); g.position.set(D.x, 0, D.z);
+  scene.add(g); fusionnerGroupe(g);
+  D.piles = g.userData.piles;
+  for(const P of D.piles) P.visible = false;
+  obstacles.push({x:D.x - 3.6*BAT_ECHELLE, z:D.z - 1.6*BAT_ECHELLE, r:2.6});
+  obstacles.push({x:D.x - 2.8*BAT_ECHELLE, z:D.z + 2.4*BAT_ECHELLE, r:2.2});
+  obstacles.push({x:D.x + 1.6*BAT_ECHELLE, z:D.z - 2.2*BAT_ECHELLE, r:2.0});
+  D.quai = {x:D.x + 11.5, z:D.z - 1.0};
+  const agirDepot = ()=> actionsDepotBois(MACHINES[cur]).length > 0;
+  anneauAction(D.quai.x, D.quai.z, 1.7,
+    ()=> couleurPoste('depotBois', agirDepot) !== GUIDE.GRIS,
+    {coulDyn: ()=> couleurPoste('depotBois', agirDepot)});
+  poseBulle('Dépôt de bois', 0x6B5335, '', D.x, 3.4, D.z, 0);
+  majPileDepot();
+}
+/* Les piles du dépôt se montrent à mesure : une au premier chargement, deux à moitié,
+   trois quand il déborde presque. Le caisson du porteur fait de même avec sa pile. */
+function majPileDepot(){
+  const D = DEPOT_BOIS;
+  if(!D.piles) return;
+  const f = D.stock/D.max;
+  D.piles[0].visible = f > 0.02; D.piles[1].visible = f > 0.40; D.piles[2].visible = f > 0.75;
+}
+function actionsDepotBois(m){
+  const T = caisseDe(m), out = [];
+  if(!T) return out;
+  const q = chargeDe(T, 'grumes');
+  if(q > 0.01 && DEPOT_BOIS.stock < DEPOT_BOIS.max - 0.01)
+    out.push({sens:'deposerBois', lieu:'depotBois', cle:'grumes',
+              txt:'DÉPOSER ' + qteNomHaut('grumes', q)});
+  // L'abatteuse ne recharge pas ce qu'elle vient de déposer : elle coupe, le porteur porte.
+  if(m.key !== 'abatteuse' && DEPOT_BOIS.stock > 0.01 && peutCharger(T, 'grumes'))
+    out.push({sens:'prendreBois', lieu:'depotBois', cle:'grumes',
+              txt:'CHARGER ' + qteNomHaut('grumes', DEPOT_BOIS.stock)});
+  return out;
+}
+// Ce que l'arbre montre selon son état ; sert à la repousse comme à la relecture.
+function poserEtatArbre(a){
+  const dans = obstacles.indexOf(a.ob) >= 0;
+  if(a.etat === 1){                                  // souche
+    a.mesh.visible = false; a.mesh.rotation.set(0, a.ry, 0); a.mesh.scale.setScalar(a.s);
+    if(dans) obstacles.splice(obstacles.indexOf(a.ob), 1);
+    if(!a.souche){
+      const r = 0.36*a.s;
+      const so = new THREE.Group();
+      so.add(cyl(r, r*1.15, 0.4, 9, BO.ECORCE, 0, 0.2, 0));
+      so.add(cyl(r*0.9, r*0.9, 0.06, 9, BO.COEUR, 0, 0.41, 0));
+      so.position.set(a.x, 0, a.z); scene.add(so); fusionnerGroupe(so); a.souche = so;
+    }
+  } else {
+    if(a.souche){ scene.remove(a.souche); a.souche = null; }
+    const f = a.etat === 2 ? 0.25 + 0.75*Math.min(1, a.t/REPOUSSE.jeune) : 1;
+    a.mesh.visible = true; a.mesh.rotation.set(0, a.ry, 0); a.mesh.scale.setScalar(a.s*f);
+    a.ob.r = 0.9*a.s*f;
+    if(!dans) obstacles.push(a.ob);
+  }
+}
+function abattre(a, v){
+  const K = v.cargo;
+  a.chute = {t:0, dir:Math.atan2(a.x - v.pos.x, a.z - v.pos.z)};
+  const i = obstacles.indexOf(a.ob); if(i >= 0) obstacles.splice(i, 1);
+  ajouterCharge(K, 'grumes', a.kg);
+  STAT.grumes += a.kg;
+  solderLecon('abattage');
+  for(let n = 0; n < 6; n++)
+    puff(a.x + (Math.random() - 0.5)*2, 0.8 + Math.random()*1.5, a.z + (Math.random() - 0.5)*2,
+         0xD8C29A, 0.4, 0.5);
+  if(K.load >= K.capacite - 0.01) showHint('CAISSON PLEIN · AU DÉPÔT OU À LA SCIERIE');
+  else showHint('ARBRE ABATTU · ' + kg(a.kg) + ' DE GRUMES');
+}
+function travailForet(m, dt){
+  const v = m.v, K = v.cargo, ud = v.group.userData;
+  const repos = ()=>{ v.coupe = null; if(ud.bras) ud.bras.rotation.x = BRAS_REPOS; };
+  if(m !== MACHINES[cur] || v.auto || !K || v.speed > 1.6){ repos(); return; }
+  const f = v.fwd(), px = v.pos.x + f.x*3.4, pz = v.pos.z + f.z*3.4;
+  let a = v.coupe ? v.coupe.a : null;
+  if(!a || a.etat !== 0 || a.chute || Math.hypot(a.x - px, a.z - pz) > PORTEE_ABATTAGE + 1){
+    a = null; let best = PORTEE_ABATTAGE;
+    for(const b of FORET.arbres){
+      if(b.etat !== 0 || b.chute) continue;
+      const d = Math.hypot(b.x - px, b.z - pz);
+      if(d < best){ best = d; a = b; }
+    }
+    v.coupe = a ? {a, t:0} : null;
+    if(!a){ repos(); return; }
+  }
+  if(K.load + a.kg > K.capacite + 0.01){
+    if(!v.pleinDit){ v.pleinDit = true; showHint('CAISSON PLEIN · AU DÉPÔT OU À LA SCIERIE'); }
+    repos(); return;
+  }
+  v.pleinDit = false;
+  v.coupe.t += dt;
+  // La tête mord, la scie tourne, la sciure vole, et l'arbre tremble.
+  if(ud.bras) ud.bras.rotation.x = BRAS_REPOS - 0.16*Math.sin(v.coupe.t*7);
+  if(ud.scie) ud.scie.rotation.y += dt*22;
+  a.mesh.rotation.z = Math.sin(v.coupe.t*38)*0.018;
+  if(siSouvent(0.55)) puff(a.x + (Math.random() - 0.5)*0.8, 0.9, a.z + (Math.random() - 0.5)*0.8, 0xD8C29A, 0.3, 0.35);
+  if(v.coupe.t >= DUREE_ABATTAGE){ abattre(a, v); v.coupe = null; }
+}
+function majForet(dt){
+  for(const a of FORET.arbres){
+    if(a.chute){
+      a.chute.t += dt;
+      const u = Math.min(1, a.chute.t/DUREE_CHUTE), e = u*u;
+      a.mesh.rotation.y = a.chute.dir; a.mesh.rotation.x = e*1.48;
+      if(u >= 1){ a.chute = null; a.etat = 1; a.t = 0; poserEtatArbre(a); }
+      continue;
+    }
+    if(a.etat === 1){
+      a.t += dt;
+      if(a.t >= REPOUSSE.souche){ a.etat = 2; a.t = 0; poserEtatArbre(a); }
+    } else if(a.etat === 2){
+      a.t += dt;
+      if(a.t >= REPOUSSE.jeune){ a.etat = 0; a.t = 0; }
+      poserEtatArbre(a);
+    }
+  }
+  // Le caisson du porteur montre ses grumes quand il en porte.
+  for(const m of MACHINES){
+    const P = m.v.group.userData.pile;
+    if(P) P.visible = !!(m.v.cargo && m.v.cargo.load > 1);
+  }
+}
+// La forêt dans la sauvegarde : 0 pour un arbre mûr, [état, âge] pour les autres.
+function etatForet(){
+  return FORET.arbres.map((a)=> (a.etat === 0 && !a.chute) ? 0 : [a.chute ? 1 : a.etat, Math.round(a.t)]);
+}
+function restaurerForet(E){
+  FORET.arbres.forEach((a, i)=>{
+    const q = Array.isArray(E) ? E[i] : 0;
+    a.chute = null;
+    if(Array.isArray(q) && (q[0] === 1 || q[0] === 2)){ a.etat = q[0]; a.t = Math.max(0, +q[1] || 0); }
+    else { a.etat = 0; a.t = 0; }
+    poserEtatArbre(a);
+  });
+}
+
 // une ligne de clôture = une seule géométrie fusionnée (piquets + 2 lisses)
 const POST_G = new THREE.BoxGeometry(0.3,2.0,0.3).toNonIndexed();
 const RAIL_G = new THREE.BoxGeometry(0.14,0.2,1).toNonIndexed();
@@ -8114,6 +8395,187 @@ function batUsineCereales(){
   cmPalette(g, 3.6, 7.6, 3, 0xEDE3CC);
   return g;
 }
+/* ---------- LES MODÈLES DU BOIS, portés de la planche `bois.html` du joueur ----------
+   Mêmes cotes, même ordre de pièces, mêmes noms ; les socles de béton sont retirés comme
+   pour les seize autres commerces — le jeu pose la dalle — et le hasard des grumes passe
+   par `alea()`, le flux à graine fixe, pour que la vallée reste la même à chaque partie. */
+const BO = {BOIS:0x8A6A3A, BOIS2:0x6B4E24, BOIS3:0xA98A5A, ECORCE:0x5A4326, COEUR:0xD8B98A,
+            PLANCHE:0xE0C79A, GRIS:0x8A9298, GRIS2:0x6E767C, INOX:0xC9CFD3, NOIR:0x2A2622,
+            CHASSIS:0x453D34, VERT:0x3E6B4E, ORANGE:0xE07B24, ORANGE2:0xB35F17, JAUNE:0xF0C24A,
+            TOLE:0xD6DDE2, TUILE:0x9C4A32, CREME:0xF2E7D2, BETON:0x9BA3A8, TERRE:0x6B5335};
+// Le rondin, avec son cœur clair aux deux bouts : c'est cette section claire qui fait lire
+// du bois coupé plutôt qu'un simple tube brun.
+function grumeBois(g, x, y, z, L, r, ry){
+  const t = new THREE.Group();
+  t.add(cyl(r, r, L, 8, BO.ECORCE, 0, 0, 0, 0, 0, Math.PI/2));
+  for(const sx of [-L/2 - 0.02, L/2 + 0.02])
+    t.add(cyl(r*0.92, r*0.92, 0.06, 8, BO.COEUR, sx, 0, 0, 0, 0, Math.PI/2));
+  t.position.set(x, y, z); if(ry) t.rotation.y = ry;
+  g.add(t);
+  return t;
+}
+// `y0` est la hauteur du plancher sur lequel la pile repose ; au sol, elle a ses piquets.
+function pileGrumesBois(g, x, z, n, L, r, ry, y0){
+  const p = new THREE.Group();
+  const base = y0 || 0;
+  let k = 0;
+  for(let rang = 0; k < n; rang++){
+    const larg = 4 - rang;
+    for(let i = 0; i < larg && k < n; i++, k++)
+      grumeBois(p, 0, base + r + rang*r*1.7, -((larg - 1)*r*1.05) + i*r*2.1,
+                L, r*(0.9 + alea()*0.2));
+  }
+  if(!y0) for(const sx of [-L/2 - 0.2, L/2 + 0.2])
+    for(const sz of [-r*4.4, r*4.4])
+      p.add(box(0.14, r*6, 0.14, BO.BOIS2, sx, r*3, sz));
+  p.position.set(x, 0, z); if(ry) p.rotation.y = ry;
+  g.add(p);
+  return p;
+}
+// Cabine en sandwich : ceinture, bandeau vitré, pavillon, tous trois à la même largeur.
+function cabineBois(g, x, y, z, w, h, d, c){
+  const hC = h*0.26, hV = h*0.56, hT = h - hC - hV;
+  g.add(box(w, hC, d, c, x, y + hC/2, z));
+  g.add(box(w, hV, d, C.glass, x, y + hC + hV/2, z));
+  g.add(box(w + 0.14, hT, d + 0.14, c, x, y + hC + hV + hT/2, z));
+  const yV = y + hC + hV/2;
+  for(const sx of [-1, 1]) for(const sz of [-1, 1])
+    g.add(box(0.13, hV, 0.13, c, x + sx*(w/2 - 0.065), yV, z + sz*(d/2 - 0.065)));
+  for(const yy of [y + hC + 0.02, y + hC + hV - 0.02])
+    g.add(box(w + 0.02, 0.05, d + 0.02, c, x, yy, z));
+}
+// Grappin : deux mâchoires courbes suspendues au bout de la grue.
+function grappinBois(){
+  const t = new THREE.Group();
+  t.add(box(0.18, 0.5, 0.18, BO.GRIS2, 0, -0.25, 0));
+  t.add(box(0.7, 0.2, 0.4, BO.ORANGE, 0, -0.55, 0));
+  for(const sx of [-1, 1]){
+    const m = box(0.14, 0.62, 0.3, BO.GRIS2, sx*0.3, -0.85, 0);
+    m.rotation.z = sx*0.55; t.add(m);
+  }
+  t.rotation.x = -1.24;
+  return t;
+}
+// Bras articulé : deux segments et une tête. Sert à la grue comme à l'abatteuse.
+function brasBois(g, base, angles, longueurs, tete, ry){
+  const b1 = new THREE.Group();
+  b1.add(box(0.34, 0.34, longueurs[0], BO.ORANGE, 0, 0, longueurs[0]/2));
+  const b2 = new THREE.Group();
+  b2.add(box(0.28, 0.28, longueurs[1], BO.ORANGE, 0, 0, longueurs[1]/2));
+  b2.position.z = longueurs[0];
+  b2.rotation.x = angles[1];
+  if(tete){ tete.position.z = longueurs[1]; b2.add(tete); }
+  b1.add(b2);
+  b1.position.set(base[0], base[1], base[2]);
+  b1.rotation.y = ry || 0;
+  b1.rotation.x = angles[0];
+  g.add(b1);
+  return b1;
+}
+/* La scierie : halle ouverte, banc de scie et sa lame carterée, plateaux empilés, sciure. */
+function batScierie(){
+  const g = new THREE.Group();
+  const W = 11, D = 7.5, H = 4.4;
+  for(const sx of [-W/2, W/2]) for(const sz of [-D/2, 0, D/2])
+    g.add(box(0.3, H, 0.3, BO.BOIS2, sx, H/2, sz));               // charpente ouverte
+  g.add(gable(D + 1.2, 1.8, W + 1.2, BO.TOLE, 0, H, 0, Math.PI/2));
+  g.add(box(W, 0.24, D, BO.BOIS3, 0, H - 0.2, 0));
+  g.add(box(6.0, 0.5, 1.2, BO.GRIS2, 0, 0.75, -1.0));                // banc de scie
+  g.add(box(5.6, 0.2, 0.9, BO.GRIS, 0, 1.05, -1.0));
+  g.add(cyl(1.0, 1.0, 0.12, 20, BO.INOX, 0.6, 1.5, -1.0));           // lame
+  g.add(box(2.4, 1.6, 0.3, BO.JAUNE, 0.6, 1.6, -1.55));              // carter
+  grumeBois(g, -1.4, 1.3, -1.0, 3.4, 0.3, 0);
+  for(let k = 0; k < 8; k++) g.add(box(3.6, 0.12, 1.6, BO.PLANCHE, 3.0, 0.3 + k*0.16, 2.0));
+  for(let k = 0; k < 6; k++) g.add(box(1.6, 0.12, 3.4, BO.PLANCHE, -3.4, 0.3 + k*0.16, 2.2));
+  g.add(box(2.2, 1.6, 2.0, 0xC9B183, 4.6, 0.9, -2.4));               // tas de sciure
+  g.add(box(3.6, 0.9, 0.18, BO.GRIS2, -1.0, H + 0.9, D/2 + 0.3));    // enseigne
+  return g;
+}
+/* Le séchoir : ventelles sur les deux faces, ventilateur, planches lattées sous auvent. */
+function batSechoir(){
+  const g = new THREE.Group();
+  const W = 9, D = 6.5, H = 4.0;
+  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:0xD8CFC0, y:0.16}));
+  g.add(gable(D + 0.6, 1.4, W + 0.6, BO.TUILE, 0, H + 0.16, 0, Math.PI/2));
+  for(let k = 0; k < 6; k++) for(const sz of [D/2 + 0.02, -(D/2 + 0.02)])
+    g.add(box(W - 1.0, 0.22, 0.12, 0x9C8C6E, 0, 1.0 + k*0.5, sz));   // ventelles
+  g.add(box(2.4, 2.6, 0.2, BO.BOIS2, -2.6, 1.46, D/2 + 0.06));       // grande porte
+  g.add(box(1.4, 0.9, 0.24, BO.GRIS2, 3.2, 3.2, D/2 + 0.06));        // groupe de ventilation
+  g.add(cyl(0.5, 0.5, 0.3, 10, BO.GRIS, 3.2, 3.2, D/2 + 0.22, Math.PI/2));
+  for(let p = 0; p < 2; p++)
+    for(let k = 0; k < 7; k++){
+      g.add(box(3.0, 0.14, 1.4, BO.PLANCHE, -2.2 + p*4.6, 0.4 + k*0.32, D/2 + 2.2));
+      for(const sx of [-1.2, 1.2])
+        g.add(box(0.16, 0.18, 1.4, BO.BOIS2, -2.2 + p*4.6 + sx, 0.55 + k*0.32, D/2 + 2.2));
+    }
+  g.add(box(9.5, 0.2, 3.2, BO.BOIS3, 0, 3.0, D/2 + 2.2));            // auvent
+  for(const sx of [-4.2, 4.2]) g.add(box(0.24, 3.0, 0.24, BO.BOIS2, sx, 1.5, D/2 + 3.5));
+  return g;
+}
+/* La menuiserie : atelier fermé à sheds vitrés, établi dehors, volets et portes finis. */
+function batMenuiserie(){
+  const g = new THREE.Group();
+  const W = 9.5, D = 7, H = 4.2;
+  g.add(slab({w:W, h:H, d:D, tw:W - 0.3, td:D - 0.25, c:BO.CREME, y:0.16}));
+  g.add(gable(D + 0.7, 2.0, W + 0.7, BO.TUILE, 0, H + 0.16, 0, Math.PI/2));
+  for(let k = 0; k < 4; k++)
+    g.add(box(1.4, 0.5, 0.16, C.glass, -3.3 + k*2.2, H + 0.9, D/2 - 1.2));
+  g.add(box(3.0, 2.8, 0.2, BO.BOIS2, -2.4, 1.56, D/2 + 0.04));       // grande porte à lattes
+  for(let k = 0; k < 6; k++) g.add(box(2.9, 0.1, 0.24, BO.BOIS3, -2.4, 0.5 + k*0.45, D/2 + 0.1));
+  g.add(box(2.4, 1.4, 0.16, BO.CREME, 2.6, 2.4, D/2 + 0.04));
+  g.add(box(2.1, 1.1, 0.2, C.glass, 2.6, 2.4, D/2 + 0.08));
+  g.add(box(2.6, 0.16, 0.9, BO.BOIS3, 3.0, 0.86, D/2 + 1.8));        // établi
+  for(const sx of [-1.1, 1.1]) g.add(box(0.16, 0.78, 0.7, BO.BOIS2, 3.0 + sx, 0.47, D/2 + 1.8));
+  for(let k = 0; k < 3; k++) g.add(box(0.12, 1.9, 0.9, BO.BOIS3, -3.6 + k*0.3, 1.05, D/2 + 1.9));
+  for(let k = 0; k < 4; k++) g.add(box(1.8, 0.14, 0.5, BO.PLANCHE, -0.4, 0.3 + k*0.18, D/2 + 2.2));
+  g.add(box(1.0, 1.0, 1.0, 0xC9B183, 4.8, 0.66, D/2 + 1.4));         // sacs de sciure
+  return g;
+}
+/* La tonnellerie : le feu de cintrage dehors, des tonneaux à tous les stades. */
+function batTonnellerie(){
+  const g = new THREE.Group();
+  const W = 8.5, D = 6.5, H = 4.0;
+  g.add(slab({w:W, h:H, d:D, tw:W - 0.3, td:D - 0.25, c:0xE8DCC0, y:0.16}));
+  g.add(gable(D + 0.7, 1.9, W + 0.7, BO.TUILE, 0, H + 0.16, 0, Math.PI/2));
+  g.add(box(2.6, 2.6, 0.2, BO.BOIS2, -1.8, 1.46, D/2 + 0.04));
+  g.add(box(2.0, 1.2, 0.16, BO.CREME, 2.4, 2.3, D/2 + 0.04));
+  g.add(box(1.7, 0.95, 0.2, C.glass, 2.4, 2.3, D/2 + 0.08));
+  g.add(box(3.4, 0.9, 0.18, 0x6B3A6E, 0, H + 0.9, D/2 + 0.3));       // enseigne
+  g.add(cyl(0.7, 0.9, 0.5, 10, 0x4A4038, 3.4, 0.4, D/2 + 1.8));      // le feu de cintrage
+  for(let k = 0; k < 5; k++)
+    g.add(cyl(0.08, 0.05, 0.7, 5, BO.ORANGE, 3.4 + Math.cos(k*1.3)*0.2, 0.85,
+              D/2 + 1.8 + Math.sin(k*1.3)*0.2));
+  for(let k = 0; k < 6; k++){                                        // douelles
+    const a = k*1.05;
+    g.add(box(0.12, 1.1, 0.24, BO.BOIS3, 1.2 + Math.cos(a)*0.35, 0.55, D/2 + 2.6 + Math.sin(a)*0.35));
+  }
+  for(const [x, z] of [[-2.4, D/2 + 1.7], [-3.4, D/2 + 2.6], [-1.6, D/2 + 2.8]]){
+    g.add(cyl(0.52, 0.44, 1.0, 12, BO.BOIS, x, 0.5, z));
+    for(const dy of [0.2, 0.8]) g.add(cyl(0.55, 0.55, 0.09, 12, 0x5A4326, x, dy, z));
+  }
+  return g;
+}
+/* La place de dépôt : terre battue, souches fraîches, branchages, panneau de coupe — et
+   TROIS PILES de grumes qui ne se montrent qu'à mesure que le dépôt se remplit. */
+function modeleDepotBois(){
+  const g = new THREE.Group();
+  g.add(box(12, 0.14, 9, BO.TERRE, 0, 0.07, 0));
+  const piles = [pileGrumesBois(g, -3.2, -1.6, 10, 5.0, 0.34, 0),
+                 pileGrumesBois(g, -2.6, 2.4, 6, 4.0, 0.3, 0.25),
+                 pileGrumesBois(g, 1.6, -2.2, 6, 3.6, 0.3, -0.2)];
+  for(const [x, z, r] of [[3.8, 2.6, 0.5], [4.6, -3.0, 0.42], [0.4, 3.4, 0.36]]){
+    g.add(cyl(r, r*1.15, 0.4, 9, BO.ECORCE, x, 0.2, z));
+    g.add(cyl(r*0.9, r*0.9, 0.06, 9, BO.COEUR, x, 0.41, z));
+  }
+  for(let k = 0; k < 14; k++)
+    g.add(cyl(0.05, 0.07, 0.6 + alea()*0.8, 4, BO.ECORCE,
+              -5 + alea()*10, 0.12, -3.8 + alea()*7.6, 0, alea()*3, 1.4));
+  g.add(box(0.14, 1.6, 0.14, BO.BOIS2, 5.2, 0.8, 3.6));              // panneau de coupe
+  g.add(box(1.1, 0.7, 0.1, 0xE8DCC0, 5.2, 1.7, 3.6));
+  g.add(box(0.9, 0.36, 0.12, 0xC0392B, 5.2, 1.7, 3.64));
+  g.userData.piles = piles;
+  return g;
+}
 /* 5 — Usine de lait d'avoine */
 function batUsineAvoine(){
   const g = new THREE.Group();
@@ -8539,11 +9001,20 @@ function buildCommerce(S){
   // séparés par une bande d'herbe. Le marquage des places, lui, reste sur le parking —
   // on ne trace pas de stationnement contre un mur.
   const E = S.emp, EW = E.x1 - E.x0, ED = E.z1 - E.z0;
+  /* HORS DES TUILES, LA DALLE EST UN MAILLAGE. Le sol peint s'arrête à X1 : un commerce
+     posé au-delà — les ateliers du bois — n'aurait ni dalle ni marquage, `stamp` ne
+     trouvant aucune tuile sous lui. Une plaque de béton en volume, à fleur de sol, fait
+     la même dalle pour un appel de dessin, et ne pèse pas un octet de texture. */
+  if(E.x0 < X0 || E.x1 > X1 || E.z0 < Z0 || E.z1 > Z1){
+    const d = box(EW, 0.06, ED, S.pompes ? 0x6F767B : 0x5C6367, (E.x0+E.x1)/2, 0.03, (E.z0+E.z1)/2);
+    d.castShadow = false; scene.add(d); S.dalleMesh = d;
+  } else {
   fillRect((E.x0+E.x1)/2, (E.z0+E.z1)/2, EW, ED, S.pompes ? '#6F767B' : '#5C6367', AX);
   for(let k=0;k<Math.round(EW*ED/28);k++)
     fillRect(E.x0 + alea()*EW, E.z0 + alea()*ED,
              0.5+alea()*1.4, 0.4+alea()*0.9,
              alea()<0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
+  }
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
   const horizPark = (faceDe(S.dir) === 'W' || faceDe(S.dir) === 'E');
   const nPlaces = Math.max(2, Math.floor((horizPark ? S.ph : S.pw)/4.6));
@@ -9339,6 +9810,7 @@ function buildFarm(){
   const rnd2 = ()=>{ seed2 = (seed2*1664525 + 1013904223) >>> 0; return seed2/4294967296; };
 
   for(const S of SITES) buildCommerce(S);
+  construireForet();
 
   // L'entrepôt : remise fermée de la ferme, sur une dalle de bitume identique à celle
   // du parking voisin. Il s'appelait « Garage » et vendait les utilitaires ; le garage
@@ -11816,6 +12288,93 @@ function buildMoissonneuse(){
    seule façon de récolter une vigne palissée ou un olivier en haie — une moissonneuse
    les coucherait. Le modèle vient de la planche de présentation ; on lui a greffé les
    feux, le gyrophare et les cotes de lampes du reste du parc. */
+/* ---------- L'ABATTEUSE : LA MOISSONNEUSE DU BOIS ----------
+   Portée de la planche du joueur : six roues, tête qui saisit, coupe et ébranche au bout
+   d'un bras de six mètres, la grue prenant appui sur le toit de la cabine. Elle n'a pas de
+   trémie visible : ce qu'elle abat va dans son caisson — le même contenant que la benne
+   de l'enjambeuse —, et elle le vide au dépôt ou à la scierie. Le bras est gardé à part
+   pour s'animer pendant la coupe. */
+function buildAbatteuse(){
+  const g = new THREE.Group();
+  g.add(box(2.2, 0.5, 4.6, BO.CHASSIS, 0, 1.0, -0.4));
+  g.add(slab({w:2.2, h:0.6, d:2.4, tw:2.0, td:2.2, c:BO.ORANGE, y:1.25, z:-1.4}));
+  cabineBois(g, 0, 1.4, 0.9, 2.1, 1.9, 2.0, BO.ORANGE);
+  g.add(box(1.6, 0.5, 1.0, BO.ORANGE2, 0, 2.6, -2.2));               // capot moteur
+  const tete = new THREE.Group();
+  tete.add(box(0.9, 0.9, 1.1, BO.JAUNE, 0, 0, 0));
+  for(const sx of [-1, 1]){                                          // couteaux d'ébranchage
+    const c = box(0.16, 0.7, 0.9, BO.GRIS, sx*0.5, 0.1, 0.2);
+    c.rotation.z = sx*0.5; tete.add(c);
+  }
+  const scie = cyl(0.34, 0.34, 0.14, 12, BO.INOX, 0, -0.45, 0.3);
+  tete.add(scie);
+  tete.add(box(0.7, 0.24, 0.24, BO.GRIS2, 0, 0.55, 0));
+  g.add(box(1.3, 0.3, 1.3, BO.ORANGE2, 0, 3.35, 0.6));               // embase sur le pavillon
+  g.add(cyl(0.3, 0.3, 0.5, 8, BO.ORANGE, 0, 3.7, 0.6));              // pivot
+  /* LA TÊTE TIENT LE TRONC À HAUTEUR D'HOMME. Aux angles de la planche, elle pendait à six
+     mètres, dans les branches ; on la ramène à deux mètres et demi, cinq mètres et demi
+     devant l'engin — c'est là que la coupe se fait, et là que `travailForet` la cherche. */
+  const bras = brasBois(g, [0, 3.95, 0.6], [BRAS_REPOS, 1.6], [3.2, 2.8], tete);
+  const gyro = gyrophare(g, -0.75, 3.42, 0.9);
+  const F = jeuDeFeux();
+  for(const sx of [-0.8, 0.8]) optique(g, F, false, sx, 1.5,  1.95, 0.34, 0.22);
+  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.5, -2.75, 0.30, 0.20);
+  const wr = [], wf = [];
+  for(const sx of [-1.12, 1.12]){
+    const a = wheelMesh(0.78, 0.52); a.position.set(sx, 0.78, 1.2); g.add(a); wf.push(a);
+    for(const sz of [-1.0, -2.6]){
+      const b2 = wheelMesh(0.78, 0.52); b2.position.set(sx, 0.78, sz); g.add(b2); wr.push(b2);
+    }
+  }
+  /* À 1,30 ET NON 1,45. Mesuré en vue de jeu, à 1,45 le bras montait au faîte des
+     conifères et le porteur dépassait le fourgon d'un quart : les deux engins du bois
+     écrasaient la forêt qu'ils servent. À 1,30 l'abatteuse fait six mètres, comme la
+     moissonneuse, et le porteur dix mètres et demi. */
+  g.scale.setScalar(1.30);
+  g.userData = {wr, wf, gyro, feux:F, bras, scie,
+    lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 1.95, w:0.34, h:0.22},
+            arriere:{x:[-0.8, 0.8], y:1.5, z:-2.75, w:0.30, h:0.20},
+            nez:2.2}};
+  return g;
+}
+/* ---------- LE PORTEUR : HUIT ROUES, GRUE ET CAISSON À RANCHERS ----------
+   Il évacue sans traîner au sol. La grue est repliée vers l'arrière, au-dessus du caisson ;
+   le chargement de grumes ne se montre que quand le caisson porte quelque chose. */
+function buildPorteur(){
+  const g = new THREE.Group();
+  g.add(box(2.2, 0.5, 8.0, BO.CHASSIS, 0, 0.95, 0));
+  g.add(slab({w:2.2, h:0.6, d:2.2, tw:2.0, td:2.0, c:BO.VERT, y:1.2, z:2.8}));
+  cabineBois(g, 0, 1.35, 2.8, 2.1, 1.8, 1.9, BO.VERT);
+  g.add(cyl(0.36, 0.36, 1.4, 8, BO.ORANGE, 0, 1.6, 1.1));            // pied de grue
+  /* LA GRUE SE REPLIE AU-DESSUS DU CAISSON. Tournée d'un demi-tour, elle prend ses angles
+     à l'envers : les signes de la planche l'envoyaient sous le châssis, grappin au sol.
+     Premier segment vers l'arrière et vers le haut, second retombant sur le chargement. */
+  brasBois(g, [0, 2.4, 1.1], [0.58, -1.24], [2.8, 2.3], grappinBois(), Math.PI);
+  for(const sx of [-1.08, 1.08]) for(const sz of [-4.0, -2.4, -0.8])
+    g.add(box(0.12, 1.5, 0.12, BO.GRIS2, sx, 1.95, sz));              // ranchers
+  g.add(box(2.2, 0.14, 4.4, BO.GRIS2, 0, 1.25, -2.4));
+  const pile = pileGrumesBois(g, 0, -2.4, 6, 3.6, 0.3, Math.PI/2, 1.34);
+  pile.visible = false;
+  const gyro = gyrophare(g, 0.72, 3.36, 2.8);
+  const F = jeuDeFeux();
+  for(const sx of [-0.8, 0.8]) optique(g, F, false, sx, 1.5,  3.9, 0.34, 0.22);
+  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.5, -4.05, 0.30, 0.20);
+  const wr = [], wf = [];
+  for(const sx of [-1.12, 1.12]){
+    for(const sz of [3.0, 1.6]){
+      const a = wheelMesh(0.7, 0.46); a.position.set(sx, 0.7, sz); g.add(a); wf.push(a);
+    }
+    for(const sz of [-1.4, -3.0]){
+      const b2 = wheelMesh(0.7, 0.46); b2.position.set(sx, 0.7, sz); g.add(b2); wr.push(b2);
+    }
+  }
+  g.scale.setScalar(1.30);
+  g.userData = {wr, wf, gyro, feux:F, pile,
+    lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 3.9,  w:0.34, h:0.22},
+            arriere:{x:[-0.8, 0.8], y:1.5, z:-4.05, w:0.30, h:0.20},
+            nez:4.0}};
+  return g;
+}
 function buildEnjambeuse(){
   const g = new THREE.Group();
   const ORANGE = 0xE07B24, ORANGE2 = 0xB35F17, GRIS = 0x8A9298, GRIS2 = 0x6E767C,
@@ -17997,6 +18556,28 @@ const MACHINES = [
       x:placeCentre(3), z:47, cap:Math.PI, vmax:11, accel:8, turn:1.55, grip:6.4, trackW:1.78,
       susp:{k:24, d:4.6, roll:0.050, pitch:0.030, rough:1.10},
       chape:3.8, build:buildTracteurLourd
+    })},
+  /* ---------- LES DEUX ENGINS DU BOIS, EN FIN DE TABLE — la sauvegarde sérialise
+     MACHINES par position. L'abatteuse est lente et lourde : elle travaille à l'arrêt,
+     arbre après arbre, et son caisson de cent cinquante kilos vaut trois arbres. Le
+     porteur est le camion du bois : plus de caisson, un peu plus de vitesse, et rien
+     d'autre.
+     ILS SONT GARÉS AU DÉPÔT DE BOIS, PAS À LA COUR. La cour n'a que six cases par rangée
+     — les cases 7 à 9 tombent DANS le garage de la ferme, mesuré — et un porteur de onze
+     mètres n'entre dans aucune rangée du fond sans toucher la route. Leur place est là
+     où ils travaillent : la clairière du dépôt, face à la forêt. Le garage le dit en
+     vendant — « ELLE VOUS ATTEND AU DÉPÔT DE BOIS » — et l'on y arrive tout de suite. */
+  {key:'abatteuse', nom:'Abatteuse', teinte:0xE07B24, verrou:true, prix:14000,
+   livre:'AU DÉPÔT DE BOIS', timbre:'lourd', ton:0.92, plage:[0.68, 1.0], v:new Vehicle({
+      x:DEPOT_BOIS.x - 7, z:DEPOT_BOIS.z + 13, cap:0, vmax:8, accel:6, turn:1.5, grip:5.0, trackW:1.46,
+      susp:{k:20, d:3.8, roll:0.05, pitch:0.03, rough:1.3},
+      build:buildAbatteuse
+    })},
+  {key:'porteur', nom:'Porteur', teinte:0x3E6B4E, verrou:true, prix:9500,
+   livre:'AU DÉPÔT DE BOIS', timbre:'lourd', ton:0.85, plage:[0.68, 1.0], v:new Vehicle({
+      x:DEPOT_BOIS.x + 5, z:DEPOT_BOIS.z + 13, cap:0, vmax:10, accel:6.5, turn:1.4, grip:5.4, trackW:1.46,
+      susp:{k:22, d:4.2, roll:0.048, pitch:0.03, rough:1.15},
+      build:buildPorteur
     })}
 ];
 
@@ -18159,6 +18740,9 @@ MACHINES.find(m=>m.key==='fourgon').v.cargo = {capacite:155, load:0};
 // l'étal, et c'est le circuit des caisses qui sait les y conduire. Deux récolteuses
 // qui partageraient une trémie se bloqueraient l'une l'autre.
 MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:100, load:0};
+// Les deux caissons du bois : trois arbres pour l'abatteuse, huit pour le porteur.
+MACHINES.find(m=>m.key==='abatteuse').v.cargo = {capacite:150, load:0};
+MACHINES.find(m=>m.key==='porteur').v.cargo = {capacite:400, load:0};
 for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
@@ -18231,6 +18815,17 @@ const PALIERS = {
                      {vite:1.15, caisse:220, prix:1800},
                      {vite:1.30, caisse:400, prix:5000},
                      {vite:1.45, caisse:700, prix:11000}]},
+  // Les deux engins du bois montent comme l'enjambeuse : de la vitesse et du caisson.
+  abatteuse: {nom:'Abatteuse',    donne:'vitesse et caisson',
+              crans:[{vite:1.00, caisse:150},
+                     {vite:1.12, caisse:260, prix:2200},
+                     {vite:1.25, caisse:420, prix:6000},
+                     {vite:1.40, caisse:650, prix:13000}]},
+  porteur:   {nom:'Porteur',      donne:'capacité et vitesse',
+              crans:[{vite:1.00, caisse:400},
+                     {vite:1.10, caisse:650, prix:1800},
+                     {vite:1.20, caisse:950, prix:5000},
+                     {vite:1.30, caisse:1300, prix:11000}]},
   pickup:    {nom:'Pick-up',      donne:'capacité et vitesse',
               crans:[{vite:1.00, caisse:150},
                      {vite:1.10, caisse:250, prix:700},
@@ -18379,6 +18974,7 @@ function compter(cle, q, entreeSilo){
 // Compteurs cumulés d'activité. Un contrat mémorise leur valeur à sa prise et mesure
 // la progression par différence : aucun état à réinitialiser, rien à désynchroniser.
 const STAT = {silo:0, mill:0, pain:0, labour:0, semis:0, moisson:0, lait:0, miel:0, betes:0,
+              grumes:0,
               oeufs:0, laine:0, huile:0, fromage:0,
               // Deux compteurs que la campagne interroge : les porcs vendus à la
               // boucherie, et l'aliment premium jamais sorti de l'atelier.
@@ -18508,6 +19104,8 @@ const VIT_TRAVAIL = 0.05;
 const SAUT_TRAVAIL = 6.0;     // au-delà, ce n'est pas une traînée mais un saut
 function work(m, dt){
   const v = m.v;
+  // L'abatteuse ne travaille pas la terre : elle travaille la forêt, à l'arrêt.
+  if(m.key === 'abatteuse'){ travailForet(m, dt); v.prevWork = null; return; }
   const T = toolOf(m);
   if(!T || !T.from) { v.prevWork = null; return; }   // sans outil, ou outil de transport
   /* CE QUI COUPE LE MARQUAGE. Il était coupé sous 0,60 m/s, et la position d'outil
@@ -19325,6 +19923,12 @@ function detailEngin(m){
   if(m.key === 'enjambeuse')
     return 'Récolte la vigne et les oliviers · benne '
            + kg(m.v.cargo ? m.v.cargo.capacite : 100);
+  if(m.key === 'abatteuse')
+    return 'Abat les arbres mûrs de la forêt · caisson '
+           + kg(m.v.cargo ? m.v.cargo.capacite : 150);
+  if(m.key === 'porteur')
+    return 'Porte les grumes du dépôt aux ateliers du bois · caisson '
+           + kg(m.v.cargo ? m.v.cargo.capacite : 400);
   if(m.v.cargo)
     return 'Transport sans outil · ' + kg(m.v.cargo.capacite) + ' à bord';
   const vit = ' · vitesse ' + Math.round((m.v.vmax0 || m.v.vmax)/VMAX_REF*100) + ' %';
@@ -19375,7 +19979,8 @@ function vueAchatEngins(){
                           m.verrou = false;
                           m.v.group.visible = true;
                           solderLecon('garage');
-                          showHint(nomEngin(m).toUpperCase() + ' ACHETÉ');
+                          showHint(nomEngin(m).toUpperCase() + ' ACHETÉ'
+                                   + (m.livre ? ' – ' + m.livre : ''));
                           setMachine(MACHINES.indexOf(m)); fermerFenetre(); }});
   }
   const d = document.createElement('div'); d.className = 'art';
@@ -21592,7 +22197,9 @@ const COLIS_SOL_MAX = 5;
 // Ce qui coule d'une goulotte ou d'une vis sans fin ne se met pas en sacs : la trémie
 // de la moissonneuse, le grain qu'on verse dans une auge, la benne qu'on bascule dans
 // la grille du silo. Ceux-là fument, ils ne s'emballent pas.
-const SANS_COLIS = {tremie:1, tremieVente:1, tremieLivraison:1, auge:1, ranger:1};
+// Les grumes non plus : elles se voient sur les piles du dépôt et dans le caisson du porteur.
+const SANS_COLIS = {tremie:1, tremieVente:1, tremieLivraison:1, auge:1, ranger:1,
+                    deposerBois:1, prendreBois:1};
 function majColis(m, A, dt){
   const v = m.v, T = caisseDe(m);
   const ud = v.group.userData;
@@ -21935,7 +22542,10 @@ const RESERVOIRS = {t1:{max:40, c:LMIN(0.8)}, t2:{max:40, c:LMIN(0.8)}, t3:{max:
                     moisson:{max:60, c:LMIN(1.2)}, enjambeuse:{max:50, c:LMIN(1.0)},
                     // Le lourd tire plus et boit plus, mais il tient les mêmes cinquante
                     // minutes que les autres : le rapport ne bouge pas, le réservoir suit.
-                    t4:{max:55, c:LMIN(1.1)}};
+                    t4:{max:55, c:LMIN(1.1)},
+                    // Le bois : une abatteuse boit comme une moissonneuse, un porteur
+                    // comme un fourgon chargé.
+                    abatteuse:{max:60, c:LMIN(1.2)}, porteur:{max:70, c:LMIN(0.9)}};
 for(const m of MACHINES){
   const R = RESERVOIRS[m.key] || {max:40, c:LMIN(0.8)};
   m.v.resMax = R.max; m.v.fuel = R.max; m.v.conso = R.c;
@@ -22861,7 +23471,17 @@ const LECONS = [
   {cle:'contrat', humeur:'dubitatif', ou:null, nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
    txt:'UN CONTRAT DISPONIBLE – Un commerce cherche un fournisseur. Sa pastille bleue '
      + 'indique qu’un contrat est disponible.',
-   quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)}
+   quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)},
+
+  /* --- LE BOIS --- */
+  /* LA PREMIÈRE FOIS QU'ON MONTE DANS L'ABATTEUSE. Elle attend au dépôt, face à la forêt,
+     et rien ne dit encore comment on coupe : ni pédale, ni bouton — on avance au ralenti
+     sur un arbre mûr, et la tête fait le reste. C'est une porte qui s'ouvre, pas un mur,
+     et elle se solde au premier arbre abattu. La flèche montre l'arbre mûr le plus proche. */
+  {cle:'abattage', humeur:'projette', ou:'foret', nom:'LA FORÊT', titre:'LA FORÊT',
+   txt:'LA FORÊT – Avance au ralenti sur un arbre mûr : la tête le scie toute seule et les '
+     + 'grumes tombent dans le caisson. Plein, on le vide au dépôt, ou on le vend à la scierie.',
+   quand:()=> MACHINES[cur].key === 'abatteuse'}
 ];
 /* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
    le tutoriel de départ ne connaît que le champ, le silo, la ferme et les commerces, là où
@@ -22882,6 +23502,17 @@ function lieuLecon(L){
   if(ou === 'atelier')  return HALLE.quai
     ? {lieu:'atelier', x:HALLE.quai.x, z:HALLE.quai.z} : null;
   if(ou === 'gazole')   return {lieu:'cuve', x:quaiCuve.x, z:quaiCuve.z};
+  if(ou === 'foret'){
+    // L'arbre mûr le plus proche de l'engin : c'est lui qu'on va couper.
+    const v = MACHINES[cur].v;
+    let best = null, bd = 1e9;
+    for(const a of FORET.arbres){
+      if(a.etat !== 0 || a.chute) continue;
+      const d = Math.hypot(a.x - v.pos.x, a.z - v.pos.z);
+      if(d < bd){ bd = d; best = a; }
+    }
+    return best ? {lieu:'forêt', x:best.x, z:best.z} : null;
+  }
   if(ou === 'reserve'){
     // Chaque cuve sert ce qu'elle contient : l'épandeur va à la blanche, le semoir à la verte.
     const T = toolOf(MACHINES[cur]);
@@ -25400,6 +26031,9 @@ function empechementsIci(m){
     if(ENTREPOT.quai && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r)
        && entrepotTotal() > 0.5)
       dit('CHARGER À L\'ENTREPÔT', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
+    if(DEPOT_BOIS.quai && prochePoint(v, DEPOT_BOIS.quai.x, DEPOT_BOIS.quai.z, DEPOT_BOIS.r)
+       && DEPOT_BOIS.stock > 0.5)
+      dit('CHARGER LES GRUMES', 'IL FAUT UNE BENNE OU UN UTILITAIRE');
     for(const S of SITES) if(aQuai(v, S) && !S.caisse){
       let stock = 0;
       for(const k in S.stock) stock += S.stock[k];
@@ -25418,6 +26052,8 @@ function actionsIci(m){
   if(pat) out = out.concat(actionsPature(m, pat));
   if(ENTREPOT.quai && prochePoint(v, ENTREPOT.quai.x, ENTREPOT.quai.z, ENTREPOT.r))
     out = out.concat(actionsEntrepot(m));
+  if(DEPOT_BOIS.quai && prochePoint(v, DEPOT_BOIS.quai.x, DEPOT_BOIS.quai.z, DEPOT_BOIS.r))
+    out = out.concat(actionsDepotBois(m));
   for(const S of SITES) if(aQuai(v, S)){ out = out.concat(actionsAuSite(m, S)); break; }
   return out;
 }
@@ -25468,6 +26104,8 @@ function quantiteMax(m, A){
     case 'prendre': return Math.min(place, siloStock[A.cle] || 0);
     case 'rangerEntrepot': return Math.min(porte, entrepotPlace());
     case 'prendreEntrepot': return Math.min(place, entrepotStock(A.cle));
+    case 'deposerBois': return Math.min(porte, DEPOT_BOIS.max - DEPOT_BOIS.stock);
+    case 'prendreBois': return Math.min(place, DEPOT_BOIS.stock);
     case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
     case 'traire': return Math.min(place, A.P.produit);
     case 'traire2': return Math.min(place, A.P.produit2);
@@ -25483,7 +26121,7 @@ function quantiteMax(m, A){
    pas de troisième cas. C'est ce qui permet de poser au joueur une question en deux
    temps : d'abord DÉCHARGER ou REMPLIR, ensuite quoi. */
 const SENS_VIDER = {tremie:1, tremieVente:1, tremieLivraison:1, ranger:1, vendre:1,
-                    verser:1, rangerEntrepot:1, auge:1};
+                    verser:1, rangerEntrepot:1, auge:1, deposerBois:1};
 const modeDe = (A)=> SENS_VIDER[A.sens] ? 'vider' : 'remplir';
 /* ET CE QUE L'OBJECTIF DEMANDE, DANS LE MÊME VOCABULAIRE. `objectifMission` dit où aller
    et quoi y faire — 'charger', 'collecter', 'vider' — mais dans ses mots à lui. Les
@@ -25671,6 +26309,23 @@ function executer(m, A, dt){
       if(siSouvent(0.3))
         puff(ENTREPOT.quai.x, 2.4, ENTREPOT.quai.z, teinteDe(A.cle), 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint(nomDe(A.cle).toUpperCase() + ' CHARGÉ');
+      return;
+    }
+    case 'deposerBois': {
+      const q = Math.min(debit, chargeDe(T, A.cle), DEPOT_BOIS.max - DEPOT_BOIS.stock);
+      if(q <= 0.0001) return;
+      retirerCharge(T, A.cle, q); DEPOT_BOIS.stock += q; majPileDepot();
+      if(siSouvent(0.3)) puff(DEPOT_BOIS.x, 1.6, DEPOT_BOIS.z, 0xD8C29A, 0.35, 0.3);
+      viderType(T);
+      if(chargeDe(T, A.cle) <= 0.01) showHint('GRUMES AU DÉPÔT');
+      return;
+    }
+    case 'prendreBois': {
+      const q = Math.min(debit, T.capacite - T.load, DEPOT_BOIS.stock);
+      if(q <= 0.0001) return;
+      ajouterCharge(T, A.cle, q); DEPOT_BOIS.stock = Math.max(0, DEPOT_BOIS.stock - q); majPileDepot();
+      if(siSouvent(0.3)) puff(DEPOT_BOIS.x, 1.6, DEPOT_BOIS.z, 0xD8C29A, 0.35, 0.3);
+      if(T.load >= T.capacite - 0.01) showHint('GRUMES CHARGÉES');
       return;
     }
     case 'vendre': {
@@ -30386,6 +31041,9 @@ function etatJeu(){
     // sauvegarde d'avant les crans n'en a pas, et se relit sur un silo au premier cran.
     siloCran: SILO.cran || 1,
     entrepot: Object.assign({}, ENTREPOT.stock),
+    // La forêt et le dépôt de grumes : deux champs FACULTATIFS de plus, `v` ne bouge pas.
+    foret: etatForet(),
+    depotBois: DEPOT_BOIS.stock,
     /* LES CHANTIERS SE SAUVEGARDENT, ET RIEN DE LEUR AVANCEMENT.
        C'est le dividende du choix de départ : l'étape ne se mémorise pas, elle SE LIT SUR
        LA TERRE. Un chantier n'est donc qu'un réglage — cette parcelle, cette graine, ce
@@ -30846,6 +31504,10 @@ function chargerPartie(S){
     for(const k in ENTREPOT.stock) delete ENTREPOT.stock[k];
     if(S.entrepot) for(const k in S.entrepot)
       if(PRODUITS[k] && S.entrepot[k] > 0.005) ENTREPOT.stock[k] = S.entrepot[k];
+    // La forêt d'une partie d'avant le bois repart mûre, et son dépôt vide.
+    restaurerForet(S.foret);
+    DEPOT_BOIS.stock = Math.max(0, Math.min(DEPOT_BOIS.max, +S.depotBois || 0));
+    majPileDepot();
     for(const k in HALLE.stock){
       if(HALLE.stock[k] > 0.005) entrepotRange(k, HALLE.stock[k]);
       delete HALLE.stock[k];
@@ -32280,6 +32942,7 @@ function loop(now){
     }
     work(m, dt);
     grow(dt);
+    majForet(dt);
     nettoyerReliquats(dt);
     flushTint();
     updateCargo(dt);
