@@ -15232,3 +15232,44 @@ plaisance de la marina. Bancs `port` (31), `chocs` (24), `bois` (22), `village` 
 (11) et `campagne` (72) verts. Les captures ont été regardées de trois quarts et de profil, sur
 le chalutier, sur la barque et sur le ponton de la marina : la muraille est d'un seul tenant de
 la flottaison à la lisse.
+
+## L'étrave, taillée dans la coque
+
+**Le joueur.** « Refais les avants des bateaux pour qu'ils s'intègrent et soient cohérents avec
+le reste de la coque. »
+
+**Elle était posée devant le bateau, pas taillée dedans.** Le prisme de l'étrave partait d'un
+RECTANGLE à la largeur maximale, posé au ras de l'eau — alors que la coque, à cette hauteur, n'a
+que la largeur de sa quille : `W*0,66`. À la flottaison, l'étrave était donc plus large d'un
+tiers que ce qu'elle prolongeait, et sa face arrière, verticale, restait à l'air libre sous le
+pont pendant que la coque, elle, rentrait en biais derrière elle. On voyait une marche, et
+c'est ce que le joueur appelle « pas cohérent avec le reste de la coque ».
+
+**Elle part maintenant de la section du bordé, aux mêmes cotes.** Étroite à la quille
+(`W*0,33` de demi-largeur), pleine au livet (`W/2`), et sur la même oblique — la coque s'arrête
+à `L*0,44` au fond et à `L/2` en haut, l'étrave reprend ces deux-là. Trois centimètres de recul
+noient sa face arrière DANS la coque, si bien que les deux plans ne se disputent jamais le même
+millimètre. Au-dessus du livet elle monte droit jusqu'à la lisse et ferme le pavois à l'avant :
+c'est cette paroi-là, et elle seule, qu'on voit depuis le pont. Le brion recule de `L*0,76` à
+`L*0,70` et la pointe ne bouge pas, à `L*0,80` — l'étrave est donc plus inclinée, ce qui est la
+ligne d'une vraie, et le bateau n'a pas changé d'un centimètre de long.
+
+**Douze facettes, chacune orientée à la main.** Le bordé de l'étrave n'est PAS plan : il va
+d'une arête oblique à une pointe sur l'axe. Un éventail pris dans l'ordre du contour retourne
+donc sa dernière facette, qui disparaît alors purement et simplement à l'écran — la face
+arrière d'un triangle n'est pas dessinée. Chaque orientation a été vérifiée au produit
+vectoriel avant d'être écrite.
+
+**Et les deux ceintures meurent avant l'épaule.** Une ceinture est plus large que la coque —
+c'est ce qui en fait une ceinture — tandis que l'étrave, elle, se rétrécit vers la pointe :
+poussées jusqu'à l'épaule, le liston et la bande de flottaison ressortaient du bordé de l'avant
+et pointaient dehors comme deux échardes. Ils s'arrêtent maintenant sur le flanc droit, deux
+centièmes de longueur en arrière, et l'on voit leur tranche : c'est ce que fait un vrai
+bourrelet de défense. À l'arrière, au contraire, ils dépassent de leur saillie pour envelopper
+l'angle du tableau.
+
+**Mesuré.** Les six bateaux en héritent. Bancs `port` (31), `chocs` (24), `bois` (22), `village`
+(16), `camion` (18), `export` (12), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (6),
+`diagnostic` (11) et `campagne` (72) verts. Les captures ont été regardées de face, de trois
+quarts et de profil, sur le chalutier, le caseyeur et la barque : la muraille monte d'un trait
+de la quille à la lisse, et l'étrave en est le bout effilé.
