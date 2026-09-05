@@ -15749,3 +15749,77 @@ bornes — le banc `grandes` l'a vu à la première passe.
 commit précédent, où même un buisson de 65 cm arrêtait tout. `port` (31), `bois` (22), `camion`
 (18), `export` (12), `village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (9),
 `escargot` verts ; `campagne` 75 sur 76 et `pilote` rendent les mêmes comptes qu'avant.
+
+## Les grandes parcelles ont leurs chemins, le port sa boucle, et les routes leur mobilier
+
+Le joueur, en une phrase et six demandes : « ajoute un peu plus de décor d'arbres ; les petites
+barrières aussi le long des grandes routes, arrêts de bus, des lampadaires ; fais d'autres
+choses sur le port comme un ou deux conteneurs ; fais une route au bout du port qui repart à la
+droite pour faire boucle, à faire demi-tour sur la dalle avec un camion ; et en haut, là où
+t'as fait les deux nouvelles parcelles, exactement les mêmes parcelles que sur la ferme mais en
+plus grandes, avec des chemins en sable autour pour qu'on puisse circuler entre les routes et
+les parcelles via les chemins de sable. »
+
+### Les deux grandes parcelles entrent dans un quadrillage
+
+Sur la ferme, une parcelle est une case d'un quadrillage de sable : on entre par un chemin, on
+longe la terre, on ressort par un autre. Les deux grandes du nord étaient posées dans l'herbe
+nue, chacune collée à son brin de rocade. **Chacune a maintenant sa boucle**, et c'est la rocade
+qui en ferme le quatrième côté :
+
+| | largeur | où |
+|---|---|---|
+| chemin de tournière | 6,40 m | d'un brin à l'autre, dans les neuf mètres sous les parcelles |
+| chemin intérieur | 6,40 m | du côté opposé à la route, à 1,60 m de la terre — la verge de la ferme |
+| chemin de fond | 4,00 m | derrière la parcelle, jusqu'à la route |
+
+Le chemin de fond n'a que quatre mètres, et c'est une contrainte, pas un choix : entre le bord
+nord de la terre (−190,8) et le dernier rang de tuiles (−197,7) il ne reste que 6,90 m. Quatre
+mètres laissent 1,45 m de verge de chaque côté.
+
+**Mesuré** : les cinq chemins sont libres — zéro cercle, zéro boîte dessus — et le tour se
+roule, les trois branches parcourues bout à bout (67, 69 et 67 m) sans jamais se bloquer.
+
+### Le port : deux conteneurs et une boucle
+
+La rue du chantier naval était un **cul-de-sac de cent trente-quatre mètres** : trente mètres de
+large, de quoi virer un pick-up, pas un semi de vingt-huit. Une seconde grille s'ouvre au sud du
+bout est, une branche part vers la droite — vers l'est, ce qui est bien la droite quand on
+descend la rue —, tourne au nord par un quart de cercle de quatorze mètres échantillonné en huit
+cordes, et remonte rejoindre la route du port. **On entre par le portique, on fait le tour, on
+ressort par l'autre grille : plus une seule marche arrière dans tout le port.** Mesuré au banc,
+sur les six points du tour : le pick-up les passe tous, **le semi aussi**.
+
+Deux **conteneurs** de douze mètres, un rouge un bleu, au nord de la rue du chantier — la seule
+bande de béton qui ne serve à rien, relevée libre sur sept mètres de rayon. Ils laissent
+quatorze mètres de passage : un semi entre et sort sans les frôler.
+
+### Le mobilier des grandes routes
+
+Les quatre longues chaussées hors du village — la route du nord jusqu'à l'entrepôt, la route du
+bas, le brin d'après la forêt, la route du port — étaient nues sur des centaines de mètres.
+Elles reçoivent **13 lampadaires**, **10 petites barrières**, **2 abris de bus** et **18 arbres**
+de plus, semés au flux commun pour qu'un lancement rende exactement le même bord de route que le
+précédent.
+
+Les barrières font **quatre-vingt-cinq centimètres**, donc moins que `BAS_HAUT` : **on leur roule
+dessus**. Ce n'est pas un détail, c'est la condition pour en poser — une barrière dure le long
+d'une route enfermerait le joueur sur la chaussée, lui qui doit pouvoir en sortir n'importe où
+pour rejoindre un champ.
+
+**Deux défauts trouvés par les bancs, et corrigés :**
+
+- **le premier essai n'a rien posé du tout** — zéro mât, zéro barrière, zéro abri. Le test de
+  place libre exigeait d'être à `r` mètres de la chaussée, `r` étant l'encombrement de l'objet ;
+  or un lampadaire se plante à 2,20 m du bitume et un abri à 5,40. Les deux mesures n'ont rien à
+  voir : on exige maintenant seulement de n'être pas SUR le bitume.
+- **deux arbres dans l'aire de manœuvre de l'entrepôt d'export.** Le camion s'y arrêtait et sa
+  remorque lui passait devant (banc `camion`). Ce qu'on garde libre autour d'un commerce, ce
+  n'est pas son terrain, c'est ce qu'il faut pour y entrer et en sortir : huit mètres de plus.
+
+**Mesuré.** `chocs` (31), `port` (31), `bois` (22), `camion` (18), `export` (12), `village` (16),
+`grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (9), `escargot` verts ; `campagne` 75 sur
+76, inchangé. Deux bancs ont été ajustés, et c'est dit : `grandes` accepte que le plan commence
+sur le chemin de service (8,50 m au lieu de 4,50, puisque le chemin est à 8 m du bord de la
+terre), et le contrôle du timon de `camion` range le décor le temps de sa mesure — il vérifie un
+invariant d'attelage, pas la position d'un arbre à cinquante mètres.

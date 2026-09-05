@@ -2971,12 +2971,43 @@ const PORT = {
 // L'eau : le rectangle où un bateau peut aller, et où un engin à roues ne peut pas — au
 // sud du quai, à l'ouest de la côte.
 const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:PORT.quaiZ, z1:MONDE.z1 - 3};
+/* ---------- LA BOUCLE DU BOUT DU PORT ----------
+   Le joueur : « fais une route au bout du port qui repart à la droite pour faire boucle, à
+   faire demi-tour sur la dalle avec un camion. »
+   La rue du chantier naval est un CUL-DE-SAC de cent trente-quatre mètres : on y descend le
+   long de la plage, et au bout il n'y a que la marche arrière — trente mètres de large, de
+   quoi virer un pick-up, pas un semi de vingt-huit mètres. Une seconde grille s'ouvre donc
+   au sud du bout est, une branche part vers la DROITE — vers l'est, ce qui est bien la
+   droite quand on descend la rue —, tourne au nord par un quart de cercle de quatorze
+   mètres et remonte rejoindre la route du port. On entre par la grille du portique, on fait
+   le tour, on ressort par l'autre : plus une seule marche arrière dans tout le port.
+   LES DEUX RECTANGLES SONT DÉCLARÉS ICI, avant le moindre semis, et `surRoute` les lit :
+   sans cela, une douzaine d'arbres et de buissons — relevés au banc sur ce tracé même —
+   pousseraient au milieu du bitume. */
+const PORT_BOUCLE = {z:5, x:-140, r:14, porte:{z0:0, z1:10}};
+const ROUTES_SUP = [
+  {x0:PORT.cale.x1 - 8, x1:PORT_BOUCLE.x + ROAD_W/2, z0:PORT_BOUCLE.z - ROAD_W/2, z1:PORT_BOUCLE.z + ROAD_W/2},
+  {x0:PORT_BOUCLE.x - ROAD_W/2, x1:PORT_BOUCLE.x + ROAD_W/2, z0:ROAD_N, z1:PORT_BOUCLE.z + ROAD_W/2}
+];
 (function(){
   rubanRoute([[X1 - 0.5, ROAD_N], [MONDE.x1, ROAD_N]]);        // vers l'est, droite jusqu'au bout du monde
   // la route du bas, prolongée jusqu'au brin qui redescend ; et ce brin lui-même
   rubanRoute([[X1 - 0.5, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
   rubanRoute([[ROUTE_BOIS, ROAD_N - ROAD_W/2], [ROUTE_BOIS, ROAD_C + ROAD_W/2]]);
   rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au bord de la dalle du port
+  /* LA BOUCLE DU BOUT DU PORT : la branche est, le quart de cercle, puis la remontée. Le
+     quart de cercle est échantillonné en huit cordes — un ruban n'a pas d'angle droit :
+     deux segments perpendiculaires y pincent le bord intérieur et l'ouvrent à l'extérieur,
+     et le virage se voit comme une pliure. */
+  (function(){
+    const B = PORT_BOUCLE, cx = B.x - B.r, cz = B.z - B.r, pts = [[PORT.cale.x1 - 6, B.z]];
+    for(let k = 0; k <= 8; k++){
+      const a = k/8*Math.PI/2;
+      pts.push([cx + Math.sin(a)*B.r, cz + Math.cos(a)*B.r]);
+    }
+    pts.push([B.x, ROAD_N]);
+    rubanRoute(pts);
+  })();
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
@@ -3027,6 +3058,44 @@ PARCELS.push({x:-ROAD_C + ROAD_W/2 + 1.6 + GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_
               owned:false, decor:[], sign:null, grande:true});
 PARCELS.push({x: ROAD_E - ROAD_W/2 - 1.6 - GRANDE_COTE/2, z:GRANDES_Z, w:GRANDE_COTE, h:GRANDE_COTE,
               owned:false, decor:[], sign:null, grande:true});
+/* ---------- ET LEURS CHEMINS DE SABLE ----------
+   Le joueur : « en haut, là où t'as fait les deux nouvelles parcelles : exactement les
+   mêmes parcelles que sur la ferme, mais en plus grandes, avec des chemins en sable autour,
+   pour qu'on imite bien les deux parcelles et qu'on puisse circuler entre les routes et les
+   parcelles via les chemins de sable. »
+   Sur la ferme, une parcelle est une case d'un quadrillage de sable : on entre par un
+   chemin, on longe la terre, on ressort par un autre. Les deux grandes, elles, étaient
+   posées dans l'herbe nue, chacune collée à son brin de rocade : on y arrivait en coupant
+   à travers champ, et l'on en repartait de même.
+   CHACUNE A MAINTENANT SA BOUCLE, et c'est la rocade qui en ferme le quatrième côté :
+     · LE CHEMIN DE TOURNIÈRE, d'un brin à l'autre, dans les neuf mètres qui séparent le
+       fond des commerces du haut des parcelles. Il dessert les DEUX parcelles et traverse
+       le creux d'arbres qui les sépare : c'est la voie de service du nord.
+     · LE CHEMIN INTÉRIEUR, du côté opposé à la route, à 1,60 m de la terre comme sur la
+       ferme — la même verge d'herbe, la même largeur de 6,40 m.
+     · LE CHEMIN DE FOND, derrière la parcelle, jusqu'à la route. Il n'a que quatre mètres :
+       entre le bord nord de la terre (−190,8) et le dernier rang de tuiles (−197,7) il ne
+       reste que 6,90 m, et un chemin de 6,40 m n'y tiendrait qu'en mordant sur l'un ou sur
+       l'autre. Quatre mètres laissent 1,45 m de verge de chaque côté.
+   On tourne donc autour de chaque parcelle sans jamais poser une roue dans l'herbe. */
+const CHEMIN_GRAND = 6.4, CHEMIN_FOND = 4.0;
+const GR_TOURN_Z = -125.6;                  // l'axe de la tournière, entre −128,8 et −122,4
+const GR_FOND_Z  = -194.25;                 // l'axe du chemin de fond, entre −196,25 et −192,25
+const CHEMINS_NORD = [];                    // {x0,x1,z0,z1,vert} : voir `paintStaticGround`
+(function(){
+  const W = CHEMIN_GRAND/2, F = CHEMIN_FOND/2;
+  const bordO = -ROAD_C + ROAD_W/2, bordE = ROAD_E - ROAD_W/2;   // les deux accotements
+  CHEMINS_NORD.push({x0:bordO, x1:bordE, z0:GR_TOURN_Z - W, z1:GR_TOURN_Z + W, vert:false});
+  for(const P of PARCELS){
+    if(!P.grande) continue;
+    const ouest = P.x < 0;
+    // le côté opposé à la route, à 1,60 m de la terre
+    const axe = ouest ? P.x + P.w/2 + 1.6 + W : P.x - P.w/2 - 1.6 - W;
+    CHEMINS_NORD.push({x0:axe - W, x1:axe + W, z0:GR_FOND_Z - F, z1:GR_TOURN_Z + W, vert:true});
+    const a = ouest ? bordO : axe - W, b = ouest ? axe + W : bordE;
+    CHEMINS_NORD.push({x0:a, x1:b, z0:GR_FOND_Z - F, z1:GR_FOND_Z + F, vert:false});
+  }
+})();
 // Prix croissant avec l'éloignement de la parcelle de départ : on s'étend de proche
 // en proche, et la carte se lit d'elle-même comme une progression.
 (function(){
@@ -6082,6 +6151,10 @@ const MARCHE  = SITES.find(S=>S.supermarche);
    deux gardes, le test est plus court et il est juste. */
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
+  // La boucle du bout du port : deux rectangles, déclarés avec `PORT` (voir `ROUTES_SUP`).
+  const g = lim - ROAD_W/2;
+  for(const R of ROUTES_SUP)
+    if(x > R.x0 - g && x < R.x1 + g && z > R.z0 - g && z < R.z1 + g) return true;
   // Le brin qui redescend après la forêt ne traverse pas tout le monde : il ne compte
   // qu'entre les deux chaussées horizontales, sans quoi rien ne pousserait sur son axe
   // d'un bout à l'autre de la carte.
@@ -6210,8 +6283,8 @@ function paintStaticGround(){
   for(const p of PARCELS) if(p.owned) paintParcelSoil(p);
 
   // chemins de sable : ils traversent les parcelles et rejoignent la route
-  const path = (x,z,l,vert)=>{
-    const w = PATH_W;
+  const path = (x,z,l,vert,larg)=>{
+    const w = larg || PATH_W;
     /* BORD ONDULÉ PLUTÔT QUE DEUX DROITES PARALLÈLES : le chemin cesse d'être un ruban
        tracé à la règle. L'ondulation est légère — un huitième de la largeur, soit 0,56 m
        de crête — sinon le sable paraît rongé, et il faut surtout qu'elle reste loin de
@@ -6292,6 +6365,12 @@ function paintStaticGround(){
     else path(px, (ZA + REACH)/2, REACH - ZA, true);
   }
   for(const pz of PATHS_H) path((XA+XB)/2, pz, XB - XA, false);
+  // Les chemins des deux grandes parcelles du nord, hors de l'anneau : voir `CHEMINS_NORD`.
+  for(const C of CHEMINS_NORD){
+    const cx = (C.x0 + C.x1)/2, cz = (C.z0 + C.z1)/2;
+    if(C.vert) path(cx, cz, C.z1 - C.z0, true,  C.x1 - C.x0);
+    else       path(cx, cz, C.x1 - C.x0, false, C.z1 - C.z0);
+  }
 
   // cour de ferme en terre battue
   // dalle de parking : béton, avec le même grain que l'herbe puis le marquage
@@ -8296,7 +8375,11 @@ function construirePort(){
      chantier. Le pan qui courait là séparait les deux dalles, et le chantier restait dehors.
      Le tour : le long de la route au nord, le bout à l'est, et le fond au sud — celui-ci
      poussé jusqu'à l'eau pour fermer aussi la bande de sable, seule échappée qui restait. */
-  grillage(C.x1, ROAD_N + RB, C.x1, C.z1); // le bout est, au sud de l'entrée
+  /* ET LA SECONDE GRILLE, celle de la boucle. Le pan sud du bout est se coupe en deux
+     autour de la porte de dix mètres par où la branche de la boucle s'en va vers l'est. */
+  grillage(C.x1, ROAD_N + RB, C.x1, PORT_BOUCLE.porte.z0);
+  grillage(C.x1, PORT_BOUCLE.porte.z1, C.x1, C.z1);
+  pilier(C.x1, PORT_BOUCLE.porte.z0); pilier(C.x1, PORT_BOUCLE.porte.z1);
   grillage(EAU.x1, C.z1, C.x1, C.z1);      // le fond sud, du bord de l'eau au bout est
   const dalles = SITES.filter((S)=> S.dir === 'PO');
   // Les clôtures des deux commerces, solides : les trois pans pleins et les deux pans de
@@ -8313,6 +8396,16 @@ function construirePort(){
   const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(ECH_COMMERCE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
+  /* DEUX CONTENEURS, au nord de la rue du chantier, contre le fond du terrain de la
+     conserverie : c'est la seule bande de béton qui ne serve à rien — ni couloir de
+     roulage, ni anneau, ni façade —, relevée libre au banc sur sept mètres de rayon. Ils
+     sont posés à même la dalle, dans l'axe de la rue, et laissent quatorze mètres de
+     passage à l'est : un semi entre et sort sans les frôler. */
+  for(const [cx, cz, coul] of [[-187, -108, PO_.ROUGE], [-187, -101.5, PO_.BLEU]]){
+    const c = modeleConteneur(coul);
+    c.position.set(cx, 0, cz); scene.add(c); fusionnerGroupe(c);
+    boxObs.push({x:cx, z:cz, hw:6.1, hd:1.3});
+  }
   for(const Q of [PORT.quai, PORT.grue])
     boxObs.push({x:Q.x, z:Q.z - 0.3*ECH_COMMERCE, hw:4.6*ECH_COMMERCE, hd:2.1*ECH_COMMERCE});   // laisse le couloir de roulage, derrière
   /* ---------- LE PORTIQUE DE LA MARINA ----------
@@ -9921,6 +10014,31 @@ function modeleQuaiDebarque(){
   return g;
 }
 /* La grue de quai et le tas de caisses. */
+/* ---------- UN CONTENEUR MARITIME ----------
+   Le joueur : « fais d'autres choses sur le port, comme un ou deux conteneurs. »
+   Douze mètres sur deux quarante, deux mètres soixante de haut : les cotes du quarante
+   pieds, à un cheveu près. Le corrugué est fait de dix nervures verticales de six
+   centimètres de saillie — pas une texture, dix boîtes : à la distance où la caméra
+   travaille, c'est la SILHOUETTE qui dit ce que c'est, et un flanc lisse ferait boîte à
+   chaussures. Les quatre montants d'angle, les deux portes du bout avec leurs barres de
+   verrouillage, et le toit un ton plus sombre. */
+function modeleConteneur(coul){
+  const g = new THREE.Group();
+  const L = 12.0, W = 2.44, H = 2.6, ep = 0.06;
+  const som = (coul === PO_.ROUGE) ? 0x8E2A22 : (coul === PO_.BLEU) ? 0x24557F : 0x2A6B45;
+  g.add(box(L, H, W, coul, 0, H/2, 0));
+  g.add(box(L + 0.06, 0.1, W + 0.06, som, 0, H - 0.05, 0));           // le toit
+  for(let k = 0; k < 10; k++){                                        // le corrugué
+    const x = -L/2 + 0.9 + k*(L - 1.8)/9;
+    for(const sz of [-1, 1]) g.add(box(0.1, H - 0.34, ep, som, x, H/2, sz*(W/2 + ep/2)));
+  }
+  for(const sx of [-1, 1]) for(const sz of [-1, 1])                   // les montants d'angle
+    g.add(box(0.16, H, 0.16, som, sx*(L/2 - 0.08), H/2, sz*(W/2 - 0.08)));
+  // les deux portes, au bout est
+  g.add(box(0.08, H - 0.3, W - 0.24, som, L/2 + 0.05, H/2, 0));
+  for(const sz of [-1, 1]) g.add(box(0.1, H - 0.6, 0.1, PO_.INOX, L/2 + 0.1, H/2, sz*0.5));
+  return g;
+}
 function modeleGrueQuai(){
   const g = new THREE.Group();
   // La grue, sa base au ras de la dalle ; la flèche et le crochet passent au-dessus de l'eau.
@@ -11516,6 +11634,11 @@ function buildFarm(){
        Rien ne pousse donc à moins de neuf mètres d'une grande parcelle, ni dedans. */
     for(const P of PARCELS)
       if(P.grande && x > P.x - P.w/2 - 9 && x < P.x + P.w/2 + 9 && z > P.z - P.h/2 - 9 && z < P.z + P.h/2 + 9) return false;
+    /* NI SUR LEURS CHEMINS DE SABLE. La tournière traverse le creux d'arbres qui sépare
+       les deux parcelles, et c'est le seul endroit que les neuf mètres ci-dessus ne
+       couvrent pas : sans cette garde, on y plantait en plein milieu de la voie. */
+    for(const C of CHEMINS_NORD)
+      if(x > C.x0 - 3 && x < C.x1 + 3 && z > C.z0 - 3 && z < C.z1 + 3) return false;
     if(x < X0+4 || x > X1-4 || z < Z0+4 || z > Z1-4) return false;
     for(const S of SITES){
       // emprise du bâtiment : profondeur en X et largeur en Z sur les bords latéraux,
@@ -12457,6 +12580,117 @@ function poserLotBande(L, dir, centre, front, sansAvant, sansApres){
 /* Les maisons de bande et le contenu des creux. Le mobilier se pose sur l'herbe TOUT
    PRÈS de la route — c'est ce qui donne l'air d'un village plutôt que d'une zone
    d'activité — et la verdure occupe le fond du creux, derrière lui. */
+/* ---------- LE MOBILIER DES GRANDES ROUTES ----------
+   Le joueur : « ajoute un peu plus de décor d'arbres, etc. ; les petites barrières aussi le
+   long des grandes routes, arrêts de bus, des lampadaires le long des grandes routes. »
+   Les quatre longues chaussées hors du village — la route du nord jusqu'à l'entrepôt, la
+   route du bas jusqu'au brin du bois, le brin lui-même, et la route du port — étaient nues :
+   du bitume dans de l'herbe sur quatre cents mètres. Elles reçoivent quatre choses, semées
+   au flux commun (`alea`) pour qu'un lancement rende exactement le même bord de route que
+   le précédent :
+     · LES LAMPADAIRES, un tous les soixante mètres, alternés d'un bord à l'autre — le même
+       mât et le même halo de nuit que ceux de la rocade, posés par `addLamp`.
+     · LES PETITES BARRIÈRES, des lisses de bois sur poteaux, par tronçons de dix mètres.
+       Elles font QUATRE-VINGT-CINQ CENTIMÈTRES, donc moins que `BAS_HAUT` : on leur roule
+       dessus. C'est voulu, et c'est même la condition pour en poser : une barrière DURE le
+       long d'une route enfermerait le joueur sur la chaussée, lui qui doit pouvoir en
+       sortir n'importe où pour rejoindre un champ.
+     · LES ARRÊTS DE BUS, trois abris pris au mobilier de village, tournés vers la route.
+     · LES ARBRES, par bosquets de deux ou trois, à une dizaine de mètres de l'accotement.
+   RIEN NE SE POSE SANS PLACE LIBRE : `placeLibre` refuse le bitume, les emprises déjà
+   déclarées, les terrains des commerces et les parcelles. C'est pour cela que ce semis est
+   le DERNIER de la construction — il voit tout ce que les autres ont posé. */
+function barriereRoute(x, z, ry, L){
+  const g = new THREE.Group(), H = 0.85;
+  const n = Math.max(2, Math.round(L/2.2));
+  for(let k = 0; k <= n; k++) g.add(box(0.14, H, 0.14, D_BOIS2, -L/2 + k*L/n, H/2, 0));
+  g.add(box(L, 0.13, 0.09, D_BOIS3, 0, H - 0.13, 0));
+  g.add(box(L, 0.13, 0.09, D_BOIS3, 0, H - 0.45, 0));
+  g.position.set(x, 0, z); g.rotation.y = ry;
+  scene.add(g); fusionnerGroupe(g);
+  // Basse, donc franchissable : la roue passe dessus, la barrière fume, on continue.
+  const m = Math.max(2, Math.round(L/3));
+  for(let k = 0; k <= m; k++){
+    const t = -L/2 + k*L/m;
+    obstacles.push({x:x + Math.cos(ry)*t, z:z - Math.sin(ry)*t, r:0.55, bas:true});
+  }
+}
+function garnirGrandesRoutes(){
+  /* `r` EST L'ENCOMBREMENT DE L'OBJET, ET LA ROUTE SE TESTE À PART. Les deux ne peuvent pas
+     partager la même marge : un lampadaire se plante à 2,20 m du bitume, un abri de bus à
+     5,40 m, et leur demander d'être à `r` mètres de la chaussée les aurait tous refusés —
+     mesuré, c'est ce qui s'est passé au premier essai : zéro mât, zéro barrière, zéro abri
+     posés. On exige donc seulement de n'être pas SUR le bitume (60 cm de garde), et `r` ne
+     sert qu'à ne rien poser dans autre chose. */
+  const placeLibre = (x, z, r)=>{
+    if(x < MONDE.x0 + 8 || x > MONDE.x1 - 8 || z < MONDE.z0 + 8 || z > MONDE.z1 - 8) return false;
+    if(surRoute(x, z, 0.6)) return false;
+    if(x > EAU.x0 - r && x < EAU.x1 + r && z > EAU.z0 - r && z < EAU.z1 + r) return false;
+    for(const o of obstacles) if(Math.hypot(x - o.x, z - o.z) < o.r + r) return false;
+    for(const q of boxObs) if(Math.abs(x - q.x) < q.hw + r && Math.abs(z - q.z) < q.hd + r) return false;
+    for(const S of SITES){
+      if(Math.abs(x - S.x) < S.w/2 + r + 4 && Math.abs(z - S.z) < S.d/2 + r + 4) return false;
+      /* HUIT MÈTRES DE PLUS AUTOUR DES TERRAINS, et c'est un banc qui l'a exigé. Deux
+         arbres s'étaient posés à six et huit mètres du terrain de l'entrepôt d'export,
+         c'est-à-dire en plein dans l'aire où le semi manœuvre pour prendre sa remorque :
+         le camion s'y arrêtait, et la remorque lui passait devant (banc `camion`). Ce
+         qu'on garde libre autour d'un commerce, ce n'est pas son terrain, c'est ce qu'il
+         faut pour y entrer et en sortir. */
+      if(S.emp && x > S.emp.x0 - r - 8 && x < S.emp.x1 + r + 8
+              && z > S.emp.z0 - r - 8 && z < S.emp.z1 + r + 8) return false;
+    }
+    for(const P of PARCELS)
+      if(x > P.x - P.w/2 - r && x < P.x + P.w/2 + r && z > P.z - P.h/2 - r && z < P.z + P.h/2 + r) return false;
+    for(const C of CHEMINS_NORD)
+      if(x > C.x0 - r && x < C.x1 + r && z > C.z0 - r && z < C.z1 + r) return false;
+    return true;
+  };
+  /* LES QUATRE LONGUES CHAUSSÉES, chacune bornée loin des carrefours : `d0` et `d1` sont
+     les abscisses le long de l'axe, `fixe` la coordonnée de l'autre. */
+  const AXES = [
+    {vert:false, fixe:ROAD_N, d0:ROAD_E + ROAD_W/2 + 24, d1:MONDE.x1 - 60},   // le nord, vers l'entrepôt
+    {vert:false, fixe:ROAD_C, d0:ROAD_E + ROAD_W/2 + 24, d1:ROUTE_BOIS - 24}, // la route du bas, vers l'est
+    {vert:true,  fixe:ROUTE_BOIS, d0:ROC.z0 + 24, d1:ROC.z1 - 24},            // le brin d'après la forêt
+    {vert:false, fixe:ROAD_N, d0:PORT.routeFin + 14, d1:X0 - 8}               // la route du port
+  ];
+  const REC_LAMPE = ROAD_W/2 + 2.2, REC_BARR = ROAD_W/2 + 2.0, REC_ARBRE = ROAD_W/2 + 11;
+  const pt = (A, d, e)=> A.vert ? {x:A.fixe + e, z:d} : {x:d, z:A.fixe + e};
+  let nL = 0, nB = 0, nA = 0, nBus = 0;
+  const BUS = [];
+  for(const A of AXES){
+    for(let d = A.d0, i = 0; d <= A.d1; d += 45, i++){
+      const cote = (i % 2) ? 1 : -1;
+      const q = pt(A, d, cote*REC_LAMPE);
+      // la potence regarde la chaussée : voir les mâts de la rocade
+      const ry = A.vert ? (cote > 0 ? -Math.PI/2 : Math.PI/2) : (cote > 0 ? Math.PI : 0);
+      if(placeLibre(q.x, q.z, 3.4)){ addLamp(q.x, q.z, ry); nL++; }
+    }
+    for(let d = A.d0 + 22, i = 0; d <= A.d1; d += 34, i++){
+      const cote = (i % 2) ? -1 : 1, L = 10;
+      const q = pt(A, d, cote*REC_BARR);
+      if(placeLibre(q.x, q.z, 6)){ barriereRoute(q.x, q.z, A.vert ? Math.PI/2 : 0, L); nB++; }
+    }
+    for(let d = A.d0 + 9, i = 0; d <= A.d1; d += 26, i++){
+      const cote = (i % 3 === 0) ? -1 : 1;
+      const n = 2 + ((alea()*2)|0);
+      for(let k = 0; k < n; k++){
+        const q = pt(A, d + (alea() - 0.5)*16, cote*(REC_ARBRE + alea()*9));
+        if(placeLibre(q.x, q.z, 5.5)){ addTree(q.x, q.z, 0.85 + alea()*0.6, (alea()*5)|0); nA++; }
+      }
+    }
+    // un arrêt par grande route, au premier endroit qui le porte
+    for(let d = A.d0 + 46; d <= A.d1 && BUS.length < 4; d += 18){
+      const cote = 1;
+      const q = pt(A, d, cote*(ROAD_W/2 + 5.4));
+      if(placeLibre(q.x, q.z, 8)){
+        poserBloc(vilAbriBus, q.x, q.z, A.vert ? -Math.PI/2 : Math.PI);
+        BUS.push([q.x, q.z]); nBus++;
+        break;
+      }
+    }
+  }
+  if(typeof DIAG !== 'undefined') DIAG.routes = {lampes:nL, barrieres:nB, arbres:nA, bus:nBus};
+}
 function garnirBandes(putBush, putRock){
   /* LA MAISON EST AU RECUL DE LA DALLE VOISINE, ET PAS UN MÈTRE DE PLUS. Elle se
      tenait neuf mètres en retrait quand le commerce d'à côté n'en garde que trois : à
@@ -20468,6 +20702,9 @@ function updateTrafic(dt){
 /* ---------- 13. JEU ---------- */
 buildField();
 buildFarm();
+// Le mobilier des grandes routes se pose EN DERNIER : il ne s'installe que là où il reste
+// de la place, et il lui faut donc voir tout ce que les autres ont bâti.
+garnirGrandesRoutes();
 flushTiles();
 
 /* `timbre` ET `ton` : LE MOTEUR DE CHAQUE ENGIN.
