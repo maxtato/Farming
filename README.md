@@ -15823,3 +15823,74 @@ pour rejoindre un champ.
 sur le chemin de service (8,50 m au lieu de 4,50, puisque le chemin est à 8 m du bord de la
 terre), et le contrôle du timon de `camion` range le décor le temps de sa mesure — il vérifie un
 invariant d'attelage, pas la position d'un arbre à cinquante mètres.
+
+### Les lampadaires éclairaient l'herbe
+
+Le joueur : « attention, des lampadaires sur les routes sont dans le mauvais sens, ils éclairent
+vers l'herbe au lieu d'éclairer vers la route. » **Treize des trente-cinq mâts du monde étaient
+retournés** — tous les treize venaient du chapitre précédent, celui du mobilier de bord de route.
+
+Le bras du modèle sort vers le **−z local**. Un mât planté au sud d'une chaussée horizontale doit
+donc rester à `ry = 0` pour que sa tête revienne vers l'axe ; l'expression du semis disait
+l'inverse, et elle le disait dans les deux cas — l'horizontal et le vertical. La règle se relit
+sur les mâts de la rocade, qui eux étaient justes depuis toujours : `addLamp(t, LPN, 0)` au sud
+de la route du nord, `addLamp(t, LP, Math.PI)` au nord de la route du bas.
+
+**Mesuré, et c'est un contrôle du banc `decor` maintenant.** Pour chaque mât on avance de six
+mètres dans le sens du bras, et de six mètres dans l'autre : le premier point doit être **sur le
+bitume**, le second non. Avant : 22 bons, 13 tournés vers l'herbe. Après : **34 sur 34**.
+
+### La petite route de béton, derrière la criée
+
+Le joueur : « pour la petite route en béton — et non pas comme d'habitude : une toute petite
+route fine en béton —, je veux que tu passes au bout de la marina, que tu ailles à droite, puis à
+droite, pour contourner les entrepôts de la criée et revenir sur la grande route. »
+
+Elle **remplace la boucle de bitume du sud-est** du chapitre précédent : ce n'est plus le même
+tour, et ce n'est plus la même matière. Cinq mètres de béton — la moitié d'une chaussée, la
+matière et l'épaisseur de la dalle du quai — et le tour se fait par le **dehors**.
+
+Le tracé, tel qu'on le roule : on entre par le portique et l'on traverse la dalle tout droit,
+dans l'axe de la route ; on passe **au bout de la marina**, la grue et le quai de débarque à main
+gauche ; une grille s'ouvre en face, dans le bout ouest, et de l'autre côté la voie tourne **à
+droite**. Elle remonte le long de la dalle jusque derrière les entrepôts, tourne **à droite** une
+seconde fois, et file vers l'est au fond de la criée et de la conserverie, à quatre mètres du
+grillage. Elle redescend enfin sur la route du port, trente mètres à l'est du portique.
+
+| | de | à | largeur |
+|---|---|---|---|
+| passage de la grille | x −287 | x −286 | 5 m |
+| voie ouest | z −124 | z −72 | 5 m |
+| le fond, derrière les entrepôts | x −292 | x −133 | 5 m |
+| la descente sur la route | z −124 | z −79 | 5 m |
+
+**Pourquoi ce tour-là, et pas l'autre bord.** Au bout de la rue du chantier, la droite est le
+bassin : l'eau tient tout l'ouest à partir de z = −56, il n'y a pas de terre où poser une voie.
+Et c'est le seul tour qui contourne *vraiment* les entrepôts.
+
+**La porte est dans l'axe de la route**, et ce n'est pas un détail : le quai de débarque et la
+grue occupent la bande z = −66 à −60 sur toute la largeur de la dalle. Une porte plus au sud
+aurait obligé un semi à se faufiler entre la grue et le grillage. Le bout est, lui, **se
+referme** : il portait la seconde grille de la boucle, la rue du chantier redevient close sur
+toute sa longueur.
+
+**Un défaut trouvé par la mesure, et corrigé** : la descente était d'abord tracée à x = −145,
+c'est-à-dire **en plein dans l'abri de bus** de la route du port (posé à −148, huit mètres
+cinquante de large, un disque de 4,80 m). Elle passe à −135,5 : cinq mètres entre le bord du
+béton et le disque de l'abri, vingt mètres d'herbe avant les tuiles du village.
+
+**Mesuré.** Cinq contrôles neufs au banc `port` : la voie fait cinq mètres et non dix sur ses
+quatre rectangles ; c'est du béton posé, quatre dalles jointives qui ne se recouvrent nulle part
+(deux dalles coplanaires qui se chevauchent clignotent) ; le bout ouest n'est ouvert **que** de
+sa porte de dix mètres ; **rien ne traîne sur le béton** — ni arbre, ni mât, ni abri, ni pan de
+grillage ; et **le semi en fait le tour d'un trait**, les onze points de l'entrée du port à la
+grande route, sans une marche arrière.
+
+Le semis du décor tire sur le **même flux `alea`** que tout le reste : ce que la voie refuse
+décale ce qui vient après. Le mobilier de bord de route en compte donc 12 lampadaires, 9
+barrières et 19 arbres au lieu de 13, 10 et 18 — et le monde 34 mâts au lieu de 35.
+
+**Bancs.** `port` 36 sur 36, `chocs` 31, `camion` 18, `village` 16, `export` 12, `ouverture` 9,
+`grandes` 7, `acces` 5, `escargot` verts. `decor` : le contrôle des lampadaires passe, et les
+sept qui échouent échouaient déjà avant ce chantier — vérifié sur `6a9f573`. `rue` (12), `bois`
+(1) et `trafic` (8 contre 9) : inchangés eux aussi, mesurés avant et après.

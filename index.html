@@ -2971,43 +2971,63 @@ const PORT = {
 // L'eau : le rectangle où un bateau peut aller, et où un engin à roues ne peut pas — au
 // sud du quai, à l'ouest de la côte.
 const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:PORT.quaiZ, z1:MONDE.z1 - 3};
-/* ---------- LA BOUCLE DU BOUT DU PORT ----------
-   Le joueur : « fais une route au bout du port qui repart à la droite pour faire boucle, à
-   faire demi-tour sur la dalle avec un camion. »
-   La rue du chantier naval est un CUL-DE-SAC de cent trente-quatre mètres : on y descend le
-   long de la plage, et au bout il n'y a que la marche arrière — trente mètres de large, de
-   quoi virer un pick-up, pas un semi de vingt-huit mètres. Une seconde grille s'ouvre donc
-   au sud du bout est, une branche part vers la DROITE — vers l'est, ce qui est bien la
-   droite quand on descend la rue —, tourne au nord par un quart de cercle de quatorze
-   mètres et remonte rejoindre la route du port. On entre par la grille du portique, on fait
-   le tour, on ressort par l'autre : plus une seule marche arrière dans tout le port.
-   LES DEUX RECTANGLES SONT DÉCLARÉS ICI, avant le moindre semis, et `surRoute` les lit :
-   sans cela, une douzaine d'arbres et de buissons — relevés au banc sur ce tracé même —
-   pousseraient au milieu du bitume. */
-const PORT_BOUCLE = {z:5, x:-140, r:14, porte:{z0:0, z1:10}};
-const ROUTES_SUP = [
-  {x0:PORT.cale.x1 - 8, x1:PORT_BOUCLE.x + ROAD_W/2, z0:PORT_BOUCLE.z - ROAD_W/2, z1:PORT_BOUCLE.z + ROAD_W/2},
-  {x0:PORT_BOUCLE.x - ROAD_W/2, x1:PORT_BOUCLE.x + ROAD_W/2, z0:ROAD_N, z1:PORT_BOUCLE.z + ROAD_W/2}
-];
+/* ---------- LA PETITE ROUTE DE BÉTON, DERRIÈRE LA CRIÉE ----------
+   Le joueur : « pour la petite route en béton — et non pas comme d'habitude : une TOUTE
+   PETITE route FINE en béton —, je veux que tu passes au bout de la marina, que tu ailles à
+   droite, puis à droite, pour contourner les entrepôts de la criée et revenir sur la grande
+   route. »
+   ELLE REMPLACE LA BOUCLE DU SUD-EST, qui était une chaussée de bitume de dix mètres partant
+   du bout de la rue du chantier vers l'est : ce n'est plus le même tour, et ce n'est plus la
+   même matière. Cinq mètres de béton — la matière de la dalle, coulée à la même épaisseur —
+   et le tour se fait par le DEHORS.
+   LE TRACÉ, TEL QU'ON LE ROULE. On entre par le portique et l'on traverse la dalle tout
+   droit, dans l'axe de la route (z = −74) : on passe AU BOUT DE LA MARINA, c'est-à-dire au
+   fond du bassin, la grue et le quai de débarque à main gauche. Une grille s'ouvre en face,
+   dans le bout ouest, et de l'autre côté la voie tourne à DROITE : premier virage. Elle
+   remonte le long de la dalle jusque derrière les entrepôts, tourne à DROITE une seconde
+   fois, et file vers l'est au fond de la criée et de la conserverie, à quatre mètres du
+   grillage. Elle redescend enfin sur la route du port, trente mètres à l'est du portique : on
+   est revenu sur la grande route, et le tour se referme sans une seule marche arrière.
+   POURQUOI LE TOUR PASSE PAR LÀ, ET PAS PAR L'AUTRE BORD. Au bout de la rue du chantier, la
+   droite est le bassin : de ce côté, il n'y a pas de terre où poser une voie — l'eau tient
+   tout l'ouest à partir de z = −56. Et le seul tour qui contourne VRAIMENT les entrepôts est
+   celui-ci, par le bout ouest et par le fond.
+   LA PORTE EST DANS L'AXE DE LA ROUTE, et ce n'est pas un détail : le quai de débarque et la
+   grue occupent la bande z = −66 à −60 sur toute la largeur de la dalle. Une porte plus au
+   sud aurait obligé un semi à se faufiler entre la grue et le grillage.
+   QUATRE RECTANGLES JOINTIFS, ET PAS UN QUI SE RECOUVRE — deux dalles coplanaires qui se
+   chevauchent se disputent leur plan et clignotent. Ils sont déclarés ICI, avant le moindre
+   semis, parce que `surRoute` les lit : sans cela, des arbres pousseraient au milieu du
+   béton, et le semis de la lande derrière le port passe justement par là. */
+const BETON_L = 5;                                   // une voie, et non une chaussée
+const BETON_PORTE = {z0:-79, z1:-69};                // la trouée de dix mètres, dans l'axe de la route
+const BETON_PORT = (function(){
+  const D = PORT.dalle;
+  const XO = D.x0 - 6;              // la voie ouest, un mètre d'herbe entre elle et le grillage
+  const ZN = -129;                  // le fond, quatre mètres au nord du grillage arrière (−120)
+  /* LA DESCENTE PASSE À L'EST DE LA HALTE, et sa position ne tient qu'à cela. Il y a un
+     abri de bus sur la route du port, posé à (−148, −92) au chapitre du mobilier de bord de
+     route ; huit mètres cinquante de large, un disque de collision de 4,80 m. La descente
+     était d'abord tracée à −145, c'est-à-dire EN PLEIN DEDANS — relevé au banc, pas deviné.
+     Elle passe donc à −135,5 : cinq mètres entre le bord ouest du béton et le disque de
+     l'abri, et vingt mètres d'herbe avant les tuiles du village. */
+  const XE = -133;                  // la descente, à l'est du portique, de la halte et du mât
+  return [
+    {x0:D.x0 - 1,     x1:D.x0,         z0:-77,          z1:-72},              // le passage de la grille
+    {x0:XO,           x1:XO + BETON_L, z0:ZN + BETON_L, z1:-72},              // le long du bout ouest
+    {x0:XO,           x1:XE,           z0:ZN,           z1:ZN + BETON_L},     // le fond, derrière les entrepôts
+    {x0:XE - BETON_L, x1:XE,           z0:ZN + BETON_L, z1:ROAD_N - ROAD_W/2} // la descente sur la route
+  ];
+})();
+const ROUTES_SUP = BETON_PORT;
 (function(){
   rubanRoute([[X1 - 0.5, ROAD_N], [MONDE.x1, ROAD_N]]);        // vers l'est, droite jusqu'au bout du monde
   // la route du bas, prolongée jusqu'au brin qui redescend ; et ce brin lui-même
   rubanRoute([[X1 - 0.5, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
   rubanRoute([[ROUTE_BOIS, ROAD_N - ROAD_W/2], [ROUTE_BOIS, ROAD_C + ROAD_W/2]]);
   rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au bord de la dalle du port
-  /* LA BOUCLE DU BOUT DU PORT : la branche est, le quart de cercle, puis la remontée. Le
-     quart de cercle est échantillonné en huit cordes — un ruban n'a pas d'angle droit :
-     deux segments perpendiculaires y pincent le bord intérieur et l'ouvrent à l'extérieur,
-     et le virage se voit comme une pliure. */
-  (function(){
-    const B = PORT_BOUCLE, cx = B.x - B.r, cz = B.z - B.r, pts = [[PORT.cale.x1 - 6, B.z]];
-    for(let k = 0; k <= 8; k++){
-      const a = k/8*Math.PI/2;
-      pts.push([cx + Math.sin(a)*B.r, cz + Math.cos(a)*B.r]);
-    }
-    pts.push([B.x, ROAD_N]);
-    rubanRoute(pts);
-  })();
+  /* Et rien de plus : la petite route du port n'est pas du bitume. Elle se coule avec les
+     dalles du quai, dans la même matière et à la même épaisseur (voir `BETON_PORT`). */
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
@@ -6151,7 +6171,8 @@ const MARCHE  = SITES.find(S=>S.supermarche);
    deux gardes, le test est plus court et il est juste. */
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
-  // La boucle du bout du port : deux rectangles, déclarés avec `PORT` (voir `ROUTES_SUP`).
+  // La petite route de béton du port : quatre rectangles, déclarés avec `PORT`. Elle n'est
+  // pas du bitume, mais elle est de la route : rien n'y pousse, et les roues y crissent gris.
   const g = lim - ROAD_W/2;
   for(const R of ROUTES_SUP)
     if(x > R.x0 - g && x < R.x1 + g && z > R.z0 - g && z < R.z1 + g) return true;
@@ -8294,6 +8315,17 @@ function construirePort(){
   const C = PORT.cale, CW = C.x1 - C.x0, CD = C.z1 - C.z0;
   const cale = box(CW, 0.06, CD, PO_.BETON, (C.x0 + C.x1)/2, 0.03, (C.z0 + C.z1)/2);
   cale.castShadow = false; scene.add(cale);
+  /* ET LA PETITE ROUTE DE BÉTON, de la même matière et de la même épaisseur : quatre
+     rectangles jointifs qui sortent par la grille ouest, contournent les entrepôts par le
+     dehors et redescendent sur la route du port. Elle a le grain du reste du béton — une
+     moucheture tous les quarante-cinq mètres carrés —, et pas de bordure : une voie de
+     service n'en a pas, et l'on doit pouvoir en sortir vers le pré n'importe où. */
+  for(const R of BETON_PORT){
+    const rw = R.x1 - R.x0, rd = R.z1 - R.z0;
+    const voie = box(rw, 0.06, rd, PO_.BETON, (R.x0 + R.x1)/2, 0.03, (R.z0 + R.z1)/2);
+    voie.castShadow = false; scene.add(voie);
+    mouchetures(R.x0, R.z0, R.x1, R.z1, 0.065, Math.max(2, Math.round(rw*rd/45)), PO_.BETON);
+  }
   const JL = J.z1 - J.z0, jz = (J.z0 + J.z1)/2, Y_PONT = 0.12;
   const pont = box(J.w, Y_PONT, JL, PO_.BETON, J.x, Y_PONT/2, jz);
   pont.castShadow = false; scene.add(pont);
@@ -8362,7 +8394,13 @@ function construirePort(){
     g.add(box(0.66, 0.16, 0.66, 0x8E969B, x, H_G + 0.48, z));
     scene.add(g);
   };
-  grillage(D.x0, D.z0, D.x0, D.z1);                                    // le bout ouest de la dalle
+  /* LE BOUT OUEST S'OUVRE, ET C'EST PAR LÀ QUE PART LA PETITE ROUTE DE BÉTON. Le pan se
+     coupe en deux autour d'une porte de dix mètres tenue par deux piliers, DANS L'AXE DE LA
+     ROUTE : on traverse la dalle tout droit, on passe au bout de la marina, et l'on sort en
+     face pour tourner à droite. */
+  grillage(D.x0, D.z0, D.x0, BETON_PORTE.z0);                          // le bout ouest, au nord de la porte
+  grillage(D.x0, BETON_PORTE.z1, D.x0, D.z1);                          // et son bout, jusqu'au quai
+  pilier(D.x0, BETON_PORTE.z0); pilier(D.x0, BETON_PORTE.z1);
   const RB = ROAD_W/2;
   /* LE TOUR PASSE AU FOND DES COMMERCES ET AU BOUT DE LA ROUTE. Il courait sur la ligne des
      façades et le long de x = −196 : ces deux lignes sont maintenant en plein milieu du
@@ -8375,11 +8413,10 @@ function construirePort(){
      chantier. Le pan qui courait là séparait les deux dalles, et le chantier restait dehors.
      Le tour : le long de la route au nord, le bout à l'est, et le fond au sud — celui-ci
      poussé jusqu'à l'eau pour fermer aussi la bande de sable, seule échappée qui restait. */
-  /* ET LA SECONDE GRILLE, celle de la boucle. Le pan sud du bout est se coupe en deux
-     autour de la porte de dix mètres par où la branche de la boucle s'en va vers l'est. */
-  grillage(C.x1, ROAD_N + RB, C.x1, PORT_BOUCLE.porte.z0);
-  grillage(C.x1, PORT_BOUCLE.porte.z1, C.x1, C.z1);
-  pilier(C.x1, PORT_BOUCLE.porte.z0); pilier(C.x1, PORT_BOUCLE.porte.z1);
+  /* ET LE BOUT EST SE REFERME. Il portait la seconde grille de la boucle de bitume, coupé en
+     deux autour d'une porte de dix mètres ; la boucle est partie de l'autre côté du port, et
+     la rue du chantier redevient close sur toute sa longueur. */
+  grillage(C.x1, ROAD_N + RB, C.x1, C.z1);                             // le bout est, au sud de l'entrée
   grillage(EAU.x1, C.z1, C.x1, C.z1);      // le fond sud, du bord de l'eau au bout est
   const dalles = SITES.filter((S)=> S.dir === 'PO');
   // Les clôtures des deux commerces, solides : les trois pans pleins et les deux pans de
@@ -12661,8 +12698,15 @@ function garnirGrandesRoutes(){
     for(let d = A.d0, i = 0; d <= A.d1; d += 45, i++){
       const cote = (i % 2) ? 1 : -1;
       const q = pt(A, d, cote*REC_LAMPE);
-      // la potence regarde la chaussée : voir les mâts de la rocade
-      const ry = A.vert ? (cote > 0 ? -Math.PI/2 : Math.PI/2) : (cote > 0 ? Math.PI : 0);
+      /* LA POTENCE REGARDE LA CHAUSSÉE, ET ELLE REGARDAIT L'HERBE. Le joueur : « attention,
+         des lampadaires sur les routes sont dans le mauvais sens, ils éclairent vers l'herbe
+         au lieu d'éclairer vers la route. » Le bras du modèle sort vers le −z LOCAL : un mât
+         posé au SUD d'une chaussée horizontale (`cote` > 0, donc z plus grand) doit donc
+         rester à ry = 0 pour que sa tête revienne vers l'axe, et c'est l'inverse qui était
+         écrit — les deux cas l'étaient. La règle se relit sur les mâts de la rocade, qui
+         eux étaient justes : `addLamp(t, LPN, 0)` au sud de la route du nord, `addLamp(t,
+         LP, Math.PI)` au nord de la route du bas. */
+      const ry = A.vert ? (cote > 0 ? Math.PI/2 : -Math.PI/2) : (cote > 0 ? 0 : Math.PI);
       if(placeLibre(q.x, q.z, 3.4)){ addLamp(q.x, q.z, ry); nL++; }
     }
     for(let d = A.d0 + 22, i = 0; d <= A.d1; d += 34, i++){
