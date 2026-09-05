@@ -16062,3 +16062,47 @@ sable ; le fourgon lancé le long de la route est arrêté par le grillage du bo
 porte est partie) ; entre les commerces il roule vingt mètres derrière eux avant le grillage
 du fond. `chocs` 31, `camion` 18, `village` 16 verts ; `decor` : les sept mêmes échecs
 qu'avant ce chantier.
+
+### Plus un véhicule du trafic sur le bout de route du port
+
+Le joueur : « ne fais pas de camion et de véhicule aller sur ce petit morceau de route qui
+va jusqu'au chantier naval, jusqu'à la marina, parce que ça fait bizarre que ça
+disparaisse ; dévie les routes du trafic pour qu'elles n'aillent pas par là-bas. »
+
+**Le trafic naissait et mourait à −156**, dix mètres avant le portique du port : une voiture
+paraissait sur le bout de route du chantier, ou s'y effaçait, sous les yeux de qui roulait
+vers le port. La route nord du trafic s'arrête maintenant **à la rocade ouest** (`bordsChaussee`,
+u0 = −74) — c'est-à-dire en plein carrefour, ce qui n'est pas un bout où l'on peut naître ni
+mourir. C'est donc **le catalogue qui s'en charge** : plus de tout droit sur les deux files de la
+route nord ; plus de naissance sur la file vers l'est ; plus un virage qui débouche sur la
+route nord vers l'ouest ; et la file vers l'ouest ne tourne **qu'à la rocade ouest** — qui
+arrive de l'entrepôt longe tout le nord du village avant de tourner. Quarante itinéraires
+deviennent **vingt-huit**, et pas un ne passe à l'ouest des tuiles : un point tous les deux
+mètres sur chacun le vérifie, et cinq minutes de circulation ne montrent pas une image de
+véhicule sur le bout de route. `PORT.routeX0` n'existe plus.
+
+**Et comme un attelage ne tourne jamais, il n'y a plus de semi sur la route nord** : il
+n'aurait pu la prendre qu'en descendant au port, ou en tournant dans un carrefour de village,
+ce qu'on lui interdit depuis qu'on l'a mesuré.
+
+**La route nord vers l'est était morte, et ça s'est mesuré.** Trente minutes de circulation à
+la hauteur du village, sur l'ancien trafic : seize passages vers l'est, dix-sept vers l'ouest.
+Avec le catalogue coupé et rien de plus : **un** vers l'est, dix-huit vers l'ouest — la file
+vers l'est n'est nourrie que par les virages de la rocade ouest, dont une voiture sur quatre
+tourne, et un virage sur trois mène là. On l'y aide donc : sur les deux files de la rocade
+ouest, **trois voitures sur cinq tournent**, et le virage vers la route nord **pèse quatre**
+dans le tirage (une entrée en quatre exemplaires dans la liste des virages ; `tirerRoute`
+tire uniformément et ne change pas) — deux tiers de celles qui tournent partent vers
+l'entrepôt, c'est la route de la zone industrielle. Mesuré de la même façon : cinq vers l'est
+à poids trois et une sur deux, **douze vers l'est et dix-sept vers l'ouest** à poids quatre et
+trois sur cinq. C'est l'équilibre d'avant, sans le bout de route.
+
+**Bancs.** `trafic` : quatre contrôles neufs — vingt-huit itinéraires, six tout droit,
+vingt-deux virages, la file nord vers l'ouest ne tourne qu'à la rocade ouest ; aucun
+itinéraire à l'ouest des tuiles ; la rocade ouest nourrit la file vers l'est (0,6 et quatre sur
+six) ; pas un véhicule vu sur le bout de route en cinq minutes. Sur le commit précédent, les
+trois premiers échouent (207 points sur le bout de route, 160 images de véhicule). Les huit
+autres échecs sont ceux d'avant ce chantier, dont « chacun commence et finit hors de la
+carte » : deux itinéraires sur vingt-huit ont leur milieu sur la route nord hors des tuiles,
+comme le tout droit de la route nord l'avait déjà. `port` : les deux contrôles qui lisaient
+`routeX0` lisent maintenant le bout de la route nord du trafic (−74) ; 36 sur 36.

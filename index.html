@@ -2915,7 +2915,11 @@ const ROUTE_BOIS = X1 + 182;                 // 424 : le brin nord-sud, après l
 const PORT = {
   cote:-200,                                   // la côte nord-sud : l'eau est à l'ouest, au sud du quai
   quaiZ:-56,                                   // la côte est-ouest : le bord du quai, l'eau est au sud
-  routeX0:-156,                                // le trafic naît et meurt là, dix mètres avant le bout du bitume
+  /* PLUS DE `routeX0` : le trafic naissait et mourait à −156, dix mètres avant le bout du
+     bitume. Le joueur : « ne fais pas de camion et de véhicule aller sur ce petit morceau
+     de route qui va jusqu'au chantier naval, parce que ça fait bizarre que ça disparaisse ;
+     dévie les routes du trafic pour qu'elles n'aillent pas par là. » La route nord du trafic
+     s'arrête maintenant à la rocade ouest — voir `bordsChaussee`. */
   routeFin:-166,                               // le bout du bitume, à l'aplomb du bord est de la dalle
   /* VINGT-SIX MÈTRES DE QUAI, ET NON PLUS DIX-HUIT. Le joueur : « pour le quai, fais-le un
      peu plus large. » C'est le bord de l'eau qui descend — la côte est-ouest passe de −64 à
@@ -19560,12 +19564,20 @@ const NB_FILES = CHAUSSEES.length*2;
 const cleFile = (iA, d)=> iA*2 + (d > 0 ? 0 : 1);
 const BORD_TRAFIC = {x0:MONDE.x0 - MARGE_TRAFIC, x1:MONDE.x1 + MARGE_TRAFIC,
                      z0:MONDE.z0 - MARGE_TRAFIC, z1:MONDE.z1 + MARGE_TRAFIC};
-/* CHAQUE CHAUSSÉE A SES BOUTS. Seule la route nord traverse tout le monde — vers le
-   port à l'ouest, vers l'entrepôt à l'est ; la route sud et les deux brins verticaux
-   s'arrêtent avec les tuiles où ils sont peints. Un véhicule qui les suivrait jusqu'au
-   bord du grand monde roulerait trois cents mètres sur l'herbe. */
+/* CHAQUE CHAUSSÉE A SES BOUTS. La route nord va jusqu'à l'entrepôt à l'est ; la route sud
+   et les deux brins verticaux s'arrêtent avec les tuiles où ils sont peints. Un véhicule
+   qui les suivrait jusqu'au bord du grand monde roulerait trois cents mètres sur l'herbe.
+   ET LA ROUTE NORD S'ARRÊTE À LA ROCADE OUEST. Elle allait jusqu'au port : les voitures
+   naissaient et mouraient sur le bout de route du chantier naval, à dix mètres du portique,
+   et le joueur l'a vu : « ça fait bizarre que ça disparaisse ; dévie les routes du trafic
+   pour qu'elles n'aillent pas par là. » Son bout ouest est donc l'axe de la rocade ouest —
+   EN PLEIN CARREFOUR, ce qui n'est pas un bout où l'on peut naître ni mourir sous les yeux
+   du joueur : c'est le catalogue qui s'en charge, en refusant tout itinéraire qui y
+   commence ou y finit. Ce qui reste, c'est ce qu'on voit d'une ferme : qui arrive de
+   l'entrepôt TOURNE à l'une des deux rocades, et qui va vers l'entrepôt VIENT de la rocade
+   ouest. Le bout de route du port n'appartient plus qu'au joueur. */
 const bordsChaussee = (A)=> A.h
-  ? (Math.abs(A.c - ROC.z0) < 0.5 ? {u0:PORT.routeX0, u1:MONDE.x1 + MARGE_TRAFIC}
+  ? (Math.abs(A.c - ROC.z0) < 0.5 ? {u0:ROC.x0, u1:MONDE.x1 + MARGE_TRAFIC}
                                   : {u0:X0 - MARGE_TRAFIC, u1:X1 + MARGE_TRAFIC})
   : {u0:Z0 - MARGE_TRAFIC, u1:Z1 + MARGE_TRAFIC};
 /* ET LES VÉHICULES DU TRAFIC SONT À L'ÉCHELLE UNE ET DEMIE. Ils avaient été dessinés
@@ -19776,15 +19788,56 @@ function construireRoute(iA, d, tourne, iB, aDroite){
    coûtait de parcourir le tracé au mètre pour y chercher les carrefours, et le semeur en
    essaie plusieurs à chaque naissance ; ici c'est fait au chargement, et un itinéraire se
    PARTAGE entre les véhicules qui l'empruntent — rien n'y est jamais écrit. */
+/* IL N'Y EN A PLUS QUE VINGT-HUIT. Le bout ouest de la route nord est l'axe de la rocade
+   ouest, en plein carrefour (voir `bordsChaussee`) : aucun itinéraire ne peut y commencer
+   ni y finir sans qu'une voiture paraisse ou s'efface sous les yeux du joueur. On retire :
+     · le tout droit des deux files de la route nord — l'une y finirait, l'autre y naîtrait ;
+     · les quatre virages qui DÉBOUCHENT sur la route nord vers l'ouest, depuis les brins
+       verticaux — ils finiraient là, ou sur le bout de route du port ;
+     · tout ce qui part de la file nord VERS L'EST, qui n'a plus d'endroit où naître ;
+     · et, sur la file nord vers l'ouest, les deux virages de la rocade EST.
+   La file nord vers l'ouest ne fait donc plus que TOURNER, ET À LA ROCADE OUEST : qui arrive
+   de l'entrepôt longe tout le nord du village et prend la rocade ouest, à droite ou à
+   gauche. Sans cela la moitié tournait à la rocade est, et le nord du village ne voyait
+   plus passer une voiture que toutes les cinquante secondes (mesuré au banc `trafic`, là
+   où l'on en demande une toutes les douze à vingt-six). La file nord vers l'est n'a plus de
+   naissance propre : elle est alimentée par les virages des deux rocades. Et comme un
+   attelage ne tourne jamais, IL N'Y A PLUS DE SEMI SUR LA ROUTE NORD : il n'aurait pu la
+   prendre qu'en descendant au port, ou en tournant dans un carrefour de village, ce qu'on
+   lui interdit depuis qu'on l'a mesuré.
+   ET LA ROCADE OUEST NOURRIT LA FILE VERS L'EST, PARCE QU'ON L'Y AIDE. Sans rien de plus,
+   la route nord vers l'est était morte : en trente minutes de circulation mesurées, UN
+   passage vers l'est à la hauteur du village pour dix-huit vers l'ouest — une voiture de la
+   rocade ouest ne tourne qu'une fois sur quatre (`PART_VIRAGE`), et parmi ses trois
+   virages un seul mène là. Sur les deux files de la rocade ouest, trois voitures sur cinq
+   tournent donc, et le virage vers la route nord est pesé quatre fois dans le tirage : deux
+   tiers de celles qui tournent partent vers l'entrepôt — c'est la route de la zone
+   industrielle. Le poids est une ENTRÉE EN QUATRE EXEMPLAIRES dans la liste des virages :
+   `tirerRoute` tire uniformément, et ne change pas. Mesuré sur trente minutes, à la
+   hauteur du village : un passage vers l'est pour quinze vers l'ouest à poids un, cinq à
+   poids trois et une sur deux, et l'on vise l'équilibre d'avant (seize pour dix-sept). */
 const CATALOGUE = [];
+const FILE_NORD_EST = cleFile(0, 1), FILE_NORD_OUEST = cleFile(0, -1);
+const PART_VIRAGE_OUEST = 0.6, POIDS_NORD_EST = 4;
 for(let iA = 0; iA < CHAUSSEES.length; iA++) for(const d of [1, -1]){
+  const cle = cleFile(iA, d);
+  const rocadeOuest = !CHAUSSEES[iA].h && Math.abs(CHAUSSEES[iA].c - ROC.x0) < 0.5;
   const virages = [];
-  for(let iB = 0; iB < CHAUSSEES.length; iB++){
-    if(CHAUSSEES[iB].h === CHAUSSEES[iA].h) continue;
-    virages.push(construireRoute(iA, d, true, iB, true));
-    virages.push(construireRoute(iA, d, true, iB, false));
-  }
-  CATALOGUE[cleFile(iA, d)] = {droit:construireRoute(iA, d, false, 0, false), virages:virages};
+  if(cle !== FILE_NORD_EST)
+    for(let iB = 0; iB < CHAUSSEES.length; iB++){
+      if(CHAUSSEES[iB].h === CHAUSSEES[iA].h) continue;
+      if(cle === FILE_NORD_OUEST && Math.abs(CHAUSSEES[iB].c - ROC.x0) > 0.5) continue;   // qu'à la rocade ouest
+      for(const aDroite of [true, false]){
+        const R2 = construireRoute(iA, d, true, iB, aDroite);
+        if(R2.voies[1].cle === FILE_NORD_OUEST) continue;     // finirait au port, ou dans le carrefour
+        const poids = (rocadeOuest && R2.voies[1].cle === FILE_NORD_EST) ? POIDS_NORD_EST : 1;
+        for(let n = 0; n < poids; n++) virages.push(R2);
+      }
+    }
+  const droit = (cle === FILE_NORD_EST || cle === FILE_NORD_OUEST) ? null
+              : construireRoute(iA, d, false, 0, false);
+  CATALOGUE[cle] = {droit:droit, virages:virages, nait:!!(droit || virages.length),
+                    partVirage:rocadeOuest ? PART_VIRAGE_OUEST : PART_VIRAGE};
 }
 function tirerRoute(iFile, tourne){
   const C = CATALOGUE[iFile];
@@ -19987,8 +20040,12 @@ function tenterDepart(iFile){
      carrefour, il se glisse donc plus facilement qu'un trajet tout droit qui l'occupe
      d'un bout à l'autre. Résultat, sept naissances sur dix tournaient là où l'on n'en
      voulait qu'une sur quatre, et la rocade se remettait à ressembler à un circuit. */
-  const lourd = Math.random() < PART_LOURD;
-  const tourne = !lourd && Math.random() < PART_VIRAGE;
+  /* UNE FILE SANS TOUT DROIT NE FAIT NAÎTRE QUE CE QUI TOURNE — et un attelage ne tourne
+     pas : sur la file nord vers l'ouest, il n'en naît donc aucun (voir `CATALOGUE`). */
+  const C = CATALOGUE[iFile];
+  if(!C.nait) return false;
+  const lourd = !!C.droit && Math.random() < PART_LOURD;
+  const tourne = !C.droit || (!lourd && Math.random() < C.partVirage);
   const modele = lourd ? I_LOURD : tirerModele();
   const D = lourd ? DIM_LOURD : DIM_LEGER[modele];
   /* Qui tourne roule moins vite : un virage de huit mètres de rayon pris à douze mètres
@@ -20602,6 +20659,7 @@ function chocs(dt){
 function updateTrafic(dt){
   tempsTrafic += dt;
   for(let i = 0; i < NB_FILES; i++){
+    if(!CATALOGUE[i].nait) continue;           // la file nord vers l'est : des virages l'alimentent
     if(tempsTrafic < prochainDepart[i]) continue;
     prochainDepart[i] = tempsTrafic + (tenterDepart(i)
       ? CADENCE_MIN + Math.random()*(CADENCE_MAX - CADENCE_MIN) : 0.9);
