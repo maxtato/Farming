@@ -15992,3 +15992,73 @@ la même route est déjà peinte.
 Le brin s'arrête maintenant **au bord** des chaussées horizontales, bord à bord, et ce sont elles
 qui portent le carré du croisement ; les rubans partent du bord exact de la dernière tuile. Rien
 ne se recouvre plus nulle part.
+
+### La dalle fait le tour des entrepôts, et le port est à l'échelle
+
+Le joueur : « pour la route qui fait le contour du port en haut, enlève-la et élargis
+simplement la dalle derrière les bâtiments de la criée, qu'on puisse faire le contour si on
+veut sur la dalle derrière ; fais-la plus large. Grossis aussi grandement les conteneurs, qui
+doivent faire la taille d'une remorque, pareil pour les caisses qui sont sur le bord. Et pour
+le chantier naval, fais qu'on ne voie pas la plage à l'endroit où il se trouve : le chantier
+naval est un bloc de béton qui doit être collé aux autres blocs de béton du quai. La plage doit
+commencer simplement après le chantier naval, même après la dalle. »
+
+**La petite route de béton n'est plus.** Elle sortait de la dalle par une porte ouverte dans le
+bout ouest, remontait derrière les entrepôts et redescendait sur la route du port : quatre
+rectangles, une porte, deux piliers, et une ligne dans `surRoute` pour que rien n'y pousse.
+Tout cela est retiré — `BETON_PORT`, `BETON_PORTE`, `BETON_L`, `ROUTES_SUP` —, et le bout
+ouest est de nouveau un seul pan de grillage, de −134 à −56.
+
+**La dalle grandit de deux côtés.** Le fond des deux terrains est à z = −114 et la dalle
+s'arrêtait à −120 : six mètres de béton, de quoi longer un grillage, pas de quoi y passer un
+camion. Elle monte à **−134** — vingt mètres derrière les terrains (19,8 mesurés) — et gagne
+quatorze mètres à l'ouest de la criée, où il n'en restait que quatre : **−300** au lieu de
+−286, dix-huit mètres libres. Cent quatre mètres sur soixante-dix-huit. La rue du chantier
+monte avec elle, à −134 aussi, sans quoi la bande du fond aurait fini dans l'herbe à l'angle
+nord-est. La bordure de quai est prolongée sur les quatorze mètres gagnés, entre le bout ouest
+et la jetée. La criée, elle, ne suit pas : sa bande était *déduite* du bout de la dalle
+(`PORT.dalle.x0 + 4`), elle est maintenant écrite, −282, ce qu'elle a toujours valu.
+
+**Le tour se fait sur le béton, et le semi le fait d'un trait** : la rue du chantier vers le
+nord, la bande du fond vers l'ouest, le bout ouest vers le sud, le devant du quai vers l'est,
+et la sortie. Onze points de passage, zéro pas hors du béton, pas une marche arrière — c'est
+un contrôle du banc, et il lit `PORT.dalle`, `PORT.cale` et `PORT.bande` à chaque pas.
+
+**Deux arbres poussaient dans la rue du chantier**, à même le béton, depuis que la rue existe :
+le troisième semis de la lande du port — de la côte au village, jusqu'à z = −98 — recouvrait
+le haut de la rue et personne ne l'avait dit. C'était sans conséquence tant que le haut de la
+rue ne servait à rien ; il est maintenant le premier tronçon du tour. Le semis s'écarte de la
+rue de dix mètres, comme il s'écartait déjà de la dalle. Le flux `alea` en est décalé, comme
+au chapitre des barrières : la lande n'a pas les mêmes arbres aux mêmes places, et c'est
+accepté.
+
+**Les conteneurs font la taille d'une remorque.** Douze mètres sur deux quarante-quatre, c'était
+un quarante pieds réel — à l'échelle du monde réel, quand tout le port est à celle du jeu ; à
+côté d'un camion de 3,67 m de large, une boîte à chaussures. Ils prennent les cotes de la
+remorque à quai de l'entrepôt : **19,6 m sur 3,70, 4,21 de haut**, seize nervures, des montants
+et des barres de porte à l'avenant. Ils étaient en travers au nord de la rue, contre le fond
+de la conserverie : à cette taille, ils y barraient la bande du fond par où l'on fait
+maintenant le tour. Ils sont **debout le long du grillage est de la rue**, à un mètre trente-cinq
+de lui, l'un derrière l'autre (z = −121 et −98) : la rue garde ses vingt-quatre mètres, et le
+premier finit neuf mètres avant l'entrée. **Les caisses du bord grandissent avec eux** : le quai
+de débarque — casiers, bacs, filets, bouées, cabane — passe à 1,8 fois son échelle, et le tas de
+caisses de la grue à 2,2 dans le modèle, sans emporter la grue.
+
+**Le chantier naval est sur le béton, et le béton va jusqu'à l'eau.** Entre la rue du chantier
+et l'eau courait une bande de sable de quatre mètres, du quai jusqu'au bout du monde. Sur la
+longueur de la rue, elle devient du béton — un troisième rectangle, `PORT.bande`, bord à bord
+avec la dalle au nord (z = −56) et avec la rue à l'est (x = −196), jamais recouvrant —, et le
+sable ne commence qu'au bout de la rue, **à z = 14**. Le ponton de la marina part du béton, ce
+qu'un ponton fait. La plage de l'ouest s'arrête au bout de la dalle, qui a reculé jusque-là.
+
+**Bancs.** `port` **36 sur 36** : le bloc de la petite route de béton (cinq contrôles) est
+remplacé par cinq contrôles de la dalle du tour — plus de voie, vingt mètres derrière et
+dix-huit à l'ouest, rien sur le béton, le tour du semi sans quitter le béton, les conteneurs
+aux cotes de la remorque, la bande du chantier jointive et le sable à partir de 14. Sur le
+commit précédent, le banc ne passe pas ce bloc (`PORT.bande` n'existe pas) et le compte des
+bordures de quai y est faux (trois pour quatre). Trois contrôles sont retouchés dans leurs
+mots : le fourgon lancé vers la mer depuis la rue s'arrête sur le béton et non plus sur le
+sable ; le fourgon lancé le long de la route est arrêté par le grillage du bout ouest (la
+porte est partie) ; entre les commerces il roule vingt mètres derrière eux avant le grillage
+du fond. `chocs` 31, `camion` 18, `village` 16 verts ; `decor` : les sept mêmes échecs
+qu'avant ce chantier.

@@ -2930,7 +2930,17 @@ const PORT = {
      maintenant de l'eau au FOND de leurs terrains, six mètres derrière : leurs deux dalles
      n'ont plus lieu d'être, et le port est une seule plate-forme d'un seul gris, sur
      laquelle leurs clôtures dessinent deux enclos. */
-  dalle:{x0:-286, x1:-196, z0:-120, z1:-56},   // la plate-forme du quai, du fond des deux commerces au bord de l'eau (quatre-vingt-dix mètres sur soixante-quatre)
+  /* ET ELLE FAIT LE TOUR DES DEUX ENTREPÔTS. Le joueur : « enlève la route qui fait le
+     contour du port en haut, et élargis simplement la dalle derrière les bâtiments de la
+     criée, qu'on puisse faire le contour si on veut sur la dalle derrière ; fais-la plus
+     large. » Le fond des deux terrains est à z = −114 et la dalle s'arrêtait à −120 : six
+     mètres de béton, de quoi longer un grillage, pas de quoi y passer un camion. Elle monte
+     à −134 — VINGT MÈTRES derrière les terrains — et elle gagne quatorze mètres à l'ouest de
+     la criée, où il n'en restait que quatre entre son grillage et le bout de la dalle. Le
+     tour se fait donc SUR le béton : la rue du chantier, la bande du fond, le bout ouest,
+     le devant du quai. C'est ce que faisait la petite route de béton, et c'est mieux
+     ainsi : rien de plus à sortir du port, rien à ouvrir dans le grillage. */
+  dalle:{x0:-300, x1:-196, z0:-134, z1:-56},   // la plate-forme du quai : du fond des deux commerces au bord de l'eau, cent quatre mètres sur soixante-dix-huit
   jetee:{x:-280, z0:-56, z1:-12, w:12},        // la jetée : le quai continue, à plat, du bout de la dalle vers le large ; le phare ferme le bout
   quai:{x:-230, z:-63},                        // le quai de débarque, à même la dalle, face à l'eau
   grue:{x:-264, z:-63},                        // la grue de quai, à l'autre bout
@@ -2957,13 +2967,16 @@ const PORT = {
      le long de la plage, et l'on roule sur trente mètres de large et cent trente-quatre de
      long entre les hangars et le sable. La « petite descente », c'est la bande de sable de
      quatre mètres qui la borde à l'ouest et qui plonge dans l'eau : elle ne bouge pas. */
-  cale:{x0:-196, x1:-166, z0:-120, z1:14},
+  /* ELLE MONTE AVEC LA DALLE : la bande du fond doit déboucher dans la rue, sans quoi le
+     tour des entrepôts finirait dans l'herbe à l'angle nord-est. */
+  cale:{x0:-196, x1:-166, z0:-134, z1:14},
   /* LA MARINA. Le joueur : « après, tu fais comme une marina, une petite jetée avec trois
      bateaux amarrés. » Un ponton de bois part de la plage, au bout de la rue du chantier,
      et s'avance de trente-six mètres dans le bassin ; trois bateaux de plaisance sont à
      couple le long de son flanc sud. Il n'est PAS roulable, et c'est voulu : le bassin est
      de l'eau pleine pour tout ce qui a des roues, et un ponton de plaisance n'est pas un
      quai de chargement — on va le regarder, pas s'y garer. */
+  bande:{x0:-200, x1:-196, z0:-56, z1:14},     // le béton entre la rue du chantier et l'eau : la plage ne commence qu'après
   marina:{z:-2, x0:-236, x1:-197, w:5},
   spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
   r:6.5, spotR:8, eau:null
@@ -2971,55 +2984,10 @@ const PORT = {
 // L'eau : le rectangle où un bateau peut aller, et où un engin à roues ne peut pas — au
 // sud du quai, à l'ouest de la côte.
 const EAU = {x0:MONDE.x0 + 3, x1:PORT.cote, z0:PORT.quaiZ, z1:MONDE.z1 - 3};
-/* ---------- LA PETITE ROUTE DE BÉTON, DERRIÈRE LA CRIÉE ----------
-   Le joueur : « pour la petite route en béton — et non pas comme d'habitude : une TOUTE
-   PETITE route FINE en béton —, je veux que tu passes au bout de la marina, que tu ailles à
-   droite, puis à droite, pour contourner les entrepôts de la criée et revenir sur la grande
-   route. »
-   ELLE REMPLACE LA BOUCLE DU SUD-EST, qui était une chaussée de bitume de dix mètres partant
-   du bout de la rue du chantier vers l'est : ce n'est plus le même tour, et ce n'est plus la
-   même matière. Cinq mètres de béton — la matière de la dalle, coulée à la même épaisseur —
-   et le tour se fait par le DEHORS.
-   LE TRACÉ, TEL QU'ON LE ROULE. On entre par le portique et l'on traverse la dalle tout
-   droit, dans l'axe de la route (z = −74) : on passe AU BOUT DE LA MARINA, c'est-à-dire au
-   fond du bassin, la grue et le quai de débarque à main gauche. Une grille s'ouvre en face,
-   dans le bout ouest, et de l'autre côté la voie tourne à DROITE : premier virage. Elle
-   remonte le long de la dalle jusque derrière les entrepôts, tourne à DROITE une seconde
-   fois, et file vers l'est au fond de la criée et de la conserverie, à quatre mètres du
-   grillage. Elle redescend enfin sur la route du port, trente mètres à l'est du portique : on
-   est revenu sur la grande route, et le tour se referme sans une seule marche arrière.
-   POURQUOI LE TOUR PASSE PAR LÀ, ET PAS PAR L'AUTRE BORD. Au bout de la rue du chantier, la
-   droite est le bassin : de ce côté, il n'y a pas de terre où poser une voie — l'eau tient
-   tout l'ouest à partir de z = −56. Et le seul tour qui contourne VRAIMENT les entrepôts est
-   celui-ci, par le bout ouest et par le fond.
-   LA PORTE EST DANS L'AXE DE LA ROUTE, et ce n'est pas un détail : le quai de débarque et la
-   grue occupent la bande z = −66 à −60 sur toute la largeur de la dalle. Une porte plus au
-   sud aurait obligé un semi à se faufiler entre la grue et le grillage.
-   QUATRE RECTANGLES JOINTIFS, ET PAS UN QUI SE RECOUVRE — deux dalles coplanaires qui se
-   chevauchent se disputent leur plan et clignotent. Ils sont déclarés ICI, avant le moindre
-   semis, parce que `surRoute` les lit : sans cela, des arbres pousseraient au milieu du
-   béton, et le semis de la lande derrière le port passe justement par là. */
-const BETON_L = 5;                                   // une voie, et non une chaussée
-const BETON_PORTE = {z0:-79, z1:-69};                // la trouée de dix mètres, dans l'axe de la route
-const BETON_PORT = (function(){
-  const D = PORT.dalle;
-  const XO = D.x0 - 6;              // la voie ouest, un mètre d'herbe entre elle et le grillage
-  const ZN = -129;                  // le fond, quatre mètres au nord du grillage arrière (−120)
-  /* LA DESCENTE PASSE À L'EST DE LA HALTE, et sa position ne tient qu'à cela. Il y a un
-     abri de bus sur la route du port, posé à (−148, −92) au chapitre du mobilier de bord de
-     route ; huit mètres cinquante de large, un disque de collision de 4,80 m. La descente
-     était d'abord tracée à −145, c'est-à-dire EN PLEIN DEDANS — relevé au banc, pas deviné.
-     Elle passe donc à −135,5 : cinq mètres entre le bord ouest du béton et le disque de
-     l'abri, et vingt mètres d'herbe avant les tuiles du village. */
-  const XE = -133;                  // la descente, à l'est du portique, de la halte et du mât
-  return [
-    {x0:D.x0 - 1,     x1:D.x0,         z0:-77,          z1:-72},              // le passage de la grille
-    {x0:XO,           x1:XO + BETON_L, z0:ZN + BETON_L, z1:-72},              // le long du bout ouest
-    {x0:XO,           x1:XE,           z0:ZN,           z1:ZN + BETON_L},     // le fond, derrière les entrepôts
-    {x0:XE - BETON_L, x1:XE,           z0:ZN + BETON_L, z1:ROAD_N - ROAD_W/2} // la descente sur la route
-  ];
-})();
-const ROUTES_SUP = BETON_PORT;
+/* LA PETITE ROUTE DE BÉTON N'EST PLUS. Elle sortait du port par une porte ouverte dans le
+   bout ouest, remontait derrière les entrepôts et redescendait sur la route ; le joueur l'a
+   reprise : « enlève-la, et élargis simplement la dalle derrière les bâtiments. » Le tour
+   des entrepôts se fait maintenant sur la dalle elle-même (voir `PORT.dalle`). */
 (function(){
   /* AUCUN RUBAN NE RECOUVRE UN AUTRE SOL. Le joueur : « les nouvelles routes que tu as
      faites, sur les anciens croisements c'était beaucoup plus propre ; là ça scintille un
@@ -3038,8 +3006,6 @@ const ROUTES_SUP = BETON_PORT;
   rubanRoute([[X1, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
   rubanRoute([[ROUTE_BOIS, ROAD_N + ROAD_W/2], [ROUTE_BOIS, ROAD_C - ROAD_W/2]]);
   rubanRoute([[PORT.routeFin, ROAD_N], [X0, ROAD_N]]);         // vers l'ouest, jusqu'au bord de la dalle du port
-  /* Et rien de plus : la petite route du port n'est pas du bitume. Elle se coule avec les
-     dalles du quai, dans la même matière et à la même épaisseur (voir `BETON_PORT`). */
 })();
 // Les parcelles remplissent exactement leur case, jusqu'au bord du chemin :
 // sans ça il restait un liseré d'herbe qui donnait l'impression d'une couche en dessous.
@@ -5710,7 +5676,11 @@ const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route n
 const EX_X0 = 440, EX_X1 = 600;                    // la bande de l'entrepôt, cent soixante mètres pour ses cent vingt-deux
 // La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
 // camions et le bord des tuiles.
-const PO_X0 = PORT.dalle.x0 + 4, PO_X1 = PORT.dalle.x1 - 8;   // −282 à −204 : au-dessus de la dalle du quai
+/* LA BANDE NE SUIT PLUS LE BOUT OUEST DE LA DALLE. Elle en était déduite — quatre mètres
+   après lui — tant que la dalle s'arrêtait à la criée ; la dalle s'est élargie de quatorze
+   mètres à l'ouest pour qu'on puisse en faire le tour, et la criée n'a aucune raison de
+   suivre. La cote est écrite : −282 à −204, ce qu'elle a toujours valu. */
+const PO_X0 = -282, PO_X1 = PORT.dalle.x1 - 8;               // −282 à −204 : au-dessus de la dalle du quai
 /* LE SUPERMARCHÉ PASSE SUR LE BRIN NORD-SUD, TOUT À L'EST. Il avait d'abord été mis sur
    la route du bas prolongée, « un petit peu à l'extérieur du village », puis reculé plus
    loin encore ; le joueur le déplace une dernière fois : « pour le supermarché, finalement,
@@ -6183,11 +6153,6 @@ const MARCHE  = SITES.find(S=>S.supermarche);
    deux gardes, le test est plus court et il est juste. */
 function surRoute(x, z, m){
   const lim = ROAD_W/2 + (m || 0);
-  // La petite route de béton du port : quatre rectangles, déclarés avec `PORT`. Elle n'est
-  // pas du bitume, mais elle est de la route : rien n'y pousse, et les roues y crissent gris.
-  const g = lim - ROAD_W/2;
-  for(const R of ROUTES_SUP)
-    if(x > R.x0 - g && x < R.x1 + g && z > R.z0 - g && z < R.z1 + g) return true;
   // Le brin qui redescend après la forêt ne traverse pas tout le monde : il ne compte
   // qu'entre les deux chaussées horizontales, sans quoi rien ne pousserait sur son axe
   // d'un bout à l'autre de la carte.
@@ -8344,9 +8309,13 @@ function construirePort(){
      deux, le port — la dalle du quai et la jetée —, et pas de sable. */
   // Le sable et l'écume sont eux aussi de simples plaques de couleur, sans lèvre de béton
   // au bord : c'est une plage, pas un trottoir.
-  scene.add(plaque(4.0, hauteur, PO_.SABLE, PORT.cote + 2.0, 0.03, (EAU.z0 + EAU.z1)/2));
+  // La plage de la côte nord-sud ne commence qu'AU BOUT DE LA RUE DU CHANTIER : devant la
+  // rue, c'est du béton (voir `PORT.bande`). L'écume, elle, borde toute la côte.
+  const zPlage0 = PORT.bande.z1, hPlage = EAU.z1 - zPlage0;
+  scene.add(plaque(4.0, hPlage, PO_.SABLE, PORT.cote + 2.0, 0.03, (zPlage0 + EAU.z1)/2));
   scene.add(plaque(1.2, hauteur, 0xDCE6E4, PORT.cote - 0.6, 0.065, (EAU.z0 + EAU.z1)/2));
-  const lOuest = (PORT.jetee.x - PORT.jetee.w/2) - EAU.x0;
+  // Et la plage de l'ouest s'arrête au bout de la dalle, qui a reculé jusque-là.
+  const lOuest = PORT.dalle.x0 - EAU.x0;
   scene.add(plaque(lOuest, 4.0, PO_.SABLE, EAU.x0 + lOuest/2, 0.03, PORT.quaiZ - 2.0));
   scene.add(plaque(lOuest, 1.2, 0xDCE6E4, EAU.x0 + lOuest/2, 0.065, PORT.quaiZ + 0.6));
   /* CE QUI ARRÊTE UN ENGIN À ROUES : L'EAU, EN TROIS RECTANGLES MARQUÉS `eau` — un bateau
@@ -8382,17 +8351,19 @@ function construirePort(){
   const C = PORT.cale, CW = C.x1 - C.x0, CD = C.z1 - C.z0;
   const cale = box(CW, 0.06, CD, PO_.BETON, (C.x0 + C.x1)/2, 0.03, (C.z0 + C.z1)/2);
   cale.castShadow = false; scene.add(cale);
-  /* ET LA PETITE ROUTE DE BÉTON, de la même matière et de la même épaisseur : quatre
-     rectangles jointifs qui sortent par la grille ouest, contournent les entrepôts par le
-     dehors et redescendent sur la route du port. Elle a le grain du reste du béton — une
-     moucheture tous les quarante-cinq mètres carrés —, et pas de bordure : une voie de
-     service n'en a pas, et l'on doit pouvoir en sortir vers le pré n'importe où. */
-  for(const R of BETON_PORT){
-    const rw = R.x1 - R.x0, rd = R.z1 - R.z0;
-    const voie = box(rw, 0.06, rd, PO_.BETON, (R.x0 + R.x1)/2, 0.03, (R.z0 + R.z1)/2);
-    voie.castShadow = false; scene.add(voie);
-    mouchetures(R.x0, R.z0, R.x1, R.z1, 0.065, Math.max(2, Math.round(rw*rd/45)), PO_.BETON);
-  }
+  /* LE CHANTIER NAVAL EST SUR LE BÉTON, ET LE BÉTON VA JUSQU'À L'EAU. Le joueur : « pour le
+     chantier naval, fais qu'on ne voie pas la plage à l'endroit où il se trouve ; le
+     chantier naval est un bloc de béton qui doit être collé aux autres blocs de béton du
+     quai. La plage doit commencer simplement après le chantier naval, même après la dalle. »
+     Entre la rue du chantier et l'eau courait une bande de sable de quatre mètres, du quai
+     jusqu'au bout du monde : la « petite descente ». Sur la longueur de la rue, elle devient
+     du béton — un troisième rectangle, bord à bord avec la dalle au nord (z = −56) et avec
+     la rue à l'est (x = −196), jamais recouvrant —, et le sable ne commence qu'au bout de la
+     rue, à z = 14. Le ponton de la marina part maintenant du béton, ce qu'un ponton fait. */
+  const B = PORT.bande;
+  const bande = box(B.x1 - B.x0, 0.06, B.z1 - B.z0, PO_.BETON, (B.x0 + B.x1)/2, 0.03, (B.z0 + B.z1)/2);
+  bande.castShadow = false; scene.add(bande);
+  mouchetures(B.x0, B.z0, B.x1, B.z1, 0.065, Math.round((B.x1 - B.x0)*(B.z1 - B.z0)/45), PO_.BETON);
   const JL = J.z1 - J.z0, jz = (J.z0 + J.z1)/2, Y_PONT = 0.12;
   const pont = box(J.w, Y_PONT, JL, PO_.BETON, J.x, Y_PONT/2, jz);
   pont.castShadow = false; scene.add(pont);
@@ -8422,6 +8393,7 @@ function construirePort(){
                     horiz ? Math.PI/2 : 0, 0, horiz ? 0 : Math.PI/2));
   };
   bordQuai(jx1, D.z1, D.x1, D.z1, 0.06, 0, -1);        // le bord de la dalle, de la jetée à l'entrée de la route
+  bordQuai(D.x0, D.z1, jx0, D.z1, 0.06, 0, -1);        // et du bout ouest à la jetée, sur les quatorze mètres gagnés
   bordQuai(jx0, J.z0, jx0, J.z1, Y_PONT, 1, 0);        // le bord ouest de la jetée, vers le large
   bordQuai(jx1, J.z0, jx1, J.z1, Y_PONT, -1, 0);       // son bord est, vers le bassin
   scene.add(bords); fusionnerGroupe(bords);
@@ -8461,13 +8433,9 @@ function construirePort(){
     g.add(box(0.66, 0.16, 0.66, 0x8E969B, x, H_G + 0.48, z));
     scene.add(g);
   };
-  /* LE BOUT OUEST S'OUVRE, ET C'EST PAR LÀ QUE PART LA PETITE ROUTE DE BÉTON. Le pan se
-     coupe en deux autour d'une porte de dix mètres tenue par deux piliers, DANS L'AXE DE LA
-     ROUTE : on traverse la dalle tout droit, on passe au bout de la marina, et l'on sort en
-     face pour tourner à droite. */
-  grillage(D.x0, D.z0, D.x0, BETON_PORTE.z0);                          // le bout ouest, au nord de la porte
-  grillage(D.x0, BETON_PORTE.z1, D.x0, D.z1);                          // et son bout, jusqu'au quai
-  pilier(D.x0, BETON_PORTE.z0); pilier(D.x0, BETON_PORTE.z1);
+  // Le bout ouest est plein de nouveau : la porte de la petite route de béton est partie
+  // avec elle, et le tour des entrepôts se fait dedans, sur la dalle.
+  grillage(D.x0, D.z0, D.x0, D.z1);                                    // le bout ouest de la dalle
   const RB = ROAD_W/2;
   /* LE TOUR PASSE AU FOND DES COMMERCES ET AU BOUT DE LA ROUTE. Il courait sur la ligne des
      façades et le long de x = −196 : ces deux lignes sont maintenant en plein milieu du
@@ -8497,21 +8465,29 @@ function construirePort(){
       if(v - u > 0.4) boxObs.push({x:(u + v)/2, z:E.z1, hw:(v - u)/2, hd:e});
   }
   // Le quai de débarque et la grue, sur la dalle, tournés vers l'eau — et vers nous.
-  const poser = (fab, x, z, ry)=>{ const g = fab(); g.scale.setScalar(ECH_COMMERCE); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
-  poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0);
+  const poser = (fab, x, z, ry, ech)=>{ const g = fab(); g.scale.setScalar(ECH_COMMERCE*(ech || 1)); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
+  /* LES CAISSES DU BORD GRANDISSENT AVEC LES CONTENEURS. Le joueur : « pareil pour les
+     caisses, etc., qui sont sur le bord. » Le quai de débarque — casiers, bacs, filets,
+     bouées, cabane — passe à 1,8 fois son échelle : un casier fait 2,75 m au lieu de 1,50,
+     la cabane trois mètres sur six. Le tas de caisses de la grue fait pareil, dans le modèle,
+     sans emporter la grue avec lui. */
+  const ECH_CAISSES = 1.8;
+  poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0, ECH_CAISSES);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
-  /* DEUX CONTENEURS, au nord de la rue du chantier, contre le fond du terrain de la
-     conserverie : c'est la seule bande de béton qui ne serve à rien — ni couloir de
-     roulage, ni anneau, ni façade —, relevée libre au banc sur sept mètres de rayon. Ils
-     sont posés à même la dalle, dans l'axe de la rue, et laissent quatorze mètres de
-     passage à l'est : un semi entre et sort sans les frôler. */
-  for(const [cx, cz, coul] of [[-187, -108, PO_.ROUGE], [-187, -101.5, PO_.BLEU]]){
+  /* DEUX CONTENEURS, LE LONG DU GRILLAGE EST DE LA RUE, dans le sens de la rue. Ils étaient
+     en travers, au nord de la rue, contre le fond de la conserverie ; à la taille d'une
+     remorque, ils y auraient barré la bande du fond par où l'on fait maintenant le tour des
+     entrepôts. Debout le long du grillage — un mètre trente-cinq entre leur flanc et lui —
+     ils laissent les vingt-quatre mètres de la rue libres, et le premier finit neuf mètres
+     avant l'entrée : un semi passe le portique sans les frôler. */
+  for(const [cz, coul] of [[-121, PO_.ROUGE], [-98, PO_.BLEU]]){
+    const cx = C.x1 - 3.4;
     const c = modeleConteneur(coul);
-    c.position.set(cx, 0, cz); scene.add(c); fusionnerGroupe(c);
-    boxObs.push({x:cx, z:cz, hw:6.1, hd:1.3});
+    c.position.set(cx, 0, cz); c.rotation.y = Math.PI/2; scene.add(c); fusionnerGroupe(c);
+    boxObs.push({x:cx, z:cz, hw:2.0, hd:9.95});
   }
-  for(const Q of [PORT.quai, PORT.grue])
-    boxObs.push({x:Q.x, z:Q.z - 0.3*ECH_COMMERCE, hw:4.6*ECH_COMMERCE, hd:2.1*ECH_COMMERCE});   // laisse le couloir de roulage, derrière
+  for(const [Q, e] of [[PORT.quai, ECH_COMMERCE*ECH_CAISSES], [PORT.grue, ECH_COMMERCE]])
+    boxObs.push({x:Q.x, z:Q.z - 0.3*e, hw:4.6*e, hd:2.1*e});   // laisse le couloir de roulage, derrière
   /* ---------- LE PORTIQUE DE LA MARINA ----------
      Le joueur : « à l'endroit où on arrive près du port, quand on passe la barrière pour
      arriver sur la dalle, mets une espèce de portique de bienvenue assez haut pour qu'on
@@ -8628,13 +8604,23 @@ function construirePort(){
      Un bois clair de conifères, semé à graine fixe — à l'ouest de la jetée jusqu'au bout
      du monde, derrière la criée et la conserverie, et entre le port et le village —,
      jamais à moins de dix mètres d'une dalle, d'une plage ou de la route. */
-  const semer = (n, x0, x1, z0, z1)=>{
-    for(let k = 0; k < n; k++)
-      addTree(x0 + alea()*(x1 - x0), z0 + alea()*(z1 - z0), 0.85 + alea()*0.6, (alea()*5)|0);
+  const semer = (n, x0, x1, z0, z1, refus)=>{
+    for(let k = 0; k < n; k++){
+      const x = x0 + alea()*(x1 - x0), z = z0 + alea()*(z1 - z0);
+      if(refus && refus(x, z)) continue;
+      addTree(x, z, 0.85 + alea()*0.6, (alea()*5)|0);
+    }
   };
   semer(60, EAU.x0 + 6, D.x0 - 14, MONDE.z0 + 8, PORT.quaiZ - 14);
   semer(26, D.x0 - 4, PORT.cote + 4, MONDE.z0 + 8, PORT.dalle.z0 - 10);
-  semer(22, PORT.cote + 12, X0 - 14, MONDE.z0 + 8, ROAD_N - 24);
+  /* LE TROISIÈME SEMIS ÉPARGNE LA RUE DU CHANTIER. Il court de la côte au village, et sa
+     bande recouvre le haut de la rue — x = −188 à −166, z jusqu'à −98 : deux arbres y
+     poussaient à même le béton depuis que la rue existe (relevé au banc `port`, sur le
+     commit d'avant), et avec la dalle qui monte à −134, ce haut de rue est le passage du
+     tour des entrepôts. Dix mètres de garde autour de la rue, comme autour de la dalle. */
+  const C_ = PORT.cale;
+  semer(22, PORT.cote + 12, X0 - 14, MONDE.z0 + 8, ROAD_N - 24,
+        (x, z)=> x < C_.x1 + 10 && z > C_.z0 - 10);
   QUAI_PECHE.pose = true;
 }
 function actionsQuaiPeche(m){
@@ -10128,19 +10114,24 @@ function modeleQuaiDebarque(){
    verrouillage, et le toit un ton plus sombre. */
 function modeleConteneur(coul){
   const g = new THREE.Group();
-  const L = 12.0, W = 2.44, H = 2.6, ep = 0.06;
+  /* À LA TAILLE D'UNE REMORQUE DU JEU. Le joueur : « grossis grandement les conteneurs, qui
+     doivent faire la taille d'une remorque. » Le quarante pieds réel — douze mètres sur deux
+     quarante-quatre — était à l'échelle du monde réel, quand tout le reste du port est à
+     celle du jeu ; à côté d'un camion de 3,67 m de large, il faisait boîte à chaussures. Il
+     prend donc les cotes de la remorque à quai de l'entrepôt : 19,6 m sur 3,70, 4,21 de haut. */
+  const L = 19.6, W = 3.70, H = 4.21, ep = 0.08;
   const som = (coul === PO_.ROUGE) ? 0x8E2A22 : (coul === PO_.BLEU) ? 0x24557F : 0x2A6B45;
   g.add(box(L, H, W, coul, 0, H/2, 0));
   g.add(box(L + 0.06, 0.1, W + 0.06, som, 0, H - 0.05, 0));           // le toit
-  for(let k = 0; k < 10; k++){                                        // le corrugué
-    const x = -L/2 + 0.9 + k*(L - 1.8)/9;
+  for(let k = 0; k < 16; k++){                                        // le corrugué
+    const x = -L/2 + 1.2 + k*(L - 2.4)/15;
     for(const sz of [-1, 1]) g.add(box(0.1, H - 0.34, ep, som, x, H/2, sz*(W/2 + ep/2)));
   }
   for(const sx of [-1, 1]) for(const sz of [-1, 1])                   // les montants d'angle
-    g.add(box(0.16, H, 0.16, som, sx*(L/2 - 0.08), H/2, sz*(W/2 - 0.08)));
+    g.add(box(0.22, H, 0.22, som, sx*(L/2 - 0.11), H/2, sz*(W/2 - 0.11)));
   // les deux portes, au bout est
-  g.add(box(0.08, H - 0.3, W - 0.24, som, L/2 + 0.05, H/2, 0));
-  for(const sz of [-1, 1]) g.add(box(0.1, H - 0.6, 0.1, PO_.INOX, L/2 + 0.1, H/2, sz*0.5));
+  g.add(box(0.1, H - 0.4, W - 0.3, som, L/2 + 0.06, H/2, 0));
+  for(const sz of [-1, 1]) g.add(box(0.12, H - 0.8, 0.12, PO_.INOX, L/2 + 0.12, H/2, sz*0.75));
   return g;
 }
 function modeleGrueQuai(){
@@ -10158,11 +10149,13 @@ function modeleGrueQuai(){
   g.add(box(0.06, 2.6, 0.06, PO_.GRIS, -2.0, 5.2, 4.3));
   g.add(box(0.5, 0.4, 0.5, PO_.GRIS2, -2.0, 3.8, 4.3));
   g.add(box(0.16, 0.5, 0.16, PO_.INOX, -2.0, 3.4, 4.3));
-  // le tas de caisses et les casiers, à même le quai
+  // le tas de caisses et les casiers, à même le quai — grandis de 2,2 sans la grue
+  const tas = new THREE.Group();
   for(let r = 0; r < 3; r++) for(let k = 0; k < 4 - r; k++)
-    g.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
+    tas.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
               0.6 + k*1.1 + r*0.55, 0.25 + r*0.52, -1.2));
-  for(let i = 0; i < 4; i++) casierPeche(g, 0.8 + i*1.0, 0.02, 1.0, 0.15*i);
+  for(let i = 0; i < 4; i++) casierPeche(tas, 0.8 + i*1.0, 0.02, 1.0, 0.15*i);
+  tas.scale.setScalar(2.2); g.add(tas);
   return g;
 }
 /* 5 — Usine de lait d'avoine */
