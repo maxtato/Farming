@@ -15976,3 +15976,19 @@ déjà son propre grain, et deux grains superposés font une salissure.
 **Bancs.** `decor` : le contrôle est neuf et il échoue sur le commit précédent (zéro éclat) ;
 l'empreinte des trois chargements reste identique au centième, les sept autres échecs sont ceux
 d'avant. `bois` 22, `port` 36, `chocs` 31, `village` 16 verts.
+
+### Les croisements ne scintillent plus
+
+Le joueur : « les nouvelles routes que tu as faites, sur les anciens croisements c'était
+beaucoup plus propre ; là ça scintille un peu et c'est bizarre. »
+
+Deux plans posés à la **même hauteur** et qui se chevauchent se disputent chaque pixel du
+recouvrement : c'est le scintillement, et il y en avait de deux sortes. Le brin vertical d'après
+la forêt courait de cinq mètres **au-delà** des deux chaussées horizontales : sur les deux carrés
+de carrefour, deux rubans à 1,2 cm du sol se recouvraient, et les tirets de l'un passaient au
+travers de l'autre. Et les quatre rubans mordaient de cinquante centimètres **sur les tuiles**, où
+la même route est déjà peinte.
+
+Le brin s'arrête maintenant **au bord** des chaussées horizontales, bord à bord, et ce sont elles
+qui portent le carré du croisement ; les rubans partent du bord exact de la dernière tuile. Rien
+ne se recouvre plus nulle part.

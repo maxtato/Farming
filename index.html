@@ -3021,11 +3021,23 @@ const BETON_PORT = (function(){
 })();
 const ROUTES_SUP = BETON_PORT;
 (function(){
-  rubanRoute([[X1 - 0.5, ROAD_N], [MONDE.x1, ROAD_N]]);        // vers l'est, droite jusqu'au bout du monde
-  // la route du bas, prolongée jusqu'au brin qui redescend ; et ce brin lui-même
-  rubanRoute([[X1 - 0.5, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
-  rubanRoute([[ROUTE_BOIS, ROAD_N - ROAD_W/2], [ROUTE_BOIS, ROAD_C + ROAD_W/2]]);
-  rubanRoute([[PORT.routeFin, ROAD_N], [X0 + 0.5, ROAD_N]]);   // vers l'ouest, jusqu'au bord de la dalle du port
+  /* AUCUN RUBAN NE RECOUVRE UN AUTRE SOL. Le joueur : « les nouvelles routes que tu as
+     faites, sur les anciens croisements c'était beaucoup plus propre ; là ça scintille un
+     peu et c'est bizarre. » Deux plans posés à la MÊME hauteur et qui se chevauchent se
+     disputent chaque pixel du recouvrement : c'est le scintillement.
+     Il y en avait deux sortes. Le brin vertical d'après la forêt courait de ROAD_N − 5 à
+     ROAD_C + 5 : il traversait les deux chaussées horizontales de part en part, et sur les
+     deux carrés de carrefour deux rubans à 1,2 cm du sol se recouvraient — les tirets de
+     l'un passaient au travers de l'autre. Il s'arrête maintenant au BORD des chaussées
+     horizontales, bord à bord, et ce sont elles qui portent le carré du croisement. Et les
+     quatre rubans mordaient de cinquante centimètres SUR les tuiles, où la même route est
+     peinte : ils partent maintenant du bord exact de la dernière tuile. */
+  rubanRoute([[X1, ROAD_N], [MONDE.x1, ROAD_N]]);              // vers l'est, droite jusqu'au bout du monde
+  // la route du bas, prolongée jusqu'au brin qui redescend ; et ce brin lui-même, entre
+  // les deux chaussées et jamais dessus
+  rubanRoute([[X1, ROAD_C], [ROUTE_BOIS + ROAD_W/2, ROAD_C]]);
+  rubanRoute([[ROUTE_BOIS, ROAD_N + ROAD_W/2], [ROUTE_BOIS, ROAD_C - ROAD_W/2]]);
+  rubanRoute([[PORT.routeFin, ROAD_N], [X0, ROAD_N]]);         // vers l'ouest, jusqu'au bord de la dalle du port
   /* Et rien de plus : la petite route du port n'est pas du bitume. Elle se coule avec les
      dalles du quai, dans la même matière et à la même épaisseur (voir `BETON_PORT`). */
 })();
