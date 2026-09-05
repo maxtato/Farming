@@ -16106,3 +16106,45 @@ autres échecs sont ceux d'avant ce chantier, dont « chacun commence et finit h
 carte » : deux itinéraires sur vingt-huit ont leur milieu sur la route nord hors des tuiles,
 comme le tout droit de la route nord l'avait déjà. `port` : les deux contrôles qui lisaient
 `routeX0` lisent maintenant le bout de la route nord du trafic (−74) ; 36 sur 36.
+
+### La pêche se voit dès la première image, et elle est trois fois plus lente
+
+Le joueur : « pour la pêche, je veux que quand on arrive sur un point de pêche, tout de
+suite, on voie les petites bulles et les petits poissons qui sautent autour du bateau, qu'on
+comprenne tout de suite que la pêche est en route ; et tout de suite qu'on voie la petite
+fenêtre avec la pêche qui se met en route. Mais que la pêche soit beaucoup plus lente, parce
+que c'est très rémunérateur ; il faut que ce soit plus long. »
+
+**Avant, rien ne disait qu'on pêchait.** Une bouffée blanche de temps en temps, et la plaque de
+charge qui ne s'allumait qu'au premier lot — huit secondes sans rien ; avec la pêche ralentie
+ç'aurait été vingt-quatre. Trois choses, maintenant, **dès l'image où le bateau s'arrête dans
+le cercle** :
+
+- **les bulles** — une gerbe de huit à l'arrivée, puis huit par seconde tout autour de la coque,
+  entre deux mètres et demi et cinq mètres du centre ; ce sont des bouffées du pool commun,
+  petites, d'un blanc bleuté, à gravité négative : elles montent en accélérant, comme des
+  bulles, et s'éteignent en une seconde ;
+- **les poissons qui sautent** — douze poissons d'argent en trois boîtes (corps, queue, dos
+  plus sombre), bâtis à la première pêche et gardés invisibles entre deux sauts. Deux sautent
+  à l'arrivée, puis un toutes les 0,8 à 1,8 seconde : une parabole de 0,75 à 1,1 seconde,
+  d'un mètre dix à un mètre quatre-vingts de haut, dans une direction au hasard, et le nez
+  suit la tangente — il monte à la sortie, il plonge à la retombée. Une éclaboussure à la
+  sortie de l'eau, une autre à l'entrée ;
+- **la plaque « PÊCHE EN COURS »**, au-dessus du bateau, cale vide ou non : « Poisson 0 kg sur
+  60 kg · 10 kg dans 24 s », en bleu, avec la barre du lot en cours qui se remplit et repart à
+  zéro — c'est ce qui dit que ça travaille. Elle s'éteint dès qu'on quitte le cercle, et la
+  plaque de charge d'avant reprend quand la cale est pleine.
+
+**Et un lot toutes les huit ou neuf secondes devient un lot toutes les vingt-quatre ou
+vingt-sept.** Les lots ne changent pas, c'est l'attente qui fait le prix : la barque met deux
+minutes vingt-quatre à remplir ses soixante kilos au lieu de quarante-huit secondes, le
+chalutier quatre minutes pour quatre cents kilos, le caseyeur quatre minutes et demie pour
+deux cents. La vitrine le dit (« 10 kg toutes les 24 s »), et la leçon de la pêche dit que
+les poissons sautent.
+
+**Bancs.** `port` : deux contrôles neufs — après UNE image de pêche, dix bulles autour de la
+barque, deux poissons en l'air et la plaque allumée au-dessus d'une cale vide avec le compte à
+rebours ; en quatre secondes d'autres sauts, jusqu'à 1,7 m au-dessus de l'eau, et hors du
+cercle plus un poisson, plaque éteinte. Deux contrôles retouchés dans leurs chiffres : le
+premier lot de la barque tombe entre 23 et 25 s au lieu de 7 à 9, et le caseyeur remonte ses
+40 kg en 60 s (deux lots à 27 s) au lieu de 20. **38 sur 38.**

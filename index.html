@@ -8647,9 +8647,23 @@ function actionsQuaiPeche(m){
 /* LA PÊCHE. À l'arrêt dans un spot, la cale se remplit par lots ; pleine, elle ne prend
    plus rien et le dit une fois. Tous les bateaux pêchent, pas seulement celui qu'on
    conduit : on peut poser le chalutier sur un spot et repartir en barque — mais il faudra
-   bien le ramener, et c'est ce qui fait le jeu. */
+   bien le ramener, et c'est ce qui fait le jeu.
+   ET ELLE SE VOIT DÈS LA PREMIÈRE IMAGE. Le joueur : « quand on arrive sur un point de
+   pêche, tout de suite on voit les petites bulles et les petits poissons qui sautent
+   autour du bateau, qu'on comprenne tout de suite que la pêche est en route ; et tout de
+   suite la petite fenêtre. » Avant, la pêche ne se montrait que par une bouffée blanche
+   de temps en temps, et la plaque ne s'allumait qu'au premier lot — huit secondes sans
+   rien, et maintenant ce serait vingt-quatre. Trois choses, donc, dès l'image où le bateau
+   s'arrête dans le cercle :
+     · LES BULLES : une gerbe de huit à l'arrivée, puis huit par seconde tout autour de la
+       coque, qui montent lentement et s'éteignent ;
+     · LES POISSONS : deux qui sautent à l'arrivée, puis un toutes les 0,8 à 1,8 seconde —
+       une parabole d'argent qui sort de l'eau et y replonge, voir `sautPoisson` ;
+     · LA PLAQUE « PÊCHE EN COURS » au-dessus du bateau, avec la cale et le compte à
+       rebours du lot — c'est `jaugesEngin` qui la porte, sur `v.enPeche`. */
 function travailPeche(m, dt){
   const v = m.v, K = v.cargo;
+  v.enPeche = false;
   if(!K || v.speed > 0.6){ v.pecheT = 0; return; }
   const Sp = dansSpot(v);
   if(!Sp){ v.pecheT = 0; return; }
@@ -8659,8 +8673,17 @@ function travailPeche(m, dt){
     return;
   }
   v.pleinDit = false;
+  v.enPeche = true;
+  const arrive = !(v.pecheT > 0);
   v.pecheT = (v.pecheT || 0) + dt;
-  if(siSouvent(0.12)) puff(v.pos.x + (Math.random() - 0.5)*6, 0.2, v.pos.z + (Math.random() - 0.5)*6, 0xE6F2F4, 0.3, 0.2);
+  if(arrive){
+    for(let n = 0; n < 8; n++) bullePeche(v);
+    sautPoisson(v); sautPoisson(v);
+    v.sautT = 0.5 + Math.random()*0.5;
+  }
+  if(siSouvent(0.13)) bullePeche(v);
+  v.sautT = (v.sautT || 0) - dt;
+  if(v.sautT <= 0){ sautPoisson(v); v.sautT = 0.8 + Math.random()*1.0; }
   if(v.pecheT >= m.peche.duree){
     v.pecheT = 0;
     const q = Math.min(m.peche.lot, K.capacite - K.load);
@@ -15358,6 +15381,61 @@ function updatePuffs(dt){
   }
   if(bouge){ puffMesh.instanceMatrix.needsUpdate = true; puffAlpha.needsUpdate = true; }
 }
+/* ---------- LES BULLES ET LES POISSONS DE LA PÊCHE ----------
+   Une bulle est une bouffée du pool commun, petite, d'un blanc bleuté, qui monte
+   lentement — sa « gravité » est négative, elle accélère vers le haut comme une bulle —
+   et s'éteint en une seconde. Elle naît à fleur d'eau, autour de la coque et non dedans :
+   entre deux mètres et demi et cinq mètres du centre du bateau. */
+function bullePeche(v){
+  const a = Math.random()*Math.PI*2, r = 2.4 + Math.random()*2.6;
+  puff(v.pos.x + Math.cos(a)*r, 0.08, v.pos.z + Math.sin(a)*r, 0xDDF0F6, 0.16, 0.35, 0.9, -0.05, 0.7, 0.3);
+}
+/* LES POISSONS QUI SAUTENT. Douze poissons d'argent, trois boîtes chacun — le corps, la
+   queue, le dos plus sombre —, bâtis à la première pêche et gardés : ils dorment
+   invisibles entre deux sauts. Un saut est une parabole de 0,75 à 1,1 seconde, d'un mètre
+   dix à un mètre quatre-vingts de haut, sur un mètre soixante de long dans une direction
+   au hasard, et le nez suit la tangente : il monte à la sortie, il plonge à la retombée.
+   Une éclaboussure à la sortie de l'eau, une autre à l'entrée. Ils portent le drapeau
+   `anime` : la fusion des géométries fixes ne doit pas les avaler. */
+const POISSONS = [], POISSON_N = 12;
+function sautPoisson(v){
+  if(!POISSONS.length) for(let k = 0; k < POISSON_N; k++){
+    const g = new THREE.Group();
+    g.add(box(0.62, 0.2, 0.13, 0xC4D5DE, 0, 0, 0));
+    g.add(box(0.2, 0.26, 0.05, 0x9FB3BE, -0.38, 0, 0));
+    g.add(box(0.36, 0.06, 0.15, 0x7F97A4, 0.02, 0.12, 0));
+    g.traverse((o)=>{ o.castShadow = false; o.receiveShadow = false; });
+    g.visible = false; g.userData.anime = true;
+    scene.add(g);
+    POISSONS.push({g, vive:false, t:0, dur:1, x0:0, z0:0, dx:0, dz:0, h:1, ry:0});
+  }
+  const p = POISSONS.find((q)=> !q.vive);
+  if(!p) return;
+  const a = Math.random()*Math.PI*2, r = 2.6 + Math.random()*3.0, dir = Math.random()*Math.PI*2;
+  p.vive = true; p.t = 0; p.dur = 0.75 + Math.random()*0.35;
+  p.x0 = v.pos.x + Math.cos(a)*r; p.z0 = v.pos.z + Math.sin(a)*r;
+  p.dx = Math.cos(dir)*1.6; p.dz = Math.sin(dir)*1.6;
+  p.h = 1.1 + Math.random()*0.7; p.ry = -dir;
+  p.g.scale.setScalar(1.2 + Math.random()*0.5);
+  p.g.visible = true;
+  puff(p.x0, 0.1, p.z0, 0xE6F2F4, 0.28, 0.5, 0.45, 0.6, 0.8, 0.6);
+}
+function updatePoissons(dt){
+  for(const p of POISSONS){
+    if(!p.vive) continue;
+    p.t += dt;
+    const u = p.t/p.dur;
+    if(u >= 1){
+      p.vive = false; p.g.visible = false;
+      puff(p.x0 + p.dx, 0.1, p.z0 + p.dz, 0xE6F2F4, 0.32, 0.45, 0.5, 0.6, 0.8, 0.7);
+      continue;
+    }
+    p.g.position.set(p.x0 + p.dx*u, 0.05 + 4*p.h*u*(1 - u), p.z0 + p.dz*u);
+    // Le tangage se lit sur la tangente de la parabole ; il s'applique AVANT le cap
+    // (ordre XYZ : Rz d'abord), donc dans le repère du poisson.
+    p.g.rotation.set(0, p.ry, Math.atan2(4*p.h*(1 - 2*u), Math.hypot(p.dx, p.dz)));
+  }
+}
 /* ---------- LES PIÈCES ----------
    L'argent tombait en silence. On déchargeait quatre cents kilos de blé, le chiffre du
    bandeau montait, et rien à l'écran ne disait qu'on venait d'être payé — le seul
@@ -21067,23 +21145,30 @@ const MACHINES = [
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFrigo
     })},
+  /* LA PÊCHE EST TROIS FOIS PLUS LENTE. Le joueur : « que la pêche soit beaucoup plus
+     lente, parce que c'est très rémunérateur ; il faut que ce soit plus long. » Un lot
+     toutes les huit ou neuf secondes devient un lot toutes les vingt-quatre ou vingt-sept :
+     la barque met deux minutes vingt-quatre à remplir ses soixante kilos au lieu de
+     quarante-huit secondes, le chalutier quatre minutes pour quatre cents kilos, le
+     caseyeur quatre minutes et demie pour deux cents. Les lots ne changent pas : c'est
+     l'attente qui fait le prix. */
   {key:'barque', nom:'Barque', teinte:0x2E6BA8, verrou:true, prix:3000, bateau:true,
    livre:'AU PORT', timbre:'fourgon', ton:0.84, plage:[0.74, 0.96],
-   peche:{cle:'poisson', lot:10, duree:8}, v:new Vehicle({
+   peche:{cle:'poisson', lot:10, duree:24}, v:new Vehicle({
       x:-212, z:-48, cap:-Math.PI/2, vmax:6.5, accel:2.6, turn:1.1, grip:1.6, trackW:0.9, bateau:true,
       susp:{k:14, d:2.6, roll:0.09, pitch:0.05, rough:1.6},
       build:buildBarque
     })},
   {key:'chalutier', nom:'Chalutier', teinte:0xB8342A, verrou:true, prix:18000, bateau:true,
    livre:'AU PORT', timbre:'lourd', ton:0.8, plage:[0.68, 1.0],
-   peche:{cle:'poisson', lot:45, duree:9}, v:new Vehicle({
+   peche:{cle:'poisson', lot:45, duree:27}, v:new Vehicle({
       x:-228, z:-44, cap:-Math.PI/2, vmax:7.5, accel:2.2, turn:0.8, grip:1.3, trackW:1.4, bateau:true,
       susp:{k:12, d:2.4, roll:0.07, pitch:0.04, rough:1.3},
       build:buildChalutier
     })},
   {key:'caseyeur', nom:'Caseyeur', teinte:0x2F6B52, verrou:true, prix:11000, bateau:true,
    livre:'AU PORT', timbre:'fourgon', ton:0.78, plage:[0.74, 0.96],
-   peche:{cle:'crustaces', lot:20, duree:9}, v:new Vehicle({
+   peche:{cle:'crustaces', lot:20, duree:27}, v:new Vehicle({
       x:-212, z:-46, cap:-Math.PI/2, vmax:7, accel:2.4, turn:0.95, grip:1.5, trackW:1.1, bateau:true,
       susp:{k:13, d:2.5, roll:0.08, pitch:0.045, rough:1.4},
       build:buildCaseyeur
@@ -26100,8 +26185,9 @@ const LECONS = [
   /* LA PREMIÈRE FOIS QU'ON MONTE DANS UN BATEAU : la flèche montre le spot le plus proche,
      et la leçon se solde au premier lot remonté. */
   {cle:'peche', humeur:'projette', ou:'spot', nom:'LA PÊCHE', titre:'LA PÊCHE',
-   txt:'LA PÊCHE – Va sur un spot, le cercle au large, et arrête-toi : la cale se remplit '
-     + 'toute seule. Pleine, reviens la vider au quai de débarque.',
+   txt:'LA PÊCHE – Va sur un spot, le cercle au large, et arrête-toi : dès que les poissons '
+     + 'sautent autour du bateau, la cale se remplit toute seule, lot après lot. Pleine, '
+     + 'reviens la vider au quai de débarque.',
    quand:()=> !!MACHINES[cur].peche}
 ];
 /* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
@@ -30692,6 +30778,7 @@ function majTelephone(W, H, mB){
    même période de trois quarts de seconde et la même chute au quart. */
 const NIV_ORANGE = 1/3, NIV_ROUGE = 0.20, NIV_PULSE = 0.12;
 const VERT_JAUGE = '#8BE07A', ORANGE_JAUGE = '#F0A030', ROUGE_JAUGE = '#E8563F';
+const BLEU_JAUGE = '#7FD1E8';                  // la pêche : le bleu des cercles d'eau
 const couleurNiveau = (k)=> k < NIV_ROUGE ? ROUGE_JAUGE
                           : (k < NIV_ORANGE ? ORANGE_JAUGE : VERT_JAUGE);
 const niveauCritique = (k)=> k < NIV_PULSE;
@@ -31173,6 +31260,16 @@ function jaugesEngin(dt){
     const c = CROPS[hopCrop];
     direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, hopper, HOP_MAX,
                (hopper > 0.01 && c) ? [c.cle] : [], ()=> hopper, dt);
+  } else if(m.peche && v.enPeche){
+    /* LA PÊCHE EN COURS, DÈS LA PREMIÈRE IMAGE. Le joueur : « tout de suite qu'on voie la
+       petite fenêtre avec la pêche qui se met en route. » La plaque de charge ne
+       s'allumait qu'au premier lot ; celle-ci s'allume dès que le bateau pêche, cale vide
+       ou non, et dit la cale et le compte à rebours du lot. La barre est celle du lot en
+       cours : elle se remplit et repart à zéro, c'est ce qui dit que ça travaille. */
+    const K = v.cargo, P = m.peche, reste = Math.max(0, P.duree - (v.pecheT || 0));
+    montrerJauge(jaugeEngin, v.pos.x, 6.2, v.pos.z, 'PÊCHE EN COURS',
+      nomQte(P.cle, K.load) + ' sur ' + kg(K.capacite) + ' · ' + kg(P.lot) + ' dans ' + Math.ceil(reste) + ' s',
+      (v.pecheT || 0)/P.duree, BLEU_JAUGE, dt);
   } else if(v.cargo && v.cargo.load > 0.01){
     direCharge(jaugeEngin, v.pos.x, 6.2, v.pos.z, v.cargo.load, v.cargo.capacite,
                naturesDe(v.cargo), (k)=> chargeDe(v.cargo, k), dt);
@@ -35754,6 +35851,7 @@ function loop(now){
     updateRenv(dt);
     updateBirds(dt, v.pos.x, v.pos.z);
     updatePuffs(dt);
+    updatePoissons(dt);
     updatePieces(dt);
     updatePico(dt);
     updateColis(dt);
