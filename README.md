@@ -15894,3 +15894,50 @@ barrières et 19 arbres au lieu de 13, 10 et 18 — et le monde 34 mâts au lieu
 `grandes` 7, `acces` 5, `escargot` verts. `decor` : le contrôle des lampadaires passe, et les
 sept qui échouent échouaient déjà avant ce chantier — vérifié sur `6a9f573`. `rue` (12), `bois`
 (1) et `trafic` (8 contre 9) : inchangés eux aussi, mesurés avant et après.
+
+### Les barrières s'en vont, la forêt pousse dans l'herbe
+
+Deux demandes du joueur, et un défaut que la seconde a fait sortir de l'ombre.
+
+**« Enlève les barrières que tu avais mises. »** Les lisses de bois sur poteaux qui bordaient
+les quatre grandes chaussées par tronçons de dix mètres sont retirées, `barriereRoute` avec
+elles, et `DIAG.routes` n'a plus de ligne `barrieres`. Restent les lampadaires, les arrêts de
+bus et les bosquets.
+
+**« Pour le sol de la forêt, fais pas trop camouflage, reste comme sur les parcelles avant de
+les acheter. »** Il y avait sous les arbres un polygone aux bords ondulés, peint d'une texture
+de 128 pixels : un fond vert olive plus clair que le pré, et quatre-vingt-dix taches d'aiguilles
+et de terre répétées tous les vingt-deux mètres. De loin, c'était une pièce de tissu militaire
+posée sur la prairie — le bois se détachait par sa **matière** au lieu de se détacher par ses
+arbres.
+
+La référence que donne le joueur est la bonne : **une parcelle qu'on n'a pas achetée n'a aucune
+peinture**, elle est de l'herbe, et ce sont ses arbres, ses buissons et ses rochers qui la disent
+en friche. Le tapis est donc supprimé, texture comprise ; le plan d'herbe du monde passe dessous
+sans rien par-dessus. La **piste** et la **place** du dépôt gardent leur maillage de terre
+battue — ce n'est pas de l'herbe, c'est de la boue. (Même raison que les fleurs du rucher, qui
+avaient perdu leur dalle verte : de près, un tapis posé sur le pré montre une arête franche et
+une teinte qui ne tombe jamais juste.)
+
+**Ce que la suppression a réveillé.** La texture tirait **540 nombres** du flux `alea`, le flux
+commun à tout le décor du monde, et elle les tirait au chargement, avant le moindre semis. La
+retirer décale donc **tout ce qui vient après** : chaque arbre, chaque buisson, chaque rocher du
+monde bouge. Le monde reste rigoureusement reproductible — même graine, même monde —, mais ce
+n'est plus le même.
+
+Et ce décalage a posé un bosquet de bord de route **en travers de l'entrée de la piste du bois**.
+`placeLibre` refusait le bitume, les emprises, les terrains des commerces, les parcelles et les
+chemins du nord — pas la piste ni la place du dépôt, qui sont pourtant un **trou** dans la
+forêt, expressément sauté par le semis des arbres. Le porteur ne descendait plus au dépôt : il
+s'arrêtait à z = −62 au lieu d'arriver au cercle (banc `bois`). Les deux rectangles sont
+maintenant déclarés dans `placeLibre`.
+
+**Ce contrôle était rouge depuis le chapitre du mobilier de bord de route** — 17,4 s et hors de
+l'axe —, et personne ne l'avait rattaché à sa cause : c'était déjà du mobilier planté dans la
+piste. Il passe pour la première fois depuis : **11,3 s, dead straight, zéro écart**.
+
+**Bancs.** `bois` **22 sur 22** (il en manquait un depuis deux chapitres), `port` 36, `chocs`
+31, `camion` 18, `village` 16, `export` 12, `ouverture` 9, `grandes` 7, `acces` 5, `escargot`
+verts. `decor` : les lampadaires passent (34 sur 34), les sept autres échecs sont les mêmes
+qu'avant ce chantier. `rue` (12) inchangé ; `trafic` 7 contre 9 avant. Le mobilier de bord de
+route compte maintenant 12 lampadaires, 15 arbres, 2 abris — et zéro barrière.

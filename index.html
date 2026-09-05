@@ -7915,37 +7915,25 @@ function addTree(x,z,s,variant,parcel){
 const PORTEE_ABATTAGE = 5.5, DUREE_ABATTAGE = 2.3, DUREE_CHUTE = 0.9;
 const BRAS_REPOS = -0.25;                 // l'angle du bras de l'abatteuse au repos, tête à deux mètres
 const REPOUSSE = {souche:90, jeune:210};
-const texSolForet = (function(){
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
-  const c = cv.getContext('2d');
-  c.fillStyle = '#3D5535'; c.fillRect(0, 0, 128, 128);
-  // Des taches d'aiguilles et de terre, semées sur le flux à graine fixe.
-  for(let i = 0; i < 90; i++){
-    c.fillStyle = alea() < 0.55 ? 'rgba(88,64,40,.32)' : 'rgba(30,48,28,.35)';
-    c.beginPath(); c.ellipse(alea()*128, alea()*128, 3 + alea()*9, 2 + alea()*6, alea()*3.1, 0, 7);
-    c.fill();
-  }
-  const t = new THREE.CanvasTexture(cv);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1/22, 1/22);
-  t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
-  return t;
-})();
+/* LA FORÊT N'A PLUS DE TAPIS : ELLE POUSSE DANS L'HERBE.
+   Le joueur : « pour le sol de la forêt, fais pas trop camouflage, reste comme sur les
+   parcelles avant de les acheter. »
+   Il y avait sous les arbres un polygone aux bords ondulés, peint d'une texture de 128
+   pixels : un fond vert olive plus clair que le pré, et quatre-vingt-dix taches d'aiguilles
+   et de terre semées dessus, répétées tous les vingt-deux mètres. De loin, c'était du
+   camouflage — une pièce de tissu militaire posée sur la prairie —, et le bois se détachait
+   du reste du monde par sa MATIÈRE au lieu de se détacher par ses arbres.
+   La référence que donne le joueur est la bonne : une parcelle qu'on n'a pas achetée n'a
+   aucune peinture, elle est de l'herbe, et ce sont ses arbres, ses buissons et ses rochers
+   qui la disent en friche. La forêt fait pareil. Le plan d'herbe du monde passe donc
+   dessous sans rien par-dessus, et il ne reste du bois que ce qui pousse dedans : les cent
+   quarante arbres, la piste de terre et la place du dépôt, qui elles gardent leur maillage
+   — c'est de la terre battue, pas de l'herbe.
+   (Même raison que les fleurs du rucher, qui ont perdu leur dalle verte : de près, un tapis
+   posé sur le pré montre une arête franche et une teinte qui ne tombe jamais juste.) */
 function construireForet(){
   const F = FORET;
-  // Le tapis : un polygone aux bords ondulés, posé entre la prairie et la route.
-  const sh = new THREE.Shape();
-  const M = 5, pts = [];
-  const x0 = F.x0 - M, x1 = F.x1 + M, z0 = F.z0 - 5, z1 = F.z1 + M;
-  const bord = (t, cote)=> ondul(t + cote*71, 4.0, 9.0);
-  for(let x = x0; x < x1; x += 4) pts.push([x, z0 + bord(x, 1)]);
-  for(let z = z0; z < z1; z += 4) pts.push([x1 + bord(z, 2), z]);
-  for(let x = x1; x > x0; x -= 4) pts.push([x, z1 + bord(x, 3)]);
-  for(let z = z1; z > z0; z -= 4) pts.push([x0 + bord(z, 4), z]);
-  pts.forEach((p, i)=>{ if(i) sh.lineTo(p[0], -p[1]); else sh.moveTo(p[0], -p[1]); });
-  const geo = new THREE.ShapeGeometry(sh);
-  const sol = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({map:texSolForet}));
-  sol.rotation.x = -Math.PI/2; sol.position.y = 0.006; sol.receiveShadow = true;
-  scene.add(sol); F.sol = sol;
+  F.sol = null;                     // plus de tapis : on pousse dans l'herbe du monde
   // Les arbres : une trame de sept mètres et demi, secouée d'un mètre sept, et une
   // clairière autour du dépôt — l'engin y manœuvre, et la route y mène.
   const PAS_X = 7.5, PAS_Z = 7.4, nx = Math.floor((F.x1 - F.x0)/PAS_X), nz = Math.floor((F.z1 - F.z0)/PAS_Z);
@@ -12622,42 +12610,25 @@ function poserLotBande(L, dir, centre, front, sansAvant, sansApres){
    long des grandes routes, arrêts de bus, des lampadaires le long des grandes routes. »
    Les quatre longues chaussées hors du village — la route du nord jusqu'à l'entrepôt, la
    route du bas jusqu'au brin du bois, le brin lui-même, et la route du port — étaient nues :
-   du bitume dans de l'herbe sur quatre cents mètres. Elles reçoivent quatre choses, semées
+   du bitume dans de l'herbe sur quatre cents mètres. Elles reçoivent trois choses, semées
    au flux commun (`alea`) pour qu'un lancement rende exactement le même bord de route que
    le précédent :
      · LES LAMPADAIRES, un tous les soixante mètres, alternés d'un bord à l'autre — le même
        mât et le même halo de nuit que ceux de la rocade, posés par `addLamp`.
-     · LES PETITES BARRIÈRES, des lisses de bois sur poteaux, par tronçons de dix mètres.
-       Elles font QUATRE-VINGT-CINQ CENTIMÈTRES, donc moins que `BAS_HAUT` : on leur roule
-       dessus. C'est voulu, et c'est même la condition pour en poser : une barrière DURE le
-       long d'une route enfermerait le joueur sur la chaussée, lui qui doit pouvoir en
-       sortir n'importe où pour rejoindre un champ.
      · LES ARRÊTS DE BUS, trois abris pris au mobilier de village, tournés vers la route.
      · LES ARBRES, par bosquets de deux ou trois, à une dizaine de mètres de l'accotement.
+   ELLES EN RECEVAIENT QUATRE. Le joueur : « enlève les barrières que tu avais mises. » Il y
+   avait des lisses de bois sur poteaux, par tronçons de dix mètres, sur les quatre chaussées.
+   Elles sont retirées, `barriereRoute` avec elles, et le compte `DIAG.routes` n'a plus de
+   ligne `barrieres`.
    RIEN NE SE POSE SANS PLACE LIBRE : `placeLibre` refuse le bitume, les emprises déjà
    déclarées, les terrains des commerces et les parcelles. C'est pour cela que ce semis est
    le DERNIER de la construction — il voit tout ce que les autres ont posé. */
-function barriereRoute(x, z, ry, L){
-  const g = new THREE.Group(), H = 0.85;
-  const n = Math.max(2, Math.round(L/2.2));
-  for(let k = 0; k <= n; k++) g.add(box(0.14, H, 0.14, D_BOIS2, -L/2 + k*L/n, H/2, 0));
-  g.add(box(L, 0.13, 0.09, D_BOIS3, 0, H - 0.13, 0));
-  g.add(box(L, 0.13, 0.09, D_BOIS3, 0, H - 0.45, 0));
-  g.position.set(x, 0, z); g.rotation.y = ry;
-  scene.add(g); fusionnerGroupe(g);
-  // Basse, donc franchissable : la roue passe dessus, la barrière fume, on continue.
-  const m = Math.max(2, Math.round(L/3));
-  for(let k = 0; k <= m; k++){
-    const t = -L/2 + k*L/m;
-    obstacles.push({x:x + Math.cos(ry)*t, z:z - Math.sin(ry)*t, r:0.55, bas:true});
-  }
-}
 function garnirGrandesRoutes(){
   /* `r` EST L'ENCOMBREMENT DE L'OBJET, ET LA ROUTE SE TESTE À PART. Les deux ne peuvent pas
      partager la même marge : un lampadaire se plante à 2,20 m du bitume, un abri de bus à
      5,40 m, et leur demander d'être à `r` mètres de la chaussée les aurait tous refusés —
-     mesuré, c'est ce qui s'est passé au premier essai : zéro mât, zéro barrière, zéro abri
-     posés. On exige donc seulement de n'être pas SUR le bitume (60 cm de garde), et `r` ne
+     mesuré, c'est ce qui s'est passé au premier essai : zéro mât, zéro abri posés. On exige donc seulement de n'être pas SUR le bitume (60 cm de garde), et `r` ne
      sert qu'à ne rien poser dans autre chose. */
   const placeLibre = (x, z, r)=>{
     if(x < MONDE.x0 + 8 || x > MONDE.x1 - 8 || z < MONDE.z0 + 8 || z > MONDE.z1 - 8) return false;
@@ -12680,6 +12651,16 @@ function garnirGrandesRoutes(){
       if(x > P.x - P.w/2 - r && x < P.x + P.w/2 + r && z > P.z - P.h/2 - r && z < P.z + P.h/2 + r) return false;
     for(const C of CHEMINS_NORD)
       if(x > C.x0 - r && x < C.x1 + r && z > C.z0 - r && z < C.z1 + r) return false;
+    /* ET LA PISTE DU BOIS, ET SA PLACE. Elles sont un TROU dans la forêt — le semis des
+       arbres les saute expressément — et rien d'autre ne les déclarait : ce semis-ci, qui
+       vient après tout le monde, y voyait de l'herbe libre. Il y a planté un bosquet en
+       travers de l'entrée, et le porteur ne descendait plus au dépôt (banc `bois` : il
+       s'arrêtait à z = −62 au lieu d'arriver au cercle). Le trou de la forêt vaut chemin :
+       on s'en écarte comme des chemins de sable du nord. */
+    if(x > PISTE_BOIS.x - PISTE_BOIS.w/2 - r && x < PISTE_BOIS.x + PISTE_BOIS.w/2 + r
+       && z > PISTE_BOIS.z0 - r && z < PISTE_BOIS.z1 + r) return false;
+    if(x > PLACE_BOIS.x0 - r && x < PLACE_BOIS.x1 + r
+       && z > PLACE_BOIS.z0 - r && z < PLACE_BOIS.z1 + r) return false;
     return true;
   };
   /* LES QUATRE LONGUES CHAUSSÉES, chacune bornée loin des carrefours : `d0` et `d1` sont
@@ -12690,9 +12671,9 @@ function garnirGrandesRoutes(){
     {vert:true,  fixe:ROUTE_BOIS, d0:ROC.z0 + 24, d1:ROC.z1 - 24},            // le brin d'après la forêt
     {vert:false, fixe:ROAD_N, d0:PORT.routeFin + 14, d1:X0 - 8}               // la route du port
   ];
-  const REC_LAMPE = ROAD_W/2 + 2.2, REC_BARR = ROAD_W/2 + 2.0, REC_ARBRE = ROAD_W/2 + 11;
+  const REC_LAMPE = ROAD_W/2 + 2.2, REC_ARBRE = ROAD_W/2 + 11;
   const pt = (A, d, e)=> A.vert ? {x:A.fixe + e, z:d} : {x:d, z:A.fixe + e};
-  let nL = 0, nB = 0, nA = 0, nBus = 0;
+  let nL = 0, nA = 0, nBus = 0;
   const BUS = [];
   for(const A of AXES){
     for(let d = A.d0, i = 0; d <= A.d1; d += 45, i++){
@@ -12708,11 +12689,6 @@ function garnirGrandesRoutes(){
          LP, Math.PI)` au nord de la route du bas. */
       const ry = A.vert ? (cote > 0 ? Math.PI/2 : -Math.PI/2) : (cote > 0 ? 0 : Math.PI);
       if(placeLibre(q.x, q.z, 3.4)){ addLamp(q.x, q.z, ry); nL++; }
-    }
-    for(let d = A.d0 + 22, i = 0; d <= A.d1; d += 34, i++){
-      const cote = (i % 2) ? -1 : 1, L = 10;
-      const q = pt(A, d, cote*REC_BARR);
-      if(placeLibre(q.x, q.z, 6)){ barriereRoute(q.x, q.z, A.vert ? Math.PI/2 : 0, L); nB++; }
     }
     for(let d = A.d0 + 9, i = 0; d <= A.d1; d += 26, i++){
       const cote = (i % 3 === 0) ? -1 : 1;
@@ -12733,7 +12709,7 @@ function garnirGrandesRoutes(){
       }
     }
   }
-  if(typeof DIAG !== 'undefined') DIAG.routes = {lampes:nL, barrieres:nB, arbres:nA, bus:nBus};
+  if(typeof DIAG !== 'undefined') DIAG.routes = {lampes:nL, arbres:nA, bus:nBus};
 }
 function garnirBandes(putBush, putRock){
   /* LA MAISON EST AU RECUL DE LA DALLE VOISINE, ET PAS UN MÈTRE DE PLUS. Elle se
