@@ -15704,3 +15704,48 @@ comme le joueur. **Les quatre échouent sur le commit précédent.** `chocs` (28
 `bois` (22), `camion` (18), `export` (12), `village` (16), `grandes` (7), `acces` (5),
 `sansvue` (9) verts ; `campagne` 75 sur 76, `migration` et `lecons` rendent exactement les
 mêmes comptes qu'avant.
+
+## Ce qui est bas se franchit, ce qui dépasse arrête
+
+Le joueur : « au sol, les petits rochers et les petits buissons ne sont pas des obstacles,
+qu'on puisse passer à travers ; pareil pour les petites caisses, etc. »
+
+**Tout était devenu mur, et c'était mesurable.** Un tracteur lancé à neuf mètres par seconde
+en plein champ vide fait **47,3 m en quatre secondes**. Le même, lancé sur un buisson de
+**trente-cinq centimètres de rayon**, s'arrêtait NET dessus : 10,5 m parcourus, 0,2 m/s à
+l'arrivée. Une **bite d'amarrage de trente centimètres** faisait exactement pareil. Ce n'est
+pas du décor, c'est un piège.
+
+**La règle est une hauteur, et non un rayon**, parce que c'est la hauteur qui dit si l'on passe
+dessus. Un montant de portail ne fait qu'un demi-mètre de rayon et deux mètres soixante de
+haut : il arrête, et c'est juste. Un caillou plat en fait autant au sol et quatre-vingts
+centimètres de haut : on lui roule dessus. **Sous 1,20 m — la hauteur d'un capot — l'objet est
+franchissable.**
+
+| | avant | après |
+|---|---|---|
+| petit buisson (r 0,70) | arrêt à 10,5 m | **47,2 m**, 12 m/s, zéro déviation |
+| petit rocher (r 0,70) | arrêt à 10,6 m | **47,2 m** |
+| bite d'amarrage (r 0,30) | arrêt à 11,0 m | **47,2 m** |
+| gros buisson (r 1,60) | arrêt | arrêt (9,3 m, 1,3 m/s) |
+| gros rocher (r 1,50) | arrêt | arrêt (9,8 m, 0 m/s) |
+| montant de portail | arrêt | arrêt |
+
+Le partage, relevé sur la scène entière : **246 volumes bas** — 126 petits buissons, 93 petits
+rochers, 27 bites d'amarrage — contre **1 118 qui arrêtent**. Les arbres, les poteaux, les
+clôtures, les gros rochers et tous les bâtiments ne bougent pas d'un pouce.
+
+**On le sent quand même.** Pas de renvoi, pas de pivot, pas de replacement : la trajectoire est
+gardée au centimètre. Mais le buisson ploie et se relève, la terre fume sous la roue, et la
+vitesse paie le passage — `CHOC.bas` par seconde de contact.
+
+**Et les pilotes le savent** : `voieLibre` et `voieDirecteChamp` ne comptent plus ce qui se
+franchit — une machine n'a aucune raison de contourner une touffe qu'elle écrase. `jeuDeBord`,
+lui, continue de tout compter : il mesure le JEU disponible au bord d'une parcelle pour y poser
+le plan de travail, et lui rendre ces centimètres faisait mordre la grande parcelle hors de ses
+bornes — le banc `grandes` l'a vu à la première passe.
+
+**Mesuré.** Le banc `chocs` passe de 28 à **31 contrôles** ; les trois nouveaux échouent sur le
+commit précédent, où même un buisson de 65 cm arrêtait tout. `port` (31), `bois` (22), `camion`
+(18), `export` (12), `village` (16), `grandes` (7), `acces` (5), `sansvue` (9), `ouverture` (9),
+`escargot` verts ; `campagne` 75 sur 76 et `pilote` rendent les mêmes comptes qu'avant.
