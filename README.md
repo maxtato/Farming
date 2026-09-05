@@ -16148,3 +16148,53 @@ rebours ; en quatre secondes d'autres sauts, jusqu'à 1,7 m au-dessus de l'eau, 
 cercle plus un poisson, plaque éteinte. Deux contrôles retouchés dans leurs chiffres : le
 premier lot de la barque tombe entre 23 et 25 s au lieu de 7 à 9, et le caseyeur remonte ses
 40 kg en 60 s (deux lots à 27 s) au lieu de 20. **38 sur 38.**
+
+### La forêt : on s'approche sans choc, on coupe au bouton, la grume reste au sol
+
+Le joueur : « pour la forêt, il faut que le véhicule qui coupe les arbres ne crée pas de choc
+quand il arrive près d'un arbre — un peu plus doux, qu'on puisse s'approcher vraiment plus
+près. Dès qu'on arrive à côté d'un arbre, il faut qu'il y ait un bouton en bas pour couper. Et
+à l'instant où il est coupé, le tronc tout de suite au sol : tous les troncs à l'endroit où
+l'arbre vient d'être coupé, et on les ramassera par la suite avec un autre véhicule qui les
+amènera au dépôt de bois, au milieu de la forêt. »
+
+**L'approche est douce.** Un arbre est un renversable : tout engin qui le touche est renvoyé
+de deux mètres par seconde au moins, l'arbre ploie, et le contact se prend à 0,9 fois
+l'échelle de l'arbre plus quinze centimètres de garde — deux mètres et demi du tronc. Pour
+l'abatteuse, et pour elle seule (`v.abatteuse`), un arbre est un **butoir** : elle s'arrête
+contre le **tronc** — rayon 0,36 fois l'échelle, celui de la souche, porté par l'obstacle
+(`ob.tronc`) — sans renvoi, sans pivot, sans que l'arbre bouge. `buter` ne lui ôte que ce
+qu'elle avait de vitesse *vers* l'arbre ; le glissement le long reste libre, on peut se ranger
+contre. Mesuré au banc : lancée sur un arbre, elle s'arrête **le nez sur l'écorce, 0,00 m entre
+son avant et le tronc**, vitesse la plus basse 0, l'arbre immobile.
+
+**La coupe est un bouton.** Plus de coupe automatique au ralenti : à l'arrêt, un arbre mûr à
+portée de la tête (5,5 m devant l'engin), la colonne propose **COUPER L'ARBRE – 49 KG DE
+GRUMES** ; on appuie, le bras mord, la scie tourne, la colonne dit COUPE EN COURS, et l'arbre
+tombe de l'autre côté en 3,2 s. La coupe s'interrompt si l'on repart, si l'on change d'engin
+ou si l'arbre s'éloigne. Trois secondes d'arrêt contre l'arbre sans appuyer : arbre intact.
+
+**La grume tombe où l'arbre tombe.** Plus rien n'entre au caisson de l'abatteuse. Quand
+l'arbre finit de tomber, un tronc de 5,2 fois l'échelle, du rayon de la souche, est posé au
+sol **dans le sens de la chute**, le pied contre la souche, avec le poids de l'arbre ; trois
+petits cercles bas le long du tronc en font un obstacle qu'on franchit en le sentant, comme un
+rocher plat. Il y reste — **dans la sauvegarde aussi** (`grumesSol` : centre, sens, poids,
+échelle par tronc). Le caisson de l'abatteuse reste déclaré, vide, pour qu'une vieille partie
+se relise ; sa vitrine dit « la grume reste au sol, le porteur la ramasse », et son
+amélioration ne donne plus que la vitesse.
+
+**Le porteur ramasse.** À l'arrêt à portée du grappin (neuf mètres du centre), tout engin qui
+peut porter des grumes — sauf l'abatteuse — propose **CHARGER GRUMES** (lieu : Forêt), avec le
+curseur et la fenêtre des autres transferts ; les troncs montent un par un, le plus proche
+d'abord, au débit ordinaire, et chacun disparaît vidé. Puis le dépôt de bois, la scierie, la
+tonnellerie, comme avant. Deux leçons : celle de la forêt réécrite pour le bouton, et une
+neuve, « LES GRUMES », la première fois qu'on monte dans le porteur quand une grume attend —
+la flèche montre la grume la plus proche, et elle se solde au premier kilo chargé.
+
+**Bancs.** `bois` **25 sur 25** : la coupe (trois contrôles) est remplacée par cinq — l'approche
+douce, le bouton et rien sans lui, la coupe qui tombe, la grume au sol de l'autre côté avec son
+poids et le caisson vide, trois grumes pour trois boutons — ; le dépôt (trois contrôles) par
+trois autres — l'abatteuse n'a rien à déposer ni à ramasser, le porteur ramasse tout en trois
+haltes (rien à quatorze mètres), dépose et recharge au dépôt — ; et la sauvegarde gagne une
+grume de 51 kg relue au même endroit. Sur le commit précédent, le bloc de la coupe s'arrête à
+`GRUMES` inconnu. `chocs` 31, `port` 38, `ouverture` 9 verts.

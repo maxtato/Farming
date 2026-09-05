@@ -7888,12 +7888,29 @@ function addTree(x,z,s,variant,parcel){
    un jeune plant un arbre mûr en trois minutes et demie : la forêt entière — cent
    quarante arbres — se refait bien plus vite qu'on ne la coupe, et elle est donc une
    ressource qu'on cultive, pas un stock qu'on épuise.
-   LA COUPE SE FAIT À L'ARRÊT, sous la main du joueur : l'abatteuse qu'on conduit, presque
-   immobile, prend l'arbre mûr le plus proche de sa tête, le scie en deux secondes et
-   quelques, et l'arbre tombe — de l'autre côté — pendant que les grumes entrent au
-   caisson. Une abatteuse garée dans la forêt ne coupe rien : c'est la même règle que la
-   coupe de la moissonneuse, qui ne tourne que si on la conduit. */
+   LA COUPE SE COMMANDE, ET LA GRUME RESTE AU SOL. Le joueur : « il faut que l'abatteuse ne
+   crée pas de choc quand elle arrive près d'un arbre — plus doux, qu'on puisse s'approcher
+   vraiment plus près. Dès qu'on arrive à côté d'un arbre, un bouton en bas pour couper. À
+   l'instant où il est coupé, le tronc tout de suite au sol : tous les troncs à l'endroit où
+   l'arbre vient d'être coupé, et on les ramassera avec un autre véhicule qui les amènera au
+   dépôt de bois. » Trois règles, donc :
+     · L'APPROCHE EST DOUCE. Un arbre est un renversable : l'engin qui le touche est
+       renvoyé de deux mètres par seconde au moins, et l'arbre ploie. Pour l'abatteuse, et
+       pour elle seule, l'arbre est un butoir : elle s'arrête contre le TRONC (rayon 0,36
+       fois l'échelle, celui de la souche), sans renvoi, sans pivot, sans que l'arbre bouge
+       — voir `buter`. Elle arrive donc à cinquante centimètres de l'écorce, là où tout
+       autre engin est repoussé à deux mètres et demi.
+     · LA COUPE EST UN BOUTON. À l'arrêt, un arbre mûr à portée de la tête (5,5 m devant
+       l'engin), la colonne propose COUPER L'ARBRE ; le bras mord, la scie tourne, deux
+       secondes et quelques, et l'arbre tombe de l'autre côté. Plus de coupe automatique au
+       ralenti : c'est le joueur qui décide, arbre par arbre.
+     · LA GRUME TOMBE OÙ L'ARBRE TOMBE. Rien n'entre au caisson de l'abatteuse : quand
+       l'arbre finit de tomber, un tronc de cinq mètres est posé au sol dans le sens de la
+       chute, avec le poids de l'arbre, et il y reste — dans la sauvegarde aussi. C'est le
+       PORTEUR qui le ramasse, à l'arrêt à côté (CHARGER, à la portée du grappin), et qui
+       le porte au dépôt de bois ou à la scierie. L'abatteuse coupe, le porteur porte. */
 const PORTEE_ABATTAGE = 5.5, DUREE_ABATTAGE = 2.3, DUREE_CHUTE = 0.9;
+const PORTEE_GRUME = 9;                   // du centre du porteur à la grume : la portée du grappin
 const BRAS_REPOS = -0.25;                 // l'angle du bras de l'abatteuse au repos, tête à deux mètres
 const REPOUSSE = {souche:90, jeune:210};
 /* LA FORÊT N'A PLUS DE TAPIS : ELLE POUSSE DANS L'HERBE.
@@ -7938,6 +7955,9 @@ function construireForet(){
     scene.add(m);
     const k = renversable(m, x, z, 0.9*s);
     const ob = obstacles[obstacles.length - 1];
+    // L'obstacle dit qu'il est un arbre, et le rayon de son TRONC : c'est à lui que
+    // l'abatteuse vient buter, pas au houppier (voir `decorGabarits`).
+    ob.arbre = true; ob.tronc = 0.36*s;
     F.arbres.push({x, z, s, ry:m.rotation.y, mesh:m, ob, k, etat:0, t:0, chute:null, souche:null,
                    kg:Math.round(34 + 14*s)});
   }
@@ -7991,6 +8011,17 @@ function actionsDepotBois(m){
               txt:'CHARGER ' + qteNomHaut('grumes', DEPOT_BOIS.stock)});
   return out;
 }
+/* LES GRUMES AU SOL SE CHARGENT SUR PLACE. À l'arrêt à portée du grappin, tout engin qui
+   peut porter des grumes — sauf l'abatteuse, qui coupe et ne porte pas — propose CHARGER ;
+   le transfert prend les troncs un par un, le plus proche d'abord, au débit ordinaire. */
+function actionsGrumes(m){
+  const T = caisseDe(m), out = [];
+  if(!T || m.key === 'abatteuse' || !peutCharger(T, 'grumes')) return out;
+  const q = grumesAPortee(m.v).reduce((s, G)=> s + G.kg, 0);
+  if(q > 0.01) out.push({sens:'ramasserBois', lieu:'foret', cle:'grumes',
+                         txt:'CHARGER ' + qteNomHaut('grumes', q)});
+  return out;
+}
 // Ce que l'arbre montre selon son état ; sert à la repousse comme à la relecture.
 function poserEtatArbre(a){
   const dans = obstacles.indexOf(a.ob) >= 0;
@@ -8008,44 +8039,47 @@ function poserEtatArbre(a){
     if(a.souche){ scene.remove(a.souche); a.souche = null; }
     const f = a.etat === 2 ? 0.25 + 0.75*Math.min(1, a.t/REPOUSSE.jeune) : 1;
     a.mesh.visible = true; a.mesh.rotation.set(0, a.ry, 0); a.mesh.scale.setScalar(a.s*f);
-    a.ob.r = 0.9*a.s*f;
+    a.ob.r = 0.9*a.s*f; a.ob.tronc = 0.36*a.s*f;
     if(!dans) obstacles.push(a.ob);
   }
 }
+// L'arbre mûr le plus proche de la tête de l'abatteuse, à portée de scie — ou rien.
+function arbreAPortee(v){
+  const f = v.fwd(), px = v.pos.x + f.x*3.4, pz = v.pos.z + f.z*3.4;
+  let a = null, best = PORTEE_ABATTAGE;
+  for(const b of FORET.arbres){
+    if(b.etat !== 0 || b.chute) continue;
+    const d = Math.hypot(b.x - px, b.z - pz);
+    if(d < best){ best = d; a = b; }
+  }
+  return a;
+}
+// Le bouton COUPER : la coupe part, `travailForet` la mène.
+function lancerCoupe(m){
+  const v = m.v, a = arbreAPortee(v);
+  if(!a || v.coupe) return false;
+  v.coupe = {a, t:0};
+  return true;
+}
 function abattre(a, v){
-  const K = v.cargo;
   a.chute = {t:0, dir:Math.atan2(a.x - v.pos.x, a.z - v.pos.z)};
   const i = obstacles.indexOf(a.ob); if(i >= 0) obstacles.splice(i, 1);
-  ajouterCharge(K, 'grumes', a.kg);
   STAT.grumes += a.kg;
   solderLecon('abattage');
   for(let n = 0; n < 6; n++)
     puff(a.x + (Math.random() - 0.5)*2, 0.8 + Math.random()*1.5, a.z + (Math.random() - 0.5)*2,
          0xD8C29A, 0.4, 0.5);
-  if(K.load >= K.capacite - 0.01) showHint('CAISSON PLEIN · AU DÉPÔT OU À LA SCIERIE');
-  else showHint('ARBRE ABATTU · ' + kg(a.kg) + ' DE GRUMES');
+  showHint('ARBRE ABATTU · ' + kg(a.kg) + ' DE GRUMES AU SOL');
 }
 function travailForet(m, dt){
-  const v = m.v, K = v.cargo, ud = v.group.userData;
+  const v = m.v, ud = v.group.userData;
   const repos = ()=>{ v.coupe = null; if(ud.bras) ud.bras.rotation.x = BRAS_REPOS; };
-  if(m !== MACHINES[cur] || v.auto || !K || v.speed > 1.6){ repos(); return; }
+  if(!v.coupe){ if(ud.bras) ud.bras.rotation.x = BRAS_REPOS; return; }
+  const a = v.coupe.a;
   const f = v.fwd(), px = v.pos.x + f.x*3.4, pz = v.pos.z + f.z*3.4;
-  let a = v.coupe ? v.coupe.a : null;
-  if(!a || a.etat !== 0 || a.chute || Math.hypot(a.x - px, a.z - pz) > PORTEE_ABATTAGE + 1){
-    a = null; let best = PORTEE_ABATTAGE;
-    for(const b of FORET.arbres){
-      if(b.etat !== 0 || b.chute) continue;
-      const d = Math.hypot(b.x - px, b.z - pz);
-      if(d < best){ best = d; a = b; }
-    }
-    v.coupe = a ? {a, t:0} : null;
-    if(!a){ repos(); return; }
-  }
-  if(K.load + a.kg > K.capacite + 0.01){
-    if(!v.pleinDit){ v.pleinDit = true; showHint('CAISSON PLEIN · AU DÉPÔT OU À LA SCIERIE'); }
-    repos(); return;
-  }
-  v.pleinDit = false;
+  // La coupe s'interrompt si l'on repart, si l'on change d'engin, ou si l'arbre s'éloigne.
+  if(m !== MACHINES[cur] || v.auto || v.speed > 1.6 || a.etat !== 0 || a.chute
+     || Math.hypot(a.x - px, a.z - pz) > PORTEE_ABATTAGE + 1){ repos(); return; }
   v.coupe.t += dt;
   // La tête mord, la scie tourne, la sciure vole, et l'arbre tremble.
   if(ud.bras) ud.bras.rotation.x = BRAS_REPOS - 0.16*Math.sin(v.coupe.t*7);
@@ -8060,7 +8094,11 @@ function majForet(dt){
       a.chute.t += dt;
       const u = Math.min(1, a.chute.t/DUREE_CHUTE), e = u*u;
       a.mesh.rotation.y = a.chute.dir; a.mesh.rotation.x = e*1.48;
-      if(u >= 1){ a.chute = null; a.etat = 1; a.t = 0; poserEtatArbre(a); }
+      if(u >= 1){
+        const dir = a.chute.dir;
+        a.chute = null; a.etat = 1; a.t = 0; poserEtatArbre(a);
+        poserGrume(a.x, a.z, dir, a.kg, a.s);          // le tronc, là où l'arbre est tombé
+      }
       continue;
     }
     if(a.etat === 1){
@@ -8076,6 +8114,52 @@ function majForet(dt){
   for(const m of MACHINES){
     const P = m.v.group.userData.pile;
     if(P) P.visible = !!(m.v.cargo && m.v.cargo.load > 1);
+  }
+}
+/* ---------- LES GRUMES AU SOL ----------
+   Un tronc de 5,2 fois l'échelle de l'arbre, du rayon de sa souche, posé dans le sens de la
+   chute, le pied contre la souche. Trois petits cercles BAS le long du tronc en font un
+   obstacle qu'on franchit en le sentant (voir `franchir`), comme un rocher plat : un
+   porteur qui roule dessus ralentit et soulève la poussière, il ne rebondit pas. */
+const GRUMES = [];
+function poserGrume(x, z, dir, kg, s){
+  const L = 5.2*s, r = 0.34*s;
+  const g = new THREE.Group();
+  grumeBois(g, 0, r, 0, L, r, 0);
+  const cx = x + Math.sin(dir)*(L/2 + 0.6), cz = z + Math.cos(dir)*(L/2 + 0.6);
+  g.position.set(cx, 0, cz); g.rotation.y = dir - Math.PI/2;   // l'axe du tronc suit la chute
+  g.userData.anime = true;
+  scene.add(g);
+  const G = {x:cx, z:cz, dir, kg, kg0:kg, s, mesh:g, obs:[]};
+  for(const u of [-0.32, 0, 0.32]){
+    const o = {x:cx + Math.sin(dir)*L*u, z:cz + Math.cos(dir)*L*u, r:r + 0.6, bas:true, grume:G};
+    obstacles.push(o); G.obs.push(o);
+  }
+  GRUMES.push(G);
+  return G;
+}
+function retirerGrume(G){
+  scene.remove(G.mesh);
+  for(const o of G.obs){ const i = obstacles.indexOf(o); if(i >= 0) obstacles.splice(i, 1); }
+  const j = GRUMES.indexOf(G); if(j >= 0) GRUMES.splice(j, 1);
+}
+// Les grumes à portée du grappin, la plus proche d'abord.
+const grumesAPortee = (v)=> GRUMES
+  .filter((G)=> Math.hypot(G.x - v.pos.x, G.z - v.pos.z) <= PORTEE_GRUME)
+  .sort((A, B)=> Math.hypot(A.x - v.pos.x, A.z - v.pos.z) - Math.hypot(B.x - v.pos.x, B.z - v.pos.z));
+// Les grumes dans la sauvegarde : une ligne par tronc — centre, sens, poids, échelle.
+function etatGrumes(){
+  return GRUMES.map((G)=> [+G.x.toFixed(2), +G.z.toFixed(2), +G.dir.toFixed(3), Math.round(G.kg), +G.s.toFixed(3)]);
+}
+function restaurerGrumes(E){
+  while(GRUMES.length) retirerGrume(GRUMES[0]);
+  if(!Array.isArray(E)) return;
+  for(const q of E){
+    if(!Array.isArray(q) || q.length < 5) continue;
+    const s = Math.max(0.5, Math.min(1.5, +q[4] || 1)), L = 5.2*s, dir = +q[2] || 0;
+    // `poserGrume` reçoit le PIED de l'arbre : on le retrouve depuis le centre gardé.
+    poserGrume(+q[0] - Math.sin(dir)*(L/2 + 0.6), +q[1] - Math.cos(dir)*(L/2 + 0.6), dir,
+               Math.max(1, +q[3] || 0), s);
   }
 }
 // La forêt dans la sauvegarde : 0 pour un arbre mûr, [état, âge] pour les autres.
@@ -14936,12 +15020,20 @@ class Vehicle {
         const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, l2 = lx*lx + lz*lz;
         let u = 0; if(l2 > 1e-6){ u = ((o.x - cap.x1)*lx + (o.z - cap.z1)*lz)/l2; u = Math.max(0, Math.min(1, u)); }
         const px = cap.x1 + lx*u, pz = cap.z1 + lz*u;
-        const dx = px - o.x, dz = pz - o.z, R = o.r + cap.r + (o.soft ? 0.15 : 0);
+        /* L'ABATTEUSE BUTE SUR LE TRONC, ET RIEN D'AUTRE. Pour tout autre engin un arbre
+           est un renversable de 0,9 fois son échelle, plus quinze centimètres de garde :
+           on le touche à deux mètres et demi et l'on est renvoyé. L'abatteuse, elle, doit
+           venir mettre sa tête sur l'écorce : son rayon d'arrêt est celui du tronc, et le
+           contact est un butoir sans choc (`buter`). Le joueur : « pas de choc quand elle
+           arrive près d'un arbre — plus doux, qu'on puisse s'approcher vraiment plus près. » */
+        const doux = !!(o.arbre && this.abatteuse);
+        const dx = px - o.x, dz = pz - o.z, R = doux ? o.tronc + cap.r : o.r + cap.r + (o.soft ? 0.15 : 0);
         const d2 = dx*dx + dz*dz;
         if(d2 >= R*R || d2 < 1e-4) continue;
         const d = Math.sqrt(d2);
         // Ce qui se franchit ne heurte pas : voir `franchir` et `BAS_HAUT`.
         if(o.bas){ this.franchir(o, px, pz); continue; }
+        if(doux){ this.buter(px, pz, dx/d, dz/d, R - d); gabarits(this, G); cap = G[ci]; continue; }
         this.contact(px, pz, dx/d, dz/d, R - d, o.soft ? o : null, (o.k && o.k.lampe) ? 'lampadaire' : 'autre', cap.part);
         gabarits(this, G); cap = G[ci];
       }
@@ -14985,6 +15077,16 @@ class Vehicle {
     this.vel.x *= k; this.vel.y *= k;
     this.speed = Math.hypot(this.vel.x, this.vel.y);
     if(this.speed > 2 && siSouvent(0.5)) puff(px, 0.45, pz, 0xE8E0CC, 0.4, 0.35);
+  }
+  /* BUTER SANS CHOC. On ôte à l'engin ce qu'il avait de vitesse VERS l'obstacle — et rien
+     d'autre : pas de renvoi, pas de pivot, pas de raclement —, et on le ressort de ce
+     qu'il avait pénétré. Il s'arrête contre, et il repart quand il veut. C'est l'abatteuse
+     devant un tronc ; le glissement le long reste libre, on peut se ranger contre l'arbre. */
+  buter(px, pz, nx, nz, pen){
+    const vn = this.vel.x*nx + this.vel.y*nz;
+    if(vn < 0){ this.vel.x -= nx*vn; this.vel.y -= nz*vn; }
+    this.pos.x += nx*pen; this.pos.z += nz*pen;
+    this.speed = Math.hypot(this.vel.x, this.vel.y);
   }
   contact(px, pz, nx, nz, pen, o, genre, part){
     const vn = -(this.vel.x*nx + this.vel.y*nz);
@@ -21386,7 +21488,12 @@ MACHINES.find(m=>m.key==='fourgon').v.cargo = {capacite:155, load:0};
 // qui partageraient une trémie se bloqueraient l'une l'autre.
 MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:100, load:0};
 // Les deux caissons du bois : trois arbres pour l'abatteuse, huit pour le porteur.
+// LE CAISSON DE L'ABATTEUSE NE SERT PLUS À LA COUPE — la grume reste au sol, le porteur
+// la ramasse — ; il reste, vide, pour que la relecture d'une vieille partie ne trouve pas
+// un engin sans caisse. Et l'engin se déclare : c'est lui qui bute sur les troncs sans
+// choc (voir `decorGabarits`).
 MACHINES.find(m=>m.key==='abatteuse').v.cargo = {capacite:150, load:0};
+MACHINES.find(m=>m.key==='abatteuse').v.abatteuse = true;
 MACHINES.find(m=>m.key==='porteur').v.cargo = {capacite:400, load:0};
 // Le port : la caisse du frigo, et la cale de chaque bateau.
 MACHINES.find(m=>m.key==='frigo').v.cargo = {capacite:300, load:0};
@@ -21472,7 +21579,7 @@ const PALIERS = {
                      {vite:1.30, caisse:400, prix:5000},
                      {vite:1.45, caisse:700, prix:11000}]},
   // Les deux engins du bois montent comme l'enjambeuse : de la vitesse et du caisson.
-  abatteuse: {nom:'Abatteuse',    donne:'vitesse et caisson',
+  abatteuse: {nom:'Abatteuse',    donne:'vitesse',
               crans:[{vite:1.00, caisse:150},
                      {vite:1.12, caisse:260, prix:2200},
                      {vite:1.25, caisse:420, prix:6000},
@@ -22592,8 +22699,7 @@ function detailEngin(m){
     return 'Récolte la vigne et les oliviers · benne '
            + kg(m.v.cargo ? m.v.cargo.capacite : 100);
   if(m.key === 'abatteuse')
-    return 'Abat les arbres mûrs de la forêt · caisson '
-           + kg(m.v.cargo ? m.v.cargo.capacite : 150);
+    return 'Abat les arbres mûrs de la forêt · la grume reste au sol, le porteur la ramasse';
   if(m.key === 'porteur')
     return 'Porte les grumes du dépôt aux ateliers du bois · caisson '
            + kg(m.v.cargo ? m.v.cargo.capacite : 400);
@@ -26179,9 +26285,16 @@ const LECONS = [
      sur un arbre mûr, et la tête fait le reste. C'est une porte qui s'ouvre, pas un mur,
      et elle se solde au premier arbre abattu. La flèche montre l'arbre mûr le plus proche. */
   {cle:'abattage', humeur:'projette', ou:'foret', nom:'LA FORÊT', titre:'LA FORÊT',
-   txt:'LA FORÊT – Avance au ralenti sur un arbre mûr : la tête le scie toute seule et les '
-     + 'grumes tombent dans le caisson. Plein, on le vide au dépôt, ou on le vend à la scierie.',
+   txt:'LA FORÊT – Approche-toi d\'un arbre mûr et arrête-toi : le bouton COUPER L\'ARBRE '
+     + 'apparaît. L\'arbre tombe et sa grume reste au sol ; c\'est le porteur qui la ramasse '
+     + 'et la porte au dépôt de bois, ou à la scierie.',
    quand:()=> MACHINES[cur].key === 'abatteuse'},
+  /* ET LA PREMIÈRE FOIS QU'ON MONTE DANS LE PORTEUR QUAND UNE GRUME ATTEND : la flèche
+     montre la grume la plus proche, et la leçon se solde au premier kilo chargé. */
+  {cle:'ramassage', humeur:'projette', ou:'grume', nom:'LES GRUMES', titre:'LES GRUMES',
+   txt:'LES GRUMES – Arrête le porteur à côté d\'une grume au sol : CHARGER la monte au '
+     + 'caisson. Plein, vide-le au dépôt de bois, ou vends les grumes à la scierie.',
+   quand:()=> MACHINES[cur].key === 'porteur' && GRUMES.length > 0},
   /* LA PREMIÈRE FOIS QU'ON MONTE DANS UN BATEAU : la flèche montre le spot le plus proche,
      et la leçon se solde au premier lot remonté. */
   {cle:'peche', humeur:'projette', ou:'spot', nom:'LA PÊCHE', titre:'LA PÊCHE',
@@ -26217,6 +26330,16 @@ function lieuLecon(L){
       if(d < bd){ bd = d; best = Sp; }
     }
     return best ? {lieu:'spot', x:best.x, z:best.z} : null;
+  }
+  if(ou === 'grume'){
+    // La grume au sol la plus proche de l'engin : c'est elle qu'on va ramasser.
+    const v = MACHINES[cur].v;
+    let best = null, bd = 1e9;
+    for(const G of GRUMES){
+      const d = Math.hypot(G.x - v.pos.x, G.z - v.pos.z);
+      if(d < bd){ bd = d; best = G; }
+    }
+    return best ? {lieu:'grume', x:best.x, z:best.z} : null;
   }
   if(ou === 'foret'){
     // L'arbre mûr le plus proche de l'engin : c'est lui qu'on va couper.
@@ -28770,6 +28893,7 @@ function actionsIci(m){
     out = out.concat(actionsEntrepot(m));
   if(DEPOT_BOIS.quai && prochePoint(v, DEPOT_BOIS.quai.x, DEPOT_BOIS.quai.z, DEPOT_BOIS.r))
     out = out.concat(actionsDepotBois(m));
+  if(GRUMES.length) out = out.concat(actionsGrumes(m));
   if(QUAI_PECHE.pose && (prochePoint(v, PORT.debarque.x, PORT.debarque.z, PORT.r)
                          || prochePoint(v, PORT.charge.x, PORT.charge.z, PORT.r)))
     out = out.concat(actionsQuaiPeche(m));
@@ -28825,6 +28949,7 @@ function quantiteMax(m, A){
     case 'prendreEntrepot': return Math.min(place, entrepotStock(A.cle));
     case 'deposerBois': return Math.min(porte, DEPOT_BOIS.max - DEPOT_BOIS.stock);
     case 'prendreBois': return Math.min(place, DEPOT_BOIS.stock);
+    case 'ramasserBois': return Math.min(place, grumesAPortee(m.v).reduce((s, G)=> s + G.kg, 0));
     case 'debarquer': return Math.min(porte, QUAI_PECHE.max - quaiPecheTotal());
     case 'prendrePeche': return Math.min(place, QUAI_PECHE.stock[A.cle] || 0);
     case 'auge': return Math.min(porte, A.P.grainMax - A.P.grain);
@@ -29064,6 +29189,22 @@ function executer(m, A, dt){
       ajouterCharge(T, A.cle, q); DEPOT_BOIS.stock = Math.max(0, DEPOT_BOIS.stock - q); majPileDepot();
       if(siSouvent(0.3)) puff(DEPOT_BOIS.x, 1.6, DEPOT_BOIS.z, 0xD8C29A, 0.35, 0.3);
       if(T.load >= T.capacite - 0.01) showHint('GRUMES CHARGÉES');
+      return;
+    }
+    case 'ramasserBois': {
+      // La grume la plus proche monte au caisson, kilo par kilo ; vidée, elle disparaît.
+      const G = grumesAPortee(v)[0];
+      if(!G) return;
+      const q = Math.min(debit, T.capacite - T.load, G.kg);
+      if(q <= 0.0001) return;
+      ajouterCharge(T, A.cle, q); G.kg -= q;
+      solderLecon('ramassage');
+      if(siSouvent(0.3)) puff(G.x + (Math.random() - 0.5)*2, 0.7, G.z + (Math.random() - 0.5)*2, 0xD8C29A, 0.35, 0.3);
+      if(G.kg <= 0.01){
+        retirerGrume(G);
+        if(T.load >= T.capacite - 0.01) showHint('CAISSON PLEIN · AU DÉPÔT OU À LA SCIERIE');
+        else if(!grumesAPortee(v).length) showHint('GRUMES CHARGÉES');
+      }
       return;
     }
     case 'vendre': {
@@ -29540,6 +29681,15 @@ function actionService(){
   if(aQuai(v, COMPTOIR))
     return cuves.concat([{txt:'COMPTOIR AGRICOLE', ok:true, f:()=> ouvrirFenetre('comptoir')}]);
   if(cuves.length) return cuves;
+  /* LA COUPE EST UN BOUTON. Le joueur : « dès qu'on arrive à côté d'un arbre, il faut qu'il
+     y ait un bouton en bas pour couper. » À l'arrêt, un arbre mûr à portée de la tête, et
+     la colonne propose COUPER L'ARBRE ; pendant la coupe, elle dit qu'elle coupe. */
+  if(m.key === 'abatteuse' && !v.auto){
+    if(v.coupe) return {txt:'COUPE EN COURS – ' + kg(v.coupe.a.kg).toUpperCase() + ' DE GRUMES', ok:false};
+    const a = arbreAPortee(v);
+    if(a) return {txt:'COUPER L\'ARBRE – ' + kg(a.kg).toUpperCase() + ' DE GRUMES', ok:true,
+                  f:()=>{ lancerCoupe(m); }};
+  }
   // Devant un enclos, deux gestes qui ne passent pas par la benne : acheter une bête,
   // en embarquer pour la boucherie. Ils sortent ensemble — l'un remplit l'enclos,
   // l'autre le vide, et on vient souvent faire les deux dans la même halte.
@@ -29783,7 +29933,8 @@ const VERBE_ACTE = {
   tremie:'deposer', ranger:'deposer', rangerEntrepot:'deposer', auge:'deposer',
   vendre:'livrer', verser:'livrer', tremieVente:'livrer', tremieLivraison:'livrer',
   // Le dépôt de bois et le quai de débarque : on y dépose, on y charge.
-  deposerBois:'deposer', prendreBois:'charger', debarquer:'deposer', prendrePeche:'charger'
+  deposerBois:'deposer', prendreBois:'charger', debarquer:'deposer', prendrePeche:'charger',
+  ramasserBois:'charger'                     // les grumes au sol, à la portée du grappin
 };
 const MOT_VERBE = {charger:'Charger', deposer:'Déposer', livrer:'Livrer', elevage:'Interagir'};
 /* ET LE MOT DU GESTE, LÀ OÙ LE NOM SEUL NE SUFFIT PAS. Sous les trois verbes ordinaires,
@@ -30160,7 +30311,7 @@ function refreshChoix(){
   const rang = {tremie:0, tremieVente:0, tremieLivraison:0, vendre:1, verser:1, ranger:1,
                 auge:1, rangerEntrepot:1, deposerBois:1, debarquer:1,
                 prendre:2, reprendre:2, prendreEntrepot:2, prendreBois:2, prendrePeche:2,
-                traire:2, traire2:2};
+                ramasserBois:2, traire:2, traire2:2};
   const rangDe = (A)=> (estMission(A) ? -1 : rang[A.sens]);
   const tri = L.slice().sort((A, B)=> (rangDe(A) - rangDe(B)) || A.txt.localeCompare(B.txt));
   const lignes = [];
@@ -30194,6 +30345,7 @@ function refreshChoix(){
                         : A.lieu === 'silo' ? 'Silo'
                         : A.lieu === 'entrepot' ? 'Entrepôt'
                         : A.lieu === 'depotBois' ? 'Dépôt de bois'
+                        : A.lieu === 'foret' ? 'Forêt'
                         : A.lieu === 'quaiPeche' ? 'Quai de débarque'
                         : A.P ? (ESPECES[A.P.espece] || ESPECES.vache).pluriel
                         : A.lieu;
@@ -33797,6 +33949,7 @@ function etatJeu(){
     entrepot: Object.assign({}, ENTREPOT.stock),
     // La forêt et le dépôt de grumes : deux champs FACULTATIFS de plus, `v` ne bouge pas.
     foret: etatForet(),
+    grumesSol: etatGrumes(),                 // les troncs au sol, à ramasser
     depotBois: DEPOT_BOIS.stock,
     quaiPeche: Object.assign({}, QUAI_PECHE.stock),
     /* LES CHANTIERS SE SAUVEGARDENT, ET RIEN DE LEUR AVANCEMENT.
@@ -34264,6 +34417,7 @@ function chargerPartie(S){
       if(PRODUITS[k] && S.entrepot[k] > 0.005) ENTREPOT.stock[k] = S.entrepot[k];
     // La forêt d'une partie d'avant le bois repart mûre, et son dépôt vide.
     restaurerForet(S.foret);
+    restaurerGrumes(S.grumesSol);
     DEPOT_BOIS.stock = Math.max(0, Math.min(DEPOT_BOIS.max, +S.depotBois || 0));
     majPileDepot();
     // Le quai de pêche d'une partie d'avant le port est vide.
