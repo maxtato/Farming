@@ -4249,7 +4249,8 @@ function acheteursDe(cle, sauf, quantite){
    en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false};
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false,
+                  ouverture:false};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
    d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
@@ -5385,6 +5386,9 @@ function chargerCampagne(S){
        repart à zéro à chaque mission finie, si bien qu'une vieille partie ne saute que
        les étapes de la mission où elle dormait. */
     CAMPAGNE.tuto = C.tuto === undefined ? 99 : Math.max(0, Math.min(99, C.tuto | 0));
+    /* L'ARRIVÉE DU PICK-UP, VUE OU NON. Absent d'une vieille sauvegarde, le champ vaut
+       « vue » : une partie en cours ne se voit pas raconter l'héritage en repartant. */
+    CAMPAGNE.ouverture = C.ouv === undefined ? true : !!C.ouv;
     /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
        la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
        après a glissé d'un cran. `99` — « tout franchi » — ne bouge pas. */
@@ -33333,6 +33337,9 @@ function etatJeu(){
                // longueur de la table : une partie déjà commencée ne se voit pas
                // expliquer comment labourer.
                tuto: CAMPAGNE.tuto,
+               // L'arrivée du pick-up a-t-elle été jouée jusqu'aux trois pages ?
+               // Facultatif : absent, il vaut « oui » (voir `chargerCampagne`).
+               ouv: CAMPAGNE.ouverture ? 1 : 0,
                // Quelle TABLE a écrit ce rang : voir `TUTO_V`. Facultatif, `v` ne bouge pas.
                tv: TUTO_V,
                /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
@@ -33980,13 +33987,24 @@ function lancerLibre(){
    qu'ils attendent n'a bougé. Un plafond de quarante-cinq secondes termine une arrivée qui
    n'arriverait pas, et une partie rechargée pendant l'arrivée la rejoue depuis la route. */
 const INTRO = {actif:false, phase:'', t:0};
-const INTRO_DEPART = {x:46, z:ROAD_C - 2.5, cap:-Math.PI/2};   // rocade sud, voie de droite, nez à l'ouest
+/* ELLE COMMENCE AU VIRAGE, ET PAS AVANT. Le joueur : « que l'arrivée du pick-up se fasse
+   juste au moment où il tourne dans la ferme et où il se gare, pas commencer avant ; on
+   doit juste voir le pick-up tourner tout de suite dans la ferme et se garer. »
+   Elle partait de x = 46, à quatre-vingt-quatorze mètres de la maison : quatre-vingts
+   mètres de ligne droite sur la rocade avant que rien n'arrive, mesurés à quatorze
+   secondes et demie de jeu. Le pick-up quitte la chaussée à x = −38 — c'est là que le
+   chemin de l'ouest descend vers la cour —, et il se pose donc quatorze mètres avant,
+   DÉJÀ LANCÉ : sans vitesse d'entrée il démarrerait à l'arrêt au milieu d'une route, ce
+   qui n'a l'air ni d'une arrivée ni de rien. On voit le virage, la descente du chemin et
+   le créneau devant la porte, et rien d'autre. */
+const INTRO_DEPART = {x:-31, z:ROAD_C - 2.5, cap:-Math.PI/2, v:8};   // rocade sud, nez à l'ouest, lancé
 function lancerIntro(){
   const i = MACHINES.findIndex((m)=> m.key === 'pickup');
   if(i < 0 || MACHINES[i].verrou) return false;
   const v = MACHINES[i].v;
   v.pos.x = INTRO_DEPART.x; v.pos.z = INTRO_DEPART.z; v.cap = INTRO_DEPART.cap;
-  v.vel.x = 0; v.vel.y = 0; v.speed = 0; v.auto = false; v.mission = null;
+  const f0 = v.fwd(), v0 = INTRO_DEPART.v || 0;
+  v.vel.x = f0.x*v0; v.vel.y = f0.z*v0; v.speed = v0; v.auto = false; v.mission = null;
   v.route = null; v.routeBut = null; v.routeArr = null;
   setMachine(i);
   INTRO.actif = true; INTRO.phase = 'route'; INTRO.t = 0;
@@ -34023,6 +34041,7 @@ function introDrive(m, dt){
    du labour vient juste derrière. */
 function finIntro(){
   INTRO.actif = false; INTRO.phase = '';
+  CAMPAGNE.ouverture = true;      // vue : elle ne se rejouera pas à la reprise
   if(!(tutoActif() && CAMPAGNE.tuto === 0)) return;
     annoncerFenetre({titre:'UN HÉRITAGE',
       sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
@@ -34040,7 +34059,9 @@ function finIntro(){
       suite:'Au boulot.'});
     annoncerEtape(TUTO[0]);
 }
-function lancerPartie(){
+/* `reprise` EST VRAI QUAND ON REPREND UNE PARTIE SAUVEGARDÉE, et faux quand on en
+   commence une. Voir le bloc de l'ouverture, plus bas dans cette fonction. */
+function lancerPartie(reprise){
   if(demarre) return;
   demarre = true;
   SAVE.pret = true;              // à partir d'ici seulement, l'état en mémoire fait foi
@@ -34054,7 +34075,21 @@ function lancerPartie(){
      centré, une animation, un doigt pour passer, et surtout AUCUNE PAUSE. L'accueil, lui,
      met le jeu en pause et porte les boutons `.accbtn.pri` par lesquels dix bancs entrent
      dans la partie : s'en servir ici les arrêterait tous. */
-  // L'ouverture : le pick-up arrive, et le héros parle en arrivant (voir `lancerIntro`).
+  /* L'OUVERTURE : le pick-up arrive, et le héros parle en arrivant (voir `lancerIntro`).
+     ELLE NE SE REJOUE JAMAIS À LA REPRISE. Le joueur : « fais qu'une fois qu'on quitte le
+     jeu et qu'on fait reprendre, que ça reprenne pas avec cette cinématique, que ça
+     reprenne exactement de là où on s'est arrêté. » Elle se rejouait : le cliquet du
+     tutoriel se relit à zéro tant que la première marche n'est pas soldée, et l'arrivée
+     ne regardait que lui — elle TÉLÉPORTAIT donc le pick-up sur la rocade, effaçant la
+     position que la sauvegarde venait de rendre. Une reprise ne touche plus à rien.
+     ET LE HÉROS PARLE QUAND MÊME S'IL N'A PAS ENCORE PARLÉ. Une partie quittée PENDANT
+     l'arrivée n'a pas vu les trois pages ; `CAMPAGNE.ouverture`, écrit dans la
+     sauvegarde, dit si elles ont été lues. Absent d'une vieille sauvegarde, il vaut
+     « déjà lues » : on ne relance pas un récit au milieu d'une partie en cours. */
+  if(reprise){
+    if(tutoActif() && CAMPAGNE.tuto === 0 && !CAMPAGNE.ouverture) finIntro();
+    return;
+  }
   if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
 }
 /* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
@@ -34081,7 +34116,7 @@ function lancerPartie(){
     MODE_LIBRE = !!libre;
     if(!chargerPartie(S)) showHint('SAUVEGARDE ENDOMMAGÉE · NOUVELLE PARTIE CRÉÉE');
     if(libre){ majBulles(); if(typeof caleEspece === 'function') caleEspece(); }
-    lancerPartie();
+    lancerPartie(true);          // une REPRISE : pas de cinématique, on repart sur place
   };
   const lignes = [];
   if(SC) lignes.push('Campagne – ' + resume(SC));

@@ -15660,3 +15660,47 @@ relevés (arrière et avant des douze engins à roues) donnent **100 %**, contre
 `chocs` (28), `port` (31), `bois` (22), `camion` (18), `export` (12), `village` (16), `grandes`
 (7), `acces` (5), `sansvue` (9), `ouverture` (6) verts ; `regression` garde ses deux contrôles
 de roulis de moissonneuse, rouges à l'identique avant le correctif.
+
+## L'arrivée commence au virage, et ne se rejoue jamais
+
+Le joueur : « que l'arrivée du pick-up se fasse juste au moment où il tourne dans la ferme et
+où il se gare, pas commencer avant ; on doit juste voir le pick-up tourner tout de suite dans
+la ferme et se garer. Et fais qu'une fois qu'on quitte le jeu et qu'on fait reprendre, que ça
+reprenne pas avec cette cinématique, que ça reprenne exactement de là où on s'est arrêté. »
+
+**Elle partait de trop loin.** Le pick-up naissait à x = 46, sur la rocade sud, à
+**quatre-vingt-quatorze mètres** de la maison : quatre-vingts mètres de ligne droite avant que
+rien n'arrive. Mesuré au banc, image par image : **14,5 s de jeu**, dont huit de route vide.
+
+Il quitte la chaussée à **x = −38** — c'est là que le chemin de l'ouest descend vers la cour —
+et il se pose maintenant sept mètres avant, **déjà lancé à huit mètres par seconde** : sans
+vitesse d'entrée il démarrerait à l'arrêt au milieu d'une route, ce qui n'a l'air ni d'une
+arrivée ni de rien. On voit le virage, la descente du chemin, le créneau devant la porte, et
+rien d'autre.
+
+| l'arrivée | départ | durée | ce qu'on voit d'abord |
+|---|---|---|---|
+| avant | x = 46, à 94 m | 14,5 s | huit secondes de rocade |
+| **après** | **x = −31, à 24 m** | **5,1 s** | **le virage, tout de suite** |
+
+**Et elle se rejouait à chaque reprise, en effaçant la position sauvegardée.** Le cliquet du
+tutoriel se relit à zéro tant que la première marche n'est pas soldée, et l'arrivée ne
+regardait que lui : reprendre une partie la relançait donc depuis la route, et le pick-up était
+**téléporté** sur la rocade par-dessus la position que la sauvegarde venait de rendre.
+Reproduit au banc avant correctif : partie posée à −10/30, sauvegardée, page rechargée,
+« Reprendre la campagne » → le pick-up se retrouvait à **43,4/71,5**.
+
+`lancerPartie` prend maintenant un argument : une **reprise** ne lance aucune cinématique et ne
+touche à rien. Et le héros parle quand même s'il n'a pas encore parlé — une partie quittée
+*pendant* l'arrivée n'a pas vu les trois pages ; `CAMPAGNE.ouverture`, écrit dans la sauvegarde
+sous `ouv`, dit si elles ont été lues. Champ facultatif, comme tout ce bloc : absent d'une
+vieille sauvegarde il vaut « déjà lues », de sorte qu'aucune partie en cours ne se voit
+raconter l'héritage en repartant.
+
+**Mesuré.** Le banc `ouverture` passe de 6 à **9 contrôles** : deux pour le départ au virage,
+deux pour la reprise — l'un sur une partie ordinaire, l'autre sur une partie quittée pendant
+l'arrivée —, et les deux rechargent vraiment la page et cliquent « Reprendre la campagne »,
+comme le joueur. **Les quatre échouent sur le commit précédent.** `chocs` (28), `port` (31),
+`bois` (22), `camion` (18), `export` (12), `village` (16), `grandes` (7), `acces` (5),
+`sansvue` (9) verts ; `campagne` 75 sur 76, `migration` et `lecons` rendent exactement les
+mêmes comptes qu'avant.
