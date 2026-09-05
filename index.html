@@ -8189,6 +8189,73 @@ function mouchetures(x0, z0, x1, z1, y, n, base){
   m.castShadow = false; m.receiveShadow = true; scene.add(m);
   return m;
 }
+/* ---------- LE GRAIN DE L'HERBE, AU-DELÀ DES TUILES ----------
+   Le joueur : « mets des petits rectangles sur le sol en herbe, très léger. »
+   LES TUILES ONT CE GRAIN DEPUIS TOUJOURS : quinze cent quatre-vingts éclats peints, blanc
+   à 9 % et noir à 15 %, qui empêchent la prairie d'être un aplat mort (voir
+   `paintStaticGround`). Au-delà d'elles, le monde n'est qu'un PLAN d'une seule couleur — et
+   c'est là que se tiennent le port, la forêt, les usines et l'entrepôt. Le tapis de la forêt
+   cachait le défaut sur sa moitié ; il est parti, et l'aplat s'est vu.
+   ON NE PEUT PAS Y PEINDRE — il n'y a pas de toile —, donc on pose des plaques, comme pour
+   le béton du quai et la terre du dépôt. Mêmes tailles, mêmes teintes et MÊME DENSITÉ que le
+   grain peint des tuiles, un éclat tous les 74 m² : les deux herbes se ressemblent, et la
+   couture ne se voit pas.
+   TOUT CE QUI N'EST PAS DE L'HERBE EST REFUSÉ : le bitume — la petite route de béton du port
+   comprise, `surRoute` la connaît —, l'eau, les dalles du port et la jetée, la piste et la
+   place du bois, et les terrains des commerces. Chacun a déjà son propre grain, et deux
+   grains superposés font une salissure.
+   LES CINQ TIRAGES SE FONT AVANT LE REFUS, et non après : le flux `alea` avance donc du même
+   nombre de pas quoi qu'on garde, et ce semis — le dernier de la construction — ne peut pas
+   décaler ce qui le précède.
+   ET LE GRAIN SE DÉCOUPE EN CASES DE CENT MÈTRES, une par maillage. En un seul morceau, il
+   couvrait le monde entier : le tronc de vue ne pouvait jamais l'écarter, et ses quatre mille
+   triangles étaient dessinés à chaque image où qu'on regarde — mesuré, 21 986 → 26 036
+   triangles sur une image du bois. Découpé, on n'en dessine que les cases qu'on regarde. */
+function grainHerbe(){
+  const N_PAR_M2 = 650/(220*220);          // le compte des tuiles, ramené au mètre carré
+  const cl = new THREE.Color(C.grass).lerp(new THREE.Color(0xFFFFFF), 0.09).getHex();
+  const cd = new THREE.Color(C.grass).lerp(new THREE.Color(0x000000), 0.15).getHex();
+  const Y = 0.005;                         // le plan d'herbe est à −0,03 : trois centimètres et demi au-dessus
+  const dans = (o, x, z)=> x > o.x0 && x < o.x1 && z > o.z0 && z < o.z1;
+  const herbe = (x, z)=>{
+    if(surRoute(x, z, 0.3)) return false;
+    if(dans(EAU, x, z)) return false;
+    if(dans(PORT.dalle, x, z) || dans(PORT.cale, x, z)) return false;
+    const J = PORT.jetee;
+    if(Math.abs(x - J.x) < J.w/2 && z > J.z0 && z < J.z1) return false;
+    if(Math.abs(x - PISTE_BOIS.x) < PISTE_BOIS.w/2 + 1 && z > PISTE_BOIS.z0 && z < PISTE_BOIS.z1) return false;
+    if(dans(PLACE_BOIS, x, z)) return false;
+    for(const S of SITES) if(S.emp && dans(S.emp, x, z)) return false;
+    return true;
+  };
+  const CASE = 100;
+  const seaux = new Map();
+  const semer = (x0, x1, z0, z1)=>{
+    const n = Math.round((x1 - x0)*(z1 - z0)*N_PAR_M2);
+    for(let k = 0; k < n; k++){
+      const x = x0 + alea()*(x1 - x0), z = z0 + alea()*(z1 - z0);
+      const w = 0.5 + alea()*1.7, d = 0.4 + alea()*1.1, clair = alea() < 0.5;
+      if(!herbe(x, z)) continue;
+      const cle = Math.floor(x/CASE) + ':' + Math.floor(z/CASE);
+      let t = seaux.get(cle);
+      if(!t){ t = []; seaux.set(cle, t); }
+      t.push({g:PLAQUE_G, c:clair ? cl : cd, m:new THREE.Matrix4().compose(
+        new THREE.Vector3(x, Y, z), new THREE.Quaternion(), new THREE.Vector3(w, 1, d))});
+    }
+  };
+  semer(MONDE.x0 + 1, X0, MONDE.z0 + 1, MONDE.z1 - 1);   // tout l'ouest, jusqu'à la mer
+  semer(X1, MONDE.x1 - 1, MONDE.z0 + 1, MONDE.z1 - 1);   // tout l'est : les usines, la forêt, l'entrepôt
+  semer(X0, X1, MONDE.z0 + 1, Z0);                       // la lisière nord
+  semer(X0, X1, Z1, MONDE.z1 - 1);                       // la lisière sud
+  let n = 0;
+  for(const t of seaux.values()){
+    const m = new THREE.Mesh(mergeParts(t), MAT_FUSION);
+    m.castShadow = false; m.receiveShadow = true; scene.add(m);
+    n += t.length;
+  }
+  if(typeof DIAG !== 'undefined') DIAG.grainHerbe = {eclats:n, cases:seaux.size};
+  return n;
+}
 /* DES ARBRES SUR L'HERBE NUE. Le semis général s'arrête aux tuiles ; au-delà, seuls les
    creux des bandes, la forêt et la lande du port étaient plantés, et de grandes nappes
    d'herbe restaient nues — entre le port et le village au sud de la route, derrière les
@@ -20725,6 +20792,7 @@ buildFarm();
 // Le mobilier des grandes routes se pose EN DERNIER : il ne s'installe que là où il reste
 // de la place, et il lui faut donc voir tout ce que les autres ont bâti.
 garnirGrandesRoutes();
+grainHerbe();          // le dernier semis de tous : il voit toutes les dalles pour les éviter
 flushTiles();
 
 /* `timbre` ET `ton` : LE MOTEUR DE CHAQUE ENGIN.

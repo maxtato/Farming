@@ -15941,3 +15941,38 @@ piste. Il passe pour la première fois depuis : **11,3 s, dead straight, zéro �
 verts. `decor` : les lampadaires passent (34 sur 34), les sept autres échecs sont les mêmes
 qu'avant ce chantier. `rue` (12) inchangé ; `trafic` 7 contre 9 avant. Le mobilier de bord de
 route compte maintenant 12 lampadaires, 15 arbres, 2 abris — et zéro barrière.
+
+### Le grain de l'herbe, au-delà des tuiles
+
+Le joueur : « mets des petits rectangles sur le sol en herbe, très léger. »
+
+**Les tuiles ont ce grain depuis toujours** — quinze cent quatre-vingts éclats peints, blanc à
+9 % et noir à 15 %, qui empêchent la prairie d'être un aplat mort. Mais les tuiles ne couvrent
+que la ferme et le village : **au-delà, le monde n'est qu'un plan d'une seule couleur**, et
+c'est là que se tiennent le port, la forêt, les usines et l'entrepôt. Le tapis de la forêt
+cachait le défaut sur sa moitié ; il est parti au chapitre précédent, et l'aplat s'est vu.
+
+On ne peut pas y peindre — il n'y a pas de toile —, donc on pose des plaques, comme pour le
+béton du quai et la terre du dépôt. **Mêmes tailles, mêmes teintes et même densité que le grain
+peint des tuiles**, un éclat tous les 74 m² : les deux herbes se ressemblent, et la couture ne
+se voit pas.
+
+**2 097 éclats** posés, et **rien sur ce qui n'est pas de l'herbe** : ni le bitume — la petite
+route de béton du port comprise, `surRoute` la connaît —, ni l'eau, ni les dalles du port, ni la
+jetée, ni la piste et la place du bois, ni les terrains des commerces, ni les tuiles. Chacun a
+déjà son propre grain, et deux grains superposés font une salissure.
+
+**Deux précautions de fabrication, chacune mesurée :**
+
+- **les cinq tirages se font avant le refus**, et non après : le flux `alea` avance donc du même
+  nombre de pas quoi qu'on garde. Ce semis est le dernier de la construction et ne peut décaler
+  aucun de ceux qui le précèdent ;
+- **le grain est découpé en cases de cent mètres**, une par maillage. En un seul morceau il
+  couvrait le monde entier, le tronc de vue ne pouvait jamais l'écarter, et ses quatre mille
+  triangles étaient dessinés à chaque image où qu'on regarde : **21 986 → 26 036** triangles sur
+  une image du bois. Découpé en **52 cases** : **21 986 → 22 538**, trois appels de rendu de
+  plus.
+
+**Bancs.** `decor` : le contrôle est neuf et il échoue sur le commit précédent (zéro éclat) ;
+l'empreinte des trois chargements reste identique au centième, les sept autres échecs sont ceux
+d'avant. `bois` 22, `port` 36, `chocs` 31, `village` 16 verts.
