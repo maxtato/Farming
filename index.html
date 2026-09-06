@@ -14355,36 +14355,64 @@ function buildCaseyeur(){
 }
 /* Le camion frigorifique : caisse isotherme, groupe froid sur la face avant. Il emporte
    la marée du quai à la criée ; c'est le fourgon du port, avec deux fois sa caisse. */
+/* LE CAMION FRIGO A UN CAPOT. Le joueur : « pour le camion frigo, fais un avant un peu plus
+   différent, comme on pourrait avoir pour les camions américains, mais en plus petit, avec
+   une petite calandre. » C'était une cabine avancée, un cube de verre posé sur le châssis ;
+   c'est maintenant un nez de camion américain à l'échelle d'un porteur : une cabine
+   courte, un capot d'un mètre trente devant elle, une petite calandre chromée à cinq barres
+   entre deux phares, un pare-chocs chromé et des ailes sur les roues avant, qui reculent
+   sous le capot. Le caisson raccourcit de quarante centimètres pour que le camion ne
+   grandisse pas avec son nez — mesuré, 11,4 m hors tout contre 11,2, et 4,26 de large
+   avec les rétroviseurs contre 4,16 : « en plus petit », c'est toujours un porteur de
+   ville à côté du tracteur de la rocade. */
 function buildFrigo(){
   const g = new THREE.Group();
-  g.add(box(2.2, 0.34, 6.6, 0x453D34, 0, 0.68, 0));
-  const y = 0.85, h = 1.9, w = 2.24, d = 2.0, zc = 2.2, c = PO_.BLEU;
-  const hC = h*0.42, hV = h*0.42, hT = h - hC - hV;
+  const c = PO_.BLEU, chrome = PO_.INOX;
+  g.add(box(2.2, 0.34, 6.8, 0x453D34, 0, 0.68, 0.3));
+  // la cabine, courte, derrière le capot
+  const y = 0.85, w = 2.24, d = 1.5, zc = 1.6;
+  const hC = 0.8, hV = 0.75, hT = 0.35;
   g.add(box(w, hC, d, c, 0, y + hC/2, zc));
   g.add(box(w, hV, d, C.glass, 0, y + hC + hV/2, zc));
   g.add(box(w + 0.14, hT, d + 0.14, c, 0, y + hC + hV + hT/2, zc));
   for(const sx of [-1, 1]) for(const sz of [-1, 1])
     g.add(box(0.14, hV, 0.14, c, sx*(w/2 - 0.07), y + hC + hV/2, zc + sz*(d/2 - 0.07)));
-  g.add(box(2.4, 2.4, 4.4, PO_.CREME, 0, 2.05, -1.4));
-  g.add(box(2.46, 0.2, 4.5, 0xD8D2C0, 0, 3.25, -1.4));
-  for(let k = 0; k < 4; k++) g.add(box(2.44, 2.3, 0.07, 0xE4DED0, 0, 2.05, 0.4 - k*1.0));
-  g.add(box(1.5, 0.9, 0.4, PO_.INOX, 0, 3.1, 0.85));
-  for(let k = 0; k < 4; k++) g.add(box(1.3, 0.07, 0.1, PO_.GRIS2, 0, 2.85 + k*0.18, 1.06));
-  g.add(box(1.7, 0.6, 0.14, PO_.BLEU, 0, 2.2, -3.62));
+  for(const sx of [-1, 1]){                                              // rétroviseurs, serrés
+    g.add(box(0.2, 0.05, 0.05, 0x2A2E32, sx*(w/2 + 0.1), y + hC + 0.5, zc + d/2 - 0.1));
+    g.add(box(0.06, 0.34, 0.2, 0x2A2E32, sx*(w/2 + 0.18), y + hC + 0.36, zc + d/2 - 0.1));
+  }
+  // le capot : un nez de camion américain, en plus petit
+  const zN = 3.0, lN = 1.3;                                              // de 2,35 à 3,65
+  g.add(box(1.9, 0.85, lN, c, 0, y + 0.425, zN));
+  g.add(box(1.6, 0.16, lN - 0.1, c, 0, y + 0.93, zN - 0.05));
+  g.add(box(1.0, 0.62, 0.12, chrome, 0, 1.3, 3.66));                    // la petite calandre
+  for(let k = 0; k < 5; k++) g.add(box(0.84, 0.05, 0.08, PO_.GRIS2, 0, 1.06 + k*0.12, 3.72));
+  g.add(box(2.3, 0.28, 0.4, chrome, 0, 0.72, 3.62));                    // le pare-chocs
+  for(const sx of [-1, 1]){                                              // les ailes
+    g.add(box(0.5, 0.16, 1.7, c, sx*1.0, 1.2, 2.75));
+    g.add(box(0.5, 0.45, 0.14, c, sx*1.0, 1.0, 3.58));
+  }
+  // le caisson frigorifique, quarante centimètres plus court qu'avant
+  g.add(box(2.4, 2.4, 4.0, PO_.CREME, 0, 2.05, -1.2));
+  g.add(box(2.46, 0.2, 4.1, 0xD8D2C0, 0, 3.25, -1.2));
+  for(let k = 0; k < 4; k++) g.add(box(2.44, 2.3, 0.07, 0xE4DED0, 0, 2.05, 0.4 - k*0.95));
+  g.add(box(1.5, 0.9, 0.4, chrome, 0, 3.2, 0.85));                      // le groupe froid
+  for(let k = 0; k < 4; k++) g.add(box(1.3, 0.07, 0.1, PO_.GRIS2, 0, 2.95 + k*0.18, 1.06));
+  g.add(box(1.7, 0.6, 0.14, PO_.BLEU, 0, 2.2, -3.22));
   const F = jeuDeFeux();
-  for(const sx of [-0.8, 0.8]) optique(g, F, false, sx, 1.0,  3.24, 0.28, 0.17);
-  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.0, -3.66, 0.30, 0.22);
+  for(const sx of [-0.72, 0.72]) optique(g, F, false, sx, 1.34,  3.67, 0.24, 0.16);
+  for(const sx of [-0.8, 0.8])   optique(g, F, true,  sx, 1.0,  -3.26, 0.30, 0.22);
   const wr = [], wf = [];
   for(const sx of [-1.05, 1.05]){
-    const a = wheelMesh(0.48, 0.34); a.position.set(sx, 0.48, 2.1); g.add(a); wf.push(a);
+    const a = wheelMesh(0.48, 0.34); a.position.set(sx, 0.48, 2.6); g.add(a); wf.push(a);
     for(const sz of [-1.3, -2.4]){ const b2 = wheelMesh(0.48, 0.34); b2.position.set(sx, 0.48, sz); g.add(b2); wr.push(b2); }
   }
-  const gyro = gyrophare(g, 0.8, 3.4, 2.2);
+  const gyro = gyrophare(g, 0.7, y + hC + hV + hT + 0.16, zc);
   g.scale.setScalar(1.60);
   g.userData = {wr, wf, gyro, feux:F,
-    lampes:{avant:  {x:[-0.8, 0.8], y:1.0, z: 3.24, w:0.28, h:0.17},
-            arriere:{x:[-0.8, 0.8], y:1.0, z:-3.66, w:0.30, h:0.22},
-            nez:3.4}};
+    lampes:{avant:  {x:[-0.72, 0.72], y:1.34, z: 3.67, w:0.24, h:0.16},
+            arriere:{x:[-0.8, 0.8],   y:1.0,  z:-3.26, w:0.30, h:0.22},
+            nez:3.85}};
   return g;
 }
 /* ---------- LE CAMION AMÉRICAIN DU JOUEUR, ET SES TROIS REMORQUES ----------

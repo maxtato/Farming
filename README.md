@@ -16380,3 +16380,30 @@ rangs 20 et 21 de la criée et de la conserverie ne demande plus que deux rangs 
 `export` **12 sur 12** : le rang 19 de l'entrepôt n'est plus exigé, seulement vingt et un
 commerces. `village` 16 sur 16, `grandes` 7 sur 7, `acces` 5, `ouverture` 9, `chocs` 31 sur
 31, `camion` 19 sur 19 ; `rue` ses douze échecs d'avant, `decor` ses sept, `trafic` ses huit.
+
+### Le camion frigo a un capot, façon camion américain en plus petit
+
+Le joueur : « pour le camion frigo, fais un avant un peu plus différent, comme on pourrait
+avoir pour les camions américains, mais en plus petit, avec une petite calandre. »
+
+**Avant.** Une cabine avancée : un cube bleu à bande de verre posé sur le châssis, la face
+avant plate, les phares dans la face — un fourgon à cabine, pas un camion.
+
+**Après.** Un nez de camion américain à l'échelle d'un porteur (`buildFrigo`) : une cabine
+courte, un capot d'un mètre trente devant elle (à l'échelle du modèle ; deux mètres dix dans
+le monde), un dessus de capot un peu plus étroit, une **petite calandre chromée à cinq
+barres** entre deux phares, un pare-chocs chromé, des ailes sur les roues avant — qui
+reculent de cinquante centimètres pour passer sous le capot — et deux rétroviseurs. Le
+caisson raccourcit de quarante centimètres pour que le camion ne grandisse pas avec son
+nez : mesuré, **11,4 m hors tout contre 11,2**, et 4,26 m de large avec les rétroviseurs
+contre 4,16 (ils sont serrés contre la cabine exprès : la gélule de collision se calcule sur
+la boîte englobante, et des rétroviseurs écartés faisaient un camion plus large de tout
+son volume ; elle passe de 1,97 à 2,02 m de rayon). Le groupe froid, le gyrophare et les
+feux suivent ; les phares et le « nez » des faisceaux de nuit sont redéclarés à leur
+nouvelle place.
+
+**Bancs.** `port` **39 sur 39** (le casier reste entre le quart et les deux cinquièmes de
+la largeur du camion, à 4,26 m). `chocs` : un échec sur le test de l'attelage à la première
+passe, **31 sur 31** à la seconde — c'est le même test aléatoire qu'au chapitre des caisses,
+qui fait naître un attelage et le heurte : la mesure du recul de l'engin varie d'une
+naissance à l'autre (2,03 m puis 2,72), le camion frigo n'y est pour rien.
