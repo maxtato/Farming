@@ -16595,3 +16595,87 @@ tas de la grue (1,07). `bois` 33, `village` 16, `ouverture` 9, `export` 12, `gra
 `acces` 5 : inchangés. `decor` garde ses sept échecs et `rue` ses douze, tous antérieurs à ce
 chapitre ; `trafic` rend huit à dix échecs sur ses contrôles de cadence, qui sont aléatoires —
 la version d'avant, relancée, échoue de la même façon (« 20 à 50 s »).
+
+### Le camion monte en régime, le grumier part vide, chaque remorque a sa marchandise, la caisse du frigo est blanche, et la coupe ne bute plus
+
+Le joueur : « fais aussi que le camion US ait une accélération beaucoup plus progressive et
+soit moins brusque, avec des suspensions moins marquées. Il faut aussi faire une remorque
+vide pour transporter du bois, comme pour le camion porteur, qu'on pourrait atteler derrière
+le camion US. Par contre la remorque citerne, est-ce une possibilité d'achat pour le camion ?
+qu'est-ce qu'on transporterait ? pas de liquide. Non : camion frigo avec cabine verte mais
+caisse blanche. Et fais que l'outil de la moissonneuse ne soit pas un obstacle. »
+
+**Le camion.** Mesuré avant, sur la route, sans décor : de zéro à 90 % de sa vitesse en
+**2,6 s**, la moitié de sa vitesse perdue **0,33 s** après le lâcher des gaz, et à chaque
+lancement, chaque freinage, chaque virage à fond, la suspension **à sa butée** — 5,7° de
+tangage, 9,7° de roulis, les mêmes que le pick-up. Un dix-neuf tonnes qui part et pile comme
+un kart. Le moteur du jeu applique `accel` en entier dès la première image, quelle que soit
+la commande ; c'est ce qui rend tout engin nerveux, et c'était voulu pour les autres.
+
+Le camion est le seul à recevoir une **inertie** : ses gaz suivent la commande avec un retard
+d'une seconde six, et sa poussée est `accel × |gaz|` — il part à rien et monte en régime.
+Seule la montée est retardée ; lâcher ou inverser reste immédiat, sans quoi il continuerait
+d'accélérer après qu'on a levé le pied. Sa **douceur** (0,4) multiplie ses trois freins : le
+frein moteur, la pédale, et la retenue quand on demande moins que ce qu'on fait. Sa
+suspension est plus amortie (k 18, d 5,6), ses coefficients de roulis et de tangage sont le
+quart de ce qu'ils étaient, et surtout sa **course est bornée à la moitié** (`borne`) : à
+dix-neuf mètres par seconde un virage à fond donne une accélération latérale de vingt, et
+aucun coefficient raisonnable ne la tient sous la butée. Rien de tout cela ne vaut en
+pilotage automatique : le pilote compte sur la réponse d'origine pour s'arrêter où il faut.
+
+| | avant | après |
+|---|---|---|
+| 90 % de la vitesse | 2,6 s | 6,1 s |
+| la moitié de la vitesse perdue au lâcher | 0,33 s | 0,73 s |
+| de 19 m/s à l'arrêt, pédale au plancher | 0,6 s | 1,5 s |
+| tangage au lancement / au freinage | 5,7° / 5,7° | 1,6° / 2,9° |
+| roulis en virage à fond | 9,7° | 4,9° |
+
+Le pick-up, le porteur et tous les autres ne changent pas d'un chiffre. Et une partie
+sauvegardée reprend ces réglages : le chargeur rendait aux engins sans barème leurs anciennes
+valeurs de table — le camion aurait bondi dans toute partie commencée avant. Seuls les deux
+tracteurs retirés gardent encore ce que la sauvegarde dit, eux n'ont plus de table du tout.
+
+**Le grumier part vide.** Sa pile de grumes était fusionnée dans sa carrosserie : dessiné
+plein, vide ou non. Les quatre lits — cinq, quatre, trois, deux grumes — sont maintenant
+**quatre maillages à part**, cachés, que la charge fait apparaître un à un : le premier dès
+qu'il porte quelque chose, le deuxième à 30 % de sa capacité, le troisième à 55 %, le dernier
+à 80 %. Même idée que les piles du dépôt et le caisson du porteur. Le grumier de la rocade
+n'existe pas (il n'est pas dans `ATTELAGES`), donc rien ne change au trafic ; le plateau nu,
+lui, mesure toujours 3,91 m entre ses bavettes.
+
+**Chaque remorque a sa marchandise.** Jusqu'ici la nature ne comptait plus du tout : on
+chargeait du blé dans la citerne et du lait dans le grumier, et la citerne n'avait aucune
+raison d'être — c'est ce que le joueur disait. Le jeu a pourtant sept liquides, ceux qui se
+comptent en litres : le lait, le lait de brebis, la bière, les deux huiles, le vin (et le
+lait d'avoine, interne). Le **grumier** ne prend que les grumes, la **citerne** que les
+liquides, le **frigorifique** tout le reste — ni bois ni liquide. Une caisse qui ne dit rien
+prend tout, comme avant : benne, pick-up, fourgon, porteur, bateaux ; le lait des missions 8
+et 9 se transporte donc toujours au pick-up, bien avant le camion. La règle est dans
+`accepteNature` (`prend` : liste fermée ; `refuse` : liste d'exclus) et `peutCharger` la lit,
+donc tous les lieux qui chargent — silo, entrepôt, quai de pêche, dépôt de bois, usines,
+commerces — la suivent sans qu'aucun ait à la connaître. L'aide de chaque remorque, au garage,
+dit ce qu'elle prend. J'ai tranché ainsi plutôt que de retirer la citerne : si c'est
+l'inverse qui était voulu, elle se retire d'une ligne dans la table des outils.
+
+**Le camion frigo** garde sa cabine verte ; sa caisse est **blanche** (#F4F4F0), ses nervures,
+son toit et son liseré d'un gris très clair, son groupe froid inox.
+
+**La coupe de la moissonneuse** avait sa gélule de collision : une barre de six mètres en
+travers de l'avant, lue sur la boîte de la tête, en plus du corps. C'est elle qui butait sur
+les poteaux, les clôtures et les autres engins à trois mètres de la caisse, et que rien ne
+contournait. Elle n'existe plus, et le corps de la machine se mesure **sans** la coupe. Mesuré
+: un poteau posé à 3,2 m de l'axe, hors de la caisse mais dans l'envergure de la coupe,
+renvoyait la machine de **4,15 m** et la ralentissait à 0,7 m/s ; il ne la dévie plus d'un
+centimètre, à 9,5 m/s. La coupe flotte sur ses patins : elle passe.
+
+**Bancs.** `camion` 25 sur 25 — six contrôles de plus : la montée en régime (90 % en plus de
+4,5 s, le pick-up sous 2), le lâcher (plus de 0,6 s), la suspension (tangage sous 2,5° et
+3,2°, roulis sous 5,5°, le pick-up toujours à 9,7), ce que chaque remorque accepte, les quatre
+lits du grumier à 0 / 1 / 800 / 1 200 / 1 600 kg, la caisse blanche ; le contrôle de livraison
+charge huit cents kilos de grumes au lieu de blé. Sur la version d'avant : **six échecs sur
+vingt-cinq**, ceux-là. `chocs` 32 sur 32 — le contrôle des gélules exige maintenant que la
+moissonneuse n'ait QUE son corps, et un contrôle de plus roule sur le poteau à 3,2 m ; sur la
+version d'avant : deux échecs (« corps, tete » ; −4,15 m d'écart). `bois` 33, `export` 12,
+`village` 16, `ouverture` 9 : inchangés. `trafic` : ses échecs de cadence aléatoires, comme
+avant.

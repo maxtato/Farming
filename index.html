@@ -8075,6 +8075,11 @@ function majPileDepot(){
   const e = etapeDepot(D.stock);
   D.etapes.forEach((E, i)=>{ E.visible = (i + 1) === e; });
 }
+/* LES LITS DU GRUMIER, EN PART DE SA CAPACITÉ : le premier dès qu'il porte quelque chose,
+   le deuxième au tiers, le troisième à la moitié passée, le dernier aux quatre cinquièmes.
+   Même idée que les piles du dépôt et que le caisson du porteur : on voit ce qu'on porte. */
+const ETAPES_GRUMIER = [0.3, 0.55, 0.8];
+const etapeGrumier = (T)=> T.load <= 0.5 ? 0 : 1 + ETAPES_GRUMIER.filter((f)=> T.load >= f*T.capacite - 0.01).length;   // 0 à 4
 function actionsDepotBois(m){
   const T = caisseDe(m), out = [];
   if(!T) return out;
@@ -8186,6 +8191,13 @@ function majForet(dt){
   for(const m of MACHINES){
     const P = m.v.group.userData.pile;
     if(P) P.visible = !!(m.v.cargo && m.v.cargo.load > 1);
+  }
+  // Et le grumier montre ses lits, un à un, à mesure qu'il se charge.
+  for(const T of TOOLS){
+    const E = T.group && T.group.userData.etapes;
+    if(!E) continue;
+    const n = etapeGrumier(T);
+    E.forEach((M, i)=>{ M.visible = i < n; });
   }
 }
 // La forêt dans la sauvegarde : 0 pour un arbre mûr, [état, âge] pour les autres.
@@ -14443,15 +14455,19 @@ function buildCaseyeur(){
    pour le pick-up. Le groupe froid est sur le front de la caisse, les portes à barres derrière. */
 function buildFrigo(){
   const g = new THREE.Group();
-  const C = {CAISSE:0x3E8A50, CAISSE2:0x2E6B3C, CREME:0xF2E7D2, SOMBRE:0x22303A};
+  // La cabine est verte, la caisse est BLANCHE : « non, camion frigo avec cabine verte mais
+  // caisse blanche. » Le blanc de la caisse, un gris très clair pour ses nervures et son
+  // liseré, l'inox du groupe froid.
+  const C = {CAISSE:0x3E8A50, CAISSE2:0x2E6B3C, CREME:0xF2E7D2, SOMBRE:0x22303A,
+             BLANC:0xF4F4F0, BLANC2:0xDDE0DC, INOX:0xC9CFD3};
   const {F, wf} = avantPickup(g, C, 6.2, -0.6);          // le châssis va à −3,70, sous la caisse
   const BW = 1.2, Y0 = 0.86, H = 1.86, Z0 = -0.2, Z1 = -3.7, zc = (Z0 + Z1)/2, L = Z0 - Z1;
-  g.add(box(BW*2, H, L, C.CAISSE, 0, Y0 + H/2, zc));                        // la caisse
-  g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.CREME, 0, Y0 + H + 0.06, zc));   // son toit clair
-  g.add(box(BW*2 + 0.04, 0.16, L, C.CREME, 0, Y0 + 0.1, zc));              // le liseré bas
+  g.add(box(BW*2, H, L, C.BLANC, 0, Y0 + H/2, zc));                         // la caisse, blanche
+  g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.BLANC2, 0, Y0 + H + 0.06, zc));  // son toit
+  g.add(box(BW*2 + 0.04, 0.16, L, C.BLANC2, 0, Y0 + 0.1, zc));             // le liseré bas
   for(let k = 0; k < 4; k++)                                                // les nervures
-    g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.CAISSE2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
-  g.add(box(1.4, 0.7, 0.42, C.CREME, 0, Y0 + H - 0.2, Z0 + 0.25));          // le groupe froid, sur le front
+    g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.BLANC2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
+  g.add(box(1.4, 0.7, 0.42, C.INOX, 0, Y0 + H - 0.2, Z0 + 0.25));           // le groupe froid, sur le front
   for(let k = 0; k < 4; k++) g.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, Z0 + 0.47));
   for(const sx of [-0.6, 0, 0.6]) g.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, Z1 - 0.03));   // les barres des portes
   for(const sx of [-0.85,0.85]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
@@ -14534,6 +14550,15 @@ function buildRemorqueSemi(quoi){
   // `essieu` : de la cheville à l'essieu, en mètres de planche. C'est le `L` de l'outil,
   // et il est relu juste après la construction de TOOLS — voir `SEMI_CHAPE`.
   g.userData = {wr, wf, essieu:M.essieu};
+  /* LE GRUMIER PART VIDE : ses quatre lits de grumes sont quatre maillages à part, cachés,
+     que la charge fait apparaître un à un — voir `etapeGrumier` et `majForet`. */
+  if(quoi === 'grumier'){
+    g.userData.etapes = CAMIONS_GEOS.litsGrumier().map((geo)=>{
+      const m = new THREE.Mesh(geo, MAT_FUSION);
+      m.castShadow = true; m.receiveShadow = true; m.name = 'grumes'; m.visible = false;
+      g.add(m); return m;
+    });
+  }
   return g;
 }
 function buildEnjambeuse(){
@@ -15072,6 +15097,12 @@ class Vehicle {
     const _es = this.group.scale;
     this.lim = bornesSuspension(this.boite.bx*(_es.x || 1), this.boite.bz*(_es.z || 1),
                                 (this.boite.cy - this.boite.hy)*(_es.y || 1));
+    /* UNE SUSPENSION MOINS MARQUÉE SE RÈGLE AUSSI PAR SA COURSE. Les coefficients `roll`
+       et `pitch` ne suffisent pas : à dix-neuf mètres par seconde, un virage à fond donne
+       une accélération latérale de vingt, et 20 × 0,012 dépasse encore la butée. `borne`
+       réduit la course elle-même — 0,5 : moitié moins d'inclinaison, quoi qu'il arrive. */
+    if(this.susp && this.susp.borne) this.lim = {r:this.lim.r*this.susp.borne, p:this.lim.p*this.susp.borne};
+    this.gaz = 0;                          // la position des gaz, pour l'engin qui a une `inertie`
     // état de suspension (ressort-amortisseur, réglage mou)
     this.roll = 0; this.rollV = 0;
     this.pitch = 0; this.pitchV = 0;
@@ -15245,17 +15276,37 @@ class Vehicle {
        le cran de vitesse acheté sert exactement comme avant. */
     const champAuto = this.auto && this.plan && this.plan.entre && !this.plan.sorti;
     const accelE = champAuto ? Math.min(this.accel, this.accel0 || this.accel) : this.accel;
+    /* LE CAMION MONTE EN RÉGIME AU LIEU DE BONDIR. Le joueur : « fais que le camion US ait
+       une accélération beaucoup plus progressive et soit moins brusque. » Mesuré avant :
+       de zéro à 90 % de sa vitesse en 2,6 s, la moitié de sa vitesse perdue 0,33 s après
+       le lâcher des gaz — un dix-neuf tonnes qui part et s'arrête comme un kart.
+       Ce moteur applique `accel` en entier dès la première image, quelle que soit la
+       consigne. Un engin qui a une `inertie` (en secondes) a maintenant des GAZ, `gaz`,
+       qui suivent la commande avec ce retard, et sa poussée est `accel × |gaz|` : il part
+       à rien et monte en régime. Seule la MONTÉE est retardée — lâcher ou inverser est
+       immédiat, sinon il continuerait d'accélérer après qu'on a levé le pied. Et sa
+       `douceur` (0 à 1) multiplie ses trois freins : le frein moteur, la pédale, et la
+       retenue quand on demande moins que ce qu'on fait. Rien de tout cela ne vaut en
+       automatique : le pilote compte sur la réponse d'origine pour s'arrêter où il faut. */
+    const doux = this.inertie > 0 && !this.auto;
+    if(doux){
+      const g0 = this.gaz || 0, k = 1 - Math.exp(-dt/this.inertie);
+      const monte = Math.abs(throttle) > Math.abs(g0) && (g0 === 0 || Math.sign(throttle) === Math.sign(g0));
+      this.gaz = monte ? g0 + (throttle - g0)*k : throttle;
+    } else this.gaz = throttle;
+    const dc = doux ? this.douceur : 1;
     // moteur / frein moteur
     const target = throttle * this.vmax;
     if(Math.abs(throttle) > 0.05){
-      const acc = (Math.sign(target-vf) === Math.sign(throttle)) ? accelE : accelE*2.2;
+      const pousse = Math.sign(target-vf) === Math.sign(throttle);
+      const acc = pousse ? accelE*(doux ? Math.abs(this.gaz) : 1) : accelE*2.2*dc;
       vf += Math.sign(target - vf) * acc * dt;
       if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
     } else {
       // Frein au pied : trois fois le frein moteur. C'est ce qui rend la pédale utile —
       // relâcher les gaz ralentit, appuyer sur le frein arrête.
-      vf -= vf * (frein ? 5.7 : 1.9) * dt;
+      vf -= vf * (frein ? 5.7 : 1.9) * dc * dt;
     }
     vf -= vf * 0.16 * dt;
 
@@ -19904,8 +19955,39 @@ const CAMIONS_GEOS = (function(){
      la rocade, et sa cabine brun-rouge tomberait encore sous la règle du joueur — plus une
      seule carrosserie rouge sur la rocade hors le camion de pompiers. */
   const BOIS_G = 0x8A6A3A, BOIS_G2 = 0x6B4E24, ECORCE_G = 0x5A4632;
-  function grumier(){
-    const P = [], L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
+  /* LA PILE DE GRUMES EST À PART, ET LE GRUMIER DU JOUEUR PART VIDE. Le joueur : « une
+     remorque vide pour transporter du bois, comme pour le camion porteur. » Quatre lits en
+     quinconce — cinq grumes, puis quatre, trois, deux —, chacun calé dans le creux du
+     précédent (√(4r² − p²/4) = 0,46), le lit du bas ENTRE les ranchers (2,78 de large pour
+     2,72 de jour : à la touche). Les grumes sont un peu plus courtes que le plateau, pour
+     qu'on voie les têtes de coupe dépasser des ranchers plutôt que de toucher la traverse.
+     Chaque lit est une liste de pièces à lui : `buildRemorqueSemi` en fait un maillage par
+     lit, et la charge décide lesquels on voit (`etapeGrumier`). Le plateau seul se dessine
+     avec `grumier(false)` ; `grumier()` le rend plein, comme avant. */
+  const L_GRUMIER = 13.0, ZC_GRUMIER = Z_SELLETTE - 0.35 - L_GRUMIER/2;
+  function pileGrumier(){
+    const L = L_GRUMIER, zc = ZC_GRUMIER;
+    const RG = 0.27, PAS = RG*2 + 0.02, LG = L - 1.4;   // cinq grumes de front : 5·0,56 − 0,02 = 2,78 → bords à ±1,39
+    const H_LIT = Math.sqrt(4*RG*RG - PAS*PAS/4);      // hauteur d'un lit en quinconce (0,46)
+    const lits = [[5, yS + 0.65], [4, yS + 0.65 + H_LIT], [3, yS + 0.65 + 2*H_LIT], [2, yS + 0.65 + 3*H_LIT]];
+    return lits.map((lit, i)=>{
+      const n = lit[0], y = lit[1], P = [];
+      for(let k = 0; k < n; k++){
+        const x = (k - (n - 1)/2)*PAS;
+        P.push(CY(RG, LG, 8, k % 2 ? BOIS_G : BOIS_G2, x, y, zc, Math.PI/2));
+        // Le cœur clair des deux têtes : c'est ce qui dit que c'est du bois coupé.
+        for(const sz of [-1, 1])
+          P.push(CY(RG*0.86, 0.08, 8, 0xC9A96A, x, y, zc + sz*(LG/2 + 0.04), Math.PI/2));
+      }
+      // Les deux bouts d'écorce qui dépassent vont avec le dernier lit : ils n'ont rien à
+      // faire à deux mètres au-dessus d'un plateau vide.
+      if(i === lits.length - 1)
+        for(const sx of [-1, 1]) P.push(B(0.14, 0.9, 0.14, ECORCE_G, sx*1.2, yS + 2.5, zc + L/2 - 0.8));
+      return P;
+    });
+  }
+  function grumier(avecPile){
+    const P = [], L = L_GRUMIER, zc = ZC_GRUMIER;
     P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
     P.push(B(W_REM - 0.7, 0.2, L - 1.0, GRIS2, 0, yS + 0.13, zc));
     // Quatre paires de ranchers, et leur traverse : c'est ce qui tient la pile.
@@ -19918,26 +20000,7 @@ const CAMIONS_GEOS = (function(){
         P.push(B(0.3, 0.2, 0.3, GRIS2, sx*X_RANCHER, yS + 0.36, z));
       }
     }
-    /* LES GRUMES, EN QUINCONCE. Quatre lits : cinq en bas, puis quatre, trois, deux —
-       chaque lit se love dans le creux de celui d'en dessous, comme une vraie pile.
-       Elles sont un peu plus courtes que le plateau, pour qu'on voie les têtes de
-       coupe dépasser des ranchers plutôt que de toucher la traverse. Le lit du bas
-       tient ENTRE les ranchers (2,78 de large pour 2,72 de jour : à la touche) : c'est la pile qui
-       donnait au grumier ses 4,4 m, quand tout le reste du convoi fait 3,9. */
-    const RG = 0.27, PAS = RG*2 + 0.02, LG = L - 1.4;   // cinq grumes de front : 5·0,56 − 0,02 = 2,78 → bords à ±1,39
-    const H_LIT = Math.sqrt(4*RG*RG - PAS*PAS/4);      // hauteur d'un lit en quinconce (0,46)
-    const lits = [[5, yS + 0.65], [4, yS + 0.65 + H_LIT], [3, yS + 0.65 + 2*H_LIT], [2, yS + 0.65 + 3*H_LIT]];
-    for(let i = 0; i < lits.length; i++){
-      const n = lits[i][0], y = lits[i][1];
-      for(let k = 0; k < n; k++){
-        const x = (k - (n - 1)/2)*PAS;
-        P.push(CY(RG, LG, 8, k % 2 ? BOIS_G : BOIS_G2, x, y, zc, Math.PI/2));
-        // Le cœur clair des deux têtes : c'est ce qui dit que c'est du bois coupé.
-        for(const sz of [-1, 1])
-          P.push(CY(RG*0.86, 0.08, 8, 0xC9A96A, x, y, zc + sz*(LG/2 + 0.04), Math.PI/2));
-      }
-    }
-    for(const sx of [-1, 1]) P.push(B(0.14, 0.9, 0.14, ECORCE_G, sx*1.2, yS + 2.5, zc + L/2 - 0.8));
+    if(avecPile !== false) for(const lit of pileGrumier()) for(const p of lit) P.push(p);
     cheville(P, yS, Z_SELLETTE);
     beequille(P, zc + L/2 - 2.4);
     roues(P, X_ROUES, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
@@ -20007,7 +20070,9 @@ const CAMIONS_GEOS = (function(){
       const ess = ROUES_NOTEES; ROUES_NOTEES = null;
       return {geo:mergeParts(p), essieux:ess, feux:{w:1.06, y:1.62, zAv:3.90}};
     },
-    remorquesJoueur: {grumier: grumier, frigo: frigo, citerne: citerne}
+    remorquesJoueur: {grumier: ()=> grumier(false), frigo: frigo, citerne: citerne},
+    // Les quatre lits du grumier, un maillage chacun, à l'origine de la sellette.
+    litsGrumier: ()=> pileGrumier().map((lit)=> mergeParts(decale(lit)))
   };
 })();
 const traficMat = MAT_FUSION;
@@ -20830,13 +20895,15 @@ function emprise(v){
   let L = 4.4, W = 2.5;
   try {
     const g = v.group, cap0 = g.rotation.y;
+    // La coupe de la moissonneuse n'est pas un obstacle : elle ne compte pas dans son corps.
+    const tete = (g.userData && g.userData.head) || null;
     g.rotation.y = 0; g.updateMatrixWorld(true);
     const b = new THREE.Box3(), bo = new THREE.Box3();
     b.makeEmpty();
     g.traverse((o)=>{
       if(!o.isMesh || !o.geometry) return;
-      // un cône de phare, et tout ce qu'il porterait
-      for(let q = o; q && q !== g; q = q.parent) if(q.name === 'faisceauPhare') return;
+      // un cône de phare, et tout ce qu'il porterait ; la coupe, et tout ce qu'elle porte
+      for(let q = o; q && q !== g; q = q.parent) if(q.name === 'faisceauPhare' || q === tete) return;
       if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       bo.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
       b.union(bo);
@@ -20913,34 +20980,17 @@ function gabaritOutil(T){
   } catch(e){}
   return (T._gab = g || {travers:true, cx:0, cz:-(T.L || 2), demi:Math.max(0, (T.width || 2)/2 - 1), r:1});
 }
-function teteDe(v){
-  if(v._tete !== undefined) return v._tete;
-  let t = null;
-  try {
-    const H = v.group && v.group.userData && v.group.userData.head;
-    if(H){
-      const cap0 = v.group.rotation.y; v.group.rotation.y = 0; v.group.updateMatrixWorld(true);
-      const b = new THREE.Box3().setFromObject(H);
-      v.group.rotation.y = cap0; v.group.updateMatrixWorld(true);
-      const W = b.max.x - b.min.x, Lz = b.max.z - b.min.z;
-      if(isFinite(W) && isFinite(Lz) && W > 3){
-        const r = Math.max(0.5, Math.min(1.5, Lz/2));
-        t = {cz:(b.max.z + b.min.z)/2 - v.group.position.z, demi:Math.max(0, W/2 - r), r:r};
-      }
-    }
-  } catch(e){}
-  return (v._tete = t);
-}
+/* LA COUPE N'EST PLUS UNE GÉLULE. Le joueur : « fais que l'outil de la moissonneuse ne
+   soit pas un obstacle. » Elle avait la sienne, une barre de six mètres en travers de
+   l'avant, lue sur la boîte de `userData.head` : c'est elle qui butait sur les poteaux,
+   les clôtures et les autres engins à trois mètres de la caisse, et qu'on ne pouvait
+   pas contourner d'un pas. Elle flotte sur ses patins ; elle passe. La machine ne garde
+   que son corps — et son corps est mesuré SANS la coupe (voir `emprise`). */
 const _gabA = [], _gabB = [], _gabT = [];
 function gabarits(v, out){
   out.length = 0;
   const f = v.fwd(), r = v.right(), c = emprise(v);
   out.push({x1:v.pos.x - f.x*c.h, z1:v.pos.z - f.z*c.h, x2:v.pos.x + f.x*c.h, z2:v.pos.z + f.z*c.h, r:c.r, part:'corps'});
-  const tete = teteDe(v);
-  if(tete){
-    const cx = v.pos.x + f.x*tete.cz, cz = v.pos.z + f.z*tete.cz;
-    out.push({x1:cx - r.x*tete.demi, z1:cz - r.z*tete.demi, x2:cx + r.x*tete.demi, z2:cz + r.z*tete.demi, r:tete.r, part:'tete'});
-  }
   const T = v.tool;
   if(T && T.attached === v && T.group){
     const g = gabaritOutil(T), ft = {x:Math.sin(T.cap), z:Math.cos(T.cap)}, rt = {x:ft.z, z:-ft.x};
@@ -21598,7 +21648,12 @@ const MACHINES = [
     })},
   /* ---------- LE TRACTEUR ROUTIER, EN TOUTE FIN DE TABLE ----------
      Il est vif sur la route et pataud à la manœuvre : la vitesse la plus haute du parc,
-     l'accélération la plus molle et le braquage le plus large — c'est un camion. Sa
+     l'accélération la plus molle et le braquage le plus large — c'est un camion. Et c'est
+     le seul engin qui MONTE EN RÉGIME (`inertie`, voir `Vehicle.update`) : ses gaz mettent
+     une seconde six à suivre le pied, sa poussée suit ses gaz, et ses freins valent
+     quarante pour cent de ceux des autres. Sa suspension est deux fois plus courte
+     (`borne`), plus amortie, et ses coefficients sont le quart de ce qu'ils étaient : un
+     camion chargé penche peu et ne pompe pas. Sa
      `sellette` n'est pas un ornement : c'est elle qui dit à `peutAtteler` qu'il ne tire que
      des semi-remorques, et qu'aucune charrue ne viendra se pendre à sa cinquième roue.
      Sa `chape` est la sellette de la planche, à son échelle : toute remorque s'y accroche
@@ -21606,9 +21661,10 @@ const MACHINES = [
   {key:'semi', nom:'Camion', robe:'bordeaux', teinte:SEMI_ROUGE, verrou:true, prix:26000,
    livre:'À L\'ENTREPÔT D\'EXPORT', timbre:'lourd', ton:0.72, plage:[0.68, 1.0], v:new Vehicle({
       x:SEMI_PARC.camion.x, z:SEMI_PARC.camion.z, cap:0,
-      vmax:19, accel:8, turn:1.05, grip:5.0, trackW:1.72,
+      vmax:19, accel:5.5, turn:1.05, grip:5.0, trackW:1.72,
+      inertie:1.6, douceur:0.4,
       sellette:true, chape:SEMI_CHAPE,
-      susp:{k:22, d:4.2, roll:0.05, pitch:0.03, rough:0.9},
+      susp:{k:18, d:5.6, roll:0.012, pitch:0.008, rough:0.5, borne:0.5},
       build:buildSemi
     })}
 ];
@@ -21638,6 +21694,13 @@ const MOISSON = {key:'moisson', nom:'Coupe', width:8.0, width0:8.0, level:1,
    trémie globale. Sa largeur est celle du rang, pas d'un andain. */
 const VENDANGE = {key:'vendange', nom:'Tunnel', width:2.8, level:1,
                   from:[ST.MUR], to:ST.SEME, recolte:true, perennes:true, caisse:true};
+/* LES LIQUIDES DU JEU, ET CE QU'UNE CAISSE ACCEPTE. Un liquide est ce qui se compte en
+   litres dans la table des produits : le lait, le lait de brebis, la bière, les deux
+   huiles, le vin. `prend` est une liste fermée (la caisse ne prend que cela), `refuse`
+   une liste d'exclus (elle prend tout le reste) ; sans l'un ni l'autre, tout passe. */
+const LIQUIDES = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].unite === 'L');
+const accepteNature = (T, cle)=> !cle || !T
+  || ((!T.prend || T.prend.indexOf(cle) >= 0) && (!T.refuse || T.refuse.indexOf(cle) < 0));
 function makeTool(def){
   const T = Object.assign({}, def);
   T.group = def.build();
@@ -21706,15 +21769,20 @@ const TOOLS = [
      la table : la cheville pour l'un, la distance de la cheville à l'essieu pour l'autre.
      Le `width` est leur largeur réelle ; il ne sert qu'au plan de travail, qui ne les
      appellera jamais, mais une cote juste ne coûte rien. */
+  /* ET CHACUNE A SA MARCHANDISE. Le joueur : « une remorque vide pour transporter du bois,
+     comme pour le camion porteur » ; et devant la citerne : « qu'est-ce qu'on
+     transporterait ? pas de liquide. » Le grumier ne prend que les grumes, la citerne que
+     les liquides — lait, lait de brebis, bière, huiles, vin —, et le frigorifique tout le
+     reste : ni bois ni liquide, c'est ce qui donne à chacune sa raison d'exister. */
   makeTool({key:'grumier', nom:'Grumier', build:()=> buildRemorqueSemi('grumier'),
-            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1600, load:0,
-            aide:'Semi-remorque à grumes · gros volume', verrou:true, prix:9000}),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1600, load:0, prend:['grumes'],
+            aide:'Semi-remorque à grumes · le bois, et rien d\'autre', verrou:true, prix:9000}),
   makeTool({key:'frigorifique', nom:'Frigorifique', build:()=> buildRemorqueSemi('frigo'),
-            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1200, load:0,
-            aide:'Semi-remorque frigorifique · denrées fragiles', verrou:true, prix:11000}),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1200, load:0, refuse:['grumes'].concat(LIQUIDES),
+            aide:'Semi-remorque frigorifique · tout sauf le bois et les liquides', verrou:true, prix:11000}),
   makeTool({key:'citerne', nom:'Citerne', build:()=> buildRemorqueSemi('citerne'),
-            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:900, load:0,
-            aide:'Semi-remorque citerne · liquides', verrou:true, prix:8000})
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:900, load:0, prend:LIQUIDES.slice(),
+            aide:'Semi-remorque citerne · les liquides : lait, bière, huile, vin', verrou:true, prix:8000})
 ];
 /* LEURS DEUX COTES D'ATTELAGE SE LISENT SUR LE DESSIN. `makeTool` construit le modèle ;
    celui-ci a noté, en le construisant, la distance de sa cheville à son essieu. La cheville
@@ -28886,8 +28954,13 @@ function retirerCharge(T, cle, q){
   C[cle] = Math.max(0, (C[cle] || 0) - q);
   recompterCharge(T);
 }
-// Charger : il ne faut plus que de la PLACE. La nature n'entre plus en compte.
-const peutCharger = (T, type)=> !!T && T.load < (T.capacite || Infinity) - 0.01;
+/* CHARGER : DE LA PLACE, ET UNE CAISSE FAITE POUR ÇA. La nature ne comptait plus du tout :
+   on chargeait du blé dans la citerne et du lait dans le grumier. Le joueur, devant la
+   citerne : « qu'est-ce qu'on transporterait ? pas de liquide. » Les trois remorques du
+   camion disent maintenant ce qu'elles prennent (`prend`) ou refusent (`refuse`) — voir
+   `accepteNature` et la table des outils. Une caisse qui ne dit rien prend tout, comme
+   avant : benne, pick-up, fourgon, porteur, caisson des bateaux. */
+const peutCharger = (T, type)=> !!T && T.load < (T.capacite || Infinity) - 0.01 && accepteNature(T, type);
 function poserType(T, type){ T.type = type; }
 function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; T.charge = null; } }
 // Remplace la version d'origine : même mécanique de proximité, mais la nature du
@@ -34814,7 +34887,12 @@ function chargerPartie(S){
          retirés n'ont pas d'échelle : eux gardent ce que la sauvegarde dit. */
       v.level = q.level || 1;
       if(PALIERS[m.key]) appliquerPalier(m.key, v.level);
-      else { v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn; }
+      /* ET UN ENGIN SANS BARÈME GARDE SA TABLE, lui aussi : le camion et les bateaux ne
+         s'améliorent pas, leurs valeurs ne peuvent venir que d'ici. Relire celles de la
+         sauvegarde, c'était garder pour toujours l'accélération d'avant le réglage — le
+         camion aurait bondi dans toute partie commencée avant. Seuls les tracteurs retirés
+         gardent ce que la sauvegarde dit : eux n'ont plus de table du tout. */
+      else if(m.retire){ v.vmax = q.vmax; v.accel = q.accel; v.turn = q.turn; }
       v.pos.set(q.x, 0, q.z); v.cap = q.cap;
       v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
       v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
