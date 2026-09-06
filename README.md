@@ -17003,3 +17003,33 @@ pour un roulis de 0,06 donné d'un coup à la cabine, prend après une image le 
 que celle du fourgon (0,032, la butée des deux degrés) ; les cinq réglages sont ceux du
 fourgon. Sur la version d'avant, les trois échouent (caisse collée, pas de groupe, réglages
 16/11/1,9/5,6/1,42). `chocs` 40/40 et `port` 43/43 repassent.
+
+### Un engin garé ne touche à rien : plus de « GRUMES AU DÉPÔT » qui clignote
+
+Le joueur : « il y a un message "grumes au dépôt" qui clignote sur les véhicules qu'on
+conduit, enlève-le. »
+
+**Mesuré avant.** Le message vient de `executer`, à la fin d'un dépôt de grumes — une fois,
+quand la charge tombe à zéro. Il clignotait parce qu'il partait sans arrêt : un engin qu'on
+ne conduisait pas et qui n'était pas en automatique prenait quand même la PREMIÈRE action de
+l'endroit où il était garé (`actionPour`, branche des engins non conduits). Le porteur
+laissé sur le cercle du dépôt avec des grumes les déposait ; vide, il en rechargeait —
+« charger » venant en tête de liste — ; chargé d'un débit, il les déposait à nouveau, et
+ainsi de suite, une image sur deux. Mesuré, le pick-up en main et le porteur garé au dépôt
+avec 300 kg : **976 « GRUMES AU DÉPÔT » en quarante secondes**, la charge du porteur à
+0,7 kg, le tas du dépôt qui tremble. La même mécanique guettait une benne laissée au silo
+avec du blé (« ranger » puis « prendre »).
+
+**La règle.** Seuls l'engin conduit et les engins en automatique (`v.auto`, une navette, un
+chantier ; ou `v.mission`) agissent. Un engin garé, quel que soit l'endroit, ne touche à
+rien : ni sa charge, ni le stock du lieu, ni un message. Mesuré après : le porteur garde ses
+300 kg, le dépôt ne bouge pas, zéro message en quarante secondes ; la benne au silo garde
+ses 200 kg.
+
+**Bancs.** `bois` : section 8, deux contrôles — le porteur chargé sur le cercle du dépôt,
+pendant qu'on conduit le pick-up, n'y touche pas (charge, dépôt et messages inchangés
+sur quarante secondes) ; la benne laissée au silo à demi pleine de blé, « rentrer » et
+« charger » tous deux possibles, non plus. Sur la version d'avant, les deux échouent :
+1 576 « GRUMES AU DÉPÔT » et 526 « BLÉ RENTRÉ » — la benne aussi faisait la navette sur
+place. Les bancs `élevage` (35/35), `commandes` (ses deux échecs d'avant) et `port` (43/43),
+où les engins agissent en automatique et aux quais, repassent comme avant.
