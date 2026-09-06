@@ -16520,3 +16520,78 @@ première et toute mouette en l'air la seconde (trois posées, sept en vol au mo
 mesure). `bois` **33 sur 33** : le contrôle de la coupe exige maintenant les ailes repliées
 sur tout ce qui perche et ouvertes sur tout ce qui vole, oiseaux des champs compris. Sur le
 commit précédent, les deux plantent : pas de silhouette posée.
+
+### Le camion frigo est un pick-up vert, la cabine du semi à la largeur de ses remorques, le port sans mur invisible, et plus un buisson qui arrête
+
+Le joueur : « pour la taille du camion frigo, fais-le plus petit, aide-toi un peu du style du
+pick-up : il faut que ça ressemble au pick-up, en un tout petit peu plus haut, et en vert au
+niveau de la couleur. Vérifie aussi la largeur des remorques du camion US, elles doivent faire
+la même largeur que la cabine. Retravaille aussi les bâtiments du port, parce que quand on
+passe à côté, des fois on tape quelque chose alors qu'on n'est pas dessus. Vérifie les volumes
+pour les obstacles : les buissons et les rochers ne doivent pas être des obstacles, comme je te
+l'avais demandé la dernière fois. »
+
+**Le camion frigo.** La carrosserie avant du pick-up — châssis, capot, calandre, pare-chocs,
+phares, cabine, rétroviseurs, roues avant — est sortie de `buildPickup` dans `avantPickup`,
+dans les couleurs qu'on lui donne ; le pick-up n'a pas bougé d'un millimètre. Le frigo est ce
+dessin-là, **en vert**, à l'échelle du pick-up (1,38), avec une **caisse frigorifique à la place
+de la benne** : 2,40 de large sur la planche, du dossier de cabine à −3,70, cinquante centimètres
+plus haute que le toit de la cabine, groupe froid sur le front, portes à barres derrière, gyro
+sur le toit de la cabine. Mesuré : **9,56 m de long, 3,56 de large, 3,92 de haut** — le pick-up
+fait 9,31 × 3,67 × 3,80 ; l'ancien frigo à capot faisait 11,41 × 4,26 × 5,80. Les caisses du
+port, qui étaient réglées sur lui, suivent : le casier passe de 1,53 m à 1,25 et la caisse de la
+grue de 2,0 à 1,65 — toujours le tiers de la largeur du camion.
+
+**Les remorques et la cabine.** Mesuré sur la planche : la caisse de la cabine faisait 2,50,
+ses ailes 3,12, et les trois remorques 3,10 depuis qu'on les a élargies — vues de derrière, la
+remorque débordait la cabine de trente centimètres de chaque côté. La cabine passe à **3,10**,
+la largeur des remorques (`W_CAB = W_REM`), le capot à 2,80 entre les ailes, la calandre et le
+pare-chocs avec ; les cheminées se resserrent contre elle pour que rien ne dépasse le tracteur
+d'avant, et `LARG_LOURD`, qui se calcule sur la pièce la plus large, reste à 1. Mesuré sur la
+géométrie fusionnée, dans la tranche de la cabine (`CAMIONS_GEOS.cabine`) : **cabine 3,77 m,
+remorques 3,91** — quatre pour cent, les feux de gabarit et les bavettes. Cela vaut pour la
+rocade comme pour le camion du joueur : c'est le même dessin.
+
+Le banc a trouvé une exception, et c'est le **grumier** : 4,45 m, quand la caisse et la citerne
+font 3,91. Ce n'était pas le plateau — il a bien 3,10 — mais **la pile de grumes** : cinq
+troncs de 0,35 de rayon espacés de 0,74 font 3,66 de front, pour un jour de 2,72 entre les
+ranchers ; la grume du bord passait au travers du rancher et débordait de vingt-huit
+centimètres de chaque côté. Les grumes passent à 0,27 de rayon, à 0,56 d'entraxe : cinq de
+front font 2,78, à la touche des ranchers, et la pile prend un quatrième lit — cinq, quatre,
+trois, deux — pour garder sa hauteur, chaque lit calé dans le creux du précédent
+(√(4r² − p²/4) = 0,46). Mesuré après : **3,91 m**, comme les deux autres.
+
+**Le port.** La grue avait pour volume la boîte englobante de son modèle, flèche et crochet
+compris : **14 m sur 6,5 pour un fût de 2 m**, et l'on butait sur la flèche, cinq mètres
+au-dessus du capot. Le quai de débarque faisait 16 sur 7, le chantier naval 19 sur 22. Chacun
+déclare maintenant ses empreintes au sol, pièce par pièce, dans ses propres cotes, et
+`empreintes` les tourne et les met à l'échelle : le fût de la grue (disque de 2 m) et son tas
+de caisses ; la pile de casiers, les bacs, la cabane et le mât du quai ; la coque sur ses tins
+et l'atelier du chantier. Ce qui est bas — filets, planches, casiers à plat, la cale de
+halage — n'a rien : on passe dessus. Et pour **tous les bâtiments**, la collision ne prend plus
+que ce qui est **sous 2,50 m** — les murs, les poteaux, les étals —, plus le toit : la boîte
+entière comptait le débord de l'avant-toit, 2,1 m à la criée (27 m de boîte pour 24,9 de
+murs), 0,5 à la conserverie, 0,8 à la boulangerie. La dalle et la clôture gardent la boîte
+entière ; ce qui arrête est la boîte au sol, avec son décalage.
+
+**Les buissons et les rochers.** La dernière fois, on avait rendu franchissables les petits
+— sous 1,20 m — et gardé les gros comme murs : un rocher de deux mètres arrêtait encore un
+tracteur net. Ce n'est pas ce qui était demandé. Ils ne sont plus des obstacles, **aucun** : ni
+volume dur, ni volume souple, ni `renversable`. Relevé : 223 buissons et 160 rochers posés
+(`DECOR_SOL`), zéro dans les obstacles, 1 010 obstacles au lieu de 1 400 environ. Ce qui arrête
+reste ce qui doit arrêter : arbres, poteaux, clôtures, bâtiments, bites d'amarrage (basses).
+
+**Bancs.** `chocs` 31 sur 31 — sa section 11 est réécrite : elle lit `DECOR_SOL`, roule sur le
+plus gros buisson et le plus gros rocher du monde avec les vrais obstacles en place, et son
+inventaire vérifie qu'aucun cercle ni aucune boîte ne recouvre un buisson ou un rocher ; sur la
+version d'avant, le gros rocher arrête (échec attendu). `camion` 19 sur 19 — le contrôle des
+remorques compare désormais à la **tranche de la cabine** (`CAMIONS_GEOS.cabine`), à cinq pour
+cent, et non plus au tracteur hors tout : sur la version d'avant, il lit 3,91 pour une cabine
+de 3,04 (échec), et sur la première passe de ce chapitre 4,45 pour le grumier (échec, corrigé
+ci-dessus). `port` 43 sur 43 — `lande`, `surDalle` et `dessus` ignorent les empreintes
+déclarées, qui n'ont pas de rayon de dalle, le seuil des rochers de la lande passe à quarante
+(ils ne sont plus des obstacles), et deux contrôles suivent le réglage des caisses (0,9) et du
+tas de la grue (1,07). `bois` 33, `village` 16, `ouverture` 9, `export` 12, `grandes` 7,
+`acces` 5 : inchangés. `decor` garde ses sept échecs et `rue` ses douze, tous antérieurs à ce
+chapitre ; `trafic` rend huit à dix échecs sur ses contrôles de cadence, qui sont aléatoires —
+la version d'avant, relancée, échoue de la même façon (« 20 à 50 s »).

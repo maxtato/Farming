@@ -5893,6 +5893,19 @@ function ajusterSitesAuxModeles(){
     // besoin du bâtiment et de rien d'autre.
     S.bbW = bb.max.x - bb.min.x;
     S.bbD = bb.max.z - bb.min.z;
+    /* LA COLLISION, ELLE, NE PREND QUE CE QUI EST SOUS 2,50 M : les murs, les poteaux, les
+       étals — pas le toit. Le joueur : « quand on passe à côté des bâtiments du port, des
+       fois on tape quelque chose alors qu'on n'est pas dessus. » La boîte englobante du
+       modèle entier comptait le débord du toit — un mètre vingt à la criée, à son échelle —
+       et l'on butait sur l'avant-toit, quatre mètres au-dessus du capot. La boîte entière
+       reste celle de la dalle et de la clôture (un toit ne doit pas déborder du terrain) ;
+       ce qui arrête est la boîte AU SOL, avec son décalage par rapport à l'entière. */
+    const sol = new THREE.Box3(), bm = new THREE.Box3();
+    corps.traverse((o)=>{ if(!o.isMesh || !o.geometry) return; bm.setFromObject(o); if(isFinite(bm.min.y) && bm.min.y < 2.5) sol.union(bm); });
+    if(!isFinite(sol.min.x)) sol.copy(bb);
+    S.solW = sol.max.x - sol.min.x; S.solD = sol.max.z - sol.min.z;
+    S.solDx = (sol.max.x + sol.min.x)/2 - (bb.max.x + bb.min.x)/2;
+    S.solDz = (sol.max.z + sol.min.z)/2 - (bb.max.z + bb.min.z)/2;
     // La hauteur relevée, qui manquait. La bulle d'annonce était posée à une hauteur
     // écrite en dur — 4,8 m pour une boutique, 6,8 pour une usine — sans rapport avec le
     // toit du modèle : celle de l'usine à céréales flottait déjà quinze centimètres SOUS
@@ -8577,7 +8590,10 @@ function construirePort(){
      passe donc à 1,1 fois son échelle (casier 1,53 m, cabane 1,5 sur 3,2), et le tas de
      la grue à 1,3 (caisse 2,0 m sur 1,0 de haut : une caisse de manutention, pas un
      conteneur). Le facteur est lisible sur `PORT` pour le banc. */
-  const ECH_CAISSES = 1.1;
+  /* ET ELLES SUIVENT LE CAMION FRIGO, QUI RAPETISSE : de 4,26 m de large à 3,42 (façon pick-up),
+     le casier passe de 1,53 m à 1,25 et la caisse de la grue de 2,0 à 1,65 — le même rapport
+     qu'avant, le tiers de la largeur du camion. */
+  const ECH_CAISSES = 0.9;
   PORT.echCaisses = ECH_CAISSES;
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0, ECH_CAISSES);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
@@ -8593,8 +8609,33 @@ function construirePort(){
     c.position.set(cx, 0, cz); c.rotation.y = Math.PI/2; scene.add(c); fusionnerGroupe(c);
     boxObs.push({x:cx, z:cz, hw:2.0, hd:9.95});
   }
-  for(const [Q, e] of [[PORT.quai, ECH_COMMERCE*ECH_CAISSES], [PORT.grue, ECH_COMMERCE]])
-    boxObs.push({x:Q.x, z:Q.z - 0.3*e, hw:4.6*e, hd:2.1*e});   // laisse le couloir de roulage, derrière
+  /* LES VOLUMES DU QUAI SUIVENT LES PIÈCES, PAS LA BOÎTE DU MODÈLE. Le joueur : « quand on
+     passe à côté des bâtiments du port, des fois on tape quelque chose alors qu'on n'est pas
+     dessus. » La grue avait pour volume un rectangle de quatorze mètres sur six et demi pour
+     un fût de deux mètres : on butait sur la flèche et le crochet, cinq mètres au-dessus du
+     capot. Le quai de débarque (seize sur sept) et le chantier naval (dix-neuf sur vingt-deux)
+     faisaient pareil. Chacun déclare maintenant ses empreintes au sol, PIÈCE PAR PIÈCE, dans
+     ses propres cotes ; `empreintes` les tourne et les met à l'échelle, une boîte pour ce qui
+     est carré, un disque pour ce qui est rond. Ce qui est bas — filets, planches, casiers à
+     plat, la cale de halage — n'en a pas : on passe dessus. */
+  const empreintes = (x0, z0, ry, e, pieces)=>{
+    const c = Math.cos(ry), sn = Math.sin(ry), quart = Math.abs(sn) > 0.5;
+    for(const P of pieces){
+      const wx = x0 + (P.x*c + P.z*sn)*e, wz = z0 + (-P.x*sn + P.z*c)*e;
+      // `empreinte` dit au banc que ce volume est déclaré, et non un objet qui traînerait sur le béton
+      if(P.r) obstacles.push({x:wx, z:wz, r:P.r*e, empreinte:true});
+      else boxObs.push({x:wx, z:wz, hw:(quart ? P.hd : P.hw)*e, hd:(quart ? P.hw : P.hd)*e, empreinte:true});
+    }
+  };
+  PORT.empreintes = empreintes;                     // pour le banc, qui refait le calcul
+  empreintes(PORT.quai.x, PORT.quai.z, 0, ECH_COMMERCE*ECH_CAISSES, [
+    {x:-3.05, z:-1.2, hw:1.85, hd:0.6},             // la pile de casiers et les bouées
+    {x:1.4, z:-1.4, hw:1.2, hd:0.5},                // les bacs, sur deux rangs
+    {x:-1.6, z:1.0, hw:0.5, hd:0.35},               // la cabane
+    {x:4.4, z:1.6, r:0.2}]);                        // le mât aux fanions
+  empreintes(PORT.grue.x, PORT.grue.z, 0, ECH_COMMERCE, [
+    {x:-2.0, z:-0.6, r:1.3},                        // le fût de la grue, et rien de sa flèche
+    {x:2.41, z:-1.28, hw:2.3, hd:0.43}]);           // le tas de caisses (à 1,07)
   /* ---------- LE PORTIQUE DE LA MARINA ----------
      Le joueur : « à l'endroit où on arrive près du port, quand on passe la barrière pour
      arriver sur la dalle, mets une espèce de portique de bienvenue assez haut pour qu'on
@@ -8688,7 +8729,9 @@ function construirePort(){
   // Le chantier naval, sur la côte du bassin, sa cale vers l'eau ; son cercle ouvre la
   // vitrine des bateaux.
   poser(modeleChantierNaval, PORT.chantier.x, PORT.chantier.z, -Math.PI/2);
-  boxObs.push({x:PORT.chantier.x, z:PORT.chantier.z, hw:6.0*ECH_COMMERCE, hd:7.0*ECH_COMMERCE});
+  empreintes(PORT.chantier.x, PORT.chantier.z, -Math.PI/2, ECH_COMMERCE, [
+    {x:-2.4, z:-0.6, hw:2.1, hd:3.15},              // la coque sur ses tins, l'échafaudage et le râtelier
+    {x:3.6, z:-2.6, hw:2.3, hd:1.8}]);              // l'atelier
   const agirChantier = ()=> MACHINES.some((m)=> enVente(m) && m.bateau && ouvert('engins', m.key) && money >= (m.prix || 0));
   anneauAction(PORT.chantierQuai.x, PORT.chantierQuai.z, 0.9,
     ()=> couleurPoste('chantier', agirChantier) !== GUIDE.GRIS,
@@ -10264,7 +10307,7 @@ function modeleGrueQuai(){
     tas.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
               0.6 + k*1.1 + r*0.55, 0.25 + r*0.52, -1.2));
   for(let i = 0; i < 4; i++) casierPeche(tas, 0.8 + i*1.0, 0.02, 1.0, 0.15*i);
-  tas.scale.setScalar(1.3); g.add(tas);
+  tas.scale.setScalar(1.07); g.add(tas);
   return g;
 }
 /* 5 — Usine de lait d'avoine */
@@ -10710,11 +10753,15 @@ function buildCommerce(S){
      On ne pousse donc que la bâtisse, aux cotes relevées sur son modèle, replacée
      derrière son parvis. Le parvis redevient ce qu'il doit être : de la place pour se
      garer. */
-  const bw = (S.bbW !== undefined) ? S.bbW : W - 2*MARGE_COTE;
-  const bd = (S.bbD !== undefined) ? S.bbD : D - MARGE_ARRIERE - (S.parvis || 0);
-  const recul = S.d/2 - (S.parvis || 0) - bd/2;      // du centre de dalle au centre du bâti
+  const bwPlein = (S.bbW !== undefined) ? S.bbW : W - 2*MARGE_COTE;
+  const bdPlein = (S.bbD !== undefined) ? S.bbD : D - MARGE_ARRIERE - (S.parvis || 0);
+  // Ce qui arrête : la boîte au sol (les murs), décalée de ce qu'elle s'écarte de l'entière.
+  const bw = (S.solW !== undefined) ? S.solW : bwPlein, bd = (S.solD !== undefined) ? S.solD : bdPlein;
+  const recul = S.d/2 - (S.parvis || 0) - bdPlein/2 + (S.solDz || 0);   // du centre de dalle au centre des murs
+  const dx = S.solDx || 0;
   const lat = (faceDe(S.dir) === 'W' || faceDe(S.dir) === 'E');
-  boxObs.push({x: S.x + Math.sin(S.rot)*recul, z: S.z + Math.cos(S.rot)*recul,
+  boxObs.push({x: S.x + dx*Math.cos(S.rot) + Math.sin(S.rot)*recul,
+               z: S.z - dx*Math.sin(S.rot) + Math.cos(S.rot)*recul,
                hw:(lat ? bd : bw)/2, hd:(lat ? bw : bd)/2});
 
   // La dalle : bâtiment et parking d'un seul tenant, et non plus deux îlots de béton
@@ -11663,19 +11710,15 @@ function buildFarm(){
                             && z > ROC.z0 + ROAD_W/2 + 5 && z < ROC.z1 - ROAD_W/2 - 5;
   let seed = 1337;
   const rand = ()=>{ seed = (seed*1664525 + 1013904223) >>> 0; return seed/4294967296; };
-  /* LES ROCHERS ET LES BUISSONS DEVIENNENT DES VOLUMES, EUX AUSSI.
-     Le joueur : « rends tous les volumes pleins, on passe à travers beaucoup de volumes ».
-     Relevé au banc sur la scène entière : 386 volumes d'un mètre de côté au moins, dont
-     176 sans la moindre emprise — et la moitié d'entre eux sont ces deux-là. Un rocher de
-     deux mètres et un buisson de trois se traversaient sans un bruit, à côté d'un arbre
-     qui, lui, renvoie l'engin depuis toujours.
-     LE ROCHER EST DUR, LE BUISSON PLIE. Ce n'est pas une nuance de style : `renversable`
-     existe justement pour ce qui ploie sous le choc et se relève, et c'est ce que fait une
-     touffe de feuillage. Un rocher, non — il prend sa place dans la liste dure, comme le
-     puits et les bottes, et l'engin s'y arrête.
-     LE RAYON SUIT L'ÉCHELLE, qui est tirée au sort à la pose : un rocher va de 0,8 à 2,1
-     et un buisson de 0,62 à 1,12. Un rayon écrit en dur aurait entouré le plus petit d'un
-     mur et laissé le plus gros à moitié traversable. */
+  /* LES ROCHERS ET LES BUISSONS NE SONT PLUS DES OBSTACLES, AUCUN. Le joueur : « les
+     buissons et les rochers ne doivent pas être des obstacles, comme je te l'avais demandé
+     la dernière fois. » La dernière fois, on avait rendu FRANCHISSABLES les petits — sous
+     1,20 m, la hauteur d'un capot — et gardé les gros comme murs : un rocher de deux mètres
+     arrêtait encore un tracteur net. Ce n'est pas ce qui était demandé. Ils redeviennent ce
+     qu'ils sont : du décor. Ni volume dur, ni volume souple, ni `renversable` — un buisson
+     qu'on ne heurte pas n'a pas à ploier —, et rien à retirer des obstacles quand la friche
+     est achetée : la liste `decor` de la parcelle ne garde que leurs maillages.
+     Ce qui arrête reste ce qui doit arrêter : arbres, poteaux, clôtures, bâtiments. */
   const putRock = (x,z,r,p)=>{
     if(surRoute(x, z, 1.6)) return;
     const m = new THREE.Mesh(ROCK_GEO, rockMat);
@@ -11683,10 +11726,8 @@ function buildFarm(){
     const s2 = 0.8 + r()*1.3;
     m.scale.setScalar(s2);
     m.castShadow = true; m.receiveShadow = true; scene.add(m);
-    // Une icosaèdre de rayon 0,6 posée à 0,32 : son sommet est à 0,32 + 0,6·s2.
-    const ob = {x:x, z:z, r:0.85*s2, nom:'rocher', bas:(0.32 + 0.6*s2) < BAS_HAUT};
-    obstacles.push(ob);
-    if(p){ p.decor.push(m); p.decor.push(ob); }
+    DECOR_SOL.push({x, z, s:s2, quoi:'rocher'});
+    if(p) p.decor.push(m);
   };
   const putBush = (x,z,r,p)=>{
     if(surRoute(x, z, 2.0)) return;
@@ -11695,10 +11736,8 @@ function buildFarm(){
     const s2 = 0.62 + r()*0.5;
     m.scale.setScalar(s2);
     m.castShadow = true; m.receiveShadow = true; scene.add(m);
-    const ob = renversable(m, x, z, 1.05*s2).mesh && obstacles[obstacles.length - 1];
-    // La plus haute brindille de BUSH_GEO est à 1,36 : le buisson culmine à 1,36·s2.
-    if(ob) ob.bas = (1.36*s2) < BAS_HAUT;
-    if(p){ p.decor.push(m); p.decor.push(ob); }
+    DECOR_SOL.push({x, z, s:s2, quoi:'buisson'});
+    if(p) p.decor.push(m);
   };
 
   // Les bandes se garnissent ici, et pas plus tôt : il leur faut les deux semeurs
@@ -12751,6 +12790,9 @@ const SORTANT = {W:-1, E:1, N:-1, S:1};        // vers où l'on s'éloigne du bi
 const SUR_Z   = {W:true, E:true, N:false, S:false};  // la bande court-elle le long de z
 const SDEC    = {W:1, E:-1, N:-1, S:1};        // le sens du décalage de lot, une fois tourné
 const BANDE_LOTS = [];                          // ce qui a été posé, pour le filtre du semis
+// Les rochers et les buissons posés, avec leur échelle : ils ne sont plus des obstacles, et
+// c'est ici que le banc vient les chercher pour rouler dessus.
+const DECOR_SOL = [];
 // Le bord de chaussée d'une bande : celui de sa face, sauf à en déclarer un autre — la
 // bande du supermarché regarde le sud comme la bande nord, mais borde la route sud.
 const bordDe = (dir)=> (BANDE_DEF[dir] && BANDE_DEF[dir].bord !== undefined) ? BANDE_DEF[dir].bord : BORD_BANDE[faceDe(dir)];
@@ -13956,16 +13998,36 @@ function buildSemoir(){
   return outer;
 }
 // Utilitaires de ferme : mêmes partis pris que les tracteurs, gyrophare et phares compris.
-function buildPickup(){
-  const g = new THREE.Group();
-  const CAISSE = 0x3E7CB8, CAISSE2 = 0x2C5C8C, CREME = 0xF2E7D2, SOMBRE = 0x22303A;
-  g.add(box(2.0,0.3,5.4, 0x453D34, 0,0.62,-0.2));
-  g.add(slab({w:2.05,h:0.85,d:1.5, tw:1.85,td:1.3, dz:0.1, c:CAISSE, y:0.77, z:2.05}));
-  g.add(box(1.8,0.6,0.22, CREME, 0,0.95,2.82));
-  for(let k=0;k<3;k++) g.add(box(1.5,0.08,0.1, SOMBRE, 0,0.78+k*0.16,2.94));
-  g.add(box(2.1,0.2,0.5, CREME, 0,0.6,2.78));
+/* LA CARROSSERIE AVANT DU PICK-UP, PARTAGÉE. Le joueur, pour le camion frigo : « fais-le plus
+   petit, aide-toi du style du pick-up : il faut que ça ressemble au pick-up, en un tout petit
+   peu plus haut, et en vert. » Châssis, capot, calandre, pare-chocs, phares, cabine,
+   rétroviseurs et roues avant sont donc UN SEUL dessin, dans les couleurs qu'on lui donne :
+   le pick-up y pose sa benne, le frigo sa caisse. Rien du pick-up n'a bougé d'un millimètre. */
+function avantPickup(g, C, longChassis, zChassis){
+  g.add(box(2.0,0.3,longChassis, 0x453D34, 0,0.62,zChassis));
+  g.add(slab({w:2.05,h:0.85,d:1.5, tw:1.85,td:1.3, dz:0.1, c:C.CAISSE, y:0.77, z:2.05}));
+  g.add(box(1.8,0.6,0.22, C.CREME, 0,0.95,2.82));
+  for(let k=0;k<3;k++) g.add(box(1.5,0.08,0.1, C.SOMBRE, 0,0.78+k*0.16,2.94));
+  g.add(box(2.1,0.2,0.5, C.CREME, 0,0.6,2.78));
   const F = jeuDeFeux();
   for(const sx of [-0.82,0.82]) optique(g, F, false, sx, 1.12,  2.92, 0.34, 0.22);
+  g.add(slab({w:2.05,h:1.35,d:1.9, tw:1.9,td:1.75, c:C.CAISSE, y:0.92, z:0.75}));
+  g.add(box(1.85,0.72,0.14, C.SOMBRE, 0,1.86,1.66));
+  for(const sx of [-1.0,1.0]) g.add(box(0.12,0.6,1.1, C.SOMBRE, sx,1.82,0.75));
+  g.add(box(2.05,0.16,1.9, C.CAISSE2, 0,2.28,0.75));
+  for(const sx of [-1.14,1.14]){
+    g.add(box(0.09,0.5,0.09, C.CREME, sx,1.82,1.5));
+    g.add(box(0.3,0.42,0.09, C.SOMBRE, sx,2.14,1.5));
+  }
+  const wf = [];
+  for(const sx of [-1.02,1.02]){ const a = wheelMesh(0.62,0.38); a.position.set(sx,0.62,1.9); g.add(a); wf.push(a); }
+  return {F, wf};
+}
+function buildPickup(){
+  const g = new THREE.Group();
+  const C = {CAISSE:0x3E7CB8, CAISSE2:0x2C5C8C, CREME:0xF2E7D2, SOMBRE:0x22303A};
+  const CAISSE = C.CAISSE, CAISSE2 = C.CAISSE2, CREME = C.CREME;
+  const {F, wf} = avantPickup(g, C, 5.4, -0.2);
   /* LES FEUX ARRIÈRE SE POSENT SUR LE HAYON, PAS DEDANS. Ils étaient à z = −3,47 :
      le hayon, lui, va de −3,51 à −3,61. La lentille se trouvait donc DEVANT la tôle,
      entièrement masquée par elle, et l'on n'en voyait que ce que le tri en profondeur
@@ -13974,14 +14036,6 @@ function buildPickup(){
      comme un enjoliveur, et la lentille dépasse de dix. On les voit de l'arrière, ce
      qui est la seule chose qu'on demande à un feu arrière. */
   for(const sx of [-0.85,0.85]) optique(g, F, true,  sx, 1.20, -3.66, 0.30, 0.18);
-  g.add(slab({w:2.05,h:1.35,d:1.9, tw:1.9,td:1.75, c:CAISSE, y:0.92, z:0.75}));
-  g.add(box(1.85,0.72,0.14, SOMBRE, 0,1.86,1.66));
-  for(const sx of [-1.0,1.0]) g.add(box(0.12,0.6,1.1, SOMBRE, sx,1.82,0.75));
-  g.add(box(2.05,0.16,1.9, CAISSE2, 0,2.28,0.75));
-  for(const sx of [-1.14,1.14]){
-    g.add(box(0.09,0.5,0.09, CREME, sx,1.82,1.5));
-    g.add(box(0.3,0.42,0.09, SOMBRE, sx,2.14,1.5));
-  }
   /* LA BENNE. Trois défauts corrigés d'un coup. Les ridelles montaient à 62 cm : on
      voyait par-dessus le fond, et rien de ce qu'on y pose ne se serait vu dépasser.
      Les passages de roue étaient posés à 78 cm de l'axe alors que la roue est à 1,02 :
@@ -14022,9 +14076,8 @@ function buildPickup(){
      et le plateau est libre sur toute sa longueur. */
   g.add(cyl(0.20,0.20,1.9,8, CREME, 0,1.62,-0.50, 0,0,Math.PI/2));
   const gyro = gyrophare(g, 0.72, 2.52, 0.2);
-  const wr = [], wf = [];
+  const wr = [];
   for(const sx of [-1.02,1.02]){
-    const a = wheelMesh(0.62,0.38); a.position.set(sx,0.62,1.9); g.add(a); wf.push(a);
     const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,-1.9); g.add(b2); wr.push(b2);
   }
   // À côté d'un tracteur de 4,6 m de haut, un pick-up modelé à l'échelle réelle
@@ -14379,54 +14432,38 @@ function buildCaseyeur(){
    grandisse pas avec son nez — mesuré, 11,4 m hors tout contre 11,2, et 4,26 de large
    avec les rétroviseurs contre 4,16 : « en plus petit », c'est toujours un porteur de
    ville à côté du tracteur de la rocade. */
+/* ---------- LE CAMION FRIGO : UN PICK-UP VERT, EN UN PEU PLUS HAUT ----------
+   Le joueur : « fais-le plus petit, aide-toi du style du pick-up : il faut que ça ressemble
+   au pick-up, en un tout petit peu plus haut, et en vert. » Il avait eu un avant à capot
+   façon camion américain, à l'échelle 1,60 — onze mètres quarante de long. C'est maintenant
+   la carrosserie avant du pick-up, telle quelle (`avantPickup`), en vert, à l'échelle du
+   pick-up (1,38), et une CAISSE FRIGORIFIQUE à la place de la benne : 2,40 de large sur la
+   planche, du dossier de cabine à −3,70, et cinquante centimètres plus haute que le toit de
+   la cabine — un tout petit peu plus haut, pas plus. Neuf mètres et demi de long contre neuf
+   pour le pick-up. Le groupe froid est sur le front de la caisse, les portes à barres derrière. */
 function buildFrigo(){
   const g = new THREE.Group();
-  const c = PO_.BLEU, chrome = PO_.INOX;
-  g.add(box(2.2, 0.34, 6.8, 0x453D34, 0, 0.68, 0.3));
-  // la cabine, courte, derrière le capot
-  const y = 0.85, w = 2.24, d = 1.5, zc = 1.6;
-  const hC = 0.8, hV = 0.75, hT = 0.35;
-  g.add(box(w, hC, d, c, 0, y + hC/2, zc));
-  g.add(box(w, hV, d, C.glass, 0, y + hC + hV/2, zc));
-  g.add(box(w + 0.14, hT, d + 0.14, c, 0, y + hC + hV + hT/2, zc));
-  for(const sx of [-1, 1]) for(const sz of [-1, 1])
-    g.add(box(0.14, hV, 0.14, c, sx*(w/2 - 0.07), y + hC + hV/2, zc + sz*(d/2 - 0.07)));
-  for(const sx of [-1, 1]){                                              // rétroviseurs, serrés
-    g.add(box(0.2, 0.05, 0.05, 0x2A2E32, sx*(w/2 + 0.1), y + hC + 0.5, zc + d/2 - 0.1));
-    g.add(box(0.06, 0.34, 0.2, 0x2A2E32, sx*(w/2 + 0.18), y + hC + 0.36, zc + d/2 - 0.1));
-  }
-  // le capot : un nez de camion américain, en plus petit
-  const zN = 3.0, lN = 1.3;                                              // de 2,35 à 3,65
-  g.add(box(1.9, 0.85, lN, c, 0, y + 0.425, zN));
-  g.add(box(1.6, 0.16, lN - 0.1, c, 0, y + 0.93, zN - 0.05));
-  g.add(box(1.0, 0.62, 0.12, chrome, 0, 1.3, 3.66));                    // la petite calandre
-  for(let k = 0; k < 5; k++) g.add(box(0.84, 0.05, 0.08, PO_.GRIS2, 0, 1.06 + k*0.12, 3.72));
-  g.add(box(2.3, 0.28, 0.4, chrome, 0, 0.72, 3.62));                    // le pare-chocs
-  for(const sx of [-1, 1]){                                              // les ailes
-    g.add(box(0.5, 0.16, 1.7, c, sx*1.0, 1.2, 2.75));
-    g.add(box(0.5, 0.45, 0.14, c, sx*1.0, 1.0, 3.58));
-  }
-  // le caisson frigorifique, quarante centimètres plus court qu'avant
-  g.add(box(2.4, 2.4, 4.0, PO_.CREME, 0, 2.05, -1.2));
-  g.add(box(2.46, 0.2, 4.1, 0xD8D2C0, 0, 3.25, -1.2));
-  for(let k = 0; k < 4; k++) g.add(box(2.44, 2.3, 0.07, 0xE4DED0, 0, 2.05, 0.4 - k*0.95));
-  g.add(box(1.5, 0.9, 0.4, chrome, 0, 3.2, 0.85));                      // le groupe froid
-  for(let k = 0; k < 4; k++) g.add(box(1.3, 0.07, 0.1, PO_.GRIS2, 0, 2.95 + k*0.18, 1.06));
-  g.add(box(1.7, 0.6, 0.14, PO_.BLEU, 0, 2.2, -3.22));
-  const F = jeuDeFeux();
-  for(const sx of [-0.72, 0.72]) optique(g, F, false, sx, 1.34,  3.67, 0.24, 0.16);
-  for(const sx of [-0.8, 0.8])   optique(g, F, true,  sx, 1.0,  -3.26, 0.30, 0.22);
-  const wr = [], wf = [];
-  for(const sx of [-1.05, 1.05]){
-    const a = wheelMesh(0.48, 0.34); a.position.set(sx, 0.48, 2.6); g.add(a); wf.push(a);
-    for(const sz of [-1.3, -2.4]){ const b2 = wheelMesh(0.48, 0.34); b2.position.set(sx, 0.48, sz); g.add(b2); wr.push(b2); }
-  }
-  const gyro = gyrophare(g, 0.7, y + hC + hV + hT + 0.16, zc);
-  g.scale.setScalar(1.60);
+  const C = {CAISSE:0x3E8A50, CAISSE2:0x2E6B3C, CREME:0xF2E7D2, SOMBRE:0x22303A};
+  const {F, wf} = avantPickup(g, C, 6.2, -0.6);          // le châssis va à −3,70, sous la caisse
+  const BW = 1.2, Y0 = 0.86, H = 1.86, Z0 = -0.2, Z1 = -3.7, zc = (Z0 + Z1)/2, L = Z0 - Z1;
+  g.add(box(BW*2, H, L, C.CAISSE, 0, Y0 + H/2, zc));                        // la caisse
+  g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.CREME, 0, Y0 + H + 0.06, zc));   // son toit clair
+  g.add(box(BW*2 + 0.04, 0.16, L, C.CREME, 0, Y0 + 0.1, zc));              // le liseré bas
+  for(let k = 0; k < 4; k++)                                                // les nervures
+    g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.CAISSE2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
+  g.add(box(1.4, 0.7, 0.42, C.CREME, 0, Y0 + H - 0.2, Z0 + 0.25));          // le groupe froid, sur le front
+  for(let k = 0; k < 4; k++) g.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, Z0 + 0.47));
+  for(const sx of [-0.6, 0, 0.6]) g.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, Z1 - 0.03));   // les barres des portes
+  for(const sx of [-0.85,0.85]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
+  g.add(box(2.1, 0.16, 0.3, C.SOMBRE, 0, 0.66, Z1 - 0.05));                 // le pare-chocs arrière
+  const gyro = gyrophare(g, 0.72, 2.52, 1.0);           // sur le toit de la cabine, devant le groupe froid
+  const wr = [];
+  for(const sx of [-1.02,1.02]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,-2.4); g.add(b2); wr.push(b2); }
+  g.scale.setScalar(1.38);
   g.userData = {wr, wf, gyro, feux:F,
-    lampes:{avant:  {x:[-0.72, 0.72], y:1.34, z: 3.67, w:0.24, h:0.16},
-            arriere:{x:[-0.8, 0.8],   y:1.0,  z:-3.26, w:0.30, h:0.22},
-            nez:3.85}};
+    lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
+            arriere:{x:[-0.85,0.85], y:1.20, z:Z1 - 0.1, w:0.30, h:0.18},
+            nez:3.0}};
   return g;
 }
 /* ---------- LE CAMION AMÉRICAIN DU JOUEUR, ET SES TROIS REMORQUES ----------
@@ -19684,16 +19721,26 @@ const CAMIONS_GEOS = (function(){
      posent par-dessus. La ceinture monte au-dessus du capot, sinon le capot masque le
      bas du pare-brise et celui-ci paraît plus court que les côtés. */
   const Y_SELLETTE = 1.22, Z_SELLETTE = -3.4;
+  /* LA CABINE EST À LA LARGEUR DES REMORQUES. Le joueur : « vérifie la largeur des remorques
+     du camion US, elles doivent faire la même largeur que la cabine. » Mesuré : la caisse de
+     la cabine faisait 2,50 sur la planche, ses ailes 3,12, et les remorques 3,10 depuis
+     qu'on les a élargies — vues de derrière, la remorque débordait la cabine de trente
+     centimètres de chaque côté. La cabine passe donc à 3,10 — la largeur des remorques,
+     `W_REM` —, le capot à 2,80 entre les ailes, la calandre et le pare-chocs avec ; les
+     cheminées se resserrent contre elle (1,69 de l'axe, 1,88 au bord) pour que rien ne
+     dépasse le tracteur d'avant, et `LARG_LOURD`, qui se calcule sur la pièce la plus
+     large, reste à 1 (2,35 pour 2,28 : c'est la marge qui reste). */
+  const W_CAB = 3.1, Z_CAB = 0.4, D_CAB = 1.95, Y_CAB = 1.35, H_CAB = 1.16 + 0.95 + 0.34;
   function tracteur(couleur, couchette){
-    const P = [], zCab = 0.4, wCab = 2.5, dCab = 1.95;
-    const y0 = 1.35, hC = 1.16, hV = 0.95, hT = 0.34;
+    const P = [], zCab = Z_CAB, wCab = W_CAB, dCab = D_CAB;
+    const y0 = Y_CAB, hC = 1.16, hV = 0.95, hT = 0.34;
     P.push(B(2.4, 0.4, 9.2, CHASSIS, 0, 0.72, -1.2));
     for(const sx of [-1, 1]) P.push(B(0.22, 0.5, 9.0, 0x2E2A26, sx*0.92, 0.72, -1.2));
     for(let k = 0; k < 5; k++) P.push(B(2.2, 0.16, 0.22, 0x2E2A26, 0, 0.62, -3.6 + k*1.2));
-    P.push(slab({w:2.3, h:1.55, d:2.45, tw:2.1, td:2.2, dz:-0.1, c:couleur, y:0.92, z:2.5}));
-    P.push(B(1.9, 1.3, 0.16, CHROME, 0, 1.66, 3.7));                    // calandre
-    for(let k = 0; k < 8; k++) P.push(B(1.62, 0.07, 0.1, 0x9BA3A8, 0, 1.14 + k*0.16, 3.78));
-    P.push(B(2.44, 0.34, 0.5, CHROME, 0, 0.9, 3.76));                   // pare-chocs
+    P.push(slab({w:2.8, h:1.55, d:2.45, tw:2.6, td:2.2, dz:-0.1, c:couleur, y:0.92, z:2.5}));
+    P.push(B(2.3, 1.3, 0.16, CHROME, 0, 1.66, 3.7));                    // calandre
+    for(let k = 0; k < 8; k++) P.push(B(2.0, 0.07, 0.1, 0x9BA3A8, 0, 1.14 + k*0.16, 3.78));
+    P.push(B(3.1, 0.34, 0.5, CHROME, 0, 0.9, 3.76));                    // pare-chocs
     for(const sx of [-1, 1]){
       P.push(B(0.5, 0.42, 0.16, couleur, sx*1.06, 1.62, 3.72));
       P.push(B(0.42, 0.34, 0.12, 0x2A2E32, sx*1.06, 1.62, 3.8));
@@ -19717,12 +19764,12 @@ const CAMIONS_GEOS = (function(){
         P.push(B(0.1, 0.7, 0.6, VITRE, sx*(wCab/2 + 0.02), y0 + 1.7, zCab - 1.6));
       feuxGabarit(P, 1.8, y0 + 2.58, zCab - 1.05, 5);
     }
-    feuxGabarit(P, 1.9, y0 + hC + hV + hT + 0.06, zCab + dCab/2 + 0.06, 5);
+    feuxGabarit(P, 2.4, y0 + hC + hV + hT + 0.06, zCab + dCab/2 + 0.06, 5);
     const HCHEM = 3.0;                                                  // 4,00 sur la planche
     for(const sx of [-1, 1]){
-      P.push(CY(0.15, HCHEM, 8, CHROME, sx*(wCab/2 + 0.28), 0.8 + HCHEM/2,
+      P.push(CY(0.15, HCHEM, 8, CHROME, sx*(wCab/2 + 0.14), 0.8 + HCHEM/2,
                 zCab - (couchette ? 2.5 : 1.1)));
-      P.push(CY(0.19, 0.3, 8, GRIS2, sx*(wCab/2 + 0.28), 0.8 + HCHEM - 0.1,
+      P.push(CY(0.19, 0.3, 8, GRIS2, sx*(wCab/2 + 0.14), 0.8 + HCHEM - 0.1,
                 zCab - (couchette ? 2.5 : 1.1)));
     }
     // Réservoirs : l'axe suit la LONGUEUR du camion — rotation autour de X, pas de Z.
@@ -19871,16 +19918,19 @@ const CAMIONS_GEOS = (function(){
         P.push(B(0.3, 0.2, 0.3, GRIS2, sx*X_RANCHER, yS + 0.36, z));
       }
     }
-    /* LES GRUMES, EN QUINCONCE. Trois lits : cinq en bas, quatre au milieu, trois en
-       haut — chaque lit se love dans le creux de celui d'en dessous, comme une vraie
-       pile. Elles sont un peu plus courtes que le plateau, pour qu'on voie les têtes de
-       coupe dépasser des ranchers plutôt que de toucher la traverse. */
-    const RG = 0.35, LG = L - 1.4;                     // cinq grumes de front dans 2,90 entre ranchers
-    const lits = [[5, yS + 0.65], [4, yS + 1.27], [3, yS + 1.89]];
+    /* LES GRUMES, EN QUINCONCE. Quatre lits : cinq en bas, puis quatre, trois, deux —
+       chaque lit se love dans le creux de celui d'en dessous, comme une vraie pile.
+       Elles sont un peu plus courtes que le plateau, pour qu'on voie les têtes de
+       coupe dépasser des ranchers plutôt que de toucher la traverse. Le lit du bas
+       tient ENTRE les ranchers (2,78 de large pour 2,72 de jour : à la touche) : c'est la pile qui
+       donnait au grumier ses 4,4 m, quand tout le reste du convoi fait 3,9. */
+    const RG = 0.27, PAS = RG*2 + 0.02, LG = L - 1.4;   // cinq grumes de front : 5·0,56 − 0,02 = 2,78 → bords à ±1,39
+    const H_LIT = Math.sqrt(4*RG*RG - PAS*PAS/4);      // hauteur d'un lit en quinconce (0,46)
+    const lits = [[5, yS + 0.65], [4, yS + 0.65 + H_LIT], [3, yS + 0.65 + 2*H_LIT], [2, yS + 0.65 + 3*H_LIT]];
     for(let i = 0; i < lits.length; i++){
       const n = lits[i][0], y = lits[i][1];
       for(let k = 0; k < n; k++){
-        const x = (k - (n - 1)/2)*(RG*2 + 0.04);
+        const x = (k - (n - 1)/2)*PAS;
         P.push(CY(RG, LG, 8, k % 2 ? BOIS_G : BOIS_G2, x, y, zc, Math.PI/2));
         // Le cœur clair des deux têtes : c'est ce qui dit que c'est du bois coupé.
         for(const sz of [-1, 1])
@@ -19924,6 +19974,9 @@ const CAMIONS_GEOS = (function(){
     // la géométrie, et suivraient un dessin qu'on changerait.
     sellette: -Z_SELLETTE,
     timon: essieu,
+    // La tranche de la cabine, en unités de la planche, pour qui veut la mesurer sur la
+    // géométrie fusionnée : le banc y compare la largeur des remorques.
+    cabine: {w:W_CAB, z:Z_CAB, d:D_CAB, y0:Y_CAB, h:H_CAB, remorque:W_REM},
     /* ---------- CE QUE LE JOUEUR EMPORTE DE LA PLANCHE ----------
        Le joueur : « fais aussi qu'on puisse acheter un des camions américains, un tracteur,
        et qu'on puisse atteler plusieurs types de remorques disponibles en attente à
@@ -21509,9 +21562,9 @@ const MACHINES = [
      vendent au chantier naval et dorment dans le bassin, entre le quai et la jetée. Un
      bateau n'a pas d'adhérence : `grip` bas, il dérive en virage, et sa suspension est la
      houle. `peche` dit ce qu'il remonte : la nature, le lot, et le temps d'un lot. */
-  {key:'frigo', nom:'Camion frigo', teinte:0x2E6BA8, verrou:true, prix:12000,
+  {key:'frigo', nom:'Camion frigo', teinte:0x3E8A50, verrou:true, prix:12000,
    livre:'AU PORT', timbre:'fourgon', ton:0.97, plage:[0.74, 0.96], v:new Vehicle({
-      x:-204, z:-76, cap:-Math.PI/2, vmax:16, accel:11, turn:1.9, grip:5.6, trackW:1.47,
+      x:-204, z:-76, cap:-Math.PI/2, vmax:16, accel:11, turn:1.9, grip:5.6, trackW:1.42,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFrigo
     })},
