@@ -16490,3 +16490,33 @@ garage ; les deux du brin bord à bord ; et aucun lot de maison ne recouvre l'em
 commerce. Sur le commit précédent, il échoue : premier lot à −6,7 m de la dalle du garage,
 un lot sur un commerce. `village` 16 sur 16 ; `rue` ses douze échecs d'avant, à l'identique ;
 `decor`, relancé après les oiseaux du chapitre précédent, ses sept d'avant.
+
+### Les oiseaux posés replient leurs ailes, et le hameau est bien après le garage
+
+Le joueur : « la maison qui est collée au garage sur la rue du bas : sa clôture empiète sur
+la cour du garage, décale-la, et les maisons d'après aussi. Pour les mouettes, fais que quand
+elles sont posées, comme les autres oiseaux, elles aient les ailes repliées. »
+
+**Le garage, vérifié sur la version poussée.** C'est ce que le chapitre précédent a fait : le
+hameau part maintenant à x = 160, son premier lot à 165,9, quatorze mètres après la dalle du
+garage (151,6), et les deux maisons suivantes avec lui. Relevé sur le commit `7ddaf77`, celui
+que Vercel a déployé : dans l'emprise du garage il n'y a plus que le garage — quatre pièces
+de son propre modèle, une boîte de collision qui est son bâtiment — et aucune clôture ;
+aucun lot de maison ne recouvre plus un commerce (contrôle du banc `bois`). La clôture dans
+la cour du garage, c'est la version d'avant ce commit ; il suffit de recharger la page.
+
+**Les ailes.** Tous les oiseaux — ceux des champs, ceux de la forêt et les mouettes — ouvraient
+les ailes au sol : posés, ils avaient l'air d'avions. Chaque silhouette existe maintenant en
+**deux géométries** (`silhouettesOiseau`) : la même bête, ailes ouvertes pour le vol, ailes
+**repliées** au sol — rabattues le long des flancs, un peu au-dessus du dos, et pour la mouette
+le bout noir croisé sur la queue. `updateBirds` échange la géométrie du maillage quand l'état
+change, et rien d'autre : même matériau, même position, pas une pièce de plus. Mesuré :
+0,41 m de large posée contre 1,54 en vol pour la mouette, 0,38 contre 1,20 pour l'oiseau
+des champs. Un oiseau naît posé, ailes repliées.
+
+**Bancs.** `port` **43 sur 43** : un contrôle neuf — la silhouette posée fait moins d'un
+demi-mètre de large, celle en vol plus d'un mètre quarante, toute mouette posée porte la
+première et toute mouette en l'air la seconde (trois posées, sept en vol au moment de la
+mesure). `bois` **33 sur 33** : le contrôle de la coupe exige maintenant les ailes repliées
+sur tout ce qui perche et ouvertes sur tout ce qui vole, oiseaux des champs compris. Sur le
+commit précédent, les deux plantent : pas de silhouette posée.

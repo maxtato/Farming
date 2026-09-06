@@ -15834,33 +15834,58 @@ function updateTrail(v, now, dt){
 }
 
 /* --- oiseaux : posés sur les parcelles, ils s'envolent à l'approche d'un engin --- */
-const BIRD_GEO = (function(){
-  const P = [], B = (w,h,d,x,y,z,c)=>P.push({g:new THREE.BoxGeometry(w,h,d),
-    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
-  B(0.24,0.22,0.52, 0,0,0,        0x3A4046);   // corps
-  B(0.18,0.18,0.18, 0,0.10,0.30,  0x434A51);   // tête
-  B(0.07,0.06,0.14, 0,0.09,0.44,  0xE0A02E);   // bec
-  B(0.52,0.06,0.30, -0.34,0.04,0, 0x2C3238);   // aile gauche
-  B(0.52,0.06,0.30,  0.34,0.04,0, 0x2C3238);   // aile droite
-  B(0.16,0.05,0.24, 0,0.02,-0.36, 0x2C3238);   // queue
-  return mergeParts(P);
-})();
+/* DEUX SILHOUETTES PAR OISEAU : AILES OUVERTES EN VOL, REPLIÉES AU SOL. Le joueur : « pour
+   les mouettes, fais que quand elles sont posées, comme les autres oiseaux, elles aient les
+   ailes repliées. » Un oiseau posé n'est pas un avion : ses ailes se rabattent le long des
+   flancs, un peu au-dessus du dos, et leur bout se croise sur la queue. Même corps, même
+   matériau, deux géométries ; on change celle du maillage quand l'état change (voir
+   `updateBirds`), et rien d'autre. Cela vaut pour les trois genres : les oiseaux des champs
+   et de la forêt ouvraient les ailes au sol eux aussi. */
+function silhouettesOiseau(corps, ailes){
+  const faire = (pliees)=>{
+    const P = [], B = (w,h,d,x,y,z,c)=>P.push({g:new THREE.BoxGeometry(w,h,d),
+      m:new THREE.Matrix4().makeTranslation(x,y,z), c});
+    corps(B); ailes(B, pliees);
+    return mergeParts(P);
+  };
+  return {vol:faire(false), pose:faire(true)};
+}
+const OISEAU = silhouettesOiseau(
+  (B)=>{
+    B(0.24,0.22,0.52, 0,0,0,        0x3A4046);   // corps
+    B(0.18,0.18,0.18, 0,0.10,0.30,  0x434A51);   // tête
+    B(0.07,0.06,0.14, 0,0.09,0.44,  0xE0A02E);   // bec
+    B(0.16,0.05,0.24, 0,0.02,-0.36, 0x2C3238);   // queue
+  },
+  (B, pliees)=>{
+    for(const s of [-1, 1]){
+      if(pliees) B(0.10,0.07,0.42, s*0.14, 0.10, -0.04, 0x2C3238);   // le long du flanc, sur le dos
+      else       B(0.52,0.06,0.30, s*0.34, 0.04,  0,    0x2C3238);   // ouverte
+    }
+  });
+const BIRD_GEO = OISEAU.vol, BIRD_GEO_POSE = OISEAU.pose;
 /* LA MOUETTE. Le joueur : « fais des mouettes vers le port qui squattent vers le dépôt,
    et qui tournent dans les airs. » Même carrure que l'oiseau des champs, un peu plus
    grande : corps et tête blancs, ailes gris cendré au bout noir, bec jaune. */
-const GULL_GEO = (function(){
-  const P = [], B = (w,h,d,x,y,z,c)=>P.push({g:new THREE.BoxGeometry(w,h,d),
-    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
-  B(0.26,0.22,0.56, 0,0,0,        0xF2F4F6);   // corps
-  B(0.18,0.18,0.18, 0,0.11,0.32,  0xF2F4F6);   // tête
-  B(0.06,0.06,0.16, 0,0.09,0.46,  0xE8B43A);   // bec
-  B(0.62,0.05,0.28, -0.40,0.05,0, 0xB8C0C6);   // aile gauche
-  B(0.62,0.05,0.28,  0.40,0.05,0, 0xB8C0C6);   // aile droite
-  B(0.14,0.05,0.26, -0.70,0.05,0, 0x3A4046);   // le bout noir
-  B(0.14,0.05,0.26,  0.70,0.05,0, 0x3A4046);
-  B(0.16,0.05,0.22, 0,0.03,-0.38, 0xF2F4F6);   // queue
-  return mergeParts(P);
-})();
+const MOUETTE = silhouettesOiseau(
+  (B)=>{
+    B(0.26,0.22,0.56, 0,0,0,        0xF2F4F6);   // corps
+    B(0.18,0.18,0.18, 0,0.11,0.32,  0xF2F4F6);   // tête
+    B(0.06,0.06,0.16, 0,0.09,0.46,  0xE8B43A);   // bec
+    B(0.16,0.05,0.22, 0,0.03,-0.38, 0xF2F4F6);   // queue
+  },
+  (B, pliees)=>{
+    for(const s of [-1, 1]){
+      if(pliees){
+        B(0.11,0.07,0.46, s*0.15, 0.11, -0.06, 0xB8C0C6);   // repliée sur le flanc
+        B(0.10,0.06,0.14, s*0.10, 0.12, -0.36, 0x3A4046);   // le bout noir, croisé sur la queue
+      } else {
+        B(0.62,0.05,0.28, s*0.40, 0.05, 0, 0xB8C0C6);       // ouverte
+        B(0.14,0.05,0.26, s*0.70, 0.05, 0, 0x3A4046);       // le bout noir
+      }
+    }
+  });
+const GULL_GEO = MOUETTE.vol, GULL_GEO_POSE = MOUETTE.pose;
 const birdMat = MAT_FUSION;
 const BIRDS = [];
 const BIRD_FLEE = 13;        // distance d'envol
@@ -15900,11 +15925,12 @@ function percher(b, a){
   const ang = Math.random()*6.28, r = 0.9*a.s;
   b.arbre = a; b.tx = a.x + Math.sin(ang)*r; b.tz = a.z + Math.cos(ang)*r; b.yPose = hauteurPerchoir(a);
 }
-function nouvelOiseau(geo, genre, x, z, y, sc){
-  const m = new THREE.Mesh(geo, birdMat);
+function nouvelOiseau(silh, genre, x, z, y, sc){
+  const m = new THREE.Mesh(silh.pose, birdMat);          // il naît posé, ailes repliées
   m.castShadow = true;
   const b = {m, genre, x, z, y, yPose:y, st:0, cap:Math.random()*6, vy:0, ph:0, t:0.5 + Math.random()*2,
-             tx:x, tz:z, sc, arbre:null, cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:30 + Math.random()*60};
+             tx:x, tz:z, sc, arbre:null, cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:30 + Math.random()*60,
+             geoVol:silh.vol, geoPose:silh.pose};
   m.scale.setScalar(sc); m.position.set(x, y, z);
   scene.add(m); BIRDS.push(b);
   return b;
@@ -15940,7 +15966,7 @@ function effaroucherForet(x, z, r){
 function poserMouettes(){
   for(let k = 0; k < 10; k++){
     const c = spotMouette();
-    const b = nouvelOiseau(GULL_GEO, 'mouette', c.x, c.z, 0.18, 1.0 + Math.random()*0.2);
+    const b = nouvelOiseau(MOUETTE, 'mouette', c.x, c.z, 0.18, 1.0 + Math.random()*0.2);
     if(k < 3){ b.y = 8 + k*2; entrerEnCercle(b); }     // trois déjà en l'air
   }
 }
@@ -15948,7 +15974,7 @@ function poserOiseauxForet(){
   for(let k = 0; k < 12; k++){
     const a = arbrePerchoir(null);
     if(!a) break;
-    const b = nouvelOiseau(BIRD_GEO, 'foret', a.x, a.z, 0, 0.5 + Math.random()*0.15);
+    const b = nouvelOiseau(OISEAU, 'foret', a.x, a.z, 0, 0.5 + Math.random()*0.15);
     percher(b, a); b.x = b.tx; b.z = b.tz; b.y = b.yPose;
     b.m.position.set(b.x, b.y, b.z);
   }
@@ -15965,12 +15991,13 @@ function birdSpot(){
   for(let g=0; g<5; g++){                      // cinq petits groupes
     const c = birdSpot();
     for(let k=0; k<3 + ((Math.random()*3)|0); k++){
-      const m = new THREE.Mesh(BIRD_GEO, birdMat);
+      const m = new THREE.Mesh(BIRD_GEO_POSE, birdMat);
       m.castShadow = true;
       const b = {m, genre:'champ', x:c.x + (Math.random()-0.5)*5, z:c.z + (Math.random()-0.5)*5,
                  y:0.18, yPose:0.18, st:0, cap:Math.random()*6, vy:0, ph:0, t:0,
                  tx:0, tz:0, sc:0.62 + Math.random()*0.18, arbre:null,
-                 cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:0};
+                 cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:0,
+                 geoVol:BIRD_GEO, geoPose:BIRD_GEO_POSE};
       m.scale.setScalar(b.sc);
       m.position.set(b.x, b.y, b.z);
       scene.add(m); BIRDS.push(b);
@@ -16072,6 +16099,9 @@ function updateBirds(dt, vx, vz){
       b.m.scale.x = b.sc * (1 - 0.55*Math.abs(Math.sin(now/1000*16 + b.sc*7)));
     }
     if(b.st === 0) b.m.scale.x = b.sc;
+    // posé, les ailes se replient ; dès qu'il décolle, elles s'ouvrent — deux géométries, un seul maillage
+    const geo = b.st === 0 ? b.geoPose : b.geoVol;
+    if(b.m.geometry !== geo) b.m.geometry = geo;
     b.m.position.set(b.x, b.y, b.z);
     b.m.rotation.y = b.cap;
     b.m.rotation.x = b.st ? -0.12 : 0;
