@@ -16306,3 +16306,77 @@ heurté, et cette file n'a plus de tout droit depuis que le trafic évite le por
 prend maintenant un attelage visible, ou en fait naître un sur la rocade ouest et le laisse
 paraître. Ce n'était pas le camion : la mesure directe sur le pick-up donne un mètre de
 déplacement de l'attelage heurté, comme avant.
+
+### Le bois n'a plus que la scierie et le menuisier, le poisson entre au supermarché et le village a sa poissonnerie
+
+Le joueur : « pour les magasins qui vendent le bois, fais juste la scierie et le menuisier ;
+fais la scierie à côté du supermarché et le menuisier sur la route du bas. Le menuisier
+achètera plus cher, mais en petit volume ; la scierie achètera plus gros. Et pour le poisson,
+la criée achètera quasiment tout, mais le supermarché achètera aussi. Écris-moi une
+poissonnerie aussi dans le village. Et le poisson à vendre au marché aussi. »
+
+**Le bois.** Le séchoir et la tonnellerie sont partis, et la bande `FO` avec eux : la verge
+en face de la forêt n'est plus qu'un pré semé d'arbres (`FO_X0`/`FO_X1` n'en bornent plus
+que le semis). La **Scierie** passe sur la bande `SU`, **jointive au nord du supermarché** —
+le côté de la route nord, par où le porteur arrive de la piste du dépôt — ; la maison du
+brin reste et ses trois bosquets descendent de douze à 8,5 m. La **Menuiserie devient le
+Menuisier** et s'installe dans le hameau de la route du bas (bande `RS`), entre le couple de
+maisons et la troisième, avec un muret comme les commerces du village : la bande s'allonge
+de quarante-six mètres vers l'est (127 à 283, à onze mètres de la lisière de la forêt) pour
+le loger sans rien serrer, ses quatre bosquets font douze mètres. Les deux ateliers gardent
+les modèles de la planche `bois.html` ; `batSechoir` et `batTonnellerie` sont retirés du
+fichier. Le semis d'arbres au sud de la route nord, qui descendait jusqu'à z = 40 sans
+regarder les dalles, épargne maintenant celle du menuisier (qui monte à 38).
+
+**L'échelle du bois, à deux barreaux.** La scierie est le plancher — le tarif de référence,
+et **douze tonnes d'étal** au lieu de cinq — ; le menuisier est le caviste du bois —
+**quarante pour cent de plus, quatre cents kilos**, une charge de porteur. Le palier du
+menuisier reste le dixième ; le palier du vin, qui ouvrait la tonnellerie, n'ouvre plus que
+le caviste.
+
+**La marée.** La **Criée** prend **quinze tonnes** au lieu de quatre, à 1,05 comme avant. Le
+**Supermarché** prend poisson et crustacés au prix de référence : c'est le débouché de l'est,
+pour qui remonte du port avec le camion frigo ; il est dominé sur la marée par la criée, et
+c'est voulu — sa raison d'être est la route. Le Marché prenait déjà la marée entière
+(vérifié, rien à changer). La **Poissonnerie** du village — boutique blanche et bleue, l'étal
+de glace pilée dehors, les casiers du port près de la porte (`batPoissonnerie`, le corps de
+la boucherie) — est le caviste de la mer : **1,33 pour 600 kg**, poisson et crustacés, ouverte
+avec le port au douzième palier. Elle tient le bout ouest de la bande nord, collée à la
+boulangerie : la bande avait treize mètres de reste à chaque bout, la poissonnerie en prend
+dix-neuf, et les deux creux passent de douze à 9,4 et 8,5 m. Un paquet à elle seule, avec un
+creux devant, les aurait ramenés à cinq : les deux maisons de cette bande font vingt-neuf
+mètres chacune, mesuré, et non vingt-deux.
+
+| acheteur | coef | étal | où |
+|---|---|---|---|
+| Scierie | 1,00 | 12 000 kg | bande SU, au nord du supermarché |
+| Menuisier | 1,40 | 400 kg | bande RS, le hameau de la route du bas |
+| Criée | 1,05 | 15 000 kg | le port |
+| Supermarché | 1,00 | 9 000 kg | poisson et crustacés en plus |
+| Poissonnerie | 1,33 | 600 kg | bande N, bout ouest, palier 12 |
+
+**La sauvegarde relit `negoce` par nom, et la table peut perdre une ligne.** Ce que chaque
+commerce a en trémie, sur son quai et sur son étal s'écrivait **par rang** : `SITES.map(...)`
+à l'écriture, `S.negoce[i]` à la relecture. C'est ce qui interdisait, depuis la Brasserie,
+de retirer une ligne de `SITES` — le séchoir et la tonnellerie partis, l'étal de l'entrepôt
+serait tombé chez la criée. Chaque entrée porte maintenant le **nom** du commerce, et
+`negoceDe` la retrouve par lui ; une sauvegarde d'avant, sans nom, se relit par
+`NEGOCE_ORDRE_ANCIEN`, les vingt-deux commerces dans l'ordre qu'elle connaissait, relevé
+avant la modification. `SITES_ANCIENS_NOMS` rattrape « Menuiserie » → « Menuisier » dans les
+deux chemins, comme il rattrapait « Brasserie » → « Épicerie » pour la renommée. Les
+mentions « EN FIN DE TABLE, et c'est impératif » de `SITES` n'ont plus lieu d'être.
+
+**Bancs.** `bois` **29 sur 29** : les contrôles des quatre ateliers réécrits pour deux
+(scierie sur SU jointive au supermarché, menuisier sur RS entre les trois maisons, plus de
+bande FO ni de séchoir ni de tonnellerie, coefficients et étals, paliers 7 et 10, prix ×1,4
+chez le menuisier, la vente y est plafonnée à 400 kg), et un contrôle neuf de la sauvegarde :
+`negoce` écrit avec les noms, et une sauvegarde d'avant, rangée par rang et sans nom, relue
+par l'ordre ancien (la dix-septième entrée retombe chez le menuisier, la vingtième à la
+criée, la dix-neuvième à l'entrepôt). Sur le commit précédent, ce banc plante dès le premier
+bloc (pas de menuisier). `port` **39 sur 39** : le contrôle de la marée exige maintenant le
+supermarché, les crustacés au marché, la criée à quinze tonnes et la poissonnerie (bande N,
+palier 12, 1,33 pour 600) avec les deux creux de la rue à 8,5 m au moins ; le contrôle des
+rangs 20 et 21 de la criée et de la conserverie ne demande plus que deux rangs consécutifs.
+`export` **12 sur 12** : le rang 19 de l'entrepôt n'est plus exigé, seulement vingt et un
+commerces. `village` 16 sur 16, `grandes` 7 sur 7, `acces` 5, `ouverture` 9, `chocs` 31 sur
+31, `camion` 19 sur 19 ; `rue` ses douze échecs d'avant, `decor` ses sept, `trafic` ses huit.

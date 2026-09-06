@@ -3308,7 +3308,7 @@ const PRODUITS = {
   /* LES GRUMES. Un arbre mûr en donne quarante à cinquante kilos à l'échelle du jeu — trois
      arbres remplissent le caisson d'une abatteuse neuve. Le prix se place entre le blé et
      le raisin : la forêt s'ouvre au septième palier et doit y valoir le détour sans rendre
-     les parcelles inutiles. La scierie paie ce chiffre, la tonnellerie 40 % de plus. */
+     les parcelles inutiles. La scierie paie ce chiffre, le menuisier 40 % de plus. */
   grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:2.6},
 
   /* --- ce qui sort de la mer --- */
@@ -3945,24 +3945,36 @@ const SITES = [
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batRestaurant(),
    w:12.0, d:9.0,  pw:11, ph:12, toit:0x8A4A32, mur:0xF2E7D2},
 
-  /* --- bande FO, les quatre ateliers du bois --- EN FIN DE TABLE, et c'est impératif :
-     `negoce` est sérialisé par rang. Les modèles viennent de la planche `bois.html` du
-     joueur ; leur socle de béton est retiré comme pour les seize autres, le jeu pose la
-     dalle. */
-  {nom:'Scierie', enseigne:'facade', picto:'feuille', dir:'FO', bat:-40, park:-27,
+  /* --- LE BOIS N'A PLUS QUE DEUX ACHETEURS, ET ILS NE SONT PLUS EN FACE DE LA FORÊT. Le
+     joueur : « pour les magasins qui vendent le bois, fais juste la scierie et le
+     menuisier ; fais la scierie à côté du supermarché et le menuisier sur la route du bas.
+     Le menuisier achètera plus cher, mais en petit volume ; la scierie achètera plus
+     gros. » Le séchoir et la tonnellerie sont donc partis, et la bande FO avec eux : la
+     scierie tient la place au NORD du supermarché, sur le brin d'après la forêt (bande SU),
+     et le menuisier s'installe dans le hameau de la route du bas (bande RS), entre ses
+     maisons. Les modèles restent ceux de la planche `bois.html` du joueur.
+     ET LA TABLE PEUT ENFIN PERDRE UNE LIGNE. Elle ne le pouvait pas : `negoce` était
+     sérialisé PAR RANG dans la sauvegarde, et l'on n'avait le droit que de renommer en
+     place. Il est maintenant écrit AVEC LE NOM du commerce (voir `negoceDe`), et une
+     sauvegarde d'avant se relit par `NEGOCE_ORDRE_ANCIEN`, l'ordre qu'elle connaissait. */
+  {nom:'Scierie', enseigne:'facade', picto:'feuille', dir:'SU', bat:-8, park:5,
    style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batScierie(),
    w:15.0, d:11.0, pw:14, ph:13, toit:0x6E767C, mur:0xD6DDE2},
-  {nom:'Séchoir', enseigne:'facade', picto:'feuille', dir:'FO', bat:-10, park:3,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batSechoir(),
-   w:12.0, d:10.0, pw:12, ph:13, toit:0x9C4A32, mur:0xD8CFC0},
-  {nom:'Menuiserie', enseigne:'facade', picto:'feuille', dir:'FO', bat:20, park:33,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batMenuiserie(),
+  /* Le menuisier : l'atelier de la planche, avec un muret comme les commerces du village —
+     c'est un artisan entre deux maisons, pas une usine. Il s'appelait « Menuiserie » sur
+     la bande FO ; `SITES_ANCIENS_NOMS` rattrape sa renommée et son étal. */
+  {nom:'Menuisier', enseigne:'facade', picto:'feuille', dir:'RS', bat:0, park:13,
+   style:'usine', crop:-1, prix:0, cloture:'muret', modele:()=> batMenuiserie(),
    w:12.0, d:10.0, pw:12, ph:13, toit:0x9C4A32, mur:0xF2E7D2},
-  {nom:'Tonnellerie', enseigne:'facade', picto:'chope', dir:'FO', bat:48, park:61,
-   style:'usine', crop:-1, prix:0, cloture:'grillage', modele:()=> batTonnellerie(),
-   w:11.0, d:9.5,  pw:11, ph:12, toit:0x9C4A32, mur:0xE8DCC0},
+  /* LA POISSONNERIE DU VILLAGE. Le joueur : « écris-moi une poissonnerie aussi dans le
+     village. » Une boutique blanche et bleue, l'étal de glace dehors, à la place que la
+     bande nord avait de reste — au bout ouest, le premier commerce qu'on voit en revenant
+     du port. Elle ouvre avec lui, au palier du fromage de brebis. */
+  {nom:'Poissonnerie', enseigne:'laterale', picto:'goutte', dir:'N', bat:-56, park:-43,
+   style:'boutique', crop:-1, prix:0, cloture:'trottoir', modele:()=> batPoissonnerie(),
+   w:11.0, d:8.0,  pw:11, ph:12, toit:0x2E6BA8, mur:0xF2F4F6},
 
-  /* --- bande EX, l'entrepôt d'export --- EN FIN DE TABLE, comme les quatre du bois. Le
+  /* --- bande EX, l'entrepôt d'export --- Le
      modèle est celui de la planche `grandentrepot.html`, aux cotes réelles : soixante-douze
      mètres, et non soixante-douze fois l'échelle des boutiques. Son parvis est plus profond
      de douze mètres : les deux remorques à quai en prennent quinze, et l'anneau doit rester
@@ -3979,7 +3991,7 @@ const SITES = [
    w:80.0, d:50.0, pw:60, ph:22, toit:0x1F4E8C, mur:0xC9D2D8,
    propose:[{nom:'Achète en gros', prix:'tout ce que la ferme produit'}]},
 
-  /* --- bande PO, le port --- EN FIN DE TABLE. Les modèles de la planche `port.html` du
+  /* --- bande PO, le port --- Les modèles de la planche `port.html` du
      joueur, sans leur socle de béton : la criée, halle ouverte aux vingt bacs alignés, et
      la conserverie aux deux cheminées de fumoir. */
   /* PLUS GRANDS QUE LES AUTRES COMMERCES : le joueur, en même temps qu'il rapetissait les
@@ -4099,23 +4111,27 @@ const NEGOCE = {
                               'huile','huileOlive','vin','miel','fromage','fromageBrebis',
                               'biere','poisson','crustaces'],
                       coef:1.09, etal:2000},
+  /* ET LE SUPERMARCHÉ PREND LA MARÉE. Le joueur : « la criée achètera quasiment tout, mais
+     le supermarché achètera aussi. » Il la prend au prix de référence, comme le reste de
+     son rayon — c'est le débouché de l'est, à l'autre bout de la carte, pour qui remonte
+     du port avec le camion frigo et ne veut pas revenir. */
   'Supermarché':     {achete:['olives','raisin','oeufs','lait','laitBrebis','farine',
                               'huile','huileOlive','vin','miel','fromage','fromageBrebis',
-                              'biere'],
+                              'biere','poisson','crustaces'],
                       coef:1.00, etal:9000},
 
-  /* LE BOIS A SON ÉCHELLE, ET ELLE OBÉIT À LA MÊME RÈGLE : plus on paie cher, moins on
-     tient. La scierie est le plancher du bois comme la coopérative celui du grain — elle
-     prend tout, au tarif de référence ; le séchoir paie un peu mieux et tient moins ; la
-     menuiserie mieux encore ; la tonnellerie, qui relie le bois à la cave à vin, est le
-     caviste du bois : le meilleur prix, le plus petit rayon. Aucun n'est dominé.
+  /* LE BOIS N'A PLUS QUE DEUX ACHETEURS, AUX DEUX BOUTS DE L'ÉCHELLE. Le joueur : « le
+     menuisier achètera plus cher, mais en petit volume ; la scierie achètera plus gros. »
+     La scierie est le plancher du bois comme la coopérative celui du grain — le tarif de
+     référence, et douze tonnes d'étal, plus de deux fois ce qu'elle tenait : c'est là qu'on
+     vide le porteur. Le menuisier est le caviste du bois : le meilleur prix, quarante pour
+     cent de plus, et quatre cents kilos — une charge de porteur. Le séchoir et la
+     tonnellerie, qui tenaient les deux barreaux du milieu, sont partis.
      ET AUCUN NE FABRIQUE RIEN QU'ON VOIE : « ce qui se passe derrière le comptoir ne nous
      regarde pas ». Une scierie qui fabriquerait des planches à notre place les paierait
      deux fois — au versement et à la sortie, comme les usines — et écraserait l'échelle. */
-  'Scierie':         {achete:['grumes'], coef:1.00, etal:5000},
-  'Séchoir':         {achete:['grumes'], coef:1.12, etal:1500},
-  'Menuiserie':      {achete:['grumes'], coef:1.25, etal:700},
-  'Tonnellerie':     {achete:['grumes'], coef:1.40, etal:350},
+  'Scierie':         {achete:['grumes'], coef:1.00, etal:12000},
+  'Menuisier':       {achete:['grumes'], coef:1.40, etal:400},
 
   /* L'ENTREPÔT D'EXPORT PREND TOUT, EN GROS, ET PAIE MOINS. Tout ce que la ferme sait
      produire et emporter — les cinq céréales, ce que donnent les bêtes, ce que l'atelier
@@ -4129,12 +4145,20 @@ const NEGOCE = {
                                  && !PRODUITS[k].interne && k !== 'aliment' && k !== 'alimentPlus'),
                         coef:0.82, etal:30000},
 
-  /* LA MARÉE A SON ÉCHELLE. La criée est le plancher du poisson — un peu au-dessus du
-     supermarché, qui ne prend pas de poisson, pour qu'elle ne soit dominée par personne ;
-     la conserverie paie mieux et ne prend que le poisson ; le restaurant et le marché,
-     qui achètent déjà tout ce qui se mange, prennent aussi la marée — le restaurant à
-     1,28, le meilleur prix des crustacés. L'entrepôt d'export les prend d'office. */
-  'Criée':           {achete:['poisson', 'crustaces'], coef:1.05, etal:4000},
+  /* LA MARÉE A SON ÉCHELLE. Le joueur : « la criée achètera quasiment tout, mais le
+     supermarché achètera aussi ; et le poisson à vendre au marché aussi. » La criée prend
+     donc QUINZE TONNES — presque quatre fois ce qu'elle tenait —, refaites en deux minutes
+     comme partout : on ne la trouve jamais pleine. Elle garde son prix, un peu au-dessus
+     de la référence : c'est le débouché du port, à cent mètres du quai de débarque, et il
+     doit valoir mieux que le rayon d'un supermarché à l'autre bout de la carte. Ce
+     supermarché-là est donc DOMINÉ sur la marée — moins cher et moins large —, et c'est
+     voulu : sa raison d'être est la route, pas le prix. Au-dessus : la conserverie, qui ne
+     prend que le poisson ; le marché, qui prend la marée entière ; le restaurant, le
+     meilleur prix des crustacés ; et la poissonnerie du village, le caviste de la mer — le
+     meilleur prix du poisson, et six cents kilos d'étal. L'entrepôt d'export les prend
+     d'office. */
+  'Criée':           {achete:['poisson', 'crustaces'], coef:1.05, etal:15000},
+  'Poissonnerie':    {achete:['poisson', 'crustaces'], coef:1.33, etal:600},
   'Conserverie':     {achete:['poisson'], coef:1.15, etal:1200}
 };
 for(const S of SITES){
@@ -4377,11 +4401,11 @@ const NIVEAUX = [
   /* LA FORÊT S'OUVRE AVEC L'AVOINE. Le palier était le plus mince de la table — une
      culture, une usine — et c'est justement là qu'une activité neuve trouve sa place :
      assez tôt pour changer le jeu, assez tard pour qu'on ait de quoi payer l'abatteuse.
-     La scierie et le séchoir ouvrent avec elle ; la menuiserie et la tonnellerie attendent
-     leurs paliers, comme le caviste attend le vin. */
+     La scierie ouvre avec elle ; le menuisier attend son palier, comme le caviste attend
+     le vin. */
   {nom:'L\'avoine', resume:'L\'avoine et son usine, la forêt et sa scierie',
    cultures:['avoine'], engins:['abatteuse', 'porteur'],
-   sites:['Usine avoine', 'Scierie', 'Séchoir'], parcelles:3},
+   sites:['Usine avoine', 'Scierie'], parcelles:3},
   {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',
    modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
   {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
@@ -4391,7 +4415,7 @@ const NIVEAUX = [
      bâtiments ; il ouvre maintenant le tracteur routier et ses trois remorques, qui sont
      très exactement ce que le nom promettait. */
   {nom:'Gros volumes', resume:'Le supermarché, l\'entrepôt d\'export et le camion',
-   sites:['Supermarché', 'Menuiserie', 'Entrepôt d\'export'],
+   sites:['Supermarché', 'Menuisier', 'Entrepôt d\'export'],
    engins:['semi'], outils:['grumier', 'frigorifique', 'citerne'], parcelles:5},
   /* UN SEUL ÉLEVAGE OUVRE ICI, ET IL EN OUVRAIT DEUX. Le palier donnait le mouton ET la
      brebis : deux enclos pour un seul animal. Il n'en donne plus qu'un, qui porte les
@@ -4403,7 +4427,7 @@ const NIVEAUX = [
      le chantier naval vend dès qu'il est ouvert. */
   {nom:'Fromage de brebis', resume:'Le produit le mieux payé de la ferme, et le port',
    modules:['fromageBrebis'], engins:['barque', 'chalutier', 'caseyeur', 'frigo'],
-   sites:['Criée', 'Conserverie'], parcelles:6},
+   sites:['Criée', 'Conserverie', 'Poissonnerie'], parcelles:6},
   {nom:'L\'apiculture', resume:'Le rucher, le miel, le marché du village',
    especes:['ruche'], sites:['Marché'], parcelles:6},
   /* ET LE COMBINÉ AU PALIER QUI DEMANDE TROIS FILIÈRES EN MÊME TEMPS. C'était le
@@ -4419,8 +4443,9 @@ const NIVEAUX = [
    cultures:['olives'], engins:['enjambeuse'], modules:['huileOlive'], parcelles:8},
   {nom:'Le raisin', resume:'La vigne, et ce qu\'elle promet',
    cultures:['raisin'], parcelles:8},
-  {nom:'Le vin', resume:'La cave, le caviste et la tonnellerie',
-   modules:['vin'], sites:['Caviste', 'Tonnellerie'], parcelles:9},
+  // La tonnellerie, qui ouvrait ici, n'existe plus : le bois n'a que la scierie et le menuisier.
+  {nom:'Le vin', resume:'La cave et le caviste',
+   modules:['vin'], sites:['Caviste'], parcelles:9},
   {nom:'Les cochons', resume:'La porcherie et la boucherie',
    especes:['cochon'], sites:['Boucherie'], parcelles:9},
   {nom:'Exploitation complète', resume:'La grande réception, et toute la vallée à prendre',
@@ -4715,7 +4740,23 @@ const MISSIONS_REECRITS = [8, 9];
    nom de site (les contrats aussi, mais eux se laissent tomber : voir `chargerCampagne`).
    Un commerce qui change de nom perdrait donc en silence tout ce qu'un joueur avait
    bâti avec lui. La table se lit « nom d'aujourd'hui : nom d'hier ». */
-const SITES_ANCIENS_NOMS = {'Épicerie': 'Brasserie'};
+const SITES_ANCIENS_NOMS = {'Épicerie': 'Brasserie', 'Menuisier': 'Menuiserie'};
+/* `negoce` — ce que chaque commerce a en trémie, sur son quai et sur son étal — s'écrit
+   maintenant AVEC LE NOM du commerce, et se relit par lui. Il ne s'écrivait que par rang,
+   ce qui interdisait de retirer une ligne de SITES : le séchoir et la tonnellerie partis,
+   l'étal de l'entrepôt serait tombé chez la criée. Une sauvegarde d'AVANT n'a pas de nom :
+   elle se relit dans l'ordre qu'elle connaissait, gardé ici tel quel — vingt-deux commerces,
+   ceux du jour où le champ a changé de forme. Un commerce renommé passe par
+   `SITES_ANCIENS_NOMS`, dans les deux cas. */
+const NEGOCE_ORDRE_ANCIEN = ['Épicerie', 'Garage', 'Caviste', 'Marché', 'Supermarché', 'Usine céréales', 'Boulangerie', 'Comptoir agricole', 'Fromagerie', 'Usine avoine', 'Coopérative', 'Atelier textile', 'Laiterie', 'Boucherie', 'Restaurant', 'Scierie', 'Séchoir', 'Menuiserie', 'Tonnellerie', 'Entrepôt d\'export', 'Criée', 'Conserverie'];
+function negoceDe(liste, St){
+  if(!Array.isArray(liste)) return null;
+  const noms = [St.nom];
+  if(SITES_ANCIENS_NOMS[St.nom]) noms.push(SITES_ANCIENS_NOMS[St.nom]);
+  if(liste.some((N)=> N && N.nom)) return liste.find((N)=> N && noms.indexOf(N.nom) >= 0) || null;
+  for(const n of noms){ const i = NEGOCE_ORDRE_ANCIEN.indexOf(n); if(i >= 0) return liste[i] || null; }
+  return null;
+}
 /* ---------- LES VISAGES DU VILLAGE ----------
    Le joueur : « je veux qu'il y ait des personnages pour chacun des commerces et pour les
    points de vente. [...] une image neutre qui servira à illustrer lorsque le personnage
@@ -5657,17 +5698,18 @@ const ZI_X1 = ZI_X0 + 172;                         // 294 : la zone industrielle
    industrielle, et la forêt la borde AU SUD, sur quatre-vingt-dix mètres de large et
    presque cent de profond : des conifères plantés sur une trame irrégulière, chacun un
    obstacle qu'on contourne, chacun un arbre qu'on peut abattre et qui repousse. AU NORD
-   de la route, en face, la bande FO porte les quatre ateliers du bois de la planche du
-   joueur — scierie, séchoir, menuiserie, tonnellerie —, rangés comme la zone industrielle
-   l'est : jointifs par paquets, un creux de verdure entre les deux, et une dalle devant.
+   de la route, en face, la bande FO a porté les quatre ateliers du bois de la planche du
+   joueur ; il n'en reste que la scierie, partie près du supermarché, et le menuisier, au
+   hameau de la route du bas — la verge d'en face n'est plus qu'un pré semé d'arbres, et
+   `FO_X0`/`FO_X1` n'en bornent plus que le semis.
    ET LE DÉPÔT DE GRUMES, à la lisière, côté route : c'est le silo du bois. L'abatteuse y
    vide son caisson, le porteur y charge le sien — la même mécanique que trémie, silo et
    benne, pour que la forêt se joue comme un champ et non comme un autre jeu.
    TOUT CELA EST HORS DES TUILES. Le sol peint s'arrête à X1 ; ici le sol est un maillage
    — le tapis de la forêt, la terre battue du dépôt, la dalle de chaque atelier —, ce qui
    coûte quelques appels de dessin et pas un octet de texture de plus. */
-const FO_X0 = ZI_X1 + 12;                          // 306 : après la zone industrielle et un creux
-const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route ne commence à onduler (quatre ateliers à l'échelle 1,7)
+const FO_X0 = ZI_X1 + 12;                          // 306 : après la zone industrielle et un creux — la verge en face de la forêt
+const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route ne commence à onduler
 /* ---------- L'ENTREPÔT D'EXPORT (troisième étape de la carte) ----------
    Le joueur : « la route se continue très légèrement sinusoïdale [...] et elle nous
    amènerait à un entrepôt [...] qui te permettra de faire notre travail d'export parce que
@@ -5698,7 +5740,7 @@ const PO_X0 = -282, PO_X1 = PORT.dalle.x1 - 8;               // −282 à −204
    LA ROUTE DU BAS GARDE SON HAMEAU. Le joueur y avait demandé « quelques maisons, un peu
    de vide, un peu d'arbres » avant le supermarché ; le supermarché parti, les maisons et
    les bosquets restent, sur une bande un peu plus courte : `RS`. */
-const RS_X0 = ROAD_E + ROAD_W/2 + 8, RS_X1 = RS_X0 + 110;   // 127 à 237 : le hameau de la route du bas
+const RS_X0 = ROAD_E + ROAD_W/2 + 8, RS_X1 = RS_X0 + 156;   // 127 à 283 : le hameau de la route du bas, et son menuisier
 /* LA FORÊT S'AGRANDIT DE CE QUE LA PLACE LUI PREND. Elle tenait quatre-vingt-dix mètres
    sur quatre-vingt-seize, et sa clairière ne coûtait qu'un millier de mètres carrés ; la
    place et la piste en prennent trois fois plus, et il ne restait plus que quatre-vingt-
@@ -5736,7 +5778,6 @@ const BANDE_DEF = {
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
   E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   ZI: {face:'N', d0:ZI_X0, d1:ZI_X1},
-  FO: {face:'N', d0:FO_X0, d1:FO_X1},              // les ateliers du bois, en face de la forêt
   EX: {face:'N', d0:EX_X0, d1:EX_X1},              // l'entrepôt d'export, au bout de la route
   PO: {face:'N', d0:PO_X0, d1:PO_X1},              // la criée et la conserverie, au port
   /* LES DEUX BORDS DE LA ROUTE QUI REDESCEND APRÈS LA FORÊT. Le joueur : « agrémente avec
@@ -5936,7 +5977,13 @@ const BANDES = {
       {paquet:['Caviste', 'Fromagerie']},
       {creux:'village', poids:0.9},
       {paquet:['Boucherie']}],
-  N: [{paquet:['Boulangerie', 'maison']},
+  /* LA POISSONNERIE AU BOUT OUEST DE LA RUE DU VILLAGE, COLLÉE À LA BOULANGERIE. La bande
+     nord avait treize mètres de reste à chaque bout ; la poissonnerie en prend dix-neuf,
+     et les deux creux descendent de douze à neuf mètres — au-dessus des 8,5 qui font une
+     rue et non une fente. Un paquet de plus (la poissonnerie seule, un creux devant) les
+     aurait ramenés à cinq : les deux maisons de la bande font vingt-neuf mètres chacune,
+     pas vingt-deux. */
+  N: [{paquet:['Poissonnerie', 'Boulangerie', 'maison']},
       {creux:'village', poids:1},
       {paquet:['Comptoir agricole']},
       {creux:'village', poids:0.9},
@@ -5962,12 +6009,6 @@ const BANDES = {
        {paquet:['Laiterie']},
        {creux:'verdure', poids:1},
        {paquet:['Atelier textile']}],
-  /* LES ATELIERS DU BOIS : deux paquets de deux, un bosquet entre eux, en face de la
-     forêt. La scierie et le séchoir d'abord — c'est là qu'on vend au début —, la
-     menuiserie et la tonnellerie ensuite, qui paient mieux et prennent moins. */
-  FO: [{paquet:['Scierie', 'Séchoir']},
-       {creux:'verdure', poids:1},
-       {paquet:['Menuiserie', 'Tonnellerie']}],
   // L'entrepôt d'export, seul sur sa bande, un bosquet de chaque côté : le surplus de la
   // bande se partage aux deux bouts, et il se retrouve au milieu.
   EX: [{creux:'verdure', poids:1},
@@ -5986,10 +6027,14 @@ const BANDES = {
      au milieu du brin, à mi-chemin de l'entrepôt et de la route du bas, ce que le joueur
      demande. Les trois creux restent au plafond, et il tient huit mètres de verge à chaque
      carrefour en plus des trois du recul. */
+  /* ET LA SCIERIE SE COLLE AU NORD DU SUPERMARCHÉ. Le joueur : « fais la scierie à côté du
+     supermarché. » Au nord plutôt qu'au sud : c'est le côté de la route nord, par où le
+     porteur arrive de la piste du dépôt. La maison reste ; les trois bosquets descendent
+     de douze à neuf mètres. */
   SU: [{creux:'verdure', poids:1},
        {paquet:['maison']},
        {creux:'verdure', poids:1},
-       {paquet:['Supermarché']},
+       {paquet:['Scierie', 'Supermarché']},
        {creux:'verdure', poids:1}],
   // Le bord ouest du brin : deux maisons, décalées de celle d'en face, et des bosquets.
   RO: [{creux:'verdure', poids:1},
@@ -5997,10 +6042,15 @@ const BANDES = {
        {creux:'verdure', poids:1.4},
        {paquet:['maison']},
        {creux:'verdure', poids:1}],
-  // Le hameau de la route du bas : trois maisons, du vide et des arbres — ce qui était
-  // devant le supermarché, et qui reste quand il s'en va.
+  /* Le hameau de la route du bas : trois maisons, du vide et des arbres — ce qui était
+     devant le supermarché, et qui reste quand il s'en va. ET LE MENUISIER, entre le
+     couple de maisons et la troisième : « le menuisier sur la route du bas ». La bande
+     s'allonge de quarante-six mètres vers l'est pour le loger sans rien serrer — elle
+     s'arrête à onze mètres de la lisière de la forêt. */
   RS: [{creux:'verdure', poids:1},
        {paquet:['maison', 'maison']},
+       {creux:'verdure', poids:1},
+       {paquet:['Menuisier']},
        {creux:'verdure', poids:1},
        {paquet:['maison']},
        {creux:'verdure', poids:1}]
@@ -7908,8 +7958,8 @@ function addTree(x,z,s,variant,parcel){
        (`DEPOT_BOIS.stock`), et le dépôt le montre — sa plaque compte, et son tas grandit
        par étapes (voir `majPileDepot`). Un tronc a bien existé au sol, à ramasser par le
        porteur, le temps d'un chapitre ; le joueur l'a repris : « pas besoin de les envoyer
-       au dépôt. » Le porteur ne sert donc qu'à VIDER le dépôt, vers la scierie ou la
-       tonnellerie — et un dépôt plein arrête la coupe : le bouton le dit. */
+       au dépôt. » Le porteur ne sert donc qu'à VIDER le dépôt, vers la scierie ou le
+       menuisier — et un dépôt plein arrête la coupe : le bouton le dit. */
 const PORTEE_ABATTAGE = 5.5, DUREE_ABATTAGE = 2.3, DUREE_CHUTE = 0.9;
 const BRAS_REPOS = -0.25;                 // l'angle du bras de l'abatteuse au repos, tête à deux mètres
 const REPOUSSE = {souche:90, jeune:210};
@@ -8290,13 +8340,13 @@ function habillerLesHerbes(){
   // entre le port et le village, au sud de la route : la côte à l'ouest, les tuiles à l'est, le chantier naval épargné
   semer(40, PORT.cote + 10, X0 - 10, ROAD_N + 14, MONDE.z1 - 8,
         (x, z)=> x > PORT.cale.x0 - 6 && x < PORT.cale.x1 + 6 && z > PORT.cale.z0 - 6 && z < PORT.cale.z1 + 6);
-  // derrière la zone industrielle et les ateliers du bois, jusqu'au bout du monde
+  // derrière la zone industrielle et la verge d'en face la forêt, jusqu'au bout du monde
   semer(34, ZI_X0, FO_X1, MONDE.z0 + 8, -136, presDalle);
-  // entre les ateliers du bois et l'entrepôt, au nord de la route ; et derrière l'entrepôt
+  // entre cette verge et l'entrepôt, au nord de la route ; et derrière l'entrepôt
   semer(14, FO_X1 + 8, EX_X0 - 8, MONDE.z0 + 8, ROAD_N - 16, presDalle);
   semer(10, EX_X0, EX_X1, MONDE.z0 + 8, -178, presDalle);
   // au sud de la route, à l'est des tuiles : avant la forêt, puis au-delà d'elle jusqu'au bout du monde
-  semer(12, X1 + 8, FORET.x0 - 10, ROAD_N + 14, 40);
+  semer(12, X1 + 8, FORET.x0 - 10, ROAD_N + 14, 40, presDalle);
   /* Le brin nord-sud et ses deux bords sont GARNIS PAR LEUR BANDE, pas par ce semis :
      trente-quatre mètres de part et d'autre de l'axe couvrent la chaussée, les deux
      rangées de lots et leurs creux. Et la dalle du supermarché est épargnée comme les
@@ -9624,27 +9674,6 @@ function batScierie(){
   g.add(box(3.6, 0.9, 0.18, BO.GRIS2, -1.0, H + 0.9, D/2 + 0.3));    // enseigne
   return g;
 }
-/* Le séchoir : ventelles sur les deux faces, ventilateur, planches lattées sous auvent. */
-function batSechoir(){
-  const g = new THREE.Group();
-  const W = 9, D = 6.5, H = 4.0;
-  g.add(slab({w:W, h:H, d:D, tw:W, td:D, c:0xD8CFC0, y:0.16}));
-  g.add(gable(D + 0.6, 1.4, W + 0.6, BO.TUILE, 0, H + 0.16, 0, Math.PI/2));
-  for(let k = 0; k < 6; k++) for(const sz of [D/2 + 0.02, -(D/2 + 0.02)])
-    g.add(box(W - 1.0, 0.22, 0.12, 0x9C8C6E, 0, 1.0 + k*0.5, sz));   // ventelles
-  g.add(box(2.4, 2.6, 0.2, BO.BOIS2, -2.6, 1.46, D/2 + 0.06));       // grande porte
-  g.add(box(1.4, 0.9, 0.24, BO.GRIS2, 3.2, 3.2, D/2 + 0.06));        // groupe de ventilation
-  g.add(cyl(0.5, 0.5, 0.3, 10, BO.GRIS, 3.2, 3.2, D/2 + 0.22, Math.PI/2));
-  for(let p = 0; p < 2; p++)
-    for(let k = 0; k < 7; k++){
-      g.add(box(3.0, 0.14, 1.4, BO.PLANCHE, -2.2 + p*4.6, 0.4 + k*0.32, D/2 + 2.2));
-      for(const sx of [-1.2, 1.2])
-        g.add(box(0.16, 0.18, 1.4, BO.BOIS2, -2.2 + p*4.6 + sx, 0.55 + k*0.32, D/2 + 2.2));
-    }
-  g.add(box(9.5, 0.2, 3.2, BO.BOIS3, 0, 3.0, D/2 + 2.2));            // auvent
-  for(const sx of [-4.2, 4.2]) g.add(box(0.24, 3.0, 0.24, BO.BOIS2, sx, 1.5, D/2 + 3.5));
-  return g;
-}
 /* La menuiserie : atelier fermé à sheds vitrés, établi dehors, volets et portes finis. */
 function batMenuiserie(){
   const g = new THREE.Group();
@@ -9662,30 +9691,6 @@ function batMenuiserie(){
   for(let k = 0; k < 3; k++) g.add(box(0.12, 1.9, 0.9, BO.BOIS3, -3.6 + k*0.3, 1.05, D/2 + 1.9));
   for(let k = 0; k < 4; k++) g.add(box(1.8, 0.14, 0.5, BO.PLANCHE, -0.4, 0.3 + k*0.18, D/2 + 2.2));
   g.add(box(1.0, 1.0, 1.0, 0xC9B183, 4.8, 0.66, D/2 + 1.4));         // sacs de sciure
-  return g;
-}
-/* La tonnellerie : le feu de cintrage dehors, des tonneaux à tous les stades. */
-function batTonnellerie(){
-  const g = new THREE.Group();
-  const W = 8.5, D = 6.5, H = 4.0;
-  g.add(slab({w:W, h:H, d:D, tw:W - 0.3, td:D - 0.25, c:0xE8DCC0, y:0.16}));
-  g.add(gable(D + 0.7, 1.9, W + 0.7, BO.TUILE, 0, H + 0.16, 0, Math.PI/2));
-  g.add(box(2.6, 2.6, 0.2, BO.BOIS2, -1.8, 1.46, D/2 + 0.04));
-  g.add(box(2.0, 1.2, 0.16, BO.CREME, 2.4, 2.3, D/2 + 0.04));
-  g.add(box(1.7, 0.95, 0.2, C.glass, 2.4, 2.3, D/2 + 0.08));
-  g.add(box(3.4, 0.9, 0.18, 0x6B3A6E, 0, H + 0.9, D/2 + 0.3));       // enseigne
-  g.add(cyl(0.7, 0.9, 0.5, 10, 0x4A4038, 3.4, 0.4, D/2 + 1.8));      // le feu de cintrage
-  for(let k = 0; k < 5; k++)
-    g.add(cyl(0.08, 0.05, 0.7, 5, BO.ORANGE, 3.4 + Math.cos(k*1.3)*0.2, 0.85,
-              D/2 + 1.8 + Math.sin(k*1.3)*0.2));
-  for(let k = 0; k < 6; k++){                                        // douelles
-    const a = k*1.05;
-    g.add(box(0.12, 1.1, 0.24, BO.BOIS3, 1.2 + Math.cos(a)*0.35, 0.55, D/2 + 2.6 + Math.sin(a)*0.35));
-  }
-  for(const [x, z] of [[-2.4, D/2 + 1.7], [-3.4, D/2 + 2.6], [-1.6, D/2 + 2.8]]){
-    g.add(cyl(0.52, 0.44, 1.0, 12, BO.BOIS, x, 0.5, z));
-    for(const dy of [0.2, 0.8]) g.add(cyl(0.55, 0.55, 0.09, 12, 0x5A4326, x, dy, z));
-  }
   return g;
 }
 /* La place de dépôt : terre battue, souches fraîches, branchages, panneau de coupe — et
@@ -10284,6 +10289,26 @@ function batBoucherie(){
   g.add(cyl(0.55, 0.55, 0.9, 10, CM.BOIS, -3.2, 0.45, 4.6));            // billot
   g.add(box(1.2, 0.1, 1.2, CM.BOIS2, -3.2, 0.95, 4.6));
   for(let k = 0; k < 2; k++) g.add(box(0.9, 0.5, 0.7, 0xD8CFC0, 2.6 + k*1.1, 0.25, 5.0));
+  return g;
+}
+/* La poissonnerie : boutique blanche et bleue, l'étal de glace pilée dehors, incliné vers
+   la rue, et les casiers du port empilés près de la porte. Le même corps que la boucherie,
+   ses couleurs à elle. */
+function batPoissonnerie(){
+  const g = new THREE.Group();
+  cmBoutique(g, 8, 6.2, 4.0, 0xF2F4F6, 0x2E6BA8);
+  cmVitrine(g, 1.4, 2.0, 3.15, 3.2, 2.3, 0x2E6BA8);
+  cmPorte(g, -2.2, 3.15, 1.5, 2.6, 0x1F4E8C);
+  cmStore(g, 1.4, 3.4, 3.7, 3.6, 1.5, 0x2E6BA8, CM.CREME);
+  cmEnseigne(g, 0, 4.5, 3.2, 4.6, 0x2E6BA8);
+  g.add(box(2.8, 0.5, 1.2, 0xE8EEF2, -2.4, 0.6, 4.6));                  // l'étal
+  g.add(box(2.6, 0.12, 1.0, 0xF6FAFC, -2.4, 0.9, 4.6));                 // la glace pilée
+  for(let k = 0; k < 4; k++)                                            // le poisson dessus
+    g.add(box(0.5, 0.12, 0.22, k % 2 ? 0x5B8FC4 : 0xC9563A, -3.3 + k*0.6, 0.98, 4.5 + (k % 2)*0.25));
+  for(const px of [-3.6, -1.2]) g.add(box(0.12, 0.6, 1.1, 0x9BA3A8, px, 0.3, 4.6));
+  for(let k = 0; k < 3; k++)                                            // les casiers
+    g.add(box(0.9, 0.32, 0.6, k === 1 ? 0xD8DEE2 : 0x6E8AA0, 2.9, 0.16 + k*0.34, 5.0));
+  g.add(box(0.9, 0.32, 0.6, 0x6E8AA0, 1.9, 0.16, 5.1));
   return g;
 }
 /* 8 — Atelier textile : toit en dents de scie */
@@ -26292,7 +26317,7 @@ const LECONS = [
   {cle:'abattage', humeur:'projette', ou:'foret', nom:'LA FORÊT', titre:'LA FORÊT',
    txt:'LA FORÊT – Approche-toi d\'un arbre mûr et arrête-toi : le bouton COUPER L\'ARBRE '
      + 'apparaît. Le bois va droit au dépôt de bois, dont le tas grandit ; le porteur le '
-     + 'vide à la scierie ou à la tonnellerie.',
+     + 'vide à la scierie ou chez le menuisier.',
    quand:()=> MACHINES[cur].key === 'abatteuse'},
   /* LA PREMIÈRE FOIS QU'ON MONTE DANS UN BATEAU : la flèche montre le spot le plus proche,
      et la leçon se solde au premier lot remonté. */
@@ -33908,7 +33933,8 @@ function etatJeu(){
     // Ce que les usines du bord de route ont en trémie, sur leur quai et sur leur étal :
     // sans ça, une benne de blé versée à l'usine s'évaporerait au rechargement, et
     // un étal qu'on vient de vider se retrouverait plein.
-    negoce: SITES.map((S)=> ({tremie: Object.assign({}, S.tremie),
+    negoce: SITES.map((S)=> ({nom: S.nom,
+                              tremie: Object.assign({}, S.tremie),
                               stock: Object.assign({}, S.stock),
                               reste: Object.assign({}, S.reste)})),
     STAT: Object.assign({}, STAT), etape, cur, fini,
@@ -34313,12 +34339,12 @@ function chargerPartie(S){
     hopCrop = (S.hopCrop !== undefined && CROPS[S.hopCrop]) ? S.hopCrop : 0;
     // Les trémies et les quais des usines. Une sauvegarde d'avant la chaîne n'en a
     // pas : les commerces repartent à vide, ce qui est leur état de départ.
-    SITES.forEach((St, i)=>{
-      const N = S.negoce && S.negoce[i];
+    SITES.forEach((St)=>{
+      const N = negoceDe(S.negoce, St);
       St.tremie = (N && N.tremie) ? Object.assign({}, N.tremie) : {};
       St.stock  = (N && N.stock)  ? Object.assign({}, N.stock)  : {};
       /* ET L'ON NE RECOPIE QUE CE QUE LE COMMERCE SAIT ENCORE FAIRE.
-         Le rang d'un commerce est stable, son MÉTIER ne l'est pas : la Brasserie du rang 0
+         Le nom d'un commerce est stable, son MÉTIER ne l'est pas : la Brasserie du rang 0
          est devenue une Épicerie, qui ne fabrique plus de bière et n'accepte plus d'orge.
          Une partie enregistrée avec deux cents kilos d'orge dans sa trémie les rouvrait
          chez l'épicier — comptés dans son plafond de trémie, consommés par aucune recette,
