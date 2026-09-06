@@ -16198,3 +16198,67 @@ trois autres — l'abatteuse n'a rien à déposer ni à ramasser, le porteur ram
 haltes (rien à quatorze mètres), dépose et recharge au dépôt — ; et la sauvegarde gagne une
 grume de 51 kg relue au même endroit. Sur le commit précédent, le bloc de la coupe s'arrête à
 `GRUMES` inconnu. `chocs` 31, `port` 38, `ouverture` 9 verts.
+
+### Le bois coupé va droit au dépôt, qui le montre et le compte
+
+Le joueur : « finalement, fais que quand on coupe des arbres, ça remplit le dépôt de bois
+directement. Pas besoin de les envoyer au dépôt de bois, mais le dépôt de bois doit afficher
+une jauge et se remplir physiquement avec un tronc, puis un deuxième, puis un troisième, puis
+un petit tas, puis un gros tas, suivant ce qu'on coupe. Et pas de dalle : directement les
+troncs sur le sol. Et le porteur a, lui, la grue orange repliée. »
+
+**Le chapitre d'avant est repris.** Les grumes au sol, le ramassage par le porteur, la leçon
+des grumes, le champ `grumesSol` de la sauvegarde : tout cela est retiré. À l'instant de la
+coupe, le poids de l'arbre entre au stock du dépôt de bois ; le bouton dit **COUPER L'ARBRE –
+49 KG AU DÉPÔT**, et l'arbre tombe comme avant. Rien n'entre au caisson de l'abatteuse, rien ne
+reste au sol. Le porteur ne sert plus qu'à **vider** le dépôt vers la scierie ou la tonnellerie
+(CHARGER GRUMES au dépôt, comme avant), et **un dépôt plein arrête la coupe** : le bouton dit
+« DÉPÔT DE BOIS PLEIN – 1 190 KG · À VIDER AVEC LE PORTEUR » et ne lance rien. On ne coupe pas
+un demi-arbre : c'est l'arbre entier qui doit tenir.
+
+**Le dépôt a sa plaque**, la même que le silo et l'entrepôt : « Dépôt de bois · 145 kg sur
+1200 · grumes », la barre en dessous, à cinq mètres cinquante au-dessus du tas. L'enseigne
+d'avant est retirée pour ne pas faire doublon, comme on l'avait fait à l'entrepôt.
+
+**Et il se remplit par étapes, à même le sol.** Cinq étapes, une seule visible à la fois : un
+tronc couché dans la terre, deux, trois, un petit tas de six avec ses piquets, un gros tas de
+dix flanqué d'un second de six. Les seuils sont en kilos, un arbre mûr en pesant quarante-huit
+en moyenne :
+
+| étape | ce qu'on voit | à partir de |
+| :-- | :-- | --: |
+| 1 | un tronc | 0,5 kg |
+| 2 | deux troncs | 85 kg |
+| 3 | trois troncs | 130 kg |
+| 4 | un petit tas | 175 kg |
+| 5 | un gros tas | 600 kg |
+
+La plaque de terre de quatorze centimètres qui faisait socle est partie : la place du dépôt
+est déjà de la terre battue, le bois s'y pose.
+
+**Ce que la fusion des géométries cachait.** Le dépôt est recuit en un seul maillage, comme
+tout ce qui ne bouge pas — et cette fusion avalait les trois anciennes piles : leurs groupes,
+vides, ne cachaient plus rien, et toutes les piles étaient visibles quoi que dise le stock
+(mesuré : zéro maillage dans chaque étape après fusion). Chaque étape est donc fusionnée en un
+maillage à elle, puis marquée `anime` pour que la fusion du dépôt ne descende pas dedans : une
+étape visible coûte un appel de dessin, une cachée rien. Le maillage du dépôt passe de 119
+volumes à 23.
+
+**La grue du porteur est repliée.** Elle était dépliée vers le haut — la flèche à trente
+degrés, le balancier qui remontait encore, le grappin à huit mètres cinquante en l'air —, quoi
+qu'en ait dit le commentaire de la planche. Tournée d'un demi-tour, elle prend ses angles à
+l'envers ; on les pose donc en mesurant : la flèche à soixante degrés vers l'arrière, le
+balancier rabattu de 158° qui redescend presque à la verticale, et le grappin, tourné de la
+somme des deux, pend droit — ses mâchoires à un mètre soixante-dix, juste au-dessus du
+plancher, devant le chargement. Le sommet est à 6,7 m au lieu de 8,5.
+
+**Bancs.** `bois` **28 sur 28** : la coupe compte neuf contrôles — l'approche douce et le
+bouton comme avant, puis le stock qui ne bouge pas pendant la coupe et prend le poids de l'arbre
+à la seconde où il tombe, un tronc visible et rien au sol ; un tronc, puis deux, puis trois
+pour trois arbres ; les cinq étapes aux cinq seuils, une seule visible ; pas de dalle et le
+premier tronc à 0,00 m du sol ; le dépôt plein qui arrête la coupe ; la plaque avec son nom,
+son stock et sa barre, et plus d'enseigne. Le dépôt en compte cinq — l'abatteuse n'y fait rien,
+le porteur le vide et le vide reste vide, ce qu'il rend y reparaît, la scierie, la tonnellerie
+— et un pour la grue repliée (sommet entre 6,2 et 7,2 m). La sauvegarde relit 123 kg en deux
+troncs visibles, sans champ de grumes. Sur le commit précédent, le bloc de la coupe s'arrête à
+`etapeDepot` inconnu.
