@@ -14118,23 +14118,36 @@ function buildPickup(){
             nez:3.0}};
   return g;
 }
+/* LA CABINE DU FOURGON, PARTAGÉE. Le joueur, pour le porteur : « réajuste le camion
+   porteur avec une calandre et la taille équivalente au fourgon au niveau de la cabine. »
+   La cabine du fourgon — caisse évasée, pare-brise, vitres de côté, calandre à trois
+   barreaux, pare-chocs, phares, rétroviseurs, pavillon — est donc UN SEUL dessin, posé
+   à la base `y` et au front `zAv` qu'on lui donne, dans les couleurs qu'on lui donne :
+   le fourgon en rouge sur son châssis bas, le porteur en vert sur ses grandes roues.
+   Rien du fourgon n'a bougé d'un millimètre : `y` 0,87 et `zAv` 3,25 sont ses cotes. */
+function cabineFourgon(g, y, zAv, C){
+  const zc = zAv - 1.05, dy = y - 0.87;                 // le centre de la cabine, et le décalage
+  const cab = slab({w:2.25,h:2.0,d:2.1, tw:2.15,td:2.0, dz:-0.05, c:C.CAB, y:y, z:zc});
+  cab.name = 'cabine'; g.add(cab);
+  g.add(box(2.05,0.85,0.16, C.SOMBRE, 0, 2.28 + dy, zc + 1.0));                  // pare-brise
+  for(const sx of [-1.1,1.1]) g.add(box(0.12,0.62,1.0, C.SOMBRE, sx, 2.2 + dy, zc - 0.1));
+  const cal = box(2.1,0.42,0.2, C.CAB, 0, 1.2 + dy, zc + 1.04); cal.name = 'calandre'; g.add(cal);
+  for(let k=0;k<3;k++) g.add(box(1.6,0.1,0.12, 0x8A9298, 0, 1.42 + k*0.14 + dy, zc + 1.1));
+  g.add(box(2.35,0.24,0.6, 0x8A9298, 0, 0.72 + dy, zc + 1.1));                  // pare-chocs
+  const F = jeuDeFeux();
+  for(const sx of [-0.9,0.9]) optique(g, F, false, sx, 1.02 + dy, zc + 1.16, 0.34, 0.22);
+  for(const sx of [-1.24,1.24]){
+    g.add(box(0.09,0.5,0.09, 0xF2E7D2, sx, 2.25 + dy, zc + 0.7));
+    g.add(box(0.3,0.42,0.09, C.SOMBRE, sx, 2.57 + dy, zc + 0.7));
+  }
+  g.add(box(2.3,0.2,2.1, C.TOIT, 0, 2.92 + dy, zc));                            // pavillon
+  return {F, phares:{y:1.02 + dy, z:zc + 1.16}, toit:2.92 + dy + 0.1};
+}
 function buildFourgon(){
   const g = new THREE.Group();
   const CAB = 0xD8443A, CAISSE = 0xEFE7D6, ARETE = 0xB9A882, SOMBRE = 0x22303A;
   g.add(box(2.2,0.34,6.6, 0x453D34, 0,0.7,-0.4));
-  g.add(slab({w:2.25,h:2.0,d:2.1, tw:2.15,td:2.0, dz:-0.05, c:CAB, y:0.87, z:2.2}));
-  g.add(box(2.05,0.85,0.16, SOMBRE, 0,2.28,3.2));
-  for(const sx of [-1.1,1.1]) g.add(box(0.12,0.62,1.0, SOMBRE, sx,2.2,2.1));
-  g.add(box(2.1,0.42,0.2, CAB, 0,1.2,3.24));
-  for(let k=0;k<3;k++) g.add(box(1.6,0.1,0.12, 0x8A9298, 0,1.42+k*0.14,3.3));
-  g.add(box(2.35,0.24,0.6, 0x8A9298, 0,0.72,3.3));
-  const F = jeuDeFeux();
-  for(const sx of [-0.9,0.9]) optique(g, F, false, sx, 1.02,  3.36, 0.34, 0.22);
-  for(const sx of [-1.24,1.24]){
-    g.add(box(0.09,0.5,0.09, 0xF2E7D2, sx,2.25,2.9));
-    g.add(box(0.3,0.42,0.09, SOMBRE, sx,2.57,2.9));
-  }
-  g.add(box(2.3,0.2,2.1, 0xB33A31, 0,2.92,2.2));
+  const {F} = cabineFourgon(g, 0.87, 3.25, {CAB, SOMBRE, TOIT:0xB33A31});
   /* LA CAISSE, ARTICULÉE. Elle était soudée à la cabine : un fourgon roulait d'une
      pièce, comme un jouet taillé dans un bloc. Elle vit maintenant dans son propre
      groupe, articulé juste derrière la cabine, et prend le roulis et le tangage avec
@@ -14338,9 +14351,17 @@ function buildAbatteuse(){
    le chargement de grumes ne se montre que quand le caisson porte quelque chose. */
 function buildPorteur(){
   const g = new THREE.Group();
-  g.add(box(2.2, 0.5, 8.0, BO.CHASSIS, 0, 0.95, 0));
-  g.add(slab({w:2.2, h:0.6, d:2.2, tw:2.0, td:2.0, c:BO.VERT, y:1.2, z:2.8}));
-  cabineBois(g, 0, 1.35, 2.8, 2.1, 1.8, 1.9, BO.VERT);
+  /* LA CABINE DU FOURGON, EN VERT, ET UN PLATEAU PLUS LONG. Le joueur : « réajuste le
+     camion porteur avec une calandre et la taille équivalente au fourgon au niveau de la
+     cabine, et une remorque un peu plus longue. » La cabine était un sandwich de boîtes
+     (`cabineBois`, celle de l'abatteuse) sans calandre, de 2,91 × 2,49 × 2,63 m ; elle
+     est maintenant celle du fourgon (`cabineFourgon`), 3,15 × 2,80 × 2,94 m, avec sa
+     calandre à trois barreaux, posée sur le châssis haut du porteur (base 1,20, le
+     fourgon 0,87). Le plateau à grumes passe de 4,40 à 5,00 sur la planche — 6,10 →
+     6,93 m —, le châssis le suit, le bogie arrière recule d'un cran, et la pile visible
+     s'allonge avec lui (4,40 au lieu de 3,60). Le porteur fait 13,4 m au lieu de 11,9. */
+  g.add(box(2.2, 0.5, 9.2, BO.CHASSIS, 0, 0.95, -0.6));                  // −5,20 → 4,00
+  const {F, phares} = cabineFourgon(g, 1.2, 4.0, {CAB:BO.VERT, SOMBRE:0x22303A, TOIT:0x2E5039});
   g.add(cyl(0.36, 0.36, 1.4, 8, BO.ORANGE, 0, 1.6, 1.1));            // pied de grue
   /* LA GRUE EST REPLIÉE. Le joueur : « le porteur a, lui, la grue orange repliée. » Elle
      était dépliée vers le haut — la flèche à trente degrés, le balancier qui remontait
@@ -14353,29 +14374,28 @@ function buildPorteur(){
   const A1 = 1.05, A2 = 2.75;
   const grappin = grappinBois(); grappin.rotation.x = -(A1 + A2);
   brasBois(g, [0, 2.4, 1.1], [A1, A2], [2.8, 2.3], grappin, Math.PI);
-  for(const sx of [-1.08, 1.08]) for(const sz of [-4.0, -2.4, -0.8])
-    g.add(box(0.12, 1.5, 0.12, BO.GRIS2, sx, 1.95, sz));              // ranchers
-  g.add(box(2.2, 0.14, 4.4, BO.GRIS2, 0, 1.25, -2.4));
-  const pile = pileGrumesBois(g, 0, -2.4, 6, 3.6, 0.3, Math.PI/2, 1.34);
+  const Z_PLATEAU = -2.8, L_PLATEAU = 5.0;                                // −5,30 → −0,30
+  for(const sx of [-1.08, 1.08]) for(const sz of [-5.05, -3.6, -2.15, -0.7])
+    g.add(box(0.12, 1.5, 0.12, BO.GRIS2, sx, 1.95, sz));              // ranchers, quatre paires
+  const plateau = box(2.2, 0.14, L_PLATEAU, BO.GRIS2, 0, 1.25, Z_PLATEAU); plateau.name = 'plateau'; g.add(plateau);
+  const pile = pileGrumesBois(g, 0, Z_PLATEAU, 6, 4.4, 0.3, Math.PI/2, 1.34);
   pile.visible = false;
-  const gyro = gyrophare(g, 0.72, 3.36, 2.8);
-  const F = jeuDeFeux();
-  for(const sx of [-0.8, 0.8]) optique(g, F, false, sx, 1.5,  3.9, 0.34, 0.22);
-  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.5, -4.05, 0.30, 0.20);
+  const gyro = gyrophare(g, 0.72, 3.38, 2.5);                            // sur le pavillon
+  for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.5, -5.35, 0.30, 0.20);
   const wr = [], wf = [];
   for(const sx of [-1.12, 1.12]){
     for(const sz of [3.0, 1.6]){
       const a = wheelMesh(0.7, 0.46); a.position.set(sx, 0.7, sz); g.add(a); wf.push(a);
     }
-    for(const sz of [-1.4, -3.0]){
+    for(const sz of [-2.2, -3.8]){
       const b2 = wheelMesh(0.7, 0.46); b2.position.set(sx, 0.7, sz); g.add(b2); wr.push(b2);
     }
   }
-  g.scale.setScalar(1.385);               // 11,90 m : l'étalon, la taille du fourgon
+  g.scale.setScalar(1.385);               // l'échelle du fourgon, l'étalon des engins
   g.userData = {wr, wf, gyro, feux:F, pile,
-    lampes:{avant:  {x:[-0.8, 0.8], y:1.5, z: 3.9,  w:0.34, h:0.22},
-            arriere:{x:[-0.8, 0.8], y:1.5, z:-4.05, w:0.30, h:0.20},
-            nez:4.0}};
+    lampes:{avant:  {x:[-0.9, 0.9], y:phares.y, z:phares.z, w:0.34, h:0.22},
+            arriere:{x:[-0.8, 0.8], y:1.5, z:-5.35, w:0.30, h:0.20},
+            nez:4.25}};
   return g;
 }
 /* ---------- LES TROIS BATEAUX ET LE CAMION FRIGO, portés de la planche `port.html` ----------

@@ -16748,3 +16748,36 @@ d'avant : 14 échecs sur 17. Mesuré après : la feuille fait 900 × 252 sur la 
 824 × 252 sur le téléphone, cinq colonnes, quinze cartes visibles, zéro pixel à défiler.
 `elevage` 35 sur 35, inchangé. `commandes` 15 sur 17 — ses deux échecs sur l'appui de la
 pédale sont ceux de la version d'avant, relancée sur le même banc.
+
+### Le porteur prend la cabine du fourgon, une calandre, et un plateau plus long
+
+Le joueur : « réajuste le camion porteur avec une calandre et la taille équivalente au
+fourgon au niveau de la cabine, et une remorque un peu plus longue. »
+
+**La cabine.** Le porteur avait la cabine en sandwich de l'abatteuse (`cabineBois`) : ceinture,
+bandeau vitré, pavillon, sans calandre ni pare-chocs, deux phares posés sur un socle. Mesuré :
+2,91 × 2,49 × 2,63 m, contre 3,15 × 2,80 × 2,94 pour la cabine du fourgon. Cette cabine-là —
+caisse évasée, pare-brise, vitres de côté, **calandre à trois barreaux**, pare-chocs, phares,
+rétroviseurs, pavillon — est sortie de `buildFourgon` dans `cabineFourgon`, posée à la base et
+au front qu'on lui donne, dans les couleurs qu'on lui donne. Le fourgon n'a pas bougé d'un
+millimètre (base 0,87, front 3,25) ; le porteur la porte en vert, sur son châssis haut (base
+1,20), le front à 4,00.
+
+**Le plateau.** Il passe de 4,40 à 5,00 sur la planche, soit **6,09 → 6,93 m** ; le châssis le
+suit (9,20 au lieu de 8,00), une quatrième paire de ranchers prend place, le bogie arrière
+recule de quatre-vingts centimètres, les feux et les lampes arrière avec lui, et la pile visible
+s'allonge (4,40 au lieu de 3,60 : 6,2 m). Le porteur fait **13,5 m hors tout au lieu de 11,9**,
+et sa grue repliée reste sous sept mètres. La cabine de l'abatteuse ne change pas.
+
+**Bancs.** `bois` 36 sur 36 : trois contrôles de plus — la boîte nommée `cabine` du porteur est
+celle du fourgon à trois pour cent près (mesuré 3,12 × 2,77 × 2,91 contre 3,15 × 2,80 × 2,94 :
+l'échelle du porteur est 1,385, celle du fourgon 1,40), il a sa `calandre`, son `plateau` fait
+6,92 m et l'engin 13,5 hors tout, la grue à 6,81 ; sur la version d'avant : pas de boîte nommée,
+pas de calandre, plateau absent (trois échecs attendus). Le contrôle d'approche du dépôt — « le
+porteur descend de la route au cercle du dépôt en ligne droite, sans rien heurter » — passe
+toujours avec les quatre-vingts centimètres de plus. Deux leçons de mesure au passage : la boîte
+d'une pièce se lit sur sa géométrie à l'échelle de l'engin, car la boîte monde d'un engin qui
+vient de rouler porte son tangage (2,80 y faisait 2,91) ; et la hauteur d'un engin se lit à son
+sommet, au-dessus du sol, non de sa boîte : la boîte monde d'une roue qui a tourné de
+soixante-cinq radians est celle d'un cube tourné, et descend quarante centimètres sous le sol
+(la grue y « faisait » 7,17).
