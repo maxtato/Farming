@@ -16711,3 +16711,40 @@ monde (3,84 × 3,84 × 6,40 à cinq centimètres près), le tandem, et l'engin p
 haut que le pick-up d'un mètre au moins ; sur la version d'avant il lit 3,31 × 2,57 × 4,83
 (échec attendu). `port` 43 et `ouverture` 9 : inchangés, le camion se gare toujours au port
 sans rien toucher.
+
+### Le parc en grille, sur une grande feuille, et une carte qui ne se prend qu'au toucher
+
+Le joueur : « pour la fenêtre de la sélection du véhicule, c'est encore problématique : on ne
+peut pas scroller, quand on appuie pour scroller ça sélectionne direct. Il faudrait tout
+afficher sur une grande fenêtre en grille. »
+
+**Mesuré avant**, quinze engins possédés : la feuille faisait 340 px de large, posée au-dessus
+des commandes, et sa pile défilait — dix engins visibles sur quinze sur une tablette (218 px
+à faire défiler), **cinq sur quinze sur un téléphone couché** (528 px). Et une ligne écoutait
+`pointerdown` : le premier contact du doigt la prenait, avant qu'il ait pu glisser. Appuyer
+sur « Tracteur » puis glisser de soixante pixels changeait d'engin et fermait la fenêtre.
+
+**La feuille prend l'écran.** Mêmes marges que les fenêtres de régie, 900 px au plus, haute
+de ce que son contenu demande et centrée, avec une croix — le fond ne dépasse plus que de dix
+pixels, il ne suffit plus pour fermer. La liste est une **grille** de cartes de 150 px au
+moins (`repeat(auto-fill, minmax(150px, 1fr))`) : cinq colonnes sur un téléphone couché
+comme sur une tablette, quinze engins en trois rangées, **tous visibles d'un coup, zéro pixel
+à faire défiler**. Le défilement reste permis par sûreté, pour un écran qu'on n'a pas prévu.
+
+**Une carte ne se prend qu'au toucher.** `auToucher` retient où le doigt s'est posé et ne
+prend la carte qu'au relâcher, s'il n'a pas bougé de plus de douze pixels ni fait défiler la
+liste ; un glisser que le navigateur transforme en défilement envoie `pointercancel`, et
+l'on oublie tout. L'appui garde son `stopPropagation`, qui empêche les commandes de conduite
+de voir le doigt. La même feuille sert au choix d'un élevage : même grille, même règle — on
+ne transforme plus une parcelle d'un glisser malheureux.
+
+**Bancs.** Nouveau banc `parc` (17 contrôles, sur tablette 1040 × 700 et téléphone couché
+844 × 390) : la feuille prend la largeur de l'écran, haute de son contenu et centrée ; la
+liste est une grille d'au moins quatre colonnes (trois au téléphone) ; les quinze engins
+sont tous visibles sans rien à défiler ; la croix existe et ferme ; **appuyer puis glisser de
+60 px ne sélectionne rien et laisse la fenêtre ouverte** ; un toucher franc prend l'engin et
+ferme ; le choix d'élevage est la même grille et un glisser n'achète rien. Sur la version
+d'avant : 14 échecs sur 17. Mesuré après : la feuille fait 900 × 252 sur la tablette et
+824 × 252 sur le téléphone, cinq colonnes, quinze cartes visibles, zéro pixel à défiler.
+`elevage` 35 sur 35, inchangé. `commandes` 15 sur 17 — ses deux échecs sur l'appui de la
+pédale sont ceux de la version d'avant, relancée sur le même banc.

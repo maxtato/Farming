@@ -344,27 +344,39 @@
   /* Le bouton de l'engin ouvre la fenêtre rapide du parc, où l'on change d'engin
      d'un doigt sans quitter la partie. Le nom qu'il portait vit maintenant dans son
      aria-label, et dans la liste qu'il ouvre. */
-  /* La fenêtre rapide du parc : rien que les engins qu'on possède, un par ligne. */
+  /* La fenêtre rapide du parc : rien que les engins qu'on possède, en grille. */
   #parc{position:absolute;inset:0;display:none;z-index:22}
   #parcfond{position:absolute;inset:0;background:var(--voile);pointer-events:auto}
-  /* ET LA PILE NE SORT PLUS PAR LE HAUT. Les lignes de papier sont plus hautes que les
-     anciennes — 11 px de nom au lieu de 8,5, et le double de rembourrage — et six engins
-     dépassaient du bord supérieur d'un téléphone en paysage, titre compris. La feuille
-     est donc bornée à la hauteur libre au-dessus des commandes, et c'est la LISTE qui
-     défile : le titre reste, le bord déchiré reste, seule la pile glisse. */
-  #parcboite{position:absolute;bottom:calc(60px + env(safe-area-inset-bottom));left:50%;
-    transform:translateX(-50%);pointer-events:auto;width:min(88vw,340px);
-    max-height:calc(100% - 84px - env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;padding:14px 16px 12px}
-  #parctitre{font-family:var(--titre);font-size:11px;letter-spacing:1.8px;
-    text-transform:uppercase;color:var(--sous);padding:0 2px 8px;transform:rotate(-.8deg)}
-  #parcliste{display:flex;flex-direction:column;gap:7px;overflow-y:auto;
-    min-height:0;padding:3px 3px 5px;margin:-3px -3px -5px}
-  /* UNE LIGNE D'ENGIN EST UNE ÉTIQUETTE POSÉE SUR LA FEUILLE, et elle penche : une pile
+  /* UNE GRANDE FEUILLE, ET TOUT DESSUS D'UN COUP. Le joueur : « pour la fenêtre de la
+     sélection du véhicule, c'est encore problématique : on ne peut pas scroller, quand on
+     appuie pour scroller ça sélectionne direct. Il faudrait tout afficher sur une grande
+     fenêtre en grille. » La feuille était une colonne de 340 px posée au-dessus des
+     commandes, dont la pile défilait — et une ligne se prenait au premier contact du
+     doigt, avant même qu'il ait glissé. La feuille prend maintenant l'écran, comme les
+     fenêtres de régie (mêmes marges que `#fenboite`), haute de ce que son contenu demande
+     et centrée, et la liste est une GRILLE de cartes de 150 px au moins : quinze engins
+     tiennent en trois rangées sur un téléphone couché, il n'y a plus rien à faire défiler. Le défilement reste permis, par sûreté,
+     mais une carte ne se prend plus qu'au TOUCHER (voir `auToucher`). */
+  #parcboite{position:absolute;left:10px;right:10px;top:50%;transform:translateY(-50%);
+    max-width:900px;margin:0 auto;pointer-events:auto;
+    max-height:calc(100% - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;padding:10px 14px 10px}
+  #parctete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
+  #parctitre{font-family:var(--titre);font-size:17px;letter-spacing:1.1px;
+    text-transform:uppercase;color:var(--titreC);flex:1;
+    transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
+  #parcfermer{width:30px;height:30px;border-radius:9px;background:var(--pale);
+    color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold}
+  #parcfermer:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
+  #parcliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:9px 10px;align-content:start;overflow-y:auto;
+    min-height:0;padding:4px 4px 8px;margin:-4px -4px -8px}
+  /* UNE CARTE D'ENGIN EST UNE ÉTIQUETTE POSÉE SUR LA FEUILLE, et elle penche : une grille
      de rectangles parfaitement alignés n'aurait plus rien de papier. L'alternance des
      deux sens vient de la planche du joueur. */
   .pe{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;
-    background:var(--ligne);box-shadow:0 3px 0 var(--ligneOmb);
+    background:var(--ligne);box-shadow:0 3px 0 var(--ligneOmb);min-height:56px;box-sizing:border-box;
     font-size:11px;font-weight:bold;letter-spacing:.3px;color:var(--texte)}
   .pe:nth-of-type(odd){transform:rotate(-.7deg)}
   .pe:nth-of-type(even){transform:rotate(.6deg)}
@@ -1662,7 +1674,7 @@
     <img class="tp" src="pictos/telephone.png" alt=""></div></div>
   <div id="pause"><i></i><i></i></div>
   <div id="hint"></div>
-  <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctitre">Changer d'engin</div><div id="parcliste"></div></div></div>
+  <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctete"><div id="parctitre">Changer d'engin</div><div id="parcfermer">✕</div></div><div id="parcliste"></div></div></div>
   <div id="menuBtn" class="pic" aria-label="Menu"></div>
   <div id="fen">
     <div id="fenfond"></div>
@@ -23815,6 +23827,26 @@ const enginsEl = document.getElementById('engins');
    engins qu'on possède, avec leur couleur, leur outil et où ils sont. Un doigt. */
 const parcEl = document.getElementById('parc');
 const parcListe = document.getElementById('parcliste');
+/* UNE CARTE NE SE PREND QU'AU TOUCHER, JAMAIS AU GLISSER. Le joueur : « quand on appuie
+   pour scroller, ça sélectionne direct. » La ligne écoutait `pointerdown` : le premier
+   contact du doigt la prenait, avant qu'il ait pu glisser. On retient où le doigt s'est
+   posé, et l'on ne prend la carte qu'au RELÂCHER, s'il n'a pas bougé de plus de douze
+   pixels ni fait défiler la liste ; un glisser que le navigateur transforme en
+   défilement envoie `pointercancel`, et l'on oublie tout. L'appui garde son
+   `stopPropagation` : c'est lui qui empêche les commandes de conduite de voir le doigt. */
+function auToucher(el, fn){
+  let d = null;
+  el.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
+    d = {x:e.clientX, y:e.clientY, id:e.pointerId, s:parcListe.scrollTop}; });
+  el.addEventListener('pointercancel', ()=>{ d = null; });
+  el.addEventListener('pointerup', (e)=>{
+    if(!d || e.pointerId !== d.id){ d = null; return; }
+    const ok = Math.abs(e.clientX - d.x) < 12 && Math.abs(e.clientY - d.y) < 12
+            && Math.abs(parcListe.scrollTop - d.s) < 4;
+    d = null;
+    if(ok){ e.stopPropagation(); fn(); }
+  });
+}
 // La teinte déclarée du modèle : on reconnaît le tracteur vert du rouge sans lire.
 const couleurEngin = (m)=> '#' + (m.teinte || 0x8BE07A).toString(16).padStart(6, '0');
 function ouvrirParc(){
@@ -23840,7 +23872,7 @@ function ouvrirParc(){
     l.dataset.cle = m.key;
     l.innerHTML = '<div class="pt" style="background:' + couleurEngin(m) + '"></div>'
       + '<div class="pn">' + m.nom.toUpperCase() + '<div class="pd">' + det + '</div></div>';
-    l.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); setMachine(i); fermerParc(); });
+    auToucher(l, ()=>{ setMachine(i); fermerParc(); });
     parcListe.appendChild(l);
   });
   parcEl.style.display = 'block';
@@ -23885,7 +23917,7 @@ function ouvrirChoixPature(p){
       + '<div class="pn">' + E.pluriel.toUpperCase()
       + '<div class="pd">' + det + '</div></div>';
     if(libre && assez)
-      l.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
+      auToucher(l, ()=>{
         fermerParc();
         /* LA CULTURE EST PERDUE, ET C'EST DÉFINITIF : on le dit au moment où on le fait,
            là où l'ancien bouton le disait dans son libellé de confirmation. */
@@ -23900,6 +23932,8 @@ const fermerParc = ()=>{ parcEl.style.display = 'none';
   document.getElementById('parctitre').textContent = 'Changer d\'engin'; };
 enginsEl.addEventListener('pointerdown', ouvrirParc);
 document.getElementById('parcfond').addEventListener('pointerdown', fermerParc);
+// La feuille prend l'écran : le fond ne dépasse plus que de dix pixels, il lui faut sa croix.
+document.getElementById('parcfermer').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerParc(); });
 function setMachine(i){
   if(MACHINES[i].verrou) return;      // un véhicule non acheté n'est pas pilotable
   cur = i;
