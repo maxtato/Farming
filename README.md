@@ -16969,3 +16969,37 @@ au rayon du mât : moins de 30 cm de jeu ; la gélule du semi est prise sur sa c
 sur ses cheminées ; et la lisse d'une clôture se touche à moins de 20 cm, au pick-up comme
 au semi. Sur la version d'avant : les trois échouent (1,02 m au semi, 66 cm au pick-up). Les bancs `camion`, `port`, `bois`, `élevage`, `village` et `ouverture` repassent
 avec les nouvelles gélules.
+
+### Le camion frigo : la caisse recule d'un demi-mètre et s'articule, et il roule comme le fourgon
+
+Le joueur : « pour le camion frigorifique, fais un peu plus d'espace entre la cabine et la
+caisse à l'arrière, mais donne-lui le même comportement routier que le fourgon, et fais que
+la cabine et la caisse soient légèrement désolidarisées l'une de l'autre, comme pour le
+fourgon. »
+
+**Mesuré avant.** Le front de la caisse était à −0,20 (en local), exactement au dos de la
+cabine : collée, et soudée — elle roulait d'une pièce avec la cabine, comme un jouet taillé
+dans un bloc. Ses réglages routiers : 16 m/s, accélération 11, braquage 1,9, adhérence 5,6,
+voie 1,42 ; ceux du fourgon : 15, 10, 1,8, 5,4, 1,48.
+
+**La caisse recule, et s'articule.** Elle recule de 35 cm en local, cinquante dans le monde
+(`JEU_CAISSE`) ; le châssis, qui court sous toute la caisse, reste visible dans
+l'entrebâillement, et le tandem suit la caisse. Elle vit dans son propre groupe, articulé à
+son front et déclaré dans `userData.caisse` — le même mécanisme que celui du fourgon, dans
+`Vehicle.update` : la caisse prend le roulis et le tangage de la cabine avec un temps de
+retard (au plus deux degrés d'écart) et un léger lacet au braquage, elle suit, elle ne
+précède pas. Tout ce qui est à la caisse bouge avec elle : nervures, groupe froid, barres des
+portes, feux arrière, pare-chocs. Un soufflet sombre de douze centimètres, au front de la
+caisse, masque le joint sans combler l'espace. Le camion fait 13,3 m hors tout au lieu de
+12,8 ; ses trois cotes de caisse ne changent pas (3,84 × 3,84 × 7,80).
+
+**Les réglages du fourgon, à l'unité.** Vitesse 15, accélération 10, braquage 1,8,
+adhérence 5,4, voie 1,48 — la suspension était déjà la même.
+
+**Bancs.** `camion` : section 8, trois contrôles de plus — l'espace entre le dos de la
+cabine (le plus petit z des volumes verts hors caisse, dans la moitié avant) et le front de
+la caisse blanche vaut entre 0,4 et 0,8 m ; la caisse blanche vit dans `userData.caisse` et,
+pour un roulis de 0,06 donné d'un coup à la cabine, prend après une image le même retard
+que celle du fourgon (0,032, la butée des deux degrés) ; les cinq réglages sont ceux du
+fourgon. Sur la version d'avant, les trois échouent (caisse collée, pas de groupe, réglages
+16/11/1,9/5,6/1,42). `chocs` 40/40 et `port` 43/43 repassent.

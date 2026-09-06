@@ -14520,28 +14520,46 @@ function buildFrigo(){
      la caisse. » Elle passe de 6,40 à 7,80 m — un mètre quarante, un cinquième —, le châssis,
      le tandem, les portes, les feux et le pare-chocs suivent, et une sixième nervure prend
      place. Le camion fait 12,8 m hors tout : entre le fourgon (11,9) et le porteur (13,5). */
+  /* ET LA CAISSE SE DÉTACHE DE LA CABINE. Le joueur : « pour le camion frigorifique, fais un
+     peu plus d'espace entre la cabine et la caisse à l'arrière, mais donne-lui le même
+     comportement routier que le fourgon, et fais que la cabine et la caisse soient
+     légèrement désolidarisées l'une de l'autre, comme pour le fourgon. » La caisse était
+     collée au dos de la cabine (son front à −0,20, la cabine finissant à −0,20) et soudée à
+     elle. Elle recule de 35 cm (cinquante dans le monde), le châssis reste visible dans
+     l'entrebâillement, et elle vit dans son propre groupe, `userData.caisse`, articulé à son
+     front : le même que celui du fourgon, avec le même retard de roulis, de tangage et de
+     lacet (voir `Vehicle.update`). Un soufflet sombre de douze centimètres, au front de la
+     caisse, masque le joint sans combler l'espace. Tout ce qui est à la caisse — nervures,
+     groupe froid, portes, feux, pare-chocs — bouge avec elle ; le tandem, lui, reste au
+     châssis. Les cotes de la caisse ne changent pas ; le camion fait 13,3 m hors tout. */
   const ECH_FRIGO = 1.45, CW = 3.84/ECH_FRIGO, CH = 3.84/ECH_FRIGO, CL = 7.80/ECH_FRIGO;
-  const Z0 = -0.2, Z1 = Z0 - CL, zc = (Z0 + Z1)/2, L = CL;
+  const JEU_CAISSE = 0.35;                                   // l'espace entre le dos de la cabine et le front de la caisse
+  const Z0 = -0.2 - JEU_CAISSE, Z1 = Z0 - CL, L = CL;
   const {F, wf} = avantPickup(g, C, 2.5 - (Z1 + 0.02), (2.5 + Z1 + 0.02)/2);   // le châssis va sous toute la caisse
   const BW = CW/2, Y0 = 0.86, H = CH;
-  g.add(box(BW*2, H, L, C.BLANC, 0, Y0 + H/2, zc));                         // la caisse, blanche
-  g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.BLANC2, 0, Y0 + H + 0.06, zc));  // son toit
-  g.add(box(BW*2 + 0.04, 0.16, L, C.BLANC2, 0, Y0 + 0.1, zc));             // le liseré bas
-  const nNervures = Math.floor((L - 0.8)/0.9) + 1;                         // une tous les 0,90, de −0,50 à 0,30 du bout
-  for(let k = 0; k < nNervures; k++)                                        // les nervures
-    g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.BLANC2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
-  g.add(box(1.4, 0.7, 0.42, C.INOX, 0, Y0 + H - 0.2, Z0 + 0.25));           // le groupe froid, sur le front
-  for(let k = 0; k < 4; k++) g.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, Z0 + 0.47));
-  for(const sx of [-0.7, 0, 0.7]) g.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, Z1 - 0.03));   // les barres des portes
-  for(const sx of [-1.0,1.0]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
-  g.add(box(2.4, 0.16, 0.3, C.SOMBRE, 0, 0.66, Z1 - 0.05));                 // le pare-chocs arrière
+  const caisse = new THREE.Group();
+  caisse.position.set(0, 0, Z0);                             // l'articulation : le front de la caisse
+  const cz = -L/2;                                           // le centre de la caisse, en local
+  caisse.add(box(BW*2, H, L, C.BLANC, 0, Y0 + H/2, cz));                         // la caisse, blanche
+  caisse.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.BLANC2, 0, Y0 + H + 0.06, cz));  // son toit
+  caisse.add(box(BW*2 + 0.04, 0.16, L, C.BLANC2, 0, Y0 + 0.1, cz));             // le liseré bas
+  const nNervures = Math.floor((L - 0.8)/0.9) + 1;                              // une tous les 0,90, de −0,50 à 0,30 du bout
+  for(let k = 0; k < nNervures; k++)                                             // les nervures
+    caisse.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.BLANC2, 0, Y0 + 0.2 + (H - 0.4)/2, -0.5 - k*0.9));
+  caisse.add(box(1.4, 0.7, 0.42, C.INOX, 0, Y0 + H - 0.2, 0.25));                // le groupe froid, sur le front
+  for(let k = 0; k < 4; k++) caisse.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, 0.47));
+  for(const sx of [-0.7, 0, 0.7]) caisse.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, -L - 0.03));   // les barres des portes
+  for(const sx of [-1.0,1.0]) optique(caisse, F, true, sx, 1.20, -L - 0.1, 0.30, 0.18);   // les feux arrière suivent la caisse
+  caisse.add(box(2.4, 0.16, 0.3, C.SOMBRE, 0, 0.66, -L - 0.05));                 // le pare-chocs arrière
+  caisse.add(box(BW*2 - 0.3, H - 0.3, 0.12, 0x3A4046, 0, Y0 + H/2, 0.06));        // le soufflet, au front
+  g.add(caisse);
   const gyro = gyrophare(g, 0.72, 2.52, 1.0);           // sur le toit de la cabine, devant le groupe froid
   // Un tandem à l'arrière, sous le dernier tiers de la caisse : une caisse de sept mètres
   // quatre-vingts ne roule pas sur un essieu.
   const wr = [];
   for(const sx of [-1.02,1.02]) for(const sz of [Z1 + 1.9, Z1 + 0.9]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,sz); g.add(b2); wr.push(b2); }
   g.scale.setScalar(ECH_FRIGO);
-  g.userData = {wr, wf, gyro, feux:F,
+  g.userData = {wr, wf, gyro, feux:F, caisse,
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
             arriere:{x:[-1.0,1.0], y:1.20, z:Z1 - 0.1, w:0.30, h:0.18},
             nez:3.0}};
@@ -21851,7 +21869,8 @@ const MACHINES = [
      houle. `peche` dit ce qu'il remonte : la nature, le lot, et le temps d'un lot. */
   {key:'frigo', nom:'Camion frigo', teinte:0x3E8A50, verrou:true, prix:12000,
    livre:'AU PORT', timbre:'fourgon', ton:0.97, plage:[0.74, 0.96], v:new Vehicle({
-      x:-204, z:-76, cap:-Math.PI/2, vmax:16, accel:11, turn:1.9, grip:5.6, trackW:1.42,
+      // les réglages routiers sont CEUX DU FOURGON, à l'unité : « donne-lui le même comportement routier »
+      x:-204, z:-76, cap:-Math.PI/2, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFrigo
     })},
