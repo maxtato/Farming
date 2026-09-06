@@ -16925,3 +16925,47 @@ chocs. « Personne ne traverse personne », qui échouait à −4,19 m depuis qu
 files, passe (0,63 m de dégagement au plus juste). Les échecs qui restent au banc `trafic`
 — quatre ou cinq selon le tirage : hors carte, jeu en roulant, cadence ou véhicules en vue,
 phares des engins — sont ceux d'avant.
+
+### Les mâts et les poteaux se touchent au ras, plus à un mètre
+
+Le joueur : « il y a un problème aussi avec les poteaux et les lampadaires : on a des chocs
+avant de les toucher. Je le remarque surtout quand je conduis le camion américain : un
+lampadaire sur ma droite, je le cogne alors que je suis, à l'échelle du jeu, à au moins un
+mètre. »
+
+**Mesuré avant.** L'engin posé parallèle à un mât de la route nord, et rapproché jusqu'au
+premier contact : le semi le heurte à **1,0 m** de sa cabine, le pick-up à **66 cm**, le
+tracteur à 72, le porteur, le frigo et le fourgon à 70–77. Deux causes, qui s'additionnent. Le lampadaire était un cercle de **0,90 m**,
+plus les 15 cm de garde de tous les renversables, pour un mât de 26 cm au pied : 79 cm de
+fantôme. Et la gélule du semi était prise sur sa boîte englobante, 4,57 m : ce sont ses deux
+cheminées, quarante centimètres de long derrière la cabine ; la cabine, elle, fait 3,90.
+Trente centimètres de plus sur tout le flanc.
+
+**Le mât au rayon du mât.** Le cercle du lampadaire vaut 0,26 m, celui du pied. La garde de
+15 cm ne vaut plus que pour les arbres, dont le cercle est celui du houppier (0,9 fois
+l'échelle) et qui la justifient. Les clôtures suivent : leurs cercles passent de 0,35 à
+0,22 m — le poteau fait 0,30 de côté, la lisse 0,14 — et la chaîne se resserre, un cercle
+tous les 1,2 m au lieu de 1,6, pour qu'aucune gélule ne passe entre deux.
+
+**La gélule au corps.** `emprise` relit les sommets de l'engin par bandes de |x| de cinq
+centimètres et ne retient une bande que si elle court sur au moins un dixième de la
+longueur (quatre-vingts centimètres au moins) : la plus large de ces bandes est le corps,
+et c'est elle qui donne le rayon — la moitié plus cinq centimètres, au lieu de 0,45 fois la
+boîte plus dix. Le semi passe de 2,16 à 2,03 ; le pick-up, le tracteur et le fourgon
+gagnent dix centimètres d'honnêteté dans l'autre sens (1,89, 1,84, 2,00), leur boîte
+étant leur corps. Les bateaux gardent l'ancienne lecture : une coque n'a rien qui dépasse,
+et son maître-bau est court.
+
+**Mesuré après.** Le semi touche le mât à **10 cm** de sa cabine, le pick-up au ras
+(−1 cm), le tracteur et le porteur à 5, le frigo à 6, le fourgon à 12 ; la lisse d'une
+clôture se touche à 6 cm au pick-up et 17 au semi (27 cm et 1,63 m avant). La moissonneuse,
+dont la gélule plafonne à 2,2 pour 4,76 de large, laisse entrer un mât de 15 cm — dans
+l'autre sens, celui qu'on ne remarque pas.
+
+**Bancs.** `chocs` : section 14, « on touche ce qu'on voit » — pour six engins, la distance
+du premier contact à un mât, par dichotomie, comparée au flanc visible (le plus grand |x|
+des sommets entre 0,5 et 3,5 m de haut, sur les bandes qui courent au moins un mètre) et
+au rayon du mât : moins de 30 cm de jeu ; la gélule du semi est prise sur sa cabine et non
+sur ses cheminées ; et la lisse d'une clôture se touche à moins de 20 cm, au pick-up comme
+au semi. Sur la version d'avant : les trois échouent (1,02 m au semi, 66 cm au pick-up). Les bancs `camion`, `port`, `bois`, `élevage`, `village` et `ouverture` repassent
+avec les nouvelles gélules.

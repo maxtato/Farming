@@ -8903,12 +8903,13 @@ function fenceLine(x1,z1,x2,z2,hex){
     scene.add(mesh);
     // Contact au ras de la lisse : une chaîne de petits cercles le long du tronçon.
     // Un seul cercle englobant déclenchait le choc plusieurs mètres avant la clôture.
-    const k = renversable(mesh, cx, cz, 0.35);
+    // Au ras de la lisse (un poteau fait 0,22 de côté), et un cercle tous les 1,2 m au plus.
+    const k = renversable(mesh, cx, cz, 0.22);
     k.axeFixe = new THREE.Vector3(dx/L, 0, dz/L);
-    const np = Math.max(2, Math.round(L/1.6));
+    const np = Math.max(2, Math.round(L/1.2));
     for(let q=0;q<=np;q++){
       const t = q/np;
-      obstacles.push({x:ax+dx*t, z:az+dz*t, r:0.35, soft:true, k});
+      obstacles.push({x:ax+dx*t, z:az+dz*t, r:0.22, soft:true, k});
     }
   }
 }
@@ -8945,7 +8946,12 @@ function addLamp(x, z, ry){
   const m = new THREE.Mesh(LAMP_GEO, lampMat);
   m.position.set(x,0,z); m.rotation.y = ry;
   m.castShadow = true; scene.add(m);
-  renversable(m, x, z, 0.9).lampe = true;     // le choc y sonne métal (voir `AUDIO.impact`)
+  /* AU RAYON DU MÂT. Le joueur : « on a des chocs avant de les toucher — au camion américain,
+     un lampadaire sur ma droite, je le cogne alors que j'en suis à au moins un mètre. » Le
+     cercle faisait 0,90 m, plus 15 cm de garde des renversables, pour un mât de 26 cm à sa
+     base : mesuré, le semi le heurtait à 1,0 m de sa cabine, le pick-up à 74 cm. Le cercle
+     est maintenant celui du pied du mât, et la garde ne vaut plus que pour les arbres. */
+  renversable(m, x, z, 0.26).lampe = true;    // le choc y sonne métal (voir `AUDIO.impact`)
   LAMPES.push({x, z, ry});
 }
 // panneau « À VENDRE » : le texte est peint dans une petite texture, matériau non
@@ -15207,7 +15213,8 @@ class Vehicle {
            contact est un butoir sans choc (`buter`). Le joueur : « pas de choc quand elle
            arrive près d'un arbre — plus doux, qu'on puisse s'approcher vraiment plus près. » */
         const doux = !!(o.arbre && this.abatteuse);
-        const dx = px - o.x, dz = pz - o.z, R = doux ? o.tronc + cap.r : o.r + cap.r + (o.soft ? 0.15 : 0);
+        // (la garde de 15 cm ne vaut que pour les arbres : un mât, un poteau se touchent au ras)
+        const dx = px - o.x, dz = pz - o.z, R = doux ? o.tronc + cap.r : o.r + cap.r + (o.arbre ? 0.15 : 0);
         const d2 = dx*dx + dz*dz;
         if(d2 >= R*R || d2 < 1e-4) continue;
         const d = Math.sqrt(d2);
@@ -21085,8 +21092,36 @@ function emprise(v){
     g.rotation.y = cap0; g.updateMatrixWorld(true);
     const L2 = b.max.z - b.min.z, W2 = b.max.x - b.min.x;
     if(isFinite(L2) && isFinite(W2) && L2 > 0.5 && W2 > 0.5){ L = L2; W = W2; }
+    /* LA LARGEUR DU CORPS, PAS CELLE DE LA PIÈCE LA PLUS SAILLANTE. La boîte du semi fait
+       4,57 m : ce sont ses deux cheminées, quarante centimètres de long derrière la cabine ;
+       la cabine, elle, fait 3,90. Une gélule prise sur les cheminées butait sur un mât à
+       trente centimètres du flanc. On relit donc les sommets par bandes de |x| de cinq
+       centimètres, et l'on ne retient une bande que si elle court sur au moins un dixième
+       de la longueur (quatre-vingts centimètres au moins — le maître-bau d'une coque ne
+       tient qu'un mètre ou deux) : la plus large de celles-là est le corps. */
+    const bandes = new Map(), vt = new THREE.Vector3(), seuilZ = Math.max(0.8, 0.10*L);
+    // (les bandes se lisent en |x| : l'engin est ramené à l'origine le temps de la lecture)
+    const px0 = g.position.x, py0 = g.position.y, pz0 = g.position.z;
+    g.rotation.y = 0; g.position.set(0, 0, 0); g.updateMatrixWorld(true);
+    g.traverse((o)=>{
+      if(!o.isMesh || !o.geometry) return;
+      for(let q = o; q && q !== g; q = q.parent) if(q.name === 'faisceauPhare' || q === tete) return;
+      const P = o.geometry.attributes.position; if(!P) return;
+      for(let i = 0; i < P.count; i++){
+        vt.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld);
+        const ax = Math.abs(vt.x), k = Math.floor(ax*20);
+        let B = bandes.get(k); if(!B){ B = {x:0, z0:Infinity, z1:-Infinity}; bandes.set(k, B); }
+        if(ax > B.x) B.x = ax; if(vt.z < B.z0) B.z0 = vt.z; if(vt.z > B.z1) B.z1 = vt.z;
+      }
+    });
+    g.rotation.y = cap0; g.position.set(px0, py0, pz0); g.updateMatrixWorld(true);
+    let corps = 0;
+    for(const B of bandes.values()) if(B.z1 - B.z0 >= seuilZ && B.x > corps) corps = B.x;
+    // (pas pour un bateau : une coque n'a rien qui dépasse, et son maître-bau est court)
+    if(!v.bateau && corps > 0.25 && corps*2 < W) W = corps*2;
   } catch(e){}
-  const r = Math.max(1.1, Math.min(2.2, 0.45*W + 0.10));
+  const r = v.bateau ? Math.max(1.1, Math.min(2.2, 0.45*W + 0.10))
+                     : Math.max(1.1, Math.min(2.2, 0.5*W + 0.05));
   return (v._cap = {r:r, h:Math.max(0, Math.min(4.5, 0.5*L - r))});
 }
 /* LA DISTANCE ENTRE DEUX GÉLULES, c'est celle entre leurs deux AXES. Le calcul est celui
