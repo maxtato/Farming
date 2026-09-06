@@ -8504,12 +8504,18 @@ function construirePort(){
   }
   // Le quai de débarque et la grue, sur la dalle, tournés vers l'eau — et vers nous.
   const poser = (fab, x, z, ry, ech)=>{ const g = fab(); g.scale.setScalar(ECH_COMMERCE*(ech || 1)); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); fusionnerGroupe(g); return g; };
-  /* LES CAISSES DU BORD GRANDISSENT AVEC LES CONTENEURS. Le joueur : « pareil pour les
-     caisses, etc., qui sont sur le bord. » Le quai de débarque — casiers, bacs, filets,
-     bouées, cabane — passe à 1,8 fois son échelle : un casier fait 2,75 m au lieu de 1,50,
-     la cabane trois mètres sur six. Le tas de caisses de la grue fait pareil, dans le modèle,
-     sans emporter la grue avec lui. */
-  const ECH_CAISSES = 1.8;
+  /* LES CAISSES DU BORD, À L'ÉCHELLE DES VÉHICULES. Elles avaient grandi de 1,8 avec les
+     conteneurs — un casier de 2,50 m de large, une caisse de la grue de 3,40 : de quoi
+     garer un pick-up dedans. Le joueur : « les caisses que tu as grossies au port sont
+     beaucoup trop grosses maintenant ; fais-le en lien avec les véhicules. » Le monde
+     est à peu près à deux fois la taille réelle — un fourgon de six mètres en fait douze
+     ici —, et un casier à poisson réel fait soixante centimètres : un mètre vingt à un
+     mètre cinquante, le tiers de la largeur du camion frigo (4,16 m). Le quai de débarque
+     passe donc à 1,1 fois son échelle (casier 1,53 m, cabane 1,5 sur 3,2), et le tas de
+     la grue à 1,3 (caisse 2,0 m sur 1,0 de haut : une caisse de manutention, pas un
+     conteneur). Le facteur est lisible sur `PORT` pour le banc. */
+  const ECH_CAISSES = 1.1;
+  PORT.echCaisses = ECH_CAISSES;
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0, ECH_CAISSES);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
   /* DEUX CONTENEURS, LE LONG DU GRILLAGE EST DE LA RUE, dans le sens de la rue. Ils étaient
@@ -10232,13 +10238,14 @@ function modeleGrueQuai(){
   g.add(box(0.06, 2.6, 0.06, PO_.GRIS, -2.0, 5.2, 4.3));
   g.add(box(0.5, 0.4, 0.5, PO_.GRIS2, -2.0, 3.8, 4.3));
   g.add(box(0.16, 0.5, 0.16, PO_.INOX, -2.0, 3.4, 4.3));
-  // le tas de caisses et les casiers, à même le quai — grandis de 2,2 sans la grue
+  // le tas de caisses et les casiers, à même le quai — grandis de 1,3 sans la grue (2,2
+  // avant : des caisses de 3,40 m, « beaucoup trop grosses », ramenées à deux mètres)
   const tas = new THREE.Group();
   for(let r = 0; r < 3; r++) for(let k = 0; k < 4 - r; k++)
     tas.add(box(1.0, 0.5, 0.8, [0x3E7CB8, 0xC9C0AE, 0x2F6B52][(r + k) % 3],
               0.6 + k*1.1 + r*0.55, 0.25 + r*0.52, -1.2));
   for(let i = 0; i < 4; i++) casierPeche(tas, 0.8 + i*1.0, 0.02, 1.0, 0.15*i);
-  tas.scale.setScalar(2.2); g.add(tas);
+  tas.scale.setScalar(1.3); g.add(tas);
   return g;
 }
 /* 5 — Usine de lait d'avoine */
@@ -19475,37 +19482,55 @@ const CAMIONS_GEOS = (function(){
   /* LES REMORQUES. Chacune se cale sur la sellette : son nez démarre 0,35 derrière le
      pivot, et sa cheville se pose dessus. Elles sont décrites dans les coordonnées du
      TRACTEUR — c'est ainsi que la planche les écrit —, puis `decale` reporte l'origine
-     sur la sellette, parce que c'est là que le jeu accroche le maillage de la remorque. */
+     sur la sellette, parce que c'est là que le jeu accroche le maillage de la remorque.
+     ET ELLES SONT À LA LARGEUR DU TRACTEUR. Le joueur : « nos remorques pour le camion
+     américain sont trop fines ; regarde celles des camions du trafic et ajuste. » Mesuré,
+     les deux sont LE MÊME dessin à la même échelle (3,48 m hors tout, 16 à 17 m de long) :
+     ce qui fait fin, c'est le rapport à la cabine — une caisse de 2,60 sur la planche
+     derrière un tracteur dont les ailes font 3,12. La planche est donc élargie, pour le
+     joueur comme pour la rocade : caisse et frigorifique à 3,10, la citerne à 3,10 de
+     diamètre, le plateau du grumier à 2,90 entre ranchers, le châssis à 2,60, les roues
+     écartées à 1,30 — sous la caisse, comme avant —, les feux et les bavettes qui suivent.
+     Rien ne dépasse le tracteur (1,72 de demi-largeur aux cheminées) : `LARG_LOURD`, qui
+     se calcule sur la pièce la plus large, ne bouge pas, et deux attelages se croisent
+     avec le même jeu. */
   const yS = Y_SELLETTE;
+  const W_REM = 3.1, W_CHASSIS = 2.6, X_ROUES = 1.3, X_BAVETTE = 1.3, W_FEUX = 1.15;
   function citerne(){
-    const P = [], R = 1.35, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2;
-    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    /* LE FÛT FAIT 2,90 DE DIAMÈTRE, un peu moins que la caisse : c'est le rapport d'une
+       vraie citerne. Et SES GARNITURES NE MONTENT PAS AVEC LUI : la pièce la plus haute de
+       la famille fixe `ECH_LOURD`, donc la taille de tout attelage ; un fût plus gros dont
+       le garde-corps aurait suivi rapetissait le camion entier de deux pour cent (mesuré :
+       11,92 m → 11,63). Trous d'homme, passerelle et garde-corps se posent donc sur le
+       sommet du fût, à la même cote qu'avant — le garde-corps un peu plus bas. */
+    const P = [], R = 1.45, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2, yH = yS + 0.1 + 2*R;
+    P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
     P.push(CY(R, L, 14, CITERNE, 0, yS + R + 0.1, zc, Math.PI/2));      // le fût, dans l'axe
     for(let k = 0; k < 5; k++)                                          // cerclages
       P.push(VIR(R + 0.05, 0.16, 14, 0xA8B0B5, 0, yS + R + 0.1,
                  zc - L/2 + 1.4 + k*(L - 2.8)/4, Math.PI/2));
     P.push(CY(R*0.98, 0.2, 14, 0xB9C1C6, 0, yS + R + 0.1, zc + L/2 + 0.06, Math.PI/2));
     for(const dz of [-3.2, 0.4]){                                       // trous d'homme
-      P.push(CY(0.42, 0.22, 8, GRIS, 0, yS + R + 1.4, zc + dz));
-      P.push(CY(0.3, 0.1, 6, GRIS2, 0, yS + R + 1.52, zc + dz));
+      P.push(CY(0.42, 0.22, 8, GRIS, 0, yH - 0.03, zc + dz));
+      P.push(CY(0.3, 0.1, 6, GRIS2, 0, yH + 0.09, zc + dz));
     }
-    P.push(B(0.3, 0.3, L - 1.0, GRIS, 0, yS + R + 1.36, zc));           // passerelle
+    P.push(B(0.3, 0.3, L - 1.0, GRIS, 0, yH - 0.09, zc));               // passerelle
     for(const sx of [-1, 1]) for(let k = 0; k < 9; k++)                 // garde-corps
-      P.push(B(0.06, 0.4, 0.06, GRIS2, sx*0.42, yS + R + 1.6, zc - 4.8 + k*1.2));
+      P.push(B(0.06, 0.3, 0.06, GRIS2, sx*0.42, yH, zc - 4.8 + k*1.2));
     P.push(B(0.5, 0.9, 0.5, GRIS2, 0, yS + 0.4, zc - L/2 + 0.6));       // vannes de vidange
     for(const sx of [-1, 1])
-      P.push(B(0.16, 1.6, 1.2, GRIS2, sx*1.15, yS + 0.5, zc + 1.2));    // coffres latéraux
+      P.push(B(0.16, 1.6, 1.2, GRIS2, sx*(W_CHASSIS/2 + 0.05), yS + 0.5, zc + 1.2));    // coffres latéraux
     cheville(P, yS, Z_SELLETTE);
     beequille(P, zc + L/2 - 2.2);
-    roues(P, 1.12, [zc - L/2 + 3.0, zc - L/2 + 1.6], 0.55, 0.34, true);
-    feuxArriere(P, 0.9, 0.9, zc - L/2 - 0.1);
-    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 0.95, ROUGE_FEU);
-    return {P:P, feux:{w:0.9, y:0.9, zAr:zc - L/2 - 0.15},
+    roues(P, X_ROUES, [zc - L/2 + 3.0, zc - L/2 + 1.6], 0.55, 0.34, true);
+    feuxArriere(P, W_FEUX - 0.05, 0.9, zc - L/2 - 0.1);
+    for(const sx of [-1, 1]) bavette(P, sx*X_BAVETTE, zc - L/2 + 0.95, ROUGE_FEU);
+    return {P:P, feux:{w:W_FEUX - 0.05, y:0.9, zAr:zc - L/2 - 0.15},
             essieu:Z_SELLETTE - (zc - L/2 + 2.3)};
   }
   function caisse(){
-    const P = [], W = 2.6, H = 2.9, L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
-    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    const P = [], W = W_REM, H = 2.9, L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
     P.push(B(W, H, L, CAISSE, 0, yS + 0.05 + H/2, zc));
     P.push(B(W + 0.12, 0.24, L + 0.12, 0xD8D2C4, 0, yS + 0.05 + H, zc));   // pavillon
     P.push(B(W + 0.1, 0.22, L + 0.1, 0xD8D2C4, 0, yS + 0.16, zc));         // ceinture basse
@@ -19514,21 +19539,21 @@ const CAMIONS_GEOS = (function(){
                zc - L/2 + 0.8 + k*(L - 1.6)/8));
     P.push(B(W - 0.1, H - 0.3, 0.14, 0xE4DED2, 0, yS + 0.05 + H/2, zc - L/2 - 0.03));
     P.push(B(0.08, H - 0.3, 0.16, 0xC9C0B0, 0, yS + 0.05 + H/2, zc - L/2 - 0.09));
-    for(const sx of [-0.85, -0.4, 0.4, 0.85])                              // barres de fermeture
+    for(const sx of [-1.02, -0.48, 0.48, 1.02])                            // barres de fermeture
       P.push(CY(0.07, H - 0.5, 6, GRIS, sx, yS + 0.05 + H/2, zc - L/2 - 0.12));
     P.push(B(1.5, 0.6, 0.14, BLEU, 0, yS + 2.4, zc + L/2 + 0.02));         // marquage
     cheville(P, yS, Z_SELLETTE);
     beequille(P, zc + L/2 - 2.4);
-    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
-    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
-    feuxGabarit(P, 2.0, yS + 0.05 + H + 0.2, zc - L/2 - 0.05, 5, ROUGE_FEU);
-    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
-    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+    roues(P, X_ROUES, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, W_FEUX, 0.85, zc - L/2 - 0.14);
+    feuxGabarit(P, 2.5, yS + 0.05 + H + 0.2, zc - L/2 - 0.05, 5, ROUGE_FEU);
+    for(const sx of [-1, 1]) bavette(P, sx*X_BAVETTE, zc - L/2 + 1.05);
+    return {P:P, feux:{w:W_FEUX, y:0.85, zAr:zc - L/2 - 0.19},
             essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
   }
   function frigo(){
-    const P = [], W = 2.6, H = 2.9, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2;
-    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    const P = [], W = W_REM, H = 2.9, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2;
+    P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
     P.push(B(W, H, L, CREME, 0, yS + 0.05 + H/2, zc));
     P.push(B(W + 0.12, 0.24, L + 0.12, 0xD8D2C4, 0, yS + 0.05 + H, zc));
     for(let k = 0; k < 7; k++)
@@ -19536,19 +19561,19 @@ const CAMIONS_GEOS = (function(){
                zc - L/2 + 1.0 + k*(L - 2)/6));
     // Le groupe froid coiffe l'avant de la caisse : sur la planche il la dépasse de 23 cm,
     // ici il l'affleure — c'est ce que fait un vrai, et c'est 23 cm rendus à tout l'attelage.
-    P.push(B(2.0, 1.5, 0.6, INOX, 0, yS + H - 0.41, zc + L/2 + 0.3));
-    P.push(B(1.7, 0.16, 0.1, GRIS2, 0, yS + H + 0.09, zc + L/2 + 0.62));
+    P.push(B(2.4, 1.5, 0.6, INOX, 0, yS + H - 0.41, zc + L/2 + 0.3));
+    P.push(B(2.0, 0.16, 0.1, GRIS2, 0, yS + H + 0.09, zc + L/2 + 0.62));
     for(let k = 0; k < 4; k++)
-      P.push(B(1.5, 0.08, 0.12, GRIS, 0, yS + H - 0.81 + k*0.2, zc + L/2 + 0.62));
+      P.push(B(1.8, 0.08, 0.12, GRIS, 0, yS + H - 0.81 + k*0.2, zc + L/2 + 0.62));
     P.push(CY(0.42, 0.16, 10, GRIS2, 0, yS + H - 0.56, zc + L/2 + 0.64, Math.PI/2));
     P.push(B(W - 0.1, H - 0.3, 0.14, 0xEDE7DB, 0, yS + 0.05 + H/2, zc - L/2 - 0.03));
     P.push(B(1.4, 0.5, 0.14, 0x3E7CB8, 0, yS + 1.9, zc + L/2 - 0.2));
     cheville(P, yS, Z_SELLETTE);
     beequille(P, zc + L/2 - 2.4);
-    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
-    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
-    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
-    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+    roues(P, X_ROUES, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, W_FEUX, 0.85, zc - L/2 - 0.14);
+    for(const sx of [-1, 1]) bavette(P, sx*X_BAVETTE, zc - L/2 + 1.05);
+    return {P:P, feux:{w:W_FEUX, y:0.85, zAr:zc - L/2 - 0.19},
             essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
   }
   // L'origine de la remorque se reporte sur la sellette : c'est là que le jeu l'accroche.
@@ -19571,23 +19596,24 @@ const CAMIONS_GEOS = (function(){
   const BOIS_G = 0x8A6A3A, BOIS_G2 = 0x6B4E24, ECORCE_G = 0x5A4632;
   function grumier(){
     const P = [], L = 13.0, zc = Z_SELLETTE - 0.35 - L/2;
-    P.push(B(2.3, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
-    P.push(B(2.05, 0.2, L - 1.0, GRIS2, 0, yS + 0.13, zc));
+    P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
+    P.push(B(W_REM - 0.7, 0.2, L - 1.0, GRIS2, 0, yS + 0.13, zc));
     // Quatre paires de ranchers, et leur traverse : c'est ce qui tient la pile.
+    const X_RANCHER = W_REM/2 - 0.1;
     for(let k = 0; k < 4; k++){
       const z = zc - L/2 + 1.9 + k*(L - 3.8)/3;
-      P.push(B(2.5, 0.18, 0.32, GRIS2, 0, yS + 0.28, z));
+      P.push(B(W_REM - 0.1, 0.18, 0.32, GRIS2, 0, yS + 0.28, z));
       for(const sx of [-1, 1]){
-        P.push(B(0.18, 2.3, 0.24, GRIS, sx*1.2, yS + 1.4, z));
-        P.push(B(0.3, 0.2, 0.3, GRIS2, sx*1.2, yS + 0.36, z));
+        P.push(B(0.18, 2.3, 0.24, GRIS, sx*X_RANCHER, yS + 1.4, z));
+        P.push(B(0.3, 0.2, 0.3, GRIS2, sx*X_RANCHER, yS + 0.36, z));
       }
     }
     /* LES GRUMES, EN QUINCONCE. Trois lits : cinq en bas, quatre au milieu, trois en
        haut — chaque lit se love dans le creux de celui d'en dessous, comme une vraie
        pile. Elles sont un peu plus courtes que le plateau, pour qu'on voie les têtes de
        coupe dépasser des ranchers plutôt que de toucher la traverse. */
-    const RG = 0.30, LG = L - 1.4;
-    const lits = [[5, yS + 0.6], [4, yS + 1.16], [3, yS + 1.72]];
+    const RG = 0.35, LG = L - 1.4;                     // cinq grumes de front dans 2,90 entre ranchers
+    const lits = [[5, yS + 0.65], [4, yS + 1.27], [3, yS + 1.89]];
     for(let i = 0; i < lits.length; i++){
       const n = lits[i][0], y = lits[i][1];
       for(let k = 0; k < n; k++){
@@ -19598,13 +19624,13 @@ const CAMIONS_GEOS = (function(){
           P.push(CY(RG*0.86, 0.08, 8, 0xC9A96A, x, y, zc + sz*(LG/2 + 0.04), Math.PI/2));
       }
     }
-    for(const sx of [-1, 1]) P.push(B(0.14, 0.9, 0.14, ECORCE_G, sx*1.02, yS + 2.5, zc + L/2 - 0.8));
+    for(const sx of [-1, 1]) P.push(B(0.14, 0.9, 0.14, ECORCE_G, sx*1.2, yS + 2.5, zc + L/2 - 0.8));
     cheville(P, yS, Z_SELLETTE);
     beequille(P, zc + L/2 - 2.4);
-    roues(P, 1.12, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
-    feuxArriere(P, 0.95, 0.85, zc - L/2 - 0.14);
-    for(const sx of [-1, 1]) bavette(P, sx*1.12, zc - L/2 + 1.05);
-    return {P:P, feux:{w:0.95, y:0.85, zAr:zc - L/2 - 0.19},
+    roues(P, X_ROUES, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
+    feuxArriere(P, W_FEUX, 0.85, zc - L/2 - 0.14);
+    for(const sx of [-1, 1]) bavette(P, sx*X_BAVETTE, zc - L/2 + 1.05);
+    return {P:P, feux:{w:W_FEUX, y:0.85, zAr:zc - L/2 - 0.19},
             essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
   }
   const ATTELAGES = [{f:citerne, cab:BLEU,      couchette:true},

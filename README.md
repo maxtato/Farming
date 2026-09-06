@@ -16262,3 +16262,47 @@ le porteur le vide et le vide reste vide, ce qu'il rend y reparaît, la scierie,
 — et un pour la grue repliée (sommet entre 6,2 et 7,2 m). La sauvegarde relit 123 kg en deux
 troncs visibles, sans champ de grumes. Sur le commit précédent, le bloc de la coupe s'arrête à
 `etapeDepot` inconnu.
+
+### Les caisses du port à l'échelle des véhicules, et les remorques à la largeur du tracteur
+
+Le joueur : « les caisses que tu as grossies au port sont beaucoup trop grosses maintenant,
+fais-le en lien avec les véhicules. J'ai l'impression que nos remorques pour le camion
+américain sont trop fines ; regarde les remorques des camions du trafic et ajuste. »
+
+**Les caisses.** Elles avaient grandi de 1,8 avec les conteneurs : un casier à poisson de
+2,50 m de large, une caisse de la grue de 3,40 — de quoi garer un pick-up dedans. Le monde
+est à peu près à deux fois la taille réelle (un fourgon de six mètres en fait douze ici) et un
+casier réel fait soixante centimètres : entre un mètre vingt et un mètre cinquante, le tiers
+de la largeur du camion frigo. Le quai de débarque passe donc à 1,1 fois son échelle — un
+casier de **1,53 m**, la cabane 1,5 sur 3,2 — et le tas de la grue à 1,3 : une caisse de **2,0
+m sur 1,0 de haut**, une caisse de manutention et non un conteneur.
+
+**Les remorques, mesurées avant de toucher.** Les trois remorques du joueur et les trois de la
+rocade sont **le même dessin à la même échelle** : 3,48 m hors tout, 16 à 17 m de long, à
+1,215 les unes comme les autres. Ce qui fait fin, c'est le rapport à la cabine : une caisse de
+2,60 sur la planche derrière un tracteur dont les ailes font 3,12. La planche est donc
+élargie, **pour le joueur comme pour la rocade**, puisque les deux la lisent : caisse et
+frigorifique à 3,10, le plateau du grumier à 2,90 entre ranchers, le châssis à 2,60, les roues
+écartées à 1,30 (toujours sous la caisse), les feux, les bavettes, les barres de porte et le
+groupe froid qui suivent. Résultat : **3,91 m hors tout pour un tracteur de 4,18**, au lieu de
+3,48.
+
+**Le fût de la citerne fait 2,90 de diamètre**, un peu moins que la caisse, et **ses garnitures
+ne montent pas avec lui** : la pièce la plus haute de la famille fixe `ECH_LOURD`, donc la
+taille de tout attelage, et un fût plus gros dont le garde-corps aurait suivi rapetissait le
+camion entier de deux pour cent — mesuré, 11,92 m → 11,63. Trous d'homme, passerelle et
+garde-corps se posent sur le sommet du fût, à la même cote qu'avant ; le facteur reste 1,215
+et le camion garde ses 11,92 m. `LARG_LOURD`, qui se calcule sur la pièce la plus large, ne
+bouge pas non plus : le tracteur reste la plus large (1,72 de demi-largeur aux cheminées), et
+deux attelages se croisent avec le même jeu.
+
+**Bancs.** `camion` **19 sur 19** : un contrôle neuf, chaque remorque à la largeur du tracteur
+à dix pour cent près, et les trois du joueur mesurées comme les trois de la rocade. `port` **39
+sur 39** : un contrôle neuf, le casier entre le quart et les deux cinquièmes de la largeur du
+camion frigo, la caisse de la grue sous la moitié. `trafic` : les huit mêmes échecs qu'avant.
+`chocs` : le test de l'attelage prenait le premier semi vivant, visible ou non, et à défaut en
+faisait naître un sur la file nord vers l'est — hors du monde un véhicule du trafic n'est pas
+heurté, et cette file n'a plus de tout droit depuis que le trafic évite le port ; le test
+prend maintenant un attelage visible, ou en fait naître un sur la rocade ouest et le laisse
+paraître. Ce n'était pas le camion : la mesure directe sur le pick-up donne un mètre de
+déplacement de l'attelage heurté, comme avant.
