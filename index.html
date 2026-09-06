@@ -14500,16 +14500,21 @@ function buildFrigo(){
      pick-up gardé tel quel — et l'engin entier prend cinq pour cent (1,45 au lieu de 1,38),
      un peu plus gros que le pick-up sans cesser de lui ressembler. Ce qu'une telle caisse
      demande suit : le châssis s'allonge jusque sous elle, l'essieu arrière devient un
-     tandem, les feux et le pare-chocs reculent avec elle. Mesuré : 11,1 m de long, 3,84 de
-     large, 5,3 de haut — l'ancien faisait 11,41 × 4,26 × 5,80, le pick-up 9,3 × 3,7 × 3,8. */
-  const ECH_FRIGO = 1.45, CW = 3.84/ECH_FRIGO, CH = 3.84/ECH_FRIGO, CL = 6.40/ECH_FRIGO;
+     tandem, les feux et le pare-chocs reculent avec elle. Mesuré : 11,4 m de long, 3,93 de
+     large, 5,3 de haut — l'ancien faisait 11,41 × 4,26 × 5,80, le pick-up 9,3 × 3,7 × 3,8.
+     PUIS LA CAISSE S'ALLONGE. Le joueur : « le camion frigo, fais-le plus long au niveau de
+     la caisse. » Elle passe de 6,40 à 7,80 m — un mètre quarante, un cinquième —, le châssis,
+     le tandem, les portes, les feux et le pare-chocs suivent, et une sixième nervure prend
+     place. Le camion fait 12,8 m hors tout : entre le fourgon (11,9) et le porteur (13,5). */
+  const ECH_FRIGO = 1.45, CW = 3.84/ECH_FRIGO, CH = 3.84/ECH_FRIGO, CL = 7.80/ECH_FRIGO;
   const Z0 = -0.2, Z1 = Z0 - CL, zc = (Z0 + Z1)/2, L = CL;
   const {F, wf} = avantPickup(g, C, 2.5 - (Z1 + 0.02), (2.5 + Z1 + 0.02)/2);   // le châssis va sous toute la caisse
   const BW = CW/2, Y0 = 0.86, H = CH;
   g.add(box(BW*2, H, L, C.BLANC, 0, Y0 + H/2, zc));                         // la caisse, blanche
   g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.BLANC2, 0, Y0 + H + 0.06, zc));  // son toit
   g.add(box(BW*2 + 0.04, 0.16, L, C.BLANC2, 0, Y0 + 0.1, zc));             // le liseré bas
-  for(let k = 0; k < 5; k++)                                                // les nervures
+  const nNervures = Math.floor((L - 0.8)/0.9) + 1;                         // une tous les 0,90, de −0,50 à 0,30 du bout
+  for(let k = 0; k < nNervures; k++)                                        // les nervures
     g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.BLANC2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
   g.add(box(1.4, 0.7, 0.42, C.INOX, 0, Y0 + H - 0.2, Z0 + 0.25));           // le groupe froid, sur le front
   for(let k = 0; k < 4; k++) g.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, Z0 + 0.47));
@@ -14517,9 +14522,10 @@ function buildFrigo(){
   for(const sx of [-1.0,1.0]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
   g.add(box(2.4, 0.16, 0.3, C.SOMBRE, 0, 0.66, Z1 - 0.05));                 // le pare-chocs arrière
   const gyro = gyrophare(g, 0.72, 2.52, 1.0);           // sur le toit de la cabine, devant le groupe froid
-  // Un tandem à l'arrière : une caisse de six mètres quarante ne roule pas sur un essieu.
+  // Un tandem à l'arrière, sous le dernier tiers de la caisse : une caisse de sept mètres
+  // quatre-vingts ne roule pas sur un essieu.
   const wr = [];
-  for(const sx of [-1.02,1.02]) for(const sz of [-2.75, -3.75]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,sz); g.add(b2); wr.push(b2); }
+  for(const sx of [-1.02,1.02]) for(const sz of [Z1 + 1.9, Z1 + 0.9]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,sz); g.add(b2); wr.push(b2); }
   g.scale.setScalar(ECH_FRIGO);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},

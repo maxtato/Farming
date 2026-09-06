@@ -16781,3 +16781,19 @@ vient de rouler porte son tangage (2,80 y faisait 2,91) ; et la hauteur d'un eng
 sommet, au-dessus du sol, non de sa boîte : la boîte monde d'une roue qui a tourné de
 soixante-cinq radians est celle d'un cube tourné, et descend quarante centimètres sous le sol
 (la grue y « faisait » 7,17).
+
+### Le camion frigo allonge sa caisse
+
+Le joueur : « le camion frigo, fais-le plus long au niveau de la caisse. »
+
+La caisse passe de **6,40 à 7,80 m** — un mètre quarante, un cinquième — à largeur et hauteur
+égales (3,84). Ce qu'elle entraîne suit sans réglage à la main : le châssis va jusque sous
+elle, le tandem se pose sous son dernier tiers (à 0,90 et 1,90 de son bout, où qu'il soit), les
+barres des portes, les feux et le pare-chocs reculent avec elle, et le nombre de nervures se
+déduit de sa longueur — une tous les quatre-vingt-dix centimètres, six au lieu de cinq. Le
+camion fait **12,8 m hors tout** (11,4 avant) : entre le fourgon (11,9) et le porteur (13,5).
+L'avant façon pick-up, la cabine verte et la caisse blanche ne changent pas.
+
+**Bancs.** `camion` 26 sur 26 — le contrôle des cotes de la caisse lit 3,84 × 3,84 × 7,80 (il
+lisait 6,40 sur la version d'avant : échec attendu). `port` 43 et `ouverture` 9 : le camion se
+gare toujours au port sans rien toucher.
