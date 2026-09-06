@@ -20507,35 +20507,135 @@ const departTrafic = (u)=> u.t0 + (u.retard || 0);
    les feux rouges s'allumer avant de comprendre qu'il traverse.
    UN ENGIN EN AUTOMATIQUE NE FAIT FREINER PERSONNE : il traverse, et une file de voitures
    arrêtées devant un tracteur qui les ignore serait un embouteillage pour rien. */
-const VISION_TRAFIC = 18, ARRET_TRAFIC = 3, LARGE_TRAFIC = 3.4;
+const VISION_TRAFIC = 18, ARRET_TRAFIC = 3;
+/* ---------- S'ÉCARTER, QUAND IL Y A LA PLACE ----------
+   Le joueur : « ils peuvent sortir légèrement de leur ligne si besoin. » Un engin garé sur
+   la voie — le pick-up devant la maison, à l'ouverture, est en plein dans la file qui va
+   vers l'ouest — ne bloque plus la route pour de bon. La voiture regarde, pour chaque
+   gélule d'engin devant elle, quelle bande d'écarts de voie lui est interdite : sa
+   demi-largeur, plus le rayon de la gélule, plus une marge, de part et d'autre. Puis elle
+   prend le plus petit écart qui reste libre — vers le bord de la chaussée tant qu'elle y
+   tient, vers le milieu tant qu'elle laisse passer le trafic d'en face — ; elle le vise
+   (`evite`), ralentit, passe, et revient. S'il n'en reste aucun, elle s'arrête devant, et
+   attend : c'est l'embouteillage. */
+const VISION_EVITE = 30, MARGE_EVITE = 0.35, RALENTI_EVITE = 0.6;
+const SUIVI_TRAFIC = 1.5;                     // de travers, ce qui est « dans ma file » pour un autre véhicule
 const FREIN_TRAFIC = 2.4, REPRISE_TRAFIC = 0.55;
 /* LE RESSORT DE RETOUR EST PRESQUE CRITIQUE, et c'est ce que « tout de suite » veut dire.
    Sa pulsation vaut racine de 24, soit 4,9 rad/s ; l'amortissement critique serait 9,8 et
    l'on prend 10 — juste au-dessus, donc aucun dépassement : la voiture rentre dans sa file
    sans osciller autour, et elle y est en six dixièmes de seconde. Un ressort mou l'aurait
    fait louvoyer sur trois secondes, ce qui se lit comme une voiture ivre. */
-const RESSORT_VOIE = 24.0, AMORTI_VOIE = 10.0;
+/* LE RESSORT EST DEVENU MOU, ET C'EST VOULU. Le joueur : « les véhicules doivent être moins
+   cloués au sol et moins résistants au choc ; ils peuvent sortir légèrement de leur ligne si
+   besoin. » À 24 et 10, une voiture poussée revenait dans sa file en six dixièmes de seconde,
+   contre l'engin qui la poussait : c'était un mur qui recule et revient. À 5 et 4,5 —
+   toujours à l'amortissement critique, elle ne louvoie pas — elle se laisse écarter, reste
+   écartée tant qu'on la tient, et revient en deux secondes quand on la lâche. Et l'écart est
+   BORNÉ : trois mètres et demi, une voie, jamais le fossé. */
+const RESSORT_VOIE = 5.0, AMORTI_VOIE = 4.5, ECART_VOIE_MAX = 3.5;
+/* ---------- LE FREIN, POUR TOUT CE QUI EST DEVANT ----------
+   Le joueur : « en cas d'embouteillage, les véhicules ne doivent pas pousser et forcer. »
+   Le frein ne regardait que l'ENGIN CONDUIT, et seulement son centre : un tracteur garé sur
+   la voie, une remorque en travers derrière le camion, une voiture arrêtée devant — rien de
+   tout cela ne faisait lever le pied, et la voiture poussait au travers, image après image,
+   les deux tiers de la pénétration pour l'autre. Elle regarde maintenant TROIS choses, avec
+   la même règle de distance : les engins du joueur, conduits ou garés, par toutes leurs
+   gélules — la caisse, la tête, l'outil attelé — ; un autre véhicule du trafic devant elle,
+   dans sa file et dans son sens, par sa queue (sa remorque, pour un attelage) ; et rien
+   d'autre. Un engin en automatique ne fait toujours freiner personne : il traverse. Elle
+   note POURQUOI elle freine (`freinPour`) — c'est ce que le banc vérifie : pas un coup de
+   frein sans quelqu'un devant. */
+/* LES POINTS DES ENGINS, RELEVÉS UNE FOIS PAR IMAGE pour tout le trafic — dix-huit voitures
+   qui recalculeraient chacune les gélules de quinze engins, c'est deux cent soixante-dix
+   relevés par image pour rien. `tempsTrafic` avance une fois par appel d'`updateTrafic`,
+   avant la boucle : c'est la clé du cache. */
+const _gabF = [], _pointsEngins = [];
+let _pointsEnginsT = -1, _pointsEnginsX = 0, _pointsEnginsZ = 0;
+function pointsEngins(){
+  /* La clé, c'est l'horloge — et la position de l'engin conduit : c'est lui qui bouge sous
+     le doigt entre deux lectures (et c'est lui que les bancs déplacent avant d'interroger le
+     frein sans passer par `updateTrafic`). */
+  const C = MACHINES[cur], cx = C ? C.v.pos.x : 0, cz = C ? C.v.pos.z : 0;
+  if(_pointsEnginsT === tempsTrafic && _pointsEnginsX === cx && _pointsEnginsZ === cz) return _pointsEngins;
+  _pointsEnginsT = tempsTrafic; _pointsEnginsX = cx; _pointsEnginsZ = cz; _pointsEngins.length = 0;
+  for(const M of MACHINES){
+    if(M.verrou || M.v.bateau || fantomeAuto(M.v) || M.v.auto) continue;
+    const quoi = M === MACHINES[cur] ? 'engin' : 'gare';   // celui qu'on conduit, ou un engin garé
+    for(const c of gabarits(M.v, _gabF)){
+      _pointsEngins.push({x:c.x1, z:c.z1, r:c.r, quoi}, {x:c.x2, z:c.z2, r:c.r, quoi},
+                         {x:(c.x1 + c.x2)/2, z:(c.z1 + c.z2)/2, r:c.r, quoi});
+    }
+  }
+  return _pointsEngins;
+}
 function freinTrafic(t){
   /* LES DEUX MINUTES DE CIRCULATION DÉROULÉES AVANT LA PREMIÈRE IMAGE PASSENT ICI, et
      `MACHINES` n'existe pas encore à ce moment-là — la table des engins est déclarée après
      le pool du trafic. Une lecture en zone morte ne se rattrape pas avec `typeof` : elle
      lève. `mondePret` dit que toutes les tables sont bâties, et il existait déjà pour
      exactement cette raison. */
+  t.freinPour = null; t.evite = 0;
   if(!mondePret || !COLLISIONS.on) return 1;
-  if(t.choc > 0) return 0.15;               // on vient de l'emboutir : elle repart au pas
-  const M = MACHINES[cur];
-  if(!M || M.verrou || fantomeAuto(M.v)) return 1;
-  const v = M.v;
-  const dx = v.pos.x - t.m.position.x, dz = v.pos.z - t.m.position.z;
-  const devant = dx*t.fx + dz*t.fz;
-  if(devant <= 0) return 1;
-  const cote = Math.abs(dx*t.fz - dz*t.fx);
-  if(cote > LARGE_TRAFIC + emprise(v).r*0.5) return 1;
-  const vue = VISION_TRAFIC + t.avant + emprise(v).r;
-  if(devant > vue) return 1;
-  const arret = ARRET_TRAFIC + t.avant + emprise(v).r;
-  if(devant <= arret) return 0;
-  return (devant - arret)/(vue - arret);
+  if(t.choc > 0){ t.freinPour = 'choc'; return 0.15; }   // on vient de l'emboutir : elle repart au pas
+  const tx = t.m.position.x, tz = t.m.position.z;
+  /* `bx, bz` POINTE VERS LE BORD DE LA CHAUSSÉE — c'est le côté de la file, celui où la voie
+     est décalée du milieu de la route (`VOIE_TRAFIC`). L'écart de voie qu'elle porte déjà
+     se compte sur cet axe. */
+  const bx = -t.fz, bz = t.fx;
+  const deja = t.ox*bx + t.oz*bz;
+  const demi = rayonTrafic(t.larg);            // sa gélule : c'est elle qui touche
+  /* « LÉGÈREMENT » : jusqu'au bord de la chaussée d'un côté, et de l'autre jusqu'à ce qui
+     laisse encore sa place au plus gros véhicule d'en face — un mètre, un mètre et demi.
+     Un engin garé EN PLEIN dans la voie ne se contourne donc pas : on s'arrête derrière. */
+  const maxBord = Math.max(0, ROAD_W/2 - VOIE_TRAFIC - demi - 0.2);
+  const maxMilieu = Math.max(0, 2*VOIE_TRAFIC - demi - RAYON_MAX_TRAFIC - 0.2);
+  let cible = 1;
+  const interdits = [];                       // les bandes d'écart de voie que les engins interdisent
+  const regarde = (px, pz, r, lat, quoi)=>{
+    const dx = px - tx, dz = pz - tz;
+    const devant = dx*t.fx + dz*t.fz;
+    if(devant <= -(t.arriere + r)) return;    // dépassé
+    const marge = demi + lat + MARGE_EVITE;
+    const cd = dx*bx + dz*bz;                 // > 0 : du côté du bord
+    if(quoi !== 'trafic' && devant <= VISION_EVITE + t.avant + r){
+      const cdVoie = cd + deja;               // depuis la ligne de voie, et non d'où elle est déjà
+      interdits.push(cdVoie - marge, cdVoie + marge);
+    }
+    /* Là où elle est, ça passe-t-il ? On compte ici SANS la marge : l'écart visé est au bord
+       de la bande interdite, marge comprise, et le ressort n'y arrive qu'asymptotiquement —
+       à la marge près, elle est dégagée, et elle repart. */
+    if(devant <= 0 || Math.abs(cd) >= marge - MARGE_EVITE) return;
+    const vue = VISION_TRAFIC + t.avant + r, arret = ARRET_TRAFIC + t.avant + r;
+    if(devant > vue) return;
+    const k = devant <= arret ? 0 : (devant - arret)/(vue - arret);
+    if(k < cible){ cible = k; t.freinPour = quoi; }
+  };
+  for(const p of pointsEngins()) regarde(p.x, p.z, p.r, p.r, p.quoi);
+  for(const u of TRAFIC){
+    if(u === t || !u.actif) continue;
+    if(u.fx*t.fx + u.fz*t.fz < 0.5) continue;                 // pas mon sens : un croisement, pas une file
+    const dx = u.m.position.x - tx, dz = u.m.position.z - tz;
+    if(dx*t.fx + dz*t.fz <= 0) continue;
+    const queue = u.lourd ? SELLETTE_TRAFIC + ARR_REM : u.arriere;
+    regarde(u.m.position.x - u.fx*queue, u.m.position.z - u.fz*queue, 0.5, SUIVI_TRAFIC, 'trafic');   // sa position porte déjà son écart de voie
+  }
+  if(interdits.length){
+    let meilleur = null;
+    const libre = (o)=>{
+      if(o < -maxMilieu - 1e-6 || o > maxBord + 1e-6) return false;
+      for(let i = 0; i < interdits.length; i += 2) if(o > interdits[i] && o < interdits[i + 1]) return false;
+      return true;
+    };
+    const essaie = (o)=>{ if(libre(o) && (meilleur === null || Math.abs(o) < Math.abs(meilleur))) meilleur = o; };
+    essaie(0); for(const o of interdits) essaie(o);
+    if(meilleur !== null && meilleur !== 0){
+      t.evite = meilleur;
+      if(cible > RALENTI_EVITE){ cible = RALENTI_EVITE; t.freinPour = 'evite'; }
+    }
+    // et si rien n'est libre, elle s'arrête devant : la règle de distance le fait déjà
+  }
+  return cible;
 }
 function conflitTrafic(R2, v, t0, avant, arriere, u){
   for(const a of R2.voies){
@@ -20624,6 +20724,9 @@ const CADENCE_MIN = 21, CADENCE_MAX = 48;       // secondes entre deux départs 
    route de nuit. Une nuance en deçà du jaune du guidage (0xFFD21E), pour qu'un phare
    qui passe ne se confonde pas une seconde avec un cercle d'objectif. */
 const JAUNE_PHARE = 0xFFD24A;
+/* LE RAYON DE LA GÉLULE D'UNE VOITURE DU TRAFIC, écrit une fois : `larg` est une DEMI-largeur
+   (voir `dimsTrafic`), d'où le 0,90 là où les engins prennent 0,45 d'une largeur entière. */
+const rayonTrafic = (larg)=> Math.max(1.0, Math.min(2.2, 0.90*(larg || 1.2) + 0.10));
 function dimsTrafic(geo, ech){
   if(!geo.boundingBox) geo.computeBoundingBox();
   const bb = geo.boundingBox;
@@ -20728,7 +20831,7 @@ function faireNaitre(t, modele, lourd, route, v, D){
   /* LE RETARD, L'ÉCART ET LE CHOC REPARTENT DE ZÉRO. Une place est réutilisée seize fois
      par minute : un retard oublié ferait naître la voiture suivante déjà en retard d'une
      seconde, c'est-à-dire dix mètres derrière le créneau qu'on vient de lui réserver. */
-  t.retard = 0; t.k = 1; t.vitPrec = v; t.choc = 0; t.klaxonT = 0;
+  t.retard = 0; t.k = 1; t.vitPrec = v; t.choc = 0; t.klaxonT = 0; t.freinPour = null; t.evite = 0;
   t.ox = t.oz = t.vox = t.voz = 0;
   t.avant = D.avant; t.arriere = D.arriere; t.larg = D.larg || 2.4;
   t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
@@ -20858,7 +20961,8 @@ const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
    s'arrête pas. `rebondMur` est le petit renvoi qui décolle de la paroi au lieu de s'y
    coller, et `glisse` le pas de côté qu'on donne à une voiture qu'on frotte. */
              frontal:2.2, frotMur:0.5, rebondMur:0.10, glisse:0.6, flanc:0.5, aligne:3.0,
-             bas:0.8};   // ce que coûte, par seconde, le passage sur un objet bas
+             bas:0.8,    // ce que coûte, par seconde, le passage sur un objet bas
+             cede:12};   // ce qu'un engin perd, par seconde, de sa vitesse contre une voiture qu'il pousse de face
 /* ---------- REPRENDRE LA VITESSE QUI RENTRE, MAIS PAR LE BON AXE ----------
    Le joueur, une fois le frottement en place : « fais aussi que ce frottement arrive dès
    le moment qu'on est en latéral contre un objet. Je ne veux pas qu'on soit stoppé par
@@ -21076,10 +21180,7 @@ function gabarits(v, out){
    construction du pool, on n'a rien à remesurer. Elle change à chaque naissance — une
    berline n'est pas un semi — donc elle se relit à chaque image plutôt que de se garder. */
 const empriseTrafic = (t)=>{
-  /* `larg` EST UNE DEMI-LARGEUR — c'est ainsi qu'elle est mesurée à la construction du
-     pool, `max(|min.x|, |max.x|)` — d'où le 0,90 ici là où les engins prennent 0,45 d'une
-     largeur entière. Les deux disent la même chose. */
-  const r = Math.max(1.0, Math.min(2.2, 0.90*(t.larg || 1.2) + 0.10));
+  const r = rayonTrafic(t.larg);
   return {r:r, h:Math.max(0, Math.min(6.5, (t.avant + t.arriere)*0.5 - r))};
 };
 /* LES GÉLULES D'UNE VOITURE DU TRAFIC, ET LES DEUX D'UN ATTELAGE. La gélule d'une voiture
@@ -21089,9 +21190,11 @@ const empriseTrafic = (t)=>{
    sellette à son bout, sur SON cap (`tcap`, celui de la corde) — c'est elle qu'on heurtait
    sans la toucher dans les virages, et qu'on traversait. */
 const ARR_REM = Math.max(1, DIM_LOURD.arriere - SELLETTE_TRAFIC);
+// le plus gros du trafic d'en face, à qui l'on laisse sa place quand on s'écarte vers le milieu
+const RAYON_MAX_TRAFIC = Math.max(rayonTrafic(DIM_LOURD.larg), ...DIM_LEGER.map((d)=> rayonTrafic(d.larg)));
 function gabaritsTrafic(t, out){
   out.length = 0;
-  const r = Math.max(1.0, Math.min(2.2, 0.90*(t.larg || 1.2) + 0.10));
+  const r = rayonTrafic(t.larg);
   const tx = t.m.position.x, tz = t.m.position.z;
   if(!t.lourd){
     const h = Math.max(0, Math.min(6.5, (t.avant + t.arriere)*0.5 - r)), o = (t.avant - t.arriere)*0.5;
@@ -21199,19 +21302,40 @@ function choquerTrafic(v, t){
       if(d2 < 1e-4){ const r0 = right(v.cap); dx = r0.x; dz = r0.z; d2 = 1; }
     }
     const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = R - Math.min(d, R);
-    // deux tiers pour l'engin, un tiers pour la voiture : c'est elle qui a une voie à tenir
-    v.pos.x -= nx*pen*0.66; v.pos.z -= nz*pen*0.66;
-    v.cap += pivotChoc(v, P.x1, P.z1, -nx, -nz, pen*0.66);
-    t.ox += nx*pen*0.34; t.oz += nz*pen*0.34;
+    /* ELLE CÈDE. Le joueur : « si on en pousse un, il doit être moins fort que nous. » La
+       séparation allait aux deux tiers à l'engin, la voiture ne prenait qu'un tiers et son
+       ressort la ramenait dans la seconde : pousser une voiture, c'était être repoussé par
+       elle. Trois quarts pour elle maintenant, un quart pour l'engin — c'est lui le plus
+       lourd, c'est elle qui s'écarte. */
+    /* MAIS ELLE NE CÈDE QUE TANT QU'ELLE A OÙ ALLER : son écart est borné à une voie
+       (`ECART_VOIE_MAX`). Au bout, c'est l'engin qui prend le reste — sinon il la traversait,
+       et l'on sortait par l'autre côté d'un embouteillage. */
+    const eo = Math.hypot(t.ox, t.oz);
+    const partT = Math.max(0, Math.min(0.75, (ECART_VOIE_MAX - eo)/Math.max(pen, 1e-6))), partV = 1 - partT;
+    v.pos.x -= nx*pen*partV; v.pos.z -= nz*pen*partV;
+    v.cap += pivotChoc(v, P.x1, P.z1, -nx, -nz, pen*partV);
+    t.ox += nx*pen*partT; t.oz += nz*pen*partT;
     /* `vn` EST LA VITESSE DE SÉPARATION : négative, on se rapproche. Elle n'a plus de
        plancher — c'était `Math.max(|vn|, 1)`, et ce plancher faisait sonner, secouer et
        repousser le plus léger frôlement comme un vrai choc. */
     const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
     const appro = Math.max(0, -vn), franc = appro > CHOC.frontal;
-    /* L'ENGIN : même règle que contre un mur, et `repousser` dit si le contact était sur
-       le flanc. `nx, nz` va de l'engin VERS la voiture : on le retourne pour le lui
-       présenter comme une normale d'obstacle. */
-    repousser(v, -nx, -nz);
+    /* L'ENGIN NE BUTE PLUS COMME SUR UN MUR — tant qu'elle cède. Sur le flanc, on la longe
+       (`repousser`, la même règle que le long d'une paroi) ; au bout de son écart, elle est
+       un mur, et c'est la même règle. De face et tant qu'elle s'écarte, on ne perd que
+       `cede` de sa vitesse de rapprochement par seconde — et ce qu'on perd, on le lui
+       donne : elle part devant. */
+    const rr = v.right();
+    if(Math.abs(nx*rr.x + nz*rr.z) > CHOC.flanc || partT < 0.3) repousser(v, -nx, -nz);
+    else {
+      const vN = v.vel.x*nx + v.vel.y*nz;
+      if(vN > 0){
+        const perte = 1 - Math.exp(-CHOC.cede*(v._dt || 1/60));
+        v.vel.x -= nx*vN*perte; v.vel.y -= nz*vN*perte;
+        v.speed = Math.hypot(v.vel.x, v.vel.y);
+        t.vox += nx*vN*perte*0.8; t.voz += nz*vN*perte*0.8;
+      }
+    }
     const k = (franc && v === MACHINES[cur].v) ? CHOC.jouer : 1;
     // et le supplément d'auto-tamponneuse, qui ne s'ajoute qu'à un VRAI choc de nez
     if(k > 1){
@@ -21306,6 +21430,7 @@ function updateTrafic(dt){
     const dK = cible - t.k;
     t.k += Math.max(-FREIN_TRAFIC*dt, Math.min(REPRISE_TRAFIC*dt, dK));
     t.k = Math.max(0, Math.min(1, t.k));
+    if(t.freinPour === null && t.k < 1) t.freinPour = 'reprise';   // plus rien devant : elle remet les gaz
     t.retard += (1 - t.k)*dt;
     if(t.choc > 0) t.choc = Math.max(0, t.choc - dt);
     t.vit = t.v*t.k;
@@ -21318,7 +21443,8 @@ function updateTrafic(dt){
        au tirage : 45 %, 35 %, 20 % — de la voix de sa carrosserie (`KLAXON_TRAFIC`), puis
        quatre secondes et demie de silence, quoi qu'il fasse ensuite devant elle. */
     if(t.klaxonT > 0) t.klaxonT -= dt;
-    if(aLon < -5 && t.k < 0.7 && t.klaxonT <= 0 && mondePret){
+    // (et elle ne klaxonne que le joueur : ni la voiture de devant, ni un engin garé, ni ce qu'elle contourne)
+    if(aLon < -5 && t.k < 0.7 && t.klaxonT <= 0 && mondePret && (t.freinPour === 'engin' || t.freinPour === 'choc')){
       const M = MACHINES[cur];
       if(M && !M.verrou){
         const d = Math.hypot(M.v.pos.x - t.m.position.x, M.v.pos.z - t.m.position.z);
@@ -21334,9 +21460,15 @@ function updateTrafic(dt){
        ressort amorti tiré vers l'origine ne fait rien d'autre. Deux dixièmes de seconde
        après le choc la voiture est déjà revenue de moitié, et une seconde après elle est
        dans sa file au centimètre. */
-    t.vox += (-t.ox*RESSORT_VOIE - t.vox*AMORTI_VOIE)*dt;
-    t.voz += (-t.oz*RESSORT_VOIE - t.voz*AMORTI_VOIE)*dt;
+    /* … OU VERS L'ÉCART QU'ELLE VISE pour contourner un engin (`evite`, compté vers le bord
+       de la chaussée) : le même ressort, tiré vers un autre point. */
+    const ex = -t.fz*t.evite, ez = t.fx*t.evite;
+    t.vox += (-(t.ox - ex)*RESSORT_VOIE - t.vox*AMORTI_VOIE)*dt;
+    t.voz += (-(t.oz - ez)*RESSORT_VOIE - t.voz*AMORTI_VOIE)*dt;
     t.ox += t.vox*dt; t.oz += t.voz*dt;
+    // Une voie au plus : poussée plus loin, elle bute — l'engin qui pousse sent le fossé.
+    const eo = Math.hypot(t.ox, t.oz);
+    if(eo > ECART_VOIE_MAX){ t.ox *= ECART_VOIE_MAX/eo; t.oz *= ECART_VOIE_MAX/eo; t.vox = t.voz = 0; }
     if(Math.abs(t.ox) < 0.004 && Math.abs(t.oz) < 0.004
        && Math.abs(t.vox) < 0.02 && Math.abs(t.voz) < 0.02){
       t.ox = t.oz = t.vox = t.voz = 0;

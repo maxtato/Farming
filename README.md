@@ -16852,3 +16852,76 @@ tracteur hors tout, à cinq pour cent, et exige qu'elles dépassent la cabine ; 
 d'avant il lit 3,91 (échec attendu). `export` 12 sur 12 : les trois remorques attendent
 toujours sur la dalle de l'entrepôt. `trafic` : huit échecs sur ses contrôles de cadence,
 aléatoires, dans le même lot que les neuf de la version d'avant.
+
+### Le trafic ne pousse plus, s'écarte un peu, et cède au choc
+
+Le joueur : « retravaille les collisions et les chocs, ainsi que le trafic : en cas
+d'embouteillage, les véhicules ne doivent pas pousser et forcer. Ils peuvent sortir légèrement
+de leur ligne si besoin, doivent être moins cloués au sol et moins résistants au choc. Si on en
+pousse un, il doit être moins fort que nous. »
+
+**Mesuré avant, trois scènes.** Un tracteur garé sur la voie, trente mètres devant une voiture :
+elle ne freine pas — le frein ne regardait que l'engin CONDUIT, et seulement son centre —, elle
+le pousse de **neuf mètres** et le traverse. Une voiture arrêtée, une seconde derrière : la
+seconde ne freine pas non plus, les voitures ne se voyaient pas entre elles. Le pick-up qui
+pousse une voiture arrêtée par le flanc : elle s'écarte de **quinze centimètres** et revient
+dans sa file en six dixièmes de seconde, contre lui ; par l'arrière, six centimètres.
+
+**Le frein regarde tout ce qui est devant.** Avec la même règle de distance qu'avant (dix-huit
+mètres de vision, arrêt trois mètres avant le contact) : les engins du joueur, conduits ou
+garés, par toutes leurs gélules — la caisse, l'outil attelé, la remorque en travers — ; et un
+autre véhicule du trafic dans sa file et dans son sens, par sa queue (sa remorque, pour un
+attelage). Un engin en automatique ne fait toujours freiner personne. De travers, la règle est
+devenue honnête : on freine si les gélules se toucheraient — le rayon de la voiture plus celui
+de l'engin —, et non plus à trois mètres quarante du centre de l'engin. Chaque véhicule note
+pourquoi il freine (`freinPour` : l'engin conduit, un engin garé, le trafic, un choc, un
+contournement), et le banc vérifie qu'il n'y a pas un coup de frein sans raison. Le klaxon,
+lui, ne vise plus que le joueur : on ne klaxonne ni la voiture de devant, ni un engin garé.
+Mesuré après : la voiture s'arrête à **3,0 m** du tracteur garé sans le déplacer d'un
+centimètre, la suivante à **3,5 m** derrière elle.
+
+**Elle sort légèrement de sa ligne, quand il y a la place.** Un engin garé à cheval sur la
+voie ne bloque plus la route pour de bon. La voiture regarde, pour chaque gélule d'engin
+devant elle, quelle bande d'écarts de voie lui est interdite — son rayon, plus celui de la
+gélule, plus trente-cinq centimètres, de part et d'autre —, et prend le plus petit écart qui
+reste libre : vers le bord de la chaussée tant qu'elle y tient, vers le milieu tant qu'elle
+laisse sa place au plus gros véhicule d'en face (un mètre, un mètre et demi selon la voiture).
+Elle le vise, ralentit à 60 %, passe, et revient. S'il n'en reste aucun — un engin EN PLEIN
+dans la voie, comme le pick-up de l'ouverture devant la maison —, elle s'arrête derrière, et
+attend : c'est l'embouteillage, et il se vide quand l'engin s'en va.
+
+**Elle cède.** La séparation d'un contact allait aux deux tiers à l'engin ; elle va aux trois
+quarts à la voiture — c'est l'engin le plus lourd. De face, l'engin ne bute plus comme sur un
+mur : il perd `cede` de sa vitesse de rapprochement par seconde et donne ce qu'il perd à la
+voiture, qui part devant ; sur le flanc, il la longe, comme une paroi. Et le ressort qui la
+ramène dans sa file passe de **24 et 10 à 5 et 4,5** — toujours à l'amortissement critique,
+elle ne louvoie pas : elle se laisse écarter, reste écartée tant qu'on la tient, revient en
+trois secondes. L'écart est borné à **une voie, 3,5 m** : au bout, elle redevient un mur, et
+l'engin prend tout le reste de la séparation — sinon on la traversait. Mesuré après : poussée
+par le flanc, **2,98 m** ; par l'arrière, jusqu'à la borne.
+
+**Au passage.** `larg`, dans le pool du trafic, est une DEMI-largeur (c'est ainsi que
+`dimsTrafic` la mesure) : le rayon de gélule qui s'en déduit est maintenant écrit une fois
+(`rayonTrafic`) au lieu de trois.
+
+**Bancs.** `chocs` : cinq contrôles de plus (section 13), naissances du trafic suspendues et
+engins rangés loin des routes le temps des scènes — la voiture s'arrête devant le tracteur
+garé (3,04 m de jeu) sans le pousser ; la suivante s'arrête derrière elle (3,5 m de queue à
+nez), et sur les 5 000 images-véhicule de frein des scènes, pas une sans raison notée ;
+poussée, elle s'écarte de 2,98 m par le flanc et jusqu'à la bride par l'arrière, jamais plus
+qu'une voie ; un pick-up garé à cheval sur la voie, elle sort de sa ligne de 0,8 m vers le
+milieu, le passe en 7 s sans le toucher et revient ; le ressort est mou et critique. Deux
+contrôles recalés, et c'est dit : « elle y revient sans osciller » lit une troisième seconde
+(l'écart ne fait que décroître, moins de 15 cm au bout de trois) ; « on la TAPE » demande une
+secousse de 2,5 au lieu de 3, puisque la voiture cède désormais et que la secousse plafonne à
+2,88. Sur la version d'avant : cinq échecs, les cinq nouveaux. `trafic` : les engins du
+joueur sont rangés loin des routes pendant les cinq minutes de circulation — le pick-up de
+l'ouverture est garé en plein dans la file ouest, et depuis que le trafic s'arrête derrière
+un engin, il ferait la file à lui seul. Ses deux contrôles de circulation libre, « PAS DE
+PELOTON » et « personne ne freine jamais », gardent leur sens et repassent : les naissances
+réservent le créneau sur toute la route, donc sans rien qui barre la voie personne ne
+rattrape personne ; les files et les arrêts se mesurent là où on les provoque, au banc des
+chocs. « Personne ne traverse personne », qui échouait à −4,19 m depuis que le trafic a des
+files, passe (0,63 m de dégagement au plus juste). Les échecs qui restent au banc `trafic`
+— quatre ou cinq selon le tirage : hors carte, jeu en roulant, cadence ou véhicules en vue,
+phares des engins — sont ceux d'avant.
