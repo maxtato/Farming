@@ -16679,3 +16679,35 @@ moissonneuse n'ait QUE son corps, et un contrôle de plus roule sur le poteau à
 version d'avant : deux échecs (« corps, tete » ; −4,15 m d'écart). `bois` 33, `export` 12,
 `village` 16, `ouverture` 9 : inchangés. `trafic` : ses échecs de cadence aléatoires, comme
 avant.
+
+### Le camion frigo reprend sa grande caisse
+
+Le joueur : « fais le camion frigo plus gros, comme il était avant au niveau de la caisse. »
+
+L'ancien frigo à capot avait une caisse de **3,84 m de large, 3,84 de haut et 6,40 de long**
+(2,40 × 2,40 × 4,00 sur la planche, à l'échelle 1,60). La version façon pick-up l'avait
+ramenée à 3,31 × 2,57 × 4,83 : une caisse de pick-up, pas de camion. On rend à la caisse ses
+trois cotes d'avant, **au mètre près**, sur l'avant du pick-up gardé tel quel, et l'engin
+entier prend cinq pour cent (1,45 au lieu de 1,38) : un peu plus gros que le pick-up, sans
+cesser de lui ressembler. Ce qu'une telle caisse demande suit : le châssis s'allonge jusque
+sous elle, l'essieu arrière devient un **tandem** (une caisse de six mètres quarante ne roule
+pas sur un essieu), les feux, les barres des portes et le pare-chocs reculent avec elle, et une
+cinquième nervure prend la place. La caisse reste blanche, la cabine verte.
+
+| | longueur | largeur | hauteur |
+|---|---|---|---|
+| pick-up | 9,31 m | 3,67 m | 3,80 m |
+| camion frigo (version pick-up) | 9,56 m | 3,56 m | 3,92 m |
+| **camion frigo maintenant** | **11,37 m** | **3,93 m** | **5,26 m** |
+| ancien frigo à capot | 11,41 m | 4,26 m | 5,80 m |
+
+Les caisses du port ne bougent pas (`ECH_CAISSES` 0,9) : leur règle est le tiers de la
+largeur du camion, et 3,84 sur trois fait 1,28 pour un casier de 1,25 — la différence est
+sous le centimètre à l'écran. Le volume de collision suit la carrosserie (`emprise`) : 1,87 m
+de rayon, 3,82 de demi-longueur.
+
+**Bancs.** `camion` 26 sur 26 — un contrôle de plus mesure les trois cotes de la caisse dans le
+monde (3,84 × 3,84 × 6,40 à cinq centimètres près), le tandem, et l'engin plus long et plus
+haut que le pick-up d'un mètre au moins ; sur la version d'avant il lit 3,31 × 2,57 × 4,83
+(échec attendu). `port` 43 et `ouverture` 9 : inchangés, le camion se gare toujours au port
+sans rien toucher.

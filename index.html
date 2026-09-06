@@ -14460,25 +14460,38 @@ function buildFrigo(){
   // liseré, l'inox du groupe froid.
   const C = {CAISSE:0x3E8A50, CAISSE2:0x2E6B3C, CREME:0xF2E7D2, SOMBRE:0x22303A,
              BLANC:0xF4F4F0, BLANC2:0xDDE0DC, INOX:0xC9CFD3};
-  const {F, wf} = avantPickup(g, C, 6.2, -0.6);          // le châssis va à −3,70, sous la caisse
-  const BW = 1.2, Y0 = 0.86, H = 1.86, Z0 = -0.2, Z1 = -3.7, zc = (Z0 + Z1)/2, L = Z0 - Z1;
+  /* LA CAISSE REDEVIENT CELLE D'AVANT, EN PLUS GROS QUE LE PICK-UP. Le joueur : « fais le
+     camion frigo plus gros, comme il était avant au niveau de la caisse. » L'ancien frigo à
+     capot avait une caisse de 3,84 m de large, 3,84 de haut et 6,40 de long (2,40 × 2,40 ×
+     4,00 sur la planche, à 1,60) ; la version façon pick-up l'avait ramenée à 3,31 × 2,57 ×
+     4,83. On rend à la caisse ses trois cotes d'avant, au mètre près, sur l'avant du
+     pick-up gardé tel quel — et l'engin entier prend cinq pour cent (1,45 au lieu de 1,38),
+     un peu plus gros que le pick-up sans cesser de lui ressembler. Ce qu'une telle caisse
+     demande suit : le châssis s'allonge jusque sous elle, l'essieu arrière devient un
+     tandem, les feux et le pare-chocs reculent avec elle. Mesuré : 11,1 m de long, 3,84 de
+     large, 5,3 de haut — l'ancien faisait 11,41 × 4,26 × 5,80, le pick-up 9,3 × 3,7 × 3,8. */
+  const ECH_FRIGO = 1.45, CW = 3.84/ECH_FRIGO, CH = 3.84/ECH_FRIGO, CL = 6.40/ECH_FRIGO;
+  const Z0 = -0.2, Z1 = Z0 - CL, zc = (Z0 + Z1)/2, L = CL;
+  const {F, wf} = avantPickup(g, C, 2.5 - (Z1 + 0.02), (2.5 + Z1 + 0.02)/2);   // le châssis va sous toute la caisse
+  const BW = CW/2, Y0 = 0.86, H = CH;
   g.add(box(BW*2, H, L, C.BLANC, 0, Y0 + H/2, zc));                         // la caisse, blanche
   g.add(box(BW*2 + 0.06, 0.12, L + 0.04, C.BLANC2, 0, Y0 + H + 0.06, zc));  // son toit
   g.add(box(BW*2 + 0.04, 0.16, L, C.BLANC2, 0, Y0 + 0.1, zc));             // le liseré bas
-  for(let k = 0; k < 4; k++)                                                // les nervures
+  for(let k = 0; k < 5; k++)                                                // les nervures
     g.add(box(BW*2 + 0.04, H - 0.4, 0.08, C.BLANC2, 0, Y0 + 0.2 + (H - 0.4)/2, Z0 - 0.5 - k*0.9));
   g.add(box(1.4, 0.7, 0.42, C.INOX, 0, Y0 + H - 0.2, Z0 + 0.25));           // le groupe froid, sur le front
   for(let k = 0; k < 4; k++) g.add(box(1.2, 0.05, 0.06, C.SOMBRE, 0, Y0 + H - 0.42 + k*0.14, Z0 + 0.47));
-  for(const sx of [-0.6, 0, 0.6]) g.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, Z1 - 0.03));   // les barres des portes
-  for(const sx of [-0.85,0.85]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
-  g.add(box(2.1, 0.16, 0.3, C.SOMBRE, 0, 0.66, Z1 - 0.05));                 // le pare-chocs arrière
+  for(const sx of [-0.7, 0, 0.7]) g.add(box(0.06, H - 0.5, 0.08, C.SOMBRE, sx, Y0 + H/2, Z1 - 0.03));   // les barres des portes
+  for(const sx of [-1.0,1.0]) optique(g, F, true, sx, 1.20, Z1 - 0.1, 0.30, 0.18);
+  g.add(box(2.4, 0.16, 0.3, C.SOMBRE, 0, 0.66, Z1 - 0.05));                 // le pare-chocs arrière
   const gyro = gyrophare(g, 0.72, 2.52, 1.0);           // sur le toit de la cabine, devant le groupe froid
+  // Un tandem à l'arrière : une caisse de six mètres quarante ne roule pas sur un essieu.
   const wr = [];
-  for(const sx of [-1.02,1.02]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,-2.4); g.add(b2); wr.push(b2); }
-  g.scale.setScalar(1.38);
+  for(const sx of [-1.02,1.02]) for(const sz of [-2.75, -3.75]){ const b2 = wheelMesh(0.62,0.38); b2.position.set(sx,0.62,sz); g.add(b2); wr.push(b2); }
+  g.scale.setScalar(ECH_FRIGO);
   g.userData = {wr, wf, gyro, feux:F,
     lampes:{avant:  {x:[-0.82,0.82], y:1.12, z: 2.92, w:0.34, h:0.22},
-            arriere:{x:[-0.85,0.85], y:1.20, z:Z1 - 0.1, w:0.30, h:0.18},
+            arriere:{x:[-1.0,1.0], y:1.20, z:Z1 - 0.1, w:0.30, h:0.18},
             nez:3.0}};
   return g;
 }
