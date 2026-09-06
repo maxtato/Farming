@@ -16815,3 +16815,40 @@ centimètres, sur l'ancien plateau comme sur celui-ci.
 **Bancs.** `bois` 37 sur 37 — un contrôle de plus : le plateau mesuré au moins aussi large que
 la cabine (3,46 contre 3,12), relevé au-dessus du sommet des pneus ; la version d'avant lit
 3,05 contre 3,12 (échec attendu).
+
+### Les remorques du semi à la largeur hors tout du tracteur
+
+Le joueur : « fais que mes remorques des semi soient plus larges, de la largeur du tracteur. »
+
+Elles avaient été mises à la largeur de la cabine (3,91 m pour une cabine de 3,77). Le tracteur
+hors tout, ce sont ses cheminées : **4,57 m**, 1,88 de demi-largeur sur la planche. Une remorque
+fait sa largeur `W_REM` plus le pavillon qui déborde de six centièmes de chaque côté : `W_REM`
+passe de 3,10 à **3,64**, ce qui la met exactement aux cheminées — pas un centième de plus,
+parce que `LARG_LOURD`, qui affine tout le trafic lourd sur la pièce la plus large de la
+famille, est déjà calé sur elles, et qu'un centième de plus l'aurait fait passer sous 1. Le
+châssis (2,60 → 3,00), les roues (1,30 → 1,50), les bavettes et les feux s'écartent avec elle.
+
+Deux remorques demandaient autre chose qu'une largeur. **La citerne** : un fût plus gros aurait
+été plus haut, et la pièce la plus haute de la famille fixe `ECH_LOURD`, donc la taille de tout
+attelage (on l'avait mesuré : deux pour cent perdus sur le camion entier). Son fût s'élargit
+donc en travers seulement — une ellipse, la matrice de la pièce prend une échelle en x
+(`elargir`) —, ses cerclages et son fond avec lui, sa hauteur ne bouge pas. **Le grumier** : avec
+3,26 de jour entre les ranchers, la pile prend une sixième grume de front — six, cinq, quatre,
+trois, dix-huit grumes au lieu de quatorze, aux mêmes quatre lits.
+
+| | avant | après |
+|---|---|---|
+| grumier | 3,91 m | 4,50 m |
+| frigorifique | 3,91 m | 4,60 m |
+| citerne | 3,91 m | 4,40 m |
+| tracteur hors tout | 4,57 m | 4,57 m |
+| cabine | 3,77 m | 3,77 m |
+
+C'est le même dessin pour la rocade : ses trois attelages mesurent 4,40 / 4,57 / 4,57, et
+`LARG_LOURD` reste à 1.
+
+**Bancs.** `camion` 26 sur 26 — le contrôle de largeur des remorques compare maintenant au
+tracteur hors tout, à cinq pour cent, et exige qu'elles dépassent la cabine ; sur la version
+d'avant il lit 3,91 (échec attendu). `export` 12 sur 12 : les trois remorques attendent
+toujours sur la dalle de l'entrepôt. `trafic` : huit échecs sur ses contrôles de cadence,
+aléatoires, dans le même lot que les neuf de la version d'avant.

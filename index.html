@@ -19913,9 +19913,20 @@ const CAMIONS_GEOS = (function(){
      écartées à 1,30 — sous la caisse, comme avant —, les feux et les bavettes qui suivent.
      Rien ne dépasse le tracteur (1,72 de demi-largeur aux cheminées) : `LARG_LOURD`, qui
      se calcule sur la pièce la plus large, ne bouge pas, et deux attelages se croisent
-     avec le même jeu. */
+     avec le même jeu.
+     PUIS À LA LARGEUR HORS TOUT DU TRACTEUR. Le joueur : « fais que mes remorques des semi
+     soient plus larges, de la largeur du tracteur. » Le tracteur hors tout, ce sont ses
+     cheminées : 1,88 de demi-largeur (3,76 sur la planche, 4,57 m). Une remorque fait
+     W_REM plus le pavillon qui déborde de 0,06 de chaque côté : W_REM = 3,64 la met
+     exactement aux cheminées — pas un centimètre de plus, sinon `LARG_LOURD` affinerait
+     tout le trafic. Le châssis, les roues, les bavettes et les feux s'écartent avec elle ;
+     le fût de la citerne s'élargit sans grandir (une ellipse, voir `elargir`), pour ne pas
+     toucher à `ECH_LOURD`, et le grumier prend une sixième grume de front. */
   const yS = Y_SELLETTE;
-  const W_REM = 3.1, W_CHASSIS = 2.6, X_ROUES = 1.3, X_BAVETTE = 1.3, W_FEUX = 1.15;
+  const W_REM = 3.64, W_CHASSIS = 3.0, X_ROUES = 1.5, X_BAVETTE = 1.5, W_FEUX = 1.4;
+  const K_LARGE = W_REM/3.1;                                // ce que la remorque a gagné en largeur (1,17)
+  // Une pièce ronde élargie en travers seulement : la matrice prend une échelle en x.
+  const elargir = (p)=>{ p.m = new THREE.Matrix4().makeScale(K_LARGE, 1, 1).multiply(p.m); return p; };
   function citerne(){
     /* LE FÛT FAIT 2,90 DE DIAMÈTRE, un peu moins que la caisse : c'est le rapport d'une
        vraie citerne. Et SES GARNITURES NE MONTENT PAS AVEC LUI : la pièce la plus haute de
@@ -19925,11 +19936,11 @@ const CAMIONS_GEOS = (function(){
        sommet du fût, à la même cote qu'avant — le garde-corps un peu plus bas. */
     const P = [], R = 1.45, L = 12.0, zc = Z_SELLETTE - 0.35 - L/2, yH = yS + 0.1 + 2*R;
     P.push(B(W_CHASSIS, 0.3, L, CHASSIS, 0, yS - 0.1, zc));
-    P.push(CY(R, L, 14, CITERNE, 0, yS + R + 0.1, zc, Math.PI/2));      // le fût, dans l'axe
+    P.push(elargir(CY(R, L, 14, CITERNE, 0, yS + R + 0.1, zc, Math.PI/2)));   // le fût, dans l'axe, élargi
     for(let k = 0; k < 5; k++)                                          // cerclages
-      P.push(VIR(R + 0.05, 0.16, 14, 0xA8B0B5, 0, yS + R + 0.1,
-                 zc - L/2 + 1.4 + k*(L - 2.8)/4, Math.PI/2));
-    P.push(CY(R*0.98, 0.2, 14, 0xB9C1C6, 0, yS + R + 0.1, zc + L/2 + 0.06, Math.PI/2));
+      P.push(elargir(VIR(R + 0.05, 0.16, 14, 0xA8B0B5, 0, yS + R + 0.1,
+                 zc - L/2 + 1.4 + k*(L - 2.8)/4, Math.PI/2)));
+    P.push(elargir(CY(R*0.98, 0.2, 14, 0xB9C1C6, 0, yS + R + 0.1, zc + L/2 + 0.06, Math.PI/2)));
     for(const dz of [-3.2, 0.4]){                                       // trous d'homme
       P.push(CY(0.42, 0.22, 8, GRIS, 0, yH - 0.03, zc + dz));
       P.push(CY(0.3, 0.1, 6, GRIS2, 0, yH + 0.09, zc + dz));
@@ -19966,7 +19977,7 @@ const CAMIONS_GEOS = (function(){
     beequille(P, zc + L/2 - 2.4);
     roues(P, X_ROUES, [zc - L/2 + 3.1, zc - L/2 + 1.7], 0.55, 0.34, true);
     feuxArriere(P, W_FEUX, 0.85, zc - L/2 - 0.14);
-    feuxGabarit(P, 2.5, yS + 0.05 + H + 0.2, zc - L/2 - 0.05, 5, ROUGE_FEU);
+    feuxGabarit(P, W - 0.6, yS + 0.05 + H + 0.2, zc - L/2 - 0.05, 5, ROUGE_FEU);
     for(const sx of [-1, 1]) bavette(P, sx*X_BAVETTE, zc - L/2 + 1.05);
     return {P:P, feux:{w:W_FEUX, y:0.85, zAr:zc - L/2 - 0.19},
             essieu:Z_SELLETTE - (zc - L/2 + 2.4)};
@@ -19981,7 +19992,7 @@ const CAMIONS_GEOS = (function(){
                zc - L/2 + 1.0 + k*(L - 2)/6));
     // Le groupe froid coiffe l'avant de la caisse : sur la planche il la dépasse de 23 cm,
     // ici il l'affleure — c'est ce que fait un vrai, et c'est 23 cm rendus à tout l'attelage.
-    P.push(B(2.4, 1.5, 0.6, INOX, 0, yS + H - 0.41, zc + L/2 + 0.3));
+    P.push(B(2.4*K_LARGE, 1.5, 0.6, INOX, 0, yS + H - 0.41, zc + L/2 + 0.3));
     P.push(B(2.0, 0.16, 0.1, GRIS2, 0, yS + H + 0.09, zc + L/2 + 0.62));
     for(let k = 0; k < 4; k++)
       P.push(B(1.8, 0.08, 0.12, GRIS, 0, yS + H - 0.81 + k*0.2, zc + L/2 + 0.62));
@@ -20016,9 +20027,9 @@ const CAMIONS_GEOS = (function(){
   const BOIS_G = 0x8A6A3A, BOIS_G2 = 0x6B4E24, ECORCE_G = 0x5A4632;
   /* LA PILE DE GRUMES EST À PART, ET LE GRUMIER DU JOUEUR PART VIDE. Le joueur : « une
      remorque vide pour transporter du bois, comme pour le camion porteur. » Quatre lits en
-     quinconce — cinq grumes, puis quatre, trois, deux —, chacun calé dans le creux du
-     précédent (√(4r² − p²/4) = 0,46), le lit du bas ENTRE les ranchers (2,78 de large pour
-     2,72 de jour : à la touche). Les grumes sont un peu plus courtes que le plateau, pour
+     quinconce — six grumes, puis cinq, quatre, trois, depuis que le plateau a la largeur
+     du tracteur —, chacun calé dans le creux du précédent (√(4r² − p²/4) = 0,46), le lit
+     du bas ENTRE les ranchers (3,29 de large pour 3,26 de jour : à la touche). Les grumes sont un peu plus courtes que le plateau, pour
      qu'on voie les têtes de coupe dépasser des ranchers plutôt que de toucher la traverse.
      Chaque lit est une liste de pièces à lui : `buildRemorqueSemi` en fait un maillage par
      lit, et la charge décide lesquels on voit (`etapeGrumier`). Le plateau seul se dessine
@@ -20026,9 +20037,9 @@ const CAMIONS_GEOS = (function(){
   const L_GRUMIER = 13.0, ZC_GRUMIER = Z_SELLETTE - 0.35 - L_GRUMIER/2;
   function pileGrumier(){
     const L = L_GRUMIER, zc = ZC_GRUMIER;
-    const RG = 0.27, PAS = RG*2 + 0.02, LG = L - 1.4;   // cinq grumes de front : 5·0,56 − 0,02 = 2,78 → bords à ±1,39
+    const RG = 0.27, PAS = RG*2 + 0.01, LG = L - 1.4;   // six grumes de front : 6·0,55 − 0,01 = 3,29 → bords à ±1,64, ranchers à 1,72
     const H_LIT = Math.sqrt(4*RG*RG - PAS*PAS/4);      // hauteur d'un lit en quinconce (0,46)
-    const lits = [[5, yS + 0.65], [4, yS + 0.65 + H_LIT], [3, yS + 0.65 + 2*H_LIT], [2, yS + 0.65 + 3*H_LIT]];
+    const lits = [[6, yS + 0.65], [5, yS + 0.65 + H_LIT], [4, yS + 0.65 + 2*H_LIT], [3, yS + 0.65 + 3*H_LIT]];
     return lits.map((lit, i)=>{
       const n = lit[0], y = lit[1], P = [];
       for(let k = 0; k < n; k++){
