@@ -16455,3 +16455,38 @@ loin, et plus personne sur celui qu'on coupe ; quarante secondes plus tard l'arb
 abattu, les oiseaux sont perchés à leur place exacte et aucun sur la souche. Les contrôles
 comptent les perchés ET ceux qui volent vers un arbre mûr : à tout instant, un ou deux
 changent d'arbre. Sur le commit précédent, le banc plante avant d'y arriver.
+
+### Les maisons du bord des routes, alignées et collées, et le hameau décalé après le garage
+
+Le joueur : « aligne les maisons sur le bord des routes, colle-les les unes aux autres. Décale
+la maison à côté du garage, elle empiète sur le garage. »
+
+**Ce qui empiétait, mesuré.** Le hameau de la route du bas (bande `RS`) partait à x = 127, huit
+mètres après le carrefour ; mais le garage, sur la bande est, tourne son volume vers l'est et
+sa dalle va jusqu'à x = 151,6 (de z = 27,9 à 61,5). Le premier lot du hameau allait de 145 à
+165 sur z = 46,7 à 66 : **sept mètres de lot sur la dalle du garage**, sa clôture dans le
+grillage. Cela datait du jour où le hameau a été créé, pas de la veille.
+
+**Après.** La bande part à **160** — huit mètres de verge après la dalle du garage — et va
+jusqu'à 290, quatre mètres avant la lisière de la forêt (dont les arbres sont au sud de
+z = 54, les lots au nord de 44). Son plan devient : **les trois maisons dans un seul paquet,
+jointives**, puis un bosquet, le menuisier, un bosquet. Le menuisier s'était glissé entre le
+couple et la troisième au chapitre précédent ; il est maintenant au bout du hameau. Sans
+creux devant le rang : c'est la verge du garage qui l'écarte, et le partage des deux bouts
+fait le reste. Mesuré : lots de 165,9 à 186, 186 à 208,6 et 208,6 à 232 — bord à bord —,
+le premier 14,3 m après la dalle du garage ; deux bosquets de douze mètres ; le menuisier de
+248 à 270. Sur le brin (bande `RO`), les deux maisons du bord ouest, qu'un bosquet de
+seize mètres séparait, sont **collées elles aussi** (lots de −23,2 à 0,6 et 0,6 à 23,2), au
+milieu de la bande en face de la scierie et du supermarché, un bosquet de chaque côté :
+« les maisons sur le bord des routes » vaut pour toutes. Les maisons du village (bandes
+nord, ouest, est) et le rang du bord sud étaient déjà jointifs ; rien n'y change. Tous ces
+lots ont le même recul du bitume que les commerces (`poserLotBande`, `RECUL_ROCADE`).
+
+**Bancs.** `bois` **33 sur 33** : le contrôle du hameau demande maintenant deux creux et le
+menuisier après les maisons, et un contrôle neuf mesure les lots des maisons de toutes les
+bandes en coordonnées du monde — sur la ligne des façades que `poserLotBande` calcule — :
+les trois du hameau se suivent bord à bord, le premier au moins huit mètres après la dalle du
+garage ; les deux du brin bord à bord ; et aucun lot de maison ne recouvre l'emprise d'un
+commerce. Sur le commit précédent, il échoue : premier lot à −6,7 m de la dalle du garage,
+un lot sur un commerce. `village` 16 sur 16 ; `rue` ses douze échecs d'avant, à l'identique ;
+`decor`, relancé après les oiseaux du chapitre précédent, ses sept d'avant.
