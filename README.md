@@ -16407,3 +16407,51 @@ la largeur du camion, à 4,26 m). `chocs` : un échec sur le test de l'attelage 
 passe, **31 sur 31** à la seconde — c'est le même test aléatoire qu'au chapitre des caisses,
 qui fait naître un attelage et le heurte : la mesure du recul de l'engin varie d'une
 naissance à l'autre (2,03 m puis 2,72), le camion frigo n'y est pour rien.
+
+### Des mouettes au port, et des oiseaux dans les arbres qui s'envolent quand on coupe
+
+Le joueur : « fais des mouettes vers le port qui squattent vers le dépôt, et qui tournent dans
+les airs ; fais des oiseaux dans les arbres qui s'envolent quand on coupe. »
+
+**Avant.** Le jeu n'avait que ses oiseaux des champs : cinq petits groupes posés sur les
+parcelles, qui picorent et fuient l'engin qui approche (`BIRDS`, `updateBirds`).
+
+**Trois genres, une seule liste.** Chaque oiseau porte maintenant un `genre` — `champ`,
+`mouette`, `foret` — et une hauteur de pose `yPose` (dix-huit centimètres au sol, sept mètres
+dans un conifère) ; le vol commun (montée, transit, descente) y ramène. La **mouette**
+(`GULL_GEO`) est une seconde silhouette, un peu plus grande : corps et tête blancs, ailes
+gris cendré au bout noir, bec jaune. Dix mouettes sont posées par `construirePort` **autour
+du quai de débarque**, sur la dalle — jamais dans le cercle des camions ni sous la grue —,
+trois d'entre elles déjà en l'air. Une mouette posée repart d'elle-même de temps en temps,
+ou dès que le camion frigo passe à moins de treize mètres ; elle monte une seconde, puis
+**tourne au-dessus du bassin** : ce n'est pas une trajectoire imposée mais un cap tenu — on
+vise la tangente d'un cercle de onze à vingt-quatre mètres autour du cercle des bateaux,
+corrigée de l'écart au rayon, entre sept et quatorze mètres d'altitude qui ondulent —, ce
+qui fait qu'elle entre dans son cercle en douceur d'où qu'elle décolle, s'incline dans le
+virage, plane et ne bat des ailes que par bouffées. Après quinze à quarante-cinq secondes
+elle revient se poser sur la dalle : la descente vise le but, sur une pente de un pour
+trois recalculée à chaque image, et l'oiseau se pose au centimètre. Douze **oiseaux de la
+forêt** (la silhouette des champs, plus petite) sont posés par `construireForet` dans les
+houppiers des arbres mûrs, aux trois quarts de leur hauteur, au bord du feuillage ; ils
+changent d'arbre d'eux-mêmes toutes les trente à quatre-vingt-dix secondes. **Au premier
+coup de scie** (`lancerCoupe`), tout ce qui perche à moins de quatorze mètres s'envole vers
+un arbre plus loin que ça (`effaroucherForet`, `RAYON_EFFAROUCHE`), et rien ne se repose
+sur celui qu'on coupe : un oiseau dont l'arbre tombe ou disparaît pendant son vol — ou
+qu'une sauvegarde relit en souche — en vise un autre.
+
+**Ce que ça coûte.** Vingt-deux maillages de plus, à six boîtes chacun, tous du même
+matériau que les oiseaux des champs (`MAT_FUSION`), et douze distances par image pour les
+mouettes posées ; rien n'est projeté au sol.
+
+**Bancs.** `port` **42 sur 42** : trois contrôles neufs — dix mouettes d'une autre
+silhouette, sept posées sur la dalle autour du quai et trois en l'air ; après deux minutes
+elles vivent, en cercle entre deux et seize mètres au-dessus du bassin et jamais à plus de
+quarante mètres du cercle des bateaux, ou posées sur la dalle et aucune dans l'eau ; une
+mouette posée décolle quand le camion passe à deux mètres et tourne six secondes plus tard.
+Sur le commit précédent, les trois échouent (pas une mouette). `bois` **32 sur 32** : trois
+contrôles neufs — douze oiseaux dans les houppiers entre cinq et onze mètres ; au premier
+coup de scie ceux qui perchaient à moins de quatorze mètres s'envolent vers des arbres plus
+loin, et plus personne sur celui qu'on coupe ; quarante secondes plus tard l'arbre est
+abattu, les oiseaux sont perchés à leur place exacte et aucun sur la souche. Les contrôles
+comptent les perchés ET ceux qui volent vers un arbre mûr : à tout instant, un ou deux
+changent d'arbre. Sur le commit précédent, le banc plante avant d'y arriver.

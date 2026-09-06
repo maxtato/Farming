@@ -8033,6 +8033,7 @@ function construireForet(){
   obstacles.push({x:D.x - 2.8*ECH_COMMERCE, z:D.z + 2.4*ECH_COMMERCE, r:2.2*ECH_COMMERCE/1.18});
   obstacles.push({x:D.x + 1.6*ECH_COMMERCE, z:D.z - 2.2*ECH_COMMERCE, r:2.0*ECH_COMMERCE/1.18});
   D.quai = {x:D.x + QUAI_DEPOT_DX, z:D.z - 1.0};   // dans l'axe de la piste : voir PISTE_BOIS
+  poserOiseauxForet();                              // douze oiseaux dans les houppiers
   const agirDepot = ()=> actionsDepotBois(MACHINES[cur]).length > 0;
   anneauAction(D.quai.x, D.quai.z, 1.7,
     ()=> couleurPoste('depotBois', agirDepot) !== GUIDE.GRIS,
@@ -8105,10 +8106,14 @@ function lancerCoupe(m){
   const v = m.v, a = arbreAPortee(v);
   if(!a || v.coupe || !depotPrend(a)) return false;
   v.coupe = {a, t:0};
+  // Le joueur : « des oiseaux dans les arbres qui s'envolent quand on coupe. » Dès le premier
+  // coup de scie, tout ce qui perche à moins de quatorze mètres part.
+  effaroucherForet(a.x, a.z, RAYON_EFFAROUCHE);
   return true;
 }
 function abattre(a, v){
   a.chute = {t:0, dir:Math.atan2(a.x - v.pos.x, a.z - v.pos.z)};
+  effaroucherForet(a.x, a.z, 4);                   // ce qui se serait reposé dessus entre-temps
   const i = obstacles.indexOf(a.ob); if(i >= 0) obstacles.splice(i, 1);
   // Le bois entre au dépôt à l'instant de la coupe, et le dépôt le montre.
   DEPOT_BOIS.stock = Math.min(DEPOT_BOIS.max, DEPOT_BOIS.stock + a.kg);
@@ -8716,6 +8721,7 @@ function construirePort(){
   semer(22, PORT.cote + 12, X0 - 14, MONDE.z0 + 8, ROAD_N - 24,
         (x, z)=> x < C_.x1 + 10 && z > C_.z0 - 10);
   QUAI_PECHE.pose = true;
+  poserMouettes();                                  // dix mouettes, autour du quai de débarque et au-dessus du bassin
 }
 function actionsQuaiPeche(m){
   const T = caisseDe(m), out = [];
@@ -15831,9 +15837,114 @@ const BIRD_GEO = (function(){
   B(0.16,0.05,0.24, 0,0.02,-0.36, 0x2C3238);   // queue
   return mergeParts(P);
 })();
+/* LA MOUETTE. Le joueur : « fais des mouettes vers le port qui squattent vers le dépôt,
+   et qui tournent dans les airs. » Même carrure que l'oiseau des champs, un peu plus
+   grande : corps et tête blancs, ailes gris cendré au bout noir, bec jaune. */
+const GULL_GEO = (function(){
+  const P = [], B = (w,h,d,x,y,z,c)=>P.push({g:new THREE.BoxGeometry(w,h,d),
+    m:new THREE.Matrix4().makeTranslation(x,y,z), c});
+  B(0.26,0.22,0.56, 0,0,0,        0xF2F4F6);   // corps
+  B(0.18,0.18,0.18, 0,0.11,0.32,  0xF2F4F6);   // tête
+  B(0.06,0.06,0.16, 0,0.09,0.46,  0xE8B43A);   // bec
+  B(0.62,0.05,0.28, -0.40,0.05,0, 0xB8C0C6);   // aile gauche
+  B(0.62,0.05,0.28,  0.40,0.05,0, 0xB8C0C6);   // aile droite
+  B(0.14,0.05,0.26, -0.70,0.05,0, 0x3A4046);   // le bout noir
+  B(0.14,0.05,0.26,  0.70,0.05,0, 0x3A4046);
+  B(0.16,0.05,0.22, 0,0.03,-0.38, 0xF2F4F6);   // queue
+  return mergeParts(P);
+})();
 const birdMat = MAT_FUSION;
 const BIRDS = [];
 const BIRD_FLEE = 13;        // distance d'envol
+/* TROIS GENRES D'OISEAUX, UNE SEULE LISTE. `genre` dit lequel : 'champ' (ceux des
+   parcelles, picorant et fuyant les engins), 'mouette' (celles du port : posées sur la dalle
+   autour du quai de débarque, ou en cercle au-dessus du bassin) et 'foret' (perchés dans
+   les houppiers, ils s'envolent quand on coupe). `yPose` est la hauteur où l'on se pose —
+   dix-huit centimètres au sol, sept mètres dans un conifère —, et le vol commun (`st` 1 :
+   montée, transit, descente) y ramène. Les mouettes ont un état de plus, `st` 2 : le
+   cercle, qui n'est pas une trajectoire forcée mais un cap tenu — on vise la tangente d'un
+   cercle autour du bassin, corrigée de l'écart au rayon —, ce qui fait qu'une mouette y
+   entre en douceur d'où qu'elle décolle. */
+const RAYON_EFFAROUCHE = 14;   // à la coupe, tout ce qui perche à moins de quatorze mètres s'envole
+function spotMouette(){
+  // sur la dalle, autour du quai de débarque, hors du cercle des camions et de la grue
+  for(let k = 0; k < 40; k++){
+    const x = PORT.quai.x + (Math.random() - 0.5)*28, z = PORT.quai.z + (Math.random() - 0.5)*14;
+    if(z > PORT.quaiZ - 1.4 || z < PORT.dalle.z0 + 4) continue;
+    if(Math.hypot(x - PORT.charge.x, z - PORT.charge.z) < 6) continue;
+    if(Math.hypot(x - PORT.grue.x, z - PORT.grue.z) < 5) continue;
+    return {x, z};
+  }
+  return {x:PORT.quai.x + 6, z:PORT.quai.z - 3};
+}
+const arbrePerchoir = (evite, px, pz)=>{
+  const A = FORET.arbres.filter((a)=> a.etat === 0 && !a.chute && a !== evite
+                                   && (px === undefined || Math.hypot(a.x - px, a.z - pz) > RAYON_EFFAROUCHE));
+  return A.length ? A[(Math.random()*A.length)|0] : null;
+};
+// Où l'on se perche dans un arbre : aux trois quarts de sa hauteur, au bord du houppier.
+const hauteurPerchoir = (a)=>{
+  const g = a.mesh.geometry;
+  if(!g.boundingBox) g.computeBoundingBox();
+  return g.boundingBox.max.y*a.s*0.72;
+};
+function percher(b, a){
+  const ang = Math.random()*6.28, r = 0.9*a.s;
+  b.arbre = a; b.tx = a.x + Math.sin(ang)*r; b.tz = a.z + Math.cos(ang)*r; b.yPose = hauteurPerchoir(a);
+}
+function nouvelOiseau(geo, genre, x, z, y, sc){
+  const m = new THREE.Mesh(geo, birdMat);
+  m.castShadow = true;
+  const b = {m, genre, x, z, y, yPose:y, st:0, cap:Math.random()*6, vy:0, ph:0, t:0.5 + Math.random()*2,
+             tx:x, tz:z, sc, arbre:null, cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:30 + Math.random()*60};
+  m.scale.setScalar(sc); m.position.set(x, y, z);
+  scene.add(m); BIRDS.push(b);
+  return b;
+}
+// La mouette décolle : une montée courte, puis le cercle (voir `updateBirds`).
+function envolMouette(b){
+  b.st = 1; b.ph = 0; b.vy = 3.6 + Math.random()*1.4; b.t = 0.9 + Math.random()*0.5;
+  b.cap = Math.atan2(PORT.debarque.x - b.x, PORT.debarque.z - b.z) + (Math.random() - 0.5)*1.4;
+}
+function entrerEnCercle(b){
+  b.st = 2; b.cx = PORT.debarque.x + (Math.random() - 0.5)*10; b.cz = PORT.debarque.z + (Math.random() - 0.5)*10;
+  b.ray = 11 + Math.random()*13; b.alt = 7 + Math.random()*7; b.sens = Math.random() < 0.5 ? 1 : -1;
+  b.tVol = 15 + Math.random()*30;
+}
+// L'oiseau de la forêt quitte son arbre pour un autre, loin de ce qui l'a effarouché.
+function envolForet(b, px, pz){
+  const a = arbrePerchoir(b.arbre, px, pz) || arbrePerchoir(b.arbre);
+  if(!a) return;
+  b.st = 1; b.ph = 0; b.vy = 3.2 + Math.random(); b.t = 0.5 + Math.random()*0.3;
+  b.cap = (px === undefined ? Math.random()*6.28 : Math.atan2(b.x - px, b.z - pz) + (Math.random() - 0.5)*0.8);
+  percher(b, a);
+}
+// À la coupe : tout ce qui perche autour s'envole, et ce qui perche SUR l'arbre d'abord.
+function effaroucherForet(x, z, r){
+  let n = 0;
+  for(const b of BIRDS){
+    if(b.genre !== 'foret' || b.st !== 0) continue;
+    if(Math.hypot(b.x - x, b.z - z) > r) continue;
+    envolForet(b, x, z); n++;
+  }
+  return n;
+}
+function poserMouettes(){
+  for(let k = 0; k < 10; k++){
+    const c = spotMouette();
+    const b = nouvelOiseau(GULL_GEO, 'mouette', c.x, c.z, 0.18, 1.0 + Math.random()*0.2);
+    if(k < 3){ b.y = 8 + k*2; entrerEnCercle(b); }     // trois déjà en l'air
+  }
+}
+function poserOiseauxForet(){
+  for(let k = 0; k < 12; k++){
+    const a = arbrePerchoir(null);
+    if(!a) break;
+    const b = nouvelOiseau(BIRD_GEO, 'foret', a.x, a.z, 0, 0.5 + Math.random()*0.15);
+    percher(b, a); b.x = b.tx; b.z = b.tz; b.y = b.yPose;
+    b.m.position.set(b.x, b.y, b.z);
+  }
+}
 function birdSpot(){
   for(let k=0;k<40;k++){
     const p = PARCELS[(Math.random()*PARCELS.length)|0];
@@ -15848,54 +15959,115 @@ function birdSpot(){
     for(let k=0; k<3 + ((Math.random()*3)|0); k++){
       const m = new THREE.Mesh(BIRD_GEO, birdMat);
       m.castShadow = true;
-      const b = {m, x:c.x + (Math.random()-0.5)*5, z:c.z + (Math.random()-0.5)*5,
-                 y:0.18, st:0, cap:Math.random()*6, vy:0, ph:0, t:0,
-                 tx:0, tz:0, sc:0.62 + Math.random()*0.18};
+      const b = {m, genre:'champ', x:c.x + (Math.random()-0.5)*5, z:c.z + (Math.random()-0.5)*5,
+                 y:0.18, yPose:0.18, st:0, cap:Math.random()*6, vy:0, ph:0, t:0,
+                 tx:0, tz:0, sc:0.62 + Math.random()*0.18, arbre:null,
+                 cx:0, cz:0, ray:0, alt:0, sens:1, tVol:0, tSaut:0};
       m.scale.setScalar(b.sc);
       m.position.set(b.x, b.y, b.z);
       scene.add(m); BIRDS.push(b);
     }
   }
 })();
+// Tourner le cap vers `want`, sans dépasser `vmax` radians par seconde.
+function viserCap(b, want, vmax, dt){
+  let dd = want - b.cap;
+  while(dd > Math.PI) dd -= Math.PI*2;
+  while(dd < -Math.PI) dd += Math.PI*2;
+  b.cap += Math.max(-vmax*dt, Math.min(vmax*dt, dd));
+}
 function updateBirds(dt, vx, vz){
+  const now = performance.now();
   for(const b of BIRDS){
     if(b.st === 0){
       // posé : il picore, et décolle si un engin approche
       b.t -= dt;
-      if(b.t <= 0){ b.cap += (Math.random()-0.5)*1.2; b.t = 0.6 + Math.random()*1.4; }
-      b.y = 0.18 + Math.sin(performance.now()/300 + b.sc*9)*0.02;
-      if(Math.hypot(b.x-vx, b.z-vz) < BIRD_FLEE){
+      if(b.t <= 0){
+        b.cap += (Math.random()-0.5)*1.2; b.t = 0.6 + Math.random()*1.4;
+        // une mouette posée repart d'elle-même de temps en temps ; un oiseau de la forêt change d'arbre
+        if(b.genre === 'mouette' && Math.random() < 0.035){ envolMouette(b); continue; }
+      }
+      if(b.genre === 'foret'){
+        b.tSaut -= dt;
+        // l'arbre n'est plus là — abattu sans coup de scie, ou relu d'une sauvegarde en souche — : on part
+        if(b.tSaut <= 0 || b.arbre.etat !== 0 || b.arbre.chute){ b.tSaut = 30 + Math.random()*60; envolForet(b); continue; }
+      }
+      b.y = b.yPose + Math.sin(now/300 + b.sc*9)*0.02;
+      if(b.genre !== 'foret' && Math.hypot(b.x-vx, b.z-vz) < BIRD_FLEE){
+        if(b.genre === 'mouette'){ envolMouette(b); continue; }
         b.st = 1; b.ph = 0; b.vy = 4.2 + Math.random()*1.6; b.t = 1.1 + Math.random()*0.5;
         b.cap = Math.atan2(b.x-vx, b.z-vz) + (Math.random()-0.5)*0.9;
         const d = birdSpot(); b.tx = d.x; b.tz = d.z;
       }
+    } else if(b.st === 2){
+      /* LE CERCLE DE LA MOUETTE : un cap tenu, pas une position imposée. On vise la
+         tangente du cercle, corrigée de l'écart au rayon — trop loin, on rentre ; trop près,
+         on ouvre —, et l'altitude ondule doucement autour de la sienne. Les ailes battent par
+         bouffées : le reste du temps, elle plane. */
+      const dx = b.cx - b.x, dz = b.cz - b.z, dist = Math.hypot(dx, dz);
+      const corr = Math.max(-0.7, Math.min(0.7, (dist - b.ray)*0.09));
+      viserCap(b, Math.atan2(dx, dz) + b.sens*(Math.PI/2 - corr), 1.2, dt);
+      const sp = 6.5;
+      b.x += Math.sin(b.cap)*sp*dt; b.z += Math.cos(b.cap)*sp*dt;
+      const yVise = b.alt + Math.sin(now/1000*0.35 + b.sc*11)*1.4;
+      b.y += (yVise - b.y)*Math.min(1, dt*0.7);
+      b.tVol -= dt;
+      if(b.tVol <= 0){ const d = spotMouette(); b.tx = d.x; b.tz = d.z; b.st = 1; b.ph = 1; b.t = 12; b.vy = 0; }
+      const bouffee = Math.sin(now/1000*0.8 + b.sc*5) > 0.35;
+      b.m.scale.x = b.sc*(1 - (bouffee ? 0.45*Math.abs(Math.sin(now/1000*9 + b.sc*7)) : 0));
     } else {
-      const sp = b.ph === 0 ? 7 : (b.ph === 1 ? 9 : 6);
+      const sp = b.ph === 0 ? 7 : (b.ph === 1 ? 9 : (b.genre === 'champ' ? 6 : 4.5));
       b.x += Math.sin(b.cap)*sp*dt;
       b.z += Math.cos(b.cap)*sp*dt;
       b.y += b.vy*dt;
       b.t -= dt;
       if(b.ph === 0){                                   // montée
         b.vy -= 2.4*dt;
-        if(b.t <= 0){ b.ph = 1; b.t = 2.0 + Math.random()*2.0; b.vy = 0; }
+        if(b.t <= 0){
+          if(b.genre === 'mouette'){ entrerEnCercle(b); }
+          else { b.ph = 1; b.t = 2.0 + Math.random()*2.0; b.vy = 0; }
+        }
       } else if(b.ph === 1){                            // vol de transit vers le nouveau site
-        const dx = b.tx-b.x, dz = b.tz-b.z;
-        const want = Math.atan2(dx, dz);
-        let dd = want - b.cap;
-        while(dd > Math.PI) dd -= Math.PI*2;
-        while(dd < -Math.PI) dd += Math.PI*2;
-        b.cap += Math.max(-1.6*dt, Math.min(1.6*dt, dd));
-        if(b.t <= 0 || Math.hypot(dx,dz) < 4){ b.ph = 2; b.vy = -3.0; }
+        const dx = b.tx-b.x, dz = b.tz-b.z, dist = Math.hypot(dx, dz);
+        viserCap(b, Math.atan2(dx, dz), 1.6, dt);
+        if(b.genre === 'champ'){
+          if(b.t <= 0 || dist < 4){ b.ph = 2; b.vy = -3.0; }
+        } else {
+          /* Une mouette descend de dix mètres, un oiseau de la forêt vise une branche : la
+             descente commence sur une pente de un pour trois, et la vitesse verticale est
+             celle qui pose l'oiseau juste au but. */
+          const haut = Math.max(0, b.y - b.yPose);
+          if(b.t <= 0 || dist < Math.max(3, haut*3)){ b.ph = 2; b.vy = -Math.max(1.5, haut*sp/Math.max(1, dist)); }
+        }
       } else {                                          // descente
-        if(b.y <= 0.18){ b.y = 0.18; b.st = 0; b.vy = 0; b.t = 0.5; }
+        let dist = 0;
+        if(b.genre !== 'champ'){
+          /* La pente se recalcule à chaque image, pour que l'oiseau arrive au but en même
+             temps qu'à sa hauteur : une branche se vise, un pré se survole. */
+          dist = Math.hypot(b.tx-b.x, b.tz-b.z);
+          viserCap(b, Math.atan2(b.tx-b.x, b.tz-b.z), 2.6, dt);
+          b.vy = -Math.max(0.9, Math.max(0, b.y - b.yPose)*sp/Math.max(0.6, dist));
+        }
+        if(b.y <= b.yPose || (b.genre !== 'champ' && dist < 0.7)){
+          if(b.genre === 'foret' && (b.arbre.etat !== 0 || b.arbre.chute)){
+            // l'arbre est tombé pendant le vol : on en vise un autre
+            envolForet(b); b.ph = 1; b.t = 6; b.vy = 0;
+          } else if(b.genre !== 'champ' && dist > 3.5){
+            b.ph = 1; b.t = 4; b.vy = 0;                // manqué de loin : on refait un tour
+          } else {
+            if(b.genre !== 'champ'){ b.x = b.tx; b.z = b.tz; }   // au but, à moins de trois mètres cinquante
+            b.y = b.yPose; b.st = 0; b.vy = 0; b.t = 0.5;
+          }
+        }
       }
       // battement d'ailes : on écrase l'envergure, ce qui se lit comme un coup d'aile
-      b.m.scale.x = b.sc * (1 - 0.55*Math.abs(Math.sin(performance.now()/1000*16 + b.sc*7)));
+      b.m.scale.x = b.sc * (1 - 0.55*Math.abs(Math.sin(now/1000*16 + b.sc*7)));
     }
     if(b.st === 0) b.m.scale.x = b.sc;
     b.m.position.set(b.x, b.y, b.z);
     b.m.rotation.y = b.cap;
     b.m.rotation.x = b.st ? -0.12 : 0;
+    b.m.rotation.z = b.st === 2 ? -b.sens*0.26 : 0;    // la mouette s'incline dans son virage
   }
 }
 
