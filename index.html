@@ -14374,11 +14374,19 @@ function buildPorteur(){
   const A1 = 1.05, A2 = 2.75;
   const grappin = grappinBois(); grappin.rotation.x = -(A1 + A2);
   brasBois(g, [0, 2.4, 1.1], [A1, A2], [2.8, 2.3], grappin, Math.PI);
-  const Z_PLATEAU = -2.8, L_PLATEAU = 5.0;                                // −5,30 → −0,30
-  for(const sx of [-1.08, 1.08]) for(const sz of [-5.05, -3.6, -2.15, -0.7])
-    g.add(box(0.12, 1.5, 0.12, BO.GRIS2, sx, 1.95, sz));              // ranchers, quatre paires
-  const plateau = box(2.2, 0.14, L_PLATEAU, BO.GRIS2, 0, 1.25, Z_PLATEAU); plateau.name = 'plateau'; g.add(plateau);
-  const pile = pileGrumesBois(g, 0, Z_PLATEAU, 6, 4.4, 0.3, Math.PI/2, 1.34);
+  /* LE PLATEAU A LA LARGEUR DE LA CABINE. Le joueur : « pour le porteur, il faut le plateau
+     arrière plus large, de la largeur de la cabine. » Il faisait 2,20 sur la planche (3,05 m)
+     pour une cabine de 2,25 qui, avec ses rétroviseurs, en lit 2,80 : vu de derrière, un
+     plateau étroit entre deux ailes. Il passe à 2,50 (3,46 m) — la cabine et un peu plus,
+     par-dessus les roues, comme la caisse du fourgon (2,62) —, et ce qui va avec suit : il se
+     relève au-dessus des roues (le dessous à 1,41, le sommet des pneus à 1,40), les ranchers
+     s'écartent à son bord, la pile monte avec lui et prend des grumes de 0,28 pour tenir
+     entre les ranchers — celles de 0,30 les traversaient déjà. */
+  const Z_PLATEAU = -2.8, L_PLATEAU = 5.0, W_PLATEAU = 2.5, Y_PLATEAU = 1.48;   // −5,30 → −0,30
+  for(const sx of [-(W_PLATEAU/2 - 0.06), W_PLATEAU/2 - 0.06]) for(const sz of [-5.05, -3.6, -2.15, -0.7])
+    g.add(box(0.12, 1.5, 0.12, BO.GRIS2, sx, Y_PLATEAU + 0.72, sz));   // ranchers, quatre paires, au bord
+  const plateau = box(W_PLATEAU, 0.14, L_PLATEAU, BO.GRIS2, 0, Y_PLATEAU, Z_PLATEAU); plateau.name = 'plateau'; g.add(plateau);
+  const pile = pileGrumesBois(g, 0, Z_PLATEAU, 6, 4.4, 0.28, Math.PI/2, Y_PLATEAU + 0.07);
   pile.visible = false;
   const gyro = gyrophare(g, 0.72, 3.38, 2.5);                            // sur le pavillon
   for(const sx of [-0.8, 0.8]) optique(g, F, true,  sx, 1.5, -5.35, 0.30, 0.20);

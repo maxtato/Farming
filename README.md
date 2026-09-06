@@ -16797,3 +16797,21 @@ L'avant façon pick-up, la cabine verte et la caisse blanche ne changent pas.
 **Bancs.** `camion` 26 sur 26 — le contrôle des cotes de la caisse lit 3,84 × 3,84 × 7,80 (il
 lisait 6,40 sur la version d'avant : échec attendu). `port` 43 et `ouverture` 9 : le camion se
 gare toujours au port sans rien toucher.
+
+### Le plateau du porteur à la largeur de la cabine
+
+Le joueur : « pour le porteur, il faut le plateau arrière plus large, de la largeur de la
+cabine. »
+
+Le plateau faisait 2,20 sur la planche — **3,05 m** — pour une cabine de 2,25 (3,12) qui, avec
+ses rétroviseurs, en lit 2,80 : vu de derrière, un plateau étroit entre deux ailes. Il passe à
+2,50, **3,46 m**, la cabine et un peu plus, par-dessus les roues, comme la caisse du fourgon
+(2,62). Ce qui va avec suit : il **se relève au-dessus des roues** (le dessous à 1,41 sur la
+planche, le sommet des pneus à 1,40 — sans quoi les pneus lui passaient au travers), les
+ranchers s'écartent à son bord, et la pile monte avec lui. Les grumes passent de 0,30 à 0,28 de
+rayon pour tenir entre les ranchers : à 0,30, la rangée du bas les traversait déjà de sept
+centimètres, sur l'ancien plateau comme sur celui-ci.
+
+**Bancs.** `bois` 37 sur 37 — un contrôle de plus : le plateau mesuré au moins aussi large que
+la cabine (3,46 contre 3,12), relevé au-dessus du sommet des pneus ; la version d'avant lit
+3,05 contre 3,12 (échec attendu).
