@@ -7830,7 +7830,57 @@ let chimney = null;     // sortie de cheminée, source de la fumée
    parcelle, qui était à 2,3 m de ce point, recule vers l'angle de la façade (voir
    `putBush` dans buildFarm) pour laisser les 3,2 m de dégagement que tout cercle exige. */
 const MAISON = {hx:-58, hz:57, x:-47.5, z:52.5, r:4.2, nom:'Ferme'};
-const obstacles = [];   // cercles {x,z,r} ; ceux marqués `soft` sont renversables
+// Index des volumes du décor. Les candidats gardent l'ordre de la liste originale.
+const INDEX_DECOR = new Map();
+let revisionDecor = 0;
+function listeDecor(){
+  const liste=[];
+  // Les autres lectures du décor gardent le coût d'un tableau ordinaire.
+  Object.defineProperty(liste,Symbol.iterator,{value:Array.prototype[Symbol.iterator].bind(liste)});
+  return new Proxy(liste, {set(a,k,v){revisionDecor++;return Reflect.set(a,k,v);},deleteProperty(a,k){revisionDecor++;return Reflect.deleteProperty(a,k);}});
+}
+function invaliderDecor(){ revisionDecor++; }
+function candidatsDecor(liste,cap){
+  let grille=INDEX_DECOR.get(liste);
+  const pas=20;
+  if(!grille||grille.revision!==revisionDecor){
+    grille={revision:revisionDecor,cases:new Map()};
+    for(let i=0;i<liste.length;i++){
+      const o=liste[i],rayon=o.rIndex===undefined?o.r:o.rIndex,rx=o.hw===undefined?rayon:o.hw,rz=o.hd===undefined?rayon:o.hd;
+      for(let x=Math.floor((o.x-rx)/pas);x<=Math.floor((o.x+rx)/pas);x++)
+        for(let z=Math.floor((o.z-rz)/pas);z<=Math.floor((o.z+rz)/pas);z++){
+          const cle=x+','+z;let c=grille.cases.get(cle);if(!c)grille.cases.set(cle,c=[]);c.push(i);
+        }
+    }
+    INDEX_DECOR.set(liste,grille);
+  }
+  const vus=new Set(),indices=[];
+  const r=cap.r+.2;
+  for(let x=Math.floor((Math.min(cap.x1,cap.x2)-r)/pas);x<=Math.floor((Math.max(cap.x1,cap.x2)+r)/pas);x++)
+    for(let z=Math.floor((Math.min(cap.z1,cap.z2)-r)/pas);z<=Math.floor((Math.max(cap.z1,cap.z2)+r)/pas);z++){
+      const c=grille.cases.get(x+','+z);if(c)for(const i of c)if(!vus.has(i)){vus.add(i);indices.push(i);}
+    }
+  return indices.sort((a,b)=>a-b);
+}
+function* decorProche(liste,lireCap){
+  let cap=lireCap(),indices=candidatsDecor(liste,cap),i=0,dernier=-1,revision=revisionDecor;
+  while(true){
+    // Une résolution de contact peut déplacer la machine : relire son volume avant la suite.
+    if(cap!==lireCap()||revision!==revisionDecor){cap=lireCap();revision=revisionDecor;indices=candidatsDecor(liste,cap);i=0;}
+    while(i<indices.length&&indices[i]<=dernier)i++;
+    if(i>=indices.length)return;
+    dernier=indices[i++];yield liste[dernier];
+  }
+}
+function* decorAuPoint(liste,pos,r){
+  let cap={x1:pos.x,z1:pos.z,x2:pos.x,z2:pos.z,r};
+  yield* decorProche(liste,()=>{
+    if(cap.x1!==pos.x||cap.z1!==pos.z)cap={x1:pos.x,z1:pos.z,x2:pos.x,z2:pos.z,r};
+    return cap;
+  });
+}
+
+const obstacles = listeDecor();   // cercles {x,z,r} ; ceux marqués `soft` sont renversables
 /* ---------- CE QU'ON FRANCHIT, ET CE QUI ARRÊTE ----------
    Le joueur : « au sol, les petits rochers et les petits buissons ne sont pas des
    obstacles, qu'on puisse passer à travers ; pareil pour les petites caisses, etc. »
@@ -7928,7 +7978,7 @@ function updateRenv(dt){
     }
   }
 }
-const boxObs = [];      // rectangles alignés {x,z,hw,hd}
+const boxObs = listeDecor();      // rectangles alignés {x,z,hw,hd}
 // Trois essences, chacune fusionnée en une géométrie unique : un feuillu étalé,
 // un conifère élancé et un feuillu rond plus rouge.
 /* UN SEUL MATÉRIAU POUR TOUT CE QUI PORTE SA COULEUR AUX SOMMETS.
@@ -8070,7 +8120,7 @@ function construireForet(){
     const ob = obstacles[obstacles.length - 1];
     // L'obstacle dit qu'il est un arbre, et le rayon de son TRONC : c'est à lui que
     // l'abatteuse vient buter, pas au houppier (voir `decorGabarits`).
-    ob.arbre = true; ob.tronc = 0.36*s;
+    ob.arbre = true; ob.tronc = 0.36*s; ob.rIndex = 0.9*s;
     F.arbres.push({x, z, s, ry:m.rotation.y, mesh:m, ob, k, etat:0, t:0, chute:null, souche:null,
                    kg:Math.round(34 + 14*s)});
   }
@@ -15267,7 +15317,7 @@ class Vehicle {
     const G = gabarits(this, _gabA);
     for(let ci = 0; ci < G.length; ci++){
       let cap = G[ci];
-      for(const o of obstacles){
+      for(const o of decorProche(obstacles,()=>cap)){
         const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, l2 = lx*lx + lz*lz;
         let u = 0; if(l2 > 1e-6){ u = ((o.x - cap.x1)*lx + (o.z - cap.z1)*lz)/l2; u = Math.max(0, Math.min(1, u)); }
         const px = cap.x1 + lx*u, pz = cap.z1 + lz*u;
@@ -15289,7 +15339,7 @@ class Vehicle {
         this.contact(px, pz, dx/d, dz/d, R - d, o.soft ? o : null, (o.k && o.k.lampe) ? 'lampadaire' : 'autre', cap.part);
         gabarits(this, G); cap = G[ci];
       }
-      for(const o of boxObs){
+      for(const o of decorProche(boxObs,()=>cap)){
         if(o.eau && this.bateau) continue;     // l'eau n'arrête pas un bateau
         const lx = cap.x2 - cap.x1, lz = cap.z2 - cap.z1, n = Math.max(2, Math.ceil(Math.hypot(lx, lz)) + 1);
         let best = null;
@@ -15479,7 +15529,7 @@ class Vehicle {
     const moi = (typeof MACHINES !== 'undefined' && MACHINES[cur] && MACHINES[cur].v === this);
     if(moi && !fantomeAuto(this)) this.decorGabarits();
     else {
-    for(const o of obstacles){
+    for(const o of decorAuPoint(obstacles,this.pos,1.5)){
       if(o.bas) continue;                 // on passe dessus : voir `BAS_HAUT`
       const dx = this.pos.x-o.x, dz = this.pos.z-o.z;
       const R = o.r + (o.soft ? 1.5 : 1.35);
@@ -15500,7 +15550,7 @@ class Vehicle {
         }
       }
     }
-    for(const o of boxObs){
+    for(const o of decorAuPoint(boxObs,this.pos,1.35)){
       if(o.eau && this.bateau) continue;       // l'eau n'arrête pas un bateau
       const R = 1.35;      // demi-largeur réelle de la machine
       const cx = Math.max(o.x-o.hw, Math.min(o.x+o.hw, this.pos.x));
@@ -30706,7 +30756,7 @@ function refreshService(){
   teindre(servEl, clSrv);
   servEl.classList.toggle('appel', clSrv === 'jaune' && !!a.ok);
   servEl.classList.toggle('no', !a.ok);
-  servEl.textContent = a.txt;
+  texteSiChange(servEl,a.txt);
   servEl._f = a.ok ? a.f : null;
   return true;
 }
@@ -31548,7 +31598,7 @@ function refreshViseurs(){
     if(e.style.color !== S.coul) e.style.color = S.coul;
     const ang = Math.atan2(dy, dx)*180/Math.PI + 90;
     // Le SVG tourne, la vignette non : le nom doit rester lisible à l'endroit.
-    e.firstChild.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
+    styleSiChange(e.firstChild,'transform','rotate('+ang.toFixed(1)+'deg)');
     const nm = e.lastChild;
     const txt = S.nom + '  ·  ' + d + ' m';
     if(nm.textContent !== txt){ nm.textContent = txt;
@@ -31564,8 +31614,7 @@ function refreshViseurs(){
     const fx = Math.max(hw, Math.min(W - hw, px)), fy = Math.max(hh, Math.min(H - hh, py));
     // `translate3d` d'abord, `-50%` ensuite : la vignette se centre sur le point, et le
     // déplacement reste en sous-pixels, donc fluide.
-    e.style.transform = 'translate3d(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) +
-                        'px,0) translate(-50%,-50%)';
+    styleSiChange(e,'transform','translate3d('+fx.toFixed(2)+'px,'+fy.toFixed(2)+'px,0) translate(-50%,-50%)');
     n++;
   }
   for(let k = n; k < VISEUR.pool.length; k++)
@@ -36669,6 +36718,18 @@ function figerCeQuiNeBougePas(){
    acheté, une parcelle s'active quand on l'achète : les objets neufs naissent avec le
    drapeau à vrai, et repayeraient leur matrice pour rien. Deux lignes, aux deux seuls
    endroits qui en créent après le démarrage. */
+const IMAGE_REPOS={t:0,x:Infinity,y:Infinity,z:Infinity,tx:Infinity,tz:Infinity,zoom:0,w:0,h:0,dirty:3};
+function reveillerImage(){IMAGE_REPOS.dirty=3;}
+for(const evt of ['pointerdown','pointerup','keydown','keyup','wheel','resize','focus'])addEventListener(evt,reveillerImage,{passive:true});
+renderer.domElement.addEventListener('webglcontextrestored',reveillerImage);
+function rendreImage(now){
+  const r=IMAGE_REPOS,c=camera.position;
+  const bouge=Math.abs(c.x-r.x)+Math.abs(c.y-r.y)+Math.abs(c.z-r.z)+Math.abs(camTarget.x-r.tx)+Math.abs(camTarget.z-r.tz)>.0001;
+  const taille=r.w!==renderer.domElement.width||r.h!==renderer.domElement.height||r.zoom!==camera.zoom;
+  if(paused&&!bouge&&!taille&&r.dirty<=0&&now-r.t<250)return;
+  r.x=c.x;r.y=c.y;r.z=c.z;r.tx=camTarget.x;r.tz=camTarget.z;r.zoom=camera.zoom;r.w=renderer.domElement.width;r.h=renderer.domElement.height;r.t=now;r.dirty--;
+  renderer.render(scene,camera);
+}
 function loop(now){
   requestAnimationFrame(loop);
   /* PLAFONNER LE NOMBRE D'IMAGES, ET POURQUOI CELA AIDE.
@@ -36932,7 +36993,7 @@ function loop(now){
   // Les parcelles hors du cadre ne partent pas au GPU : vingt tests de sphère, et
   // trois quarts des plantes du monde ne coûtent plus rien.
   masquerChampsHorsVue();
-  renderer.render(scene, camera);
+  rendreImage(now);
   if(DIAG.on) DIAG.image(_tDiag, now);
 }
 requestAnimationFrame(loop);
