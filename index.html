@@ -9306,8 +9306,8 @@ function bulleTex(nom, toit, sous){
   const lig = couperNom(nom);
   const src = visageDe(nom, 'neutre'), hauteurPortrait = src ? 344 : 0;
   const LW = 560;
-  const hNom = lig.length*(NOM_PX + 12);
-  const hTexte = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
+  const hNom = (src ? 2 : lig.length)*(NOM_PX + 12);
+  const hTexte = 34 + hNom + (src || sous ? SOUS_PX + 16 : 0) + 26;
   const LH = hTexte + hauteurPortrait;
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
@@ -9338,7 +9338,8 @@ function bulleTex(nom, toit, sous){
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
   c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
+  const centreNom = src ? (2-lig.length)*(NOM_PX+12)/2 : 0;
+  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + centreNom + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
   /* PLUS DE TRAIT SOUS LE TITRE. Une barre d'accent de 310 pixels sur 5, dans la couleur
      du toit, séparait le nom du commerce de ce qu'une mission y attend. Le joueur : « sur
      toutes les étiquettes, enlève le petit trait de soulignage qui est sous le titre, tu
@@ -9395,11 +9396,18 @@ function bulleTex(nom, toit, sous){
    demandé, et c'est ce qu'était l'ancienne jauge du silo.
    `rot` ne sert plus depuis le troisième état, mais la signature reste — quinze appelants
    la passent encore. */
+const ETIQUETTE_PX = 144;
+function tailleEtiquetteEcran(rendu, sceneVue, cam){
+  // Projection sans atténuation : la profondeur ne change plus la taille affichée.
+  // Les pixels CSS restent indépendants de la résolution du rendu et du zoom.
+  const e = 2*ETIQUETTE_PX/(Math.max(1, innerHeight)*cam.projectionMatrix.elements[5]);
+  if(this.scale.x !== e){
+    this.scale.set(e, e*this.userData.ratioEtiquette, 1);
+    this.updateMatrixWorld(true);
+  }
+}
 function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
-  // Douze mètres : assez pour se lire de la route sans qu'on plisse les yeux, pas assez
-  // pour manger le bâtiment qu'elle nomme — la façade d'un supermarché en fait vingt-trois.
-  const LARGE = 12.0*B.largeur;
   /* ET C'EST UN SPRITE, COMME LES ÉTIQUETTES DE LIEU.
      L'enseigne a été un SPRITE, puis un plan qui pivotait vers la caméra à chaque image,
      puis un plan posé une fois pour toutes au cap de la caméra. Le joueur, en voyant le
@@ -9416,9 +9424,14 @@ function poseBulle(nom, toit, sous, x, y, z, rot){
      par ce qui passe devant, contrairement à une étiquette de lieu qui surplombe le
      bâtiment qu'elle nomme et doit se lire par-dessus lui. */
   const m = new THREE.Sprite(new THREE.SpriteMaterial({map:B.tex, transparent:true,
-    depthWrite:false, depthTest:true, fog:false}));
-  m.scale.set(LARGE, LARGE*B.ratio, 1);
-  m.position.set(x, y + LARGE*B.ratio*0.5, z);
+    depthWrite:false, depthTest:true, fog:false, sizeAttenuation:false}));
+  m.userData.ratioEtiquette = B.ratio;
+  m.center.set(.5, 0);
+  m.position.set(x, y, z);
+  m.onBeforeRender = tailleEtiquetteEcran;
+  // Une borne en mètres ne décrit pas un cadre de taille constante à l'écran.
+  m.frustumCulled = false;
+  tailleEtiquetteEcran.call(m, renderer, scene, camera);
   /* AU-DESSUS DES CERCLES AU SOL. Un cercle jaune posé devant un commerce passait PAR
      DESSUS son enseigne, et l'on ne lisait plus le nom de celui chez qui on allait.
      Six, et non trois : les anneaux et les cercles mobiles sont à trois, et deux
