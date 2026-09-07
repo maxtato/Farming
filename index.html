@@ -1650,6 +1650,36 @@
   body.grille #service,body.grille #buy,body.grille #atelier,body.grille #veh,body.grille #choix .ch{box-shadow:0 3px 0 var(--actOmb)}
   body.grille #service:active,body.grille #buy:active,body.grille #atelier:active,body.grille #veh:active,body.grille #choix .ch:active{box-shadow:0 1px 0 var(--actOmb)}
   body.grille .ped,body.grille .jic{filter:none}
+
+/* Arcade polish: existing paper, portraits and fonts; no new assets or blur passes. */
+:root{--sous:#655e4c;--voile:rgba(12,22,21,.78)}
+.pill,#accueil{backdrop-filter:none;-webkit-backdrop-filter:none}
+#stats{background:rgba(17,30,28,.90);border:1px solid rgba(241,224,179,.22);border-radius:11px;padding:8px 12px;gap:5px}
+#money,#heure,#fenargent,#pargent{font-variant-numeric:tabular-nums}
+#goaltxt{opacity:.9;letter-spacing:1.5px;font-size:10px}
+#bar{background:rgba(12,24,22,.7);border:1px solid rgba(240,226,183,.3);height:8px}
+#barfill{background:#efd18a}
+#menuBtn,#pause,#engbar>div,#regie .rgb{border:1px solid rgba(245,228,183,.16);background-color:rgba(17,30,28,.86)}
+#pboite,#fenboite{padding:14px 16px}
+#ptete,#fentete{border-bottom:1px solid rgba(94,76,44,.18);margin-bottom:8px;padding-bottom:10px}
+#ptitre,#fentitre{transform:none;letter-spacing:1.1px}
+.ong{box-shadow:0 2px 0 var(--paleOmb);border:1px solid rgba(94,76,44,.10);padding:7px 12px}
+.ong.on{box-shadow:inset 0 -2px 0 rgba(88,65,13,.22),0 2px 0 var(--orOmb)}
+.art{border:1px solid rgba(94,76,44,.10);box-shadow:0 2px 0 var(--ligneOmb);border-radius:9px}
+.art .nom{letter-spacing:.55px}.art .det{line-height:1.5}
+.art .act.no{opacity:.85}.art .act,.accbtn,.ong{transition:transform .10s,background-color .12s}
+#pfermer,#fenfermer{width:36px;height:36px}
+#accueil{background:rgba(12,24,22,.88)}
+#acctitre{letter-spacing:9px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+#accsous{opacity:.90;line-height:1.6}
+#accaide{opacity:.80;font-size:10px;line-height:1.9;max-width:500px}
+#accbtns{gap:14px;margin:14px 0 6px}.accbtn{min-height:42px;padding:12px 26px}
+#hint{font-size:12px;letter-spacing:1.2px}
+#pliste,#fenliste{scrollbar-width:thin;scrollbar-color:#ad9c78 transparent;overscroll-behavior:contain}
+[role=button]:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #eec766;outline-offset:3px}
+@media(max-height:500px){#pboite,#fenboite{padding:9px 12px}#ptete,#fentete{padding-bottom:6px;margin-bottom:4px}.accbtn{padding:9px 22px}#accbtns{margin:8px 0 2px}}
+@media(prefers-reduced-motion:reduce){.art .act,.accbtn,.ong{transition:none}}
+
 </style>
 </head>
 <body>
@@ -1841,8 +1871,8 @@
   <div id="accbtns"></div>
   <div id="accaide">
     Volant à gauche, gaz à droite – au clavier, les flèches.<br>
-    Laboure, sème, moissonne, puis vends au silo ou aux usines du bord de route.<br>
-    Un anneau lumineux au sol : arrête-toi dessus, ça se fait tout seul.
+    Cultive, récolte, stocke à la ferme et livre les commerces du village.<br>
+    Arrête-toi sur un anneau lumineux, puis choisis ton action.
   </div>
 </div>
 <!-- LA FÊTE D'UNE MISSION FINIE. Un calque à part, jamais l'écran d'accueil : celui-ci
@@ -15033,23 +15063,23 @@ function borner(o, cle, lim){
   if(o[cle] >  lim){ o[cle] =  lim; if(o[v] > 0) o[v] = 0; }
   else if(o[cle] < -lim){ o[cle] = -lim; if(o[v] < 0) o[v] = 0; }
 }
-const PAS_SUSP = 1/24;                    // au-delà, le ressort est sous-échantillonné
 function suspension(o, S, dt, aLat, aLon, vf){
-  const h = Math.min(dt, PAS_SUSP);
+  if(!(dt > 0)) return;
   const L = o.lim || SUSP_LIM;
-  // secousses du terrain, plus fortes vite et sur la terre travaillée
-  o.bump -= o.bump*3.0*h;
-  if(Math.random() < Math.min(0.9, Math.abs(vf)*0.09)) o.bump = (Math.random()-0.5)*0.9*S.rough;
-  const rollT  = Math.max(-L.r, Math.min(L.r,  aLat*S.roll)) + o.bump*0.030;
+  o.bump *= Math.exp(-3*dt);
+  const chance = Math.min(0.9, Math.abs(vf)*0.09);
+  if(Math.random() < 1 - Math.pow(1 - chance, dt*60)) o.bump = (Math.random()-0.5)*0.9*S.rough;
+  const rollT = Math.max(-L.r, Math.min(L.r, aLat*S.roll)) + o.bump*0.030;
   const pitchT = Math.max(-L.p, Math.min(L.p, -aLon*S.pitch));
   const heaveT = Math.min(0, -Math.abs(aLon)*0.008) + o.bump*0.045;
-  o.rollV  += ((rollT  - o.roll )*S.k - o.rollV *S.d)*h;
-  o.pitchV += ((pitchT - o.pitch)*S.k - o.pitchV*S.d)*h;
-  o.heaveV += ((heaveT - o.heave)*S.k*1.4 - o.heaveV*S.d*1.1)*h;
-  o.roll  += o.rollV *h;
-  o.pitch += o.pitchV*h;
-  o.heave += o.heaveV*h;
-  borner(o, 'roll', L.r); borner(o, 'pitch', L.p); borner(o, 'heave', 0.16);
+  const n = Math.max(1, Math.ceil(dt/(1/120))), h = dt/n;
+  for(let i=0;i<n;i++){
+    o.rollV += ((rollT-o.roll)*S.k-o.rollV*S.d)*h;
+    o.pitchV += ((pitchT-o.pitch)*S.k-o.pitchV*S.d)*h;
+    o.heaveV += ((heaveT-o.heave)*S.k*1.4-o.heaveV*S.d*1.1)*h;
+    o.roll += o.rollV*h; o.pitch += o.pitchV*h; o.heave += o.heaveV*h;
+    borner(o,'roll',L.r); borner(o,'pitch',L.p); borner(o,'heave',0.16);
+  }
 }
 /* LE BUTOIR : PERSONNE NE PASSE SOUS LE SOL. On relève l'objet de ce que sa boîte
    descendrait sous zéro, une fois tournée. La ligne des y de la matrice de rotation suffit
@@ -15102,6 +15132,23 @@ function poserSurSol(obj, B){
    carrosserie, ce qui est le défaut qu'on corrige. */
 const COUPE_ROULIS = 0.16, COUPE_TANGAGE = 0.34;
 /* ---------- 11. VÉHICULE (physique arcade avec dérive) ---------- */
+// A short steering response keeps sharp turns; grip returns as soon as the wheel is released.
+function directionArcade(v, dt, input, speed){
+  const manual = !v.auto && !v.mission && !v.bateau && !(mondePret && INTRO.actif);
+  if(!manual){ v.braquage = input; return {steer:input, grip:v.grip}; }
+  const k = 1-Math.exp(-dt*(input ? 22 : 30));
+  v.braquage = (v.braquage || 0) + (input-(v.braquage || 0))*k;
+  if(Math.abs(v.braquage)<0.001) v.braquage=0;
+  const fast = Math.max(0, Math.min(1, (Math.abs(speed)/Math.max(1,v.vmax)-0.35)/0.45));
+  const drift = fast*Math.abs(v.braquage)*(v.inertie ? 0.06 : 0.13);
+  return {steer:v.braquage, grip:v.grip*(input ? 1-drift : 1.16)};
+}
+const ETAT_REPOS = ['roll','rollV','pitch','pitchV','heave','heaveV','bump','cRoll','cPitch','cLacet'];
+function enginAuRepos(v){
+  return !v.auto && !v.mission && !v.bateau && !v.coupe && !v.augerOut && !(v.augerT>0.001)
+    && Math.abs(v.vel.x)+Math.abs(v.vel.y)<0.002
+    && ETAT_REPOS.every(k=>Math.abs(v[k]||0)<0.001);
+}
 class Vehicle {
   constructor(cfg){
     Object.assign(this, cfg);
@@ -15299,8 +15346,11 @@ class Vehicle {
     if(o){
       renverse(o.k, -nx, -nz, this.speed);
       if(o.k && o.k.type === 'plat' && part === 'outil'){ this.vel.multiplyScalar(0.9); return; }
-      const imp = Math.min(7, 2 + this.speed*0.55);
-      this.vel.x = this.vel.x*0.25 + nx*imp; this.vel.y = this.vel.y*0.25 + nz*imp;
+      const imp = Math.max(0, vn)*1.10;
+      this.vel.x += nx*imp; this.vel.y += nz*imp;
+      this.vel.multiplyScalar(0.86);
+      this.speed = Math.hypot(this.vel.x,this.vel.y);
+      if(vn > CHOC.frontal) secouer(this, vn);
       this.pos.x += nx*pen; this.pos.z += nz*pen;
       puff(px - nx*0.5, 1.0, pz - nz*0.5, 0xE8E0CC, 0.6, 0.5);
       return;
@@ -15384,16 +15434,18 @@ class Vehicle {
     if(Math.abs(throttle) > 0.05){
       const pousse = Math.sign(target-vf) === Math.sign(throttle);
       const acc = pousse ? accelE*(doux ? Math.abs(this.gaz) : 1) : accelE*2.2*dc;
-      vf += Math.sign(target - vf) * acc * dt;
+      vf += Math.max(-acc*dt, Math.min(acc*dt, target-vf));
       if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
     } else {
       // Frein au pied : trois fois le frein moteur. C'est ce qui rend la pédale utile —
       // relâcher les gaz ralentit, appuyer sur le frein arrête.
-      vf -= vf * (frein ? 5.7 : 1.9) * dc * dt;
+      vf *= Math.exp(-(frein ? 5.7 : 1.9)*dc*dt);
     }
-    vf -= vf * 0.16 * dt;
+    vf *= Math.exp(-0.16*dt);
 
+    const conduite = directionArcade(this, dt, steerX, vf);
+    steerX = conduite.steer;
     // direction : braquage relatif au véhicule (gauche = gauche, toujours)
     if(steerX){
       const grip = Math.min(1, Math.abs(vf)/2.2);
@@ -15402,7 +15454,7 @@ class Vehicle {
     }
 
     // adhérence latérale : ce qui reste crée la dérive
-    const stick = 1 - Math.exp(-this.grip*dt);
+    const stick = 1 - Math.exp(-conduite.grip*dt);
     const lost = vr * stick;
     vr -= lost;
     this.slip = Math.min(1, Math.abs(vr)/3.2);
@@ -20602,7 +20654,7 @@ function freinTrafic(t){
      exactement cette raison. */
   t.freinPour = null; t.evite = 0;
   if(!mondePret || !COLLISIONS.on) return 1;
-  if(t.choc > 0){ t.freinPour = 'choc'; return 0.15; }   // on vient de l'emboutir : elle repart au pas
+  if(t.choc > 0){ t.freinPour = 'choc'; return 0; }   // elle attend que le contact se relâche
   const tx = t.m.position.x, tz = t.m.position.z;
   /* `bx, bz` POINTE VERS LE BORD DE LA CHAUSSÉE — c'est le côté de la file, celui où la voie
      est décalée du milieu de la route (`VOIE_TRAFIC`). L'écart de voie qu'elle porte déjà
@@ -20631,9 +20683,11 @@ function freinTrafic(t){
        de la bande interdite, marge comprise, et le ressort n'y arrive qu'asymptotiquement —
        à la marge près, elle est dégagée, et elle repart. */
     if(devant <= 0 || Math.abs(cd) >= marge - MARGE_EVITE) return;
-    const vue = VISION_TRAFIC + t.avant + r, arret = ARRET_TRAFIC + t.avant + r;
-    if(devant > vue) return;
-    const k = devant <= arret ? 0 : (devant - arret)/(vue - arret);
+    const arret=ARRET_TRAFIC+t.avant+r;
+    const vue=Math.max(VISION_TRAFIC,t.vit*0.7+t.vit*t.vit/14)+arret;
+    if(devant>vue) return;
+    const libre=Math.max(0,devant-arret);
+    const k=Math.min(1,Math.sqrt(2*5.5*libre)/Math.max(1,t.v),libre/Math.max(2,t.v*0.85));
     if(k < cible){ cible = k; t.freinPour = quoi; }
   };
   for(const p of pointsEngins()) regarde(p.x, p.z, p.r, p.r, p.quoi);
@@ -20661,6 +20715,25 @@ function freinTrafic(t){
     // et si rien n'est libre, elle s'arrête devant : la règle de distance le fait déjà
   }
   return cible;
+}
+function freinCarrefour(t){
+  let k=1;
+  for(const a of t.route.croix){
+    const gap=a.sIn-t.avant-t.s;
+    if(gap<0 || gap>Math.max(18,t.vit*2.3)) continue;
+    for(const u of TRAFIC){
+      if(u===t || !u.actif) continue;
+      for(const b of u.route.croix){
+        if(a.iC!==b.iC || (a.h===b.h&&!a.vire&&!b.vire)) continue;
+        if(u.s-u.arriere>b.sOut+1) continue;
+        const otherGap=b.sIn-u.avant-u.s;
+        const dedans=otherGap<=0;
+        if(!dedans && (otherGap>Math.max(12,u.vit*2) || u.t0>t.t0 || (u.t0===t.t0&&TRAFIC.indexOf(u)>TRAFIC.indexOf(t)))) continue;
+        k=Math.min(k,Math.sqrt(2*5.5*Math.max(0,gap-1.5))/Math.max(1,t.v));
+      }
+    }
+  }
+  return k;
 }
 function conflitTrafic(R2, v, t0, avant, arriere, u){
   for(const a of R2.voies){
@@ -20952,12 +21025,9 @@ function rendrePlace(t){
    ressort amorti ramène à zéro. Le plus court chemin pour rentrer dans sa voie est la
    ligne droite, et c'est très exactement ce que fait un écart qui décroît. */
 const COLLISIONS = {on:true};
-/* CE QUE COÛTE UN CHOC. `rebond` est l'élasticité — zéro colle les deux véhicules l'un
-   contre l'autre, un les renvoie sans rien perdre ; 0,45 donne le rebond mou d'une tôle.
-   `jouer` est le supplément demandé pour l'engin qu'on conduit : il reçoit deux fois et
-   demie l'impulsion des autres, et c'est ce qui fait l'auto-tamponneuse — on SENT le
-   choc, l'engin part de travers, et l'on reprend la main. */
-const CHOC = {rebond:0.45, jouer:2.5, trafic:5.2, secousse:0.9,
+/* Une restitution de 0,20 absorbe le choc. Le facteur joueur amplifie seulement
+   le retour visuel de la suspension ; il ne crée pas de vitesse supplémentaire. */
+const CHOC = {rebond:0.20, jouer:1.15, trafic:5.2, secousse:0.72,
 /* ---------- FRONTAL OU FROTTEMENT ----------
    Le joueur : « fais qu'au niveau des chocs, quand on est en frontal contre un objet ça
    nous stoppe, mais que quand on frotte un objet sur le côté ça frotte et qu'on puisse
@@ -21273,18 +21343,26 @@ function secouer(v, force){
   v.heaveV = (v.heaveV || 0) - CHOC.secousse*f*0.8;
   v.bump = (v.bump || 0) + (Math.random() < 0.5 ? -1 : 1)*0.5*f;
 }
-/* DEUX ENGINS DE LA FERME QUI SE TOUCHENT. On les sépare à parts égales — ils pèsent le
-   même poids dans ce jeu — et l'on échange une impulsion le long de la normale. Le
-   supplément de l'engin conduit s'ajoute APRÈS le partage : il ne prend rien à l'autre,
-   il rend le choc plus vif pour celui qui tient le volant. */
+/* Deux engins : séparer la pénétration et partager une impulsion dissipative.
+   Le supplément arcade agit seulement sur la suspension visuelle. */
+function prochesGabarits(A,B){
+  for(const a of A) for(const b of B){
+    const r=a.r+b.r;
+    if(Math.min(a.x1,a.x2)<=Math.max(b.x1,b.x2)+r && Math.max(a.x1,a.x2)>=Math.min(b.x1,b.x2)-r
+      && Math.min(a.z1,a.z2)<=Math.max(b.z1,b.z2)+r && Math.max(a.z1,a.z2)>=Math.min(b.z1,b.z2)-r) return true;
+  }
+  return false;
+}
 function choquerEngins(a, b){
   const GA = gabarits(a, _gabA), GB = gabarits(b, _gabB);
+  if(!prochesGabarits(GA,GB)) return;
   for(const ca of GA) for(const cb of GB){
     const R = ca.r + cb.r;
     const P = segSeg(ca.x1, ca.z1, ca.x2, ca.z2, cb.x1, cb.z1, cb.x2, cb.z2);
     let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
     let d2 = dx*dx + dz*dz;
     if(d2 >= R*R) continue;
+    const distanceContact = Math.sqrt(d2);
     /* DEUX AXES QUI SE CROISENT N'ONT PAS DE NORMALE, et ce n'est pas un cas d'école : c'est
        exactement ce qui arrive quand on rentre dans l'arrière d'un véhicule en le suivant —
        les deux gélules sont alignées, leurs axes se coupent, et la distance entre eux est
@@ -21296,7 +21374,7 @@ function choquerEngins(a, b){
       d2 = dx*dx + dz*dz;
       if(d2 < 1e-4){ const r0 = right(a.cap); dx = r0.x; dz = r0.z; d2 = 1; }
     }
-    const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = (R - Math.min(d, R))*0.5;
+    const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = (R - distanceContact)*0.5;
     a.pos.x -= nx*pen; a.pos.z -= nz*pen;
     b.pos.x += nx*pen; b.pos.z += nz*pen;
     // et chacun pivote un peu autour de son centre, selon le bras de levier du point touché
@@ -21314,8 +21392,8 @@ function choquerEngins(a, b){
     const j = appro*0.5*(1 + CHOC.rebond);
     const ka = (franc && a === MACHINES[cur].v) ? CHOC.jouer : 1;
     const kb = (franc && b === MACHINES[cur].v) ? CHOC.jouer : 1;
-    a.vel.x -= nx*j*ka; a.vel.y -= nz*j*ka;
-    b.vel.x += nx*j*kb; b.vel.y += nz*j*kb;
+    a.vel.x -= nx*j; a.vel.y -= nz*j;
+    b.vel.x += nx*j; b.vel.y += nz*j;
     if(franc){
       secouer(a, appro*ka); secouer(b, appro*kb);
       if(ka > 1 || kb > 1) AUDIO.impact('vehicule', appro*CHOC.jouer);   // l'engin conduit est de la partie : ça sonne
@@ -21340,100 +21418,52 @@ function pivotChoc(v, px, pz, nx, nz, pen){
    voie avant que le ressort ne l'y ramène. Elle freine aussi : une voiture qu'on vient
    d'emboutir ne repart pas à sa vitesse de croisière dans la seconde. */
 function choquerTrafic(v, t){
-  const GV = gabarits(v, _gabA), GT = gabaritsTrafic(t, _gabT);
-  const tx = t.m.position.x, tz = t.m.position.z;
+  const GV=gabarits(v,_gabA), GT=gabaritsTrafic(t,_gabT);
+  if(!prochesGabarits(GV,GT)) return;
   for(const cv of GV) for(const ct of GT){
-    const R = cv.r + ct.r;
-    const P = segSeg(cv.x1, cv.z1, cv.x2, cv.z2, ct.x1, ct.z1, ct.x2, ct.z2);
-    let dx = P.x2 - P.x1, dz = P.z2 - P.z1;
-    let d2 = dx*dx + dz*dz;
-    if(d2 >= R*R) continue;
-    // même repli que pour deux engins : voir le commentaire ci-dessus
-    if(d2 < 1e-4){
-      dx = (ct.x1 + ct.x2)/2 - v.pos.x; dz = (ct.z1 + ct.z2)/2 - v.pos.z;
-      d2 = dx*dx + dz*dz;
-      if(d2 < 1e-4){ const r0 = right(v.cap); dx = r0.x; dz = r0.z; d2 = 1; }
+    const R=cv.r+ct.r, P=segSeg(cv.x1,cv.z1,cv.x2,cv.z2,ct.x1,ct.z1,ct.x2,ct.z2);
+    let dx=P.x2-P.x1,dz=P.z2-P.z1,d2=dx*dx+dz*dz;
+    if(d2>=R*R) continue;
+    const distanceContact=Math.sqrt(d2);
+    if(d2<1e-4){
+      dx=(ct.x1+ct.x2)/2-v.pos.x;dz=(ct.z1+ct.z2)/2-v.pos.z;d2=dx*dx+dz*dz;
+      if(d2<1e-4){const r=v.right();dx=r.x;dz=r.z;d2=1;}
     }
-    const d = Math.sqrt(d2), nx = dx/d, nz = dz/d, pen = R - Math.min(d, R);
-    /* ELLE CÈDE. Le joueur : « si on en pousse un, il doit être moins fort que nous. » La
-       séparation allait aux deux tiers à l'engin, la voiture ne prenait qu'un tiers et son
-       ressort la ramenait dans la seconde : pousser une voiture, c'était être repoussé par
-       elle. Trois quarts pour elle maintenant, un quart pour l'engin — c'est lui le plus
-       lourd, c'est elle qui s'écarte. */
-    /* MAIS ELLE NE CÈDE QUE TANT QU'ELLE A OÙ ALLER : son écart est borné à une voie
-       (`ECART_VOIE_MAX`). Au bout, c'est l'engin qui prend le reste — sinon il la traversait,
-       et l'on sortait par l'autre côté d'un embouteillage. */
-    const eo = Math.hypot(t.ox, t.oz);
-    const partT = Math.max(0, Math.min(0.75, (ECART_VOIE_MAX - eo)/Math.max(pen, 1e-6))), partV = 1 - partT;
-    v.pos.x -= nx*pen*partV; v.pos.z -= nz*pen*partV;
-    v.cap += pivotChoc(v, P.x1, P.z1, -nx, -nz, pen*partV);
-    t.ox += nx*pen*partT; t.oz += nz*pen*partT;
-    /* `vn` EST LA VITESSE DE SÉPARATION : négative, on se rapproche. Elle n'a plus de
-       plancher — c'était `Math.max(|vn|, 1)`, et ce plancher faisait sonner, secouer et
-       repousser le plus léger frôlement comme un vrai choc. */
-    const vn = (-v.vel.x)*nx + (-v.vel.y)*nz + t.vit*(t.fx*nx + t.fz*nz);
-    const appro = Math.max(0, -vn), franc = appro > CHOC.frontal;
-    /* L'ENGIN NE BUTE PLUS COMME SUR UN MUR — tant qu'elle cède. Sur le flanc, on la longe
-       (`repousser`, la même règle que le long d'une paroi) ; au bout de son écart, elle est
-       un mur, et c'est la même règle. De face et tant qu'elle s'écarte, on ne perd que
-       `cede` de sa vitesse de rapprochement par seconde — et ce qu'on perd, on le lui
-       donne : elle part devant. */
-    const rr = v.right();
-    if(Math.abs(nx*rr.x + nz*rr.z) > CHOC.flanc || partT < 0.3) repousser(v, -nx, -nz);
-    else {
-      const vN = v.vel.x*nx + v.vel.y*nz;
-      if(vN > 0){
-        const perte = 1 - Math.exp(-CHOC.cede*(v._dt || 1/60));
-        v.vel.x -= nx*vN*perte; v.vel.y -= nz*vN*perte;
-        v.speed = Math.hypot(v.vel.x, v.vel.y);
-        t.vox += nx*vN*perte*0.8; t.voz += nz*vN*perte*0.8;
+    const d=Math.sqrt(d2),nx=dx/d,nz=dz/d,pen=R-distanceContact;
+    const partT=Math.max(0,Math.min(0.75,(ECART_VOIE_MAX-Math.hypot(t.ox,t.oz))/Math.max(pen,1e-6))),partV=1-partT;
+    v.pos.x-=nx*pen*partV;v.pos.z-=nz*pen*partV;
+    v.cap+=pivotChoc(v,P.x1,P.z1,-nx,-nz,pen*partV);
+    t.ox+=nx*pen*partT;t.oz+=nz*pen*partT;
+    // Relative velocity includes the deflection: repeated contact cannot create free acceleration.
+    const vn=(t.vit*t.fx+t.vox-v.vel.x)*nx+(t.vit*t.fz+t.voz-v.vel.y)*nz;
+    const appro=Math.max(0,-vn), franc=appro>CHOC.frontal;
+    if(appro>0){
+      const impulse=appro*(1+(franc?CHOC.rebond:0));
+      v.vel.x-=nx*impulse*partV;v.vel.y-=nz*impulse*partV;
+      t.vox+=nx*impulse*partT;t.voz+=nz*impulse*partT;
+    }
+    // Feedback is separate from physical impulse and can fire only once per impact.
+    const nouveau=franc && (t.impactEngin!==v || tempsTrafic-(t.impactQuand||0)>0.22);
+    if(nouveau){
+      t.impactEngin=v;t.impactQuand=tempsTrafic;
+      secouer(v,appro*CHOC.jouer);
+      if(v===MACHINES[cur].v) AUDIO.impact('vehicule',appro);
+      const sens=nx*t.fz-nz*t.fx>0?1:-1,g=Math.min(1.5,appro*0.10);
+      const sensRem=nx*Math.cos(t.tcap||0)-nz*Math.sin(t.tcap||0)>0?1:-1;
+      if(t.lourd && ct.part==='remorque'){
+        t.rPitchV-=0.45*g;t.rRollV+=0.35*g*sensRem;t.pitchV-=0.22*g;t.rollV+=0.18*g*sens;
+      }else{
+        t.pitchV-=0.45*g;t.rollV+=0.35*g*sens;
+        if(t.lourd){t.rPitchV-=0.25*g;t.rRollV+=0.22*g*sensRem;}
       }
+      t.choc=Math.max(t.choc,0.85);
+      if(siSouvent(0.4)) puff((P.x1+P.x2)/2,1.1,(P.z1+P.z2)/2,0xE8E0CC,0.45,0.35);
+    } else if(appro>0.05){
+      const h=v._dt||1/60,sens=nx*t.fz-nz*t.fx>0?1:-1;
+      t.rollV=Math.max(-0.25,Math.min(0.25,t.rollV+sens*0.6*h));
+      t.choc=Math.max(t.choc,0.2);
     }
-    const k = (franc && v === MACHINES[cur].v) ? CHOC.jouer : 1;
-    // et le supplément d'auto-tamponneuse, qui ne s'ajoute qu'à un VRAI choc de nez
-    if(k > 1){
-      v.vel.x -= nx*appro*(CHOC.jouer - 1)*0.5; v.vel.y -= nz*appro*(CHOC.jouer - 1)*0.5;
-      v.speed = Math.hypot(v.vel.x, v.vel.y);
-    }
-    const sensRem = nx*Math.cos(t.tcap) - nz*Math.sin(t.tcap) > 0 ? 1 : -1, sensCab = nx*t.fz - nz*t.fx > 0 ? 1 : -1;
-    if(franc){
-      secouer(v, appro*k);
-      if(k > 1) AUDIO.impact('vehicule', appro*k);
-      t.vox += nx*appro*CHOC.trafic*0.1; t.voz += nz*appro*CHOC.trafic*0.1;
-      /* LA SECOUSSE VA D'ABORD À CE QU'ON A TOUCHÉ — la cabine si c'est le tracteur, la
-         remorque si c'est elle, chacune sur sa suspension —, ET L'AUTRE MOITIÉ EN REÇOIT
-         LA MOITIÉ : une cabine qui roulait seule sur une remorque restée plate, c'était le
-         « pli » qu'on voyait à la sellette. Et l'attelage entier se déplace d'un bloc
-         (voir `updateTrafic`). */
-      /* ET LA SECOUSSE SUIT LA VIOLENCE DU COUP. Elle était FIXE : un tamponnement à
-         quinze mètres par seconde levait la caisse d'autant qu'une touchette à trois. On
-         ne le voyait pas tant que l'engin restait collé à la voiture image après image —
-         la secousse s'accumulait alors sur dix images et finissait par se voir —, mais
-         depuis que la reprise renvoie proprement, le choc ne dure plus que deux images :
-         il fallait qu'elles portent. `g` va de 0,8 au seuil du vrai choc à 2,4 au maximum,
-         et l'on ne monte pas plus haut pour que la caisse ne parte pas à la verticale. */
-      const g = Math.min(2.4, 0.5 + appro*0.13);
-      if(ct.part === 'remorque'){ t.rPitchV -= 0.5*g; t.rRollV += 0.45*g*sensRem; t.pitchV -= 0.25*g; t.rollV += 0.25*g*sensCab; }
-      else { t.pitchV -= 0.7*g; t.rollV += 0.5*g*sensCab; t.rPitchV -= 0.35*g; t.rRollV += 0.3*g*sensRem; }
-      t.choc = 1.1;                           // elle reste au ralenti une seconde
-      if(siSouvent(0.6)) puff((P.x1 + P.x2)/2, 1.3, (P.z1 + P.z2)/2, 0xE8E0CC, 0.55, 0.45);
-    } else {
-      /* ON LA FROTTE : elle fait un PAS DE CÔTÉ et se balance à peine sur ses ressorts,
-         le temps qu'on la longe. Elle lève le pied un tiers de seconde — de quoi qu'on
-         sente qu'on l'a touchée — puis reprend sa voie, que le ressort de `t.ox` ramène
-         tout seul au plus court. Pas de secousse d'auto-tamponneuse, pas de tôle qui
-         sonne : on frotte, on ne tape pas. */
-      t.vox += nx*CHOC.glisse; t.voz += nz*CHOC.glisse;
-      /* LE BALANCEMENT EST BORNE, IL NE SE POMPE PAS. Depuis que l'engin longe la voiture
-         au lieu d'en etre renvoye, le frottement dure des dizaines d'images et non plus
-         deux ou trois : un dixieme de roulis ajoute a CHACUNE finissait par lever la
-         caisse comme un vrai choc — mesure 1,70 contre 0,30. On n'ajoute donc plus rien
-         une fois le plafond atteint : la voiture se balance, elle ne s'envole pas. */
-      if(Math.abs(t.rollV) < 0.25) t.rollV += 0.10*sensCab;
-      if(Math.abs(t.rRollV) < 0.20) t.rRollV += 0.08*sensRem;
-      t.choc = Math.max(t.choc, 0.35);
-      if(siSouvent(0.25)) puff((P.x1 + P.x2)/2, 1.0, (P.z1 + P.z2)/2, 0xE8E0CC, 0.35, 0.30);
-    }
+    v.speed=Math.hypot(v.vel.x,v.vel.y);
     return;
   }
 }
@@ -21479,9 +21509,12 @@ function updateTrafic(dt){
        lit le même départ effectif, si bien que les naissances continuent de compter juste.
        LE FREIN EST BRUTAL, LA REPRISE EST DOUCE — comme au volant : on écrase la pédale
        quand quelque chose surgit, on remet les gaz progressivement. */
-    const cible = freinTrafic(t);
-    const dK = cible - t.k;
-    t.k += Math.max(-FREIN_TRAFIC*dt, Math.min(REPRISE_TRAFIC*dt, dK));
+    let cible = freinTrafic(t);
+    if(mondePret && COLLISIONS.on){const croix=freinCarrefour(t);if(croix<cible){cible=croix;t.freinPour='carrefour';}}
+    const dK = cible-t.k;
+    const urgence=t.freinPour==='engin'||t.freinPour==='choc';
+    const decel=(urgence?10:7)/Math.max(1,t.v),accel=(t.lourd?1.5:2.8)/Math.max(1,t.v);
+    t.k += Math.max(-decel*dt,Math.min(accel*dt,dK));
     t.k = Math.max(0, Math.min(1, t.k));
     if(t.freinPour === null && t.k < 1) t.freinPour = 'reprise';   // plus rien devant : elle remet les gaz
     t.retard += (1 - t.k)*dt;
@@ -21503,7 +21536,7 @@ function updateTrafic(dt){
         const d = Math.hypot(M.v.pos.x - t.m.position.x, M.v.pos.z - t.m.position.z);
         const r = Math.random();
         AUDIO.klaxon(d, t.lourd ? 'semi' : (KLAXON_TRAFIC[t.modele] || 'voiture'), r < 0.45 ? 1 : r < 0.8 ? 2 : 3);
-        t.klaxonT = 4.5;
+        t.klaxonT = 7.5;
       }
     }
     t.s = (tempsTrafic - t.t0 - t.retard)*t.v;
@@ -21516,8 +21549,8 @@ function updateTrafic(dt){
     /* … OU VERS L'ÉCART QU'ELLE VISE pour contourner un engin (`evite`, compté vers le bord
        de la chaussée) : le même ressort, tiré vers un autre point. */
     const ex = -t.fz*t.evite, ez = t.fx*t.evite;
-    t.vox += (-(t.ox - ex)*RESSORT_VOIE - t.vox*AMORTI_VOIE)*dt;
-    t.voz += (-(t.oz - ez)*RESSORT_VOIE - t.voz*AMORTI_VOIE)*dt;
+    t.vox += (-(t.ox - ex)*RESSORT_VOIE*(t.choc>0?0.2:1) - t.vox*AMORTI_VOIE)*dt;
+    t.voz += (-(t.oz - ez)*RESSORT_VOIE*(t.choc>0?0.2:1) - t.voz*AMORTI_VOIE)*dt;
     t.ox += t.vox*dt; t.oz += t.voz*dt;
     // Une voie au plus : poussée plus loin, elle bute — l'engin qui pousse sent le fossé.
     const eo = Math.hypot(t.ox, t.oz);
@@ -31590,7 +31623,7 @@ const jaugeEl = {
 function refreshJauges(){
   const m = MACHINES[cur], v = m.v;
   const k = v.fuel / v.resMax;
-  jaugeEl.fuel.style.width = (k*100) + '%';
+  styleSiChange(jaugeEl.fuel,'width',(k*100).toFixed(2)+'%');
   // La pompe est en `currentColor` : elle prend la teinte de la boîte, qui prend celle
   // du niveau. Sans cette ligne la piste virait au rouge et clignotait pendant que le
   // pictogramme d'à côté restait vert vif.
@@ -31599,7 +31632,7 @@ function refreshJauges(){
   jaugeEl.fuelBox.style.color = teinte;
   jaugeEl.fuelBox.classList.toggle('bas', niveauCritique(k));
   const h = Math.floor(JOUR.heure), mn = Math.floor((JOUR.heure-h)*60);
-  jaugeEl.heure.textContent = (h<10?'0':'') + h + ':' + (mn<10?'0':'') + mn;
+  texteSiChange(jaugeEl.heure,(h<10?'0':'')+h+':'+(mn<10?'0':'')+mn);
   /* ET LA LIGNE DE CHARGEMENT N'EST PLUS ICI. Elle écrivait « BLÉ 80 KG » en petites
      capitales sous le bouton de culture, au-dessus de la barre de charge, et les deux
      sont parties ensemble : la nature et le poids se lisent maintenant sur la plaque
@@ -33891,6 +33924,14 @@ const DERAPE_AVANT = 0.5, DERAPE_MONTE = 0.35;       // le crissement attend une
    était pour rien — « non, toujours pareil » —, et la bande-son revient telle quelle. L'interrupteur
    reste, à `false` : il ne coûte qu'un booléen et permet de refaire l'essai en une lettre. */
 const SON_COUPE = false;
+const SON_CIBLES=new WeakMap();
+function sonCible(param,valeur,t,tau,immediat=false){
+  const prev=SON_CIBLES.get(param);
+  if(prev && Math.abs(prev.v-valeur)<Math.max(0.0001,Math.abs(valeur)*0.003)) return;
+  if(!immediat && prev && valeur!==0 && t-prev.t<1/30) return;
+  param.setTargetAtTime(valeur,t,tau);
+  SON_CIBLES.set(param,{v:valeur,t});
+}
 const AUDIO = {
   on: true, volume: 0.5, ctx: null, maitre: null, dispo: false,
   derapage: null, tel: null,
@@ -34028,17 +34069,20 @@ const AUDIO = {
       this.trafic = [chaine(b, 900), chaine(b, 380)];
     }).catch(()=>{});
   },
-  majVolume(){ if(this.maitre) try { this.maitre.gain.value = this.volume*0.5; } catch(e){} },
+  majVolume(){ if(this.maitre) try { sonCible(this.maitre.gain,this.on&&!paused&&!document.hidden?this.volume*0.5:0,this.ctx.currentTime,0.06,true); } catch(e){} },
+  synchroniser(){
+    if(!this.ctx) return;
+    const actif=this.on&&!paused&&!document.hidden;
+    if(this.actif===actif) return;
+    this.actif=actif;this.majVolume();
+    if(document.hidden) this.ctx.suspend().catch(()=>{});
+    else if(actif && this.ctx.state==='suspended') this.ctx.resume().catch(()=>{});
+  },
   basculer(){
     if(SON_COUPE){ showHint('SON COUPÉ POUR L’ESSAI'); return; }
     this.on = !this.on;
     if(this.on){ this.init(); if(this.ctx) try { this.ctx.resume(); } catch(e){} }
-    else try {
-      for(const C of [this.diesel, this.fourgonCh, this.lourdCh, this.cargaison, this.accel].concat(this.trafic || [])
-                     .concat(this.derapage ? [this.derapage.terre, this.derapage.route] : [])
-                     .concat(this.tel ? [this.tel] : []))
-        if(C) C.g.gain.value = 0;
-    } catch(e){}
+    this.actif=null;this.synchroniser();
     showHint(this.on ? 'SON ACTIVÉ' : 'SON COUPÉ');
   },
   /* LE RÉGIME : la vitesse de lecture suit la charge, le filtre suit l'effort.
@@ -34090,19 +34134,20 @@ const AUDIO = {
   impact(genre, force){
     if(!this.dispo || !this.on) return;
     try {
-      const f = Math.abs(force || 0);
+      const f = Math.max(0,force || 0);
       if(f < 1.0) return;
       const buf = this.impactBufs[genre] || this.impactBufs.autre;
       if(!buf) return;
       const t = this.ctx.currentTime;
-      if(this.impactT[genre] && t - this.impactT[genre] < 0.33) return;
+      if(this.impactT[genre] !== undefined && t-this.impactT[genre]<0.28) return;
       this.impactT[genre] = t;
       const pres = Math.min(1, (f - 1)/8);
       const src = this.ctx.createBufferSource(), g = this.ctx.createGain();
       src.buffer = buf;
       src.playbackRate.value = (1.06 - 0.16*pres)*(0.95 + Math.random()*0.10);
-      g.gain.value = 0.18 + 0.52*pres;
-      src.connect(g); g.connect(this.maitre); src.start(t);
+      g.gain.value = 0.10 + 0.40*Math.sqrt(pres);
+      src.connect(g); g.connect(this.maitre);
+      src.onended=()=>{src.disconnect();g.disconnect();}; src.start(t);
       this.dernierImpact = {genre:genre, force:+f.toFixed(2), gain:+g.gain.value.toFixed(3), taux:+src.playbackRate.value.toFixed(3)};
     } catch(e){}
   },
@@ -34130,7 +34175,7 @@ const AUDIO = {
       const timbre = (m && m.timbre) || 'tracteur';
       const CH = {tracteur:this.diesel, fourgon:this.fourgonCh, lourd:this.lourdCh};
       const C = CH[timbre] || this.diesel;
-      for(const k in CH) if(CH[k] && CH[k] !== C) CH[k].g.gain.setTargetAtTime(0, t, 0.08);   // les autres timbres s'effacent
+      for(const k in CH) if(CH[k] && CH[k] !== C) sonCible(CH[k].g.gain, 0, t, 0.08);   // les autres timbres s'effacent
       if(!C) return;
       const accelBuf = this.accelBufs[timbre] || null;
       const rap = Math.min(1, Math.abs(v.speed)/Math.max(1, v.vmax));
@@ -34167,12 +34212,12 @@ const AUDIO = {
         const lache = Math.abs(gaz) < 0.35 || v.sec || AC.timbre !== timbre || parPlafond;
         if(parPlafond) this.accelT = t;
         if(finie || lache){
-          AC.g.gain.setTargetAtTime(0, t, lache ? 0.06 : 0.12);
+          sonCible(AC.g.gain, 0, t, lache ? 0.06 : 0.12);
           try { AC.src.stop(t + 0.5); } catch(e){}
           this.accel = null;
         } else {
           this.regime = Math.max(this.regime, Math.min(1, pos/AC.duree));
-          AC.g.gain.setTargetAtTime(AC.egal*(0.13 + 0.34*(0.65*this.regime + 0.35*charge)), t, 0.09);
+          sonCible(AC.g.gain, AC.egal*(0.13 + 0.34*(0.65*this.regime + 0.35*charge)), t, 0.09);
         }
       }
       /* LA MONTÉE PART SUR L'INTENTION, PAS SUR LE PLAFOND : après un arrêt, la vitesse revient
@@ -34190,10 +34235,11 @@ const AUDIO = {
         const taux = ((m && m.ton) || 1)*((m && m.montee) || 1);
         src.playbackRate.value = taux;
         src.connect(f); f.connect(g); g.connect(this.maitre);
+        src.onended=()=>{src.disconnect();f.disconnect();g.disconnect();};
         const depart = this.regime*accelBuf.duration;           // on entre dans la montée au régime où l'on est
         src.start(t, depart);
         const egal = this.egaliser(timbre, accelBuf, C.src.buffer);
-        g.gain.setTargetAtTime(egal*(0.13 + 0.34*(0.65*this.regime + 0.35*charge)), t, 0.05);
+        sonCible(g.gain, egal*(0.13 + 0.34*(0.65*this.regime + 0.35*charge)), t, 0.05);
         this.accel = {src:src, g:g, t0:t, depart:depart, duree:accelBuf.duration, timbre:timbre, taux:taux, egal:egal};
       }
       if(!this.accel){
@@ -34202,7 +34248,7 @@ const AUDIO = {
       }
       const r = this.regime;
       const ton = (m && m.ton) || 1, plage = (m && m.plage) || [0.76, 1.24];
-      C.src.playbackRate.setTargetAtTime(ton*(plage[0] + (plage[1] - plage[0])*r), t, 0.10);
+      sonCible(C.src.playbackRate, ton*(plage[0] + (plage[1] - plage[0])*r), t, 0.10);
       /* LE PLATEAU N'EST PAS SOURD. Le joueur, du tracteur vert : « quand il arrive à plein régime,
          il fait un bruit sourd, il perd son bruit de moteur standard. » Le passe-bas de la
          boucle ouvrait à 1 130 Hz à plein régime, celui de la montée à 1 400 : la bande du
@@ -34210,7 +34256,7 @@ const AUDIO = {
          de la montée — l'oreille entendait le moteur s'étouffer au moment précis du plateau.
          Les deux ouvrent maintenant à la même fréquence, `FILTRE_PLEIN`, et la boucle y arrive
          par la même courbe en carré du régime. */
-      C.f.frequency.setTargetAtTime(230 + (FILTRE_PLEIN - 230)*r*r, t, 0.14);
+      sonCible(C.f.frequency, 230 + (FILTRE_PLEIN - 230)*r*r, t, 0.14);
       // sous la montée, la boucle se tait ; elle revient pour le dernier quart de seconde
       const AC2 = this.accel, finBientot = AC2 && (AC2.depart + (t - AC2.t0)*AC2.taux) > AC2.duree - 0.25;
       /* ---------- TRÈS JEU MINIMALISTE : L'ACCÉLÉRATION S'ENTEND, LE PLATEAU S'EFFACE ----------
@@ -34226,7 +34272,7 @@ const AUDIO = {
       this.plateauT = auPlateau ? (this.plateauT || 0) + dt2 : 0;
       const retrait = 1 - (1 - RETRAIT_PLATEAU)*Math.min(1, Math.max(0, (this.plateauT - 0.8)/1.5));
       const volBoucle = v.sec ? 0.05 : (0.13 + 0.34*(0.65*r + 0.35*charge))*retrait;
-      C.g.gain.setTargetAtTime((AC2 && !finBientot) ? 0.04 : volBoucle, t, 0.09);
+      sonCible(C.g.gain, (AC2 && !finBientot) ? 0.04 : volBoucle, t, 0.09);
     } catch(e){}
   },
   /* LE MATÉRIEL QUI SE BALADE DANS LA CAISSE. Le pick-up et le fourgon ont une caisse ; un
@@ -34244,8 +34290,8 @@ const AUDIO = {
       const vit = Math.abs(v.speed || 0), rap = Math.min(1, vit/6);
       const secousse = Math.min(1, Math.abs(v.bump || 0)*2.5);
       const niveau = (caisse && vit > 0.3) ? 0.12*Math.sqrt(rap)*(1 + 0.5*secousse) : 0;
-      this.cargaison.g.gain.setTargetAtTime(niveau, t, niveau > 0 ? 0.12 : 0.25);
-      this.cargaison.src.playbackRate.setTargetAtTime(0.9 + 0.2*rap, t, 0.3);
+      sonCible(this.cargaison.g.gain, niveau, t, niveau > 0 ? 0.12 : 0.25);
+      sonCible(this.cargaison.src.playbackRate, 0.9 + 0.2*rap, t, 0.3);
     } catch(e){}
   },
   /* ---------- LE DÉRAPAGE : LA TERRE CHUINTE, LA ROUTE CRISSE ----------
@@ -34272,12 +34318,15 @@ const AUDIO = {
       const n0 = Math.max(0, Math.min(1, niveau));
       const dt2 = (dt > 0 && dt < 0.5) ? dt : 1/60;
       this.derapT = n0 > 0 ? (this.derapT || 0) + dt2 : 0;
-      const n = n0*Math.max(0, Math.min(1, (this.derapT - DERAPE_AVANT)/DERAPE_MONTE));
-      T.g.gain.setTargetAtTime((!dur && n > 0) ? 0.05 + 0.20*n : 0, t, (!dur && n > 0) ? 0.05 : 0.14);
-      R.g.gain.setTargetAtTime((dur && n > 0) ? 0.025 + 0.11*n : 0, t, (dur && n > 0) ? 0.04 : 0.12);
+      const arrive=n0*Math.max(0,Math.min(1,(this.derapT-DERAPE_AVANT)/DERAPE_MONTE));
+      this.derapN=(this.derapN||0)+(arrive-(this.derapN||0))*(1-Math.exp(-dt2/0.10));
+      if(this.derapN<0.001) this.derapN=0;
+      const n=this.derapN;
+      sonCible(T.g.gain, (!dur && n > 0) ? 0.03 + 0.17*n : 0, t, (!dur && n > 0) ? 0.05 : 0.14);
+      sonCible(R.g.gain, (dur && n > 0) ? 0.015 + 0.09*n : 0, t, (dur && n > 0) ? 0.04 : 0.12);
       // le crissement monte un peu avec la dérive, comme un pneu qui chauffe : le bruit
       // blanc glisse sa bande, l'échantillon ouvre son passe-bas
-      if(dur && n > 0) R.f.frequency.setTargetAtTime(R.echantillon ? 3500 + 3500*n : 1900 + 500*n, t, 0.1);
+      if(dur && n > 0) sonCible(R.f.frequency, R.echantillon ? 3500 + 3500*n : 1900 + 500*n, t, 0.1);
     } catch(e){}
   },
   /* LE KLAXON EST CELUI QUE LE JOUEUR A ENVOYÉ. « Je vais t'envoyer des sons pour refaire
@@ -34300,7 +34349,8 @@ const AUDIO = {
     if(!this.dispo || !this.on) return;
     try {
       const pres = Math.max(0, 1 - (d || 0)/70);
-      if(pres <= 0) return;
+      if(pres <= 0 || (this.klaxonQuand !== undefined && this.ctx.currentTime-this.klaxonQuand<1.8)) return;
+      this.klaxonQuand=this.ctx.currentTime;
       const cl = classe === true ? 'camion' : (KLAXON_TAUX[classe] ? classe : 'voiture');
       const gros = cl !== 'voiture', taux = KLAXON_TAUX[cl];
       const n = Math.max(1, Math.min(3, Math.round(coups) || 3));
@@ -34308,8 +34358,9 @@ const AUDIO = {
       if(this.klaxonBuf){
         const src = this.ctx.createBufferSource(), g = this.ctx.createGain();
         src.buffer = this.klaxonBuf; src.playbackRate.value = taux;
-        g.gain.value = 0.55*pres*pres*(gros ? 1.15 : 1);
+        g.gain.value = 0.36*pres*pres*(gros ? 1.08 : 1);
         src.connect(g); g.connect(this.maitre);
+        src.onended=()=>{src.disconnect();g.disconnect();};
         const fin = Math.min(this.klaxonBuf.duration, KLAXON_COUPS[n - 1]);
         src.start(t, 0, fin);                       // la durée se compte dans le son, pas dans le temps lu
         this.dernierKlaxon = {classe:cl, coups:n, taux:taux, fin:fin};
@@ -34359,7 +34410,7 @@ const AUDIO = {
       }
       const t = this.ctx.currentTime;
       const p = (pres === undefined || pres === null) ? 1 : Math.max(0, Math.min(1, pres));
-      this.tel.g.gain.setTargetAtTime(fort ? TEL_VOL*(0.3 + 0.7*p) : 0, t, fort ? 0.01 : 0.03);
+      sonCible(this.tel.g.gain, fort ? TEL_VOL*(0.3 + 0.7*p) : 0, t, fort ? 0.01 : 0.03);
     } catch(e){}
   },
   /* LE TRAFIC DE LA ROCADE. Une voiture qui passe s'entend quand elle est près, et se
@@ -34386,8 +34437,8 @@ const AUDIO = {
         }
         const pres = Math.max(0, 1 - d/PORTEE);
         const C = this.trafic[k];
-        C.src.playbackRate.setTargetAtTime(ton*(0.86 + vit/30), t, 0.2);
-        C.g.gain.setTargetAtTime(pres*pres*(k ? 0.26 : 0.17), t, 0.12);
+        sonCible(C.src.playbackRate, ton*(0.86 + vit/30), t, 0.2);
+        sonCible(C.g.gain, pres*pres*(k ? 0.20 : 0.13)*(0.40+0.60*Math.min(1,vit/8)), t, 0.12);
       }
     } catch(e){}
   },
@@ -35277,6 +35328,7 @@ function updateSauvegarde(dt){
 document.addEventListener('visibilitychange', ()=>{
   relacherCommandes();
   if(document.hidden) sauvegarder(false);
+  AUDIO.synchroniser();
 });
 addEventListener('blur', relacherCommandes);
 // Le téléphone qu'on tourne fait surgir #rot par-dessus les pédales, sans un seul
@@ -35510,6 +35562,8 @@ let siloPrevenu = false;
    L'ENGRAIS NE PRÉVIENT QUE SI L'ON A L'ÉPANDEUR : sans lui, la cuve blanche ne se vide
    pas, et une phrase sur un outil qu'on n'a pas achete serait du bruit. */
 const cuvePrevenue = {graines:false, engrais:false};
+function texteSiChange(el,valeur){if(el.textContent!==valeur)el.textContent=valeur;}
+function styleSiChange(el,cle,valeur){if(el.style[cle]!==valeur)el.style[cle]=valeur;}
 function refreshHUD(){
   const n = CAMPAGNE.niveau, N = NIVEAUX[n-1];
   // En mode libre, `missionCourante()` rend toujours null : sans ce garde-fou, le
@@ -35519,10 +35573,10 @@ function refreshHUD(){
   if(acheve && !fini){ fini = true; ouvrirFin(); }
   // Le bandeau dit LEQUEL des deux modes on a repris : rien d'autre à l'écran ne les
   // distingue, et l'on ne saurait pas pourquoi tout est achetable.
-  el.goal.textContent = acheve ? 'LA VALLÉE EST À TOI'
+  texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
                        : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
-                                    : 'NIVEAU ' + n + ' – ' + N.nom;
-  el.money.textContent = Math.floor(money).toLocaleString('fr-FR') + ' €';
+                                    : 'NIVEAU ' + n + ' – ' + N.nom);
+  texteSiChange(el.money,Math.floor(money).toLocaleString('fr-FR')+' €');
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
      au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
      ligne du poids. Sans lui on moissonne, on rentre au silo, et le transfert s'arrête
@@ -35546,7 +35600,7 @@ function refreshHUD(){
   // n'avance plus que d'un cheveu au dixième niveau ne dit plus rien.
   const b0 = xpNiveau(n), b1 = xpNiveau(n + 1);
   const part = acheve ? 1 : (b1 > b0 ? (CAMPAGNE.xp - b0)/(b1 - b0) : 1);
-  el.bar.style.width = Math.max(0, Math.min(100, part*100)) + '%';
+  styleSiChange(el.bar,'width',Math.max(0,Math.min(100,part*100)).toFixed(2)+'%');
   /* LA BARRE DE CHARGEMENT N'EST PLUS ICI. Elle vivait sous le bouton de culture, contre
      le bord droit, et disait ce que la plaque posée au-dessus de la trémie et au-dessus
      de la remorque dit maintenant dans le paysage — voir `jaugesEngin`. Un chiffre de
@@ -36517,6 +36571,7 @@ function loop(now){
   _dtImage = dt || 1/60;
   if(paused) dt = 0;
 
+  AUDIO.synchroniser();
   keyboardInput();
   commandesBoutons(dt || 0.016);
   const m = MACHINES[cur], v = m.v;
@@ -36526,9 +36581,10 @@ function loop(now){
     for(const mm of MACHINES){
       if(mm === m || mm.verrou) continue;
       const vv = mm.v;
+      vv.augerOut = (mm.key === 'moisson' && hopper >= HOP_MAX);
+      if(enginAuRepos(vv)) continue;
       let s2 = 0, t2 = 0;
       if(vv.auto){ const r = autoDrive(mm, dt); s2 = r[0]; t2 = r[1]; }
-      vv.augerOut = (mm.key === 'moisson' && hopper >= HOP_MAX);
       vv.update(dt, s2, t2);
       vv.steerVis = s2 ? 0.35 : 0;
       work(mm, dt);
