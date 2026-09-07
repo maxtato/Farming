@@ -2045,6 +2045,10 @@ const TEX_GRILLE = [];
    avec les seules textures peintes restées lisses. On règle chacune à l'inscription. */
 function pixTex(t){
   TEX_GRILLE.push(t);
+  t.addEventListener('dispose', ()=>{
+    const i = TEX_GRILLE.indexOf(t);
+    if(i >= 0) TEX_GRILLE.splice(i, 1);
+  });
   const f = PIXEL.ui ? THREE.NearestFilter : THREE.LinearFilter;
   if(t.magFilter !== f){ t.magFilter = f; t.needsUpdate = true; }
   return t;
@@ -2067,6 +2071,9 @@ function rafraichirVisages(){
     if(!src) continue;
     const f = src.split('/').pop();
     el.setAttribute('src', (PIXEL.pal ? 'portraits14/' : 'portraits/') + f);
+  }
+  for(const S of SITES){
+    if(S.bulleH !== undefined) ajouteBulleRendu(S, S.bulleH, bulleSous(S));
   }
 }
 function appliquerPixel(){
@@ -9279,31 +9286,59 @@ function couperNom(nom){
   }
   return [mots.slice(0, best).join(' '), mots.slice(best).join(' ')];
 }
+// Les portraits existants sont décodés une fois par palette, puis cuits dans la plaque.
+const VISAGES_ENSEIGNES = new Map();
+function visageEnseigne(src){
+  if(!VISAGES_ENSEIGNES.has(src)){
+    VISAGES_ENSEIGNES.set(src, new Promise(resolve=>{
+      const im = new Image();
+      im.onload = ()=>resolve(im);
+      im.onerror = ()=>resolve(null);
+      im.src = src;
+    }));
+  }
+  return VISAGES_ENSEIGNES.get(src);
+}
 function bulleTex(nom, toit, sous){
   /* SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
      restent écrits dans l'espace LW x LH, quelle que soit sa valeur. */
   const SUR = 1;
   const lig = couperNom(nom);
-  const LW = 560;
+  const src = visageDe(nom, 'neutre'), margeVisage = src ? 140 : 0;
+  const LW = 560 + margeVisage;
   const hNom = lig.length*(NOM_PX + 12);
-  const LH = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
+  const hTexte = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
+  const LH = Math.max(hTexte, src ? 160 : 0);
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
   c.scale(SUR, SUR);
   const r = 34, w = LW - 20, h = LH - 22, x = 10, y = 8;
-  c.fillStyle = sous ? 'rgba(28,35,40,.74)' : 'rgba(28,35,40,.80)';
+  c.fillStyle = '#171B1D';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
   c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
 
+  const fond = c.getImageData(0, 0, cv.width, cv.height);
+  function peindre(im){
+  c.putImageData(fond, 0, 0);
+  const centreTexte = im ? margeVisage + 280 : LW/2;
+  const decalY = (LH-hTexte)/2;
+  if(im){
+    // Cadrage entier : ni le chapeau ni les épaules ne sont coupés.
+    const cote = 124, k = Math.min(cote/im.naturalWidth, cote/im.naturalHeight);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(im, 22+(cote-im.naturalWidth*k)/2,
+      (LH-im.naturalHeight*k)/2-3, im.naturalWidth*k, im.naturalHeight*k);
+  }
   const ferme = /^NIVEAU /.test(sous || '');
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
   c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-  lig.forEach((t, i)=> c.fillText(t, LW/2, 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
+  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
   /* PLUS DE TRAIT SOUS LE TITRE. Une barre d'accent de 310 pixels sur 5, dans la couleur
      du toit, séparait le nom du commerce de ce qu'une mission y attend. Le joueur : « sur
      toutes les étiquettes, enlève le petit trait de soulignage qui est sous le titre, tu
@@ -9316,13 +9351,24 @@ function bulleTex(nom, toit, sous){
     // jaune du guidage — c'est la même information que le cercle au sol, écrite.
     c.fillStyle = ferme ? 'rgba(255,255,255,.55)' : '#FFD21E';
     c.font = 'bold ' + SOUS_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-    c.fillText(sous, LW/2, yb + 10 + SOUS_PX/2);
+    c.fillText(sous, centreTexte, decalY + yb + 10 + SOUS_PX/2, 520);
   }
+  }
+  peindre(null);
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 8;
   tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
-  return {tex: pixTex(tex), ratio: LH/LW};
+  if(src){
+    let detruite = false;
+    tex.addEventListener('dispose', ()=>{detruite = true;});
+    visageEnseigne(src).then(im=>{
+      if(!im || detruite) return;
+      peindre(im);
+      tex.needsUpdate = true;
+    });
+  }
+  return {tex: pixTex(tex), ratio: LH/LW, largeur: LW/560};
 }
 /* UNE ÉTIQUETTE EST PLATE, ET C'EST LE JOUEUR QUI A TRANCHÉ.
    Quatre états successifs, et l'on est revenu au deuxième :
@@ -9353,7 +9399,7 @@ function poseBulle(nom, toit, sous, x, y, z, rot){
   const B = bulleTex(nom, toit, sous);
   // Douze mètres : assez pour se lire de la route sans qu'on plisse les yeux, pas assez
   // pour manger le bâtiment qu'elle nomme — la façade d'un supermarché en fait vingt-trois.
-  const LARGE = 12.0;
+  const LARGE = 12.0*B.largeur;
   /* ET C'EST UN SPRITE, COMME LES ÉTIQUETTES DE LIEU.
      L'enseigne a été un SPRITE, puis un plan qui pivotait vers la caméra à chaque image,
      puis un plan posé une fois pour toutes au cap de la caméra. Le joueur, en voyant le
