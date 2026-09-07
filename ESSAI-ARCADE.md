@@ -80,6 +80,16 @@ Ces vérifications ne remplacent pas un essai sur le téléphone du joueur. Les 
 
 ## Essai conseillé
 
+### Travail en parallèle
+
+Les parcelles placées dans le plan de travail peuvent employer des tracteurs différents en même temps. Le combiné reste prioritaire s'il est disponible ; sinon, une charrue, un semoir ou un épandeur compatible peut prendre l'autre parcelle. Le choix vérifie les consommables de l'outil retenu. Un outil est réservé dès qu'un véhicule part le chercher, et reste lié à son porteur lorsqu'il est attelé : aucune duplication ni emprunt à un engin occupé. Les réservations disparaissent avec les ordres, sans modifier les sauvegardes.
+
+Les transports indépendants utilisent des véhicules terrestres libres dont la caisse accepte le produit. La benne sert de relais si les utilitaires sont pris ; elle bénéficie de la même réservation pendant l'attelage. Une seule mission de travail de la terre reste active par parcelle.
+
+Validation : 50 tests (20 arcade, 11 performance, 6 cultures, 13 automatisation) et comparaison dans le jeu sur trois minutes simulées. Avant : combiné seul, second tracteur immobile, première parcelle 0/225 cellules travaillées. Après : deux tracteurs attribués dès le même tour, 224/225 cellules labourées dans la première parcelle pendant que le combiné travaille 289/345 cellules dans la seconde ; 179,1 secondes d'automatisation simultanée, aucune erreur. Ce contrôle vérifie la progression simultanée, pas la fin complète du cycle de récolte.
+
+Pour essayer : programmer au moins deux parcelles dans le plan de travail, avec deux ensembles tracteur/outil achetés et compatibles. Avec un seul outil capable du travail demandé, la deuxième tâche attend sa disponibilité. Les autres parcelles non programmées ne sont pas lancées d'office. La production reste inchangée ; point de retour avant cet ajustement : `d917bdff19e030434c024fdfd5a3d0764d4f25d8`.
+
 1. Prendre le tracteur puis le pick-up, accélérer et donner un virage vif. Relâcher la direction.
 2. Frôler un véhicule puis le toucher de face à vitesse modérée. Essayer également une remorque.
    Toucher ensuite son coin arrière : il doit pivoter, contre-braquer et rejoindre sa voie en roulant. Laisser de la place devant et derrière pour les manœuvres.

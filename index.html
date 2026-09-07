@@ -36188,16 +36188,21 @@ function besoinEtape(C, et){
      à ET_POUSSE. Les étapes de semis et d'engrais ne sont pas supprimées — elles ne sont
      simplement plus atteintes, sauf sur une terre à moitié travaillée à la main, où le
      combiné les honore aussi. */
-  if(combinePret())
-    return {classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === 'combine')};
-  return {classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === cle)};
+  const possibles = [];
+  if(combinePret()) possibles.push({classe:'tracteur', outil:TOOLS.findIndex((T)=> T.key === 'combine')});
+  const simple = TOOLS.findIndex((T)=> T.key === cle);
+  if(simple >= 0) possibles.push({classe:'tracteur', outil:simple});
+  // Le combiné reste préféré, mais ne met plus les autres parcelles en attente.
+  // On vérifie les consommables de l'outil réellement choisi, pas ceux d'un voisin.
+  return possibles.find(B=> !blocageEtape(C, et, B)
+    && enginPourOutil(B.classe, PARCELS[C.p], B.outil) >= 0)
+    || possibles.find(B=> !blocageEtape(C, et, B)) || possibles[0] || null;
 }
 /* POURQUOI ÇA N'AVANCE PAS. Un chantier qui se bloque sans le dire est le seul vrai
    défaut d'un système qu'on laisse tourner sans le regarder. Chaque étape déclare donc
    ce qui lui manque, en français, et le chantier le porte jusqu'à ce que ce soit réglé. */
-function blocageEtape(C, et){
+function blocageEtape(C, et, B = besoinEtape(C, et)){
   const c = CROPS[C.crop || 0];
-  const B = besoinEtape(C, et);
   /* ON INTERROGE L'OUTIL DE L'ÉTAPE, ET NON LE NOM DE L'ÉTAPE. C'était écrit sur le nom
      — « si c'est un semis, regarde le semoir » — ce qui ne veut plus rien dire depuis
      qu'un seul outil fait les trois travaux : le combiné parti labourer se serait arrêté
@@ -36219,7 +36224,7 @@ function blocageEtape(C, et){
   /* Ce qu'il ÉPAND — et seulement quand l'engrais est obligatoire. Le casier du combiné
      est facultatif : il sème sans, et le dire « bloqué » arrêterait un chantier qui a
      tout ce qu'il lui faut pour l'essentiel. */
-  if(T && T.key === 'engrais'){
+  if(T && (T.key === 'engrais' || (et === ET_ENGRAIS && T.fertilise))){
     const enCuve = cuveDe(T, 'engrais');
     if(enCuve < 0.5 && CUVES.engrais < 0.5)
       return 'PLUS D’ENGRAIS – À ACHETER AU COMPTOIR';
@@ -36539,14 +36544,14 @@ function pisteTerre(C, k){
     return;
   }
   if(et === ET_POUSSE){ C.bloque = null; return; }   // rien à faire qu'attendre
-  const mal = blocageEtape(C, et);
+  const B = besoinEtape(C, et);
+  if(!B) return;
+  const mal = blocageEtape(C, et, B);
   if(mal){
     if(C.bloque !== mal){ C.bloque = mal; showHint(mal); }
     return;
   }
   C.bloque = null;
-  const B = besoinEtape(C, et);
-  if(!B) return;
   const choisi = enginPourOutil(B.classe, PARCELS[C.p], B.outil);
   if(choisi < 0){
     /* Pas d'engin libre : ce n'est pas une erreur, c'est une file d'attente. On le dit
@@ -36557,7 +36562,8 @@ function pisteTerre(C, k){
        occupé. Le joueur irait acheter un quatrième tracteur qui ne servirait à rien. */
     const T = B.outil >= 0 ? TOOLS[B.outil] : null;
     C.bloque = NOM_ETAPE[et].toUpperCase()
-             + (T && T.attached ? ' – ' + T.nom.toUpperCase() + ' EST SUR UN ENGIN OCCUPÉ'
+             + (T && outilReserve(B.outil) ? ' – ' + T.nom.toUpperCase() + ' EST DÉJÀ RÉSERVÉ'
+                : T && T.attached ? ' – ' + T.nom.toUpperCase() + ' EST SUR UN ENGIN OCCUPÉ'
                                 : ' – EN ATTENTE D’UN ENGIN');
     return;
   }
@@ -36613,21 +36619,17 @@ function pisteMarchandise(C){
    La tâche `outil` s'enfile devant la navette, exactement comme le tracteur va chercher
    sa charrue avant de labourer. Elle sait passer son tour quand l'outil est déjà là. */
 function armerPorteur(C, champ, ou, faire){
-  const i = enginLePlusProche('porteur', ou);
-  if(i >= 0){ C[champ] = i; armerEngin(MACHINES[i], faire()); return true; }
+  const taches = faire();
+  const accepte = K=> !!K && taches.every(t=> t.quoi !== 'navette' || accepteNature(K, t.cle));
+  const i = enginLePlusProche('porteur', ou, m=> !m.v.bateau && accepte(caisseDe(m)));
+  if(i >= 0){ C[champ] = i; armerEngin(MACHINES[i], taches); return true; }
   const ib = TOOLS.findIndex((T)=> T.key === 'benne');
   const B = ib >= 0 ? TOOLS[ib] : null;
-  if(!B || B.verrou) return false;
-  let t = -1;
-  if(B.attached){
-    const j = MACHINES.findIndex((m)=> m.v === B.attached);
-    if(j >= 0 && classeDe(MACHINES[j]) === 'tracteur' && enginLibre(MACHINES[j])) t = j;
-    else return false;              // attelée à un engin occupé : on ne la lui prend pas
-  }
-  if(t < 0) t = enginLePlusProche('tracteur', ou);
+  if(!B || B.verrou || !accepte(B)) return false;
+  const t = enginPourOutil('tracteur', ou, ib);
   if(t < 0) return false;
   C[champ] = t;
-  armerEngin(MACHINES[t], [{quoi:'outil', t:ib}].concat(faire()));
+  armerEngin(MACHINES[t], [{quoi:'outil', t:ib}].concat(taches));
   return true;
 }
 /* ---------- ET L'ON RENTRE SE GARER ----------
@@ -36720,10 +36722,10 @@ const aServi = (C, i)=>{ if(i < 0) return i;
 /* L'engin libre de cette classe le plus proche d'un point. La proximité n'est pas du
    luxe : le parc à outils est à cent mètres des champs, et prendre le tracteur d'en face
    coûte une minute d'aller-retour visible à l'écran. */
-function enginLePlusProche(classe, ou){
+function enginLePlusProche(classe, ou, accepte = ()=> true){
   let choisi = -1, best = 1e9;
   MACHINES.forEach((m, i)=>{
-    if(classeDe(m) !== classe || !enginLibre(m)) return;
+    if(classeDe(m) !== classe || !enginLibre(m) || !accepte(m)) return;
     const d = Math.hypot(m.v.pos.x - ou.x, m.v.pos.z - ou.z);
     if(d < best){ best = d; choisi = i; }
   });
@@ -36755,8 +36757,22 @@ function enginLePlusProche(classe, ou){
    UN OUTIL POSÉ AU SOL, LUI, N'APPARTIENT À PERSONNE : on reprend alors la distance, et le
    cas nominal — un seul tracteur qui va chercher ses outils l'un après l'autre — ne change
    pas d'une ligne. `B.outil` vaut −1 pour la moisson, qui retombe sur l'ancien chemin. */
+// Une mission réserve aussi l'outil posé au parc, dès le départ de son tracteur.
+// Lire les ordres restants libère la réservation à la fin ou à l'annulation, sans état à sauver.
+function outilReserve(io){
+  return MACHINES.some(m=>{
+    const M = m.v.mission;
+    return M && (M.taches || []).some((t, i)=> i >= (M.i || 0) && t.quoi === 'outil' && t.t === io);
+  });
+}
 function enginPourOutil(classe, ou, io){
   const T = io >= 0 ? TOOLS[io] : null;
+  if(io >= 0 && (!T || T.verrou || outilReserve(io))) return -1;
+  if(T && T.attached){
+    const j = MACHINES.findIndex(m=> m.v === T.attached);
+    if(j < 0 || (T.pourEngin && MACHINES[j].key !== T.pourEngin)) return -1;
+    return classeDe(MACHINES[j]) === classe && enginLibre(MACHINES[j]) ? j : -1;
+  }
   /* UN OUTIL QUI EXIGE UN ENGIN PRÉCIS DÉSIGNE LUI-MÊME SON PORTEUR, et la distance n'a
      plus voix au chapitre : le combiné ne part pas avec le tracteur le plus proche, il
      part avec le seul qui peut le tirer. S'il n'est pas encore acheté ou s'il est pris,
@@ -36766,15 +36782,7 @@ function enginPourOutil(classe, ou, io){
     if(k < 0 || MACHINES[k].verrou) return -1;
     return (classeDe(MACHINES[k]) === classe && enginLibre(MACHINES[k])) ? k : -1;
   }
-  if(!T || !T.attached) return enginLePlusProche(classe, ou);
-  const j = MACHINES.findIndex((m)=> m.v === T.attached);
-  /* ET SI L'OUTIL EST ATTELÉ À QUELQUE CHOSE QUI N'EST PAS DU PARC, on retombe sur la
-     distance plutôt que de bloquer le chantier sans rien dire. Ce n'est pas atteignable
-     aujourd'hui — la relecture de sauvegarde écarte les porteurs absents, et seuls les
-     trois tracteurs ont un crochet — mais une branche muette qui rend −1 pour toujours
-     n'a aucune raison d'exister. */
-  if(j < 0) return enginLePlusProche(classe, ou);
-  return (classeDe(MACHINES[j]) === classe && enginLibre(MACHINES[j])) ? j : -1;
+  return enginLePlusProche(classe, ou);
 }
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){

@@ -1,0 +1,86 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+function fn(name){const a=source.indexOf('function '+name+'(');assert(a>=0,name);return source.slice(a,source.indexOf('\n}',a)+2);}
+function setup(){
+ const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],cur:-1,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
+ CROPS:[{cle:'ble',nom:'Blé'},{cle:'mais',nom:'Maïs'}],PARCELS:[{x:10,z:0},{x:30,z:0},{x:50,z:0}],
+ CUVES:{graines:{ble:100,mais:100},engrais:100},ET_LABOUR:'labour',ET_SEMIS:'semis',ET_ENGRAIS:'engrais',ET_MOISSON:'moisson',ET_FINI:'fini',ET_POUSSE:'pousse',
+ NOM_ETAPE:{labour:'Labour',semis:'Semis',engrais:'Engrais',moisson:'Moisson'},
+ EST_TRACTEUR:m=>m.key.startsWith('t'),cuveDe:(t,k)=>t.cuves[k]||0,siloPlein:()=>false,showHint(){},
+ bacsDe:t=>t.seme?[{engrais:false}]:[],aServi:(c,i)=>i,etapeChantier:c=>c.demande,etapeMarchandise:()=>null,
+ caisseDe:m=>m.v.cargo,accepteNature:(k,cle)=>!k.prend||k.prend.includes(cle),rentrerAuParc(){}});
+ const a=source.indexOf('const classeDe ='),b=source.indexOf('/* UN ENGIN EST LIBRE',a);
+ const d=source.indexOf('const rentreAuParc ='),e=source.indexOf('/* ARMER UN ENGIN',d);
+ vm.runInContext(source.slice(a,b)+source.slice(d,e)+['combinePret','besoinEtape','blocageEtape','enginLePlusProche','outilReserve','enginPourOutil','armerEngin','tachesEtape','pisteTerre','armerPorteur'].map(fn).join('\n'),c);
+ c.MACHINES.push(...['t1','t2','t4','pickup','fourgon'].map((key,i)=>({key,verrou:false,v:{pos:{x:i*2,z:0},auto:false,mission:null,cargo:i>=3?{capacite:100,load:0}:null}})));
+ c.TOOLS.push(...['labour','semis','engrais','combine','benne'].map(key=>({key,nom:key,verrou:false,attached:null,cuves:{},seme:key==='semis'||key==='combine',fertilise:key==='engrais'||key==='combine',pourEngin:key==='combine'?'t4':null,cargo:key==='benne'})));
+ return c;
+}
+let n=0;
+function test(name,f){f(setup());n++;console.log('PASS '+name);}
+function chantier(c,p,demande='labour'){const C={p,crop:0,demande,enginTerre:-1,enginPort:-1,continu:true};c.CHANTIERS.push(C);return C;}
+function lancer(c,C){c.pisteTerre(C,c.CHANTIERS.indexOf(C));}
+test('Two simultaneous ploughing parcels use the combine and the ordinary plough',c=>{
+ const a=chantier(c,0),b=chantier(c,1);lancer(c,a);lancer(c,b);
+ assert.equal(a.enginTerre,2);assert(b.enginTerre>=0&&b.enginTerre!==2);
+ assert.equal(c.MACHINES[a.enginTerre].v.mission.taches[0].t,3);
+ assert.equal(c.MACHINES[b.enginTerre].v.mission.taches[0].t,0);
+ assert.equal(c.MACHINES[a.enginTerre].v.mission.taches.at(-1).p,0);
+ assert.equal(c.MACHINES[b.enginTerre].v.mission.taches.at(-1).p,1);
+});
+test('An unattached tool is reserved while its tractor travels to collect it',c=>{
+ c.TOOLS[3].verrou=true;const a=chantier(c,0),b=chantier(c,1);lancer(c,a);lancer(c,b);
+ assert(a.enginTerre>=0);assert.equal(b.enginTerre,-1);assert(c.outilReserve(0));
+});
+test('Cancelling a task frees its uncollected tool for another parcel',c=>{
+ c.TOOLS[3].verrou=true;const a=chantier(c,0),b=chantier(c,1);lancer(c,a);
+ const m=c.MACHINES[a.enginTerre];m.v.mission=null;m.v.auto=false;c.CHANTIERS.splice(0,1);
+ lancer(c,b);assert(b.enginTerre>=0);
+});
+test('A busy attached implement is neither stolen nor assigned to a second tractor',c=>{
+ c.TOOLS[0].attached=c.MACHINES[0].v;c.MACHINES[0].v.auto=true;
+ assert.equal(c.enginPourOutil('tracteur',c.PARCELS[0],0),-1);
+ c.MACHINES[0].v.auto=false;assert.equal(c.enginPourOutil('tracteur',c.PARCELS[0],0),0);
+});
+test('A free simple implement can work when the combine lacks seed',c=>{
+ c.CUVES.graines.ble=0;const a=chantier(c,0);lancer(c,a);
+ assert(a.enginTerre>=0);assert.equal(c.MACHINES[a.enginTerre].v.mission.taches[0].t,0);
+});
+test('Parallel sowing retains the separate crop choice of both tools',c=>{
+ const a=chantier(c,0,'semis'),b=chantier(c,1,'semis');b.crop=1;lancer(c,a);lancer(c,b);
+ assert.notEqual(a.enginTerre,b.enginTerre);assert.equal(c.TOOLS[3].crop,0);assert.equal(c.TOOLS[1].crop,1);
+});
+test('Fertilizing never dispatches an empty combine when no fertilizer is available',c=>{
+ c.CUVES.engrais=0;const a=chantier(c,0,'engrais');lancer(c,a);
+ assert.equal(a.enginTerre,-1);assert.match(a.bloque,/ENGRAIS/);
+});
+test('Three different available implements can work on separate parcels together',c=>{
+ c.TOOLS[3].verrou=true;const jobs=['labour','semis','engrais'].map((e,i)=>chantier(c,i,e));
+ jobs.forEach(C=>lancer(c,C));assert.equal(new Set(jobs.map(C=>C.enginTerre)).size,3);assert(jobs.every(C=>C.enginTerre>=0));
+});
+test('Revisiting an active parcel never starts an additional worker',c=>{
+ const a=chantier(c,0);lancer(c,a);const i=a.enginTerre;const mission=c.MACHINES[i].v.mission;
+ for(let j=0;j<8;j++)lancer(c,a);assert.equal(c.MACHINES[i].v.mission,mission);assert.equal(c.MACHINES.filter(m=>m.v.mission).length,1);
+});
+test('A vehicle returning to the parking can take new work immediately',c=>{
+ c.TOOLS[0].attached=c.MACHINES[0].v;c.armerEngin(c.MACHINES[0],[{quoi:'parc'}]);
+ assert.equal(c.enginPourOutil('tracteur',c.PARCELS[0],0),0);
+});
+test('Two deliveries use different available vehicles and different destinations',c=>{
+ const a=chantier(c,0),b=chantier(c,1);
+ assert(c.armerPorteur(a,'enginPort',c.PARCELS[0],()=>[{quoi:'navette',a:'silo',b:'boulangerie',cle:'ble'}]));
+ assert(c.armerPorteur(b,'enginPort',c.PARCELS[1],()=>[{quoi:'navette',a:'entrepot',b:'epicerie',cle:'farine'}]));
+ assert.notEqual(a.enginPort,b.enginPort);
+});
+test('Transport skips boats and incompatible cargo instead of blocking the right vehicle',c=>{
+ c.MACHINES[3].v.bateau=true;const a=chantier(c,0);
+ assert(c.armerPorteur(a,'enginPort',c.PARCELS[0],()=>[{quoi:'navette',cle:'lait'}]));assert.equal(a.enginPort,4);
+ const b=chantier(c,1);c.MACHINES[3].v.bateau=false;c.MACHINES[3].v.cargo.prend=['grumes'];
+ assert(c.armerPorteur(b,'enginPort',c.PARCELS[1],()=>[{quoi:'navette',cle:'lait'}]));assert(b.enginPort<3);
+});
+test('Two tractor deliveries cannot reserve the same loose trailer',c=>{
+ c.MACHINES[3].verrou=c.MACHINES[4].verrou=true;const a=chantier(c,0),b=chantier(c,1);
+ const faire=()=>[{quoi:'navette',a:'silo',b:'epicerie',cle:'ble'}];
+ assert(c.armerPorteur(a,'enginPort',c.PARCELS[0],faire));assert.equal(c.armerPorteur(b,'enginPort',c.PARCELS[1],faire),false);
+});
+console.log(n+' automation tests passed.');
