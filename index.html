@@ -20693,6 +20693,13 @@ function freinTrafic(t){
   for(const p of pointsEngins()) regarde(p.x, p.z, p.r, p.r, p.quoi);
   for(const u of TRAFIC){
     if(u === t || !u.actif) continue;
+    if(u.reprise){
+      for(const c of gabaritsTrafic(u,[])){
+        regarde(c.x1,c.z1,c.r,c.r,'trafic');regarde(c.x2,c.z2,c.r,c.r,'trafic');
+        regarde((c.x1+c.x2)/2,(c.z1+c.z2)/2,c.r,c.r,'trafic');
+      }
+      continue;
+    }
     if(u.fx*t.fx + u.fz*t.fz < 0.5) continue;                 // pas mon sens : un croisement, pas une file
     const dx = u.m.position.x - tx, dz = u.m.position.z - tz;
     if(dx*t.fx + dz*t.fz <= 0) continue;
@@ -20931,6 +20938,7 @@ function faireNaitre(t, modele, lourd, route, v, D){
      seconde, c'est-à-dire dix mètres derrière le créneau qu'on vient de lui réserver. */
   t.retard = 0; t.k = 1; t.vitPrec = v; t.choc = 0; t.klaxonT = 0; t.freinPour = null; t.evite = 0;
   t.ox = t.oz = t.vox = t.voz = 0;
+  t.reprise=null;t.impactEngin=null;t.impactQuand=-Infinity;
   t.avant = D.avant; t.arriere = D.arriere; t.larg = D.larg || 2.4;
   t.susp = (lourd || PORTEUR_TRAFIC[modele]) ? SUSP_TRAFIC.lourd : SUSP_TRAFIC.leger;
   /* CE QUE CETTE CARROSSERIE-LÀ A LE DROIT DE PENCHER, et sa boîte pour le butoir du sol.
@@ -21417,6 +21425,126 @@ function pivotChoc(v, px, pz, nx, nz, pen){
    une adhérence, il encaisse — et la voiture reçoit un ÉCART, qui la déporte hors de sa
    voie avant que le ressort ne l'y ramène. Elle freine aussi : une voiture qu'on vient
    d'emboutir ne repart pas à sa vitesse de croisière dans la seconde. */
+function angleTrafic(a){ return Math.atan2(Math.sin(a),Math.cos(a)); }
+function reprendreVolant(t){
+  if(t.reprise) return t.reprise;
+  const r=t.reprise={v:t.vit||0,lacet:0,volant:0,recul:0,bloque:0,attente:0};
+  if(t.lourd){
+    r.ax=t.m.position.x-t.fx*SELLETTE_TRAFIC-Math.sin(t.tcap)*TIMON_TRAFIC;
+    r.az=t.m.position.z-t.fz*SELLETTE_TRAFIC-Math.cos(t.tcap)*TIMON_TRAFIC;
+  }
+  return r;
+}
+function tournerAuChoc(t,px,pz,nx,nz,impulsion){
+  const r=reprendreVolant(t),dx=px-t.m.position.x,dz=pz-t.m.position.z;
+  const longueur=Math.max(3,t.avant+t.arriere),arriere=dx*t.fx+dz*t.fz < -longueur*.18;
+  let bras=dz*nx-dx*nz;
+  // Un très léger désalignement des roues évite un choc arrière parfaitement symétrique.
+  if(arriere && Math.abs(bras)<.25) bras=.25*Math.sign(bras||t.fx||1);
+  const inertie=Math.max(2,longueur*longueur/12);
+  r.lacet=Math.max(-1.45,Math.min(1.45,r.lacet+impulsion*bras/inertie));
+}
+// Test du volume futur, y compris le balayage du nez et de la remorque.
+// Une pénétration déjà présente peut se dégager, mais pas s'aggraver.
+function passageReprise(t,x,z,cap){
+  const old=gabaritsTrafic(t,[]),dx=x-t.m.position.x,dz=z-t.m.position.z;
+  const da=angleTrafic(cap-t.cap),cs=Math.cos(da),sn=Math.sin(da);
+  const next=old.map(c=>{
+    if(c.part==='remorque'&&t.reprise){
+      const hx=x-Math.sin(cap)*SELLETTE_TRAFIC,hz=z-Math.cos(cap)*SELLETTE_TRAFIC;
+      const rx=hx-t.reprise.ax,rz=hz-t.reprise.az,d=Math.hypot(rx,rz)||1;
+      const ohx=t.m.position.x-t.fx*SELLETTE_TRAFIC,ohz=t.m.position.z-t.fz*SELLETTE_TRAFIC;
+      const l1=Math.hypot(c.x1-ohx,c.z1-ohz),l2=Math.hypot(c.x2-ohx,c.z2-ohz);
+      return {...c,x1:hx-rx/d*l1,z1:hz-rz/d*l1,x2:hx-rx/d*l2,z2:hz-rz/d*l2};
+    }
+    const tourne=(px,pz)=>({x:x+(px-t.m.position.x)*cs+(pz-t.m.position.z)*sn,z:z-(px-t.m.position.x)*sn+(pz-t.m.position.z)*cs});
+    const a=tourne(c.x1,c.z1),b=tourne(c.x2,c.z2);return {...c,x1:a.x,z1:a.z,x2:b.x,z2:b.z};
+  });
+  const distance=(a,b)=>{const p=segSeg(a.x1,a.z1,a.x2,a.z2,b.x1,b.z1,b.x2,b.z2);return Math.hypot(p.x2-p.x1,p.z2-p.z1);};
+  const touche=other=>{
+    for(let i=0;i<next.length;i++)for(const c of other){
+      const d=distance(next[i],c),r=next[i].r+c.r+.12;
+      if(d<r && d<distance(old[i],c)-.0001) return true;
+    }
+    return false;
+  };
+  for(const m of MACHINES) if(!m.verrou&&!m.v.bateau&&!fantomeAuto(m.v)&&touche(gabarits(m.v,[]))) return false;
+  for(const u of TRAFIC) if(u!==t&&u.actif&&touche(gabaritsTrafic(u,[]))) return false;
+  for(const o of obstacles){
+    if(o.bas||Math.abs(o.x-x)>o.r+t.avant+t.arriere+4||Math.abs(o.z-z)>o.r+t.avant+t.arriere+4) continue;
+    if(touche([{x1:o.x,z1:o.z,x2:o.x,z2:o.z,r:o.r}])) return false;
+  }
+  for(const o of boxObs){
+    if(Math.abs(o.x-x)>o.hw+t.avant+t.arriere+4||Math.abs(o.z-z)>o.hd+t.avant+t.arriere+4) continue;
+    const dist=c=>{
+      let d=Infinity;const n=Math.max(2,Math.ceil(Math.hypot(c.x2-c.x1,c.z2-c.z1)));
+      for(let j=0;j<=n;j++){const px=c.x1+(c.x2-c.x1)*j/n,pz=c.z1+(c.z2-c.z1)*j/n;
+        d=Math.min(d,Math.hypot(Math.max(0,Math.abs(px-o.x)-o.hw),Math.max(0,Math.abs(pz-o.z)-o.hd)));}
+      return d;
+    };
+    for(let i=0;i<next.length;i++) if(dist(next[i])<next[i].r+.12&&dist(next[i])<dist(old[i])-.0001) return false;
+  }
+  return true;
+}
+function conduireReprise(t,dt,cible){
+  const r=t.reprise,oldCap=t.cap;
+  // Recaler seulement l'abscisse de réservation sur la position réelle, jamais la carrosserie.
+  let s=t.s;
+  for(let i=0;i<3;i++){const p=surItineraire(t.route,s);s+=Math.max(-6,Math.min(6,(t.m.position.x-p.x)*p.tx+(t.m.position.z-p.z)*p.tz));}
+  t.s=s;
+  const voie=surItineraire(t.route,s),look=t.lourd?12:7;
+  const cibleP=surItineraire(t.route,s+look);
+  cibleP.x-=cibleP.tz*(t.evite||0);cibleP.z+=cibleP.tx*(t.evite||0);
+  const dx=cibleP.x-t.m.position.x,dz=cibleP.z-t.m.position.z;
+  const erreur=angleTrafic(Math.atan2(dx,dz)-t.cap),empattement=t.lourd?5.8:3.1;
+  r.attente=Math.max(0,r.attente-dt);
+  if(r.recul>0) r.recul=Math.max(0,r.recul-dt);
+  if(!r.recul&&!r.attente&&Math.abs(r.v)<.5&&(Math.abs(erreur)>1.35||r.bloque>.65)){
+    r.recul=t.lourd?1.4:1.8;r.attente=3;r.bloque=0;
+  }
+  const reverse=r.recul>0;
+  let volant=Math.atan2(2*empattement*Math.sin(erreur),Math.max(3,Math.hypot(dx,dz)));
+  if(reverse) volant=-Math.sign(erreur||1)*.62;
+  volant=Math.max(-.65,Math.min(.65,volant));
+  r.volant+=(volant-r.volant)*(1-Math.exp(-8*dt));
+  let vise=reverse?-2:Math.min(t.v,Math.max(2,6/(1+Math.abs(erreur)*2)));
+  if(!reverse) vise=Math.min(vise,t.v*cible);
+  if(t.choc>.30) vise=0;
+  r.v+=Math.max(-7*dt,Math.min(2.5*dt,vise-r.v));
+  const yaw=r.v/empattement*Math.tan(r.volant)+r.lacet;
+  let cap=oldCap+yaw*dt;
+  const mid=(oldCap+cap)/2;
+  // Le seul glissement est l'inertie brève du choc. Aucun ressort vers la route.
+  t.vox*=Math.exp(-4.5*dt);t.voz*=Math.exp(-4.5*dt);
+  let x=t.m.position.x+(Math.sin(mid)*r.v+t.vox)*dt,z=t.m.position.z+(Math.cos(mid)*r.v+t.voz)*dt;
+  if(!passageReprise(t,x,z,cap)){
+    x=t.m.position.x;z=t.m.position.z;cap=oldCap;r.v=0;t.vox=t.voz=0;
+    r.bloque+=dt;if(reverse)r.recul=0;
+  }else{
+    const decale=Math.hypot(t.m.position.x-voie.x,t.m.position.z-voie.z)>.35||Math.abs(erreur)>.25;
+    if(!reverse&&decale&&cible<.03&&t.choc<=.3&&Math.abs(r.v)<.1)r.bloque+=dt;
+    else r.bloque=0;
+  }
+  r.lacet*=Math.exp(-2.2*dt);
+  t.cap=cap;t.fx=Math.sin(cap);t.fz=Math.cos(cap);t.vit=r.v;t.k=Math.max(0,r.v/t.v);
+  t.m.position.x=x;t.m.position.z=z;
+  const avance=(x-voie.x)*voie.tx+(z-voie.z)*voie.tz;
+  t.s=s+avance;t.retard=tempsTrafic-t.t0-t.s/t.v;
+  const p=surItineraire(t.route,t.s);t.ox=x-p.x;t.oz=z-p.z;
+  // Jonction imperceptible une fois réellement sur la voie et dans son axe.
+  const ecart=Math.hypot(t.ox,t.oz),angle=Math.abs(angleTrafic(cap-Math.atan2(p.tx,p.tz)));
+  let remOK=true;
+  if(t.lourd){
+    const a=surItineraire(t.route,t.s-SELLETTE_TRAFIC-TIMON_TRAFIC);
+    const hx=x-t.fx*SELLETTE_TRAFIC,hz=z-t.fz*SELLETTE_TRAFIC,dx=hx-r.ax,dz=hz-r.az,d=Math.hypot(dx,dz)||1;
+    remOK=Math.hypot(hx-dx/d*TIMON_TRAFIC-a.x,hz-dz/d*TIMON_TRAFIC-a.z)<.05;
+  }
+  if(ecart<.025&&angle<.008&&Math.abs(r.lacet)<.015&&Math.hypot(t.vox,t.voz)<.02&&r.v>0&&!t.evite&&remOK){
+    t.reprise=null;t.ox=t.oz=t.vox=t.voz=0;
+  }
+  return {x,z,tx:t.fx,tz:t.fz};
+}
+
 function choquerTrafic(v, t){
   const GV=gabarits(v,_gabA), GT=gabaritsTrafic(t,_gabT);
   if(!prochesGabarits(GV,GT)) return;
@@ -21434,6 +21562,9 @@ function choquerTrafic(v, t){
     v.pos.x-=nx*pen*partV;v.pos.z-=nz*pen*partV;
     v.cap+=pivotChoc(v,P.x1,P.z1,-nx,-nz,pen*partV);
     t.ox+=nx*pen*partT;t.oz+=nz*pen*partT;
+    t.m.position.x+=nx*pen*partT;t.m.position.z+=nz*pen*partT;
+    const reprise=reprendreVolant(t);
+    if(t.lourd){reprise.ax+=nx*pen*partT;reprise.az+=nz*pen*partT;}
     // Relative velocity includes the deflection: repeated contact cannot create free acceleration.
     const vn=(t.vit*t.fx+t.vox-v.vel.x)*nx+(t.vit*t.fz+t.voz-v.vel.y)*nz;
     const appro=Math.max(0,-vn), franc=appro>CHOC.frontal;
@@ -21441,6 +21572,7 @@ function choquerTrafic(v, t){
       const impulse=appro*(1+(franc?CHOC.rebond:0));
       v.vel.x-=nx*impulse*partV;v.vel.y-=nz*impulse*partV;
       t.vox+=nx*impulse*partT;t.voz+=nz*impulse*partT;
+      tournerAuChoc(t,P.x2,P.z2,nx,nz,impulse*partT);
     }
     // Feedback is separate from physical impulse and can fire only once per impact.
     const nouveau=franc && (t.impactEngin!==v || tempsTrafic-(t.impactQuand||0)>0.22);
@@ -21520,7 +21652,8 @@ function updateTrafic(dt){
     t.retard += (1 - t.k)*dt;
     if(t.choc > 0) t.choc = Math.max(0, t.choc - dt);
     t.vit = t.v*t.k;
-    const aLon = (t.vit - t.vitPrec)/Math.max(0.0001, dt);
+    let aLon = (t.vit - t.vitPrec)/Math.max(0.0001, dt);
+    const vitesseAvant=t.vitPrec;
     t.vitPrec = t.vit;
     /* ET ELLE KLAXONNE QUAND ELLE PILE. « Quand une voiture freine brusquement parce
        qu'on est passé devant, un son de klaxon. » Le frein du trafic ne se serre que pour
@@ -21539,31 +21672,19 @@ function updateTrafic(dt){
         t.klaxonT = 7.5;
       }
     }
-    t.s = (tempsTrafic - t.t0 - t.retard)*t.v;
-    if(t.s > t.route.L){ rendrePlace(t); continue; }
-    const p = surItineraire(t.route, t.s);
-    /* L'ÉCART REVIENT À ZÉRO PAR LE PLUS COURT CHEMIN, qui est la ligne droite : un
-       ressort amorti tiré vers l'origine ne fait rien d'autre. Deux dixièmes de seconde
-       après le choc la voiture est déjà revenue de moitié, et une seconde après elle est
-       dans sa file au centimètre. */
-    /* … OU VERS L'ÉCART QU'ELLE VISE pour contourner un engin (`evite`, compté vers le bord
-       de la chaussée) : le même ressort, tiré vers un autre point. */
-    const ex = -t.fz*t.evite, ez = t.fx*t.evite;
-    t.vox += (-(t.ox - ex)*RESSORT_VOIE*(t.choc>0?0.2:1) - t.vox*AMORTI_VOIE)*dt;
-    t.voz += (-(t.oz - ez)*RESSORT_VOIE*(t.choc>0?0.2:1) - t.voz*AMORTI_VOIE)*dt;
-    t.ox += t.vox*dt; t.oz += t.voz*dt;
-    // Une voie au plus : poussée plus loin, elle bute — l'engin qui pousse sent le fossé.
-    const eo = Math.hypot(t.ox, t.oz);
-    if(eo > ECART_VOIE_MAX){ t.ox *= ECART_VOIE_MAX/eo; t.oz *= ECART_VOIE_MAX/eo; t.vox = t.voz = 0; }
-    if(Math.abs(t.ox) < 0.004 && Math.abs(t.oz) < 0.004
-       && Math.abs(t.vox) < 0.02 && Math.abs(t.voz) < 0.02){
-      t.ox = t.oz = t.vox = t.voz = 0;
+    if(!t.reprise&&(Math.abs(t.evite)>.05||Math.hypot(t.ox,t.oz)>.01)) reprendreVolant(t);
+    const capAvant=t.cap;
+    let p;
+    if(t.reprise){p=conduireReprise(t,dt,cible);}
+    else{
+      t.s=(tempsTrafic-t.t0-t.retard)*t.v;
+      p=surItineraire(t.route,t.s);
+      t.m.position.set(p.x,0,p.z);
     }
-    p.x += t.ox; p.z += t.oz;
-    t.m.position.set(p.x, 0, p.z);
-    // la carrosserie est modelée nez vers +Z : le cap suit la tangente
-    const cap = Math.atan2(p.tx, p.tz);
-    let dcap = cap - t.cap;
+    if(t.s>t.route.L){rendrePlace(t);continue;}
+    const cap=t.reprise?t.cap:Math.atan2(p.tx,p.tz);
+    aLon=(t.vit-vitesseAvant)/Math.max(.0001,dt);t.vitPrec=t.vit;
+    let dcap = cap - capAvant;
     while(dcap >  Math.PI) dcap -= Math.PI*2;
     while(dcap < -Math.PI) dcap += Math.PI*2;
     t.cap = cap; t.fx = p.tx; t.fz = p.tz;
@@ -21608,7 +21729,11 @@ function updateTrafic(dt){
          sellette partait avec lui, l'essieu de la remorque restait sur le tracé, et la
          corde entre les deux tournait : la remorque pivotait autour de son essieu, d'où
          le pli. Le même écart posé sur l'essieu, l'attelage se déplace d'un BLOC. */
-      pa.x += t.ox; pa.z += t.oz;
+      if(t.reprise){
+        const rr=t.reprise,dx=hx-rr.ax,dz=hz-rr.az,d=Math.hypot(dx,dz)||1;
+        rr.ax=hx-dx/d*TIMON_TRAFIC;rr.az=hz-dz/d*TIMON_TRAFIC;
+        pa.x=rr.ax;pa.z=rr.az;
+      }else{pa.x+=t.ox;pa.z+=t.oz;}
       let dx2 = hx - pa.x, dz2 = hz - pa.z;
       const dd = Math.hypot(dx2, dz2) || 1; dx2 /= dd; dz2 /= dd;
       const tcap = Math.atan2(dx2, dz2);

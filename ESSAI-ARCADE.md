@@ -9,6 +9,7 @@ La branche d'essai est indépendante. Elle ne doit pas être promue en productio
 - Suspension calculée par petits pas : roulis, tangage et débattement conservés.
 - Impulsions de collision dissipatives, frôlements sans poussée ajoutée à chaque image, retour visuel distinct de la vitesse physique. Le choc sur une remorque agit d'abord sur sa suspension.
 - Distance de freinage du trafic liée à la vitesse, redémarrage progressif, priorité supplémentaire aux carrefours après les retards provoqués par le joueur.
+- Choc arrière : rotation calculée au point d'impact, avec inertie angulaire amortie. Le ressort qui ramenait latéralement le trafic sur sa voie est supprimé. Le véhicule braque et avance pour rejoindre sa trajectoire ; s'il est fortement désaxé ou bloqué, il effectue un court recul, puis repart en avant. Les volumes des autres véhicules et du décor sont vérifiés avant la manœuvre. La remorque suit son essieu pendant la récupération.
 - Klaxons moins rapprochés, mixage du trafic et du dérapage plus discret, transitions de volume, silence en pause et suspension audio lorsque l'onglet est masqué.
 - Interface papier existante affinée : contrastes, espacements, boutons, chiffres stables. Suppression de certains flous de fond.
 - Calculs évités pour les engins garés au repos, rejet rapide des collisions éloignées et réduction des écritures répétées dans l'interface et les paramètres audio.
@@ -17,16 +18,19 @@ Les modèles 3D, textures, portraits, enregistrements audio, résolution et rég
 
 ## Vérifications
 
-`node outils/arcade/tests.cjs` : 13 contrôles, dont conservation de la quantité de mouvement, dissipation d'énergie, contacts qui se séparent, capsules superposées, outils longs, suspension à 30/60/120 Hz, reprise d'adhérence et réduction des appels audio.
+`node outils/arcade/tests.cjs` : 20 contrôles, dont conservation de la quantité de mouvement entre engins, dissipation d'énergie, contacts qui se séparent, capsules superposées, outils longs, suspension à 30/60/120 Hz, reprise d'adhérence et réduction des appels audio. Les nouveaux contrôles couvrent le sens de rotation au choc arrière, l'absence de translation à l'arrêt, le déplacement dans l'axe des roues, le recul, les obstacles, la cohérence à 30/60/120 Hz et le retour d'une semi-remorque dans la circulation normale.
 
 Dans Chromium, avec le jeu complet : démarrage, accélération/virage/relâchement, 6 minutes de trafic simulées sur routes dégagées (aucun véhicule immobilisé à la fin), arrêt derrière un engin puis reprise après son retrait, 120 images de la boucle complète sans erreur relevée, décodage des trois chocs, coupure/réactivation du son et extinction du dérapage.
 
-Ces vérifications ne remplacent pas un essai sur le téléphone du joueur. Les chronométrages du navigateur varient et ne permettent pas de promettre un gain de FPS. Le fichier principal passe de 3 206 769 à 3 208 336 octets (+0,05 %), sans nouveaux médias.
+Contrôles supplémentaires dans la scène réelle : choc sur un coin arrière de voiture et de semi-remorque ; voiture initialement désaxée de 97° effectuant un recul puis retrouvant sa voie ; circulation pendant six minutes après ces situations sans blocage final ni erreur numérique relevée. Le retour sur la voie se fait par déplacement dirigé ; seuls la séparation immédiate des volumes au contact et un raccord inférieur à 2,5 cm corrigent directement une position. Les manœuvres peuvent attendre lorsqu'aucun passage n'est libre.
+
+Ces vérifications ne remplacent pas un essai sur le téléphone du joueur. Les chronométrages du navigateur varient et ne permettent pas de promettre un gain de FPS. Le fichier principal passe de 3 206 769 à 3 214 383 octets (+0,24 %), sans nouveaux médias.
 
 ## Essai conseillé
 
 1. Prendre le tracteur puis le pick-up, accélérer et donner un virage vif. Relâcher la direction.
 2. Frôler un véhicule puis le toucher de face à vitesse modérée. Essayer également une remorque.
+   Toucher ensuite son coin arrière : il doit pivoter, contre-braquer et rejoindre sa voie en roulant. Laisser de la place devant et derrière pour les manœuvres.
 3. Bloquer brièvement une voie, puis la dégager. Observer le freinage, le klaxon et la reprise.
 4. Ouvrir les menus, régler le son, mettre en pause puis revenir au jeu.
 5. Jouer quelques minutes sur le téléphone habituel, en paysage, avec les réglages graphiques habituels.
