@@ -10923,14 +10923,8 @@ function poserEnseignes(){
   A.positions.length=A.uv.length=A.indices.length=0;
 }
 function parvisVillage(S){return S.style==='boutique'&&!S.supermarche&&!S.fournisseur;}
-function peindreSeuilCommerce(S,DF){
-  if(!parvisVillage(S))return;
-  const cs=Math.cos(S.rot),sn=Math.sin(S.rot),w=S.bbW/2;
-  const pts=[[-w,DF+.08],[w,DF+.08],[w,DF+1.55],[-w,DF+1.55]].map(([x,z])=>[S.x+x*cs+z*sn,S.z-x*sn+z*cs]);
-  fillPoly(pts,'#AFAD97');
-}
 function poserAbriForestier(){
-  // Au bord ouest de la clairière, à distance des piles et de la voie de chargement.
+  // Au fond de la place, côté ouest ; l'ouverture regarde la cour après un quart de tour.
   const g=new THREE.Group();g.name='abri-forestier';
   for(const x of [-3.2,3.2])for(const z of [-2.3,2.3])g.add(box(.24,4.1,.24,0x786342,x,2.05,z));
   g.add(box(6.6,3.3,.18,0x786342,0,1.65,-2.3));
@@ -10941,8 +10935,10 @@ function poserAbriForestier(){
   // Râtelier vide : il n'évoque pas un stock de bois que le joueur pourrait récupérer.
   for(const x of [-2.3,2.3])g.add(box(.15,1.7,.15,0x3F4945,x,.85,-1.45));
   g.add(box(4.8,.13,.15,0x3F4945,0,.7,-1.45));g.add(box(4.8,.13,.15,0x3F4945,0,1.45,-1.45));
-  g.position.set(336,0,-20);scene.add(g);releverEnseignes(g,{nom:'Dépôt forestier'});fusionnerGroupe(g);
-  boxObs.push({x:336,z:-20,hw:3.45,hd:2.55});
+  g.position.set(PLACE_BOIS.x0+5.5,0,PLACE_BOIS.z1-4.5);
+  g.rotation.y=Math.PI/2;
+  scene.add(g);releverEnseignes(g,{nom:'Dépôt forestier'});fusionnerGroupe(g);
+  boxObs.push({x:g.position.x,z:g.position.z,hw:2.55,hd:3.45});
 }
 
 function buildCommerce(S){
@@ -11075,7 +11071,6 @@ function buildCommerce(S){
              0.5+alea()*1.4, 0.4+alea()*0.9,
              alea()<0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.13)', AX);
   }
-  peindreSeuilCommerce(S,DF);
   const LW = 4/PPU, snap = (v)=> Math.round(v*PPU)/PPU;
   const horizPark = (faceDe(S.dir) === 'W' || faceDe(S.dir) === 'E');
   const nPlaces = Math.max(2, Math.floor((horizPark ? S.ph : S.pw)/4.6));
