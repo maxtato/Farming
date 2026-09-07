@@ -14,7 +14,22 @@ La branche d'essai est indépendante. Elle ne doit pas être promue en productio
 - Interface papier existante affinée : contrastes, espacements, boutons, chiffres stables. Suppression de certains flous de fond.
 - Calculs évités pour les engins garés au repos, rejet rapide des collisions éloignées et réduction des écritures répétées dans l'interface et les paramètres audio.
 
-Les modèles 3D, textures, portraits, enregistrements audio, résolution et réglages graphiques sont conservés. Aucun moteur physique ni dépendance supplémentaire n'est chargé par le navigateur. Le format des sauvegardes est inchangé.
+Les engins jouables, textures existantes, portraits, enregistrements audio, résolution et réglages graphiques sont conservés. La passe visuelle ci-dessous ajuste le décor. Aucun moteur physique ni dépendance supplémentaire n'est chargé par le navigateur. Le format des sauvegardes est inchangé.
+
+## Cohérence visuelle et repères
+
+- Audit de 57 vues : couverture de la carte en 18 secteurs, 21 sites commerciaux, ferme, port, forêt, maisons et les 15 véhicules du joueur. Les prises de vue comparent les mêmes positions avec un pick-up de référence.
+- Les trois bateaux décoratifs de la marina utilisent désormais l'échelle commune du port (1,55). Espacement et distance au ponton ajustés ; aucun chevauchement entre bateaux ni avec le ponton dans le relevé des volumes.
+- 24 faces d'enseignes portant noms ou symboles des activités : boutiques, industries, marché, scierie, menuisier, supermarché, criée, conserverie, export et dépôt forestier. Pictogrammes de poisson, bouteille, fromage, couverts, bois et textile. Le lettrage garde son rapport largeur/hauteur sur les différentes plaques.
+- Parvis des commerces de proximité plus chauds, avec seuil clair peint dans les textures de sol existantes. Les cours industrielles restent distinctes. Chemins moins saturés pour mieux différencier sol, récoltes et anneaux d'action.
+- Petit abri et râtelier vide au bord ouest du dépôt forestier. Son obstacle correspond à sa place, hors de la piste et du quai de chargement. Les piles restent liées au stock réel.
+- Les dimensions et positions mesurées des 21 sites et des 15 engins sont identiques avant/après : portes, voies, quais et outils gardent leur calibrage. L'audit ne justifiait pas une réduction générale des maisons ni de l'entrepôt.
+
+Coût mesuré sur 24 cadrages comparables : **un appel de dessin supplémentaire**, et deux dans la vue du dépôt avec l'abri. Les 24 enseignes partagent un atlas 512 × 512 et un seul maillage (48 triangles), sans animation ni nouvelle dépendance. Résolution du jeu et ombres inchangées. Le fichier principal livré passe de 1 772 890 à 1 778 413 octets (+0,31 %, environ 5,5 ko ; +2,3 ko en gzip local). Ce coût faible ne constitue pas une mesure de FPS sur téléphone.
+
+Vérification de la version compacte : les 30 tests passent ; dans Chromium, six minutes de trafic simulé, reprise après obstacle, boucle complète et audio se terminent sans erreur relevée. Le passage et le chargement au dépôt restent dégagés. La version précédente de l'essai, avant cette passe visuelle, est conservée au commit `a79830468abc5eb77d3bca5ac607f3f9deb4fda5`.
+
+Pistes visuelles suivantes : deux ou trois repères de paysage aux carrefours ruraux (haie courte, vieux chêne, petit pont), un rivage moins rectiligne par quelques rochers, des accès piétons reliant mieux les boutiques et une signalétique de quais à l'export. Préserver les surfaces cultivables et les zones de manœuvre ; privilégier les détails fixes regroupés plutôt que multiplier les objets animés.
 
 ## Allègement du jeu
 
