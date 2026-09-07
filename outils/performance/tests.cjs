@@ -51,6 +51,7 @@ test('Autonomous machines retain ordered contacts after position corrections',()
  for(const o of ctx.decorAuPoint(l,pos,1.5)){seen.push(l.indexOf(o));pos.x=40;}assert.deepEqual(seen,[0,2]);
 });
 const listeners={};let draws=0;
+Object.assign(ctx,{champsEnAttente:()=>false,champsAJour(){}});
 Object.assign(ctx,{addEventListener:(e,f)=>listeners[e]=f,paused:false,camera:{position:{x:0,y:50,z:0},zoom:1},camTarget:{x:0,z:0},scene:{},renderer:{domElement:{width:1200,height:800,addEventListener(){}},render(){draws++;}}});
 vm.runInContext(source.slice(source.indexOf('const IMAGE_REPOS='),source.indexOf('function loop(now){')),ctx);
 test('Active play renders every frame at the same canvas size',()=>{
@@ -62,6 +63,12 @@ test('Settled pause renders at most four times a second and wakes for input',()=
  ctx.camera.position.x++;ctx.rendreImage(4030);assert.equal(draws,n+4);ctx.renderer.domElement.width++;ctx.rendreImage(4040);assert.equal(draws,n+5);
  ctx.paused=false;ctx.rendreImage(4050);assert.equal(draws,n+6);
 });
+test('Crop uploads are consumed only by frames actually rendered, including pause',()=>{
+ let uploads=0;draws=0;ctx.paused=true;ctx.champsEnAttente=()=>true;ctx.champsAJour=()=>uploads++;
+ for(let i=0;i<120;i++)ctx.rendreImage(5000+i*1000/60);
+ assert(draws>0&&draws<=8);assert.equal(uploads,draws);
+});
+
 test('Delivered scripts parse and graphics assets are copied byte for byte',()=>{
  const built=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');for(const m of built.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
  assert(Buffer.byteLength(built)<Buffer.byteLength(source)*.65);

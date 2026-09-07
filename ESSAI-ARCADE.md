@@ -33,6 +33,31 @@ Pistes visuelles suivantes : deux ou trois repères de paysage aux carrefours ru
 
 ## Allègement du jeu
 
+### Champs denses et netteté maximale
+
+Les réserves graphiques des cultures sont maintenant découpées en quatre secteurs par parcelle et par âge. Une boîte calculée d'après la géométrie, la rotation possible, la taille maximale et le décalage des semis remplace le grand test de sphère de chaque parcelle. Les secteurs hors du cadre ne sont pas envoyés au GPU. Les formes, couleurs, positions et nombres de plantes ne changent pas ; aucune réduction de densité ni changement de modèle à distance.
+
+Les secteurs actifs sont suivis dans un ensemble ; un secteur vide est libéré à la récolte. Les changements cachés restent en attente. Au retour dans le cadre, le secteur reçoit toutes ses modifications avant son premier rendu, même si le budget ordinaire d'envoi est consommé. Le contrôle du cadrage et les envois ont lieu après la mise à jour de la caméra, y compris en pause.
+
+Comparaison Chromium, même scène et même canevas 1280 × 720, parcelles activées et blé mûr :
+
+| Cadrage | Touffes envoyées avant | Après | Réduction |
+|---|---:|---:|---:|
+| Au milieu des blés | 3 198 | 1 728 | 46 % |
+| Plusieurs parcelles | 5 752 | 3 309 | 42 % |
+| Bord des champs | 2 805 | 1 074 | 62 % |
+| Vue très large | 7 089 | 6 766 | 5 % |
+
+Les empreintes de tous les pixels sont identiques avant/après dans ces quatre cadrages, et le rendu optimisé est également identique au rendu qui soumet toutes les plantes. Une touffe de blé reste à 30 triangles. Le découpage augmente les appels de dessin des cultures ; le compromis réduit surtout le travail géométrique près des champs. Le gain est faible quand presque toute la ferme tient à l'écran. Les chronométrages GPU varient avec le navigateur et l'appareil : pas de promesse de cadence globale.
+
+Le réglage **Netteté – Maximale**, avec **Grain de l'image = 1,00**, suit la définition native de l'écran, y compris au-delà d'un ratio de pixels de trois. Seule la limite matérielle du tampon graphique borne la taille. Les modes de netteté réduite restent des choix manuels ; aucune baisse automatique n'a été ajoutée. La description de résolution du curseur utilise le même calcul.
+
+Six tests supplémentaires couvrent les secteurs et leurs limites, les cultures tournées et mises à l'échelle, la mise à jour au retour à l'écran, le budget d'envoi, la récolte et les limites de résolution. Un test de performance vérifie aussi qu'aucune plage de mise à jour n'est consommée pendant les images sautées en pause : l'envoi se fait dans le rendu effectif. Total : 37 tests.
+
+Dans le navigateur, 36 états des sept cultures (dont les permanentes déjà installées) retrouvent les mêmes nombres, matrices et couleurs d'instances avant/après. Les volumes contiennent toutes les plantes testées ; récoltes partielles et libération des secteurs vides sont contrôlées. La copie compacte retrouve les mêmes pixels et les mêmes nombres de plantes envoyées que la source dans les quatre cadrages. Le format des sauvegardes reste identique. Retour à l'essai avant cette optimisation : commit `1a72e5e55e0428d8b4e4d52abff0972384533df9`.
+
+### Allègement précédent
+
 - Le fichier principal distribué passe de 3 214 383 à 1 772 890 octets, soit −44,8 %. La compression gzip locale passe de 1 486 800 à 961 491 octets (−35,3 %). Le transfert réel dépend de la compression du serveur. Ces chiffres concernent le fichier principal, pas l'ensemble des portraits téléchargés à la demande.
 - Terser, installé uniquement pour la construction du site, retire commentaires et espaces inutiles des scripts. Aucune réduction des médias, aucune réécriture algébrique ni renommage des fonctions. Le fichier source demeure lisible dans le dépôt.
 - Un quadrillage du décor limite les vérifications aux obstacles voisins, pour le véhicule conduit et les autres engins. L'ordre des contacts reste identique, même lorsqu'un contact déplace la machine. Ajouts et retraits du décor invalident l'index ; les arbres réservent leur taille adulte pour éviter de reconstruire l'index à chaque image pendant leur repousse.

@@ -2003,9 +2003,11 @@ const NETTETE = {i: 0, choix: [
 ]};
 const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
 renderer.setPixelRatio(1);
+// Limite matérielle réelle ; le mode maximal suit aussi les écrans au-delà de DPR 3.
+const RESOLUTION_LIMITE=renderer.getContext().getParameter(renderer.getContext().MAX_RENDERBUFFER_SIZE);
 function applyResolution(){
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
+  const dpr = Math.min(devicePixelRatio || 1, NETTETE.choix[NETTETE.i].max);
   const px = Math.max(PIXEL_MIN, Math.min(PIXEL_MAX, PIXEL.px || PIXEL_MIN));
   /* LE PLANCHER SUIT LE GRAIN, ET C EST LE PIEGE QU ON Y A TROUVE. Il valait 0,45 en dur
      — un garde-fou pour qu une definition ne devienne jamais absurdement basse — et il
@@ -2015,7 +2017,8 @@ function applyResolution(){
      eux. Le plancher ne peut donc pas etre plus haut que la grille demandee : il vaut
      0,45 tant que le grain reste fin, et descend avec lui des qu on le grossit. */
   const k = Math.max(Math.min(0.45, 1/px), Math.min(dpr, dpr/px));   // k = pixels de rendu par pixel CSS
-  renderer.setSize(Math.round(w*k), Math.round(h*k), false);
+  const rendu=Math.min(k,RESOLUTION_LIMITE/Math.max(w,h));
+  renderer.setSize(Math.round(w*rendu), Math.round(h*rendu), false);
   const st = renderer.domElement.style;
   st.width = w+'px'; st.height = h+'px';
 }
@@ -7167,8 +7170,9 @@ function ageDe(C, g, etabli){
    Et la mémoire suit : une parcelle n'alloue que pour la culture qu'elle porte, là où
    les sept réserves gardaient 9 500 places chacune. 4,07 Mio de tampons d'instances
    deviennent 0,6. */
-const CHAMPS = [];                                        // culture -> [parcelle -> InstancedMesh]
-const champRec = [];                                      // culture -> [parcelle -> [place -> fiche]]
+const CHAMPS_ACTIFS = new Set();
+const CHAMPS = [];                                        // culture/âge -> [secteur -> InstancedMesh]
+const champRec = [];                                      // culture/âge -> [secteur -> [place -> fiche]]
 const CHAMP_GEO = [], CHAMP_MAT = [];                     // partagés par toutes les parcelles
 const ECH_AGE = [];                                       // culture -> échelle de départ de chaque âge
 function hauteurGeo(g){
@@ -7525,9 +7529,11 @@ function champDe(c, par){
   M.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CHAMP_DEPART*3), 3);
   M.instanceColor.setUsage(THREE.DynamicDrawUsage);
   M.count = 0;
+  M.bornesChamp=bornesChamp(c,par);
+  CHAMPS_ACTIFS.add(M);
   scene.add(M);
   // Ce que cette parcelle peut porter au plus : c'est le plafond de sa réserve.
-  M.plafond = (PARCELS[par] && PARCELS[par].cellules) || FIELD_POOL;
+  M.plafond = (PARCELS[Math.floor(par/4)] && PARCELS[Math.floor(par/4)].cellules) || FIELD_POOL;
   CHAMPS[c][par] = M; champRec[c][par] = [];
   return M;
 }
@@ -7537,21 +7543,34 @@ function champDe(c, par){
    couvrir la plante la plus haute du jeu, l'olivier à 4,59 m, dont le houppier dépasse
    du rectangle au sol quand la caméra rase. */
 const _sphParc = new THREE.Sphere(), _frParc = new THREE.Frustum(), _mFrParc = new THREE.Matrix4();
+/* Quatre secteurs par parcelle, sans changer une seule plante. Les indices du jeu
+   restent ceux des parcelles ; seule la réserve graphique utilise ces secteurs. */
+function secteurChamp(b){
+  const p=PARCELS[b.par];
+  return b.par*4+(b.x>=p.x?1:0)+(b.z>=p.z?2:0);
+}
+function bornesChamp(k, secteur){
+  const p=PARCELS[Math.floor(secteur/4)],q=secteur%4,C2=CROPS[Math.floor(k/NB_AGES)];
+  const geo=CHAMP_GEO[k];if(!geo.boundingBox)geo.computeBoundingBox();
+  const bb=geo.boundingBox,sc=(C2.rang?1:1.95)*(C2.large??1);
+  // Rayon valable pour toutes les rotations et tous les âges. La marge couvre
+  // le décalage des semis, y compris les cultures remises en rang sur la cellule.
+  const r=Math.hypot(Math.max(Math.abs(bb.min.x),Math.abs(bb.max.x)),Math.max(Math.abs(bb.min.z),Math.abs(bb.max.z)))*sc+.36;
+  const x=p.x+(q%2?.25:-.25)*p.w,z=p.z+(q>=2?.25:-.25)*p.h;
+  return new THREE.Box3(new THREE.Vector3(x-p.w/4-r,Math.min(0,bb.min.y*sc*C2.haut)-.02,z-p.h/4-r),
+    new THREE.Vector3(x+p.w/4+r,Math.max(0,bb.max.y*sc*C2.haut)+.02,z+p.h/4+r));
+}
 function masquerChampsHorsVue(){
   camera.updateMatrixWorld();
-  _mFrParc.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  _mFrParc.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
   _frParc.setFromProjectionMatrix(_mFrParc);
-  for(let n = 0; n < PARCELS.length; n++){
-    const p = PARCELS[n];
-    _sphParc.center.set(p.x, 1.6, p.z);
-    _sphParc.radius = Math.hypot(p.w, p.h)/2 + 3.2;
-    const vu = _frParc.intersectsSphere(_sphParc);
-    for(let c = 0; c < CHAMPS.length; c++){
-      const M = CHAMPS[c][n];
-      if(M) M.visible = vu;
-    }
+  for(const M of CHAMPS_ACTIFS){
+    const vu=_frParc.intersectsBox(M.bornesChamp);
+    if(vu&&!M.visible)M.reveilChamp=true;
+    M.visible=vu;
   }
 }
+
 // Met une parcelle en culture : cellules cultivables, épis alloués, sol peint en terre.
 function activateParcel(p){
   // Le semis des pieds — décalage, rotation, taille — tient à la parcelle, pas à
@@ -7589,7 +7608,7 @@ function activateParcel(p){
 function retirerDuChamp(n){
   const c = champCrop[n];
   if(c < 0) return;
-  const par = wheatBase[n].par;
+  const par = secteurChamp(wheatBase[n]);
   const M = CHAMPS[c][par], liste = champRec[c][par];
   if(!M){ champCrop[n] = -1; champSlot[n] = -1; return; }
   const place = champSlot[n], dernier = M.count - 1;
@@ -7614,6 +7633,7 @@ function retirerDuChamp(n){
      touche ni la géométrie ni le matériau, qui sont partagés — et le maillage se
      rebâtira tout seul le jour où l'on resème ici. */
   if(dernier === 0){
+    CHAMPS_ACTIFS.delete(M);
     scene.remove(M); M.dispose();
     CHAMPS[c][par] = null; champRec[c][par] = null;
     if(champLo[c]){ champLo[c][par] = undefined; champHi[c][par] = undefined; }
@@ -7630,12 +7650,12 @@ function setInstance(n, g, alive){
      qui changeait de culture. C'est le même mécanisme, avec une clé plus fine. */
   const etabli = !!(C2.perenne && replante[b.j*GNX + b.i]);
   const age = ageDe(C2, g, etabli);
-  const k = c*NB_AGES + age;
+  const k = c*NB_AGES + age, secteur=secteurChamp(b);
   if(champCrop[n] !== k){ retirerDuChamp(n);
-    const M0 = champDe(k, b.par);
+    const M0 = champDe(k, secteur);
     agrandirChamp(M0, M0.count + 1);
     const place = M0.count++;
-    champRec[k][b.par][place] = n; champSlot[n] = place; champCrop[n] = k;
+    champRec[k][secteur][place] = n; champSlot[n] = place; champCrop[n] = k;
   }
   // Une vigne est plantée en rang : ni décalage aléatoire, ni rotation. C'est
   // l'alignement des cellules voisines qui reconstitue le fil de palissage.
@@ -7674,10 +7694,10 @@ function setInstance(n, g, alive){
   _s3.set(s, s*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
   _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
-  const M = CHAMPS[k][b.par], place = champSlot[n];
+  const M = CHAMPS[k][secteur], place = champSlot[n];
   M.setMatrixAt(place, _m4);
   M.setColorAt(place, _col);
-  salir(k, b.par, place);
+  salir(k, secteur, place);
 }
 /* Renvoie au GPU la plage d'instances qui a bougé, et seulement pour les cultures qui
    ont bougé. Les décalages sont en ÉLÉMENTS du tableau, pas en octets ni en instances :
@@ -7713,7 +7733,7 @@ function champsAJour(tout){
     for(let par = 0; par < LO.length; par++){
       const lo = LO[par];
       if(lo === undefined) continue;
-      if(reste <= 0) return;
+      if(reste <= 0 && !CHAMPS[c][par]?.reveilChamp) continue;
       const M = CHAMPS[c][par];
       if(!M) continue;
       /* UN MAILLAGE QU'ON NE DESSINE PAS N'A RIEN À RENVOYER — et surtout, il ne doit
@@ -7723,7 +7743,8 @@ function champsAJour(tout){
          On laisse donc sa plage s'accumuler tant qu'il est hors champ ; elle part en un
          bloc quand la caméra revient. */
       if(!M.visible && !tout) continue;
-      const n = Math.min(champHi[c][par] - lo + 1, reste);
+      const n = M.reveilChamp ? champHi[c][par]-lo+1 : Math.min(champHi[c][par] - lo + 1, reste);
+      M.reveilChamp=false;
       reste -= n;
       M.instanceMatrix.updateRange.offset = lo*16;
       M.instanceMatrix.updateRange.count  = n*16;
@@ -33824,9 +33845,10 @@ function ongletReglages(){
     detail: (v)=>{
       const px = v/100;
       const w = Math.round(innerWidth), h = Math.round(innerHeight);
-      const dpr = Math.min(devicePixelRatio || 1, 3, NETTETE.choix[NETTETE.i].max);
+      const dpr = Math.min(devicePixelRatio || 1, NETTETE.choix[NETTETE.i].max);
       const k = Math.max(Math.min(0.45, 1/px), Math.min(dpr, dpr/px));
-      const rw = Math.round(w*k), rh = Math.round(h*k);
+      const rendu = Math.min(k, RESOLUTION_LIMITE/Math.max(w,h));
+      const rw = Math.round(w*rendu), rh = Math.round(h*rendu);
       return 'Un pixel de rendu pour <b>' + px.toFixed(2).replace('.', ',')
            + '</b> pixel' + (px >= 2 ? 's' : '') + ' d\'écran – grain <b>' + grainNom(px)
            + '</b>.<br>Rendu&nbsp;: <b>' + rw + ' × ' + rh + '</b> pixels'
@@ -36840,6 +36862,8 @@ function rendreImage(now){
   const taille=r.w!==renderer.domElement.width||r.h!==renderer.domElement.height||r.zoom!==camera.zoom;
   if(paused&&!bouge&&!taille&&r.dirty<=0&&now-r.t<250)return;
   r.x=c.x;r.y=c.y;r.z=c.z;r.tx=camTarget.x;r.tz=camTarget.z;r.zoom=camera.zoom;r.w=renderer.domElement.width;r.h=renderer.domElement.height;r.t=now;r.dirty--;
+  // Consommer une plage GPU seulement si cette image est réellement dessinée.
+  if(champsEnAttente()) champsAJour();
   renderer.render(scene,camera);
 }
 function loop(now){
@@ -37030,7 +37054,7 @@ function loop(now){
     updateColis(dt);
     flushTiles(2);
     // Un seul renvoi d'instances par image, plafonné : voir champsAJour().
-    if(champsEnAttente()) champsAJour();
+    // Les tampons seront envoyés après la mise à jour de la caméra et du cadrage.
   }
 
   // caméra : orientation fixe, suivi amorti avec anticipation
