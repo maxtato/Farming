@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
 function fn(name){const a=source.indexOf('function '+name+'(');assert(a>=0,name);return source.slice(a,source.indexOf('\n}',a)+2);}
 function setup(){
- const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],cur:-1,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
+ const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],chLot:[],planTaches:[],HALLE:{file:[]},cur:-1,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
  CROPS:[{cle:'ble',nom:'Blé'},{cle:'mais',nom:'Maïs'}],PARCELS:[{x:10,z:0},{x:30,z:0},{x:50,z:0}],
  CUVES:{graines:{ble:100,mais:100},engrais:100},ET_LABOUR:'labour',ET_SEMIS:'semis',ET_ENGRAIS:'engrais',ET_MOISSON:'moisson',ET_FINI:'fini',ET_POUSSE:'pousse',
  NOM_ETAPE:{labour:'Labour',semis:'Semis',engrais:'Engrais',moisson:'Moisson'},
@@ -11,7 +11,7 @@ function setup(){
  caisseDe:m=>m.v.cargo,accepteNature:(k,cle)=>!k.prend||k.prend.includes(cle),rentrerAuParc(){}});
  const a=source.indexOf('const classeDe ='),b=source.indexOf('/* UN ENGIN EST LIBRE',a);
  const d=source.indexOf('const rentreAuParc ='),e=source.indexOf('/* ARMER UN ENGIN',d);
- vm.runInContext(source.slice(a,b)+source.slice(d,e)+['combinePret','besoinEtape','blocageEtape','enginLePlusProche','outilReserve','enginPourOutil','armerEngin','tachesEtape','pisteTerre','armerPorteur'].map(fn).join('\n'),c);
+ vm.runInContext(source.slice(a,b)+source.slice(d,e)+['combinePret','besoinEtape','blocageEtape','enginLePlusProche','outilReserve','enginPourOutil','armerEngin','tachesEtape','pisteTerre','armerPorteur','retirerChantiersTermines'].map(fn).join('\n'),c);
  c.MACHINES.push(...['t1','t2','t4','pickup','fourgon'].map((key,i)=>({key,verrou:false,v:{pos:{x:i*2,z:0},auto:false,mission:null,cargo:i>=3?{capacite:100,load:0}:null}})));
  c.TOOLS.push(...['labour','semis','engrais','combine','benne'].map(key=>({key,nom:key,verrou:false,attached:null,cuves:{},seme:key==='semis'||key==='combine',fertilise:key==='engrais'||key==='combine',pourEngin:key==='combine'?'t4':null,cargo:key==='benne'})));
  return c;
@@ -82,5 +82,41 @@ test('Two tractor deliveries cannot reserve the same loose trailer',c=>{
  c.MACHINES[3].verrou=c.MACHINES[4].verrou=true;const a=chantier(c,0),b=chantier(c,1);
  const faire=()=>[{quoi:'navette',a:'silo',b:'epicerie',cle:'ble'}];
  assert(c.armerPorteur(a,'enginPort',c.PARCELS[0],faire));assert.equal(c.armerPorteur(b,'enginPort',c.PARCELS[1],faire),false);
+});
+test('A finished one-off task disappears from both the list and selected map parcels',c=>{
+ const a=chantier(c,0,'fini');a.continu=false;c.chLot=[0,1];c.planTaches=[{quoi:'parcelle',p:0},{quoi:'parcelle',p:1}];
+ assert(c.retirerChantiersTermines());assert.equal(c.CHANTIERS.length,0);
+ assert.equal(c.chLot.join(','),'1');assert.equal(c.planTaches.length,1);assert.equal(c.planTaches[0].p,1);
+ assert.equal(c.retirerChantiersTermines(),false);
+});
+test('A completed harvest finishes without starting another growing cycle',c=>{
+ const a=chantier(c,0,'labour');a.continu=false;a.etape='moisson';
+ assert(c.retirerChantiersTermines());assert.equal(a.recolte,true);
+});
+test('A delivery in progress keeps the task until its vehicle finishes',c=>{
+ const a=chantier(c,0,'fini');a.continu=false;a.enginPort=3;c.armerEngin(c.MACHINES[3],[{quoi:'navette',cle:'ble'}]);
+ assert.equal(c.retirerChantiersTermines(),false);c.MACHINES[3].v.mission=null;
+ assert(c.retirerChantiersTermines());
+});
+test('Queued production and remaining merchandise keep unfinished tasks visible',c=>{
+ const a=chantier(c,0,'fini');a.continu=false;a.produit='farine';c.HALLE.file.push({cle:'farine'});
+ assert.equal(c.retirerChantiersTermines(),false);c.HALLE.file.length=0;c.etapeMarchandise=()=>({et:'livrer'});
+ assert.equal(c.retirerChantiersTermines(),false);c.etapeMarchandise=()=>null;assert(c.retirerChantiersTermines());
+});
+test('A blocked destination does not erase undelivered work',c=>{
+ const a=chantier(c,0,'fini');a.continu=false;c.etapeMarchandise=()=>({mal:'Destination pleine'});
+ assert.equal(c.retirerChantiersTermines(),false);
+});
+test('Continuous jobs and crops still growing remain in the automation window',c=>{
+ chantier(c,0,'fini');const b=chantier(c,1,'pousse');b.continu=false;
+ assert.equal(c.retirerChantiersTermines(),false);assert.equal(c.CHANTIERS.length,2);
+});
+test('Returning to parking does not keep a completed task visible',c=>{
+ const a=chantier(c,0,'fini');a.continu=false;a.enginTerre=0;c.armerEngin(c.MACHINES[0],[{quoi:'parc'}]);
+ assert(c.retirerChantiersTermines());assert.equal(c.MACHINES[0].v.mission.taches[0].quoi,'parc');
+});
+test('A one-off livestock task disappears only after its delivery ends',c=>{
+ const a=chantier(c,0);a.continu=false;a.quoi='elevage';assert.equal(c.retirerChantiersTermines(),false);
+ a.livre=true;assert(c.retirerChantiersTermines());
 });
 console.log(n+' automation tests passed.');

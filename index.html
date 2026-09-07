@@ -25187,6 +25187,7 @@ function planPuce(txt, actif, f, teinte){
   return b;
 }
 function majPlan(){
+  retirerChantiersTermines();
   const g = (id)=> document.getElementById(id);
   const rE = g('planengins'), rQ = g('planquoi'), rM = g('planmodes'), rO = g('planoption'),
         rT = g('plantaches'), rP = g('planprod');
@@ -36487,10 +36488,41 @@ function pisteProduits(C){
    ce qui est la seule règle qu'un joueur puisse prévoir sans la lire. */
 let _tChantiers = 0;
 const PAS_CHANTIERS = 0.5;
+// Une tâche finie quitte aussi la sélection du panneau. Le retour au parking ne
+// fait plus partie du chantier ; une livraison ou une production en attente, si.
+function retirerChantiersTermines(){
+  let change = false;
+  for(let k = CHANTIERS.length - 1; k >= 0; k--){
+    const C = CHANTIERS[k];
+    if(C.continu) continue;
+    for(const champ of ['enginTerre', 'enginPort']){
+      const v = MACHINES[C[champ]]?.v;
+      if(!v?.mission || rentreAuParc(v)) C[champ] = -1;
+    }
+    if(C.enginTerre >= 0 || C.enginPort >= 0) continue;
+    if(C.quoi === 'elevage'){
+      if(!C.livre) continue;
+    }else{
+      const brut = etapeChantier(C, true);
+      if(C.etape === ET_MOISSON && brut !== ET_MOISSON) C.recolte = true;
+      if(brut !== ET_FINI && !(C.recolte && brut !== ET_MOISSON)) continue;
+      if(C.produit && HALLE.file.some(L=> L.cle === C.produit)) continue;
+      if(etapeMarchandise(C)) continue;
+    }
+    CHANTIERS.splice(k, 1);
+    chLot = chLot.filter(p=> p !== C.p);
+    planTaches = planTaches.filter(t=> t.quoi !== 'parcelle' || t.p !== C.p);
+    rentrerAuParc(C);
+    showHint((C.quoi === 'elevage' ? 'ÉLEVAGE' : 'CHANTIER') + ' TERMINÉ – PARCELLE ' + (C.p + 1));
+    change = true;
+  }
+  return change;
+}
 function majChantiers(dt){
   _tChantiers += dt;
   if(_tChantiers < PAS_CHANTIERS) return;
   const pas = _tChantiers; _tChantiers = 0;
+  let change = retirerChantiersTermines();
   for(let k = CHANTIERS.length - 1; k >= 0; k--){
     const C = CHANTIERS[k];
     // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
@@ -36503,11 +36535,6 @@ function majChantiers(dt){
          enclos automatisé nourrissait et livrait indéfiniment, que la case « en continu »
          soit cochée ou non. On attend que le porteur ait fini sa tournée — sinon on lui
          couperait la mission en chemin, camion plein. */
-      if(!C.continu && C.livre && C.enginPort < 0 && C.enginTerre < 0){
-        CHANTIERS.splice(k, 1);
-        rentrerAuParc(C);
-        showHint('ÉLEVAGE TERMINÉ – PARCELLE ' + (C.p + 1));
-      }
     }
     else { pisteTerre(C, k); pisteMarchandise(C); }
   }
@@ -36515,6 +36542,8 @@ function majChantiers(dt){
      avant : à cet instant chaque chantier s'est déjà servi, si bien qu'un engin encore
      libre est un engin dont AUCUN chantier n'a voulu ce tour-ci. */
   libererEngins(pas);
+  change = retirerChantiersTermines() || change;
+  if(change && planEl.style.display === 'block') majPlan();
 }
 /* La terre : labourer, semer, épandre, moissonner — ou attendre que ça pousse. */
 function pisteTerre(C, k){
@@ -36530,13 +36559,7 @@ function pisteTerre(C, k){
     /* UN CHANTIER « UNE FOIS » NE SE RETIRE QUE QUAND LA MARCHANDISE EST PARTIE. La terre
        finie, il reste la récolte à transformer et à livrer : s'effacer là laisserait le
        grain au silo et le joueur devant un chantier disparu sans que rien soit arrivé. */
-    if(!C.continu && !etapeMarchandise(C)){
-      CHANTIERS.splice(k, 1);
-      // On efface AVANT de rappeler : `enginLibre` interroge la liste des chantiers, et
-      // un chantier encore présent tiendrait ses propres engins pour occupés.
-      rentrerAuParc(C);
-      showHint('CHANTIER TERMINÉ – PARCELLE ' + (C.p + 1));
-    }
+    // Le retrait commun attend aussi les livraisons et les lots en production.
     return;
   }
   if(et === ET_POUSSE){ C.bloque = null; return; }   // rien à faire qu'attendre
