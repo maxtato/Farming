@@ -3933,7 +3933,7 @@ const SITES = [
   // un supermarché, son parking fait partie de ce qu'il est. Depuis la cinquième étape
   // de la carte il a sa propre bande, SU, au nord de la route sud prolongée vers l'est —
   // un peu hors du village, comme le joueur l'a demandé —, et seize mètres de parvis.
-  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'SU', bat:186, park:31,
+  {nom:'Supermarché', enseigne:'facade', picto:'graine', dir:'MS', bat:186, park:31,
    style:'boutique', crop:-1, prix:0, cloture:'trottoir', supermarche:true,
    parvisPlus:6.0, modele:()=> batSupermarche(),
    w:28.0, d:18.0, pw:22, ph:20, toit:0x2E6BA8, mur:0xF2F4F6},
@@ -5834,15 +5834,10 @@ const BANDE_DEF = {
   N:  {face:'N', d0:-ROAD_C + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_E - ROAD_W/2 - RECUL_ROCADE},
   E:  {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE},
   ZI: {face:'N', d0:ZI_X0, d1:ZI_X1},
+  MS: {face:'N', d0:FO_X0+10, d1:FO_X1-10}, // commerces face à la forêt
   EX: {face:'N', d0:EX_X0, d1:EX_X1},              // l'entrepôt d'export, au bout de la route
   PO: {face:'N', d0:PO_X0, d1:PO_X1},              // la criée et la conserverie, au port
-  /* LES DEUX BORDS DE LA ROUTE QUI REDESCEND APRÈS LA FORÊT. Le joueur : « agrémente avec
-     des maisons par-ci par-là, de temps en temps, sur le bord de la route. » Deux bandes,
-     des maisons décalées de l'une à l'autre pour qu'aucune ne se fasse face, et des
-     bosquets entre. La bande OUEST n'a pas de commerce : une bande de plans sans site
-     traverse `repartirBandes` comme une autre. La bande EST, elle, porte le supermarché,
-     et c'est elle qui s'appelle `SU` — c'est le `dir` que le site déclare, et le rang du
-     supermarché dans SITES ne doit pas bouger d'un cran. */
+  // Route après la forêt : maisons côté ouest, scierie et maisons côté est.
   RO: {face:'W', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
        bord:ROUTE_BOIS - ROAD_W/2},
   SU: {face:'E', d0:ROAD_N + ROAD_W/2 + RECUL_ROCADE, d1:ROAD_C - ROAD_W/2 - RECUL_ROCADE,
@@ -6078,8 +6073,8 @@ const BANDES = {
        {paquet:['Laiterie']},
        {creux:'verdure', poids:1},
        {paquet:['Atelier textile']}],
-  // L'entrepôt d'export, seul sur sa bande, un bosquet de chaque côté : le surplus de la
-  // bande se partage aux deux bouts, et il se retrouve au milieu.
+  // Le supermarché entre les usines et l'entrepôt, chacun entouré de verdure.
+  MS: [{creux:'verdure', poids:1}, {paquet:['Supermarché']}, {creux:'verdure', poids:1}],
   EX: [{creux:'verdure', poids:1},
        {paquet:['Entrepôt d\'export']},
        {creux:'verdure', poids:1}],
@@ -6090,24 +6085,15 @@ const BANDES = {
   PO: [{paquet:['Criée']},
        {creux:'dalle', poids:1},
        {paquet:['Conserverie']}],
-  /* LE BORD EST DU BRIN : UNE MAISON, UN BOSQUET, LE SUPERMARCHÉ, UN BOSQUET. Le
-     supermarché prend la place de la seconde maison — cinquante mètres de façade sur les
-     cent trente-deux de la bande, il ne reste pas de quoi en garder deux — et se retrouve
-     au milieu du brin, à mi-chemin de l'entrepôt et de la route du bas, ce que le joueur
-     demande. Les trois creux restent au plafond, et il tient huit mètres de verge à chaque
-     carrefour en plus des trois du recul. */
-  /* ET LA SCIERIE SE COLLE AU NORD DU SUPERMARCHÉ. Le joueur : « fais la scierie à côté du
-     supermarché. » Au nord plutôt qu'au sud : c'est le côté de la route nord, par où le
-     porteur arrive de la piste du dépôt. La maison reste ; les trois bosquets descendent
-     de douze à neuf mètres. */
+  // Côté est : la scierie et trois maisons ; les deux dernières remplacent le supermarché.
   SU: [{creux:'verdure', poids:1},
        {paquet:['maison']},
        {creux:'verdure', poids:1},
-       {paquet:['Scierie', 'Supermarché']},
+       {paquet:['Scierie', 'maison', 'maison'], modeles:[2,5]},
        {creux:'verdure', poids:1}],
   /* Le bord ouest du brin : deux maisons et des bosquets. ELLES SONT COLLÉES, ELLES AUSSI —
      « colle-les les unes aux autres » vaut pour toutes les maisons du bord des routes —,
-     au milieu de la bande, en face de la scierie et du supermarché : un bosquet de chaque
+     au milieu de la bande, en face de la scierie et des nouvelles maisons : un bosquet de chaque
      côté, et le reste de la bande rendu aux deux bouts. */
   RO: [{creux:'verdure', poids:1},
        {paquet:['maison', 'maison']},
@@ -6173,7 +6159,7 @@ function repartirBandes(){
       if(b.creux){ poids += (b.poids || 1); continue; }
       b.lots = [];
       for(const e of b.paquet){
-        if(e === 'maison'){ const L = lotMaison(RY_BANDE[faceDe(dir)]); b.lots.push(L); fixe += L.jw; }
+        if(e === 'maison'){ const L = lotMaison(RY_BANDE[faceDe(dir)],b.modeles?.[b.lots.length]); b.lots.push(L); fixe += L.jw; }
         else fixe += (parNom[e] ? parNom[e].w : 0);
       }
     }
@@ -11013,15 +10999,6 @@ function creerDetailsVillage(){
     finaliser('Restaurant','Quelques couverts sur les tables existantes. Terrasse, parasols et lampions déjà présents conservés.',g,new THREE.Vector3(S.x,2,S.z),36,.3);
   }
   {
-    const M=BANDE_MAISONS.find(m=>m.lot.modele===0)||BANDE_MAISONS[0],L=M.lot,g=new THREE.Group();g.position.copy(L.g.position);g.rotation.copy(L.g.rotation);g.scale.copy(L.g.scale);
-    const x=4.7,z=1.2;
-    for(const zz of [z-1.8,z+1.8])cube(g,.09,1.85,.09,bois,x,.925,zz);
-    barre(g,[x,1.78,z-1.8],[x,1.78,z+1.8],.015,creme);
-    for(let k=0;k<3;k++){const zz=z-1.12+k*.83;cube(g,.025,.77,.57,[0xEEE1BC,0x799DA3,0xAD5E50][k],x,1.36,zz);for(const s of [-1,1])cube(g,.055,.09,.025,bois,x,1.77,zz+s*.22);}
-    cube(g,.1,1.1,.1,bois,2.9,.55,4.5);cube(g,.53,.38,.35,0xA64D3B,2.9,1.21,4.5);cube(g,.3,.035,.02,sombre,2.9,1.22,4.685);
-    finaliser('Maison','Linge étendu et boîte aux lettres. Les jardinières existantes restent en place.',g,L.g.position.clone().add(new THREE.Vector3(0,2,0)),36,L.g.rotation.y+.95);
-  }
-  {
     const g=new THREE.Group(),x=PLACE_BOIS.x0+5.5,z=PLACE_BOIS.z1-4.5;g.position.set(x,0,z);
     for(let row=0;row<2;row++)for(let k=0;k<4-row;k++){
       const xx=0,yy=.3+row*.45,zz=-4.4-k*.55-row*.25;g.add(cyl(.25,.28,2.1,7,bois,xx,yy,zz,0,0,Math.PI/2));g.add(cyl(.22,.22,.012,7,0xC1A171,xx+1.055,yy,zz,0,0,Math.PI/2));
@@ -11149,13 +11126,56 @@ function finirCommerce(g,S){
   }
   FINITIONS_STATS.commerces.push({nom:S.nom,correction:'toiture, pignons et détails métier'});
 }
+function poserLingeMaison(g,k){
+  // Quelques jardins seulement ; le linge partage le maillage statique de la maison.
+  if(k!==0&&k!==2)return;
+  const J=g.userData.jardin,x=J.decalX+J.w/2-.85,z=-.45,L=3.35;
+  const p=new THREE.Group();p.name='linge-jardin';g.add(p);
+  for(const zz of [z-L/2,z+L/2])finBox(p,.085,1.72,.085,0x8A7150,x,.86,zz);
+  finBarre(p,[x,1.65,z-L/2],[x,1.65,z+L/2],.013,0xD5CDB5);
+  const couleurs=k===0?[0xE9DFC5,0x8EAAB0,0xB8745F]:[0xB9BBA0,0xEEE3CB,0x778DA2];
+  for(let n=0;n<3;n++){
+    const zz=z-.98+n*.94,h=n===1?.96:.72,w=n===1?.76:.58;
+    finBox(p,.02,h,w,couleurs[n],x,1.64-h/2,zz,0,0,n===2?.025:-.02);
+    for(const dz of [-w*.33,w*.33])finBox(p,.045,.07,.025,0xAB8456,x,1.66,zz+dz);
+  }
+  g.userData.linge={x,z,longueur:L};
+}
+const HALTE_FORET={x:397,z:-49,hw:6,hd:5};
+function poserHalteForet(){
+  const H=HALTE_FORET,g=new THREE.Group();g.name='halte-foret';g.position.set(H.x,0,H.z);
+  const table=vilPiqueNique().g;table.scale.setScalar(1.15);table.position.set(-1,0,.4);g.add(table);
+  // Panneau de sentier sans nouvelle texture : plan et balisage en aplats de couleur.
+  for(const x of [2.4,4.0])finBox(g,.12,2.9,.12,0x796043,x,1.45,-2.4);
+  finBox(g,2.1,1.4,.16,0x695238,3.2,2.17,-2.4);
+  finBox(g,1.85,1.15,.045,0xC8D1AB,3.2,2.17,-2.29);
+  for(const [x,y,w,h] of [[2.68,2.4,.36,.35],[3.22,1.93,.57,.22],[3.62,2.45,.3,.35]])finBox(g,w,h,.02,0x688455,x,y,-2.25);
+  for(const [x,y,angle] of [[2.8,2.07,-.45],[3.15,2.2,.65],[3.48,2.18,-.55]])finBox(g,.45,.055,.025,0xEEE5C5,x,y,-2.22,0,0,angle);
+  finBox(g,2.4,.13,.7,0x55715A,3.2,2.95,-2.4);
+  // Deux repères bas laissent toute la face avant ouverte.
+  for(const x of [-4.6,4.7]){finBox(g,.25,.85,.25,0x8E7758,x,.425,3.6);finBox(g,.26,.13,.26,0xEAE1C8,x,.63,3.6);}
+  fusionnerGroupe(g);scene.add(g);
+  boxObs.push({x:H.x-1,z:H.z+.4,hw:3.1,hd:2.6});
+  boxObs.push({x:H.x+3.2,z:H.z-2.4,hw:1.15,hd:.3});
+  const fleurs=new THREE.Group();fleurs.name='fleurs-lisiere';
+  for(const [x,z] of [[302,-61],[319,-62],[373,-61],[387,-62],[392,-44],[402,-43]]){
+    for(let i=0;i<5;i++){
+      const xx=x+(i%3)*.45,zz=z+Math.floor(i/3)*.48;
+      finBox(fleurs,.055,.32,.055,0x5A7346,xx,.16,zz);
+      fleurs.add(cyl(.13,.1,.065,5,i%3?0xDBC887:0xC68B87,xx,.33,zz));
+    }
+  }
+  fusionnerGroupe(fleurs);scene.add(fleurs);
+}
+
 function finirMaison(g,k){
   const formes=[[6.4,5.2,2.9],[6.6,5.6,4.6],[6,5,3.8],[4.6,4.8,6],[9.4,4.8,3],[5.4,5,5.2]];
   const [W,D,H]=formes[k];g.userData.empriseArbres={hw:W/2,hd:D/2};finGouttieres(g,W,D,H,false);
   // Petit numéro et boîte, posés près de l'allée déclarée par le modèle.
   const A=g.userData.allee,xx=A?A.x:0;
   finBox(g,.24,.24,.06,0x3C5359,xx+.82,1.78,D/2+.12);finBox(g,.06,.11,.015,0xEAE0BC,xx+.82,1.78,D/2+.16);
-  if(k!==0){finBox(g,.12,.9,.12,0x786044,xx+1.2,.45,D/2+1.1);finBox(g,.42,.29,.3,[0x6E8790,0x91634E,0x547053][k%3],xx+1.2,1.02,D/2+1.1);finBox(g,.26,.024,.02,0x283A39,xx+1.2,1.04,D/2+1.26);}
+  {finBox(g,.12,.9,.12,0x786044,xx+1.2,.45,D/2+1.1);finBox(g,.42,.29,.3,[0x6E8790,0x91634E,0x547053][k%3],xx+1.2,1.02,D/2+1.1);finBox(g,.26,.024,.02,0x283A39,xx+1.2,1.04,D/2+1.26);}
+  poserLingeMaison(g,k);
   FINITIONS_STATS.maisons++;
 }
 function poserReperesQuartiers(){
@@ -12286,6 +12306,7 @@ function buildFarm(){
   // ci-dessus, et il faut que ce soit fait AVANT le semis général pour que son filtre
   // sache ce qui est déjà occupé.
   garnirBandes(putBush, putRock);
+  poserHalteForet();
   creerDetailsVillage();
   finirBordsCarte();
 
@@ -13163,8 +13184,8 @@ const MAI_ORDRE = [0, 4, 2, 5, 1, 3, 5, 0, 3, 2, 1, 4];
    sur tout le village, de sorte que deux maisons voisines ne sont jamais du même
    modèle, où qu'elles soient. */
 let maiSuivante = 0;
-function lotMaison(ry){
-  const k = MAI_ORDRE[maiSuivante++ % MAI_ORDRE.length];
+function lotMaison(ry,modele){
+  const k = modele ?? MAI_ORDRE[maiSuivante++ % MAI_ORDRE.length];
   const avant = jardinsPoses;
   jardinsPoses = false;
   const {g} = MAI_MODELES[k]();
@@ -35230,7 +35251,7 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
 
 function etatJeu(){
   return {
-    v: 1, quand: Date.now(),
+    v: 1, quartierForet:1, quand: Date.now(),
     /* L'ÉCHELLE DES VOLUMES. La version de la sauvegarde ne bouge jamais — la garde de
        relecture est une égalité stricte — mais les KILOS, eux, ont changé de sens : une
        parcelle de blé rendait 1 104 kg, elle en rend 250. Ce champ facultatif dit dans
@@ -35559,6 +35580,20 @@ function remettreAEchelle(S){
   }
   S.echelle = 2;
 }
+// Reprendre une ancienne partie sans retrouver son véhicule dans les nouvelles maisons.
+function migrerQuartierForet(S,destination=SITES.find(s=>s.nom==='Supermarché')){
+  if(!S||S.quartierForet>=1||!destination)return 0;
+  const ancien={x:456.09874983370304,z:30.783749956885973};
+  const dedans=q=>q&&Number.isFinite(q.x)&&Number.isFinite(q.z)&&Math.abs(q.x-ancien.x)<=24.1&&Math.abs(q.z-ancien.z)<=24.75;
+  const engins=S.machines||[],outils=S.outils||[],lies=new Set();let n=0;
+  engins.forEach((q,i)=>{if(dedans(q))lies.add(i);});
+  for(const q of outils)if(dedans(q)&&q.porteur>=0&&engins[q.porteur])lies.add(q.porteur);
+  const deplacer=q=>{const dx=q.x-ancien.x,dz=q.z-ancien.z;q.x=destination.x+dz;q.z=destination.z-dx;q.cap=(q.cap||0)+Math.PI/2;n++;};
+  engins.forEach((q,i)=>{if(lies.has(i))deplacer(q);});
+  for(const q of outils)if(lies.has(q.porteur)||dedans(q))deplacer(q);
+  S.quartierForet=1;return n;
+}
+
 function chargerPartie(S){
   remettreAEchelle(S);
   if(!S || S.v !== 1) return false;
@@ -35810,6 +35845,7 @@ function chargerPartie(S){
     else for(const T of TOOLS) T.verrou = false;
     for(const T of TOOLS) T.group.visible = !T.verrou;
 
+    migrerQuartierForet(S);
     // 5. le matériel : d'abord tout dételer, puis reposer chaque pièce
     for(const m of MACHINES) if(m.v.tool) detachTool(m.v);
     S.machines.forEach((q, i)=>{
