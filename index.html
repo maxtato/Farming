@@ -10983,7 +10983,7 @@ const FINITIONS_BATIMENTS = {
 };
 const QUARTIERS_FINIS = [
   {nom:'Le port',picto:'goutte',x:-153,z:-64,rot:Math.PI,c:0x406A79},
-  {nom:'Le village',picto:'baguette',x:-84,z:-84,rot:0,c:0x87664B},
+  {nom:'Le village',picto:'baguette',x:-108,z:-84,rot:0,c:0x87664B},
   {nom:'Les ateliers',picto:'cle',x:309,z:-84,rot:0,c:0x55646C},
   {nom:'Le hameau',picto:'feuille',x:161,z:64,rot:Math.PI,c:0x597147},
   {nom:'La forêt',picto:'feuille',x:337,z:-60,rot:0,c:0x41634C}
@@ -13011,6 +13011,12 @@ function vilBucher(){
   g.add(cyl(0.34, 0.34, 0.5, 9, D_BOIS2, W/2 + 0.9, 0.25, 0));
   g.add(box(0.1, 0.5, 0.06, 0x6E767C, W/2 + 0.9, 0.7, 0.02));
   g.add(box(0.26, 0.2, 0.1, 0x2E3438, W/2 + 0.9, 0.92, 0.02));
+  // Retourner tout l'abri, y compris la pente et le billot, avant son placement.
+  // Le groupe intérieur conserve ce demi-tour quel que soit le côté de la route.
+  const abri=new THREE.Group();
+  while(g.children.length)abri.add(g.children[0]);
+  abri.rotation.y=Math.PI;g.add(abri);g.name='bucher-village';
+  g.userData.demiTourAbri=true;
   return {g, r:2.8, w:6.1};
 }
 function vilPuits(){
@@ -13027,7 +13033,7 @@ function vilPuits(){
   return {g, r:1.4, w:2.4};
 }
 function vilCalvaire(){
-  const g = new THREE.Group();
+  const g = new THREE.Group();g.name='calvaire-village';
   for(let k = 0; k < 3; k++)
     g.add(box(2.4 - k*0.5, 0.22, 2.0 - k*0.42, D_PIERRE2, 0, 0.11 + k*0.22, 0));
   g.add(box(0.55, 1.5, 0.55, D_PIERRE, 0, 1.41, 0));
