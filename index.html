@@ -2091,15 +2091,7 @@ function appliquerPixel(){
    n'est appliqué nulle part n'est pas un défaut, c'est une variable. */
 appliquerPixel();
 renderer.shadowMap.enabled = true;
-/* ---------- L'OMBRE COÛTE MOINS : PCF, ET UNE CARTE DE 1 024 ----------
-   La mesure (voir le README, « Le jeu rame ») a placé l'ombre en tête des dépenses de la
-   carte graphique : une carte de 2 048 × 2 048 — quatre millions de pixels de profondeur,
-   plus que l'image elle-même — redessinée à chaque image, puis lue en `PCFSoft`, neuf prises
-   bilinéaires par pixel ombré, sur tout ce qui reçoit l'ombre, cultures comprises. Le joueur
-   a choisi les deux premiers leviers : le filtre `PCF` (neuf prises simples, trois à quatre
-   fois moins de lectures par pixel) et la carte à 1 024 (quatre fois moins de pixels d'ombre
-   par image, 7,9 points par mètre au lieu de 15,7 sur les 130 m de la boîte — ombres un peu
-   plus douces, ce qui va au trait du jeu). */
+// Filtre PCF conservé ; davantage de précision sans changer la résolution du jeu.
 renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
 
@@ -2219,34 +2211,39 @@ scene.add(hemi);
 const SUN_DIR = new THREE.Vector3(50, 78, 24);
 const sun = new THREE.DirectionalLight(0xFFE6C0, 0.95);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);                 // 2 048 avant : voir `renderer.shadowMap.type`
-/* LA BOÎTE D'OMBRE SE DÉDUIT DE LA PORTÉE D'UNE OMBRE, ET NON D'UNE MARGE AU JUGÉ.
-   Elle couvrait 170 m de côté pour une caméra qui voit 93 m de large — presque le double,
-   et personne ne l'avait mesuré, pour une raison simple : `renderer.info.render.calls` NE
-   COMPTE PAS la passe d'ombre. 468 appels avec les ombres, 468 sans. Tous les chiffres
-   d'appels du fichier ne parlaient que de la passe principale, et la seconde passait sous
-   le radar. Comptée à la main, dans les cultures : 90 appels pour l'image, 250 pour son
-   ombre — près de trois fois plus, pour un dixième des triangles.
-   Or une ombre a une PORTÉE, et elle se calcule. Le soleil est en (50, 78, 24) : une
-   ombre s'étend horizontalement de √(50² + 24²)/78 = 0,71 fois la hauteur de l'objet. Le
-   plus haut du jeu — un arbre de douze mètres — jette donc la sienne à 8,5 m. Un objet à
-   plus de neuf mètres hors du cadre ne peut PAS y poser d'ombre : le redessiner est du
-   travail pur.
-   D'où 130 : 93 m vus, plus 18,5 m de marge à chaque bout, soit plus du double de ce que
-   la plus longue ombre du jeu réclame. Relevé — cultures 250 → 118 appels d'ombre
-   (−53 %), village 169 → 92 (−46 %), cour de ferme 316 → 265 (−16 %) — et les captures
-   avant/après sont les mêmes au trafic près. La carte y GAGNE d'ailleurs en finesse :
-   2048 pixels sur 130 m font 15,7 px/m au lieu de 12,0 (1 024 depuis, soit 7,9 : le joueur
-   a préféré la fluidité, voir `renderer.shadowMap.type`).
-   ET L'ON NE DESCEND PAS PLUS BAS. À 110 m la marge tombe à 8,5 m, très exactement la
-   portée de l'ombre d'un arbre : le premier peuplier au bord du cadre verrait la sienne
-   apparaître d'un coup. C'est la marge qui fixe le nombre, pas le gain. */
-const OMBRE_COTE = 65;                   // demi-côté de la boîte d'ombre, en mètres
-sun.shadow.camera.near = 20; sun.shadow.camera.far = 300;
-sun.shadow.camera.left = -OMBRE_COTE; sun.shadow.camera.right = OMBRE_COTE;
-sun.shadow.camera.top = OMBRE_COTE; sun.shadow.camera.bottom = -OMBRE_COTE;
-sun.shadow.bias = -0.0012;
+sun.shadow.mapSize.set(Math.min(1536,renderer.capabilities.maxTextureSize),Math.min(1536,renderer.capabilities.maxTextureSize));
+sun.shadow.bias = -0.00035;
+sun.shadow.normalBias = 0.035;
 scene.add(sun); scene.add(sun.target);
+
+// Une carte d'ombre couvrant la vue, stabilisée dans le repère du soleil.
+const OMBRES_VUE = {droite:new THREE.Vector3(),haut:new THREE.Vector3(),axe:new THREE.Vector3(),points:Array.from({length:8},()=>new THREE.Vector3()),largeur:0,hauteur:0};
+function suivreOmbresVue(vue=camera){
+  vue.updateMatrixWorld();
+  const V=OMBRES_VUE,D=V.axe.copy(SUN_DIR).normalize();
+  V.droite.set(D.z,0,-D.x).normalize();V.haut.crossVectors(D,V.droite);
+  const e=vue.matrixWorld.elements,tan=Math.tan(vue.fov*Math.PI/360);
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity,d0=Infinity,d1=-Infinity,i=0;
+  // Sol et dessus des bâtiments : leurs projections restent dans la carte, aux deux zooms extrêmes.
+  for(const h of [0,Math.min(32,vue.position.y-.5)])for(const ny of [-1,1])for(const nx of [-1,1]){
+    const rx=e[0]*nx*tan*vue.aspect+e[4]*ny*tan-e[8];
+    const ry=e[1]*nx*tan*vue.aspect+e[5]*ny*tan-e[9];
+    const rz=e[2]*nx*tan*vue.aspect+e[6]*ny*tan-e[10];
+    const t=(h-vue.position.y)/Math.min(-.001,ry),p=V.points[i++];
+    p.set(vue.position.x+rx*t,h,vue.position.z+rz*t);
+    const x=p.dot(V.droite),y=p.dot(V.haut),d=p.dot(D);
+    x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);d0=Math.min(d0,d);d1=Math.max(d1,d);
+  }
+  const w=Math.ceil(Math.max(130,x1-x0+24)/8)*8,h=Math.ceil(Math.max(130,y1-y0+24)/8)*8;
+  const C=sun.shadow.camera;
+  if(w!==V.largeur||h!==V.hauteur){C.left=-w/2;C.right=w/2;C.top=h/2;C.bottom=-h/2;V.largeur=w;V.hauteur=h;}
+  C.near=1;C.far=d1-d0+140;C.updateProjectionMatrix();
+  const px=w/sun.shadow.mapSize.x,py=h/sun.shadow.mapSize.y;
+  const cx=Math.round((x0+x1)*.5/px)*px,cy=Math.round((y0+y1)*.5/py)*py,depth=(d0+d1)*.5;
+  sun.target.position.copy(V.droite).multiplyScalar(cx).addScaledVector(V.haut,cy).addScaledVector(D,depth);
+  sun.position.copy(sun.target.position).addScaledVector(D,(d1-d0)*.5+70);
+  sun.target.updateMatrixWorld();sun.updateMatrixWorld();
+}
 
 addEventListener('resize', ()=>{
   camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
@@ -8054,9 +8051,33 @@ const TREE_GEOS = [
     P_(0.05,1.20,1.1,8,7.80,0x35744A)
   ])
 ];
+// Nettoyage unique après construction : aucune recherche de bâtiments à chaque image.
+const ARBRES_RETIRES = [];
+function nettoyerArbresBatiments(){
+  const zones=SITES.filter(s=>s.emp).map(s=>({...s.emp,nom:s.nom}));
+  for(const q of boxObs)if(!q.eau&&!q.jardin&&q.hw>=1.8&&q.hd>=1.8)zones.push({x0:q.x-q.hw,x1:q.x+q.hw,z0:q.z-q.hd,z1:q.z+q.hd,nom:'bâti ou aire réservée'});
+  zones.push({x0:MAISON.hx-5.4,x1:MAISON.hx+5.4,z0:MAISON.hz-5.4,z1:MAISON.hz+5.4,nom:'maison de la ferme'});
+  scene.updateMatrixWorld(true);
+  scene.traverse(g=>{const e=g.userData.empriseArbres;if(!e)return;const b=new THREE.Box3(new THREE.Vector3(-e.hw,0,-e.hd),new THREE.Vector3(e.hw,1,e.hd)).applyMatrix4(g.matrixWorld);zones.push({x0:b.min.x,x1:b.max.x,z0:b.min.z,z1:b.max.z,nom:'maison'});});
+  const retires=new Set(),boite=new THREE.Box3();
+  for(let i=RENV.length-1;i>=0;i--){
+    const k=RENV[i],m=k.mesh;if(!m.userData.arbreDecor)continue;
+    m.updateMatrixWorld(true);boite.setFromObject(m);
+    const q=zones.find(q=>boite.max.x>q.x0-.35&&boite.min.x<q.x1+.35&&boite.max.z>q.z0-.35&&boite.min.z<q.z1+.35);
+    if(!q)continue;
+    ARBRES_RETIRES.push({x:m.position.x,z:m.position.z,lieu:q.nom});
+    m.removeFromParent ? m.removeFromParent() : m.parent.remove(m);
+    retires.add(m);retires.add(k);RENV.splice(i,1);
+    // Géométrie et matériau partagés : surtout ne pas les détruire pour les autres arbres.
+  }
+  for(let i=obstacles.length-1;i>=0;i--)if(retires.has(obstacles[i].k)){retires.add(obstacles[i]);obstacles.splice(i,1);}
+  for(const p of PARCELS)if(p.decor)for(let i=p.decor.length-1;i>=0;i--)if(retires.has(p.decor[i]))p.decor.splice(i,1);
+}
+
 function addTree(x,z,s,variant,parcel){
   if(surRoute(x, z, 4.5)) return;          // le houppier ne doit jamais surplomber la route
   const m = new THREE.Mesh(TREE_GEOS[variant !== undefined ? variant : 0], treeMat);
+  m.userData.arbreDecor = true;
   m.position.set(x,0,z); m.scale.setScalar(s||1);
   m.rotation.y = (x*7+z*3)%1.5;
   m.castShadow = true; m.receiveShadow = true;
@@ -9591,11 +9612,11 @@ function ajouteBulleRendu(S, H, sous){
   }
   // Le centre de la dalle inclut le parking : accrocher au centre réel du bâti.
   const reculToit = S.bbD === undefined ? 0 : S.d/2 - (S.parvis || 0) - S.bbD/2;
-  const bx = S.x + Math.sin(S.rot || 0)*reculToit;
-  const bz = S.z + Math.cos(S.rot || 0)*reculToit;
-  // Côté est, le parking se projette derrière le toit : dégager aussi son bord haut.
-  const margeToit = faceDe(S.dir) === 'E' ? 10.2 : 3.2;
-  S.bulle = poseBulle(S.nom, S.toit, sous, bx, H + margeToit, bz, 0);
+  const bx = S.ancreToit ? S.ancreToit.x : S.x + Math.sin(S.rot || 0)*reculToit;
+  const bz = S.ancreToit ? S.ancreToit.z : S.z + Math.cos(S.rot || 0)*reculToit;
+  // Une petite garde au-dessus du toit, identique pour tous les commerces.
+  const margeToit = 0.75;
+  S.bulle = poseBulle(S.nom, S.toit, sous, bx, (S.hauteurToit ?? H) + margeToit, bz, 0);
   S.bulleH = H;
   S.bulleTxt = sous;
   S.bulleOuvert = siteOuvert(S);
@@ -11130,7 +11151,7 @@ function finirCommerce(g,S){
 }
 function finirMaison(g,k){
   const formes=[[6.4,5.2,2.9],[6.6,5.6,4.6],[6,5,3.8],[4.6,4.8,6],[9.4,4.8,3],[5.4,5,5.2]];
-  const [W,D,H]=formes[k];finGouttieres(g,W,D,H,false);
+  const [W,D,H]=formes[k];g.userData.empriseArbres={hw:W/2,hd:D/2};finGouttieres(g,W,D,H,false);
   // Petit numéro et boîte, posés près de l'allée déclarée par le modèle.
   const A=g.userData.allee,xx=A?A.x:0;
   finBox(g,.24,.24,.06,0x3C5359,xx+.82,1.78,D/2+.12);finBox(g,.06,.11,.015,0xEAE0BC,xx+.82,1.78,D/2+.16);
@@ -11251,6 +11272,11 @@ function buildCommerce(S){
   g.position.set(S.x, 0, S.z); g.rotation.y = S.rot;
   scene.add(g);
   g.updateMatrixWorld(true);
+  // Mesurer la toiture à l'ancrage : une cheminée ou un silo voisin ne relève plus l'étiquette.
+  S.ancreToit = corps.localToWorld(new THREE.Vector3());
+  const rayonToit = new THREE.Raycaster(new THREE.Vector3(S.ancreToit.x,S.bbH+40,S.ancreToit.z),new THREE.Vector3(0,-1,0));
+  const toucheToit = rayonToit.intersectObject(corps,true)[0];
+  S.hauteurToit = toucheToit ? toucheToit.point.y : S.bbH;
   if(S.mk){ S.smoke = new THREE.Vector3(); S.mk.getWorldPosition(S.smoke); }
   releverEnseignes(g,S);
   // Le bâti est posé, mesuré, repéré : plus rien n'a besoin de ses volumes un par un.
@@ -12505,7 +12531,7 @@ function buildFarm(){
      invisible de dix mètres de large. */
   for(const T of RANG.troncons)
     boxObs.push({x:(T.x0 + T.x1)/2, z:(RANG.z0 + RANG.z1)/2,
-                 hw:(T.x1 - T.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB});
+                 hw:(T.x1 - T.x0)/2 + DEB, hd:(RANG.z1 - RANG.z0)/2 + DEB, jardin:true});
 
   /* CE QU'IL Y A DANS L'ÉCART. Le calvaire y donnait sa silhouette haute, celle qu'on
      voit du bitume par-dessus la clôture ; il est parti garnir un des quatre coins du
@@ -13361,7 +13387,7 @@ function poserLotBande(L, dir, centre, front, sansAvant, sansApres){
   fusionnerGroupe(G);
   const bx = surZ ? prof : centre, bz = surZ ? centre : prof;
   const ox = surZ ? hd : hb, oz = surZ ? hb : hd;
-  boxObs.push({x:bx, z:bz, hw:ox, hd:oz});
+  boxObs.push({x:bx, z:bz, hw:ox, hd:oz, jardin:true});
   BANDE_LOTS.push({x0:bx - ox, x1:bx + ox, z0:bz - oz, z1:bz + oz});
 }
 /* Les maisons de bande et le contenu des creux. Le mobilier se pose sur l'herbe TOUT
@@ -36236,6 +36262,7 @@ remplirCommandes(0);
 construireEclairagesNuit();
 // LE MONDE EST BÂTI : on ferme la matrice de tout ce qui n'en changera plus.
 _mondePret = true;
+nettoyerArbresBatiments();
 figerCeQuiNeBougePas();
 updateJourNuit(0);
 setMachine(cur);
@@ -37388,12 +37415,7 @@ function loop(now){
      temps d'une version, et se tassaient donc pareil ; elles sont redevenues des SPRITES,
      qui sont plats par construction et n'ont rien à rattraper. Les étirer les déformerait
      — voir `creerJauge`. */
-  // On quantifie le centre de la carte d'ombre sur une grille de 4 m : sans ça les
-  // bords d'ombre grouillent en permanence pendant le déplacement, ce qui donne
-  // l'impression que l'ombre bouge alors que sa direction est fixe.
-  const sx = Math.round(camTarget.x/4)*4, sz = Math.round(camTarget.z/4)*4;
-  sun.position.set(sx + SUN_DIR.x, SUN_DIR.y, sz + SUN_DIR.z);
-  sun.target.position.set(sx, 0, sz); sun.target.updateMatrixWorld();
+  suivreOmbresVue();
 
   if(hintT > 0){ hintT -= dt; if(hintT <= 0) el.hint.style.opacity = 0; }
   /* LE DÉCOMPTE DU BRAVO SURVIT À dt = 0. Ouvrir le plan ou les réglages met le jeu en
