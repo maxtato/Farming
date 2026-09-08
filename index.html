@@ -8175,13 +8175,17 @@ function construireForet(){
   // Le dépôt : ses piles, son cercle et son enseigne.
   const D = DEPOT_BOIS;
   const g = modeleDepotBois();
+  g.name = 'depot-bois';
   g.scale.setScalar(ECH_COMMERCE); g.position.set(D.x, 0, D.z);
   scene.add(g); fusionnerGroupe(g);
   D.etapes = g.userData.etapes;
   for(const E of D.etapes) E.visible = false;
-  obstacles.push({x:D.x - 3.6*ECH_COMMERCE, z:D.z - 1.6*ECH_COMMERCE, r:2.6*ECH_COMMERCE/1.18});
-  obstacles.push({x:D.x - 2.8*ECH_COMMERCE, z:D.z + 2.4*ECH_COMMERCE, r:2.2*ECH_COMMERCE/1.18});
-  obstacles.push({x:D.x + 1.6*ECH_COMMERCE, z:D.z - 2.2*ECH_COMMERCE, r:2.0*ECH_COMMERCE/1.18});
+  // Les volumes viennent des grumes réelles, sans cercle englobant la place vide.
+  D.collisionsEtapes = D.etapes.map(E=> E.userData.collisions.map(b=> ({
+    x:D.x+b.x*ECH_COMMERCE, z:D.z+b.z*ECH_COMMERCE,
+    hw:b.hw*ECH_COMMERCE, hd:b.hd*ECH_COMMERCE, depotBois:true
+  })));
+  D.collisions = []; D.etapeCollision = -1;
   D.quai = {x:D.x + QUAI_DEPOT_DX, z:D.z - 1.0};   // dans l'axe de la piste : voir PISTE_BOIS
   poserAbriForestier();
   poserOiseauxForet();                              // douze oiseaux dans les houppiers
@@ -8204,6 +8208,12 @@ function majPileDepot(){
   if(!D.etapes) return;
   const e = etapeDepot(D.stock);
   D.etapes.forEach((E, i)=>{ E.visible = (i + 1) === e; });
+  if(D.collisionsEtapes && D.etapeCollision !== e){
+    for(const o of D.collisions){const i=boxObs.indexOf(o);if(i>=0)boxObs.splice(i,1);}
+    D.collisions = e ? D.collisionsEtapes[e-1] : [];
+    boxObs.push(...D.collisions); // listeDecor invalide aussi l'index des collisions.
+    D.etapeCollision = e;
+  }
 }
 /* LES LITS DU GRUMIER, EN PART DE SA CAPACITÉ : le premier dès qu'il porte quelque chose,
    le deuxième au tiers, le troisième à la moitié passée, le dernier aux quatre cinquièmes.
@@ -9916,6 +9926,27 @@ function batMenuiserie(){
    second de six. Les troncs seuls sont couchés dans la terre, sans piquets ; les tas ont
    les leurs. La plaque de terre de quatorze centimètres qui faisait socle est partie : la
    place du dépôt est déjà de la terre battue (`solOndule`), le bois s'y pose. */
+function empreintesDepotBois(E){
+  // Mesure au chargement uniquement, avant fusion. Les grumes obliques sont découpées
+  // en tronçons courts pour ne pas bloquer les coins vides de leur rectangle englobant.
+  const out=[];
+  E.updateMatrixWorld(true);
+  E.traverse(o=>{
+    if(!o.isMesh)return;
+    o.geometry.computeBoundingBox();
+    const b=o.geometry.boundingBox, size=b.getSize(new THREE.Vector3());
+    const axe=size.x>size.y?(size.x>size.z?'x':'z'):(size.y>size.z?'y':'z');
+    const col={x:0,y:4,z:8}[axe],m=o.matrixWorld.elements;
+    const oblique=Math.abs(m[col])>.001&&Math.abs(m[col+2])>.001;
+    const n=oblique?Math.max(1,Math.ceil(size[axe])):1;
+    for(let i=0;i<n;i++){
+      const p=b.clone();p.min[axe]=b.min[axe]+size[axe]*i/n;p.max[axe]=b.min[axe]+size[axe]*(i+1)/n;
+      p.applyMatrix4(o.matrixWorld);
+      out.push({x:(p.min.x+p.max.x)/2,z:(p.min.z+p.max.z)/2,hw:(p.max.x-p.min.x)/2,hd:(p.max.z-p.min.z)/2});
+    }
+  });
+  return out;
+}
 function modeleDepotBois(){
   const g = new THREE.Group();
   const seul = (x, z, ry, k)=> grumeBois(g, x, 0.34, z, 5.0, 0.34, ry);
@@ -9935,7 +9966,7 @@ function modeleDepotBois(){
      quoi que dise le stock (mesuré : 0 maillage dans chaque étape après fusion). Chaque
      étape est donc fusionnée en UN maillage à elle, puis marquée `anime` pour que la fusion
      du dépôt ne descende pas dedans : une étape visible coûte un appel, une cachée rien. */
-  for(const E of etapes){ fusionnerGroupe(E); E.userData.anime = true; }
+  for(const E of etapes){ E.userData.collisions=empreintesDepotBois(E);fusionnerGroupe(E); E.userData.anime = true; }
   for(const [x, z, r] of [[3.8, 2.6, 0.5], [4.6, -3.0, 0.42], [0.4, 3.4, 0.36]]){
     g.add(cyl(r, r*1.15, 0.4, 9, BO.ECORCE, x, 0.2, z));
     g.add(cyl(r*0.9, r*0.9, 0.06, 9, BO.COEUR, x, 0.41, z));
@@ -10941,7 +10972,10 @@ function creerDetailsVillage(){
     for(let row=0;row<2;row++)for(let k=0;k<4-row;k++){
       const xx=0,yy=.3+row*.45,zz=-4.4-k*.55-row*.25;g.add(cyl(.25,.28,2.1,7,bois,xx,yy,zz,0,0,Math.PI/2));g.add(cyl(.22,.22,.012,7,0xC1A171,xx+1.055,yy,zz,0,0,Math.PI/2));
     }
-    g.add(cyl(.5,.6,.75,8,bois,4.8,.375,-2.2));barre(g,[4.8,.72,-2.2],[5.3,1.7,-2.2],.04,0xB38F57);cube(g,.47,.22,.1,metal,5.15,1.45,-2.2,0,0,-.4);
+    g.add(cyl(.5,.6,.75,8,bois,4.8,.375,-2.2));
+    // Le tranchant entre dans le billot ; le manche part de l'œil et monte légèrement de biais.
+    const lame=cube(g,.48,.28,.1,metal,4.84,.82,-2.2,0,0,-.18);lame.name='hache-lame';
+    barre(g,[5.01,.86,-2.2],[5.18,1.88,-2.2],.045,0xB38F57);
     const t=new THREE.Group();t.position.set(1.5,0,-9);g.add(t);cube(t,3.5,.14,1.4,bois,0,1.1,0);for(const zz of [-1.12,1.12])cube(t,3.5,.12,.38,bois,0,.61,zz);for(const xx of [-1.2,1.2]){barre(t,[xx,0,-1.35],[xx,1.03,.45],.09,sombre);barre(t,[xx,0,1.35],[xx,1.03,-.45],.09,sombre);}
     finaliser('Cabane','Petit tas de bois décoratif, billot et table en bord de clairière. Le centre reste libre.',g,new THREE.Vector3(x+3,1,z-3),30,1.1);
   }
