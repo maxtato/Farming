@@ -9286,7 +9286,7 @@ function couperNom(nom){
   }
   return [mots.slice(0, best).join(' '), mots.slice(best).join(' ')];
 }
-// Les portraits existants sont décodés une fois par palette, puis cuits dans la plaque.
+// Portrait et plaque restent dans une seule texture, séparés par du transparent.
 const VISAGES_ENSEIGNES = new Map();
 function visageEnseigne(src){
   if(!VISAGES_ENSEIGNES.has(src)){
@@ -9306,14 +9306,15 @@ function bulleTex(nom, toit, sous){
   const lig = couperNom(nom);
   const src = visageDe(nom, 'neutre'), hauteurPortrait = src ? 344 : 0;
   const LW = 560;
-  const hNom = (src ? 2 : lig.length)*(NOM_PX + 12);
-  const hTexte = 34 + hNom + (src || sous ? SOUS_PX + 16 : 0) + 26;
-  const LH = hTexte + hauteurPortrait;
+  const hNom = lig.length*(NOM_PX + 12);
+  const hTexte = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
+  const decalTexte = src ? hauteurPortrait + 42 : 0;
+  const LH = hTexte + decalTexte;
   const cv = document.createElement('canvas');
   cv.width = LW*SUR; cv.height = LH*SUR;
   const c = cv.getContext('2d');
   c.scale(SUR, SUR);
-  const r = 34, w = LW - 20, h = LH - 22, x = 10, y = 8;
+  const r = 24, w = LW - 20, h = hTexte - 22, x = 10, y = decalTexte + 8;
   c.fillStyle = '#171B1D';
   c.beginPath();
   c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -9325,21 +9326,20 @@ function bulleTex(nom, toit, sous){
   function peindre(im){
   c.putImageData(fond, 0, 0);
   const centreTexte = LW/2;
-  const decalY = hauteurPortrait;
+  const decalY = decalTexte;
   if(im){
     // Cadrage entier : ni le chapeau ni les épaules ne sont coupés.
     const cote = hauteurPortrait, k = Math.min(cote/im.naturalWidth, cote/im.naturalHeight);
     c.imageSmoothingEnabled = true;
     c.imageSmoothingQuality = 'high';
     c.drawImage(im, (LW-im.naturalWidth*k)/2,
-      18+(cote-im.naturalHeight*k)/2, im.naturalWidth*k, im.naturalHeight*k);
+      (cote-im.naturalHeight*k)/2, im.naturalWidth*k, im.naturalHeight*k);
   }
   const ferme = /^NIVEAU /.test(sous || '');
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
   c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-  const centreNom = src ? (2-lig.length)*(NOM_PX+12)/2 : 0;
-  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + centreNom + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
+  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
   /* PLUS DE TRAIT SOUS LE TITRE. Une barre d'accent de 310 pixels sur 5, dans la couleur
      du toit, séparait le nom du commerce de ce qu'une mission y attend. Le joueur : « sur
      toutes les étiquettes, enlève le petit trait de soulignage qui est sous le titre, tu
@@ -9589,7 +9589,13 @@ function ajouteBulleRendu(S, H, sous){
     const i = BULLES.findIndex((b)=> b.m === S.bulle);
     if(i >= 0) BULLES.splice(i, 1);
   }
-  S.bulle = poseBulle(S.nom, S.toit, sous, S.x, H + 3.2, S.z, 0);
+  // Le centre de la dalle inclut le parking : accrocher au centre réel du bâti.
+  const reculToit = S.bbD === undefined ? 0 : S.d/2 - (S.parvis || 0) - S.bbD/2;
+  const bx = S.x + Math.sin(S.rot || 0)*reculToit;
+  const bz = S.z + Math.cos(S.rot || 0)*reculToit;
+  // Côté est, le parking se projette derrière le toit : dégager aussi son bord haut.
+  const margeToit = faceDe(S.dir) === 'E' ? 10.2 : 3.2;
+  S.bulle = poseBulle(S.nom, S.toit, sous, bx, H + margeToit, bz, 0);
   S.bulleH = H;
   S.bulleTxt = sous;
   S.bulleOuvert = siteOuvert(S);
