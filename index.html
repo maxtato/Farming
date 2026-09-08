@@ -3917,7 +3917,7 @@ const SITES = [
   // Le garage : on y répare, on y améliore, et c'est le SEUL endroit où l'on achète
   // un véhicule. Il s'appelait « Atelier », ce qui le confondait avec l'atelier de
   // production de la ferme et avec l'atelier textile du village.
-  {nom:'Garage', enseigne:'logo3d', picto:'cle', dir:'E', bat:-160, park:-59,
+  {nom:'Garage', enseigne:'logo3d', picto:null, dir:'E', bat:-160, park:-59,
    style:'usine', crop:-1, prix:0, atelier:true, cloture:'grillage',
    w:13.0, d:10.0, pw:16, ph:16, toit:0x4A5359, mur:0x9BA3A8, tuyaux:true,
    propose:[{nom:'Vend les véhicules', prix:''}, {nom:'Répare et améliore', prix:''}]},
@@ -9299,91 +9299,24 @@ function couperNom(nom){
   }
   return [mots.slice(0, best).join(' '), mots.slice(best).join(' ')];
 }
-// Portrait et plaque restent dans une seule texture, séparés par du transparent.
-const VISAGES_ENSEIGNES = new Map();
-function visageEnseigne(src){
-  if(!VISAGES_ENSEIGNES.has(src)){
-    VISAGES_ENSEIGNES.set(src, new Promise(resolve=>{
-      const im = new Image();
-      im.onload = ()=>resolve(im);
-      im.onerror = ()=>resolve(null);
-      im.src = src;
-    }));
-  }
-  return VISAGES_ENSEIGNES.get(src);
-}
 function bulleTex(nom, toit, sous){
-  /* SUR est le seul chiffre à toucher si l'on veut revenir en arrière : les tracés
-     restent écrits dans l'espace LW x LH, quelle que soit sa valeur. */
-  const SUR = 1;
-  const lig = couperNom(nom);
-  const src = visageDe(nom, 'neutre'), hauteurPortrait = src ? 344 : 0;
-  const LW = 560;
-  const hNom = lig.length*(NOM_PX + 12);
-  const hTexte = 34 + hNom + (sous ? SOUS_PX + 16 : 0) + 26;
-  const decalTexte = src ? hauteurPortrait + 42 : 0;
-  const LH = hTexte + decalTexte;
-  const cv = document.createElement('canvas');
-  cv.width = LW*SUR; cv.height = LH*SUR;
-  const c = cv.getContext('2d');
-  c.scale(SUR, SUR);
-  const r = 24, w = LW - 20, h = hTexte - 22, x = 10, y = decalTexte + 8;
-  c.fillStyle = '#171B1D';
-  c.beginPath();
-  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
-  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
-  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
-
-  const fond = c.getImageData(0, 0, cv.width, cv.height);
-  function peindre(im){
-  c.putImageData(fond, 0, 0);
-  const centreTexte = LW/2;
-  const decalY = decalTexte;
-  if(im){
-    // Cadrage entier : ni le chapeau ni les épaules ne sont coupés.
-    const cote = hauteurPortrait, k = Math.min(cote/im.naturalWidth, cote/im.naturalHeight);
-    c.imageSmoothingEnabled = true;
-    c.imageSmoothingQuality = 'high';
-    c.drawImage(im, (LW-im.naturalWidth*k)/2,
-      (cote-im.naturalHeight*k)/2, im.naturalWidth*k, im.naturalHeight*k);
-  }
-  const ferme = /^NIVEAU /.test(sous || '');
-  c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = ferme ? '#9AA4AB' : '#FFFFFF';
-  c.font = 'bold ' + NOM_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-  lig.forEach((t, i)=> c.fillText(t, centreTexte, decalY + 40 + i*(NOM_PX + 12) + NOM_PX/2 - 6));
-  /* PLUS DE TRAIT SOUS LE TITRE. Une barre d'accent de 310 pixels sur 5, dans la couleur
-     du toit, séparait le nom du commerce de ce qu'une mission y attend. Le joueur : « sur
-     toutes les étiquettes, enlève le petit trait de soulignage qui est sous le titre, tu
-     laisses juste le titre, en dessous les détails. » Elle part des DEUX espèces
-     d'étiquette — celle-ci et la plaque d'un lieu — et l'enseigne se resserre de dix
-     pixels : la seconde ligne monte là où le trait était. */
-  const yb = 34 + hNom + 2;
-  if(sous){
-    // Le palier d'un commerce fermé se lit en gris ; ce qu'une mission y attend, dans le
-    // jaune du guidage — c'est la même information que le cercle au sol, écrite.
-    c.fillStyle = ferme ? 'rgba(255,255,255,.55)' : '#FFD21E';
-    c.font = 'bold ' + SOUS_PX + 'px "Trebuchet MS", Verdana, sans-serif';
-    c.fillText(sous, centreTexte, decalY + yb + 10 + SOUS_PX/2, 520);
-  }
-  }
-  peindre(null);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.anisotropy = 8;
-  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
-  tex.generateMipmaps = false;
-  if(src){
-    let detruite = false;
-    tex.addEventListener('dispose', ()=>{detruite = true;});
-    visageEnseigne(src).then(im=>{
-      if(!im || detruite) return;
-      peindre(im);
-      tex.needsUpdate = true;
-    });
-  }
-  return {tex: pixTex(tex), ratio: LH/LW, largeur: LW/560};
+  // Seulement le nom : plus de portrait, de téléchargement ou de vide au-dessus.
+  const lig=couperNom(nom),LW=560,pas=76,LH=lig.length*pas+36;
+  const cv=document.createElement('canvas');cv.width=LW;cv.height=LH;
+  const c=cv.getContext('2d'),x=8,y=6,w=LW-16,h=LH-12,r=18;
+  c.fillStyle='#171B1D';c.beginPath();
+  c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();c.fill();
+  c.textAlign='center';c.textBaseline='middle';c.fillStyle='#FFFFFF';
+  c.font='bold 64px "Trebuchet MS", Verdana, sans-serif';
+  lig.forEach((t,i)=>c.fillText(t,LW/2,18+pas*(i+.5),LW-48));
+  const tex=new THREE.CanvasTexture(cv);
+  tex.minFilter=THREE.LinearFilter;tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=false;
+  return {tex,ratio:LH/LW,largeur:1};
 }
+
 /* UNE ÉTIQUETTE EST PLATE, ET C'EST LE JOUEUR QUI A TRANCHÉ.
    Quatre états successifs, et l'on est revenu au deuxième :
      1. un PLAN ORIENTÉ COMME LA FAÇADE — les commerces des bandes est et ouest le
@@ -9409,7 +9342,7 @@ function bulleTex(nom, toit, sous){
    demandé, et c'est ce qu'était l'ancienne jauge du silo.
    `rot` ne sert plus depuis le troisième état, mais la signature reste — quinze appelants
    la passent encore. */
-const ETIQUETTE_PX = 72;
+const ETIQUETTE_PX = 104;
 function tailleEtiquetteEcran(rendu, sceneVue, cam){
   // Projection sans atténuation : la profondeur ne change plus la taille affichée.
   // Les pixels CSS restent indépendants de la résolution du rendu et du zoom.
@@ -11264,8 +11197,11 @@ function buildCommerce(S){
     pan2.position.set(0,4.0,-0.18); pan2.rotation.y = Math.PI; t.add(pan2);
     t.position.set(-W*0.36, 0, DF+3.4); g.add(t);
   } else if(pose === 'logo3d'){                            // emblème en volume sur le toit
-    const pan = plaque(W*0.38, W*0.085, false);
-    pan.position.set(-W*0.12, H*0.80, DF+0.06); g.add(pan);
+    // L'enseigne suit la largeur réelle du mur, pas celle du terrain et du parking.
+    const facadeW=S.w0*echDe(S),panW=facadeW*.68;
+    const pan=plaque(panW,panW*96/320,false);pan.name='enseigne-garage';
+    pan.position.set(S.corpsDx||0,H*.86,(S.corpsDz||0)+S.d0*echDe(S)/2+.22);g.add(pan);
+    S.enseigneGarage={largeur:panW,facade:facadeW,x:pan.position.x};
     // Un pneu, pas une roue de tracteur : le moyeu jaune et les crampons dorés en
     // faisaient une jante de jouet, et le jaune se disputait avec celui des anneaux
     // d'action, seule couleur du jeu qui veut dire « ici, maintenant ».
@@ -11277,7 +11213,9 @@ function buildCommerce(S){
       pneu.add(box(0.22,0.62,0.9, 0x3A4045, Math.cos(a2)*1.45, 0, Math.sin(a2)*1.45));
     }
     pneu.rotation.x = Math.PI/2;
-    pneu.position.set(W*0.28, H+2.3, 0);
+    const pneuX=(S.corpsDx||0)+facadeW*.27,pneuZ=S.corpsDz||0;
+    const pneuY=S.bbH+3.45; // garde couvrant aussi les crampons pendant la rotation
+    pneu.name='roue-garage';pneu.position.set(pneuX,pneuY,pneuZ);
     /* ON LE RECUIT SUR LUI-MÊME AVANT DE LE MARQUER ANIMÉ, ET L'ORDRE COMPTE.
        Ses dix volumes tournent D'UN BLOC : rien n'oblige à les dessiner un par un, et
        mesuré à la caméra qui regarde le Garage, ils coûtaient dix appels pour cent
@@ -11287,7 +11225,8 @@ function buildCommerce(S){
     fusionnerGroupe(pneu);
     pneu.userData.anime = true;            // il tourne : il reste un objet à part
     g.add(pneu); S.logo = pneu;
-    g.add(box(0.4,2.4,0.4, 0x6E767C, W*0.28, H+1.1, 0));
+    const pied=(6.8+.55)*echDe(S),haut=pneuY-.75;
+    g.add(box(.4,haut-pied,.4,0x6E767C,pneuX,(pied+haut)/2,pneuZ));
   }
   g.position.set(S.x, 0, S.z); g.rotation.y = S.rot;
   scene.add(g);
