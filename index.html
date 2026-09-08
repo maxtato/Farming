@@ -10987,11 +10987,11 @@ const FINITIONS_BATIMENTS = {
   'Criée':[12,8,4.2,1], 'Conserverie':[10,7,4.4]
 };
 const QUARTIERS_FINIS = [
-  {nom:'Le port',picto:'goutte',x:-153,z:-64,rot:Math.PI,c:0x406A79},
-  {nom:'Le village',picto:'baguette',x:-108,z:-84,rot:0,c:0x87664B},
-  {nom:'Les ateliers',picto:'cle',x:309,z:-84,rot:0,c:0x55646C},
-  {nom:'Le hameau',picto:'feuille',x:161,z:64,rot:Math.PI,c:0x597147},
-  {nom:'La forêt',picto:'feuille',x:337,z:-60,rot:0,c:0x41634C}
+  {nom:'Le port',picto:'goutte',x:-153,z:-64,rot:Math.PI+Math.PI/6,c:0x406A79},
+  {nom:'Le village',picto:'baguette',x:-108,z:-84,rot:Math.PI/6,c:0x87664B},
+  {nom:'Les ateliers',picto:'cle',x:309,z:-84,rot:-Math.PI/6,c:0x55646C},
+  {nom:'Le hameau',picto:'feuille',x:161,z:64,rot:Math.PI-Math.PI/6,c:0x597147},
+  {nom:'La forêt',picto:'feuille',x:337,z:-60,rot:Math.PI+Math.PI/6,c:0x41634C}
 ];
 const FINITIONS_STATS = {commerces:[],maisons:0,quartiers:[],erreurs:[]};
 function finBox(g,w,h,d,c,x,y,z,rx,ry,rz){const m=box(w,h,d,c,x,y,z,rx,ry,rz);g.add(m);return m;}
@@ -11122,12 +11122,15 @@ function poserReperesQuartiers(){
     // Emplacements sur les accotements : ne jamais laisser un panneau sur la route.
     if(surRoute(Q.x,Q.z,2.8)||inParcel(Q.x,Q.z,2)){FINITIONS_STATS.erreurs.push('Repère hors accotement : '+Q.nom);continue;}
     for(const x of [-1.45,1.45])finBox(g,.12,2.3,.12,0x77644A,x,1.15,0);
-    finBox(g,3.65,.66,.14,Q.c,0,2.06,0);repereEnseigne(g,0,2.06,.085,3.35,.49);
+    finBox(g,3.65,.66,.14,Q.c,0,2.06,0);
+    // Noms recto/verso dans le même atlas : lisibles en approche dans les deux sens.
+    repereEnseigne(g,0,2.06,.085,3.35,.49);
+    repereEnseigne(g,0,2.06,-.085,3.35,.49,false,Math.PI);
     // Deux petites touffes près des poteaux : aucun semis supplémentaire.
     for(const x of [-1.85,1.85]){finBox(g,.55,.23,.6,0x536D45,x,.13,0);finBox(g,.34,.13,.35,0x9AAB6F,x,.3,.05);}
     g.updateMatrixWorld(true);scene.add(g);releverEnseignes(g,Q);fusionnerGroupe(g);
-    const lateral=Math.abs(Math.sin(Q.rot))>.5;
-    boxObs.push({x:g.position.x,z:g.position.z,hw:lateral?.22:1.8,hd:lateral?1.8:.22});
+    const cs=Math.abs(Math.cos(Q.rot)),sn=Math.abs(Math.sin(Q.rot));
+    boxObs.push({x:g.position.x,z:g.position.z,hw:1.825*cs+.22*sn,hd:1.825*sn+.22*cs});
     FINITIONS_STATS.quartiers.push({nom:Q.nom,x:g.position.x,z:g.position.z,horsRoute:!surRoute(g.position.x,g.position.z,2)});
   }
 }
