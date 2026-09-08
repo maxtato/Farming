@@ -15584,10 +15584,63 @@ function poserSurSol(obj, B){
 const COUPE_ROULIS = 0.16, COUPE_TANGAGE = 0.34;
 /* ---------- 11. VÉHICULE (physique arcade avec dérive) ---------- */
 // A short steering response keeps sharp turns; grip returns as soon as the wheel is released.
+function chargeSemi(v){
+  const T=v.tool;return T&&T.semi&&T.attached===v?Math.max(0,Math.min(1,(T.load||0)/Math.max(1,T.capacite||1))):0;
+}
+function lacetRoutier(v,steer,speed){
+  const a=Math.abs(speed),sens=Math.sign(speed),p=v.conduiteLongue;
+  if(!p||v.auto||v.mission)return steer*v.turn*Math.min(1,a/2.2)*sens;
+  // Rayon minimum à la manœuvre ; effort latéral limité à grande vitesse.
+  const taux=Math.min(v.turn,a/p.rayon,p.lateral/Math.max(1,a));
+  return steer*taux*sens;
+}
+function moteurSemi(v,dt,throttle,frein,speed,accel){
+  const charge=chargeSemi(v),T=v.tool,attele=!!(T&&T.semi&&T.attached===v);
+  // Inverser la marche commence par freiner, jamais par pousser à travers zéro.
+  if(frein||speed*throttle<-.02){
+    v.gaz=0;return Math.sign(speed)*Math.max(0,Math.abs(speed)-(6.5/(1+charge*.25))*dt);
+  }
+  if(Math.abs(throttle)<.05){v.gaz=0;return speed*Math.exp(-.13*dt);}
+  const g=v.gaz||0,k=1-Math.exp(-dt/.85);
+  v.gaz=Math.abs(throttle)>Math.abs(g)?g+(throttle-g)*k:throttle;
+  let target=throttle*v.vmax;
+  if(target<0){
+    target=Math.max(target,-4.2);
+    if(attele){
+      const pli=Math.abs(Math.atan2(Math.sin(v.cap-T.cap),Math.cos(v.cap-T.cap)));
+      target*=Math.max(0,Math.min(1,(1.3-pli)/.45));
+    }
+  }
+  const pousse=Math.abs(target)>Math.abs(speed)&&target*speed>=0;
+  const force=pousse?accel*Math.abs(v.gaz)/(1+(attele?.18:0)+charge*.45):6.5/(1+charge*.25);
+  return speed+Math.max(-force*dt,Math.min(force*dt,target-speed));
+}
+function suivreSemi(T,hx,hz,dt){
+  const L=Math.max(.1,T.L),cap0=T.cap;
+  const ancienX=T.axle.x+Math.sin(cap0)*L,ancienZ=T.axle.z+Math.cos(cap0)*L;
+  const dx=hx-ancienX,dz=hz-ancienZ,distance=Math.hypot(dx,dz);
+  // Intégration par distance de la trajectoire de sellette : essieu sans glisse latérale.
+  // Une téléportation de sauvegarde ne fait pas tourner la caisse de plusieurs tours.
+  if(distance<Math.max(30,2*L)){
+    const n=Math.max(1,Math.min(64,Math.ceil(distance/.25))),sx=dx/n,sz=dz/n;
+    for(let i=0;i<n;i++){
+      const demi=T.cap+(sx*Math.cos(T.cap)-sz*Math.sin(T.cap))/(2*L);
+      T.cap+=(sx*Math.cos(demi)-sz*Math.sin(demi))/L;
+    }
+  }
+  T.axle.x=hx-Math.sin(T.cap)*L;T.axle.z=hz-Math.cos(T.cap)*L;
+  const charge=Math.max(0,Math.min(1,(T.load||0)/Math.max(1,T.capacite||1)));
+  const lateral=dt>0?(T.cap-cap0)*distance/(dt*dt):0;
+  const cible=Math.max(-.035,Math.min(.035,-lateral*.004/(1+charge*.3)));
+  T.roulisRoute=(T.roulisRoute||0)+(cible-(T.roulisRoute||0))*(1-Math.exp(-8*dt));
+  T.group.rotation.z=T.roulisRoute;
+}
+
 function directionArcade(v, dt, input, speed){
   const manual = !v.auto && !v.mission && !v.bateau && !(mondePret && INTRO.actif);
   if(!manual){ v.braquage = input; return {steer:input, grip:v.grip}; }
-  const k = 1-Math.exp(-dt*(input ? 22 : 30));
+  const taux=v.conduiteLongue?(v.sellette?9:14):22;
+  const k = 1-Math.exp(-dt*(input ? taux : (v.conduiteLongue?20:30)));
   v.braquage = (v.braquage || 0) + (input-(v.braquage || 0))*k;
   if(Math.abs(v.braquage)<0.001) v.braquage=0;
   const fast = Math.max(0, Math.min(1, (Math.abs(speed)/Math.max(1,v.vmax)-0.35)/0.45));
@@ -15873,16 +15926,19 @@ class Vehicle {
        `douceur` (0 à 1) multiplie ses trois freins : le frein moteur, la pédale, et la
        retenue quand on demande moins que ce qu'on fait. Rien de tout cela ne vaut en
        automatique : le pilote compte sur la réponse d'origine pour s'arrêter où il faut. */
+    const moteurLong=this.sellette&&!this.auto&&!this.mission;
     const doux = this.inertie > 0 && !this.auto;
-    if(doux){
+    if(doux&&!moteurLong){
       const g0 = this.gaz || 0, k = 1 - Math.exp(-dt/this.inertie);
       const monte = Math.abs(throttle) > Math.abs(g0) && (g0 === 0 || Math.sign(throttle) === Math.sign(g0));
       this.gaz = monte ? g0 + (throttle - g0)*k : throttle;
-    } else this.gaz = throttle;
+    } else if(!moteurLong) this.gaz = throttle;
     const dc = doux ? this.douceur : 1;
     // moteur / frein moteur
     const target = throttle * this.vmax;
-    if(Math.abs(throttle) > 0.05){
+    if(moteurLong){
+      vf=moteurSemi(this,dt,throttle,frein,vf,accelE);
+    } else if(Math.abs(throttle) > 0.05){
       const pousse = Math.sign(target-vf) === Math.sign(throttle);
       const acc = pousse ? accelE*(doux ? Math.abs(this.gaz) : 1) : accelE*2.2*dc;
       vf += Math.max(-acc*dt, Math.min(acc*dt, target-vf));
@@ -15899,9 +15955,7 @@ class Vehicle {
     steerX = conduite.steer;
     // direction : braquage relatif au véhicule (gauche = gauche, toujours)
     if(steerX){
-      const grip = Math.min(1, Math.abs(vf)/2.2);
-      const dir = vf < 0 ? -1 : 1;              // marche arrière : braquage inversé, comme un vrai engin
-      this.cap += steerX * this.turn * grip * dir * dt;
+      this.cap += lacetRoutier(this,steerX,vf)*dt;
     }
 
     // adhérence latérale : ce qui reste crée la dérive
@@ -16019,11 +16073,14 @@ class Vehicle {
     const T = this.tool;
     if(T && T.attached === this){
       const hc = hitchDe(this, T);
-      const hx = this.pos.x - f.x*hc, hz = this.pos.z - f.z*hc;
+      const attF=T.semi?this.fwd():f;
+      const hx = this.pos.x - attF.x*hc, hz = this.pos.z - attF.z*hc;
+      if(T.semi){suivreSemi(T,hx,hz,dt);}else{
       let dx = hx - T.axle.x, dz = hz - T.axle.z;
       const d = Math.hypot(dx,dz) || 1; dx /= d; dz /= d;
       T.cap = Math.atan2(dx, dz);
       T.axle.x = hx - dx*T.L; T.axle.z = hz - dz*T.L;
+      }
       T.group.position.set(hx, 0, hz);
       T.group.rotation.y = T.cap;
       T.x = T.axle.x; T.z = T.axle.z;
@@ -22474,8 +22531,9 @@ const MACHINES = [
      houle. `peche` dit ce qu'il remonte : la nature, le lot, et le temps d'un lot. */
   {key:'frigo', nom:'Camion frigo', teinte:0x3E8A50, verrou:true, prix:12000,
    livre:'AU PORT', timbre:'fourgon', ton:0.97, plage:[0.74, 0.96], v:new Vehicle({
-      // les réglages routiers sont CEUX DU FOURGON, à l'unité : « donne-lui le même comportement routier »
+      // Base du fourgon, avec un rayon de manœuvre adapté à la caisse longue.
       x:-204, z:-76, cap:-Math.PI/2, vmax:15, accel:10, turn:1.8, grip:5.4, trackW:1.48,
+      conduiteLongue:{rayon:6.5,lateral:27},
       susp:{k:26, d:4.8, roll:0.05, pitch:0.03, rough:1.0},
       build:buildFrigo
     })},
@@ -22507,22 +22565,14 @@ const MACHINES = [
       susp:{k:13, d:2.5, roll:0.08, pitch:0.045, rough:1.4},
       build:buildCaseyeur
     })},
-  /* ---------- LE TRACTEUR ROUTIER, EN TOUTE FIN DE TABLE ----------
-     Il est vif sur la route et pataud à la manœuvre : la vitesse la plus haute du parc,
-     l'accélération la plus molle et le braquage le plus large — c'est un camion. Et c'est
-     le seul engin qui MONTE EN RÉGIME (`inertie`, voir `Vehicle.update`) : ses gaz mettent
-     une seconde six à suivre le pied, sa poussée suit ses gaz, et ses freins valent
-     quarante pour cent de ceux des autres. Sa suspension est deux fois plus courte
-     (`borne`), plus amortie, et ses coefficients sont le quart de ce qu'ils étaient : un
-     camion chargé penche peu et ne pompe pas. Sa
-     `sellette` n'est pas un ornement : c'est elle qui dit à `peutAtteler` qu'il ne tire que
-     des semi-remorques, et qu'aucune charrue ne viendra se pendre à sa cinquième roue.
-     Sa `chape` est la sellette de la planche, à son échelle : toute remorque s'y accroche
-     au même endroit, comme les outils s'accrochent à la chape du tracteur lourd. */
+  /* Tracteur routier : gaz progressifs selon le chargement, rayon de manœuvre long,
+     stabilité à vitesse élevée et recul limité avant que la remorque se replie.
+     La sellette conserve sa position et ses trois remorques compatibles. */
   {key:'semi', nom:'Camion', robe:'bordeaux', teinte:SEMI_ROUGE, verrou:true, prix:26000,
    livre:'À L\'ENTREPÔT D\'EXPORT', timbre:'lourd', ton:0.72, plage:[0.68, 1.0], v:new Vehicle({
       x:SEMI_PARC.camion.x, z:SEMI_PARC.camion.z, cap:0,
-      vmax:19, accel:5.5, turn:1.05, grip:5.0, trackW:1.72,
+      vmax:19, accel:6.2, turn:1.05, grip:5.7, trackW:1.72,
+      conduiteLongue:{rayon:9.5,lateral:11},
       inertie:1.6, douceur:0.4,
       sellette:true, chape:SEMI_CHAPE,
       susp:{k:18, d:5.6, roll:0.012, pitch:0.008, rough:0.5, borne:0.5},
@@ -22713,6 +22763,7 @@ function attachTool(v, T){
   T.attached = v; v.tool = T;
   T.axle.x = v.pos.x - f.x*(hitchDe(v, T) + T.L);
   T.axle.z = v.pos.z - f.z*(hitchDe(v, T) + T.L);
+  if(T.semi){T.cap=v.cap;T.roulisRoute=0;T.group.rotation.z=0;}
   v.prevWork = null;
   return true;
 }
