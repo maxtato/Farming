@@ -5771,6 +5771,8 @@ const FO_X1 = FO_X0 + 108;                         // 414 : avant que la route n
    à quai —, entre deux bosquets. La route continue au-delà : le trafic vient de plus
    loin, et c'est ce qui fait un entrepôt d'export. */
 const EX_X0 = 440, EX_X1 = 600;                    // la bande de l'entrepôt, cent soixante mètres pour ses cent vingt-deux
+// Trois places regroupées à l'ouest ; l'allée centrale dessert les quais.
+const SEMI_PARC = {z:-94, x:[464, 475, 486], camion:{x:576, z:-93}};
 // La bande du port : la criée et la conserverie, au nord de la route, entre le cercle des
 // camions et le bord des tuiles.
 /* LA BANDE NE SUIT PLUS LE BOUT OUEST DE LA DALLE. Elle en était déduite — quatre mètres
@@ -11187,6 +11189,40 @@ function finirBordsCarte(){
   }
 }
 
+function amenagerParcEntrepot(){
+  const g=new THREE.Group();g.name='parking-entrepot-details';
+  const trait=(x,z,w,d,c=0xDAD8C8)=>g.add(box(w,.012,d,c,x,.075,z));
+  // Baies de 8 × 21 m : les plus longues remorques tiennent avec leurs béquilles.
+  for(const x of SEMI_PARC.x){
+    for(const xx of [x-4,x+4])trait(xx,-102.5,.18,21);
+    trait(x,-113,8,.18);trait(x,-92,1.7,.18);
+  }
+  // Quatre places visiteurs côté bureaux et une place dédiée au tracteur routier.
+  for(const x of [545,552,559,566]){
+    for(const xx of [x-3,x+3])trait(xx,-97,.14,10);
+    trait(x,-102,6,.14);
+  }
+  for(const x of [572,580])trait(x,-94,.18,13);
+  trait(576,-100.5,8,.18);
+  // Une allée centrale ouverte, marquée par deux flèches discrètes.
+  for(const [x,z,a] of [[510,-101,Math.PI],[528,-101,0]]){
+    const f=new THREE.Group();f.position.set(x,.075,z);f.rotation.y=a;g.add(f);
+    f.add(box(.28,.012,3.5,0xDAD8C8,0,0,0));
+    for(const s of [-1,1])f.add(box(.26,.012,1.8,0xDAD8C8,s*.55,0,1.75,0,-s*.65,0));
+  }
+  // Cheminement vers les bureaux, à l'écart des quais de chargement.
+  for(let k=0;k<6;k++)trait(575,-109-k*1.2,3.2,.45);
+  for(const z of [-119,-130]){
+    g.add(box(1.4,.65,2.6,0x7B8580,580,.325,z));
+    g.add(box(1.2,.25,2.35,0x506844,580,.75,z));
+    for(const dz of [-.7,0,.7])g.add(cyl(.26,.20,.14,6,0xB5B181,580,.91,z+dz));
+  }
+  for(const [x,c] of [[576.8,0x516A76],[578.6,0xA58D4D]]){
+    g.add(box(1.2,1.15,1.05,c,x,.575,-130));
+    g.add(box(1.3,.12,1.15,0x38443E,x,1.2,-130));
+  }
+  fusionnerGroupe(g);scene.add(g);
+}
 function buildCommerce(S){
   const g = new THREE.Group();
   const W = S.w, D = S.d;
@@ -12290,6 +12326,7 @@ function buildFarm(){
   poserHalteForet();
   creerDetailsVillage();
   finirBordsCarte();
+  amenagerParcEntrepot();
 
   // Friches : peuplement calibré, distance minimale entre arbres, panneau À VENDRE
   for(const p of PARCELS){
@@ -15718,6 +15755,35 @@ function suivreSemi(T,hx,hz,dt){
   T.roulisRoute=(T.roulisRoute||0)+(cible-(T.roulisRoute||0))*(1-Math.exp(-8*dt));
   T.group.rotation.z=T.roulisRoute;
 }
+function placerSemiAttachee(v,dt){
+  const T=v.tool;if(!T||!T.semi||T.attached!==v)return;
+  const hc=hitchDe(v,T),hx=v.pos.x-Math.sin(v.cap)*hc,hz=v.pos.z-Math.cos(v.cap)*hc;
+  suivreSemi(T,hx,hz,dt);
+  T.group.position.set(hx,0,hz);T.group.rotation.y=T.cap;
+  T.x=T.axle.x;T.z=T.axle.z;v.toolX=T.x;v.toolZ=T.z;v.toolCap=T.cap;
+}
+function contactRemorqueSemi(v,px,pz,nx,nz,pen){
+  const T=v.tool;if(!T||!T.semi||T.attached!==v)return false;
+  const hx=T.group.position.x,hz=T.group.position.z;
+  const dx=px-hx,dz=pz-hz,bras=dz*nx-dx*nz;
+  // La sellette laisse pivoter la caisse. Un contact latéral éloigné corrige surtout
+  // son angle ; un choc dans l'axe transmet l'effort au tracteur.
+  const invM=.12,invI=1/Math.max(2,T.L*T.L*.12),den=invM+bras*bras*invI;
+  const angle=Math.max(-.10,Math.min(.10,pen*bras*invI/den));
+  const cs=Math.cos(angle),sn=Math.sin(angle);
+  const gagne=(dx*cs+dz*sn-dx)*nx+(-dx*sn+dz*cs-dz)*nz;
+  const deplacement=Math.max(0,pen-gagne);
+  T.cap+=angle;
+  v.pos.x+=nx*deplacement;v.pos.z+=nz*deplacement;
+  const vn=v.vel.x*nx+v.vel.y*nz,part=invM/den;
+  if(vn<0){v.vel.x-=nx*vn*part;v.vel.y-=nz*vn*part;}
+  v.speed=Math.hypot(v.vel.x,v.vel.y);
+  const hc=hitchDe(v,T),x=v.pos.x-Math.sin(v.cap)*hc,z=v.pos.z-Math.cos(v.cap)*hc;
+  T.axle.x=x-Math.sin(T.cap)*T.L;T.axle.z=z-Math.cos(T.cap)*T.L;
+  T.group.position.set(x,0,z);T.group.rotation.y=T.cap;
+  T.x=T.axle.x;T.z=T.axle.z;v.toolX=T.x;v.toolZ=T.z;v.toolCap=T.cap;
+  return true;
+}
 
 function directionArcade(v, dt, input, speed){
   const manual = !v.auto && !v.mission && !v.bateau && !(mondePret && INTRO.actif);
@@ -15930,6 +15996,10 @@ class Vehicle {
   contact(px, pz, nx, nz, pen, o, genre, part){
     const vn = -(this.vel.x*nx + this.vel.y*nz);
     if(typeof MACHINES !== 'undefined' && MACHINES[cur] && MACHINES[cur].v === this) AUDIO.impact(genre, vn);
+    if(part==='outil'&&this.tool&&this.tool.semi){
+      if(o){renverse(o.k,-nx,-nz,this.speed);if(o.k&&o.k.type==='plat')return;}
+      if(contactRemorqueSemi(this,px,pz,nx,nz,pen))return;
+    }
     if(o){
       renverse(o.k, -nx, -nz, this.speed);
       if(o.k && o.k.type === 'plat' && part === 'outil'){ this.vel.multiplyScalar(0.9); return; }
@@ -16065,7 +16135,12 @@ class Vehicle {
        clôture au bord de sa parcelle l'en sortirait. Le choc s'entend pour l'engin conduit :
        la vitesse d'approche se lit AVANT le renvoi, sa voix dépend de ce qu'on heurte. */
     const moi = (typeof MACHINES !== 'undefined' && MACHINES[cur] && MACHINES[cur].v === this);
-    if(moi && !fantomeAuto(this)) this.decorGabarits();
+    // Tester la remorque sur sa pose courante, pas celle de l'image précédente.
+    placerSemiAttachee(this,dt);
+    if(moi && !fantomeAuto(this)){
+      this.decorGabarits();
+      if(this.tool&&this.tool.semi){placerSemiAttachee(this,0);this.decorGabarits();}
+    }
     else {
     for(const o of decorAuPoint(obstacles,this.pos,1.5)){
       if(o.bas) continue;                 // on passe dessus : voir `BAS_HAUT`
@@ -16158,7 +16233,7 @@ class Vehicle {
       const hc = hitchDe(this, T);
       const attF=T.semi?this.fwd():f;
       const hx = this.pos.x - attF.x*hc, hz = this.pos.z - attF.z*hc;
-      if(T.semi){suivreSemi(T,hx,hz,dt);}else{
+      if(T.semi){suivreSemi(T,hx,hz,0);}else{
       let dx = hx - T.axle.x, dz = hz - T.axle.z;
       const d = Math.hypot(dx,dz) || 1; dx /= d; dz /= d;
       T.cap = Math.atan2(dx, dz);
@@ -22417,17 +22492,8 @@ flushTiles();
    plus bas encore, l'enjambeuse plus haut. Ces deux champs ne sont PAS sauvegardés (la
    sauvegarde n'écrit que verrou, level, position, cap, carburant et paliers) : on peut
    donc les ajouter sans toucher à la version du fichier de partie. */
-/* ---------- LE PARC DE L'ENTREPÔT D'EXPORT ----------
-   Le joueur veut ses remorques « en attente à l'entrepôt XL ». Elles se rangent en épi
-   devant les portes de quai, nez au sud — vers la route, prêtes à partir —, et le tracteur
-   routier les attend au bout de la même ligne. Les cotes sont posées ICI, une fois, parce
-   que la table des engins et celle des outils en ont besoin toutes les deux.
-   Le nez à z = −93 : la dalle de l'entrepôt va de −82 au sud à −120 au nord depuis que son
-   parvis a été porté à trente-huit mètres, une remorque en fait seize à dix-sept depuis
-   que le camion est passé au gabarit de la rocade, et il reste ainsi onze mètres de voie
-   devant elles et une dizaine derrière. En x, elles évitent le cercle du quai (520) :
-   deux à l'ouest, une à l'est, et le tracteur tout au bout. */
-const SEMI_PARC = {z:-93, x:[468, 496, 552], camion:{x:576, z:-93}};
+/* Le parc des remorques utilise SEMI_PARC, défini avec la zone d'export pour que
+   les achats, le rangement initial et les marquages partagent les mêmes places. */
 /* OÙ SE POSE LA CHEVILLE. `CAMIONS_GEOS.sellette` est la cote de la planche déjà rabotée
    par `ECH_LOURD`, qui ne concerne que la rocade : on la ramène à la planche, puis à
    l'échelle du camion du joueur. Une seule ligne, et le jour où le dessin bougerait la
@@ -22911,6 +22977,7 @@ TOOLS.forEach((T, i)=>{
   T.group.position.set(q[0], 0, q[1]);
   T.group.rotation.y = q[2];
   T.x = q[0]; T.z = q[1]; T.cap = q[2];
+  if(T.semi){T.axle.x=q[0]-Math.sin(T.cap)*T.L;T.axle.z=q[1]-Math.cos(T.cap)*T.L;}
 });
 
 /* ---------- LE BARÈME DU MATÉRIEL ---------- */
@@ -24187,9 +24254,10 @@ function vueAchatOutils(){
                              l'acheteur le ferait apparaître au milieu de la rocade. */
                           const k = TOOLS.indexOf(T), q = TOOL_PARK[k] || TOOL_PARK[0];
                           T.group.position.set(q[0], 0, q[1]);
-                          T.group.rotation.y = Math.PI;
-                          T.x = q[0]; T.z = q[1]; T.cap = Math.PI;
-                          showHint(T.nom.toUpperCase() + ' ACHETÉ – AU PARKING DE LA FERME'); }});
+                          T.group.rotation.y = q[2];
+                          T.x = q[0]; T.z = q[1]; T.cap = q[2];
+                          T.axle.x=q[0]-Math.sin(T.cap)*T.L;T.axle.z=q[1]-Math.cos(T.cap)*T.L;
+                          showHint(T.nom.toUpperCase() + (T.semi?' · PARKING ENTREPÔT':' · PARKING FERME')); }});
   }
   titre('Déjà à la ferme');
   for(const T of TOOLS){
@@ -35334,7 +35402,7 @@ function unpackGrille(b64, gnx, gnz, sx0, sz0){
 
 function etatJeu(){
   return {
-    v: 1, quartierForet:1, quand: Date.now(),
+    v: 1, quartierForet:1, parcSemi:1, quand: Date.now(),
     /* L'ÉCHELLE DES VOLUMES. La version de la sauvegarde ne bouge jamais — la garde de
        relecture est une égalité stricte — mais les KILOS, eux, ont changé de sens : une
        parcelle de blé rendait 1 104 kg, elle en rend 250. Ce champ facultatif dit dans
@@ -35665,6 +35733,18 @@ function remettreAEchelle(S){
   S.echelle = 2;
 }
 // Reprendre une ancienne partie sans retrouver son véhicule dans les nouvelles maisons.
+function migrerParcSemi(S){
+  if(S.parcSemi>=1)return 0;
+  let n=0;
+  for(const [j,key] of ['grumier','frigorifique','citerne'].entries()){
+    const i=TOOLS.findIndex(T=>T.key===key),q=S.outils&&S.outils[i];
+    if(!q||q.porteur>=0)continue;
+    if(Math.abs(q.x-[468,496,552][j])<.5&&Math.abs(q.z+93)<.5){
+      q.x=SEMI_PARC.x[j];q.z=SEMI_PARC.z;q.cap=0;n++;
+    }
+  }
+  S.parcSemi=1;return n;
+}
 function migrerQuartierForet(S,destination=SITES.find(s=>s.nom==='Supermarché')){
   if(!S||S.quartierForet>=1||!destination)return 0;
   const ancien={x:456.09874983370304,z:30.783749956885973};
@@ -35930,6 +36010,7 @@ function chargerPartie(S){
     for(const T of TOOLS) T.group.visible = !T.verrou;
 
     migrerQuartierForet(S);
+    migrerParcSemi(S);
     // 5. le matériel : d'abord tout dételer, puis reposer chaque pièce
     for(const m of MACHINES) if(m.v.tool) detachTool(m.v);
     S.machines.forEach((q, i)=>{
@@ -36004,6 +36085,7 @@ function chargerPartie(S){
       T.group.scale.x = T.width / T.width0;
       T.group.position.set(q.x, 0, q.z); T.group.rotation.y = q.cap;
       T.x = q.x; T.z = q.z; T.cap = q.cap; T.axle.x = q.x; T.axle.z = q.z;
+      if(T.semi){T.axle.x=q.x-Math.sin(q.cap)*T.L;T.axle.z=q.z-Math.cos(q.cap)*T.L;}
       if(q.porteur >= 0 && MACHINES[q.porteur] && !MACHINES[q.porteur].verrou)
         attachTool(MACHINES[q.porteur].v, T);
     });
