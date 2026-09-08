@@ -1474,14 +1474,16 @@
     calc(6px + env(safe-area-inset-bottom)) 8px;max-width:900px;margin:auto;
     display:flex;flex-direction:column;padding:8px 12px 8px}
   #plancorps{flex:1;min-height:0;display:flex;flex-direction:row;gap:10px;padding:2px 0}
-  #planbloc1{flex:0 0 46%;min-width:0;display:flex;flex-direction:column}
+  #plan #planbloc1{flex:0 0 46%;min-width:0;display:flex;flex-direction:column}
+  #planengins{flex-wrap:wrap;max-height:115px;overflow:auto}
+  #plan #planengins .pc{max-width:100%;white-space:normal}
   #plancolonne{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;
     overflow-y:auto;scrollbar-width:none}
   #plancolonne::-webkit-scrollbar{display:none}
   /* EN PORTRAIT, tout s'empile et le corps défile ; la carte reprend une hauteur fixe. */
   @media (max-aspect-ratio: 5/4){
     #plancorps{flex-direction:column;overflow-y:auto;scrollbar-width:none}
-    #planbloc1{flex:none}
+    #plan #planbloc1{flex:none}
     #plancolonne{flex:none;overflow:visible}
     #plancarte{flex:none;height:clamp(150px, calc(100vh - 372px), 420px)}
   }
@@ -1829,7 +1831,7 @@
     <div id="plantete"><div id="plantitre">Plan de travail</div><div id="planfermer">✕</div></div>
     <div id="plancorps">
       <div id="planbloc1" class="bloc">
-        <div class="bloctitre"><b>1</b><span>La parcelle</span></div>
+        <div class="bloctitre"><b>1</b><span>Parcelle ou activité</span></div>
         <div id="planengins" class="rang"></div>
         <div id="plancarte"><canvas id="plancv"></canvas><div id="plancible"></div></div>
         <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
@@ -8256,9 +8258,11 @@ function arbreAPortee(v){
 // Le bouton COUPER : la coupe part, `travailForet` la mène.
 // Le dépôt peut-il prendre cet arbre ? Un arbre entier, ou rien : on ne coupe pas un demi-tronc.
 const depotPrend = (a)=> DEPOT_BOIS.stock + a.kg <= DEPOT_BOIS.max + 0.01;
-function lancerCoupe(m){
-  const v = m.v, a = arbreAPortee(v);
+function lancerCoupe(m, cible = null){
+  const v = m.v, a = cible || arbreAPortee(v);
   if(!a || v.coupe || !depotPrend(a)) return false;
+  const f=v.fwd();
+  if(a.etat!==0 || a.chute || Math.hypot(a.x-v.pos.x-f.x*3.4,a.z-v.pos.z-f.z*3.4)>PORTEE_ABATTAGE) return false;
   v.coupe = {a, t:0};
   // Le joueur : « des oiseaux dans les arbres qui s'envolent quand on coupe. » Dès le premier
   // coup de scie, tout ce qui perche à moins de quatorze mètres part.
@@ -8287,7 +8291,7 @@ function travailForet(m, dt){
   const a = v.coupe.a;
   const f = v.fwd(), px = v.pos.x + f.x*3.4, pz = v.pos.z + f.z*3.4;
   // La coupe s'interrompt si l'on repart, si l'on change d'engin, ou si l'arbre s'éloigne.
-  if(m !== MACHINES[cur] || v.auto || v.speed > 1.6 || a.etat !== 0 || a.chute
+  if((!natureJob(m.key) && (m !== MACHINES[cur] || v.auto)) || v.speed > 1.6 || a.etat !== 0 || a.chute
      || Math.hypot(a.x - px, a.z - pz) > PORTEE_ABATTAGE + 1){ repos(); return; }
   v.coupe.t += dt;
   // La tête mord, la scie tourne, la sciure vole, et l'arbre tremble.
@@ -8295,7 +8299,7 @@ function travailForet(m, dt){
   if(ud.scie) ud.scie.rotation.y += dt*22;
   a.mesh.rotation.z = Math.sin(v.coupe.t*38)*0.018;
   if(siSouvent(0.55)) puff(a.x + (Math.random() - 0.5)*0.8, 0.9, a.z + (Math.random() - 0.5)*0.8, 0xD8C29A, 0.3, 0.35);
-  if(v.coupe.t >= DUREE_ABATTAGE){ abattre(a, v); v.coupe = null; }
+  if(v.coupe.t >= DUREE_ABATTAGE && depotPrend(a)){ abattre(a, v); v.coupe = null; }
 }
 function majForet(dt){
   for(const a of FORET.arbres){
@@ -8959,7 +8963,7 @@ function actionsQuaiPeche(m){
 function travailPeche(m, dt){
   const v = m.v, K = v.cargo;
   v.enPeche = false;
-  if(!K || v.speed > 0.6){ v.pecheT = 0; return; }
+  if(!K || v.speed > 0.6 || (natureJob(m.key) && natureJob(m.key).phase !== 'aller')){ v.pecheT = 0; return; }
   const Sp = dansSpot(v);
   if(!Sp){ v.pecheT = 0; return; }
   const cle = m.peche.cle;
@@ -19047,6 +19051,7 @@ function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
   if(!t){ tacheSuivante(m); return [0, 0]; }
+  if(t.quoi === 'nature') return conduireNature(m, dt);
   const rec = pasDeRecul(v, dt);
   if(rec) return rec;
   if(t.quoi === 'parcelle'){
@@ -25439,7 +25444,7 @@ function chargerReglages(ip){
 }
 function ouvrirPlan(){
   relacherCommandes();
-  chLot = []; planTaches = [];
+  chLot = []; planTaches = []; planNature = null;
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
@@ -25479,7 +25484,8 @@ function majPlan(){
 
   /* ---------- AUCUNE PARCELLE DÉSIGNÉE : on montre les chantiers en cours ---------- */
   if(!chLot.length){
-    if(!CHANTIERS.length) rE.appendChild(planPuce('Touche une parcelle sur la carte', false, null));
+    if(dessinerPlanNature(rE)) return;
+    if(!CHANTIERS.length && !NATURE_JOBS.length) rE.appendChild(planPuce('Touche une parcelle sur la carte', false, null));
     for(const C of CHANTIERS){
       const P = PARCELS[C.p];
       const quoi = C.quoi === 'elevage'
@@ -25983,6 +25989,7 @@ document.getElementById('planfermer').addEventListener('pointerdown', fermerPlan
    suffit donc de l'écrire sur les chantiers du lot, et le tour suivant en tient compte.
    ET DANS LES DEUX SENS : décocher rend au chantier sa fin normale, sans l'interrompre. */
 document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
+  if(planNature && !chLot.length){ const J=natureJob(planNature); chContinu=!(J?J.continu:chContinu); if(J)J.continu=chContinu; majPlan(); return; }
   chContinu = !chContinu;
   let n = 0;
   for(const i of chLot){
@@ -25995,6 +26002,7 @@ document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
   majPlan();
 });
 document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
+  if(planNature && !chLot.length){ if(natureJob(planNature))retirerNature(planNature); else {poserNature(planNature,chContinu);planNature=null;} majPlan(); return; }
   if(!chLot.length) return;
   const lot = chLot.slice();
   /* ON N'ARRÊTE QUE SI TOUT LE LOT TOURNE — sinon le bouton lance, et relancer un lot
@@ -35305,6 +35313,7 @@ function etatJeu(){
        a déjà récolté sa terre ou livré son enclos ; sans eux, recharger une partie
        relancerait le cycle qu'on venait de finir. Une sauvegarde d'avant ne les porte
        pas : elle repart comme avant, ce qui est le moins surprenant. */
+    nature: sauverNature(),
     chantiers: CHANTIERS.map((C)=> ({q:C.quoi, p:C.p, c:CROPS[C.crop || 0].cle,
       e:!!C.engrais, pr:C.produit || null,
       d:Object.assign({}, C.dest), k:!!C.continu,
@@ -35943,6 +35952,7 @@ function chargerPartie(S){
                           dest:q.d || {}, continu:!!q.k, nourrir:q.n || 'auto'});
       C2.recolte = !!q.r; C2.livre = !!q.l;
     }
+    chargerNature(S.nature);
     updateJourNuit(0);
     flushTiles();
     return true;
@@ -36445,6 +36455,223 @@ function etapeChantier(C, brut){
    un combiné au parc derrière un tracteur lourd qu'on n'a pas encore vaut zéro, et le
    répartiteur enverrait un vert le chercher pour rien. Les deux conditions se lisent
    ensemble, une fois, et tout le reste du chapitre s'appuie dessus. */
+/* Chantiers hors parcelles. Un ordre par engin, avec les mêmes missions et stocks
+   que la conduite manuelle. Aucun nouveau modèle ni calcul dans le rendu. */
+const NATURE_JOBS = [];
+let planNature = null;
+const natureJob = key=> NATURE_JOBS.find(J=> J.key === key);
+function poserNature(key, continu, saved){
+  const m = MACHINES.find(m=> m.key === key);
+  if(!m || m.verrou || !(m.peche || key === 'abatteuse')) return null;
+  const ancien = natureJob(key);
+  if(ancien){ ancien.continu = !!continu; return ancien; }
+  if(!enginLibre(m)) return null;
+  const J = {key, continu:!!continu, phase:'aller', cible:-1, trajet:null, statut:'Départ'};
+  if(key === 'abatteuse') J.arbres = saved && Array.isArray(saved.arbres)
+    ? [...new Set(saved.arbres.filter(i=> Number.isInteger(i) && FORET.arbres[i]))]
+    : FORET.arbres.flatMap((a,i)=> a.etat === 0 && !a.chute ? [i] : []);
+  else if(saved && ['vider','retour'].includes(saved.phase)) J.phase = saved.phase;
+  NATURE_JOBS.push(J);
+  armerEngin(m, [{quoi:'nature', key}]);
+  return J;
+}
+function retirerNature(key, fini = false){
+  const k = NATURE_JOBS.findIndex(J=> J.key === key);
+  if(k < 0) return;
+  const m = MACHINES.find(m=> m.key === key);
+  if(m){
+    if(m.v.coupe){m.v.coupe.a.mesh.rotation.z = 0; m.v.coupe = null;}
+    if(m.v.mission && m.v.mission.taches.some(t=> t.quoi === 'nature')) arreterMission(m);
+    m.v.pecheT = 0; m.v.enPeche = false;
+  }
+  NATURE_JOBS.splice(k, 1);
+  if(planNature === key) planNature = null;
+  if(fini) showHint(key === 'abatteuse' ? 'COUPE DE BOIS TERMINÉE' : 'PÊCHE TERMINÉE · CALE DÉBARQUÉE');
+  if(planEl.style.display === 'block') majPlan();
+}
+function sauverNature(){
+  return NATURE_JOBS.map(J=> ({key:J.key, continu:J.continu, phase:J.phase,
+    arbres:J.arbres ? J.arbres.slice() : undefined}));
+}
+function chargerNature(liste){
+  for(const J of NATURE_JOBS.slice()) retirerNature(J.key);
+  if(Array.isArray(liste)) for(const q of liste) if(q && typeof q.key === 'string')
+    poserNature(q.key, !!q.continu, q);
+}
+function natureLibre(x, z, bateau, marge = bateau ? 3.8 : 2.2){
+  if(bateau && (x < EAU.x0 + 5 || x > EAU.x1 - 5 || z < EAU.z0 + 5 || z > EAU.z1 - 5)) return false;
+  for(const o of obstacles){
+    if(o.bas) continue;
+    if((x-o.x)**2 + (z-o.z)**2 < (o.r+marge)**2) return false;
+  }
+  for(const o of boxObs){
+    if(bateau && o.eau) continue;
+    if(Math.abs(x-o.x) < o.hw+marge && Math.abs(z-o.z) < o.hd+marge) return false;
+  }
+  return true;
+}
+function natureSegment(a, b, bateau){
+  const n = Math.max(1, Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/1.5));
+  for(let i=1;i<=n;i++) if(!natureLibre(a.x+(b.x-a.x)*i/n,a.z+(b.z-a.z)*i/n,bateau)) return false;
+  return true;
+}
+function cheminNature(v, but){
+  const bateau = !!v.bateau, debut = {x:v.pos.x,z:v.pos.z};
+  if(natureSegment(debut,but,bateau)) return [but];
+  const pas = bateau ? 5 : 3, marge = bateau ? 30 : 18;
+  const x0 = Math.min(debut.x,but.x)-marge, z0 = Math.min(debut.z,but.z)-marge;
+  const nx = Math.ceil((Math.abs(debut.x-but.x)+2*marge)/pas)+1;
+  const nz = Math.ceil((Math.abs(debut.z-but.z)+2*marge)/pas)+1;
+  if(nx*nz > 16000) return null;
+  const point = id=> ({x:x0+(id%nx)*pas,z:z0+Math.floor(id/nx)*pas});
+  const idDe = p=> Math.round((p.z-z0)/pas)*nx+Math.round((p.x-x0)/pas);
+  const start = idDe(debut), goal = idDe(but), libre = new Map(), nodes = new Map();
+  const ok = id=>{if(!libre.has(id)){const p=point(id);libre.set(id,natureLibre(p.x,p.z,bateau));}return libre.get(id);};
+  const h = id=>{const p=point(id);return Math.hypot(p.x-but.x,p.z-but.z)/pas;};
+  const open = [start]; nodes.set(start,{g:0,f:h(start),prev:-1});
+  let fin = -1;
+  for(let count=0;open.length && count<6000;count++){
+    let best=0;for(let j=1;j<open.length;j++)if(nodes.get(open[j]).f<nodes.get(open[best]).f)best=j;
+    const id=open.splice(best,1)[0],N=nodes.get(id),p=point(id);N.closed=true;
+    if((id===goal || h(id)<1.6) && natureSegment(p,but,bateau)){fin=id;break;}
+    const ix=id%nx,iz=Math.floor(id/nx);
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      if(!dx&&!dz || ix+dx<0 || ix+dx>=nx || iz+dz<0 || iz+dz>=nz)continue;
+      const next=id+dz*nx+dx,old=nodes.get(next);
+      if(old?.closed || !ok(next) || (dx&&dz&&(!ok(id+dx)||!ok(id+dz*nx))))continue;
+      const g=N.g+Math.hypot(dx,dz);
+      if(old && old.g<=g)continue;
+      nodes.set(next,{g,f:g+h(next),prev:id});if(!old)open.push(next);
+    }
+  }
+  if(fin<0)return null;
+  const path=[but];for(let id=fin;id!==start && id>=0;id=nodes.get(id).prev)path.push(point(id));path.reverse();
+  // Enlever les angles inutiles uniquement quand tout le segment est libre.
+  const simple=[];let p=debut,i=0;
+  while(i<path.length){let j=path.length-1;while(j>i&&!natureSegment(p,path[j],bateau))j--;simple.push(path[j]);p=path[j];i=j+1;}
+  return simple;
+}
+function naviguerNature(m, J, but, dt, rayon = 2){
+  const v=m.v,d=Math.hypot(v.pos.x-but.x,v.pos.z-but.z);
+  if(d<rayon){J.trajet=null;J.stagne=0;return null;}
+  if(J.recul>0){J.recul-=dt;return [.55,-.15];}
+  if(J.retry>0){J.retry-=dt;return [0,0];}
+  if(!J.trajet){J.trajet=cheminNature(v,but);J.wp=0;J.stagne=0;J.distance=Infinity;}
+  if(!J.trajet){J.statut='Passage encombré';J.retry=5;return [0,0];}
+  const p=J.trajet[J.wp],dist=Math.hypot(v.pos.x-p.x,v.pos.z-p.z);
+  if(dist<(J.wp===J.trajet.length-1?rayon:2.5) && J.wp<J.trajet.length-1){J.wp++;J.distance=Infinity;}
+  if(dist<J.distance-.3){J.distance=dist;J.stagne=0;}else J.stagne=(J.stagne||0)+dt;
+  if(J.stagne>8){J.trajet=null;J.recul=1.5;J.statut='Manœuvre';return [0,0];}
+  const cible=J.trajet[J.wp],r=viser(v,cible.x,cible.z,.5,1.0);
+  r[1]=Math.min(r[1],(v.bateau?3.2:3.5)/v.vmax,Math.max(.7,dist*.65)/v.vmax);
+  return r;
+}
+function changerPhaseNature(J, phase){
+  J.phase=phase;J.trajet=null;J.stagne=0;J.retry=0;J.recul=0;
+}
+function conduireNature(m, dt){
+  const v=m.v,J=natureJob(m.key);
+  if(!J){arreterMission(m);return [0,0];}
+  v.sensVoulu='route';v.cleVoulue=null;
+  if(m.key==='abatteuse'){
+    if(v.pos.x<FORET.x0-18 || v.pos.x>FORET.x1+18 || v.pos.z<FORET.z0-18 || v.pos.z>FORET.z1+18){
+      J.statut='Vers la forêt';
+      const rec=pasDeRecul(v,dt);if(rec)return rec;
+      return suivreRoute(v,DEPOT_BOIS.quai.x,DEPOT_BOIS.quai.z,'depotBois',6.5) || [0,0];
+    }
+    J.arbres=J.arbres.filter(i=>FORET.arbres[i].etat===0&&!FORET.arbres[i].chute);
+    if(!J.arbres.length){
+      if(!J.continu){retirerNature(J.key,true);return [0,0];}
+      J.arbres=FORET.arbres.flatMap((a,i)=>a.etat===0&&!a.chute?[i]:[]);
+      if(!J.arbres.length){J.statut='Attente de repousse';return [0,0];}
+    }
+    if(v.coupe){J.statut='Coupe en cours';return [0,0];}
+    if(!J.arbres.includes(J.cible)){
+      J.cible=J.arbres.reduce((best,i)=>Math.hypot(FORET.arbres[i].x-v.pos.x,FORET.arbres[i].z-v.pos.z)<Math.hypot(FORET.arbres[best].x-v.pos.x,FORET.arbres[best].z-v.pos.z)?i:best,J.arbres[0]);
+      J.trajet=null;J.but=null;J.retry=0;
+    }
+    const a=FORET.arbres[J.cible];
+    if(!depotPrend(a)){J.statut='Dépôt de bois plein';return [0,0];}
+    const f=v.fwd(),aPortee=Math.hypot(a.x-v.pos.x-f.x*3.4,a.z-v.pos.z-f.z*3.4)<=PORTEE_ABATTAGE;
+    if(aPortee){if(v.speed<.25)lancerCoupe(m,a);J.statut='Coupe en cours';return [0,0];}
+    if(!J.but){
+      if(J.recherche>0){J.recherche-=dt;return [0,0];}
+      const angle=Math.atan2(v.pos.x-a.x,v.pos.z-a.z);
+      for(let n=0;n<16;n++){
+        const b=angle+Math.ceil(n/2)*(n%2?1:-1)*Math.PI/8,p={x:a.x+Math.sin(b)*6.2,z:a.z+Math.cos(b)*6.2};
+        if(natureLibre(p.x,p.z,false)){const path=cheminNature(v,p);if(path){J.but=p;J.trajet=path;J.wp=0;J.distance=Infinity;break;}}
+      }
+      if(!J.but){J.statut='Arbre inaccessible · libérer le passage';J.recherche=5;return [0,0];}
+    }
+    J.statut='Vers un arbre · '+J.arbres.length+' restants';
+    const cmd=naviguerNature(m,J,J.but,dt,1.4);
+    if(cmd)return cmd;
+    // Tourner réellement vers le tronc, puis arrêter avant de lancer la scie.
+    const r=viser(v,a.x,a.z,.2,.7);
+    return [r[0],.75/v.vmax];
+  }
+  const K=v.cargo;
+  if(!K){J.statut='Cale indisponible';return [0,0];}
+  if((K.load>=K.capacite-.01 || naturesDe(K).some(k=>k!==m.peche.cle)) && J.phase==='aller')changerPhaseNature(J,'vider');
+  if(J.phase==='aller'){
+    if(J.cible<0){
+      const disponibles=PORT.spots.map((s,i)=>i).filter(i=>!NATURE_JOBS.some(O=>O!==J&&O.key!=='abatteuse'&&O.cible===i)
+        &&!MACHINES.some(o=>o!==m&&o.bateau&&!o.verrou&&!o.v.auto&&Math.hypot(o.v.pos.x-PORT.spots[i].x,o.v.pos.z-PORT.spots[i].z)<PORT.spotR+3));
+      if(!disponibles.length){J.statut='Spots de pêche occupés';return [0,0];}
+      J.cible=disponibles.reduce((a,b)=>Math.hypot(v.pos.x-PORT.spots[a].x,v.pos.z-PORT.spots[a].z)<Math.hypot(v.pos.x-PORT.spots[b].x,v.pos.z-PORT.spots[b].z)?a:b);
+    }
+    J.statut='Vers le spot de pêche';
+    const r=naviguerNature(m,J,PORT.spots[J.cible],dt,3);
+    if(r)return r;
+    J.statut='Pêche · '+Math.floor(K.load)+' / '+K.capacite+' kg';return [0,0];
+  }
+  if(J.phase==='vider'){
+    const occupe=MACHINES.some(o=>o!==m&&!o.verrou&&o.bateau&&Math.hypot(o.v.pos.x-PORT.debarque.x,o.v.pos.z-PORT.debarque.z)<11);
+    if(occupe && Math.hypot(v.pos.x-PORT.debarque.x,v.pos.z-PORT.debarque.z)>13){J.statut='Quai occupé · en attente';return [0,0];}
+    J.statut='Retour au quai';
+    const r=naviguerNature(m,J,PORT.debarque,dt,3);
+    if(r)return r;
+    if(K.load>.01){
+      J.statut=quaiPecheTotal()>=QUAI_PECHE.max-.01?'Quai plein · en attente':'Débarquement';
+      v.sensVoulu='deposer';return [0,0];
+    }
+    if(J.continu){changerPhaseNature(J,'aller');return [0,0];}
+    changerPhaseNature(J,'retour');
+  }
+  const place={barque:{x:-214,z:-37},chalutier:{x:-232,z:-22},caseyeur:{x:-214,z:-17}}[m.key];
+  J.statut='Retour à l’amarrage';
+  const r=naviguerNature(m,J,place,dt,2.5);
+  if(r)return r;
+  if(v.speed>.2)return [0,0];
+  retirerNature(J.key,true);return [0,0];
+}
+function dessinerPlanNature(rE){
+  for(const J of NATURE_JOBS){
+    const m=MACHINES.find(m=>m.key===J.key);
+    const b=planPuce(m.nom+' · '+J.statut,false,()=>{planNature=J.key;chLot=[];majPlan();});b.classList.add('tache');
+    const x=document.createElement('div');x.className='pcx';x.textContent='✕';
+    x.addEventListener('pointerdown',e=>{e.stopPropagation();retirerNature(J.key);majPlan();});b.appendChild(x);rE.appendChild(b);
+  }
+  for(const key of ['abatteuse','barque','chalutier','caseyeur']){
+    const m=MACHINES.find(m=>m.key===key);
+    const b=planPuce((key==='abatteuse'?'Coupe de bois':'Pêche · '+m.nom)+(m.verrou?' · à acheter':''),planNature===key,
+      m.verrou?null:()=>{planNature=key;chLot=[];majPlan();});
+    if(m.verrou)b.classList.add('gris');rE.appendChild(b);
+  }
+  if(!planNature || chLot.length)return false;
+  const key=planNature,m=MACHINES.find(m=>m.key===key),J=natureJob(key),g=id=>document.getElementById(id);
+  g('planquoi').appendChild(planPuce(key==='abatteuse'?'Coupe de bois':'Pêche',true,null));
+  g('planbloc3nom').textContent=key==='abatteuse'?'Forêt':'Tournée en mer';
+  g('planmodes').appendChild(planPuce(key==='abatteuse'?'Arbres mûrs → dépôt de bois':'Cale pleine → quai → amarrage',true,null));
+  g('plantaches').appendChild(planPuce(J?J.statut:'Prêt au départ',false,null));
+  g('planoption').style.display='none';g('planprod').style.display='none';
+  for(const k of [2,3,4])g('planbloc'+k).classList.remove('off');
+  g('planboucle').classList.toggle('on',J?J.continu:chContinu);
+  const libre=enginLibre(m);g('planlancer').textContent=J?'ARRÊTER':libre?'LANCER':'ENGIN OCCUPÉ';g('planlancer').classList.toggle('no',!J&&!libre);
+  g('planaide').textContent=key==='abatteuse'?'Coupe les arbres mûrs. Dépôt plein : attend de la place. En continu : reprend à la repousse.':'Pêche puis débarque la cale au quai. En continu : repart en mer. Quai plein : attend de la place.';
+  dessinerCarte();poserCible();return true;
+}
+
 function combinePret(){
   const T = TOOLS.find((x)=> x.key === 'combine');
   if(!T || T.verrou) return false;
@@ -36463,7 +36690,7 @@ function combinePret(){
      longtemps ; en mode libre, où tout est ouvert dès la première image, c'est cette
      ligne qui tient l'ordre des leçons. On apprend les trois outils avant de recevoir
      celui qui les remplace, ce qui est de toute façon l'ordre de la campagne. */
-  return CAMPAGNE.tuto >= TUTO_TERRE;
+  return MODE_LIBRE || CAMPAGNE.tuto >= TUTO_TERRE;
 }
 function besoinEtape(C, et){
   const c = CROPS[C.crop || 0];
@@ -36813,6 +37040,11 @@ function retirerChantiersTermines(){
   return change;
 }
 function majChantiers(dt){
+  // Un chantier nature annulé au volant ne doit pas conserver une ligne fantôme.
+  for(const J of NATURE_JOBS.slice()){
+    const m=MACHINES.find(m=>m.key===J.key);
+    if(!m || !m.v.mission || !m.v.auto) retirerNature(J.key);
+  }
   _tChantiers += dt;
   if(_tChantiers < PAS_CHANTIERS) return;
   const pas = _tChantiers; _tChantiers = 0;
@@ -37100,7 +37332,14 @@ function enginPourOutil(classe, ou, io){
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){
   const dejaLa = CHANTIERS.findIndex((C)=> C.p === ip);
-  if(dejaLa >= 0) CHANTIERS.splice(dejaLa, 1);
+  if(dejaLa >= 0){
+    const C = CHANTIERS[dejaLa];
+    const meme = C.quoi === ((o && o.quoi) || 'culture') && C.crop === ((o && o.crop) || 0)
+      && C.engrais === !!(o && o.engrais) && C.produit === ((o && o.produit) || null)
+      && C.nourrir === ((o && o.nourrir) || 'auto') && JSON.stringify(C.dest) === JSON.stringify((o && o.dest) || {});
+    if(meme){ C.continu = !!(o && o.continu); return C; }
+    retirerChantier(ip);
+  }
   /* DEUX PISTES, ET C'EST LA RAISON D'ÊTRE DU RÉPARTITEUR. La terre et la marchandise
      n'avancent pas au même rythme : pendant que le tracteur laboure la parcelle suivante,
      un porteur emmène déjà la récolte de la précédente. Un chantier tient donc DEUX

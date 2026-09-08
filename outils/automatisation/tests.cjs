@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
 function fn(name){const a=source.indexOf('function '+name+'(');assert(a>=0,name);return source.slice(a,source.indexOf('\n}',a)+2);}
 function setup(){
- const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],chLot:[],planTaches:[],HALLE:{file:[]},cur:-1,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
+ const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],chLot:[],planTaches:[],HALLE:{file:[]},cur:-1,MODE_LIBRE:false,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
  CROPS:[{cle:'ble',nom:'Blé'},{cle:'mais',nom:'Maïs'}],PARCELS:[{x:10,z:0},{x:30,z:0},{x:50,z:0}],
  CUVES:{graines:{ble:100,mais:100},engrais:100},ET_LABOUR:'labour',ET_SEMIS:'semis',ET_ENGRAIS:'engrais',ET_MOISSON:'moisson',ET_FINI:'fini',ET_POUSSE:'pousse',
  NOM_ETAPE:{labour:'Labour',semis:'Semis',engrais:'Engrais',moisson:'Moisson'},
@@ -118,5 +118,27 @@ test('Returning to parking does not keep a completed task visible',c=>{
 test('A one-off livestock task disappears only after its delivery ends',c=>{
  const a=chantier(c,0);a.continu=false;a.quoi='elevage';assert.equal(c.retirerChantiersTermines(),false);
  a.livre=true;assert(c.retirerChantiersTermines());
+});
+test('Free mode dispatches both owned tractors even before the tutorial ends',c=>{
+ c.MODE_LIBRE=true;c.CAMPAGNE.tuto=0;const a=chantier(c,0),b=chantier(c,1);lancer(c,a);lancer(c,b);
+ assert(a.enginTerre>=0&&b.enginTerre>=0);assert.notEqual(a.enginTerre,b.enginTerre);
+});
+test('Campaign still teaches individual tools before the combine',c=>{
+ c.CAMPAGNE.tuto=0;assert.equal(c.combinePret(),false);
+});
+test('Adding a parcel to an identical active lot preserves its worker and mission',c=>{
+ vm.runInContext(fn('poserChantier'),c);
+ const a=c.poserChantier(0,{continu:true});a.demande='labour';lancer(c,a);
+ const worker=a.enginTerre,mission=c.MACHINES[worker].v.mission;
+ assert.equal(c.poserChantier(0,{continu:false}),a);assert.equal(a.enginTerre,worker);assert.equal(a.continu,false);
+ const b=c.poserChantier(1,{continu:true});b.demande='labour';lancer(c,b);
+ assert(b.enginTerre>=0&&b.enginTerre!==worker);assert.equal(c.MACHINES[worker].v.mission,mission);
+});
+test('Changing a parcel configuration cancels its old orders before replacing it',c=>{
+ c.arreterMission=m=>{m.v.mission=null;m.v.auto=false;};c.aRentrer=()=>{};
+ vm.runInContext(fn('poserChantier')+fn('retirerChantier'),c);
+ const a=c.poserChantier(0,{continu:true});a.demande='labour';lancer(c,a);const worker=a.enginTerre;
+ const b=c.poserChantier(0,{continu:true,crop:1});assert.notEqual(b,a);assert.equal(c.MACHINES[worker].v.mission,null);
+ b.demande='labour';lancer(c,b);assert(b.enginTerre>=0);
 });
 console.log(n+' automation tests passed.');
