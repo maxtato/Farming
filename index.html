@@ -8737,18 +8737,24 @@ function construirePort(){
   PORT.echCaisses = ECH_CAISSES;
   poser(modeleQuaiDebarque, PORT.quai.x, PORT.quai.z, 0, ECH_CAISSES);
   poser(modeleGrueQuai, PORT.grue.x, PORT.grue.z, 0);
-  /* DEUX CONTENEURS, LE LONG DU GRILLAGE EST DE LA RUE, dans le sens de la rue. Ils étaient
-     en travers, au nord de la rue, contre le fond de la conserverie ; à la taille d'une
-     remorque, ils y auraient barré la bande du fond par où l'on fait maintenant le tour des
-     entrepôts. Debout le long du grillage — un mètre trente-cinq entre leur flanc et lui —
-     ils laissent les vingt-quatre mètres de la rue libres, et le premier finit neuf mètres
-     avant l'entrée : un semi passe le portique sans les frôler. */
-  for(const [cz, coul] of [[-121, PO_.ROUGE], [-98, PO_.BLEU]]){
-    const cx = C.x1 - 3.4;
-    const c = modeleConteneur(coul);
-    c.position.set(cx, 0, cz); c.rotation.y = Math.PI/2; scene.add(c); fusionnerGroupe(c);
-    boxObs.push({x:cx, z:cz, hw:2.0, hd:9.95});
+  // Trois positions au sol, dont une pile de deux ; le couloir ouest reste libre.
+  const conteneurs=new THREE.Group();conteneurs.name='conteneurs-port';
+  PORT.conteneurs=[];
+  for(const [dx,z,y,angle,coul] of [
+    [-3.5,-121,0,-.025,0x9B6957],[-3.9,-97.5,0,.035,0x5C7887],
+    [-10.7,-117.5,0,.045,0x7D8465],[-10.7,-117.5,4.21,.045,0xB4A58A]
+  ]){
+    const c=modeleConteneur(coul);c.position.set(C.x1+dx,.06+y,z);c.rotation.y=Math.PI/2+angle;
+    conteneurs.add(c);c.updateMatrixWorld(true);
+    const b=new THREE.Box3().setFromObject(c);
+    PORT.conteneurs.push({x:c.position.x,y:c.position.y,z,rotation:c.rotation.y,couleur:coul,
+      x0:b.min.x,x1:b.max.x,z0:b.min.z,z1:b.max.z,y0:b.min.y,y1:b.max.y});
+    // La pile ne crée qu'un obstacle, calculé sur sa véritable orientation.
+    if(y===0)boxObs.push({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,
+      hw:(b.max.x-b.min.x)/2+.08,hd:(b.max.z-b.min.z)/2+.08,conteneur:true});
   }
+  scene.add(conteneurs);fusionnerGroupe(conteneurs);
+
   /* LES VOLUMES DU QUAI SUIVENT LES PIÈCES, PAS LA BOÎTE DU MODÈLE. Le joueur : « quand on
      passe à côté des bâtiments du port, des fois on tape quelque chose alors qu'on n'est pas
      dessus. » La grue avait pour volume un rectangle de quatorze mètres sur six et demi pour
@@ -10470,36 +10476,30 @@ function modeleQuaiDebarque(){
   return g;
 }
 /* La grue de quai et le tas de caisses. */
-/* ---------- UN CONTENEUR MARITIME ----------
-   Le joueur : « fais d'autres choses sur le port, comme un ou deux conteneurs. »
-   Douze mètres sur deux quarante, deux mètres soixante de haut : les cotes du quarante
-   pieds, à un cheveu près. Le corrugué est fait de dix nervures verticales de six
-   centimètres de saillie — pas une texture, dix boîtes : à la distance où la caméra
-   travaille, c'est la SILHOUETTE qui dit ce que c'est, et un flanc lisse ferait boîte à
-   chaussures. Les quatre montants d'angle, les deux portes du bout avec leurs barres de
-   verrouillage, et le toit un ton plus sombre. */
+/* Conteneur à l'échelle de la remorque : surfaces distinctes et reliefs sobres.
+   Le toit précédent recouvrait exactement le dessus du corps et scintillait. */
 function modeleConteneur(coul){
-  const g = new THREE.Group();
-  /* À LA TAILLE D'UNE REMORQUE DU JEU. Le joueur : « grossis grandement les conteneurs, qui
-     doivent faire la taille d'une remorque. » Le quarante pieds réel — douze mètres sur deux
-     quarante-quatre — était à l'échelle du monde réel, quand tout le reste du port est à
-     celle du jeu ; à côté d'un camion de 3,67 m de large, il faisait boîte à chaussures. Il
-     prend donc les cotes de la remorque à quai de l'entrepôt : 19,6 m sur 3,70, 4,21 de haut. */
-  const L = 19.6, W = 3.70, H = 4.21, ep = 0.08;
-  const som = (coul === PO_.ROUGE) ? 0x8E2A22 : (coul === PO_.BLEU) ? 0x24557F : 0x2A6B45;
-  g.add(box(L, H, W, coul, 0, H/2, 0));
-  g.add(box(L + 0.06, 0.1, W + 0.06, som, 0, H - 0.05, 0));           // le toit
-  for(let k = 0; k < 16; k++){                                        // le corrugué
-    const x = -L/2 + 1.2 + k*(L - 2.4)/15;
-    for(const sz of [-1, 1]) g.add(box(0.1, H - 0.34, ep, som, x, H/2, sz*(W/2 + ep/2)));
+  const g=new THREE.Group(),L=19.6,W=3.70,H=4.21;
+  const sombre=new THREE.Color(coul).multiplyScalar(.84).getHex();
+  const relief=new THREE.Color(coul).multiplyScalar(.94).getHex();
+  // Corps en retrait, ceinture basse et toit séparés : aucune face visible coplanaire.
+  g.add(box(L-.44,H-.32,W-.32,coul,0,H/2,0));
+  g.add(box(L,.16,W,sombre,0,.08,0));
+  g.add(box(L,.16,W,relief,0,H-.08,0));
+  for(const sx of [-1,1])for(const sz of [-1,1])
+    g.add(box(.24,H-.32,.24,sombre,sx*(L/2-.12),H/2,sz*(W/2-.12)));
+  // Dix nervures larges par flanc : lisibles sans rayures fines à fort contraste.
+  for(let k=0;k<10;k++)for(const sz of [-1,1])
+    g.add(box(.24,H-.58,.22,relief,-L/2+1.3+k*(L-2.6)/9,H/2,sz*(W/2-.13)));
+  for(const sz of [-1,1]){
+    g.add(box(.14,H-.54,(W-.48)/2-.035,sombre,L/2-.12,H/2,sz*(W-.48)/4));
+    g.add(box(.14,H-.98,.16,0xA8ABA3,L/2-.01,H/2,sz*.77));
   }
-  for(const sx of [-1, 1]) for(const sz of [-1, 1])                   // les montants d'angle
-    g.add(box(0.22, H, 0.22, som, sx*(L/2 - 0.11), H/2, sz*(W/2 - 0.11)));
-  // les deux portes, au bout est
-  g.add(box(0.1, H - 0.4, W - 0.3, som, L/2 + 0.06, H/2, 0));
-  for(const sz of [-1, 1]) g.add(box(0.12, H - 0.8, 0.12, PO_.INOX, L/2 + 0.12, H/2, sz*0.75));
+  // Marquages larges, mats, sans texte minuscule ni texture à charger.
+  for(const sz of [-1,1])g.add(box(1.65,.5,.08,0xC8C3B1,-L/2+3.7,H-.8,sz*(W/2+.015)));
   return g;
 }
+
 function modeleGrueQuai(){
   const g = new THREE.Group();
   // La grue, sa base au ras de la dalle ; la flèche et le crochet passent au-dessus de l'eau.
