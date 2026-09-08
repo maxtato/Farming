@@ -9827,7 +9827,8 @@ function pileGrumesBois(g, x, z, n, L, r, ry, y0){
 function cabineBois(g, x, y, z, w, h, d, c){
   const hC = h*0.26, hV = h*0.56, hT = h - hC - hV;
   g.add(box(w, hC, d, c, x, y + hC/2, z));
-  g.add(box(w, hV, d, C.glass, x, y + hC + hV/2, z));
+  // Léger retrait derrière les montants : deux faces coplanaires scintillaient.
+  g.add(box(w-.025, hV, d-.025, C.glass, x, y + hC + hV/2, z));
   g.add(box(w + 0.14, hT, d + 0.14, c, x, y + hC + hV + hT/2, z));
   const yV = y + hC + hV/2;
   for(const sx of [-1, 1]) for(const sz of [-1, 1])
@@ -14902,10 +14903,27 @@ function buildPorteur(){
    cercle d'action —, à deux choses près : il n'a pas de roues, et il reste sur l'eau
    (`bateau:true`, lu par `Vehicle.update`). Ses feux de position sont ceux du reste du parc,
    pour que la nuit les allume comme les autres. */
-function feuxBateau(g, L, y){
+function feuxBateau(g, L, y, P){
   const F = jeuDeFeux();
-  optique(g, F, false, 0, y, L/2 - 0.1, 0.18, 0.12);
+  // Projecteur marin rond : boîtier, cerclage et lentille, sur un vrai support.
+  const r=P.r, x=P.x, z=P.z, py=P.y;
+  if(P.lateral){
+    const bord=P.bord, milieu=(x+bord)/2;
+    g.add(box(.09,.24,.24,PO_.GRIS2,bord,py-.25,z-.16));
+    g.add(box(Math.abs(x-bord)+.12,.10,.14,PO_.GRIS2,milieu,py-.32,z-.16));
+  } else g.add(box(r*1.8,.08,.30,PO_.GRIS2,x,py-r-.15,z-.15));
+  g.add(box(.10,.22,.12,PO_.GRIS2,x,py-r-.03,z-.15));
+  for(const sx of [-1,1])g.add(box(.07,r*1.5,.12,PO_.GRIS2,x+sx*(r+.05),py-r*.35,z-.13));
+  g.add(cyl(r*.88,r,.25,12,PO_.NOIR,x,py,z-.15,Math.PI/2));
+  g.add(cyl(r,r,.055,12,PO_.GRIS2,x,py,z-.025,Math.PI/2));
+  const lens=new THREE.Mesh(new THREE.CircleGeometry(r*.80,16),F.avant);
+  lens.name='projecteur-marin';lens.position.set(x,py,z+.007);lens.userData.anime=true;g.add(lens);
+  const halo=billeLumiere(r*1.4,0xFFEFC0);halo.position.set(x,py,z+.025);g.add(halo);F.halos.push(halo);
   optique(g, F, true, 0, y, -L/2 + 0.05, 0.16, 0.11);
+  // Tout le bateau est rigide ; seules les optiques gardent leur matériau nocturne.
+  g.traverse(o=>{if(o.isMesh && (o.material===F.avant || o.material===F.arriere))o.userData.anime=true;});
+  fusionnerGroupe(g);
+  F.projecteur={x,y:py,z:z+.007,r,lateral:!!P.lateral};
   return F;
 }
 function buildBarque(){
@@ -14918,10 +14936,11 @@ function buildBarque(){
   g.add(box(0.24, 0.5, 0.3, PO_.NOIR, 0, 0.8, -2.45));
   casierPeche(g, 0.35, 0.86, 0.9, 0.3); casierPeche(g, -0.35, 0.86, 1.5, -0.2);
   boueePeche(g, 0.9, 1.0, -0.2); boueePeche(g, -0.9, 1.0, 0.4);
-  const F = feuxBateau(g, 5.0, 1.0);
+  const P={x:-.28,y:2.51,z:-.52,r:.20};
+  const F = feuxBateau(g, 5.0, 1.0, P);
   g.scale.setScalar(1.26);
   g.userData = {wr:[], wf:[], feux:F,
-    lampes:{avant:{x:[0], y:1.0, z:2.4, w:0.18, h:0.12}, arriere:{x:[0], y:1.0, z:-2.45, w:0.16, h:0.11}, nez:2.6}};
+    lampes:{avant:{x:[P.x], y:P.y, z:P.z+.007, w:P.r*1.6, h:P.r*1.6}, arriere:{x:[0], y:1.0, z:-2.45, w:0.16, h:0.11}, nez:2.6}};
   return g;
 }
 function buildChalutier(){
@@ -14933,15 +14952,37 @@ function buildChalutier(){
   matFanions(g, 0, 0.4, 4.6, PO_.CREME);
   for(const sx of [-1.25, 1.25]) g.add(box(0.18, 2.6, 0.18, PO_.JAUNE, sx, 2.7, -3.6));
   g.add(box(2.9, 0.2, 0.2, PO_.JAUNE, 0, 3.9, -3.6));
-  g.add(cyl(0.55, 0.55, 1.8, 12, PO_.FILET, 0, 2.1, -2.8, 0, 0, Math.PI/2));
-  for(const sx of [-0.9, 0.9]) g.add(cyl(0.6, 0.6, 0.12, 12, PO_.GRIS2, sx, 2.1, -2.8, 0, 0, Math.PI/2));
-  g.add(cyl(0.34, 0.34, 1.4, 10, PO_.GRIS, 0, 1.8, 0.0, 0, 0, Math.PI/2));
-  for(let k = 0; k < 4; k++) bacPoisson(g, -0.9 + (k % 2)*1.8, 1.0, -1.6 - Math.floor(k/2)*0.7);
+  g.add(cyl(0.55, 0.55, 1.8, 12, PO_.FILET, 0, 2.62, -2.8, 0, 0, Math.PI/2));
+  for(const sx of [-0.9, 0.9]) g.add(cyl(0.6, 0.6, 0.12, 12, PO_.GRIS2, sx, 2.62, -2.8, 0, 0, Math.PI/2));
+  g.add(cyl(0.34, 0.34, 1.4, 10, PO_.GRIS, 0, 2.40, 0.0, 0, 0, Math.PI/2));
+  for(let k = 0; k < 4; k++) bacPoisson(g, -0.9 + (k % 2)*1.8, 2.04, -1.1 - Math.floor(k/2)*0.7);
   boueePeche(g, 1.55, 1.6, -0.6); boueePeche(g, -1.55, 1.6, -0.6);
-  const F = feuxBateau(g, 8.5, 1.6);
+  // Détails fixes, fusionnés avec la coque : aucun objet à animer en plus.
+  g.add(box(.10,1.03,.09,PO_.CREME,0,2.61,2.52));
+  for(const sx of [-.56,.56]){const e=box(.045,.36,.055,PO_.NOIR,sx,2.57,2.56);e.rotation.z=.42;g.add(e);}
+  for(const z of [.28,.80])g.add(box(.09,1.44,.09,PO_.GRIS2,1.29,2.66,z));
+  for(let i=0;i<5;i++)g.add(box(.10,.06,.57,PO_.GRIS2,1.30,2.04+i*.30,.54));
+  g.add(box(.66,.26,.94,PO_.CREME,.54,3.66,1.06));
+  for(const z of [.79,1.33])g.add(box(.69,.28,.07,PO_.GRIS2,.54,3.66,z));
+  g.add(cyl(.12,.12,.42,8,PO_.GRIS2,-.64,3.70,1.05));
+  g.add(cyl(.20,.20,.06,8,PO_.NOIR,-.64,3.94,1.05));
+  for(const sx of [-1.39,1.39]){
+    for(const z of [-.95,-2.05,-3.15])g.add(box(.075,.58,.075,PO_.GRIS2,sx,2.35,z));
+    g.add(box(.085,.085,2.28,PO_.CREME,sx,2.65,-2.05));
+    g.add(cyl(.13,.13,.56,8,PO_.NOIR,sx*1.10,1.87,-2.05));
+  }
+  g.add(box(.72,.10,.64,PO_.GRIS2,0,2.10,3.16));
+  g.add(box(.24,.045,.055,PO_.NOIR,0,2.17,3.16));
+  for(const sx of [-.63,.63]){
+    g.add(box(.30,.08,.32,PO_.GRIS2,sx,2.10,3.56));
+    g.add(cyl(.085,.085,.23,6,PO_.GRIS2,sx,2.24,3.56));
+    g.add(box(.29,.07,.10,PO_.GRIS2,sx,2.35,3.56));
+  }
+  const P={x:-1.62,y:3.42,z:2.46,r:.25,lateral:true,bord:-1.24};
+  const F = feuxBateau(g, 8.5, 1.6, P);
   g.scale.setScalar(1.29);
   g.userData = {wr:[], wf:[], feux:F,
-    lampes:{avant:{x:[0], y:1.6, z:4.15, w:0.18, h:0.12}, arriere:{x:[0], y:1.6, z:-4.2, w:0.16, h:0.11}, nez:4.3}};
+    lampes:{avant:{x:[P.x], y:P.y, z:P.z+.007, w:P.r*1.6, h:P.r*1.6}, arriere:{x:[0], y:1.6, z:-4.2, w:0.16, h:0.11}, nez:4.3}};
   return g;
 }
 function buildCaseyeur(){
@@ -14957,10 +14998,11 @@ function buildCaseyeur(){
     for(let i = 0; i < 4; i++, k++)
       casierPeche(g, -0.6 + (k % 2)*1.2, 1.16 + rang*0.5, -0.8 - i*0.72, (k % 3)*0.2);
   boueePeche(g, 1.25, 1.31, -1.0); boueePeche(g, -1.25, 1.31, -1.6);
-  const F = feuxBateau(g, 6.6, 1.3);
+  const P={x:.48,y:3.18,z:2.28,r:.22};
+  const F = feuxBateau(g, 6.6, 1.3, P);
   g.scale.setScalar(1.34);
   g.userData = {wr:[], wf:[], feux:F,
-    lampes:{avant:{x:[0], y:1.3, z:3.2, w:0.18, h:0.12}, arriere:{x:[0], y:1.3, z:-3.25, w:0.16, h:0.11}, nez:3.4}};
+    lampes:{avant:{x:[P.x], y:P.y, z:P.z+.007, w:P.r*1.6, h:P.r*1.6}, arriere:{x:[0], y:1.3, z:-3.25, w:0.16, h:0.11}, nez:3.4}};
   return g;
 }
 /* Le camion frigorifique : caisse isotherme, groupe froid sur la face avant. Il emporte
