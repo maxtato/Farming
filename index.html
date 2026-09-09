@@ -539,6 +539,11 @@
   .face{display:none;image-rendering:auto}
   /* Les portraits fournis gardent leurs traits ; le fond blanc se fond au papier. */
   .face[src*="poissonnerie-"],.face[src*="chantier_naval-"]{mix-blend-mode:multiply;border-radius:0 0 45% 45% / 0 0 10% 10%}
+  /* Une seule planche pour les trois poses de la scierie, sans redessiner le personnage. */
+  .face[src*="scierie.webp"]{width:auto!important;aspect-ratio:2/3;object-fit:cover!important;
+    object-position:0% 50%!important;clip-path:inset(0 1px);mix-blend-mode:multiply}
+  .face[src$="scierie.webp#bravo"]{object-position:50% 50%!important}
+  .face[src$="scierie.webp#refus"]{object-position:100% 50%!important}
   #ctface{position:absolute;top:8px;right:10px;width:96px;height:120px;
     object-fit:contain;object-position:bottom right;pointer-events:none}
   /* LE RETRAIT VAUT AUSSI POUR LA RÉPLIQUE. Il ne portait que sur les deux lignes de
@@ -4830,6 +4835,7 @@ const PORTRAITS = {
   'Boucherie':  'boucherie',
   'Poissonnerie': {r:'poissonnerie', h:['neutre','bravo','refus'], ext:'webp'},
   'Chantier naval': {r:'chantier_naval', h:['neutre','bravo'], ext:'webp'},
+  'Scierie': {r:'scierie', h:['neutre','bravo','refus'], ext:'webp', planche:true},
   /* LE ROUX A TROUVE SA BOUTIQUE, ET C'EST LA QUINZIEME ET DERNIERE PLACE. Ses trois
      planches sont arrivees les premieres, et je les avais donnees au Restaurant par
      ressemblance — une veste blanche, un foulard, un cuisinier. C'etait faux : le
@@ -4915,6 +4921,7 @@ const ficheDe = (nom)=>{
 const visageDe = (nom, humeur)=>{
   const f = ficheDe(nom);
   if(!(f && f.h.indexOf(humeur) >= 0)) return null;
+  if(f.planche) return (PIXEL.pal ? 'portraits14/' : 'portraits/') + f.r + '.' + f.ext + '#' + humeur;
   return (PIXEL.pal ? 'portraits14/' : 'portraits/') + f.r + '-' + humeur + '.' + (f.ext || 'png');
 };
 function poserVisage(el, nom, humeur){
