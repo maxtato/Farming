@@ -1156,6 +1156,8 @@
     color:var(--sourdine);text-align:center;line-height:1.6;margin-top:1px}
   /* les produits qu'un nouveau client accepte, en vignettes sur la ligne */
   #brplus .vign{width:26px;height:26px;vertical-align:middle;margin:0 3px;object-fit:contain}
+  .client-produits{display:flex;flex-wrap:wrap;gap:5px 10px;justify-content:center;letter-spacing:0;text-transform:none}
+  .client-produit{display:inline-flex;align-items:center;font-size:11px}
   /* ---------- LE TAMPON « STOCK PLEIN » ----------
      Le joueur : « avec comme un tampon rouge sur le côté qui met stock plein ».
      C'est un tampon de caoutchouc, et un tampon de caoutchouc a trois signes : il est
@@ -4412,7 +4414,7 @@ function acheteursDe(cle, sauf, quantite){
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
 const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false,
-                  ouverture:false};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
+                  ouverture:false, clientsPresentes:[]};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
    d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
@@ -4625,11 +4627,11 @@ const MISSIONS = [
         un tour au garage, puis on achète l'épandeur. » L'étape dit donc le garage AVANT
         l'épandeur, et elle ne peut venir qu'après l'appel : c'est un préambule de mission,
         et un préambule ne commence qu'une fois la mission prise. */
-     {cle:'epandeur', ou:'Garage', titre:'PRENDRE L’ÉPANDEUR', humeur:'projette',
-      txt:'PRENDRE L’ÉPANDEUR – Si la ferme doit grandir, il faudra passer par le garage du village. L’épandeur y est, 250 € : on verra vite si l’engrais vaut son prix.',
+     {cle:'epandeur', ou:()=>money>=250?'Garage':'Coopérative', titre:'PRENDRE L’ÉPANDEUR', humeur:'projette',
+      txt:()=>money>=250?'PRENDRE L’ÉPANDEUR – Pour les 150 kg de blé demandés, l’engrais accélère la pousse. L’épandeur coûte 250 € au garage.':'FINANCER L’ÉPANDEUR – Vendez une récolte à la Coopérative pour réunir les 250 €.',
       // le bouton ACHETER du garage ouvre cette fenêtre : l'onglet des outils bat,
       // puis la ligne de l'épandeur
-      fen:'achat', onglet:'outils', art:'engrais',
+      fen:()=>money>=250?'achat':null, onglet:'outils', art:'engrais',
       fait:()=> !outilVerrou('engrais')},
      /* ET ON DEMANDE CE QUE LE TITRE DIT : REMPLIR L'ÉPANDEUR.
         L'étape s'appelait « acheter de l'engrais » et se contentait d'en trouver quelque
@@ -4649,6 +4651,7 @@ const MISSIONS = [
    texte:'Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume.',
    fin:'Parfait. Quantité, qualité, délai. Vous commencez à devenir un fournisseur intéressant.'},
   {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1050, xp:150,
+   prep:[{cle:'installer-moulin',ou:()=>money>=650?'atelier':'Coopérative',titre:'INSTALLER LE MOULIN',court:'Installer le moulin à l’atelier.',txt:()=>money>=650?'INSTALLER LE MOULIN – Le boulanger attend votre farine. Le moulin coûte 650 € ; les améliorations attendront les grosses commandes.':'FINANCER LE MOULIN – Vendez une récolte à la Coopérative pour réunir les 650 €.',fen:()=>money>=650?'production':null,onglet:'metiers',art:'farine',fait:()=>atelierA('farine')}],
    texte:'Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste.',
    fin:'Ah, ça c’est une farine qui me plaît ! Vous voyez ? Même blé… mais déjà beaucoup plus de valeur.'},
   {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1350, xp:170,
@@ -4688,10 +4691,10 @@ const MISSIONS = [
      premium : c'est lui qui regarde ses trois céréales et décide de mieux nourrir ses
      bêtes. Son visage, ses mots, et à la fin sa réplique — « même les animaux mangent
      mieux que moi ». */
-  {niv:8, faire:'alimentPlus', prime:3380, xp:280, qui:'Moi', entete:'NOURRIR MIEUX',
+  {niv:8, appel:true,lieu:'Laiterie',faire:'alimentPlus', prime:3380, xp:280, qui:'Laiterie', entete:'PRÉPARER LE TROUPEAU',
    titre:'Produire 184 kg d’aliment premium',
-   texte:'Maïs, orge, avoine… j’ai tout ce qu’il faut. Avec un mélangeur, je pourrais fabriquer mon propre aliment premium. Deux lots devraient donner 184 kg.',
-   fin:'Voilà. Maintenant même les animaux mangent mieux que moi.'},
+   texte:'Je vous réserverai une collecte de lait. Avant les vaches, préparez leur nourriture : installez le mélangeur premium et produisez 184 kg avec vos céréales.',
+   fin:'La nourriture est prête. Nous pouvons maintenant préparer votre première collecte de lait.'},
   {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:4120, xp:300,
    texte:'On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres.',
    fin:'Très bon lait. Pour un premier troupeau, c’est prometteur. Si vous augmentez la production, appelez-moi.'},
@@ -4743,7 +4746,7 @@ const MISSIONS = [
   {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:16500, xp:750,
    texte:'Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée.',
    fin:'Hm… intéressant. Vraiment intéressant. Vous ne cultivez plus seulement des produits. Vous commencez à avoir une signature.'},
-  {niv:19, faire:'porcs4', prime:19500, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
+  {niv:19, appel:true,lieu:'Boucherie',faire:'porcs4', prime:19500, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
    texte:'Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes.',
    fin:'Très bien. Bêtes saines, bon gabarit. Si vous augmentez l’élevage, je prendrai des lots plus importants.'},
   /* LA DERNIÈRE. Huit marchandises de sept filières différentes : c'est toute
@@ -4768,7 +4771,7 @@ const MISSIONS = [
   {niv:20, lieu:'Menuisier', lignes:[{cle:'grumes',need:160},{cle:'laine',need:20}], prime:9000,xp:450,
    texte:'Pour une série de sièges garnis : 160 kg de grumes pour les structures et 20 kg de laine pour les assises.',
    fin:'C’est exactement le bois qu’il me fallait.'},
-  {niv:20, faire:'flotte',qui:'Chantier naval',titre:'Préparer la flotte de pêche',prime:18000,xp:500,
+  {niv:20, appel:true,lieu:'Chantier naval',faire:'flotte',qui:'Chantier naval',titre:'Préparer la flotte de pêche',prime:18000,xp:500,
    texte:'Au chantier naval, prenez une barque ou un chalutier, puis un caseyeur. Ajoutez un camion frigo au garage pour livrer la marée.',
    fin:'Vos bateaux sont prêts. Cap sur les zones de pêche !'},
   {niv:20,lieu:'Criée',lignes:[{cle:'poisson',need:120},{cle:'crustaces',need:60}],prime:10000,xp:550,
@@ -4822,7 +4825,7 @@ const MISSIONS = [
    deux décalages, dans l'ordre : l'ancien pick-up (6) devient 7, l'ancien appel (7) devient
    9, l'ancienne vente (8) devient 10. */
 const TUTO_V = 4, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
-const MISSIONS_V = 3;
+const MISSIONS_V = 4;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
    nom de site (les contrats aussi, mais eux se laissent tomber : voir `chargerCampagne`).
@@ -5153,26 +5156,10 @@ function majBulles(){
    elle s'ajoute derrière ce qui est déjà à l'écran. */
 const SITES_ANNONCE = [];
 function annoncerNiveau(n, av){
-  const N = NIVEAUX[n-1];
-  if(!N) return;
-  for(let k = Math.max(1, (av | 0) + 1); k <= n; k++)
-    for(const nom of ((NIVEAUX[k-1] && NIVEAUX[k-1].sites) || [])){
-      const S = SITES.find((x)=> x.nom === nom);
-      /* DEUX FAÇONS DE PRENDRE, ET LES DEUX COMPTENT. Un commerce ACHÈTE à son étal —
-         il paie, et l'étal se recharge ; une usine ACCEPTE dans sa trémie — elle
-         transforme. La Laiterie n'achète rien du tout et prend pourtant tout le lait de
-         la ferme : ne retenir que `achete` l'aurait passée sous silence, elle et les
-         trois autres usines. Le comptoir et le garage, eux, VENDENT : ils n'ont ni étal
-         ni trémie, et le déblocage d'un fournisseur n'est pas la même nouvelle. La
-         boucherie n'a ni étal ni trémie et prend pourtant les bêtes : elle parle aussi. */
-      if(S && ((S.achete && S.achete.length) || (S.accepte && S.accepte.length) || S.abattoir)
-         && SITES_ANNONCE.indexOf(nom) < 0)
-        SITES_ANNONCE.push(nom);
-    }
-  showHint('NIVEAU ' + n + ' – ' + N.nom.toUpperCase());
-  majBulles();
-  caleEspece();
-  rafraichirEcran();
+  const N=NIVEAUX[n-1];if(!N)return;
+  // Le niveau rend les achats disponibles. La première mission réussie présente le client.
+  showHint('NIVEAU '+n+' – '+N.nom.toUpperCase());
+  majBulles();caleEspece();rafraichirEcran();
 }
 /* ---------- LE COMMERÇANT ANNONCE LUI-MÊME SON OUVERTURE ----------
    Le joueur : « pour tous les commerces, une fois qu'on débloque, un petit message qui
@@ -5217,63 +5204,17 @@ const tonnage = (q)=> q >= 1000 ? String(q/1000).replace('.', ',') + ' tonne' + 
                                 : q + ' kg';
 const majuscule = (t)=> t.charAt(0).toUpperCase() + t.slice(1);
 function pageDeblocage(S){
-  const G = GENRE_SITE[S.nom] || {art:'le'};
-  /* ET SEULEMENT CE QUE LA FERME PEUT LUI APPORTER : le beurre et le pain sont faits
-     derrière son comptoir, ils ne nous regardent pas (voir `fournissable`). */
-  const pris = (S.achete || []).concat(
-    (S.accepte || []).filter((c)=> (S.achete || []).indexOf(c) < 0)).filter(fournissable);
-  const noms = pris.map((c)=> nomDe(c).toLowerCase());
-  let txt;
-  if(S.abattoir)
-    txt = 'C’est bon, c’est débloqué. Amenez-moi vos bêtes : je les prends sur place, et ' +
-          'je paie le double de leur valeur.';
-  else if(S.etal !== undefined){
-    // Un étal : il achète, il paie tout de suite, et il se recharge.
-    const quoi = noms.length > 6
-      ? noms.slice(0, 4).join(', ') + ', et presque tout ce qui sort de votre ferme'
-      : enumerer(noms);
-    const pct = Math.round(Math.abs(S.coef - 1)*100);
-    const prix = S.coef < 0.97
-      ? 'Je ne serai pas ' + (G.femme ? 'celle' : 'celui') + ' qui paie le mieux — ' + pct +
-        ' % sous le prix du jour —, mais je prends tout, et tout de suite.'
-      : (S.coef > 1.03 ? 'Et je paie bien : ' + pct + ' % au-dessus du prix du jour.'
-                       : 'Je paie le prix du jour, ni plus ni moins.');
-    txt = 'C’est bon, c’est débloqué. ' + majuscule(quoi) + ' : je vous ' +
-          (noms.length > 1 ? 'les ' : 'l’') + 'achète à tout moment, sans contrat. ' +
-          'J’en prends jusqu’à ' + tonnage(S.etal) + ' de chaque, et mon étal se refait en ' +
-          ETAL_MINUTES + ' minutes. ' + prix;
-  } else {
-    /* Une usine : on verse dans sa trémie, elle transforme, elle paie à la sortie. Le prix
-       par kilo apporté est celui de la fiche du menu — la recette la plus riche. */
-    let mieux = null;
-    for(const cle of (S.fabrique || [])){
-      if(!recetteOffrable(cle)) continue;
-      const px = rendementValeur(cle)*(S.coef || 1)/parKgDe(entreeSeule(cle));
-      if(!mieux || px > mieux.px) mieux = {px, u:uniteUn(entreeSeule(cle))};
-    }
-    txt = 'C’est bon, c’est débloqué. ' +
-          (noms.length ? majuscule(enumerer(noms)) + ' : apportez-' +
-                         (noms.length > 1 ? 'les' : 'le') + '-moi, je'
-                       : 'Apportez-moi votre récolte : je') +
-          ' transforme sur place et je vous paie à la sortie, sans contrat' +
-          (mieux ? ' — jusqu’à ' + dec(mieux.px) + ' € par ' + mieux.u + ' apporté' : '') +
-          '. Ma trémie en prend ' + TREMIE_SITE_MAX + ' kg à la fois.';
-  }
-  // Huit noms suffisent à dire ce qu'il prend ; le supermarché en accepte treize, et
-  // la liste entière ferait quatre lignes de petites capitales pour rien.
-  /* EN VIGNETTES, PAS EN PHRASE. « Puis les produits acceptés en icônes plutôt qu'en
-     phrase » : la planche de chaque produit existe déjà, on la pose en ligne. Un produit
-     sans planche garde son nom. */
-  const vign = pris.slice(0, 8).map((c)=>{
-    const v = vignetteDe(c);
-    return v ? '<img class="vign" src="' + v + '" alt="' + nomDe(c) + '" title="' + nomDe(c) + '">'
-             : nomDe(c);
-  }).join(' ') + (pris.length > 8 ? ' …' : '');
-  return {titre:(G.art + (G.art.endsWith('’') ? '' : ' ') + S.nom).toUpperCase(),
-          sous:'<i>\u00ab\u00a0' + txt + '\u00a0\u00bb</i>',
-          plus:pris.length ? vign : '',
-          face:{nom:S.nom, humeur:'bravo'},
-          suite:'À retrouver sur la carte', duree:7.0};
+  const pris=[...new Set([...(S.achete||[]),...(S.accepte||[])])]
+    .filter(c=>fournissable(c)||(PRODUITS[c]&&PRODUITS[c].betail));
+  let txt=commandesObligatoires()
+    ? 'Merci pour cette première commande. Voici les produits que je peux vous demander. Attendez mes prochains contrats au téléphone.'
+    : 'Merci pour cette première livraison. Voici les produits que je peux vous acheter. Pendant votre installation, vous pouvez aussi me les vendre librement.';
+  if(S.nom==='Chantier naval') txt='Votre flotte est prête. Barque et chalutier pour le poisson, caseyeur pour les crustacés. Débarquez au quai, puis livrez avec le camion frigo.';
+  else if(S.abattoir) txt+=' Les animaux arrivent uniquement en fourgon.';
+  else if(S.accepte&&S.accepte.length) txt+=' Les apports à l’usine sont payés à la livraison.';
+  const vign=pris.map(c=>'<span class="client-produit">'+(vignetteDe(c)?'<img class="vign" src="'+vignetteDe(c)+'" alt="">':'')+nomDe(c)+'</span>').join('');
+  return {titre:S.nom.toUpperCase(),sous:'<i>« '+txt+' »</i>',plus:'<div class="client-produits">'+vign+'</div>',
+    face:{nom:S.nom,humeur:'bravo'},suite:'Produits et prix dans le carnet des commerces',duree:9};
 }
 function veillerDeblocages(){
   while(SITES_ANNONCE.length){
@@ -5311,7 +5252,7 @@ const missionCourante = ()=> MODE_LIBRE ? null : (MISSIONS[CAMPAGNE.mission] || 
 // La mission du moment, si elle attend encore d'être prise chez quelqu'un.
 function missionAPrendre(){
   const M = missionCourante();
-  if(!(M && !M.faire && M.lieu && !CAMPAGNE.prise)) return null;
+  if(!(M && (!M.faire || M.appel) && M.lieu && !CAMPAGNE.prise)) return null;
   // Elle n'est pas encore arrivée : voir MISSION_RETARD.
   if(CAMPAGNE.retard > 0) return null;
   /* ET LE TÉLÉPHONE NE SONNE PAS PENDANT QU'ON APPREND LE MÉTIER. Le tutoriel de la
@@ -5335,7 +5276,7 @@ function missionVisible(){
      verrait le moins qu'il y a eu un avant et un après. Tout ce qui lit ce juge est
      déjà à l'épreuve du null. */
   if(CAMPAGNE.retard > 0) return null;
-  return (M && (M.faire || CAMPAGNE.prise)) ? M : null;
+  return (M && ((M.faire && !M.appel) || CAMPAGNE.prise)) ? M : null;
 }
 /* LES TROIS FOURNISSEURS, ET POURQUOI ILS NE SE TAISENT JAMAIS.
    « À part sur le garage, où l'achat et l'amélioration seront des boutons bleus ; s'il y a
@@ -5468,9 +5409,16 @@ function ouvrirBravo(M, suite, niv0){
        jeu qui parle. Un visage y resterait affiché sans que personne ne l'ait dit. */
     // `qui` : le héros, ou un commerce sans quai, quand ce n'est pas le lieu qui parle
     face: {nom: M.qui || M.lieu, humeur: 'bravo'},
-    suite: suite ? (suite.lieu ? 'Prochaine mission – ' + suite.lieu : 'Prochaine mission')
+    suite: suite ? 'Un nouvel appel arrivera au téléphone'
                  : 'La campagne est finie'
   }];
+  const client=M.lieu||M.qui;
+  const nouveau=client && client!=='Moi' && !CAMPAGNE.clientsPresentes.includes(client);
+  const pageDejaPrevue=(M.apres||[]).some(a=>a.deblocage===client);
+  if(nouveau){
+    const S=SITES.find(s=>s.nom===client)||(client==='Chantier naval'?{nom:client,achete:[],accepte:[]}:null);
+    if(S){if(!pageDejaPrevue)bravoPages.push(pageDeblocage(S));CAMPAGNE.clientsPresentes.push(client);}
+  }
   // Une page de suite peut porter un visage — le héros à la fin — et sa propre ligne de suite.
   for(const a of (M.apres || [])){
     // `deblocage` : la page d'un commerce qui s'ouvre, dite par lui (voir `pageDeblocage`).
@@ -5561,11 +5509,15 @@ function chargerCampagne(S){
   // Les appels, les engagements et leurs délais reprennent là où la partie a été quittée.
   CONTRATS.length = 0;
   offreT = 8;
+  CAMPAGNE.clientsPresentes=[]; SITES_ANNONCE.length=0;
   for(const X of SITES){ X.offre = null; X.offreT = 0; X.renom = 0; }
   if(C && typeof C.xp === 'number'){
     CAMPAGNE.xp = Math.max(0, C.xp);
     CAMPAGNE.mission = Math.max(0, Math.min(MISSIONS.length, C.mission | 0));
     CAMPAGNE.faits = Array.isArray(C.faits) ? C.faits.slice() : [];
+    CAMPAGNE.clientsPresentes=Array.isArray(C.clientsPresentes)?C.clientsPresentes.filter(n=>typeof n==='string')
+      : [...new Set(MISSIONS.slice(0,CAMPAGNE.mission).map(m=>m.lieu||m.qui).filter(n=>n&&n!=='Moi'))];
+    SITES_ANNONCE.length=0;
     /* UN AVANCEMENT ÉCRIT SUR UNE AUTRE TABLE NE VEUT PLUS RIEN DIRE.
        `CAMPAGNE.faits` est indexé par LIGNE de la mission courante, et la mission
        courante est repérée par son RANG. Les rangs 8 et 9 ont changé de contenu en
@@ -5592,6 +5544,7 @@ function chargerCampagne(S){
        proposée par ce lieu »), et l'avancement qu'on lui rend est de toute façon nul. */
     if(missionReecrite) CAMPAGNE.prise = false;
     if((C.mv|0)<3 && (C.mission|0)>=30){ CAMPAGNE.prise=false; CAMPAGNE.faits=[]; }
+    if((C.mv|0)<4 && MISSIONS[CAMPAGNE.mission]?.appel) CAMPAGNE.prise=true;
     /* MÊME RÈGLE POUR LE TUTORIEL, ET POUR LA MÊME RAISON. Le champ n'existait pas ; son
        absence vaut « déjà vu ». Sans ce défaut, toute partie en cours se réveillerait à
        la première étape et s'entendrait expliquer comment labourer. */
@@ -22806,7 +22759,7 @@ const VENDANGE = {key:'vendange', nom:'Tunnel', width:2.8, level:1,
    une liste d'exclus (elle prend tout le reste) ; sans l'un ni l'autre, tout passe. */
 const LIQUIDES = Object.keys(PRODUITS).filter((k)=> PRODUITS[k].unite === 'L');
 const accepteNature = (T, cle)=> !cle || !T
-  || (!(PRODUITS[cle] && PRODUITS[cle].betail) && (!T.prend || T.prend.indexOf(cle) >= 0) && (!T.refuse || T.refuse.indexOf(cle) < 0));
+  || (!T.betail && (cle!=='poisson'&&cle!=='crustaces'||T.frigorifique||T.calePeche) && (!(PRODUITS[cle] && PRODUITS[cle].betail) && (!T.prend || T.prend.indexOf(cle) >= 0) && (!T.refuse || T.refuse.indexOf(cle) < 0)));
 function makeTool(def){
   const T = Object.assign({}, def);
   T.group = def.build();
@@ -22884,7 +22837,7 @@ const TOOLS = [
             hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1600, load:0, prend:['grumes'],
             aide:'Semi-remorque à grumes · le bois, et rien d\'autre', verrou:true, prix:9000}),
   makeTool({key:'frigorifique', nom:'Frigorifique', build:()=> buildRemorqueSemi('frigo'),
-            hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:1200, load:0, refuse:['grumes'].concat(LIQUIDES),
+            hitch:0, L:0, width:5.6, semi:true, cargo:true, frigorifique:true, capacite:1200, load:0, refuse:['grumes'].concat(LIQUIDES),
             aide:'Semi-remorque frigorifique · tout sauf le bois et les liquides', verrou:true, prix:11000}),
   makeTool({key:'citerne', nom:'Citerne', build:()=> buildRemorqueSemi('citerne'),
             hitch:0, L:0, width:5.6, semi:true, cargo:true, capacite:900, load:0, prend:LIQUIDES.slice(),
@@ -22982,20 +22935,21 @@ MACHINES.find(m=>m.key==='fourgon').v.cargo = {capacite:155, load:0};
 // moissonneuse : le raisin et les olives ne vont pas au silo mais au pressoir et à
 // l'étal, et c'est le circuit des caisses qui sait les y conduire. Deux récolteuses
 // qui partageraient une trémie se bloqueraient l'une l'autre.
-MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:100, load:0};
+MACHINES.find(m=>m.key==='enjambeuse').v.cargo = {capacite:100, load:0,prend:['olives','raisin']};
 // Les deux caissons du bois : trois arbres pour l'abatteuse, huit pour le porteur.
 // LE CAISSON DE L'ABATTEUSE NE SERT PLUS À LA COUPE — le bois va droit au dépôt — ; il
 // reste, vide, pour que la relecture d'une vieille partie ne trouve pas un engin sans
 // caisse. Et l'engin se déclare : c'est lui qui bute sur les troncs sans
 // choc (voir `decorGabarits`).
-MACHINES.find(m=>m.key==='abatteuse').v.cargo = {capacite:150, load:0};
+MACHINES.find(m=>m.key==='abatteuse').v.cargo = {capacite:150, load:0,prend:['grumes']};
 MACHINES.find(m=>m.key==='abatteuse').v.abatteuse = true;
-MACHINES.find(m=>m.key==='porteur').v.cargo = {capacite:400, load:0};
+MACHINES.find(m=>m.key==='porteur').v.cargo = {capacite:400, load:0,prend:['grumes']};
 // Le port : la caisse du frigo, et la cale de chaque bateau.
-MACHINES.find(m=>m.key==='frigo').v.cargo = {capacite:300, load:0};
-MACHINES.find(m=>m.key==='barque').v.cargo = {capacite:60, load:0};
-MACHINES.find(m=>m.key==='chalutier').v.cargo = {capacite:400, load:0};
-MACHINES.find(m=>m.key==='caseyeur').v.cargo = {capacite:200, load:0};
+MACHINES.find(m=>m.key==='frigo').v.cargo = {capacite:300, load:0,frigorifique:true,refuse:['grumes'].concat(LIQUIDES)};
+MACHINES.find(m=>m.key==='barque').v.cargo = {capacite:60, load:0,calePeche:true,prend:['poisson']};
+MACHINES.find(m=>m.key==='chalutier').v.cargo = {capacite:400, load:0,calePeche:true,prend:['poisson']};
+MACHINES.find(m=>m.key==='caseyeur').v.cargo = {capacite:200, load:0,calePeche:true,prend:['crustaces']};
+{const v=MACHINES.find(m=>m.key==='fourgon').v;Object.defineProperty(v.cargo,'betail',{get:()=>v.betail||0});}
 for(const m of MACHINES) if(m.verrou) m.v.group.visible = false;
 
 // Au départ les outils sont DÉTELÉS et rangés sur le parking : il faut aller les
@@ -27748,7 +27702,7 @@ const LECONS = [
    nom:'SILO', titre:'LE SILO SE REMPLIT',
    txt:'LE SILO SE REMPLIT – Il commence à manquer de place. Sa capacité peut être '
      + 'augmentée depuis le menu Stockage.',
-   quand:()=> siloTotal() > siloMax()*0.85 && !!coutSilo() && money >= coutSilo()},
+   quand:()=> siloTotal() > siloMax()*0.85 && !!coutSilo() && money >= coutSilo()+(MODE_LIBRE?0:margeProgression())},
 
   /* --- L'ATELIER : LA MATIÈRE DEVIENT UN PRODUIT --- */
   {cle:'metier', court:"Installer un métier à l’atelier.", humeur:'projette', ou:'atelier', fen:'production', onglet:'metiers',
@@ -27807,9 +27761,8 @@ const LECONS = [
    quand:()=> PATURES.some((P)=> P.produit > 0.5 || P.produit2 > 0.5)},
 
   /* --- ET LE VILLAGE, QUI FINIT PAR PROPOSER SES PROPRES AFFAIRES --- */
-  {cle:'contrat', court:"Consulter les contrats : pastille bleue.", humeur:'dubitatif', ou:null, nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
-   txt:'UN CONTRAT DISPONIBLE – Un commerce cherche un fournisseur. Sa pastille bleue '
-     + 'indique qu’un contrat est disponible.',
+  {cle:'contrat', court:"Décrocher au téléphone de la ferme.", humeur:'dubitatif', ou:'Ferme', nom:'CONTRATS', titre:'UN CONTRAT DISPONIBLE',
+   txt:'UN CONTRAT DISPONIBLE – Un client vous appelle au téléphone de la ferme. Écoutez sa demande avant de livrer.',
    quand:()=> contratsOuverts() && SITES.some((S)=> !!S.offre)},
 
   /* --- LE BOIS --- */
@@ -27843,6 +27796,8 @@ const LECONS = [
 function lieuLecon(L){
   const ou = L && L.ou;
   if(!ou) return null;
+  if(ou === 'Chantier naval') return {lieu:ou,x:PORT.chantierQuai.x,z:PORT.chantierQuai.z};
+  if(ou && /^pature[0-9]+$/.test(ou)){const P=PATURES[+ou.slice(6)];return P?{lieu:ou,x:P.quai.x,z:P.quai.z}:null;}
   if(ou === 'silo')     return {lieu:'silo', x:SILO.x, z:SILO.z};
   if(ou === 'entrepot') return ENTREPOT.quai
     ? {lieu:'entrepot', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z} : null;
@@ -27886,6 +27841,7 @@ function lieuLecon(L){
     return best ? {lieu:'enclos', x:best.quai.x, z:best.quai.z} : null;
   }
   if(ou === 'parcelle'){
+    if(L.parcelle)return {lieu:'parcelle',x:L.parcelle.x,z:L.parcelle.z};
     const v = MACHINES[cur].v;
     let best = null, bd = 1e9;
     for(const q of PARCELS){
@@ -27944,9 +27900,121 @@ const leconCourante = ()=> leconActive;
    semoir, qui se vide au milieu du premier champ, et le plein de gazole, qui arrive quand
    il arrive. Sans elles, le débutant s'arrête au milieu de sa parcelle sans savoir
    pourquoi — et c'est le pire moment du jeu pour ne rien avoir à lire. */
+// Les achats sont présentés après l'appel qui crée le besoin, jamais à la seule montée de niveau.
+const ACHATS_MISSIONS = [
+  {m:4,f:'modules',cle:'farine',txt:'Le boulanger attend 72 kg de farine. Installez le moulin à l’atelier ; inutile d’améliorer sa vitesse pour ce premier lot.'},
+  {m:5,f:'cultures',cle:'mais',txt:'L’usine commande du maïs. Achetez cette semence au Comptoir, puis sélectionnez-la sur le semoir.'},
+  {m:8,f:'cultures',cle:'orge',txt:'Le restaurant attend votre bière. Commencez par acheter la semence d’orge.'},
+  {m:8,f:'modules',cle:'biere',txt:'L’orge devient de la bière dans la cuve de brassage. Installez ce métier à l’atelier.'},
+  {m:10,f:'cultures',cle:'avoine',txt:'L’usine attend de l’avoine. Une nouvelle semence suffit ; votre matériel actuel convient.'},
+  {m:11,f:'modules',cle:'alimentPlus',txt:'Préparez l’aliment des futurs élevages avec le mélangeur premium, avant d’acheter les vaches.'},
+  {m:14,f:'modules',cle:'fromage',txt:'Le restaurant commande votre fromage. Installez la fromagerie de la ferme pour transformer le lait.'},
+  {m:18,f:'modules',cle:'fromageBrebis',txt:'Cette commande demande du fromage de brebis. Le module dédié utilise le lait de votre bergerie.'},
+  {m:22,f:'cultures',cle:'colza',txt:'La Coopérative attend du colza brut. Achetez la semence ; le pressoir pourra attendre une commande d’huile.'},
+  {m:23,f:'modules',cle:'huile',txt:'Le restaurant demande maintenant de l’huile. C’est le moment d’installer le pressoir à colza.'},
+  {m:24,f:'cultures',cle:'olives',txt:'Le supermarché veut des olives. Achetez les plants et gardez une parcelle pour cette culture permanente.'},
+  {m:24,f:'engins',cle:'enjambeuse',txt:'La moissonneuse ne récolte pas les olives ni le raisin. L’enjambeuse est nécessaire pour ces cultures.'},
+  {m:25,f:'modules',cle:'huileOlive',txt:'L’appel du restaurant justifie le pressoir à olives. Les olives brutes pouvaient se livrer sans lui.'},
+  {m:26,f:'cultures',cle:'raisin',txt:'Le supermarché commande du raisin. Votre enjambeuse peut déjà le récolter ; gardez une parcelle pour la vigne.'},
+  {m:27,f:'modules',cle:'vin',txt:'Le caviste veut du vin. Installez la cave et transformez le raisin de votre vigne.'},
+  {m:28,f:'engins',cle:'fourgon',txt:'La boucherie attend quatre porcs. Seul le fourgon transporte les animaux, cinq au maximum, sans marchandise mélangée.'},
+  {m:30,f:'engins',cle:'abatteuse',txt:'La scierie commande des grumes. L’abatteuse coupe les arbres et dépose le bois au dépôt forestier.'},
+  {m:30,f:'engins',cle:'porteur',txt:'Le porteur charge les grumes au dépôt puis les livre. Son rôle est le transport du bois.'},
+  {m:32,f:'engins',cle:'barque',alternative:'chalutier',txt:'Commencez la pêche au poisson avec la barque. Le chalutier sera utile pour de plus gros lots.'},
+  {m:32,f:'engins',cle:'caseyeur',txt:'Le caseyeur pêche les crustacés : il complète la barque, qui pêche le poisson.'},
+  {m:32,f:'engins',cle:'frigo',txt:'Débarquez les prises au quai. Seul un transport frigorifique peut ensuite livrer poisson et crustacés par la route.'}
+];
+const ELEVAGES_MISSIONS = {6:{cle:'poule',n:3},12:{cle:'vache',n:2},16:{cle:'mouton',n:2},20:{cle:'ruche',n:2},28:{cle:'cochon',n:4}};
+function achatMission(A){
+  const x=A.f==='modules'?moduleDe(A.cle):A.f==='cultures'?CROPS.find(c=>c.cle===A.cle):A.f==='outils'?TOOLS.find(t=>t.key===A.cle):MACHINES.find(m=>m.key===A.cle);
+  if(!x) return null;
+  const possede=A.f==='modules'?atelierA(A.cle):!x.verrou;
+  if(possede || (A.alternative && MACHINES.some(m=>m.key===A.alternative&&!m.verrou))) return null;
+  return {...A,prix:A.f==='cultures'?x.cout:x.prix,
+    ou:A.f==='modules'?'atelier':A.f==='cultures'?'Comptoir agricole':x.bateau?'Chantier naval':'Garage',
+    fen:A.f==='modules'?'production':A.f==='cultures'?'comptoir':x.bateau?'chantier':'achat',
+    onglet:A.f==='modules'?'metiers':A.f==='cultures'?'semences':A.f==='outils'?'outils':'engins',
+    nom:x.module||x.nom||A.cle};
+}
+function coutMissionRestant(index){
+  let n=0;
+  for(const A of ACHATS_MISSIONS) if(A.m===index){const x=achatMission(A);if(x)n+=x.prix||0;}
+  const e=ELEVAGES_MISSIONS[index];
+  if(e){
+    const P=PATURES.find(p=>p.espece===e.cle),E=ESPECES[e.cle];
+    n+=P?Math.max(0,e.n-P.betes.length)*E.prix:prixPature(e.cle)+e.n*E.prix;
+    if(!P && PARCELS.filter(p=>p.owned&&!p.pature).length<2){const lots=PARCELS.filter(p=>!p.owned&&p.price>0).map(p=>p.price);if(lots.length)n+=Math.min(...lots);}
+  }
+  return n;
+}
+function margeProgression(){
+  // Deux prochains appels sont financés avant de conseiller un achat de confort.
+  let n=150;
+  for(let i=CAMPAGNE.mission;i<=Math.min(MISSIONS.length-1,CAMPAGNE.mission+2);i++) n+=coutMissionRestant(i);
+  return n;
+}
+function conseilProgression(){
+  if(MODE_LIBRE || !missionVisible() || etapeTuto()) return null;
+  const mi=CAMPAGNE.mission;
+  const lecon=(cle,ou,txt,extra={})=>({cle,ou,txt,court:'Préparer la commande · '+ou,titre:'POUR CETTE COMMANDE',humeur:'projette',...extra});
+  const necessaires=ACHATS_MISSIONS.filter(a=>a.m===mi).map(achatMission).filter(Boolean);
+  if(necessaires.length){
+    const a=necessaires[0];
+    if(money<a.prix) return lecon('budget-'+mi,'Coopérative','Il manque '+eur(a.prix-money)+' pour '+a.nom+'. Vendez une récolte à la Coopérative pour financer cet achat.',{obligatoire:true,court:'Financer '+a.nom});
+    return lecon('achat-'+a.f+'-'+a.cle,a.ou,a.txt+' · '+eur(a.prix),{fen:a.fen,onglet:a.onglet,art:a.cle,obligatoire:true,court:'Acheter '+a.nom});
+  }
+  const e=ELEVAGES_MISSIONS[mi];
+  if(e){
+    const P=PATURES.find(p=>p.espece===e.cle),E=ESPECES[e.cle];
+    const embarques=MACHINES.reduce((n,m)=>n+(!m.verrou&&m.v.betailEspece===e.cle?(m.v.betail||0):0),0);
+    const besoin=Math.max(0,e.n-embarques-(e.cle==='cochon'?(STAT.porcs||0):0));
+    if(!P && PARCELS.filter(p=>p.owned&&!p.pature).length<2){
+      const terrain=PARCELS.filter(p=>!p.owned&&p.signPos&&p.price>0).sort((a,b)=>a.price-b.price)[0];
+      if(terrain&&peutAcheterParcelle()&&money>=terrain.price) return lecon('terre-'+e.cle,'parcelle','Achetez une seconde terre avant de créer cet enclos. Conservez une parcelle pour les céréales et la nourriture.',{obligatoire:true,court:'Acheter une terre pour l’enclos',parcelle:terrain});
+      return lecon('budget-terre-'+e.cle,'Coopérative','Vendez une récolte pour financer une terre supplémentaire. Gardez votre champ cultivable pour nourrir la ferme.',{obligatoire:true,court:'Financer une seconde terre'});
+    }
+    if(!P && money>=prixPature(e.cle)+besoin*E.prix) return lecon('elevage-'+e.cle,'champ','La commande demande un élevage de '+E.pluriel.toLowerCase()+'. Aménagez l’enclos en gardant le prix des animaux.',{obligatoire:true,court:'Créer l’enclos · '+E.pluriel});
+    if((!P&&money<prixPature(e.cle)+besoin*E.prix)||(P&&P.betes.length<besoin&&money<E.prix))return lecon('budget-elevage-'+e.cle,'Coopérative','Vendez une récolte pour financer l’enclos, les animaux et leur nourriture.',{obligatoire:true,court:'Financer l’élevage'});
+    if(P && P.betes.length<besoin && money>=E.prix) return lecon('animaux-'+e.cle,'pature'+PATURES.indexOf(P),'Achetez '+(besoin-P.betes.length)+' '+E.pluriel.toLowerCase()+', puis remplissez leur mangeoire.',{obligatoire:true,court:'Acheter les animaux'});
+  }
+  const marge=margeProgression(), possede=k=>MACHINES.some(m=>m.key===k&&!m.verrou);
+  if(mi>=21 && mi<=27 && outilVerrou('combine')){
+    const t=achatMission({f:'engins',cle:'t4'}),outil=achatMission({f:'outils',cle:'combine'}),cout=(t?t.prix:0)+(outil?outil.prix:0);
+    if(money>=cout+marge && ouvert('outils','combine')){
+      const a=t||outil;
+      return lecon('combine-'+a.cle,'Garage','Pour travailler plus vite, le combiné laboure, sème et fertilise en une passe. Il exige le tracteur lourd. '+(t?'Prenez d’abord le tracteur, puis le combiné.':'Votre tracteur lourd peut le tracter.')+' · Ensemble restant : '+eur(cout),{fen:'achat',onglet:a.onglet,art:a.cle,titre:'TROIS TRAVAUX EN UNE PASSE'});
+    }
+  }
+  if(mi>=9 && mi<28 && !possede('fourgon')){
+    const a=achatMission({f:'engins',cle:'fourgon'});
+    if(a&&money>=a.prix+marge) return lecon('achat-engins-fourgon','Garage','Vos tournées réunissent plusieurs produits. Le fourgon emporte plus que le pick-up et sera le seul à transporter les animaux.',{fen:'achat',onglet:'engins',art:'fourgon',titre:'PRÉPARER LES TOURNÉES'});
+  }
+  if(mi>=35 && !possede('chalutier')){
+    const a=achatMission({f:'engins',cle:'chalutier'});
+    if(a&&money>=a.prix+marge) return lecon('achat-engins-chalutier','Chantier naval','Les commandes de poisson augmentent. Le chalutier remonte de plus gros lots que la barque ; le caseyeur reste nécessaire pour les crustacés.',{fen:'chantier',onglet:'engins',art:'chalutier',titre:'UNE PÊCHE PLUS PRODUCTIVE'});
+  }
+  if(mi>=36 && !possede('semi')){
+    const a=achatMission({f:'engins',cle:'semi'}),r=achatMission({f:'outils',cle:'grumier'});
+    if(a&&money>=a.prix+(r?r.prix:0)+marge) return lecon('achat-engins-semi','Garage','Pour regrouper les grosses livraisons : tracteur routier et remorque adaptée. Grumier pour le bois, frigorifique pour la marée, citerne pour les liquides. Achat facultatif.',{fen:'achat',onglet:'engins',art:'semi',titre:'LES LIVRAISONS EN GROS'});
+  }
+  const M=missionVisible(),transforme=M&&M.lignes&&M.lignes.find(l=>atelierA(l.cle)&&l.need>halleLotMax()*2);
+  if(mi>=7 && transforme && HALLE.capa===1 && money>=coutUp('capa')+marge)
+    return lecon('capacite-atelier','atelier','Cette commande demande plusieurs lots. Augmenter la capacité de l’atelier réduit les manipulations ; le métier de base suffit toujours.',{fen:'production',onglet:'reglages',art:'capa',titre:'DES LOTS PLUS GRANDS'});
+  if(mi>=3 && mi<9 && M.lignes && M.lignes.some(l=>l.need>=150)){
+    const cle='moisson',niv=niveauMateriel(cle),prix=prixCranSuivant(cle,niv);
+    if(niv===1&&prix>0&&money>=prix+marge)return lecon('capacite-moisson','Garage','Vos récoltes grossissent. Améliorer la moissonneuse augmente sa trémie et sa largeur de coupe. Cet achat reste facultatif.',{fen:'amelio',onglet:'engins',art:cle,titre:'RÉCOLTER AVEC MOINS D’ARRÊTS'});
+  }
+  return null;
+}
+
 function calculerLecon(){
   const enTuto = !!etapeTuto();
+  const urgent=LECONS.find(L=>L.mur&&!leconFaite(L.cle)&&L.quand());
+  if(urgent)return urgent;
+  const conseil=conseilProgression();if(conseil)return conseil;
   for(const L of LECONS){
+    if(!MODE_LIBRE && !campagneFinie() && !missionVisible() && !L.tot) continue;
+    if(!MODE_LIBRE && ['garage','amelio','culture','parcelle','metier','reglages','elevage','bete'].includes(L.cle)) continue;
     if(leconFaite(L.cle)) continue;
     if(enTuto && !L.tot) continue;
     if(!L.quand()) continue;
@@ -28038,7 +28106,7 @@ function enginTuto(){
    autres. */
 function appelMenu(){
   const E = etapeTuto();
-  if(E) return E.fen ? E : null;        // pendant le tutoriel, lui seul décide
+  if(E){const fen=champEtape(E,'fen');return fen?{...E,fen}:null;}        // pendant le tutoriel, lui seul décide
   const O = objectifMission();
   if(O){
     if(O.quoi === 'module')   return {fen:'production', onglet:'metiers',  art:O.cle};
@@ -28046,7 +28114,6 @@ function appelMenu(){
     if(O.quoi === 'acheter')  return {fen:'comptoir',   onglet:'semences', art:O.cle};
     if(O.quoi === 'materiel' && O.art)
       return {fen:'achat', onglet:O.onglet || 'engins', art:O.art};
-    return null;
   }
   /* ET L'ARTICLE D'UNE LEÇON SE CALCULE. Une marche de tutoriel nomme SA ligne — le
      moulin, l'épandeur — parce qu'elle sait laquelle elle attend. Une leçon, non : elle
@@ -28165,6 +28232,7 @@ function lieuTuto(E){
     const p = PARCELS.find((q)=> q.owned && !q.pature);
     return p ? {lieu:'champ', x:p.x, z:p.z} : null;
   }
+  if(ou === 'atelier')return HALLE.quai?{lieu:'atelier',x:HALLE.quai.x,z:HALLE.quai.z}:null;
   if(ou === 'silo') return {lieu:'silo', x:SILO.x, z:SILO.z};
   /* LA PLACE DE L'ENGIN DE L'ÉTAPE, au parc de la ferme. `E.engin` la nomme déjà — c'est
      le champ qui dit quelle machine prendre — et chaque engin retient d'où il est parti. */
@@ -28282,6 +28350,8 @@ function objectifMission(){
   }
   const M = missionVisible();
   if(!M) return null;
+  const conseil=conseilProgression();
+  if(conseil&&conseil.obligatoire){const L=lieuLecon(conseil);if(L)return {...L,quoi:'preparer',txt:conseil.court,court:conseil.court};}
   const S = SITES.find((x)=> x.nom === M.lieu) || null;
   /* UNE MISSION « FAIRE » N'A PAS DE MARCHANDISE, mais elle a quand même un but — et
      jusqu'ici elle n'avait RIEN. Les deux qui existent, « produire de l'aliment premium »
@@ -28304,6 +28374,7 @@ function objectifMission(){
     }
     if(PRODUITS[M.faire]) return objectifProduit(M.faire, 1, S);
     if(M.faire === 'porcs4'){
+      if(MACHINES.some(m=>!m.verrou&&m.v.betail>0&&m.v.betailEspece==='cochon')){const B=SITES.find(s=>s.abattoir);if(B)return {lieu:B.nom,x:B.dropX,z:B.dropZ,quoi:'livrer',txt:'LIVRER LES PORCS'};}
       const P = PATURES.find((q)=> q.espece === 'cochon' && q.betes.length);
       if(P) return {lieu:'pature' + PATURES.indexOf(P), x:P.quai.x, z:P.quai.z,
                     quoi:'charger', txt:'CHARGER LES PORCS'};
@@ -28845,9 +28916,9 @@ function classeGarage(){
   const cl = classeAnneau(MACHINES[cur].v);
   if(cl !== 'jaune') return 'bleu';
   const E = etapeTuto();
-  if(E) return E.fen === 'achat' ? 'jaune' : 'bleu';
+  if(E) return champEtape(E,'fen') === 'achat' ? 'jaune' : 'bleu';
   const O = objectifMission();
-  return (O && O.quoi === 'materiel') ? 'jaune' : 'bleu';
+  return (O && (O.quoi === 'materiel'||(O.quoi==='preparer'&&appelMenu()?.fen==='achat'))) ? 'jaune' : 'bleu';
 }
 (function poserAnneauxCommerces(){
   for(const S of SITES){
@@ -29927,6 +29998,9 @@ const patureProche = (v, r)=>{
 function betesAdultes(P){ let n = 0; for(const V of P.betes) if(V.age >= 1) n++; return n; }
 // Charger des bêtes : on prend les plus âgées, elles disparaissent de la pâture.
 function chargerBetail(P, v, n){
+  const m=MACHINES.find(m=>m.v===v);
+  if(!m||m.verrou||m.key!=='fourgon'||(v.betail>0&&v.betailEspece!==P.espece))return 0;
+  n=Math.max(0,Math.min(Math.floor(n),capaciteBetail(m)-(v.betail||0)));
   const pris = [];
   P.betes.sort((a,b)=> b.age - a.age);
   while(pris.length < n && P.betes.length && P.betes[0].age >= 1){
@@ -30128,7 +30202,8 @@ function retirerCharge(T, cle, q){
    citerne : « qu'est-ce qu'on transporterait ? pas de liquide. » Les trois remorques du
    camion disent maintenant ce qu'elles prennent (`prend`) ou refusent (`refuse`) — voir
    `accepteNature` et la table des outils. Une caisse qui ne dit rien prend tout, comme
-   avant : benne, pick-up, fourgon, porteur, caisson des bateaux. */
+   avant pour les produits ordinaires. La marée exige un véhicule froid,
+   les bateaux gardent leur propre pêche et le fourgon ne mélange pas bétail et marchandises. */
 const peutCharger = (T, type)=> !!T && T.load < (T.capacite || Infinity) - 0.01 && accepteNature(T, type);
 function poserType(T, type){ T.type = type; }
 function viderType(T){ if(T.load <= 0.01){ T.load = 0; T.type = null; T.charge = null; } }
@@ -30401,7 +30476,7 @@ function empechementsIci(m){
       const caisse = caisseDe(m);
       if(cap <= 0 && caisse && caisse.load > 1)
         dit('EMBARQUER UNE BÊTE', 'LA BENNE PORTE DÉJÀ ' + kg(caisse.load).toUpperCase());
-      else if(cap <= 0) dit('EMBARQUER UNE BÊTE', 'IL FAUT LE PICK-UP OU LE FOURGON');
+      else if(cap <= 0) dit('EMBARQUER UNE BÊTE', 'IL FAUT LE FOURGON');
       else if(prets <= 0) dit('EMBARQUER UNE BÊTE',
         P.betes.length ? 'AUCUNE N\'EST ENCORE ADULTE' : 'L\'ENCLOS EST VIDE');
       else if((v.betail || 0) >= cap) dit('EMBARQUER UNE BÊTE', 'LE CHARGEMENT EST COMPLET');
@@ -30493,6 +30568,7 @@ function quantiteMax(m, A){
   const T = caisseDe(m);
   const place = T ? T.capacite - T.load : 0;
   const porte = T ? chargeDe(T, A.cle) : 0;
+  if(T && !SENS_VIDER[A.sens] && !accepteNature(T,A.cle)) return 0;
   switch(A.sens){
     case 'tremie': return Math.min(hopper, siloMax() - siloTotal());
     case 'tremieVente': case 'tremieLivraison': return Math.min(hopper,
@@ -30640,6 +30716,7 @@ function fumeeGrille(cle){
 }
 function executer(m, A, dt){
   const v = m.v, T = caisseDe(m);
+  if(T && !SENS_VIDER[A.sens] && !accepteNature(T,A.cle)) return;
   const debit = 40*dt, lent = ELEVAGE.debit*dt;
   switch(A.sens){
     case 'tremie': {
@@ -31084,12 +31161,12 @@ function updateBetail(dt){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const v = m.v;
-    if(!v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
+    if((m.key!=='fourgon'&&!v.betailAncien) || !v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
     const cle='betail_'+v.betailEspece;
     if(commandesObligatoires() && resteCommande(BOUCHERIE.nom,cle)<1){v.venteT=0;continue;}
     v.venteT = (v.venteT || 0) + dt;
     if(v.venteT < 1.1) continue;
-    v.venteT = 0; v.betail--;
+    v.venteT = 0; v.betail--;if(!v.betail)v.betailAncien=false;
     /* LA BOUCHERIE PAIE À LA BÊTE, ET LE CODE LE DIT MAINTENANT. Elle payait déjà le
        bon prix, mais par un détour : on convertissait la bête en kilos de carcasse, on
        multipliait par le prix du kilo de viande, et l'on retombait — à l'arrondi près —
@@ -31114,12 +31191,9 @@ const servEl = document.getElementById('service');
 // Une caisse pleine ne prend pas de bêtes : on transporte du lait OU du bétail,
 // jamais les deux. Ça force à choisir sa tournée plutôt qu'à tout empiler.
 function capaciteBetail(m){
-  const T = toolOf(m);
-  const caisse = (T && T.cargo) ? T : (m.v.cargo || null);
-  if(caisse && caisse.load > 1) return 0;
-  if(m.key === 'fourgon') return 5;
-  if(m.key === 'pickup')  return 2;
-  return (T && T.key === 'benne') ? 4 : 0;
+  if(!m || m.key!=='fourgon')return 0;
+  const caisse=caisseDe(m);
+  return caisse&&caisse.load>0.01?0:5;
 }
 /* L'ARMEMENT EN DEUX TEMPS A DISPARU AVEC LA FENÊTRE DE CHOIX. Le bouton de la parcelle
    se confirmait lui-même — « TOUCHER POUR ARMER », puis « CONFIRMER POULES », avec un
@@ -31278,7 +31352,7 @@ function actionService(){
        Et OK pour acheter des bêtes. » C'est juste, et le défaut était logique autant que
        cosmétique : embarquer, c'est partir POUR LA BOUCHERIE — le libellé le disait déjà,
        « EN ROUTE POUR LA BOUCHERIE » — et un chargement qu'on ne peut décharger nulle
-       part immobilise le pick-up avec des bêtes à bord.
+       part immobilise le fourgon avec des bêtes à bord.
        Acheter reste ouvert, comme il le demande : on peuple son enclos bien avant d'avoir
        de quoi vendre, et c'est l'ordre de la campagne. */
     const cap = capaciteBetail(m), prets = betesAdultes(P);
@@ -31357,7 +31431,7 @@ function ouvrirContrat(C, S, offre, mission){
 // c'est la même question — qu'est-ce qu'il veut, et qu'est-ce qu'il donne.
 function missionEnContrat(M){
   return {type:'mission', lieu:M.lieu, prime:M.prime || 0, xp:M.xp || 0, temps:0,
-          lignes:M.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:0}))};
+          lignes:(M.lignes||[]).map((l)=> ({cle:l.cle, need:l.need, fait:0}))};
 }
 function fermerContrat(){ contratEl.style.display = 'none'; contratVu = null; }
 function rendreContrat(){
@@ -31395,10 +31469,11 @@ function rendreContrat(){
     d.appendChild(g); d.appendChild(b);
     L.appendChild(d);
   }
+  if(mission&&mission.faire){const d=document.createElement('div');d.className='cl';d.textContent=mission.titre;L.appendChild(d);}
   // Ce qu'il paie : la marchandise au prix du jour, PUIS la prime. Les deux comptent,
   // et les confondre ferait croire qu'un contrat remplace une vente.
   const brut = C.lignes.reduce((t, l)=> t + l.need*(S ? prixChez(S, l.cle) : prixDe(l.cle)), 0);
-  let p = 'Marchandise au prix du jour&nbsp;: <b>' + eur(brut) + '</b>' +
+  let p = (mission&&mission.faire?'Objectif de préparation':'Marchandise au prix du jour&nbsp;: <b>' + eur(brut) + '</b>') +
           '<br>Prime à la clôture&nbsp;: <b>' + eur(C.prime) + '</b>  ·  +' + C.xp + ' XP';
   if(C.temps) p += '<br>Délai&nbsp;: ' + Math.max(0, Math.ceil(C.temps)) + ' s';
   document.getElementById('ctpaie').innerHTML = p;
@@ -31426,6 +31501,7 @@ document.getElementById('ctoui').addEventListener('pointerdown', (e)=>{
     CAMPAGNE.prise = true;
     showHint('MISSION PRISE – ' + contratVu.C.lieu.toUpperCase());
     rafraichirEcran();
+    const E=etapeTuto();if(E&&!E.fait())annoncerEtape(E);
   }
   else if(contratVu && contratVu.offre && !accepterOffre(contratVu.S)) return;
   fermerContrat(); refreshChoix(); refreshService();
@@ -35607,6 +35683,7 @@ function etatJeu(){
                   qu'il désigne. Ce compteur dit quelle table a écrit ce `faits`. Il est
                   facultatif comme le reste du bloc, et `v` ne bouge toujours pas. */
                mv: MISSIONS_V,
+               clientsPresentes:CAMPAGNE.clientsPresentes.slice(),
                // Facultatif, comme le reste du bloc : absent d'une vieille sauvegarde,
                // il vaut false et la partie repart en campagne. `v` ne bouge pas.
                libre: MODE_LIBRE,
@@ -35640,7 +35717,7 @@ function etatJeu(){
       const v = m.v;
       return {verrou:!!m.verrou, level:v.level, x:v.pos.x, z:v.pos.z, cap:v.cap,
               fuel:v.fuel, vmax:v.vmax, accel:v.accel, turn:v.turn,
-              betail:v.betail||0, auto:!!v.auto,
+              betail:v.betail||0, betailEspece:v.betailEspece||null,betailPrix:v.betailPrix||0, betailAncien:!!v.betailAncien, auto:!!v.auto,
               cargo: v.cargo ? {load:v.cargo.load, capacite:v.cargo.capacite, type:v.cargo.type||null,
                                  charge:v.cargo.charge || null} : null};
     }),
@@ -36144,7 +36221,7 @@ function chargerPartie(S){
       v.vel.set(0,0); v.speed = 0; v.prevWork = null; v.plan = null;
       v.group.position.set(q.x, 0, q.z); v.group.rotation.y = q.cap;
       v.fuel = Math.min(q.fuel, v.resMax); v.sec = v.fuel <= 0;
-      v.betail = q.betail; v.auto = false; v.mission = null; v.sensVoulu = null;
+      v.betail = q.betail||0;v.betailAncien=!!q.betailAncien||(m.key!=='fourgon'&&v.betail>0); v.betailEspece=q.betailEspece||'vache';v.betailPrix=q.betailPrix||(ESPECES[v.betailEspece]||ESPECES.vache).prixBete; v.auto = false; v.mission = null; v.sensVoulu = null;
       v.cleVoulue = null; desarmerRecul(v);
       /* AU NIVEAU 1, C'EST LA TABLE QUI DIT LA CAPACITÉ, PAS LA SAUVEGARDE. Les
          contenants n'ont pas été divisés par exactement trois — la benne est passée de

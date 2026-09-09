@@ -9,7 +9,7 @@ let tests=0;function test(name,f){f();tests++;console.log('PASS',name);}
 function context(){
  let seed=83731;const math=Object.create(Math);math.random=()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
  const c=vm.createContext({Math:math,console,Number,Set,Infinity,mondePret:true,MODE_LIBRE:false,TOUT_OUVERT:false,
-  CAMPAGNE:{mission:37,prise:false,faits:[],xp:100000,niveau:20},CONTRATS:[],SITES:[],MACHINES:[],TOOLS:[],CROPS:[],PATURES:[],PARCELS:[{owned:true,cellules:1000}],
+  CAMPAGNE:{mission:37,prise:false,faits:[],xp:100000,niveau:20,clientsPresentes:[]},SITES_ANNONCE:[],CONTRATS:[],SITES:[],MACHINES:[],TOOLS:[],CROPS:[],PATURES:[],PARCELS:[{owned:true,cellules:1000}],
   ESPECES:{},ESP_CLES:[],ATELIER_MODULES:[],siloStock:{},HALLE:{stock:{},modules:[]},DEPOT_BOIS:{stock:0,quai:{x:1,z:2}},QUAI_PECHE:{stock:{}},
   PORT:{charge:{x:3,z:4},debarque:{x:5,z:6},chantierQuai:{x:7,z:8},spots:[{x:9,z:10}]},FORET:{x0:10,x1:30,z0:40,z1:60},
   offreT:8,CONTRAT_MAX:4,OFFRE_MAX:3,RENOM_MIN:-6,RENOM_MAX:10,OFFRE_ATTENTE:55,OFFRE_VIE:180,ECH_PRIX:4,money:0,STAT:{ventes:0},ELEVAGE:{debit:40},hopper:100,delivered:0,
@@ -24,6 +24,7 @@ function context(){
   retirerCharge:(t,k,q)=>{t.lots[k]-=q;t.load-=q;},siloMax:()=>1000,siloTotal:()=>0,
  });
  vm.runInContext(table('PRODUITS','\n};'),c);
+ vm.runInContext(constant('SENS_VIDER'),c);
  vm.runInContext('var fournissable=k=>!PRODUITS[k].interne;var recetteEntrees=k=>typeof PRODUITS[k].de===\'string\'?{[PRODUITS[k].de]:1}:PRODUITS[k].de;',c);
  for(const name of ['parKgDe','enUnites','u2kg','prixUnite'])vm.runInContext(constant(name),c);
  c.prixDe=k=>c.PRODUITS[k].brut||c.PRODUITS[k].tarif||10;c.prime=k=>c.prixDe(k)*2;
@@ -54,6 +55,7 @@ function equipped(c){
  c.HALLE.modules=['farine','huile','huileOlive','vin','biere','fromage','fromageBrebis'];c.ATELIER_MODULES=c.HALLE.modules.map(cle=>({cle}));return c;
 }
 const order=(site,cle='ble',need=10,fait=0)=>({lieu:site.nom,type:'combinee',prime:50,xp:10,temps:0,lignes:[{cle,need,fait}]});
+if(require.main===module){
 test('Seven new missions preserve the thirty existing ranks and cover every new character',()=>{
  const c=ready();assert.equal(c.MISSIONS.length,37);assert.equal(c.MISSIONS[29].lieu,'Restaurant');
  assert.deepEqual(Array.from(c.MISSIONS.slice(30),m=>m.lieu||m.qui),['Scierie','Menuisier','Chantier naval','Criée','Poissonnerie','Conserverie',"Entrepôt d'export"]);
@@ -93,6 +95,8 @@ test('Corrupt, incompatible or already completed legacy orders do not occupy a s
 test('Wood and fishing guidance uses reachable loading points and directs gear purchases',()=>{const c=ready(),s=c.SITES.find(s=>s.nom==='Scierie');assert.equal(c.objectifNature('grumes',10,s).lieu,'Garage');c.MACHINES.push(machine('porteur',cargo(['grumes'])));assert.equal(c.objectifNature('grumes',10,s).lieu,'Garage');c.MACHINES.push(machine('abatteuse'));assert.equal(c.objectifNature('grumes',10,s).lieu,'Forêt');c.DEPOT_BOIS.stock=10;assert.equal(c.objectifNature('grumes',10,s).x,c.DEPOT_BOIS.quai.x);c.MACHINES.push(machine('frigo',cargo(['poisson','crustaces'])));assert.equal(c.objectifNature('poisson',10,s).lieu,'Chantier naval');c.QUAI_PECHE.stock.poisson=10;assert.equal(c.objectifNature('poisson',10,s).x,c.PORT.charge.x);c.QUAI_PECHE.stock.poisson=0;c.MACHINES.push(machine('barque',cargo(['poisson'],{poisson:10}),{bateau:true,peche:{cle:'poisson'}}));assert.equal(c.objectifNature('poisson',10,s).z,c.PORT.debarque.z);});
 test('Expired or declined calls release reservations so later offers remain possible',()=>{const c=equipped(ready()),s=c.SITES[0];c.veillerMission=()=>{};c.fermerContrat=()=>{c.contratVu=null;};load(c,['updateCommandes']);s.offre={...order(s),attente:1};c.offreT=50;c.updateCommandes(2);assert.equal(s.offre,null);assert(s.offreT>0);s.offre={...order(s),attente:100};assert(c.refuserOffre(s));assert.equal(s.offre,null);assert.equal(s.renom,-2);assert(s.offreT>0);for(let i=0;i<50;i++)c.updateCommandes(5);assert(c.offresEnCours()>0);});
 test('Every buying shop and factory can request at least two different farm products',()=>{const c=equipped(ready());for(const s of c.SITES){if(!s.achete.length&&!s.accepte.length)continue;assert(new Set([...s.achete,...s.accepte]).size>=2,s.nom);}});
-test('Livestock orders reserve whole owned animals and use livestock-compatible transport',()=>{const c=ready();c.PATURES=[{espece:'cochon',betes:Array(6).fill({})}];c.MACHINES=[machine('frigo',cargo(['poisson']))];assert(!c.transportCommande('betail_cochon'));c.MACHINES.push(machine('pickup',cargo(['ble'])));assert(c.transportCommande('betail_cochon'));for(let i=0;i<30;i++){const l=c.tirerLigne('betail_cochon',1,0);assert(Number.isInteger(l.need));assert(l.need>=1&&l.need<=3);}assert.equal(c.tirerLigne('betail_cochon',10000,3).need,0);});
+test('Livestock orders reserve whole owned animals and use livestock-compatible transport',()=>{const c=ready();c.PATURES=[{espece:'cochon',betes:Array(6).fill({})}];c.MACHINES=[machine('frigo',cargo(['poisson']))];assert(!c.transportCommande('betail_cochon'));c.MACHINES.push(machine('pickup',cargo(['ble'])));assert(!c.transportCommande('betail_cochon'));c.MACHINES.push(machine('fourgon',cargo(['ble'])));assert(c.transportCommande('betail_cochon'));for(let i=0;i<30;i++){const l=c.tirerLigne('betail_cochon',1,0);assert(Number.isInteger(l.need));assert(l.need>=1&&l.need<=3);}assert.equal(c.tirerLigne('betail_cochon',10000,3).need,0);});
 test('Butcher sells exactly the ordered animals and preserves others on board',()=>{const c=ready(),s=c.SITES.find(s=>s.nom==='Boucherie');Object.assign(c,{BOUCHERIE:s,PALIER:{FINI:2},aQuai:()=>true});const m=machine('fourgon');Object.assign(m.v,{betail:4,betailEspece:'cochon',betailPrix:820,speed:0});c.MACHINES=[m];c.STAT={betes:0,porcs:0};c.updateBetail(2);assert.equal(m.v.betail,4);assert.equal(c.money,0);c.CONTRATS.push(order(s,'betail_cochon',2));for(let i=0;i<8;i++)c.updateBetail(2);assert.equal(m.v.betail,2);assert.equal(c.STAT.porcs,2);assert.equal(c.money,3330);assert.equal(c.CONTRATS.length,0);c.MODE_LIBRE=true;c.updateBetail(2);assert.equal(m.v.betail,1);});
 console.log(tests+' campaign and contract tests passed.');
+}
+module.exports={ready,load,constant,table,equipped,machine,cargo,order,source};
