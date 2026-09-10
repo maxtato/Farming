@@ -55,4 +55,27 @@ test('A completed mission appends its receipt without discarding an unread tutor
  c.ouvrirBravo({lieu:'Moi',prime:100,xp:0},{},20);assert.equal(c.bravoPages.length,2);assert.equal(c.document.getElementById('brtitre').textContent,'Tutoriel non lu');
  c.suivantBravo();assert.equal(c.document.getElementById('brtitre').textContent,'CONTRAT TERMINÉ');
 });
+test('Food oil is never ordered by the sawmill or textile workshop, but remains useful for canned fish',()=>{
+ const c=equipped(ready());assert.deepEqual(Array.from(c.NEGOCE.Scierie.achete),['grumes']);assert(!c.SITES.find(s=>s.nom==='Atelier textile').achete.includes('huile'));
+ assert(c.NEGOCE.Conserverie.achete.includes('huile'));assert.equal(c.MISSIONS[30].lignes.length,1);assert.equal(c.MISSIONS[30].lignes[0].need,300);assert(!c.MISSIONS[30].texte.includes('huile'));
+ let seen=0;for(let i=0;i<1500;i++){const C=c.tirerCommande();if(['Scierie','Atelier textile'].includes(C.lieu)){seen++;assert(!C.lignes.some(l=>l.cle==='huile'));}}assert(seen>50);
+});
+test('An old mixed industrial order keeps its delivered goods, promised bonus and automation identity',()=>{
+ const c=ready(),original={autoId:'delivery-7',lieu:'Scierie',prime:1000,xp:30,lignes:[{cle:'grumes',need:300,fait:120},{cle:'huile',need:20,fait:5}]};
+ c.chargerCampagne({campagne:{mv:4,tv:4,xp:100000,mission:37,contrats:[original]}});const C=c.CONTRATS[0];assert(C);assert.equal(C.lignes.length,1);assert.equal(C.lignes[0].fait,120);assert.equal(C.prime,1000);assert.equal(C.autoId,'delivery-7');assert.equal(original.lignes.length,2);
+});
+test('A migrated industrial order already fulfilled in wood pays once instead of disappearing unpaid',()=>{
+ const c=ready();c.veillerMission=()=>{};load(c,['updateCommandes']);const D={lieu:'Scierie',prime:1000,xp:30,lignes:[{cle:'grumes',need:300,fait:300},{cle:'huile',need:20,fait:0}]};
+ c.chargerCampagne({campagne:{mv:4,tv:4,xp:100000,mission:37,contrats:[D]}});assert(c.CONTRATS[0].soldeMetier);
+ const saved=JSON.parse(JSON.stringify(c.CONTRATS));c.chargerCampagne({campagne:{mv:4,tv:4,xp:100000,mission:37,contrats:saved}});assert.equal(c.CONTRATS.length,1);
+ c.updateCommandes(0);assert.equal(c.money,1000);assert.equal(c.CONTRATS.length,0);c.updateCommandes(0);assert.equal(c.money,1000);
+});
+test('An old pending textile offer keeps wool and drops food oil without becoming a signed contract',()=>{
+ const c=ready(),S=c.SITES.find(s=>s.nom==='Atelier textile');c.chargerCampagne({campagne:{mv:4,tv:4,xp:100000,mission:37,appels:[{lieu:S.nom,offre:{lieu:S.nom,prime:300,lignes:[{cle:'laine',need:12,fait:0},{cle:'huile',need:10,fait:0}]}}]}});
+ assert.equal(S.offre.lignes.length,1);assert.equal(S.offre.lignes[0].cle,'laine');assert.equal(c.CONTRATS.length,0);
+});
+test('Unrelated food orders and existing sawmill campaign progress are preserved',()=>{
+ const c=ready(),D={lieu:'Conserverie',lignes:[{cle:'huile',need:24,fait:12}]};assert.equal(c.corrigerCommandeMetier(D),D);
+ c.chargerCampagne({campagne:{mv:4,tv:4,xp:100000,mission:30,prise:true,faits:[140,8]}});assert.equal(c.CAMPAGNE.mission,30);assert.equal(c.CAMPAGNE.faits[0],140);assert(c.CAMPAGNE.prise);
+});
 console.log(count+' audit regression tests passed.');

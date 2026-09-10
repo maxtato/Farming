@@ -4137,7 +4137,7 @@ const NEGOCE = {
   'Fromagerie':      {fabrique:['fromageBrebis', 'fromage'], choix:'meilleure',
                       caisse:true, coef:1.42, debit:0.90},
   'Boucherie':       {abattoir:true, achete:['betail_vache','betail_poule','betail_cochon','betail_mouton','huile','miel'], debit:0},
-  'Atelier textile': {fabrique:['textile'], achete:['huile'], caisse:true, coef:1.74, debit:0.74},
+  'Atelier textile': {fabrique:['textile'], caisse:true, coef:1.74, debit:0.74},
 
   // — la boulangerie monte en gamme avec ce qu'on lui donne, et vend elle-même
   'Boulangerie':     {fabrique:['patisserieMiel','patisseriePlus','patisserie',
@@ -4209,7 +4209,7 @@ const NEGOCE = {
      ET AUCUN NE FABRIQUE RIEN QU'ON VOIE : « ce qui se passe derrière le comptoir ne nous
      regarde pas ». Une scierie qui fabriquerait des planches à notre place les paierait
      deux fois — au versement et à la sortie, comme les usines — et écraserait l'échelle. */
-  'Scierie':         {achete:['grumes','huile'], coef:1.00, etal:12000},
+  'Scierie':         {achete:['grumes'], coef:1.00, etal:12000},
   'Menuisier':       {achete:['grumes','laine'], coef:1.40, etal:400},
 
   /* L'ENTREPÔT D'EXPORT PREND TOUT, EN GROS, ET PAIE MOINS. Tout ce que la ferme sait
@@ -4778,8 +4778,8 @@ const MISSIONS = [
    texte:'J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.\nFarine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous.',
    fin:'Tout est là. Absolument tout. Quand je pense que votre première livraison faisait trente kilos de blé…',
    apres:[{titre:'DE NOUVEAUX VOISINS', txt:'La forêt, le port et les ateliers ont aussi besoin de vous. De nouveaux appels vont arriver.'}]},
-  {niv:20, lieu:'Scierie', lignes:[{cle:'grumes',need:300},{cle:'huile',need:20}], prime:28000,xp:450,
-   texte:'Premier chantier : 300 kg de grumes et 20 litres d’huile de colza pour l’entretien. Prenez une abatteuse et un porteur au garage.',
+  {niv:20, lieu:'Scierie', lignes:[{cle:'grumes',need:300}], prime:28000,xp:450,
+   texte:'Premier chantier : 300 kg de grumes pour alimenter nos scies. Prenez une abatteuse pour la coupe et un porteur pour transporter le bois.',
    fin:'Un beau premier lot. La forêt fait maintenant partie de votre exploitation.'},
   {niv:20, lieu:'Menuisier', lignes:[{cle:'grumes',need:160},{cle:'laine',need:20}], prime:9000,xp:450,
    texte:'Pour une série de sièges garnis : 160 kg de grumes pour les structures et 20 kg de laine pour les assises.',
@@ -5508,6 +5508,15 @@ function lectureEnCours(){
    gardée ferait échouer le chargement complet de toutes les parties antérieures et
    laisserait un monde à moitié construit, sur lequel l'enregistrement automatique
    écrirait six secondes plus tard. */
+function corrigerCommandeMetier(D){
+  if(!D || !['Scierie','Atelier textile'].includes(D.lieu) || !Array.isArray(D.lignes))return D;
+  const lignes=D.lignes.filter(l=>l?.cle!=='huile');
+  if(lignes.length===D.lignes.length)return D;
+  if(!lignes.length)return null;
+  return {...D,lignes,type:lignes.length>1?'combinee':'brute',
+    texte:D.lieu==='Scierie'?'Livrez le bois commandé pour le sciage.':'Livrez la laine commandée pour le tissage.',
+    soldeMetier:lignes.every(l=>Number.isFinite(l.fait)&&l.fait>=l.need-.01)};
+}
 function chargerCampagne(S){
   const C = S && S.campagne;
   // Les appels, les engagements et leurs délais reprennent là où la partie a été quittée.
@@ -5592,7 +5601,8 @@ function chargerCampagne(S){
        une sauvegarde d'avant les contrats n'a ni l'un ni l'autre, et repart d'un
        village qui n'a rien contre nous. Les appels des nouvelles sauvegardes sont
        restaurés avec leur état de lecture et leur temps restant. */
-    if(Array.isArray(C.contrats)) for(const D of C.contrats){
+    if(Array.isArray(C.contrats)) for(const brut of C.contrats){
+      const D=corrigerCommandeMetier(brut);
       if(!D || !Array.isArray(D.lignes) || !D.lignes.length) continue;
       if(CONTRATS.length >= CONTRAT_MAX) break;
       /* UN CONTRAT CHEZ UN COMMERCE QUI A CHANGÉ DE MÉTIER NE SE RECOLLE PAS.
@@ -5606,14 +5616,14 @@ function chargerCampagne(S){
       const SC = SITES.find((X)=> X.nom === D.lieu);
       if(!SC || !D.lignes.every((l)=> l && Number.isFinite(l.need) && l.need>0
         && (SC.achete.indexOf(l.cle) >= 0 || SC.accepte.indexOf(l.cle) >= 0))) continue;
-      CONTRATS.push({autoId:D.autoId,texte:D.texte || '',type:D.type || 'brute', lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
+      CONTRATS.push({soldeMetier:!!D.soldeMetier,autoId:D.autoId,texte:D.texte || '',type:D.type || 'brute', lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
                      temps:D.temps || 0,
                      lignes:D.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:Math.max(0,Math.min(l.need,Number.isFinite(l.fait)?l.fait:0))}))});
     }
-    for(let i=CONTRATS.length-1;i>=0;i--) if(CONTRATS[i].lignes.every(l=>l.fait>=l.need-.01)) CONTRATS.splice(i,1);
+    for(let i=CONTRATS.length-1;i>=0;i--) if(!CONTRATS[i].soldeMetier && CONTRATS[i].lignes.every(l=>l.fait>=l.need-.01)) CONTRATS.splice(i,1);
     if(Array.isArray(C.appels) && campagneFinie()) for(const a of C.appels.slice(0,OFFRE_MAX)){
       if(!a) continue;
-      const X=SITES.find(x=>x.nom===a.lieu),D=a.offre;
+      const X=SITES.find(x=>x.nom===a.lieu),D=corrigerCommandeMetier(a.offre);
       if(X && !X.offre && D && Array.isArray(D.lignes) && D.lignes.length && !contratChez(X.nom)
         && D.lignes.every(l=>l && PRODUITS[l.cle] && Number.isFinite(l.need) && l.need>0 && (X.achete.includes(l.cle)||X.accepte.includes(l.cle))))
         X.offre={...D,lieu:X.nom,lignes:D.lignes.map(l=>({...l,fait:0})),attente:Math.max(10,D.attente||OFFRE_VIE)};
@@ -5646,6 +5656,10 @@ function chargerCampagne(S){
   }
   if(C && Array.isArray(C.lectures)){
     bravoPages=C.lectures.filter(p=>p&&typeof p.titre==='string').slice(0,30);bravoI=0;
+    bravoPages=bravoPages.map(p=>{
+      const site=SITES.find(s=>['Scierie','Atelier textile'].includes(s.nom)&&s.nom.toUpperCase()===p.titre);
+      return site?pageDeblocage(site):p;
+    });
     if(bravoPages.length)peindreBravo();
   }
   remplirCommandes(0);
@@ -17482,6 +17496,7 @@ function updateCommandes(dt){
   if(lectureEnCours()) return;
   for(let k = CONTRATS.length - 1; k >= 0; k--){
     const C = CONTRATS[k];
+    if(C?.soldeMetier){solderContrat(k);continue;}
     if(!C || !C.temps) continue;
     C.temps -= dt;
     if(C.temps <= 0){
@@ -35886,7 +35901,7 @@ function etatJeu(){
                appels: SITES.filter(x=>x.offre).map(x=>({lieu:x.nom,offre:{...x.offre,lignes:x.offre.lignes.map(l=>({...l}))}})),
                appelsT: offreT,
                delaisAppels: SITES.reduce((o,x)=>{o[x.nom]=x.offreT||0;return o;},{}),
-               contrats: CONTRATS.map((C)=> ({autoId:C.autoId,type:C.type, lieu:C.lieu, prime:C.prime,
+               contrats: CONTRATS.map((C)=> ({soldeMetier:!!C.soldeMetier,autoId:C.autoId,type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps, texte:C.texte || '',
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
                renom: SITES.reduce((o, S2)=>{ if(S2.renom) o[S2.nom] = S2.renom; return o; }, {})},
