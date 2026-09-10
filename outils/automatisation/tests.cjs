@@ -2,13 +2,14 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
 function fn(name){const a=source.indexOf('function '+name+'(');assert(a>=0,name);return source.slice(a,source.indexOf('\n}',a)+2);}
 function setup(){
- const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],chLot:[],planTaches:[],HALLE:{file:[]},cur:-1,MODE_LIBRE:false,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
+ const c=vm.createContext({Math,MACHINES:[],TOOLS:[],CHANTIERS:[],CONTRATS:[],missionVisible:()=>null,chLot:[],planTaches:[],HALLE:{file:[]},cur:-1,MODE_LIBRE:false,CAMPAGNE:{tuto:10},TUTO_TERRE:5,
  CROPS:[{cle:'ble',nom:'Blé'},{cle:'mais',nom:'Maïs'}],PARCELS:[{x:10,z:0},{x:30,z:0},{x:50,z:0}],
  CUVES:{graines:{ble:100,mais:100},engrais:100},ET_LABOUR:'labour',ET_SEMIS:'semis',ET_ENGRAIS:'engrais',ET_MOISSON:'moisson',ET_FINI:'fini',ET_POUSSE:'pousse',
  NOM_ETAPE:{labour:'Labour',semis:'Semis',engrais:'Engrais',moisson:'Moisson'},
  EST_TRACTEUR:m=>m.key.startsWith('t'),cuveDe:(t,k)=>t.cuves[k]||0,siloPlein:()=>false,showHint(){},
  bacsDe:t=>t.seme?[{engrais:false}]:[],aServi:(c,i)=>i,etapeChantier:c=>c.demande,etapeMarchandise:()=>null,
  caisseDe:m=>m.v.cargo,accepteNature:(k,cle)=>!k.prend||k.prend.includes(cle),rentrerAuParc(){}});
+ vm.runInContext(['objectifAutomatique','objectifsAutomatiques'].map(fn).join('\n'),c);
  const a=source.indexOf('const classeDe ='),b=source.indexOf('/* UN ENGIN EST LIBRE',a);
  const d=source.indexOf('const rentreAuParc ='),e=source.indexOf('/* ARMER UN ENGIN',d);
  vm.runInContext(source.slice(a,b)+source.slice(d,e)+['combinePret','besoinEtape','blocageEtape','enginLePlusProche','outilReserve','enginPourOutil','armerEngin','tachesEtape','pisteTerre','armerPorteur','retirerChantiersTermines'].map(fn).join('\n'),c);

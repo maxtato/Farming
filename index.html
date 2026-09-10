@@ -1477,13 +1477,22 @@
   #planboite{position:absolute;inset:calc(6px + env(safe-area-inset-top)) 8px
     calc(6px + env(safe-area-inset-bottom)) 8px;max-width:900px;margin:auto;
     display:flex;flex-direction:column;padding:8px 12px 8px}
+  #planactifstitre{font:700 10px var(--titre);text-transform:uppercase;letter-spacing:1px;color:var(--sous)}
+  #planactifs{display:flex;flex-wrap:nowrap;overflow-x:auto;flex-shrink:0;min-height:33px;max-height:48px;padding:3px 0 5px;scrollbar-width:thin}
+  #planactifs .pc{flex:none;font-size:11px;white-space:nowrap;margin:0}
+  #planactifs .pcx{border:0;background:none;color:inherit;cursor:pointer;font:inherit}
+  #plancategories{display:flex;flex-shrink:0;gap:6px;padding:5px 0}
+  #plancategories .pc{flex:1;justify-content:center;text-align:center;margin:0}
+  #plan #planbloc2{display:none}
+  #plan #planactifs .pc.tache.on{background:var(--or);color:var(--encreOr);box-shadow:0 3px 0 var(--orOmb)}
   #plancorps{flex:1;min-height:0;display:flex;flex-direction:row;gap:10px;padding:2px 0}
-  #plan #planbloc1{flex:0 0 46%;min-width:0;display:flex;flex-direction:column}
+  #plan #planbloc1{flex:0 0 46%;min-width:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
   #planengins{flex-wrap:wrap;max-height:115px;overflow:auto}
   #plan #planengins .pc{max-width:100%;white-space:normal}
   #plancolonne{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;
     overflow-y:auto;scrollbar-width:none}
   #plancolonne::-webkit-scrollbar{display:none}
+  @media (max-height:500px) and (min-aspect-ratio:5/4){#plan #plancarte{min-height:70px}#plan #planleg{letter-spacing:0;font-size:8px}}
   /* EN PORTRAIT, tout s'empile et le corps défile ; la carte reprend une hauteur fixe. */
   @media (max-aspect-ratio: 5/4){
     #plancorps{flex-direction:column;overflow-y:auto;scrollbar-width:none}
@@ -1833,9 +1842,11 @@
 <div id="plan">
   <div id="planboite">
     <div id="plantete"><div id="plantitre">Plan de travail</div><div id="planfermer">✕</div></div>
+    <div id="planactifstitre">En cours</div><div id="planactifs" class="rang"></div>
+    <div id="plancategories" class="rang"></div>
     <div id="plancorps">
       <div id="planbloc1" class="bloc">
-        <div class="bloctitre"><b>1</b><span>Parcelle ou activité</span></div>
+        <div class="bloctitre"><b>1</b><span id="planbloc1titre">Choisir une parcelle</span></div>
         <div id="planengins" class="rang"></div>
         <div id="plancarte"><canvas id="plancv"></canvas><div id="plancible"></div></div>
         <!-- TROIS POINTS, TROIS MOTS. « Ne pas utiliser de gros panneau explicatif » : la
@@ -1855,12 +1866,12 @@
           <div id="planquoi" class="rang"></div>
         </div>
         <div id="planbloc3" class="bloc off">
-          <div class="bloctitre"><b>3</b><span id="planbloc3nom">Culture ou élevage</span></div>
+          <div class="bloctitre"><b>2</b><span id="planbloc3nom">Culture ou élevage</span></div>
           <div id="planmodes" class="rang"></div>
           <div id="planoption" class="rang sous"></div>
         </div>
         <div id="planbloc4" class="bloc off">
-          <div class="bloctitre"><b>4</b><span>Livrer</span></div>
+          <div class="bloctitre"><b>3</b><span>Livrer</span></div>
           <div id="plantaches" class="rang"></div>
           <div id="planprod" class="rang"></div>
         </div>
@@ -5596,7 +5607,7 @@ function chargerCampagne(S){
       const SC = SITES.find((X)=> X.nom === D.lieu);
       if(!SC || !D.lignes.every((l)=> l && Number.isFinite(l.need) && l.need>0
         && (SC.achete.indexOf(l.cle) >= 0 || SC.accepte.indexOf(l.cle) >= 0))) continue;
-      CONTRATS.push({texte:D.texte || '',type:D.type || 'brute', lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
+      CONTRATS.push({autoId:D.autoId,texte:D.texte || '',type:D.type || 'brute', lieu:D.lieu, prime:D.prime || 0, xp:D.xp || 0,
                      temps:D.temps || 0,
                      lignes:D.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:Math.max(0,Math.min(l.need,Number.isFinite(l.fait)?l.fait:0))}))});
     }
@@ -19401,6 +19412,7 @@ function missionDrive(m, dt){
   // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
   // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
+  if(t.terminee || (t.objectif && resteObjectifAutomatique(t.objectif)<=.01)){tacheSuivante(m);return [0,0];}
   const P = lieuPoint(M.etape === 0 ? t.a : t.b);
   if(!P){ tacheSuivante(m); return [0, 0]; }
   // La nature demandée vaut pour les deux étapes : on ne charge que ça au départ, et
@@ -19421,7 +19433,7 @@ function missionDrive(m, dt){
   // charger. Le temps d'attente court quand même : un engin coincé finit par céder.
   if(v.speed > 2.0 && M.attente < 40) return [0, 0];
   const encore = actionsIci(m).some((A)=> modeDe(A) === v.sensVoulu
-                                          && (!v.cleVoulue || A.cle === v.cleVoulue));
+                                          && (!v.cleVoulue || A.cle === v.cleVoulue) && limiteActionAutomatique(m,A)>.0001);
   // Quarante secondes : de quoi vider la plus grosse benne au débit le plus lent, et
   // de quoi repartir quand même si le lieu ne peut rien nous donner.
   if(!encore || M.attente > 40){
@@ -25339,7 +25351,9 @@ const autoEl = document.getElementById('auto');
    comme le ferait un joueur, au lieu de s'arrêter six mètres avant, en plein bitume. */
 function lieuxPossibles(){
   const L = [{cle:'silo', nom:'Silo', x:SILO.x, z:SILO.z, r:4.0},
-             {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, r:4.5}];
+             {cle:'entrepot', nom:'Entrepôt', x:ENTREPOT.quai.x, z:ENTREPOT.quai.z, r:4.5},
+             {cle:'depotBois',nom:'Dépôt de bois',x:DEPOT_BOIS.quai.x,z:DEPOT_BOIS.quai.z,r:6.5},
+             {cle:'quaiPeche',nom:'Quai de pêche',x:PORT.charge.x,z:PORT.charge.z,r:5}];
   PATURES.forEach((P, i)=>{
     L.push({cle:'pature' + i, nom:'Pâture ' + (i + 1), x:P.quai.x, z:P.quai.z, r:5.0});
   });
@@ -25366,6 +25380,8 @@ const lieuPoint = (cle)=> lieuxPossibles().find((L)=> L.cle === cle) || null;
    changerait à chaque passage. Les tas se lisent quand même, pour ce que l'entrepôt et
    les commerces gardent en réserve. */
 function lieuDonne(cle){
+  if(cle==='depotBois')return ['grumes'];
+  if(cle==='quaiPeche')return ['poisson','crustaces'];
   if(cle === 'silo') return SILO_CLES.slice();
   if(cle === 'entrepot') return Object.keys(PRODUITS).filter((k)=> entrepotAccepte(k));
   if(cle.slice(0, 6) === 'pature'){
@@ -25401,6 +25417,8 @@ function lieuPrend(cle){
    Trois fonctions suffisent, et elles ne disent que ce que le jeu sait déjà : combien il y
    en a là, ce qu'on peut donc emporter, et qui en veut MAINTENANT. */
 function quantiteAuLieu(cle, quoi){
+  if(cle==='depotBois')return quoi==='grumes'?DEPOT_BOIS.stock:0;
+  if(cle==='quaiPeche')return QUAI_PECHE.stock[quoi]||0;
   if(cle === 'silo') return siloStock[quoi] || 0;
   if(cle === 'entrepot') return ENTREPOT.stock[quoi] || 0;
   if(cle.slice(0, 6) === 'pature'){
@@ -25588,13 +25606,11 @@ function chargerReglages(ip){
 }
 function ouvrirPlan(){
   relacherCommandes();
-  chLot = []; planTaches = []; planNature = null;
+  chLot = []; planTaches = []; planNature = null; planCategorie=null; planNatureDest=null;
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
   document.getElementById('plantitre').textContent = 'Chantiers';
-  document.getElementById('planlegvert').textContent =
-    MODE_LIBRE ? 'Contrat disponible' : 'Mission disponible';
   planEl.style.display = 'block';
   paused = true;
   // Le bouton A s'éteint sous la fenêtre : on y est, c'est à la carte de battre.
@@ -25610,11 +25626,16 @@ function planPuce(txt, actif, f, teinte){
   b.className = 'pc' + (actif ? ' on' : '');
   if(teinte) b.innerHTML = '<div class="pt" style="background:' + teinte + '"></div>';
   b.appendChild(document.createTextNode(txt));
-  if(f) b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); f(); });
+  if(f){
+    b.setAttribute('role','button');b.tabIndex=0;
+    b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); f(); });
+    b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});
+  }
   return b;
 }
 function majPlan(){
   retirerChantiersTermines();
+  dessinerActivitesPlan();
   const g = (id)=> document.getElementById(id);
   const rE = g('planengins'), rQ = g('planquoi'), rM = g('planmodes'), rO = g('planoption'),
         rT = g('plantaches'), rP = g('planprod');
@@ -25624,48 +25645,20 @@ function majPlan(){
   /* LES BLOCS S'ALLUMENT DANS L'ORDRE. Un bloc dont la question d'avant n'a pas de
      réponse est là, mais éteint : on voit le chemin entier, et où l'on en est. */
   const allumer = (n)=>{ for(const k of [2, 3, 4]) g('planbloc' + k).classList.toggle('off', k > n); };
-  rO.classList.remove('nourrir'); rO.style.display = ''; rP.style.display = '';
+  rO.classList.remove('nourrir'); rO.style.display = ''; rP.style.display = ''; rT.style.display='';rT.style.flexWrap='';
 
   /* ---------- AUCUNE PARCELLE DÉSIGNÉE : on montre les chantiers en cours ---------- */
   if(!chLot.length){
     if(dessinerPlanNature(rE)) return;
-    if(!CHANTIERS.length && !NATURE_JOBS.length) rE.appendChild(planPuce('Touche une parcelle sur la carte', false, null));
-    for(const C of CHANTIERS){
-      const P = PARCELS[C.p];
-      const quoi = C.quoi === 'elevage'
-        ? (ESPECES[(patureDe(C.p) || {}).espece] || {nom:'Élevage'}).nom
-        : CROPS[C.crop || 0].nom;
-      const dit = C.bloque || C.bloqueM
-                || (C.malProduit ? C.malProduit[Object.keys(C.malProduit)[0]].mal : null)
-                || NOM_ETAPE[C.etape] || C.etape || '…';
-      const b = planPuce('Parcelle ' + (C.p + 1) + ' · ' + quoi + ' – ' + dit,
-                         false, ()=>{ chLot = [C.p]; chargerReglages(C.p);
-                                      planTaches = [{quoi:'parcelle', p:C.p}]; majPlan(); });
-      b.classList.add('tache');
-      if(C.bloque || C.bloqueM || C.malProduit) b.classList.add('vide');
-      /* ET CHAQUE LIGNE PORTE SON PROPRE ARRÊT. « Qu'on puisse après en supprimer une sans
-         supprimer les autres » : le plus court chemin pour le dire est une croix sur la
-         ligne, rouge comme le bouton, qui ne retire que ce chantier-là. */
-      const x = document.createElement('div');
-      x.className = 'pcx'; x.textContent = '✕';
-      x.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
-        retirerChantier(C.p);
-        showHint('CHANTIER ARRÊTÉ – PARCELLE ' + (C.p + 1));
-        majPlan(); });
-      b.appendChild(x);
-      rE.appendChild(b);
-    }
+    rE.appendChild(planPuce(!planCategorie?'Choisis une activité ci-dessus':planCategorie==='foret'||planCategorie==='port'?'Choisis un véhicule':'Touche une parcelle verte disponible',false,null));
     // Les blocs suivants, éteints, montrent ce qui viendra.
-    rQ.appendChild(planPuce('Culture', false, null)); rQ.appendChild(planPuce('Élevage', false, null));
+    rQ.appendChild(planPuce('Sélection', false, null));
     bloc3.textContent = 'Culture ou élevage';
     rM.appendChild(planPuce('Ce qu’on y sème, ou qui y vit', false, null)).classList.add('vide');
     rT.appendChild(planPuce('Ce qu’on livre, et où', false, null)).classList.add('vide');
     rO.style.display = 'none'; rP.style.display = 'none';
     allumer(1);
-    g('planaide').textContent = tutoPlan()
-      ? 'Touche ta parcelle : celle qui bat en jaune sur la carte.'
-      : 'Touche une parcelle : tu diras quoi en faire, une fois ou en continu.'
-        + (planZoom > 1.05 ? '' : '  ·  Deux doigts pour grossir.');
+    g('planaide').textContent = !planCategorie?'Culture, élevage, forêt ou port : choisis une activité.' : ['culture','elevage'].includes(planCategorie)?'Parcelles vertes : disponibles. Touche-les puis règle la production et la livraison.':'Choisis un véhicule disponible.';
     lancer.classList.add('no'); lancer.textContent = 'LANCER';
     boucle.classList.remove('on');
     guiderPlan(); dessinerCarte(); poserCible();
@@ -25684,15 +25677,7 @@ function majPlan(){
                           ()=>{ chLot = []; planTaches = []; majPlan(); }));
 
   /* ---------- BLOC 2 : culture ou élevage ---------- */
-  const bCult = planPuce('Culture', chQuoi === 'culture',
-    p.pature ? null : ()=>{ chQuoi = 'culture'; chProduit = CROPS[chCrop].cle;
-                            chEdit = chProduit; chDest = {}; majPlan(); });
-  bCult.dataset.k = 'culture'; if(p.pature) bCult.classList.add('gris'); rQ.appendChild(bCult);
-  const bElev = planPuce('Élevage', chQuoi === 'elevage',
-    p.pature ? ()=>{ chQuoi = 'elevage'; chDest = {};
-                     const P = patureDe(chSel), l = P ? produitsElevage(P) : [];
-                     chEdit = l[0] || null; chNourrir = meilleurAliment(); majPlan(); } : null);
-  bElev.dataset.k = 'elevage'; if(!p.pature) bElev.classList.add('gris'); rQ.appendChild(bElev);
+  rQ.appendChild(planPuce(chQuoi==='culture'?'Culture':'Élevage',true,null));
   allumer(4);
 
   if(chQuoi === 'culture'){
@@ -25834,6 +25819,7 @@ function guiderPlan(){
   for(const e of planEl.querySelectorAll('.appel')) e.classList.remove('appel');
   planCible = -1;
   if(!tutoPlan()) return;
+  if(planCategorie!=='culture'){const b=planEl.querySelector('[data-categorie="culture"]');if(b)b.classList.add('appel');return;}
   if(!chLot.length){ planCible = PARCELS.findIndex((q)=> q.owned && !q.pature); return; }
   if(chQuoi !== 'culture'){
     const b = planEl.querySelector('[data-k="culture"]'); if(b) b.classList.add('appel');
@@ -25908,15 +25894,15 @@ function dessinerCarte(){
      n'est pas celle d'un champ : on n'y envoie pas les mêmes engins. */
   PARCELS.forEach((p, i)=>{
     const choisie = planTaches.some((t)=> t.quoi === 'parcelle' && t.p === i);
-    const R = p.owned ? resumeParcelle(p) : null;
+    const R = p.owned ? resumeParcelle(p) : null, disponible=parcelleDisponible(i);
     c.fillStyle = !p.owned ? 'rgba(255,255,255,.05)'
                 : (choisie ? '#FAD201'
-                : (p.pature ? '#6B4E7A' : R.teinte));
-    c.globalAlpha = (!p.owned || choisie) ? 1 : 0.55;
+                : (disponible ? '#49A984' : '#45504D'));
+    c.globalAlpha = choisie || disponible ? 1 : .24;
     c.fillRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
     c.globalAlpha = 1;
-    c.strokeStyle = choisie ? '#FFF' : 'rgba(0,0,0,.28)';
-    c.lineWidth = choisie ? 2 : 1;
+    c.strokeStyle = choisie ? '#FFF' : disponible ? '#A0FFD7' : 'rgba(0,0,0,.28)';
+    c.lineWidth = choisie || disponible ? 2 : 1;
     c.strokeRect(px(p.x - p.w/2), pz(p.z - p.h/2), p.w*planEch, p.h*planEch);
     if(!p.owned) return;
     const large = p.w*planEch;
@@ -26107,7 +26093,8 @@ function planDesigner(ev){
      plusieurs entrées : `dessinerCarte` la parcourt. Rien à y réécrire. */
   const i = PARCELS.findIndex((p)=> p.owned && Math.abs(w.x - p.x) < p.w/2
                                             && Math.abs(w.z - p.z) < p.h/2);
-  if(i < 0) return;
+  if(i < 0 || !parcelleDisponible(i)) return;
+  planNature=null;
   const k = chLot.indexOf(i);
   if(k >= 0) chLot.splice(k, 1);
   else if(PARCELS[i].pature || (chLot.length && !!PARCELS[chLot[0]].pature))
@@ -26146,7 +26133,7 @@ document.getElementById('planboucle').addEventListener('pointerdown', ()=>{
   majPlan();
 });
 document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
-  if(planNature && !chLot.length){ if(natureJob(planNature))retirerNature(planNature); else {poserNature(planNature,chContinu);planNature=null;} majPlan(); return; }
+  if(planNature && !chLot.length){ if(natureJob(planNature))retirerNature(planNature); else {const cle=produitNature(planNature);if(planNatureDest && resteCommande(planNatureDest,cle)<=.01)return;poserNature(planNature,chContinu,{dest:planNatureDest});planNature=null;planNatureDest=null;} majPlan(); return; }
   if(!chLot.length) return;
   const lot = chLot.slice();
   /* ON N'ARRÊTE QUE SI TOUT LE LOT TOURNE — sinon le bouton lance, et relancer un lot
@@ -30576,9 +30563,9 @@ function quantiteMax(m, A){
     case 'traire': return Math.min(place, A.P.produit);
     case 'traire2': return Math.min(place, A.P.produit2);
     case 'vendre': return Math.min(porte, placeChez(A.S, A.cle),
-                                   (A.commande || commandesObligatoires()) ? resteCommande(A.S.nom, A.cle) : Infinity);
+                                   (A.commande || commandesObligatoires() || (m.v.mission && m.v.mission.taches[m.v.mission.i]?.objectif)) ? resteCommande(A.S.nom, A.cle) : Infinity);
     case 'verser': return Math.min(porte, TREMIE_SITE_MAX - totalTremieSite(A.S),
-                                   (A.commande || commandesObligatoires()) ? resteCommande(A.S.nom, A.cle) : Infinity);
+                                   (A.commande || commandesObligatoires() || (m.v.mission && m.v.mission.taches[m.v.mission.i]?.objectif)) ? resteCommande(A.S.nom, A.cle) : Infinity);
     case 'reprendre': return Math.min(place, A.S.stock[A.cle] || 0);
     default: return porte;
   }
@@ -30683,9 +30670,9 @@ const actionPour = (m)=>{
     // Et quand la navette a une nature, on s'y tient : rien de ce qu'il y a d'autre
     // ici ne fera l'affaire. La liste peut donc devenir vide — l'engin attend, puis
     // repart, plutôt que de charger de l'avoine pour une tournée de blé.
-    if(F.length) L = v.cleVoulue ? F.filter((A)=> A.cle === v.cleVoulue) : F;
+    L = v.cleVoulue ? F.filter((A)=> A.cle === v.cleVoulue) : F;
   }
-  return L[0] || null;
+  return L.find(A=>limiteActionAutomatique(m,A)>.0001) || null;
 };
 
 /* Exécuter une action : c'est le seul endroit du jeu où la matière change de main. */
@@ -30707,7 +30694,9 @@ function fumeeGrille(cle){
 function executer(m, A, dt){
   const v = m.v, T = caisseDe(m);
   if(T && !SENS_VIDER[A.sens] && !accepteNature(T,A.cle)) return;
-  const debit = 40*dt, lent = ELEVAGE.debit*dt;
+  const limite=limiteActionAutomatique(m,A);
+  if(limite<=.0001)return;
+  const debit = Math.min(40*dt,limite), lent = Math.min(ELEVAGE.debit*dt,limite);
   switch(A.sens){
     case 'tremie': {
       const q = Math.min(hopper, 47*dt, siloMax() - siloTotal());
@@ -30825,7 +30814,7 @@ function executer(m, A, dt){
       // `resteCommande` est relu à CHAQUE image : `livraison()` vient d'en retirer ce
       // qu'on a versé, donc la borne fond au même rythme et le transfert s'arrête pile.
       const q = Math.min(lent, chargeDe(T, A.cle), placeChez(A.S, A.cle),
-                         (A.commande || commandesObligatoires()) ? resteCommande(A.S.nom, A.cle) : Infinity);
+                         (A.commande || commandesObligatoires() || (m.v.mission && m.v.mission.taches[m.v.mission.i]?.objectif)) ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); encaisser(q*prixChez(A.S, A.cle)); STAT.ventes += q;
       gainContinu(A.S.dropX, A.S.dropZ);
@@ -30852,7 +30841,7 @@ function executer(m, A, dt){
        contrat reste ce qu'elle a toujours été : un BONUS à l'achèvement, par-dessus. */
     case 'verser': {
       const q = Math.min(debit, chargeDe(T, A.cle), TREMIE_SITE_MAX - totalTremieSite(A.S),
-                         (A.commande || commandesObligatoires()) ? resteCommande(A.S.nom, A.cle) : Infinity);
+                         (A.commande || commandesObligatoires() || (m.v.mission && m.v.mission.taches[m.v.mission.i]?.objectif)) ? resteCommande(A.S.nom, A.cle) : Infinity);
       if(q <= 0.0001) return;
       retirerCharge(T, A.cle, q); A.S.tremie[A.cle] = (A.S.tremie[A.cle] || 0) + q;
       encaisser(q*prixChez(A.S, A.cle)); STAT.ventes += q; gainContinu(A.S.dropX, A.S.dropZ);
@@ -35627,7 +35616,7 @@ function etatJeu(){
     nature: sauverNature(),
     chantiers: CHANTIERS.map((C)=> ({q:C.quoi, p:C.p, c:CROPS[C.crop || 0].cle,
       e:!!C.engrais, pr:C.produit || null,
-      d:Object.assign({}, C.dest), k:!!C.continu,
+      d:Object.assign({}, C.dest), k:!!C.continu, objectifs:C.objectifs,
       r:!!C.recolte, l:!!C.livre, n:C.nourrir || 'auto'})),
     // `semence` reste écrit pour qu'une partie neuve se relise sur un jeu plus ancien ;
     // `graines` est ce qui compte, et il détaille la cuve de la cour sac par sac.
@@ -35696,7 +35685,7 @@ function etatJeu(){
                appels: SITES.filter(x=>x.offre).map(x=>({lieu:x.nom,offre:{...x.offre,lignes:x.offre.lignes.map(l=>({...l}))}})),
                appelsT: offreT,
                delaisAppels: SITES.reduce((o,x)=>{o[x.nom]=x.offreT||0;return o;},{}),
-               contrats: CONTRATS.map((C)=> ({type:C.type, lieu:C.lieu, prime:C.prime,
+               contrats: CONTRATS.map((C)=> ({autoId:C.autoId,type:C.type, lieu:C.lieu, prime:C.prime,
                  xp:C.xp, temps:C.temps, texte:C.texte || '',
                  lignes:C.lignes.map((l)=> ({cle:l.cle, need:l.need, fait:l.fait}))})),
                renom: SITES.reduce((o, S2)=>{ if(S2.renom) o[S2.nom] = S2.renom; return o; }, {})},
@@ -36278,7 +36267,7 @@ function chargerPartie(S){
       const ic = CROPS.findIndex((c)=> c.cle === q.c);
       const C2 = poserChantier(q.p, {quoi:q.q === 'elevage' ? 'elevage' : 'culture',
                           crop:ic < 0 ? 0 : ic, engrais:!!q.e, produit:q.pr || null,
-                          dest:q.d || {}, continu:!!q.k, nourrir:q.n || 'auto'});
+                          dest:q.d || {}, continu:!!q.k, nourrir:q.n || 'auto',objectifs:q.objectifs});
       C2.recolte = !!q.r; C2.livre = !!q.l;
     }
     chargerNature(S.nature);
@@ -36786,6 +36775,93 @@ function etapeChantier(C, brut){
    ensemble, une fois, et tout le reste du chapitre s'appuie dessus. */
 /* Chantiers hors parcelles. Un ordre par engin, avec les mêmes missions et stocks
    que la conduite manuelle. Aucun nouveau modèle ni calcul dans le rendu. */
+/* Une automatisation reste attachée aux demandes acceptées à son lancement.
+   Les identifiants survivent à la sauvegarde : un nouvel appel ne la relance pas. */
+function objectifAutomatique(lieu, cle){
+  const contrats = [];
+  for(const C of CONTRATS) if(C.lieu === lieu && C.lignes.some(l=>l.cle===cle && l.need-(l.fait||0)>.01)){
+    if(!C.autoId) C.autoId = Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+    contrats.push(C.autoId);
+  }
+  const M=missionVisible(), mission=M && !M.faire && M.lieu===lieu
+    && M.lignes.some((l,i)=>l.cle===cle && l.need-(CAMPAGNE.faits[i]||0)>.01) ? CAMPAGNE.mission : null;
+  return contrats.length || mission!==null ? {lieu,cle,contrats,mission} : null;
+}
+function resteObjectifAutomatique(O){
+  if(!O) return Infinity;
+  let reste=0;
+  for(const C of CONTRATS) if(C.lieu===O.lieu && O.contrats.includes(C.autoId))
+    for(const l of C.lignes) if(l.cle===O.cle) reste+=Math.max(0,l.need-(l.fait||0));
+  const M=missionVisible();
+  if(O.mission!==null && CAMPAGNE.mission===O.mission && M && !M.faire && M.lieu===O.lieu)
+    M.lignes.forEach((l,i)=>{if(l.cle===O.cle)reste+=Math.max(0,l.need-(CAMPAGNE.faits[i]||0));});
+  return reste;
+}
+function objectifsAutomatiques(dest){
+  const out={};
+  for(const cle in dest){const O=objectifAutomatique(dest[cle],cle);if(O)out[cle]=O;}
+  return out;
+}
+function limiteActionAutomatique(m,A){
+  const M=m.v.mission,t=M && M.taches[M.i];
+  if(!t || t.quoi!=='navette' || !t.objectif) return Infinity;
+  if(A.cle!==t.cle || modeDe(A)!==(M.etape===0?'remplir':'vider')) return 0;
+  if(M.etape===1 && (!A.S || A.S.nom!==t.b)) return 0;
+  let reste=resteObjectifAutomatique(t.objectif);
+  if(M.etape===0){
+    // Les chargements déjà en route réservent leur part de la même commande.
+    for(const v of MACHINES){
+      const V=v.v.mission,T=V && V.taches.find(x=>x.quoi==='navette' && x.cle===t.cle && x.b===t.b);
+      const K=T && caisseDe(v);if(K)reste-=chargeDe(K,t.cle);
+    }
+  }
+  return Math.max(0,reste);
+}
+function verifierObjectifsChantier(C){
+  if(!C.objectifs) return false;
+  for(const cle of Object.keys(C.objectifs)){
+    const O=C.objectifs[cle];
+    if(resteObjectifAutomatique(O)>.01) continue;
+    delete C.dest[cle];delete C.objectifs[cle];
+    // La tournée peut livrer plusieurs produits : ne retirer que la ligne terminée.
+    const m=MACHINES[C.enginPort],M=m && m.v.mission;
+    if(M) for(const t of M.taches) if(t.objectif && t.cle===cle && t.b===O.lieu)t.terminee=true;
+    showHint('DEMANDE TERMINÉE · '+O.lieu.toUpperCase()+' · '+nomDe(cle).toUpperCase());
+  }
+  if(Object.keys(C.dest).length) return false;
+  retirerChantier(C.p);return true;
+}
+function origineNature(key){return key==='abatteuse'?'depotBois':'quaiPeche';}
+function produitNature(key){const m=MACHINES.find(m=>m.key===key);return key==='abatteuse'?'grumes':m.peche.cle;}
+function finirProductionNature(J){
+  if(!J.dest){retirerNature(J.key,true);return;}
+  J.productionFinie=true;J.statut='Fin de production · livraison';
+}
+function majLivraisonsNature(){
+  let change=false;
+  for(const J of NATURE_JOBS.slice()){
+    if(!J.dest)continue;
+    if(J.objectif && resteObjectifAutomatique(J.objectif)<=.01){
+      const lieu=J.dest;retirerNature(J.key);
+      showHint('DEMANDE TERMINÉE · '+lieu.toUpperCase()+' · AUTOMATISATION ARRÊTÉE');change=true;continue;
+    }
+    const m=MACHINES[J.enginPort];
+    if(m && m.v.mission && m.v.mission.taches.some(t=>t.nature===J.key))continue;
+    J.enginPort=-1;
+    const cle=produitNature(J.key),a=origineNature(J.key);
+    if(quantiteAuLieu(a,cle)<=.01){
+      if(J.productionFinie){retirerNature(J.key,true);change=true;}
+      continue;
+    }
+    if(!demandeChez(J.dest,cle)){J.livraison='Commerce plein · en attente';continue;}
+    const ok=armerPorteur(J,'enginPort',lieuPoint(a),()=>[
+      {quoi:'navette',a,b:J.dest,cle,objectif:J.objectif,nature:J.key}]);
+    J.livraison=ok?'Livraison → '+J.dest:'Transport compatible indisponible';
+    if(ok)change=true;
+  }
+  return change;
+}
+
 const NATURE_JOBS = [];
 let planNature = null;
 const natureJob = key=> NATURE_JOBS.find(J=> J.key === key);
@@ -36795,13 +36871,24 @@ function poserNature(key, continu, saved){
   const ancien = natureJob(key);
   if(ancien){ ancien.continu = !!continu; return ancien; }
   if(!enginLibre(m)) return null;
-  const J = {key, continu:!!continu, phase:'aller', cible:-1, trajet:null, statut:'Départ'};
+  const dest=saved && saved.dest || null;
+  const objectif=dest ? (saved && saved.objectif || objectifAutomatique(dest,produitNature(key))) : null;
+  if(dest && (!objectif || !lieuPrend(dest).includes(produitNature(key))))return null;
+  const J = {key, continu:!!continu, phase:'aller', cible:-1, trajet:null, statut:'Départ',
+    dest,objectif,enginPort:-1,productionFinie:!!(saved && saved.productionFinie)};
   if(key === 'abatteuse') J.arbres = saved && Array.isArray(saved.arbres)
     ? [...new Set(saved.arbres.filter(i=> Number.isInteger(i) && FORET.arbres[i]))]
     : FORET.arbres.flatMap((a,i)=> a.etat === 0 && !a.chute ? [i] : []);
   else if(saved && ['vider','retour'].includes(saved.phase)) J.phase = saved.phase;
   NATURE_JOBS.push(J);
   armerEngin(m, [{quoi:'nature', key}]);
+  // Reprendre le camion chargé plutôt que de l'abandonner après une sauvegarde.
+  const i=saved && saved.enginPort;
+  const porteur=Number.isInteger(i)&&i>=0?MACHINES[i]:null;
+  if(dest && porteur && enginLibre(porteur) && caisseDe(porteur) && accepteNature(caisseDe(porteur),produitNature(key))){
+    J.enginPort=i;armerEngin(porteur,[{quoi:'navette',a:origineNature(key),b:dest,cle:produitNature(key),objectif,nature:key}]);
+    if(chargeDe(caisseDe(porteur),produitNature(key))>.01)porteur.v.mission.etape=1;
+  }
   return J;
 }
 function retirerNature(key, fini = false){
@@ -36813,6 +36900,8 @@ function retirerNature(key, fini = false){
     if(m.v.mission && m.v.mission.taches.some(t=> t.quoi === 'nature')) arreterMission(m);
     m.v.pecheT = 0; m.v.enPeche = false;
   }
+  const J=NATURE_JOBS[k],porteur=MACHINES[J.enginPort];
+  if(porteur && porteur.v.mission && porteur.v.mission.taches.some(t=>t.nature===key))arreterMission(porteur);
   NATURE_JOBS.splice(k, 1);
   if(planNature === key) planNature = null;
   if(fini) showHint(key === 'abatteuse' ? 'COUPE DE BOIS TERMINÉE' : 'PÊCHE TERMINÉE · CALE DÉBARQUÉE');
@@ -36820,6 +36909,7 @@ function retirerNature(key, fini = false){
 }
 function sauverNature(){
   return NATURE_JOBS.map(J=> ({key:J.key, continu:J.continu, phase:J.phase,
+    dest:J.dest,objectif:J.objectif,enginPort:J.enginPort,productionFinie:J.productionFinie,
     arbres:J.arbres ? J.arbres.slice() : undefined}));
 }
 function chargerNature(liste){
@@ -36902,6 +36992,7 @@ function conduireNature(m, dt){
   const v=m.v,J=natureJob(m.key);
   if(!J){arreterMission(m);return [0,0];}
   v.sensVoulu='route';v.cleVoulue=null;
+  if(J.productionFinie){if(J.continu){J.productionFinie=false;changerPhaseNature(J,'aller');}else return [0,0];}
   if(m.key==='abatteuse'){
     if(v.pos.x<FORET.x0-18 || v.pos.x>FORET.x1+18 || v.pos.z<FORET.z0-18 || v.pos.z>FORET.z1+18){
       J.statut='Vers la forêt';
@@ -36910,7 +37001,7 @@ function conduireNature(m, dt){
     }
     J.arbres=J.arbres.filter(i=>FORET.arbres[i].etat===0&&!FORET.arbres[i].chute);
     if(!J.arbres.length){
-      if(!J.continu){retirerNature(J.key,true);return [0,0];}
+      if(!J.continu){finirProductionNature(J);return [0,0];}
       J.arbres=FORET.arbres.flatMap((a,i)=>a.etat===0&&!a.chute?[i]:[]);
       if(!J.arbres.length){J.statut='Attente de repousse';return [0,0];}
     }
@@ -36962,7 +37053,7 @@ function conduireNature(m, dt){
     if(r)return r;
     if(K.load>.01){
       J.statut=quaiPecheTotal()>=QUAI_PECHE.max-.01?'Quai plein · en attente':'Débarquement';
-      v.sensVoulu='deposer';return [0,0];
+      v.sensVoulu='vider';return [0,0];
     }
     if(J.continu){changerPhaseNature(J,'aller');return [0,0];}
     changerPhaseNature(J,'retour');
@@ -36972,33 +37063,72 @@ function conduireNature(m, dt){
   const r=naviguerNature(m,J,place,dt,2.5);
   if(r)return r;
   if(v.speed>.2)return [0,0];
-  retirerNature(J.key,true);return [0,0];
+  finirProductionNature(J);return [0,0];
+}
+let planCategorie=null,planNatureDest=null;
+function parcelleDisponible(i){
+  const p=PARCELS[i];
+  return !!p && p.owned && !chantierDe(i)
+    && ((planCategorie==='culture' && !p.pature) || (planCategorie==='elevage' && !!p.pature));
+}
+function choisirCategorie(c){
+  planCategorie=c;planNature=null;planNatureDest=null;chLot=[];planTaches=[];chContinu=false;majPlan();
+}
+function dessinerActivitesPlan(){
+  const r=document.getElementById('planactifs'),cats=document.getElementById('plancategories');
+  r.innerHTML='';cats.innerHTML='';
+  const ajouter=(titre,actif,continu,choisir,arreter)=>{
+    const b=planPuce(titre+(continu?' · ↻':''),actif,choisir);b.classList.add('tache');
+    const x=document.createElement('button');x.className='pcx';x.textContent='✕';x.setAttribute('aria-label','Arrêter '+titre);
+    x.addEventListener('pointerdown',e=>{e.stopPropagation();arreter();majPlan();});b.appendChild(x);r.appendChild(b);
+  };
+  for(const C of CHANTIERS)ajouter((C.quoi==='elevage'?'Élevage':'Culture')+' · P'+(C.p+1),chLot.includes(C.p),C.continu,
+    ()=>{planCategorie=C.quoi;planNature=null;chLot=[C.p];chargerReglages(C.p);planTaches=[{quoi:'parcelle',p:C.p}];majPlan();},
+    ()=>{retirerChantier(C.p);chLot=chLot.filter(p=>p!==C.p);planTaches=chLot.map(p=>({quoi:'parcelle',p}));});
+  for(const J of NATURE_JOBS){const m=MACHINES.find(m=>m.key===J.key);
+    ajouter(m.nom,planNature===J.key,J.continu,()=>{planCategorie=J.key==='abatteuse'?'foret':'port';planNature=J.key;planNatureDest=J.dest;chLot=[];planTaches=[];majPlan();},()=>retirerNature(J.key));
+  }
+  document.getElementById('planactifstitre').textContent='En cours · '+(CHANTIERS.length+NATURE_JOBS.length);
+  if(!r.children.length)r.appendChild(planPuce('Aucune automatisation en cours',false,null));
+  for(const [cle,nom] of [['culture','Culture'],['elevage','Élevage'],['foret','Forêt'],['port','Port']]){
+    const b=planPuce(nom,planCategorie===cle,()=>choisirCategorie(cle));b.dataset.categorie=cle;cats.appendChild(b);
+  }
+  document.getElementById('planbloc1titre').textContent=planCategorie==='foret'||planCategorie==='port'?'Choisir un véhicule':'Choisir une parcelle';
+  document.getElementById('plancarte').style.display=planCategorie==='foret'||planCategorie==='port'?'none':'';
+  document.getElementById('planleg').textContent=planCategorie==='culture'||planCategorie==='elevage'
+    ? 'Vert : disponible · Jaune : sélection' : planCategorie?'Les véhicules occupés sont indiqués ci-dessus.':'Choisis une activité pour commencer.';
 }
 function dessinerPlanNature(rE){
-  for(const J of NATURE_JOBS){
-    const m=MACHINES.find(m=>m.key===J.key);
-    const b=planPuce(m.nom+' · '+J.statut,false,()=>{planNature=J.key;chLot=[];majPlan();});b.classList.add('tache');
-    const x=document.createElement('div');x.className='pcx';x.textContent='✕';
-    x.addEventListener('pointerdown',e=>{e.stopPropagation();retirerNature(J.key);majPlan();});b.appendChild(x);rE.appendChild(b);
+  if(!['foret','port'].includes(planCategorie))return false;
+  for(const key of planCategorie==='foret'?['abatteuse']:['barque','chalutier','caseyeur']){
+    const m=MACHINES.find(m=>m.key===key),J=natureJob(key),libre=!m.verrou && (J || enginLibre(m));
+    const b=planPuce(m.nom+(m.verrou?' · à acheter':!libre?' · occupé':''),planNature===key,libre?()=>{planNature=key;planNatureDest=J?J.dest:null;chContinu=J?J.continu:false;majPlan();}:null);
+    if(!libre)b.classList.add('gris');rE.appendChild(b);
   }
-  for(const key of ['abatteuse','barque','chalutier','caseyeur']){
-    const m=MACHINES.find(m=>m.key===key);
-    const b=planPuce((key==='abatteuse'?'Coupe de bois':'Pêche · '+m.nom)+(m.verrou?' · à acheter':''),planNature===key,
-      m.verrou?null:()=>{planNature=key;chLot=[];majPlan();});
-    if(m.verrou)b.classList.add('gris');rE.appendChild(b);
-  }
-  if(!planNature || chLot.length)return false;
-  const key=planNature,m=MACHINES.find(m=>m.key===key),J=natureJob(key),g=id=>document.getElementById(id);
-  g('planquoi').appendChild(planPuce(key==='abatteuse'?'Coupe de bois':'Pêche',true,null));
-  g('planbloc3nom').textContent=key==='abatteuse'?'Forêt':'Tournée en mer';
-  g('planmodes').appendChild(planPuce(key==='abatteuse'?'Arbres mûrs → dépôt de bois':'Cale pleine → quai → amarrage',true,null));
-  g('plantaches').appendChild(planPuce(J?J.statut:'Prêt au départ',false,null));
+  if(!planNature)return false;
+  const key=planNature,m=MACHINES.find(m=>m.key===key),J=natureJob(key),g=id=>document.getElementById(id),cle=produitNature(key);
+  g('planquoi').appendChild(planPuce(key==='abatteuse'?'Coupe de bois':'Pêche · '+nomDe(cle),true,null));
+  g('planbloc3nom').textContent='Production';
+  g('planmodes').appendChild(planPuce(J?J.statut:key==='abatteuse'?'Arbres mûrs → dépôt':'Cale pleine → quai',true,null));
   g('planoption').style.display='none';g('planprod').style.display='none';
+  const dest=J?J.dest:planNatureDest;
+  g('plantaches').style.flexWrap='wrap';
+  const ajouter=(nom,d,ok)=>{
+    const b=planPuce(nom,dest===d,ok&&!J?()=>{planNatureDest=d;majPlan();}:null);
+    if(!ok)b.classList.add('gris');g('plantaches').appendChild(b);
+  };
+  ajouter(key==='abatteuse'?'Garder au dépôt':'Garder au quai',null,true);
+  for(const S of SITES.slice().sort((a,b)=>resteCommande(b.nom,cle)-resteCommande(a.nom,cle)))if(lieuPrend(S.nom).includes(cle)){
+    const q=resteCommande(S.nom,cle);ajouter(S.nom+(q>.01?' · '+Math.ceil(q)+' kg demandés':' · aucune demande'),S.nom,q>.01);
+  }
+  if(J && J.livraison)g('plantaches').appendChild(planPuce(J.livraison,false,null));
   for(const k of [2,3,4])g('planbloc'+k).classList.remove('off');
   g('planboucle').classList.toggle('on',J?J.continu:chContinu);
-  const libre=enginLibre(m);g('planlancer').textContent=J?'ARRÊTER':libre?'LANCER':'ENGIN OCCUPÉ';g('planlancer').classList.toggle('no',!J&&!libre);
-  g('planaide').textContent=key==='abatteuse'?'Coupe les arbres mûrs. Dépôt plein : attend de la place. En continu : reprend à la repousse.':'Pêche puis débarque la cale au quai. En continu : repart en mer. Quai plein : attend de la place.';
-  dessinerCarte();poserCible();return true;
+  const pret=enginLibre(m)&&(!dest||resteCommande(dest,cle)>.01);
+  g('planlancer').textContent=J?'ARRÊTER':pret?'LANCER':'INDISPONIBLE';g('planlancer').classList.toggle('no',!J&&!pret);
+  g('planaide').textContent=dest?'Un véhicule compatible livre la commande. Demande remplie : arrêt automatique, même en continu.'
+    :'Une fois : une tournée. En continu : reprend la production. Stock plein : attend de la place.';
+  poserCible();return true;
 }
 
 function combinePret(){
@@ -37377,9 +37507,10 @@ function majChantiers(dt){
   _tChantiers += dt;
   if(_tChantiers < PAS_CHANTIERS) return;
   const pas = _tChantiers; _tChantiers = 0;
-  let change = retirerChantiersTermines();
+  let change = majLivraisonsNature() || retirerChantiersTermines();
   for(let k = CHANTIERS.length - 1; k >= 0; k--){
     const C = CHANTIERS[k];
+    if(verifierObjectifsChantier(C)){change=true;continue;}
     // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
     if(C.enginTerre >= 0 && !MACHINES[C.enginTerre].v.mission) C.enginTerre = -1;
     if(C.enginPort  >= 0 && !MACHINES[C.enginPort].v.mission)  C.enginPort  = -1;
@@ -37494,6 +37625,7 @@ function pisteMarchandise(C){
    sa charrue avant de labourer. Elle sait passer son tour quand l'outil est déjà là. */
 function armerPorteur(C, champ, ou, faire){
   const taches = faire();
+  for(const t of taches)if(t.quoi==='navette' && C.objectifs && C.objectifs[t.cle])t.objectif=C.objectifs[t.cle];
   const accepte = K=> !!K && taches.every(t=> t.quoi !== 'navette' || accepteNature(K, t.cle));
   const i = enginLePlusProche('porteur', ou, m=> !m.v.bateau && accepte(caisseDe(m)));
   if(i >= 0){ C[champ] = i; armerEngin(MACHINES[i], taches); return true; }
@@ -37681,6 +37813,7 @@ function poserChantier(ip, o){
              nourrir:(o && o.nourrir) || 'auto',
              etape:null, etapeM:null, enginTerre:-1, enginPort:-1,
              bloque:null, bloqueM:null, alternatives:null, malProduit:null};
+  C.objectifs = o && o.objectifs || objectifsAutomatiques(C.dest);
   CHANTIERS.push(C);
   return C;
 }

@@ -41,6 +41,7 @@ function context(){
 // Use complete declarations for arrow functions containing internal semicolons.
 function ready(){
  const c=context();
+ load(c,['limiteActionAutomatique','resteObjectifAutomatique']);
  load(c,['produitsOuverts','capaciteFerme','tirerLigne','tirerCommande','stockFermeCommande','transportCommande','avanceChez','resteCommande','resteContrat','livraison','solderContrat','poserOffre','accepterOffre','refuserOffre','libelleRenom','remplirCommandes','chargerCampagne','quantiteMax','executer','entamerEtal','objectifNature','testerFaire','demandeTelephone','ouvrirContrat','capaciteBetail','updateBetail']);
  c.missionVisible=()=>!c.MODE_LIBRE&&c.CAMPAGNE.prise?c.MISSIONS[c.CAMPAGNE.mission]||null:null;
  return c;

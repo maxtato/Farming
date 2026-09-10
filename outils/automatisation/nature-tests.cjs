@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
-const block=source.slice(source.indexOf('const NATURE_JOBS = []'),source.indexOf('function combinePret('));
+const block=source.slice(source.indexOf('function objectifAutomatique('),source.indexOf('function combinePret('));
 function setup(){
  const c=vm.createContext({Math,Map,Set,Number,JSON,Infinity,planEl:{style:{display:'none'}},showHint(){},chLot:[],chContinu:false,
   FORET:{x0:-20,x1:100,z0:-20,z1:100,arbres:[{x:6,z:0,kg:10,etat:0},{x:20,z:10,kg:20,etat:0}]},obstacles:[],boxObs:[],EAU:{x0:-100,x1:100,z0:-100,z1:100},
