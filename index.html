@@ -8970,17 +8970,16 @@ function construirePort(){
       scene.add(b); fusionnerGroupe(b);
     });
   })();
-  // Le chantier naval, sur la côte du bassin, sa cale vers l'eau ; son cercle ouvre la
-  // vitrine des bateaux.
+  // Le comptoir vend les bateaux : une maison et quelques palettes sur la dalle.
   poser(modeleChantierNaval, PORT.chantier.x, PORT.chantier.z, -Math.PI/2);
   empreintes(PORT.chantier.x, PORT.chantier.z, -Math.PI/2, ECH_COMMERCE, [
-    {x:-2.4, z:-0.6, hw:2.1, hd:3.15},              // la coque sur ses tins, l'échafaudage et le râtelier
     {x:3.6, z:-2.6, hw:2.3, hd:1.8}]);              // l'atelier
   const agirChantier = ()=> MACHINES.some((m)=> enVente(m) && m.bateau && ouvert('engins', m.key) && money >= (m.prix || 0));
   anneauAction(PORT.chantierQuai.x, PORT.chantierQuai.z, 0.9,
     ()=> couleurPoste('chantier', agirChantier) !== GUIDE.GRIS,
     {coulDyn: ()=> couleurPoste('chantier', agirChantier)});
-  poseBulle('Comptoir des pêcheurs', 0x1E4A6B, '', PORT.chantier.x, 4.6, PORT.chantier.z, 0);
+  poseBulle('Comptoir des pêcheurs', 0x1E4A6B, '', PORT.chantier.x + 2.6*ECH_COMMERCE, 7.1,
+    PORT.chantier.z + 3.6*ECH_COMMERCE, 0);
   // Les deux cercles du quai, et les trois spots au large.
   const agirQuai = ()=> actionsQuaiPeche(MACHINES[cur]).length > 0;
   for(const Q of [PORT.debarque, PORT.charge])
@@ -10452,34 +10451,17 @@ function batConserverie(){
   g.add(box(1.6, 1.2, 1.2, PO_.INOX, -5.4, 0.78, D/2 + 1.6));
   return g;
 }
-/* Le chantier naval : la coque au sec sur ses tins, étais, échafaud, cale qui descend à
-   l'eau, atelier au fond. Ce n'est pas un commerce de la bande : il est posé sur la côte,
-   sa cale vers l'eau, et son cercle ouvre la vitrine des bateaux. */
+/* Comptoir des pêcheurs : maison de vente et palettes vides, entièrement sur le quai. */
 function modeleChantierNaval(){
   const g = new THREE.Group();
-  const W = 11, D = 9;
-  /* PAS DE SOCLE : LE QUAI EST SON SOL. Le modèle portait sa propre plaque de béton de
-     dix-huit centimètres — quatorze mètres sur douze, vingt-huit centimètres de haut une
-     fois à l'échelle. Posée sur la dalle du quai, elle y aurait fait la marche que le joueur
-     a déjà refusée pour le quai de débarque et la grue. On la retire, et ce qui reposait
-     dessus — l'atelier et son tas de planches — descend d'autant. */
-  const cale = box(6.0, 0.3, 5.0, PO_.BETON2, 0, 0.5, D/2 + 0.6);
-  cale.rotation.x = 0.13; g.add(cale);
-  for(let k = 0; k < 6; k++) g.add(box(6.2, 0.16, 0.24, PO_.GRIS, 0, 0.9 - k*0.13, 1.6 + k*0.8));
-  const h = coqueBateau(g, 6.4, 2.4, 1.5, PO_.COQUE, 1.5);
-  h.position.x = -2.4;
-  for(const sz of [-2.0, 0, 2.0]) for(const sx of [-3.3, -1.5])
-    g.add(box(0.5, 1.5, 0.5, PO_.BOIS2, sx, 0.75, sz));
-  for(let k = 0; k < 6; k++) for(const sx of [-1, 1]){
-    const e = box(0.16, 2.4, 0.16, PO_.BOIS3, -2.4 + sx*1.9, 1.2, -2.0 + k*0.8);
-    e.rotation.z = sx*0.28; g.add(e);
-  }
-  g.add(box(2.2, 3.4, 0.3, PO_.GRIS, -2.4, 1.7, -3.6));
-  for(let k = 0; k < 4; k++) g.add(box(2.2, 0.1, 0.4, PO_.GRIS2, -2.4, 0.8 + k*0.8, -3.6));
   g.add(slab({w:4.6, h:3.2, d:3.6, tw:4.6, td:3.6, c:0xC9C0AE, x:3.6, y:0, z:-2.6}));
   g.add(gable(3.8, 1.2, 4.8, PO_.TUILE, 3.6, 3.2, -2.6, Math.PI/2));
   g.add(box(2.2, 2.2, 0.2, PO_.BOIS2, 3.6, 1.1, -0.82));
-  for(let k = 0; k < 5; k++) g.add(box(0.24, 0.14, 4.0, PO_.BOIS3, 4.6 + k*0.3, 0.1, 2.4));
+  // Trois palettes vides sur la dalle, à côté du pignon : rien ne dépasse sur le muret.
+  for(const [x,z,y] of [[7.0,-2.7,.06],[7.0,-2.7,.29],[7.15,-1.2,.06]]){
+    for(const dx of [-.5,0,.5])g.add(box(.14,.12,1.05,PO_.BOIS2,x+dx,y+.06,z));
+    for(let k=0;k<4;k++)g.add(box(1.28,.08,.2,PO_.BOIS3,x,y+.16,z-.4+k*.27));
+  }
   return g;
 }
 /* Le phare, au bout de la jetée : son bout de jetée enroché, le fût à bandes rouges, la
