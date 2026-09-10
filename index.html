@@ -347,30 +347,23 @@
   /* La fenêtre rapide du parc : rien que les engins qu'on possède, en grille. */
   #parc{position:absolute;inset:0;display:none;z-index:22}
   #parcfond{position:absolute;inset:0;background:var(--voile);pointer-events:auto}
-  /* UNE GRANDE FEUILLE, ET TOUT DESSUS D'UN COUP. Le joueur : « pour la fenêtre de la
-     sélection du véhicule, c'est encore problématique : on ne peut pas scroller, quand on
-     appuie pour scroller ça sélectionne direct. Il faudrait tout afficher sur une grande
-     fenêtre en grille. » La feuille était une colonne de 340 px posée au-dessus des
-     commandes, dont la pile défilait — et une ligne se prenait au premier contact du
-     doigt, avant même qu'il ait glissé. La feuille prend maintenant l'écran, comme les
-     fenêtres de régie (mêmes marges que `#fenboite`), haute de ce que son contenu demande
-     et centrée, et la liste est une GRILLE de cartes de 150 px au moins : quinze engins
-     tiennent en trois rangées sur un téléphone couché, il n'y a plus rien à faire défiler. Le défilement reste permis, par sûreté,
-     mais une carte ne se prend plus qu'au TOUCHER (voir `auToucher`). */
+  /* Le HUD applique déjà l'échelle : ne pas agrandir cette fenêtre deux fois. */
+  #hud #parc{zoom:1}
   #parcboite{position:absolute;left:10px;right:10px;top:50%;transform:translateY(-50%);
-    max-width:900px;margin:0 auto;pointer-events:auto;
-    max-height:calc(100% - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;padding:10px 14px 10px}
+    max-width:480px;margin:0 auto;pointer-events:auto;box-sizing:border-box;
+    max-height:calc(100% - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;padding:12px 14px}
+  #parc[data-mode="elevage"] #parcboite{max-width:420px}
   #parctete{display:flex;align-items:center;gap:10px;padding:2px 2px 8px}
-  #parctitre{font-family:var(--titre);font-size:17px;letter-spacing:1.1px;
-    text-transform:uppercase;color:var(--titreC);flex:1;
+  #parctitre{font-family:var(--titre);font-size:16px;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--titreC);flex:1;min-width:0;
     transform:scaleY(1.14) rotate(-1.1deg);transform-origin:left center}
   #parcfermer{width:30px;height:30px;border-radius:9px;background:var(--pale);
     color:var(--paleEncre);box-shadow:0 3px 0 var(--paleOmb);flex:none;
     display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold}
   #parcfermer:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paleOmb)}
-  #parcliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-    gap:9px 10px;align-content:start;overflow-y:auto;
+  #parcliste{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;align-content:start;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
     min-height:0;padding:4px 4px 8px;margin:-4px -4px -8px}
   /* UNE CARTE D'ENGIN EST UNE ÉTIQUETTE POSÉE SUR LA FEUILLE, et elle penche : une grille
      de rectangles parfaitement alignés n'aurait plus rien de papier. L'alternance des
@@ -381,7 +374,7 @@
   .pe:nth-of-type(odd){transform:rotate(-.7deg)}
   .pe:nth-of-type(even){transform:rotate(.6deg)}
   .pe .pt{width:7px;height:26px;border-radius:4px;flex:none}
-  .pe .pn{flex:1;font-family:var(--titre);font-size:14px;letter-spacing:.4px;
+  .pe .pn{flex:1;min-width:0;overflow-wrap:anywhere;font-family:var(--titre);font-size:14px;letter-spacing:.4px;
     text-transform:uppercase;color:#3B4A2E}
   .pe .pd{font-family:var(--corps);font-size:10.5px;color:var(--sous);letter-spacing:.2px;
     font-weight:normal;margin-top:2px;text-transform:none}
@@ -396,6 +389,16 @@
      la ligne de texte comprimerait l'image au lieu de s'élargir. */
   .pe .vign{width:26px;height:26px;flex:none;object-fit:contain}
   .pe.on .pd{color:#6B571C}
+  #parcliste .pe{gap:7px;padding:7px;min-height:60px;min-width:0;transform:none;cursor:pointer}
+  #parcliste .pe .pn{font-size:12px;letter-spacing:.15px;line-height:1.2}
+  #parcliste .pe .pd{font-size:10px;line-height:1.3}
+  #parcliste .pe .vign{width:34px;height:40px}
+  #parcliste .pe .engin-vign{width:56px;height:42px;flex:none;object-fit:contain}
+  #parcliste .pe .etat{display:block;font-weight:bold;color:var(--titreC)}
+  #parcliste .pe:focus-visible{outline:2px solid var(--titreC);outline-offset:-2px}
+  @media(max-width:520px){#parcliste{grid-template-columns:minmax(0,1fr)}#parcboite{max-width:340px}#parcliste .pe{min-height:60px}}
+  @media(max-height:480px) and (min-width:521px){#parcboite{padding:8px 12px}#parcliste .pe{min-height:60px}#parctete{padding-bottom:5px}}
+
   #menuBtn{position:absolute;top:calc(10px + env(safe-area-inset-top));
     right:calc(58px + env(safe-area-inset-right));pointer-events:auto;
     width:38px;height:38px;border-radius:12px;background:rgba(20,28,33,.72);border:none;
@@ -25050,27 +25053,32 @@ function auToucher(el, fn){
 const couleurEngin = (m)=> '#' + (m.teinte || 0x8BE07A).toString(16).padStart(6, '0');
 function ouvrirParc(){
   relacherCommandes();
+  parcEl.dataset.mode='vehicules';
+  document.getElementById('parctitre').textContent='Choisir un véhicule';
   parcListe.innerHTML = '';
   MACHINES.forEach((m, i)=>{
     if(m.verrou) return;
     const T = toolOf(m);
     const d = Math.round(Math.hypot(m.v.pos.x - MACHINES[cur].v.pos.x,
                                     m.v.pos.z - MACHINES[cur].v.pos.z));
-    const det = (m.key === 'moisson' ? 'Moissonneuse'
-              : m.key === 'enjambeuse' ? 'Enjambeuse · ' + Math.round(m.v.cargo.load) + ' / '
-                                         + m.v.cargo.capacite + ' kg'
-              : m.v.cargo ? 'Transport ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
-              : (T ? T.nom : 'sans outil'))
-      + (i === cur ? (m.v.mission ? ' · à bord, en automatique' : ' · à bord')
-                   : (m.v.mission ? ' · en mission' : ' · à ' + d + ' m'));
+    const etat = (i === cur ? 'À bord' : m.v.mission ? 'Automatique' : 'À ' + d + ' m')
+      + (i === cur && m.v.mission ? ' · auto' : '');
+    const det = m.v.cargo ? Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg'
+      : T ? T.nom : 'Sans outil';
     const l = document.createElement('div');
     // `enginTuto()` rend déjà null quand c'est la machine où l'on est assis : la ligne
     // en cours ne peut donc pas battre et être allumée à la fois.
     const A = enginTuto();
     l.className = 'pe' + (i === cur ? ' on' : '') + (A && A.key === m.key ? ' appel' : '');
     l.dataset.cle = m.key;
-    l.innerHTML = '<div class="pt" style="background:' + couleurEngin(m) + '"></div>'
-      + '<div class="pn">' + m.nom.toUpperCase() + '<div class="pd">' + det + '</div></div>';
+    const nom = m.key === 't4' ? 'Tracteur puissant' : m.key === 'moisson' ? 'Moissonneuse'
+      : m.key === 'semi' ? 'Semi-remorque' : nomEngin(m);
+    l.setAttribute('role','button');l.tabIndex=0;
+    l.setAttribute('aria-label',nom + ' · ' + etat + ' · ' + det);
+    l.setAttribute('aria-current',i===cur?'true':'false');
+    l.innerHTML = '<img class="engin-vign" src="pictos/engins/' + m.key + '.png" alt="" width="160" height="112">'
+      + '<div class="pn">' + nom + '<div class="pd"><span class="etat">' + etat + '</span>' + det + '</div></div>';
+    l.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setMachine(i);fermerParc();}});
     auToucher(l, ()=>{ setMachine(i); fermerParc(); });
     parcListe.appendChild(l);
   });
@@ -25096,17 +25104,18 @@ function ouvrirParc(){
    c'est ce qui donne envie d'y revenir. */
 function ouvrirChoixPature(p){
   relacherCommandes();
+  parcEl.dataset.mode='elevage';
   document.getElementById('parctitre').textContent =
-    'Transformer cette parcelle en élevage';
+    'Choisir un élevage';
   parcListe.innerHTML = '';
   for(const cle of ESP_CLES){
     const E = ESPECES[cle], prix = prixPature(cle);
     const niv = niveauDe('especes', cle), libre = auNiveau(niv), assez = money >= prix;
     const donne = [E.produit, E.second && E.second.cle].filter(Boolean)
                   .map((c)=> nomDe(c).toLowerCase()).join(' et ');
-    const det = !libre ? 'Ouvre au niveau ' + niv + ' – ' + NIVEAUX[niv-1].nom
+    const det = !libre ? 'Niveau ' + niv
               : !assez ? 'Il manque ' + eur(prix - money)
-              : eur(prix) + (donne ? ' · donne ' + donne : '');
+              : eur(prix) + (donne ? ' · ' + donne : '');
     const l = document.createElement('div');
     l.className = 'pe' + ((libre && assez) ? '' : ' no');
     l.dataset.cle = cle;
