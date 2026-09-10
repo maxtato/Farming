@@ -538,13 +538,7 @@
      Un seul réglage est juste aux trois densités, et c'est `auto`. */
   .face{display:none;image-rendering:auto}
   /* Les portraits fournis gardent leurs traits ; le fond blanc se fond au papier. */
-  .face[src*="poissonnerie-"],.face[src*="chantier_naval-"],.face[src*="conserverie-"]{mix-blend-mode:multiply;border-radius:0 0 45% 45% / 0 0 10% 10%}
-  /* Une seule planche par artisan pour les trois poses, sans redessiner les personnages. */
-  .face[src*="scierie.webp"],.face[src*="menuiserie.webp"],.face[src*="criee.webp"],.face[src*="grand_entrepot.webp"]{width:auto!important;aspect-ratio:2/3;object-fit:cover!important;
-    object-position:0% 50%!important;clip-path:inset(0 1px);mix-blend-mode:multiply}
-  .face[src$="scierie.webp#bravo"],.face[src$="menuiserie.webp#bravo"],.face[src$="criee.webp#bravo"],.face[src$="grand_entrepot.webp#bravo"]{object-position:50% 50%!important}
-  .face[src$="scierie.webp#refus"],.face[src$="menuiserie.webp#refus"],.face[src$="criee.webp#refus"],.face[src$="grand_entrepot.webp#refus"]{object-position:100% 50%!important}
-  .face[src*="menuiserie.webp"]{clip-path:inset(0 3px)}
+  /* Each expression is a transparent 4:5 portrait, using the same frame as every other shop. */
   #ctface{position:absolute;top:8px;right:10px;width:96px;height:120px;
     object-fit:contain;object-position:bottom right;pointer-events:none}
   /* LE RETRAIT VAUT AUSSI POUR LA RÉPLIQUE. Il ne portait que sur les deux lignes de
@@ -2971,7 +2965,7 @@ const ROUTE_BOIS = X1 + 182;                 // 424 : le brin nord-sud, après l
    la lande, la bande PO — criée et conserverie — dont on voit les façades depuis l'eau.
    Au bout du quai, la JETÉE part vers le large en angle droit, le phare au bout : c'est
    l'angle du port, et le bassin qu'elle abrite est là où dorment les bateaux, contre le
-   CHANTIER NAVAL et sa cale, sur la côte. Trois SPOTS de pêche au large, marqués d'un
+   COMPTOIR DES PÊCHEURS et sa cale, sur la côte. Trois SPOTS de pêche au large, marqués d'un
    cercle. */
 const PORT = {
   cote:-200,                                   // la côte nord-sud : l'eau est à l'ouest, au sud du quai
@@ -3013,7 +3007,7 @@ const PORT = {
   debarque:{x:-247, z:-50},                    // le cercle des bateaux : dans l'eau, en face
   chantier:{x:-194, z:-44},                    // le chantier naval, sur la côte du bassin
   chantierQuai:{x:-176, z:-44},                // le cercle du chantier naval
-  /* L'AIRE DU CHANTIER NAVAL, dans le prolongement du quai. Le joueur : « fais que le
+  /* L'AIRE DU COMPTOIR DES PÊCHEURS, dans le prolongement du quai. Le joueur : « fais que le
      chantier naval soit une partie intégrante du quai, comble la dalle sur la partie en
      violet. » Il était posé sur l'herbe, hors de la clôture, avec son propre socle de béton
      — un chantier naval au bord d'un pré, qu'on rejoignait en quittant la route. La dalle
@@ -4771,8 +4765,8 @@ const MISSIONS = [
   {niv:20, lieu:'Menuisier', lignes:[{cle:'grumes',need:160},{cle:'laine',need:20}], prime:9000,xp:450,
    texte:'Pour une série de sièges garnis : 160 kg de grumes pour les structures et 20 kg de laine pour les assises.',
    fin:'C’est exactement le bois qu’il me fallait.'},
-  {niv:20, appel:true,lieu:'Chantier naval',faire:'flotte',qui:'Chantier naval',titre:'Préparer la flotte de pêche',prime:18000,xp:500,
-   texte:'Au chantier naval, prenez une barque ou un chalutier, puis un caseyeur. Ajoutez un camion frigo au garage pour livrer la marée.',
+  {niv:20, appel:true,lieu:'Comptoir des pêcheurs',faire:'flotte',qui:'Comptoir des pêcheurs',titre:'Préparer la flotte de pêche',prime:18000,xp:500,
+   texte:'Au Comptoir des pêcheurs, prenez une barque ou un chalutier, puis un caseyeur. Ajoutez un camion frigo au garage pour livrer la marée.',
    fin:'Vos bateaux sont prêts. Cap sur les zones de pêche !'},
   {niv:20,lieu:'Criée',lignes:[{cle:'poisson',need:120},{cle:'crustaces',need:60}],prime:10000,xp:550,
    texte:'Première marée : 120 kg de poisson et 60 kg de crustacés. Débarquez au quai, puis prenez le frigo.',
@@ -4866,14 +4860,14 @@ function negoceDe(liste, St){
 const PORTRAITS = {
   'Restaurant': 'restaurant',
   'Boucherie':  'boucherie',
-  'Poissonnerie': {r:'poissonnerie', h:['neutre','bravo','refus'], ext:'webp'},
-  'Conserverie': {r:'conserverie', h:['neutre','bravo','refus'], ext:'webp'},
-  'Chantier naval': {r:'chantier_naval', h:['neutre','bravo'], ext:'webp'},
-  'Scierie': {r:'scierie', h:['neutre','bravo','refus'], ext:'webp', planche:true},
-  'Menuisier': {r:'menuiserie', h:['neutre','bravo','refus'], ext:'webp', planche:true},
-  'Menuiserie': {r:'menuiserie', h:['neutre','bravo','refus'], ext:'webp', planche:true},
-  'Criée': {r:'criee', h:['neutre','bravo','refus'], ext:'webp', planche:true},
-  "Entrepôt d'export": {r:'grand_entrepot', h:['neutre','bravo','refus'], ext:'webp', planche:true},
+  'Poissonnerie': {r:'poissonnerie_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  'Conserverie': {r:'conserverie_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  'Comptoir des pêcheurs': {r:'chantier_naval_cadre', h:['neutre','bravo'], ext:'webp'},
+  'Scierie': {r:'scierie_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  'Menuisier': {r:'menuiserie_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  'Menuiserie': {r:'menuiserie_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  'Criée': {r:'criee_cadre', h:['neutre','bravo','refus'], ext:'webp'},
+  "Entrepôt d'export": {r:'grand_entrepot_cadre', h:['neutre','bravo','refus'], ext:'webp'},
   /* LE ROUX A TROUVE SA BOUTIQUE, ET C'EST LA QUINZIEME ET DERNIERE PLACE. Ses trois
      planches sont arrivees les premieres, et je les avais donnees au Restaurant par
      ressemblance — une veste blanche, un foulard, un cuisinier. C'etait faux : le
@@ -5209,7 +5203,7 @@ function pageDeblocage(S){
   let txt=commandesObligatoires()
     ? 'Merci pour cette première commande. Voici les produits que je peux vous demander. Attendez mes prochains contrats au téléphone.'
     : 'Merci pour cette première livraison. Voici les produits que je peux vous acheter. Pendant votre installation, vous pouvez aussi me les vendre librement.';
-  if(S.nom==='Chantier naval') txt='Votre flotte est prête. Barque et chalutier pour le poisson, caseyeur pour les crustacés. Débarquez au quai, puis livrez avec le camion frigo.';
+  if(S.nom==='Comptoir des pêcheurs') txt='Votre flotte est prête. Barque et chalutier pour le poisson, caseyeur pour les crustacés. Débarquez au quai, puis livrez avec le camion frigo.';
   else if(S.abattoir) txt+=' Les animaux arrivent uniquement en fourgon.';
   else if(S.accepte&&S.accepte.length) txt+=' Les apports à l’usine sont payés à la livraison.';
   const vign=pris.map(c=>'<span class="client-produit">'+(vignetteDe(c)?'<img class="vign" src="'+vignetteDe(c)+'" alt="">':'')+nomDe(c)+'</span>').join('');
@@ -5416,7 +5410,7 @@ function ouvrirBravo(M, suite, niv0){
   const nouveau=client && client!=='Moi' && !CAMPAGNE.clientsPresentes.includes(client);
   const pageDejaPrevue=(M.apres||[]).some(a=>a.deblocage===client);
   if(nouveau){
-    const S=SITES.find(s=>s.nom===client)||(client==='Chantier naval'?{nom:client,achete:[],accepte:[]}:null);
+    const S=SITES.find(s=>s.nom===client)||(client==='Comptoir des pêcheurs'?{nom:client,achete:[],accepte:[]}:null);
     if(S){if(!pageDejaPrevue)bravoPages.push(pageDeblocage(S));CAMPAGNE.clientsPresentes.push(client);}
   }
   // Une page de suite peut porter un visage — le héros à la fin — et sa propre ligne de suite.
@@ -5515,7 +5509,7 @@ function chargerCampagne(S){
     CAMPAGNE.xp = Math.max(0, C.xp);
     CAMPAGNE.mission = Math.max(0, Math.min(MISSIONS.length, C.mission | 0));
     CAMPAGNE.faits = Array.isArray(C.faits) ? C.faits.slice() : [];
-    CAMPAGNE.clientsPresentes=Array.isArray(C.clientsPresentes)?C.clientsPresentes.filter(n=>typeof n==='string')
+    CAMPAGNE.clientsPresentes=Array.isArray(C.clientsPresentes)?C.clientsPresentes.filter(n=>typeof n==='string').map(n=>n==='Chantier naval'?'Comptoir des pêcheurs':n)
       : [...new Set(MISSIONS.slice(0,CAMPAGNE.mission).map(m=>m.lieu||m.qui).filter(n=>n&&n!=='Moi'))];
     SITES_ANNONCE.length=0;
     /* UN AVANCEMENT ÉCRIT SUR UNE AUTRE TABLE NE VEUT PLUS RIEN DIRE.
@@ -8634,7 +8628,7 @@ function construirePort(){
   const C = PORT.cale, CW = C.x1 - C.x0, CD = C.z1 - C.z0;
   const cale = box(CW, 0.06, CD, PO_.BETON, (C.x0 + C.x1)/2, 0.03, (C.z0 + C.z1)/2);
   cale.castShadow = false; scene.add(cale);
-  /* LE CHANTIER NAVAL EST SUR LE BÉTON, ET LE BÉTON VA JUSQU'À L'EAU. Le joueur : « pour le
+  /* LE COMPTOIR DES PÊCHEURS EST SUR LE BÉTON, ET LE BÉTON VA JUSQU'À L'EAU. Le joueur : « pour le
      chantier naval, fais qu'on ne voie pas la plage à l'endroit où il se trouve ; le
      chantier naval est un bloc de béton qui doit être collé aux autres blocs de béton du
      quai. La plage doit commencer simplement après le chantier naval, même après la dalle. »
@@ -8675,10 +8669,12 @@ function construirePort(){
       bords.add(cyl(0.34, 0.34, 0.16, 10, 0x2E2A26, x0 + ux*t - nx*0.1, y + 0.2, z0 + uz*t - nz*0.1,
                     horiz ? Math.PI/2 : 0, 0, horiz ? 0 : Math.PI/2));
   };
-  bordQuai(jx1, D.z1, D.x1, D.z1, 0.06, 0, -1);        // le bord de la dalle, de la jetée à l'entrée de la route
+  bordQuai(jx1, D.z1, B.x0 + 0.6, D.z1, 0.06, 0, -1);  // ferme aussi l'angle intérieur de la bordure de rive
   bordQuai(D.x0, D.z1, jx0, D.z1, 0.06, 0, -1);        // et du bout ouest à la jetée, sur les quatorze mètres gagnés
   bordQuai(jx0, J.z0, jx0, J.z1, Y_PONT, 1, 0);        // le bord ouest de la jetée, vers le large
   bordQuai(jx1, J.z0, jx1, J.z1, Y_PONT, -1, 0);       // son bord est, vers le bassin
+  // Same concrete kerb, bollards, chains and fenders continue along the eastern shore.
+  bordQuai(B.x0, B.z0, B.x0, B.z1, 0.06, 1, 0);
   scene.add(bords); fusionnerGroupe(bords);
   // Le grain du sol, avec parcimonie : une moucheture tous les quarante-cinq mètres carrés.
   mouchetures(D.x0, D.z0, D.x1, D.z1, 0.065, Math.round(DW*DD/45), PO_.BETON);
@@ -8806,8 +8802,7 @@ function construirePort(){
   empreintes(PORT.quai.x, PORT.quai.z, 0, ECH_COMMERCE*ECH_CAISSES, [
     {x:-3.05, z:-1.2, hw:1.85, hd:0.6},             // la pile de casiers et les bouées
     {x:1.4, z:-1.4, hw:1.2, hd:0.5},                // les bacs, sur deux rangs
-    {x:-1.6, z:1.0, hw:0.5, hd:0.35},               // la cabane
-    {x:4.4, z:1.6, r:0.2}]);                        // le mât aux fanions
+    {x:-1.6, z:1.0, hw:0.5, hd:0.35}]);             // la cabane, aucun obstacle de mât invisible
   empreintes(PORT.grue.x, PORT.grue.z, 0, ECH_COMMERCE, [
     {x:-2.0, z:-0.6, r:1.3},                        // le fût de la grue, et rien de sa flèche
     {x:2.41, z:-1.28, hw:2.3, hd:0.43}]);           // le tas de caisses (à 1,07)
@@ -8895,7 +8890,7 @@ function construirePort(){
       const b = new THREE.Group();
       coqueBateau(b, f[1], f[2], f[3], f[0], 0.12);
       timonerieBateau(b, 0, f[3] + 0.1, -f[1]*0.10, f[2]*0.58, f[3]*0.8, f[1]*0.24, PO_.CREME);
-      matFanions(b, 0, f[1]*0.26, f[3]*2.6, PO_.CREME);
+
       b.name = "marina-plaisance-" + i;
       b.scale.setScalar(ECH_COMMERCE);
       b.position.set(M.x0 + 3 + i*13.5, 0, M.z + M.w/2 + f[2]*ECH_COMMERCE*.75);
@@ -8913,7 +8908,7 @@ function construirePort(){
   anneauAction(PORT.chantierQuai.x, PORT.chantierQuai.z, 0.9,
     ()=> couleurPoste('chantier', agirChantier) !== GUIDE.GRIS,
     {coulDyn: ()=> couleurPoste('chantier', agirChantier)});
-  poseBulle('Chantier naval', 0x1E4A6B, '', PORT.chantier.x, 4.6, PORT.chantier.z, 0);
+  poseBulle('Comptoir des pêcheurs', 0x1E4A6B, '', PORT.chantier.x, 4.6, PORT.chantier.z, 0);
   // Les deux cercles du quai, et les trois spots au large.
   const agirQuai = ()=> actionsQuaiPeche(MACHINES[cur]).length > 0;
   for(const Q of [PORT.debarque, PORT.charge])
@@ -10336,12 +10331,7 @@ function boueePeche(g, x, y, z){
   g.add(cyl(0.26, 0.26, 0.12, 10, PO_.ORANGE, x, y, z, Math.PI/2));
   g.add(cyl(0.13, 0.13, 0.14, 8, PO_.CREME, x, y, z, Math.PI/2));
 }
-function matFanions(g, x, z, h, c){
-  g.add(cyl(0.08, 0.11, h, 6, c || PO_.CREME, x, h/2, z));
-  g.add(box(1.1, 0.08, 0.08, c || PO_.CREME, x, h*0.72, z));
-  for(let k = 0; k < 4; k++)
-    g.add(box(0.16, 0.2, 0.03, [PO_.ROUGE, PO_.JAUNE, PO_.BLEU, PO_.CREME][k], x + 0.2 + k*0.22, h*0.62 - k*0.06, z));
-}
+
 /* La criée : halle ouverte, vingt bacs alignés au sol, balance et palettes. */
 function batCriee(){
   const g = new THREE.Group();
@@ -10432,7 +10422,7 @@ function modelePhare(){
   g.add(cyl(0.8, 0.8, 1.1, 12, C.glass, x, 7.4, 0));
   g.add(cyl(0.9, 0.5, 0.7, 12, PO_.ROUGE, x, 8.25, 0));
   g.add(cyl(0.1, 0.1, 0.5, 6, PO_.GRIS, x, 8.75, 0));
-  matFanions(g, -3.6, 3.6, 3.4, PO_.CREME);
+
   return g;
 }
 /* Le quai de débarque : casiers en pile, filets et flotteurs, bacs, bouées, cabane. */
@@ -10456,7 +10446,7 @@ function modeleQuaiDebarque(){
   for(let i = 0; i < 4; i++) boueePeche(g, -4.4, 0.3 + i*0.3, 0.8 + i*0.15);
   g.add(box(0.9, 1.9, 0.6, PO_.ROUGE, -1.6, 0.95, 1.0));
   g.add(gable(0.7, 0.4, 1.0, 0x8E2A22, -1.6, 1.9, 1.0, Math.PI/2));
-  matFanions(g, 4.4, 1.6, 3.0, PO_.CREME);
+
   return g;
 }
 /* La grue de quai et le tas de caisses. */
@@ -15036,7 +15026,7 @@ function buildChalutier(){
   h.add(box(2.7, 0.12, 5.0, 0x8E2A22, 0, 1.2, -1.0));
   timonerieBateau(g, 0, 1.6, 1.4, 2.4, 1.9, 2.2, PO_.CREME);
   g.add(box(2.6, 0.5, 2.0, PO_.CREME, 0, 1.45, 1.4));
-  matFanions(g, 0, 0.4, 4.6, PO_.CREME);
+
   for(const sx of [-1.25, 1.25]) g.add(box(0.18, 2.6, 0.18, PO_.JAUNE, sx, 2.7, -3.6));
   g.add(box(2.9, 0.2, 0.2, PO_.JAUNE, 0, 3.9, -3.6));
   g.add(cyl(0.55, 0.55, 1.8, 12, PO_.FILET, 0, 2.62, -2.8, 0, 0, Math.PI/2));
@@ -15077,7 +15067,7 @@ function buildCaseyeur(){
   const h = coqueBateau(g, 6.6, 2.4, 1.3, PO_.VERT, 0.24);
   h.add(box(2.1, 0.12, 4.2, 0x255744, 0, 0.92, -0.6));
   timonerieBateau(g, 0, 1.18, 1.5, 1.9, 1.6, 1.7, PO_.CREME);
-  matFanions(g, 0, 0.5, 3.4, PO_.CREME);
+
   g.add(box(0.9, 0.7, 0.5, PO_.JAUNE, 1.0, 1.36, 0.2));
   g.add(cyl(0.3, 0.3, 0.16, 10, PO_.GRIS2, 1.0, 1.71, 0.2, Math.PI/2));
   let k = 0;
@@ -23748,8 +23738,8 @@ const FENETRES = {
                                    vues:[{id:'engins',   nom:'Véhicules'},
                                          {id:'outils',   nom:'Outils & remorques'}]},
   // Le chantier naval : la même vitrine que le garage, avec les seules coques.
-  chantier:   {titre:'Chantier naval', visage:'Chantier naval',
-                                   accroche:'On vous met une coque à l\'eau ?',
+  chantier:   {titre:'Comptoir des pêcheurs', visage:'Comptoir des pêcheurs',
+                                   accroche:'Choisissez votre bateau de pêche : barque, chalutier ou caseyeur.',
                                    vues:[{id:'engins',   nom:'Bateaux'}]}
 };
 let fenActive = null, fenVue = {};
@@ -24217,7 +24207,7 @@ function vueAchatEngins(){
                           setMachine(MACHINES.indexOf(m)); fermerFenetre();
                           if(m.bateau) annoncerFenetre({titre:'BONNE NAVIGATION !',
                             sous:nomEngin(m) + ' vous attend au port.',
-                            face:{nom:'Chantier naval',humeur:'bravo'}, recu:true, duree:5}); }});
+                            face:{nom:'Comptoir des pêcheurs',humeur:'bravo'}, recu:true, duree:5}); }});
   }
   const d = document.createElement('div'); d.className = 'art';
   d.innerHTML = '<div class="txt"><div class="det">' + (chantier
@@ -26239,7 +26229,7 @@ const outilVerrou = (cle)=>{ const T = TOOLS.find((x)=> x.key === cle); return !
    l'anneau du garage et au catalogue du menu. */
 function articlesAVendre(){
   const out = [];
-  /* LE GARAGE VEND LES ENGINS, LE CHANTIER NAVAL LES BATEAUX. La vitrine dépend d'où l'on
+  /* LE GARAGE VEND LES ENGINS, LE COMPTOIR DES PÊCHEURS LES BATEAUX. La vitrine dépend d'où l'on
      est : au chantier on ne voit que les coques, au garage tout le reste et les outils. */
   const chantier = aChantier(MACHINES[cur].v);
   for(const m of MACHINES)
@@ -27796,7 +27786,7 @@ const LECONS = [
 function lieuLecon(L){
   const ou = L && L.ou;
   if(!ou) return null;
-  if(ou === 'Chantier naval') return {lieu:ou,x:PORT.chantierQuai.x,z:PORT.chantierQuai.z};
+  if(ou === 'Comptoir des pêcheurs') return {lieu:ou,x:PORT.chantierQuai.x,z:PORT.chantierQuai.z};
   if(ou && /^pature[0-9]+$/.test(ou)){const P=PATURES[+ou.slice(6)];return P?{lieu:ou,x:P.quai.x,z:P.quai.z}:null;}
   if(ou === 'silo')     return {lieu:'silo', x:SILO.x, z:SILO.z};
   if(ou === 'entrepot') return ENTREPOT.quai
@@ -27931,7 +27921,7 @@ function achatMission(A){
   const possede=A.f==='modules'?atelierA(A.cle):!x.verrou;
   if(possede || (A.alternative && MACHINES.some(m=>m.key===A.alternative&&!m.verrou))) return null;
   return {...A,prix:A.f==='cultures'?x.cout:x.prix,
-    ou:A.f==='modules'?'atelier':A.f==='cultures'?'Comptoir agricole':x.bateau?'Chantier naval':'Garage',
+    ou:A.f==='modules'?'atelier':A.f==='cultures'?'Comptoir agricole':x.bateau?'Comptoir des pêcheurs':'Garage',
     fen:A.f==='modules'?'production':A.f==='cultures'?'comptoir':x.bateau?'chantier':'achat',
     onglet:A.f==='modules'?'metiers':A.f==='cultures'?'semences':A.f==='outils'?'outils':'engins',
     nom:x.module||x.nom||A.cle};
@@ -27991,7 +27981,7 @@ function conseilProgression(){
   }
   if(mi>=35 && !possede('chalutier')){
     const a=achatMission({f:'engins',cle:'chalutier'});
-    if(a&&money>=a.prix+marge) return lecon('achat-engins-chalutier','Chantier naval','Les commandes de poisson augmentent. Le chalutier remonte de plus gros lots que la barque ; le caseyeur reste nécessaire pour les crustacés.',{fen:'chantier',onglet:'engins',art:'chalutier',titre:'UNE PÊCHE PLUS PRODUCTIVE'});
+    if(a&&money>=a.prix+marge) return lecon('achat-engins-chalutier','Comptoir des pêcheurs','Les commandes de poisson augmentent. Le chalutier remonte de plus gros lots que la barque ; le caseyeur reste nécessaire pour les crustacés.',{fen:'chantier',onglet:'engins',art:'chalutier',titre:'UNE PÊCHE PLUS PRODUCTIVE'});
   }
   if(mi>=36 && !possede('semi')){
     const a=achatMission({f:'engins',cle:'semi'}),r=achatMission({f:'outils',cle:'grumier'});
@@ -28368,7 +28358,7 @@ function objectifMission(){
   if(M.faire){
     if(M.faire === 'flotte'){
       if(!MACHINES.some(m=>!m.verrou && m.peche && m.peche.cle==='poisson') || !MACHINES.some(m=>!m.verrou && m.peche && m.peche.cle==='crustaces'))
-        return {lieu:'Chantier naval',x:PORT.chantierQuai.x,z:PORT.chantierQuai.z,quoi:'aller',txt:'PRÉPARER LES BATEAUX'};
+        return {lieu:'Comptoir des pêcheurs',x:PORT.chantierQuai.x,z:PORT.chantierQuai.z,quoi:'aller',txt:'PRÉPARER LES BATEAUX'};
       const G=SITES.find(s=>s.nom==='Garage');
       return {lieu:'Garage',x:G.dropX,z:G.dropZ,quoi:'aller',txt:'ACHETER LE CAMION FRIGO'};
     }
@@ -28412,7 +28402,7 @@ function objectifNature(cle, reste, S){
   if(!transportCommande(cle)) return cible('Garage',{x:garage.dropX,z:garage.dropZ},'materiel','PRENDRE LE CAMION FRIGO');
   if((QUAI_PECHE.stock[cle]||0)>0.01) return cible('quaiPeche',PORT.charge,'charger','CHARGER LA MARÉE');
   const bateaux=MACHINES.filter(m=>!m.verrou&&m.peche&&m.peche.cle===cle);
-  if(!bateaux.length) return cible('Chantier naval',PORT.chantierQuai,'materiel',cle==='crustaces'?'PRENDRE LE CASEYEUR':'PRENDRE UN BATEAU');
+  if(!bateaux.length) return cible('Comptoir des pêcheurs',PORT.chantierQuai,'materiel',cle==='crustaces'?'PRENDRE LE CASEYEUR':'PRENDRE UN BATEAU');
   if(bateaux.some(m=>chargeDe(caisseDe(m),cle)>0.01)) return cible('quaiPeche',PORT.debarque,'vider','DÉBARQUER LA MARÉE');
   return cible('Zone de pêche',PORT.spots[0],'aller','PÊCHER '+nomHaut(cle));
 }
