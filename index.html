@@ -2566,20 +2566,28 @@ function fusionnerGroupe(g){
 }
 // fusion de primitives colorées en une seule géométrie (pour l'InstancedMesh du blé)
 function mergeParts(parts){
-  const pos=[], nor=[], col=[], c=new THREE.Color();
+  // Conserver les sommets partagés des primitives. Déplier un cube indexé faisait
+  // traiter 36 sommets au lieu de 24, pour les mêmes douze triangles. Aucun arrondi
+  // ni rapprochement de sommets : les normales, couleurs et arêtes restent exactes.
+  const pos=[], nor=[], col=[], indices=[], c=new THREE.Color();
+  let partage=false;
   for(const p of parts){
-    const g = p.g.index ? p.g.toNonIndexed() : p.g.clone();
+    const g = p.g.clone(), debut=pos.length/3;
     if(p.m) g.applyMatrix4(p.m);
     const pa=g.attributes.position.array, na=g.attributes.normal.array;
     c.set(p.c);
     for(let i=0;i<pa.length;i+=3){
       pos.push(pa[i],pa[i+1],pa[i+2]); nor.push(na[i],na[i+1],na[i+2]); col.push(c.r,c.g,c.b);
     }
+    if(g.index){ partage=true; for(let i=0;i<g.index.count;i++) indices.push(debut+g.index.getX(i)); }
+    else for(let i=0;i<pa.length/3;i++) indices.push(debut+i);
+    g.dispose();
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+  if(partage) geo.setIndex(indices);
   return geo;
 }
 
@@ -20532,6 +20540,8 @@ const TRAFIC_ROBES = (function(){
       v.setAttribute('position', g.attributes.position);
       v.setAttribute('normal', g.attributes.normal);
       v.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      // La variante change seulement la couleur ; elle garde les mêmes triangles.
+      if(g.index) v.setIndex(g.index);
       // Les bornes se calculent ICI : `dimsTrafic` ne le fait que soixante lignes plus
       // bas, et recopier un `null` laisserait chaque variante les refaire pour son compte.
       if(!g.boundingBox) g.computeBoundingBox();
