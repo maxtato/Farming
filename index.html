@@ -18841,6 +18841,41 @@ function itineraire(ax, az, bx, bz, pref){
   }
   return mieux.r;
 }
+// Un bord de parcelle peut être séparé de la route la plus proche par une haie.
+// Ce choix ne se calcule qu'au départ vers une réserve, jamais à chaque image.
+function itineraireReserve(ax,az,bx,bz){
+  const direct=itineraire(ax,az,bx,bz);
+  const debutLibre=(x,z,route)=>{
+    for(const q of route.slice(0,2)){
+      if(!voieLibre(x,z,q.x,q.z))return false;
+      x=q.x;z=q.z;
+    }
+    return true;
+  };
+  if(debutLibre(ax,az,direct))return direct;
+  // Une sortie de plan peut finir au-delà du bord, près de la parcelle voisine.
+  const p=PARCELS.reduce((best,p)=>{
+    const d=Math.hypot(Math.max(0,Math.abs(ax-p.x)-p.w/2),Math.max(0,Math.abs(az-p.z)-p.h/2));
+    return !best || d<best.d ? {p,d} : best;
+  },null)?.p;
+  if(!p)return direct;
+  const candidats=[];
+  for(const x of GRILLE_V)if(Math.abs(x-ax)<90)
+    for(const z of [az,p.z])candidats.push({x,z});
+  for(const z of GRILLE_H)if(Math.abs(z-az)<90)
+    for(const x of [ax,p.x])candidats.push({x,z});
+  let meilleur=null,cout=Infinity;
+  for(const q of candidats){
+    const d=Math.hypot(q.x-ax,q.z-az);
+    if(d<3 || !voieDirecteChamp(ax,az,q.x,q.z,p) || !voieLibre(ax,az,q.x,q.z))continue;
+    const suite=itineraire(q.x,q.z,bx,bz);
+    if(!debutLibre(q.x,q.z,suite))continue;
+    let total=d,x=q.x,z=q.z;
+    for(const r of suite){total+=Math.hypot(r.x-x,r.z-z);x=r.x;z=r.z;}
+    if(total<cout){cout=total;meilleur=[q,...suite];}
+  }
+  return meilleur || direct;
+}
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
 function suivreRoute(v, bx, bz, cle, rayon, impasse, pref){
   const R = rayon || 3.0;
@@ -18862,7 +18897,9 @@ function suivreRoute(v, bx, bz, cle, rayon, impasse, pref){
     v.route = null; v.routeBut = null; v.routeArr = cle; return null;
   }
   if(!v.route || v.routeBut !== cle){
-    v.route = itineraire(v.pos.x, v.pos.z, bx, bz, pref); v.routeI = 0; v.routeBut = cle;
+    v.route = (cle==='rGra' || cle==='rEng')
+      ? itineraireReserve(v.pos.x,v.pos.z,bx,bz) : itineraire(v.pos.x, v.pos.z, bx, bz, pref);
+    v.routeI = 0; v.routeBut = cle;
     v.routeDep = {x:v.pos.x, z:v.pos.z};     // d'où part le premier tronçon : voir plus bas
     v.routeArr = null;
     /* LE COUDE SE RETIENT À LA CONSTRUCTION, PAS À L'ARRIVÉE. Le dernier point de passage
@@ -19207,6 +19244,7 @@ function siloRefuse(m, dt){
    celle-ci n'a plus rien à donner. En boucle, on repart de la première. */
 function tacheSuivante(m){
   const v = m.v, M = v.mission;
+  v.repriseRavitaillement=null; delete M.reserveChamp;
   v.plan = null; v.sensVoulu = 'route'; v.cleVoulue = null; M.etape = 0; M.attente = 0;
   v.route = null; v.routeBut = null; v.routeArr = null;
   // On ne remet PAS `reculer` à zéro : la tâche change, mais l'engin est encore au fond
@@ -19252,6 +19290,95 @@ function abordDepart(v, wp, cx, cz, R0, P){
   }
   return {pref:pref, deDos:deDos};
 }
+// Les semences restantes retournent à la réserve, jamais au silo des récoltes.
+function autresSemences(T, cle){
+  return Object.keys(T.cuves || {}).filter(k=>k !== 'engrais' && k !== cle && cuveDe(T,k) > .001);
+}
+function blocageRotation(T, cle){
+  const reste = autresSemences(T,cle).reduce((n,k)=>n+cuveDe(T,k),0);
+  const place = grainesPlace() + Math.min(placeCuve(T,cle), CUVES.graines[cle] || 0);
+  return reste > place + .001 ? 'RÉSERVE DE SEMENCES PLEINE · LIBÉRER DE LA PLACE' : null;
+}
+function interrompreRavitaillement(m, texte){
+  m.v.mission=null; m.v.auto=false; m.v.plan=null; m.v.repriseRavitaillement=null;
+  m.v.route=null; m.v.routeBut=null; m.v.routeArr=null;
+  showHint(texte);
+}
+// Rend une commande pendant le trajet, null quand le service est fini.
+function ravitaillerOutil(m, t, dt){
+  const v=m.v, M=v.mission, T=toolOf(m);
+  v.cleVoulue=null; v.sensVoulu='route';
+  if(!T || !T.cuveMax) return null;
+  const eng=t.nat ? t.nat==='engrais' : T.key==='engrais';
+  const crop=t.crop ?? T.crop ?? 0, C=CROPS[crop];
+  if(!eng && C?.perenne){T.crop=crop;return null;}
+  const cle=eng?'engrais':C.cle;
+  const change=!eng && (T.crop!==crop || autresSemences(T,cle).length>0);
+  if(!change && placeCuve(T,cle)<.5) return null;
+  // Un casier optionnel vide ne provoque pas un détour vers une réserve vide.
+  if(!change && (eng?CUVES.engrais:CUVES.graines[cle]||0)<.001) return null;
+  const R=eng?RES_ENGRAIS:RES_GRAINE;
+  const r=suivreRoute(v,R.quai.x,R.quai.z,eng?'rEng':'rGra',R.r);
+  if(r){M.attente=0;return r;}
+  if(Math.abs(v.speed)>.35) return [0,0];
+  // Charger d'abord libère la place de restitution, même si la réserve était pleine.
+  remplirCuve(T,cle);
+  if(!eng){
+    for(const k of autresSemences(T,cle)) viderCuve(T,k);
+    if(autresSemences(T,cle).length){
+      interrompreRavitaillement(m,'RÉSERVE DE SEMENCES PLEINE · LIBÉRER DE LA PLACE');return [0,0];
+    }
+    T.crop=crop;
+  }
+  remplirCuve(T,cle);
+  M.attente=0;
+  return null;
+}
+function ravitaillementChamp(m, t, dt){
+  const v=m.v, M=v.mission, T=toolOf(m);
+  if(!T || !T.cuveMax) return null;
+  const crop=t.crop ?? T.crop ?? 0;
+  if(T.seme && CROPS[crop]?.perenne) T.crop=crop;
+  if(!M.reserveChamp){
+    const b=bacsDe(T).find(b=>!b.plantation && (!b.option || t.et==='engrais')
+      && !(t.et==='engrais' && !b.engrais)
+      && dansLaCuve(b)<Math.max(.5,b.par*8));
+    const change=T.seme && t.et!=='engrais' && !CROPS[crop]?.perenne
+      && (T.crop!==crop || autresSemences(T,CROPS[crop].cle).length>0);
+    if(!b && !change) return null;
+    const nat=change?'graine':b.engrais?'engrais':'graine';
+    const cle=nat==='engrais'?'engrais':CROPS[crop].cle;
+    const stock=nat==='engrais'?CUVES.engrais:CUVES.graines[cle]||0;
+    if(!change && stock<.001){
+      interrompreRavitaillement(m,'PLUS DE '+(nat==='engrais'?'ENGRAIS':'SEMENCE DE '+CROPS[crop].nom.toUpperCase())+' · À ACHETER AU COMPTOIR');return [0,0];
+    }
+    M.reserveChamp={nat,crop};
+    v.repriseRavitaillement=v.plan;
+    if(v.plan && v.plan.entre && !v.plan.sorti){
+      v.plan.reprise={x:v.pos.x,z:v.pos.z};v.plan.entre=false;
+      // Quitter d'abord la terre par un bord libre, avant de rejoindre la grille routière.
+      const avant={x:v.pos.x-Math.sin(v.cap),z:v.pos.z-Math.cos(v.cap)};
+      M.reserveChamp.sortie=pointSortie(v.plan.p,v.pos,avant,hitchDe(v,T)+(T.L||0));
+    }
+    v.plan=null; v.route=null; v.routeBut=null; v.routeArr=null;
+  }
+  const Q=M.reserveChamp;
+  if(Q.sortie){
+    const d=Math.hypot(Q.sortie.x-v.pos.x,Q.sortie.z-v.pos.z);
+    if(Q.distance===undefined || d<Q.distance-.3){Q.distance=d;Q.attente=0;}
+    else Q.attente=(Q.attente||0)+dt;
+    if(d>2 && (Q.attente||0)<8){
+      const cmd=viser(v,Q.sortie.x,Q.sortie.z,1.2,VIT_PIVOT);
+      cmd[1]=Math.min(cmd[1],4/Math.max(1,v.vmax));return cmd;
+    }
+    delete Q.sortie;v.route=null;v.routeBut=null;v.routeArr=null;
+  }
+  const r=ravitaillerOutil(m,M.reserveChamp,dt);
+  if(r) return r;
+  v.plan=v.repriseRavitaillement; v.repriseRavitaillement=null;
+  delete M.reserveChamp; quitterLieu(v);
+  return [0,0];
+}
 function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
@@ -19261,6 +19388,8 @@ function missionDrive(m, dt){
   if(rec) return rec;
   if(t.quoi === 'parcelle'){
     v.cleVoulue = null;
+    const ravitaille = ravitaillementChamp(m, t, dt);
+    if(ravitaille) return ravitaille;
     // trémie pleine, OU pleine de la mauvaise chose : la moissonneuse va d'abord vider
     // au silo, puis reprend sa passe. Le second cas est `changeDeCulture` — voir là-bas
     // pourquoi un fond de trémie de trois cents grammes suffit à bloquer un champ.
@@ -19432,36 +19561,11 @@ function missionDrive(m, dt){
     return [0, 0];
   }
   if(t.quoi === 'reserve'){
-    const T = toolOf(m);
-    v.cleVoulue = null; v.sensVoulu = 'route';
-    if(!T || !T.cuveMax){ tacheSuivante(m); return [0, 0]; }
-    /* QUEL CASIER ? Un outil pouvait n'en avoir qu'un, et son nom suffisait à le dire.
-       Le combiné en a deux, et c'est la TÂCHE qui désigne celui qu'elle vient remplir —
-       le répartiteur en enfile une par casier. Sans `nat`, on lit le nom de l'outil comme
-       avant, et rien ne change pour les quatre premiers. */
-    const eng = t.nat ? (t.nat === 'engrais') : (T.key === 'engrais');
-    const C = CROPS[T.crop || 0];
-    // Une vigne ne se sème pas, elle se plante et se paie au champ : rien à charger.
-    if(!eng && C && C.perenne){ tacheSuivante(m); return [0, 0]; }
-    const R = eng ? RES_ENGRAIS : RES_GRAINE;
-    const cle = eng ? 'engrais' : C.cle;
-    // Déjà plein : on ne fait pas le voyage pour rien.
-    if(placeCuve(T, cle) < 0.5){ tacheSuivante(m); return [0, 0]; }
-    const r = suivreRoute(v, R.quai.x, R.quai.z, eng ? 'rEng' : 'rGra', R.r);
-    if(r){ M.attente = 0; return r; }
-    // On ne branche la vanne qu'à l'arrêt, comme le joueur : le seuil est celui du
-    // bandeau de service, pour que l'automate et la main obéissent au même chiffre.
-    if(v.speed > 0.35) return [0, 0];
-    M.attente = (M.attente || 0) + dt;
-    remplirCuve(T, cle);
-    // Un seul appel suffit — il prend tout ce que la place et la cuve de la cour permettent.
-    // Le délai laisse à l'engin le temps de s'immobiliser avant qu'on renonce.
-    if(placeCuve(T, cle) < 0.5 || M.attente > 2){
-      M.attente = 0; quitterLieu(v); tacheSuivante(m);
-    }
-    return [0, 0];
+    const r = ravitaillerOutil(m, t, dt);
+    if(r) return r;
+    quitterLieu(v); tacheSuivante(m); return [0, 0];
   }
-  // NAVETTE. Étape 0 : on va au départ et on charge. Étape 1 : on va à l'arrivée et on
+  // NAVETTE. Étape 0 : charger au départ ; étape 1 : livrer à destination.
   // décharge. Le sens voulu est ce qui distingue les deux au même endroit — sans lui,
   // une benne pleine arrivant au silo s'y reviderait au lieu d'aller livrer.
   if(t.terminee || (t.objectif && resteObjectifAutomatique(t.objectif)<=.01)){tacheSuivante(m);return [0,0];}
@@ -26220,6 +26324,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
+  M.v.repriseRavitaillement = null;
   M.v.cleVoulue = null;
   desarmerRecul(M.v);
   M.v.route = null; M.v.routeBut = null; M.v.routeArr = null;
@@ -37250,7 +37355,9 @@ function blocageEtape(C, et, B = besoinEtape(C, et)){
      sur la charrue. Un outil qu'on ne peut pas tirer s'efface ; il n'arrête pas la ferme,
      et il n'a donc aucun blocage à annoncer. */
   // Ce qu'il SÈME : une vigne se plante et se paie au champ, elle ne se sème pas.
-  if(T && T.seme && !(c && c.perenne)){
+  if(T && T.seme && et !== ET_ENGRAIS && !(c && c.perenne)){
+    const rotation = blocageRotation(T,c.cle);
+    if(rotation) return rotation;
     const enCuve = cuveDe(T, c.cle);
     if(enCuve < 0.5 && (CUVES.graines[c.cle] || 0) < 0.5)
       return 'PLUS DE SEMENCE DE ' + c.nom.toUpperCase() + ' – À ACHETER AU COMPTOIR';
@@ -37331,6 +37438,7 @@ function armerEngin(m, taches){
   if(!v.auto && m === MACHINES[cur])
     showHint('CONDUITE AUTOMATIQUE ACTIVÉE');
   v.mission = {taches:taches, i:0, etape:0, boucle:false, attente:0};
+  v.repriseRavitaillement = null;
   v.plan = null; v.goSilo = false; v.finMoisson = false;
   v.sensVoulu = null; v.cleVoulue = null;
   v.route = null; v.routeBut = null; v.routeArr = null;
@@ -37349,10 +37457,11 @@ function tachesEtape(C, et, B){
     /* UNE TÂCHE DE RAVITAILLEMENT PAR CASIER, et c'est l'outil qui dit combien il en a.
        C'était écrit sur le nom de l'étape — semis ou engrais — et le combiné, qui vide
        les deux au même passage, n'en aurait rempli aucun en partant labourer. */
-    for(const b of bacsDe(TOOLS[B.outil]))
-      if(!b.plantation) t.push({quoi:'reserve', nat: b.engrais ? 'engrais' : 'graine'});
+    for(const b of bacsDe({...TOOLS[B.outil],crop:C.crop || 0}))
+      if(!b.plantation && !(et === ET_ENGRAIS && !b.engrais))
+        t.push({quoi:'reserve', nat: b.engrais ? 'engrais' : 'graine', crop:C.crop || 0});
   }
-  t.push({quoi:'parcelle', p:C.p});
+  t.push({quoi:'parcelle', p:C.p, crop:C.crop || 0, et});
   return t;
 }
 /* ---------- LA PISTE DE LA MARCHANDISE ----------
@@ -37520,9 +37629,8 @@ function pisteProduits(C){
   if(livre || C.enginPort >= 0) C.bloqueM = null;
 }
 /* LE RÉPARTITEUR. Deux fois par seconde : on regarde ce que chaque chantier réclame, on
-   récupère les engins qui ont fini, et l'on attribue ce qui est libre. Les chantiers
-   sont servis dans l'ordre où on les a créés — le premier posé est le premier servi,
-   ce qui est la seule règle qu'un joueur puisse prévoir sans la lire. */
+   récupère tous les engins qui ont fini, puis sert les parcelles selon leur attente.
+   Un nouveau cycle ne passe pas devant une parcelle qui attend déjà son outil. */
 let _tChantiers = 0;
 const PAS_CHANTIERS = 0.5;
 // Une tâche finie quitte aussi la sélection du panneau. Le retour au parking ne
@@ -37555,6 +37663,27 @@ function retirerChantiersTermines(){
   }
   return change;
 }
+// Libérer tous les engins avant l'attribution évite les réservations du tour précédent.
+function repartirChantiers(pas){
+  let change=false;
+  for(const C of CHANTIERS.slice()){
+    if(verifierObjectifsChantier(C)){change=true;continue;}
+    for(const champ of ['enginTerre','enginPort']){
+      const v=MACHINES[C[champ]]?.v;
+      if(!v?.mission || rentreAuParc(v)) C[champ]=-1;
+    }
+    if(C.enginTerre<0) C.attenteTerre=(C.attenteTerre||0)+pas;
+  }
+  // La parcelle qui attend depuis le plus longtemps passe avant un nouveau cycle.
+  const ordre=CHANTIERS.slice().sort((a,b)=>(b.attenteTerre||0)-(a.attenteTerre||0));
+  for(const C of ordre) if(C.quoi!=='elevage') pisteTerre(C,CHANTIERS.indexOf(C));
+  // Les navettes prennent ensuite les porteurs, puis les tracteurs encore disponibles.
+  for(const C of CHANTIERS){
+    if(C.quoi==='elevage'){pisteAuge(C);pisteProduits(C);}
+    else pisteMarchandise(C);
+  }
+  return change;
+}
 function majChantiers(dt){
   // Un chantier nature annulé au volant ne doit pas conserver une ligne fantôme.
   for(const J of NATURE_JOBS.slice()){
@@ -37566,22 +37695,7 @@ function majChantiers(dt){
   const pas = _tChantiers; _tChantiers = 0;
   majSpotsPeche(pas);
   let change = majLivraisonsNature() || retirerChantiersTermines();
-  for(let k = CHANTIERS.length - 1; k >= 0; k--){
-    const C = CHANTIERS[k];
-    if(verifierObjectifsChantier(C)){change=true;continue;}
-    // Un engin a fini quand sa mission retombe : c'est le seul signal qui existe.
-    if(C.enginTerre >= 0 && !MACHINES[C.enginTerre].v.mission) C.enginTerre = -1;
-    if(C.enginPort  >= 0 && !MACHINES[C.enginPort].v.mission)  C.enginPort  = -1;
-    if(C.quoi === 'elevage'){
-      pisteAuge(C); pisteProduits(C);
-      /* ET UN ÉLEVAGE « UNE FOIS » S'ARRÊTE APRÈS SA TOURNÉE. Il ne s'arrêtait JAMAIS :
-         ni `pisteAuge` ni `pisteProduits` ne retirent quoi que ce soit, si bien qu'un
-         enclos automatisé nourrissait et livrait indéfiniment, que la case « en continu »
-         soit cochée ou non. On attend que le porteur ait fini sa tournée — sinon on lui
-         couperait la mission en chemin, camion plein. */
-    }
-    else { pisteTerre(C, k); pisteMarchandise(C); }
-  }
+  change = repartirChantiers(pas) || change;
   /* ET L'ON REND AU PARC CEUX QUI N'ONT PLUS RIEN À FAIRE. Après la boucle, et jamais
      avant : à cet instant chaque chantier s'est déjà servi, si bien qu'un engin encore
      libre est un engin dont AUCUN chantier n'a voulu ce tour-ci. */
@@ -37630,11 +37744,8 @@ function pisteTerre(C, k){
                                 : ' – EN ATTENTE D’UN ENGIN');
     return;
   }
-  // Le semoir sème CE QUE LA PARCELLE a demandé, pas ce qu'il portait — et c'est vrai
-  // du combiné parti labourer tout autant que du semoir parti semer. On le pose donc sur
-  // ce qui SÈME, quelle que soit l'étape, et AVANT `tachesEtape` : c'est la culture qui
-  // dit quel casier de graine la tâche de ravitaillement ira remplir.
-  if(B.outil >= 0 && TOOLS[B.outil].seme) TOOLS[B.outil].crop = C.crop || 0;
+  // La culture reste dans l'ordre ; l'outil change de graine à la réserve.
+  C.attenteTerre = 0;
   C.enginTerre = aServi(C, choisi);
   armerEngin(MACHINES[choisi], tachesEtape(C, et, B));
 }
