@@ -1248,6 +1248,11 @@
     box-shadow:0 4px 0 var(--vertOmb);
     pointer-events:auto;animation:brpousse 1.6s ease-in-out infinite;
     transition:transform .08s}
+  #bravo{pointer-events:auto}
+  #bravo #brboite{box-sizing:border-box;max-width:calc(100% - 30px);max-height:calc(100% - 30px)}
+  #bravo.etape{padding:0;justify-content:center}
+  #bravo #brgo{flex-shrink:0;min-width:40px;min-height:40px}
+  #brgo:focus-visible{outline:3px solid var(--titreC);outline-offset:3px}
   #brgo svg{width:22px;height:22px;display:block}
   /* `animation:none` sous le doigt : sans ça la poussée infinie reprendrait la main sur
      `transform` et l'appui ne se verrait pas. */
@@ -1905,7 +1910,7 @@
   <div id="brprix"></div>
   <div id="brplus"></div>
   <div id="brsuite"></div>
-</div><div id="brgo" aria-label="Continuer"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7.5 16h16M17.5 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div id="brtampon"></div></div></div>
+</div><button id="brgo" type="button" aria-label="Continuer"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7.5 16h16M17.5 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div id="brtampon"></div></div></div>
 <div id="rot"><b>TOURNE L'ÉCRAN</b><span>Le jeu se joue en paysage</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -4716,8 +4721,8 @@ const MISSIONS = [
    lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:6000, xp:360,
    texte:'Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour.',
    fin:'Parfait. Les quantités sont bonnes. Votre ferme est officiellement référencée chez nous.'},
-  {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:6380, xp:380,
-   texte:'Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 40 premiers kilos.',
+  {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:12}], prime:6380, xp:380,
+   texte:'Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 12 premiers kilos. Avec quatre moutons nourris, cette première collecte prend environ huit minutes.',
    fin:'Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver.'},
   {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:6750, xp:400,
    texte:'Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis.',
@@ -4725,8 +4730,8 @@ const MISSIONS = [
   {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:7120, xp:420,
    texte:'J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos.',
    fin:'Celui-là a du caractère. Gardez-moi une place dans votre prochaine production.'},
-  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:100}], prime:7500, xp:450,
-   texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 100 kg.',
+  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:7500, xp:450,
+   texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 40 kg. Faites tourner la bergerie en automatique pendant vos autres travaux.',
    fin:'Parfait. Votre bergerie est officiellement devenue mon fournisseur.'},
   {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:8250, xp:480,
    texte:'On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos.',
@@ -5262,7 +5267,7 @@ function missionAPrendre(){
   const M = missionCourante();
   if(!(M && (!M.faire || M.appel) && M.lieu && !CAMPAGNE.prise)) return null;
   // Elle n'est pas encore arrivée : voir MISSION_RETARD.
-  if(CAMPAGNE.retard > 0) return null;
+  if(CAMPAGNE.retard > 0 || lectureEnCours()) return null;
   /* ET LE TÉLÉPHONE NE SONNE PAS PENDANT QU'ON APPREND LE MÉTIER. Le tutoriel de la
      première mission tourne AVANT qu'on la prenne : six marches, du premier attelage au
      pick-up chargé. Un cercle vert allumé chez soi dès la première image tirerait le
@@ -5306,6 +5311,7 @@ function titreMission(M){
 function avanceMission(){
   const M = missionCourante();
   if(!M) return 1;
+  if(M.faire==='alimentPlus') return Math.min(1,quantitePreparation()/184);
   if(M.faire) return testerFaire(M.faire) ? 1 : 0;
   let a = 0, b = 0;
   M.lignes.forEach((l, i)=>{ a += Math.min(l.need, CAMPAGNE.faits[i] || 0); b += l.need; });
@@ -5315,6 +5321,10 @@ function avanceMission(){
    missions-là s'observent sur l'état du jeu au lieu de se compter en kilos. Chaque
    test est une ligne, et il est relu vingt fois par seconde — donc jamais rien de
    coûteux ici. */
+function quantitePreparation(){
+  // Le compteur inclut déjà les stocks : les additionner compterait deux fois le même lot.
+  return Math.max(STAT.alimentPlus||0,entrepotStock('alimentPlus')+(HALLE.stock.alimentPlus||0));
+}
 function testerFaire(quoi){
   switch(quoi){
     case 'engrais':     return !outilVerrou('engrais');
@@ -5325,9 +5335,7 @@ function testerFaire(quoi){
     case 'vaches':      return PATURES.some((P)=> P.espece === 'vache' && P.betes.length >= 2);
     case 'betes6':      return STAT.betes >= 6;
     // « Préparez votre premier aliment premium » : le mélangeur monté ET un lot sorti.
-    case 'alimentPlus': return atelierA('alimentPlus')
-                            && (entrepotStock('alimentPlus') + (HALLE.stock.alimentPlus || 0)
-                                + STAT.alimentPlus) > 0.5;
+    case 'alimentPlus': return atelierA('alimentPlus') && quantitePreparation() >= 184-.01;
     // « J'aurais besoin de quatre porcs » : quatre cochons passés par la boucherie.
     case 'porcs4':      return STAT.porcs >= 4;
     case 'flotte': return MACHINES.some(m=>!m.verrou && m.peche && m.peche.cle==='poisson')
@@ -5377,15 +5385,6 @@ function finirMission(){
    conduire pendant qu'il est là. */
 let bravoT = 0;
 const bravoEl = document.getElementById('bravo');
-/* LA FÊTE SE LIT EN PLUSIEURS TEMPS. Un seul écran suffisait tant qu'il n'y avait qu'une
-   chose à dire — bravo, voilà ce que tu as gagné. Mais la première mission en dit quatre :
-   le marchand remercie, il explique qu'on peut lui revendre n'importe quoi n'importe
-   quand, il dit à quoi cet argent sert, et il annonce que le village va s'intéresser à
-   nous. Tout empiler sur une page ferait un mur qu'on ne lit pas. On les enchaîne : une
-   page, cinq secondes, ou un doigt pour passer à la suivante. Les vingt-huit missions du
-   milieu n'ont qu'une page, et rien ne change pour elles.
-   (ELLE N'EN DIT PLUS QUE DEUX : la paie, puis la Coopérative qui explique elle-même la
-   vente libre — « trop de fenêtres », a dit le joueur. Voir `pageDeblocage`.) */
 let bravoPages = [], bravoI = 0;
 function ouvrirBravo(M, suite, niv0){
   /* LE PRIME EN GROS, LE RESTE EN UNE LIGNE. Les quatre bandes dorées empilées ne se
@@ -5393,10 +5392,11 @@ function ouvrirBravo(M, suite, niv0){
      Ce qu'on vient chercher ici, c'est ce qu'on a gagné : un seul chiffre, deux fois
      plus haut. L'expérience, la valeur de la marchandise et le palier franchi sont des
      renseignements : ils tiennent sur une ligne, en petites capitales, en dessous. */
-  const p = [];
+  const p = ['Prime de campagne unique'];
   if(M.xp) p.push('+ ' + M.xp + ' XP');
   if(!M.faire && M.lignes){
-    const val = M.lignes.reduce((t, l)=> t + l.need*prixDe(l.cle), 0);
+    const acheteur=SITES.find(s=>s.nom===M.lieu);
+    const val = M.lignes.reduce((t,l)=>t+l.need*(acheteur?prixChez(acheteur,l.cle):prixDe(l.cle)),0);
     if(val > 1) p.push('+ ' + eur(val) + ' de marchandise');
   }
   if(CAMPAGNE.niveau > niv0)
@@ -5407,7 +5407,7 @@ function ouvrirBravo(M, suite, niv0){
   /* « CONTRAT TERMINÉ », et non « BRAVO » : le joueur trouvait « bravo » très jeu mobile
      générique. Le titre dit ce qui vient de se passer, et la réplique du client fait le
      reste. */
-  bravoPages = [{
+  const nouvellesPages = [{
     titre: 'CONTRAT TERMINÉ',
     sous: titreMission(M) + (M.fin ? '<br><i>\u00ab\u00a0' + M.fin + '\u00a0\u00bb</i>' : ''),
     prix: M.prime > 0 ? '+ ' + eur(M.prime) : '',
@@ -5425,27 +5425,27 @@ function ouvrirBravo(M, suite, niv0){
   const pageDejaPrevue=(M.apres||[]).some(a=>a.deblocage===client);
   if(nouveau){
     const S=SITES.find(s=>s.nom===client)||(client==='Comptoir des pêcheurs'?{nom:client,achete:[],accepte:[]}:null);
-    if(S){if(!pageDejaPrevue)bravoPages.push(pageDeblocage(S));CAMPAGNE.clientsPresentes.push(client);}
+    if(S){if(!pageDejaPrevue)nouvellesPages.push(pageDeblocage(S));CAMPAGNE.clientsPresentes.push(client);}
   }
   // Une page de suite peut porter un visage — le héros à la fin — et sa propre ligne de suite.
   for(const a of (M.apres || [])){
     // `deblocage` : la page d'un commerce qui s'ouvre, dite par lui (voir `pageDeblocage`).
     const S = a.deblocage && SITES.find((x)=> x.nom === a.deblocage);
-    if(S){ bravoPages.push(pageDeblocage(S)); continue; }
-    bravoPages.push({titre:a.titre, sous:a.txt, face:a.face || null,
-                     suite:a.suite || 'Toucher pour continuer'});
+    if(S){ nouvellesPages.push(pageDeblocage(S)); continue; }
+    nouvellesPages.push({titre:a.titre, sous:a.txt, face:a.face || null,
+                     suite:a.suite || 'Appuyez sur la flèche pour continuer'});
   }
   /* LA DERNIÈRE PAGE DE LA CAMPAGNE. Elle ne vient pas de la mission : elle vient du fait
      qu'il n'y en a plus. C'est aussi le moment où les commerces se remettent à proposer
      des contrats — voir `contratsOuverts()`. */
   if(!suite && !(M.apres && M.apres.length))
-    bravoPages.push({titre:'LA FERME CONTINUE',
+    nouvellesPages.push({titre:'LA FERME CONTINUE',
       sous:'La campagne principale est terminée, mais votre exploitation continue de vivre.' +
            '<br>De nouveaux contrats arriveront au téléphone. Livrez les quantités commandées. ' +
            'Production  ·  Améliorations',
       suite:'À vous de décider de la suite'});
-  bravoI = 0;
-  peindreBravo();
+  if(bravoPages.length){bravoPages.push(...nouvellesPages);return;}
+  bravoPages=nouvellesPages;bravoI=0;peindreBravo();
 }
 function peindreBravo(){
   const P = bravoPages[bravoI];
@@ -5460,19 +5460,9 @@ function peindreBravo(){
               P.face ? P.face.nom : null, P.face ? P.face.humeur : null);
   bravoEl.classList.toggle('etape', !!P.etape);
   bravoEl.classList.toggle('recu', !!P.recu);
-  /* UNE MARCHE DE TUTORIEL ATTEND LE DOIGT. Le joueur : « pour les messages de tutoriel,
-     il faut qu'il faille appuyer sur le bouton de la fenêtre pour continuer, que ça ne
-     parte pas tout seul de l'écran. »
-     ELLE PARTAIT AU BOUT DE CINQ SECONDES, ce qui suffit à lire un titre et pas une
-     consigne : on lève les yeux de la route, on trouve une phrase à moitié effacée, et
-     l'on n'a aucun moyen de la rappeler. Une étape est la seule fenêtre du jeu qui dit
-     quoi FAIRE ensuite ; les autres — le bravo, le reçu, le refus — racontent ce qui vient
-     d'arriver, et se laissent oublier sans dommage. Elle reste donc jusqu'au bouton.
-     ET ELLE NE BLOQUE RIEN : `#bravo` est en `pointer-events:none`, seule la boîte prend
-     le doigt. On continue de rouler avec elle à l'écran, on la referme quand on l'a lue.
-     Le zéro passe par un drapeau et non par `duree:0` : `0 || 5` vaut cinq, et une durée
-     nulle écrite comme une durée aurait été relue comme le défaut. */
-  montrerBravo(P.etape ? 0 : (P.duree || (bravoI === 0 ? 5.0 : 6.0)));
+  document.getElementById('brdefile').scrollTop=0;
+  document.getElementById('brgo').setAttribute('aria-label',bravoI<bravoPages.length-1?'Page suivante':'Continuer');
+  montrerBravo(0);
 }
 /* ET UNE ANNONCE NE PIÉTINE PAS CELLE QUI EST À L'ÉCRAN. Une étape de tutoriel peut se
    franchir pendant qu'une page de fin de mission défile encore : elle prend la file au
@@ -5493,13 +5483,19 @@ function montrerBravo(duree){
   bravoEl.classList.remove('on');
   void bravoEl.offsetWidth;
   bravoEl.classList.add('on');
-  bravoT = duree;
+  bravoT = 0;
+  relacherCommandes();
 }
 function fermerBravo(){ bravoT = 0; bravoPages = []; bravoI = 0;
                        bravoEl.style.display = 'none';
                        bravoEl.classList.remove('on'); bravoEl.classList.remove('etape');
-                       bravoEl.classList.remove('recu'); }
-bravoEl.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); suivantBravo(); });
+                       bravoEl.classList.remove('recu');
+}
+bravoEl.addEventListener('pointerdown', e=>e.stopPropagation());
+document.getElementById('brgo').addEventListener('click',e=>{e.stopPropagation();suivantBravo();});
+function lectureEnCours(){
+  return bravoPages.length>0 || !!contratVu;
+}
 /* RELIRE UNE PARTIE, QU'ELLE CONNAISSE LA CAMPAGNE OU NON.
    Une partie enregistrée AVANT la campagne n'a pas de bloc `campagne`. La rejeter
    serait la perdre ; la remettre au premier palier reverrouillerait tout ce que son
@@ -5647,6 +5643,10 @@ function chargerCampagne(S){
     CAMPAGNE.faits = [];
     CAMPAGNE.prise = true;
     MODE_LIBRE = false;          // une partie d'avant le mode libre est une campagne
+  }
+  if(C && Array.isArray(C.lectures)){
+    bravoPages=C.lectures.filter(p=>p&&typeof p.titre==='string').slice(0,30);bravoI=0;
+    if(bravoPages.length)peindreBravo();
   }
   remplirCommandes(0);
 }
@@ -17154,7 +17154,7 @@ function capaciteFerme(cle, prof){
   const d = prof || 0;
   let t = stockFermeCommande(cle);
   if(cle==='grumes' && MACHINES.some(m=>!m.verrou && m.key==='abatteuse')) t += 500;
-  for(const m of MACHINES) if(!m.verrou && m.peche && m.peche.cle===cle) t += m.peche.lot/m.peche.duree*240;
+  for(const m of MACHINES) if(!m.verrou && m.peche && m.peche.cle===cle) t += m.peche.lot/m.peche.duree*1200;
   const ic = CROPS.findIndex((c)=> c.cle === cle);
   // Ce qu'UNE récolte donnerait si toute la terre en portait : c'est le plafond
   // honnête d'une commande de matière première.
@@ -17166,8 +17166,8 @@ function capaciteFerme(cle, prof){
   if(ic >= 0 && !CROPS[ic].verrou && MACHINES.some(m=>!m.verrou && m.key===(CROPS[ic].perenne?'enjambeuse':'moisson'))) t += terreCultivable()*CROPS[ic].kg;
   for(const P of PATURES){
     const E = ESPECES[P.espece] || ESPECES.vache;
-    if(E.produit === cle) t += P.produit + P.betes.length*E.parSec*180;
-    if(E.second && E.second.cle === cle) t += (P.produit2 || 0) + P.betes.length*E.second.parSec*180;
+    if(E.produit === cle) t += P.produit + P.betes.length*E.parSec*1200;
+    if(E.second && E.second.cle === cle) t += (P.produit2 || 0) + P.betes.length*E.second.parSec*1200;
   }
   // Ce qu'un module d'atelier peut tirer de sa matière — celle en magasin, et celle
   // que la ferme sait produire.
@@ -17235,7 +17235,11 @@ function tirerCommande(type){
   if(!clients.length) return null;
   const {S,cles}=clients[Math.floor(Math.random()*clients.length)];
   const nombre=Math.min(cles.length,2+Math.floor(Math.random()*3));
-  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX;
+  // Réassort, commande régulière ou gros lot, bornés par la capacité réelle.
+  const tirage=Math.random(),format=tirage<.3?'Réassort':tirage<.8?'Commande régulière':'Gros lot';
+  const volume=tirage<.3?.8:tirage<.8?1.8:3.5;
+  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX*volume
+    *(1+Math.max(0,Math.min(10,S.renom||0))*.04);
   const lignes=[];
   for(let i=0;i<nombre;i++){
     const cle=cles.splice(Math.floor(Math.random()*cles.length),1)[0];
@@ -17246,8 +17250,7 @@ function tirerCommande(type){
   const brut=lignes.reduce((n,l)=>n+prime(l.cle)*l.need,0),mult=lignes.length>1?1.35:1;
   return {type:lignes.length>1?'combinee':'brute',lieu:S.nom,lignes,
     prime:Math.max(20,Math.round(brut*mult/5)*5),xp:Math.max(4,Math.round(brut*mult/26)),temps:0,
-    texte:lignes.length>1?'Nous préparons une nouvelle commande. Apportez-nous les produits de la liste, en plusieurs voyages si nécessaire.'
-      :'Un nouveau lot nous serait utile. Pouvez-vous nous livrer cette quantité ?'};
+    texte:format+' · '+(lignes.length>1?'Livrez les produits de la liste en plusieurs voyages si nécessaire.':'Pouvez-vous préparer ce lot ?')+' Aucun délai imposé.'};
 }
 function stockFermeCommande(cle){
   const espece=PRODUITS[cle] && PRODUITS[cle].betail;
@@ -17268,26 +17271,8 @@ function transportCommande(cle){
     && MACHINES.some(m=>!m.verrou&&(T.pourEngin?m.key===T.pourEngin:EST_TRACTEUR(m))));
 }
 
-/* ---------- LE CONTRAT SE PROPOSE, IL NE TOMBE PLUS DU CIEL ----------
-   Quatre commandes apparaissaient toutes seules dans un coin de l'écran, sans qu'on
-   les ait demandées ni qu'on puisse les regarder de près : on subissait une liste au
-   lieu de traiter avec quelqu'un.
-
-   C'est le COMMERCE qui propose, maintenant, et il le dit sur place : un anneau VERT
-   au sol, à côté de son anneau de livraison. On s'y arrête, un bouton vert apparaît,
-   et l'on ouvre la proposition — ce qu'il réclame, ce qu'il paie, le temps qu'il
-   laisse. Trois réponses :
-
-     ACCEPTER  le contrat rejoint la liste, et l'anneau vert s'éteint ;
-     REFUSER   on perd de la RENOMMÉE auprès de ce commerce, et il en propose de moins
-               bons, moins souvent ;
-     RETOUR    on n'a rien dit. L'offre reste sur place, on repassera.
-
-   La renommée est le seul état durable de cette relation : elle monte d'un cran à
-   chaque contrat honoré, elle descend de deux à chaque refus. Elle module la prime et
-   l'attente entre deux propositions. Un commerce qu'on a plusieurs fois éconduit
-   finit par ne presque plus rien offrir — sans jamais se fermer tout à fait, parce
-   qu'un débouché perdu pour de bon serait une partie perdue. */
+/* Les propositions se consultent au téléphone. Seule une acceptation engage la ferme.
+   Les livraisons honorées améliorent la relation ; décliner une offre ne la pénalise pas. */
 const CONTRAT_MAX = 4;            // au-delà, on ne peut plus rien accepter
 const OFFRE_MAX = 3;              // offres en attente dans le village, en même temps
 const RENOM_MIN = -6, RENOM_MAX = 10;
@@ -17349,8 +17334,8 @@ function refuserOffre(S){
   if(!S || !S.offre) return false;
   S.offre = null;
   S.offreT = attenteRenom(S)*1.6;
-  S.renom = Math.max(RENOM_MIN, (S.renom || 0) - 2);
-  showHint(S.nom.toUpperCase() + ' – CONTRAT REFUSÉ, RENOMMÉE ' + libelleRenom(S));
+  // Décliner une proposition non signée ne rompt aucun engagement.
+  showHint(S.nom.toUpperCase() + ' – PROPOSITION DÉCLINÉE');
   rafraichirEcran();
   return true;
 }
@@ -17365,6 +17350,7 @@ function libelleRenom(S){
 }
 
 function remplirCommandes(dt){
+  if(lectureEnCours()) return;
   /* Pendant la campagne, personne ne propose rien. On efface au passage ce qu'une partie
      plus ancienne aurait laissé : une offre rechargée survivrait à sa pastille et
      resterait ouvrable depuis le quai, sans que rien au sol l'annonce. */
@@ -17492,6 +17478,8 @@ function solderContrat(k){
    celui d'une proposition qui attend sur le pas de la porte. Une offre qu'on ignore ne
    punit personne : elle s'efface, et le commerce en refera une plus tard. */
 function updateCommandes(dt){
+  // Le monde continue, mais aucun appel ni délai ne bouscule une lecture.
+  if(lectureEnCours()) return;
   for(let k = CONTRATS.length - 1; k >= 0; k--){
     const C = CONTRATS[k];
     if(!C || !C.temps) continue;
@@ -18880,6 +18868,26 @@ function itineraireReserve(ax,az,bx,bz){
   return meilleur || direct;
 }
 // Suivre un itinéraire : rend la commande de conduite, ou null une fois arrivé.
+function itineraireLivraison(v, bx, bz, pref){
+  const debut={x:v.pos.x,z:v.pos.z},but={x:bx,z:bz};
+  const region=p=>p.x>=FORET.x0 && p.z>=FORET.z0 && p.z<=FORET.z1 ? 'bois'
+    :p.x<PORT.routeFin && p.z<PORT.cale.z1 ? 'port':null;
+  const acces=r=>r==='bois'?{x:PISTE_BOIS.x,z:ROAD_N+ROAD_W/4}
+    :{x:PORT.routeFin+8,z:ROAD_N+ROAD_W/4};
+  const a=region(debut),b=region(but);
+  if(a && a===b){const local=cheminNature(v,but);if(local)return local;}
+  const A=a?acces(a):debut,B=b?acces(b):but,points=[];
+  if(a)points.push(A);
+  points.push(...itineraire(A.x,A.z,B.x,B.z,pref));
+  if(b)points.push(but);
+  const route=[];let previous=debut;
+  for(const point of points){
+    if(Math.hypot(point.x-previous.x,point.z-previous.z)<.1)continue;
+    const detour=natureSegment(previous,point,false)?[point]:cheminNature({pos:previous},point);
+    route.push(...(detour||[point]));previous=point;
+  }
+  return route;
+}
 function suivreRoute(v, bx, bz, cle, rayon, impasse, pref){
   const R = rayon || 3.0;
   const d0 = Math.hypot(bx - v.pos.x, bz - v.pos.z);
@@ -18901,7 +18909,8 @@ function suivreRoute(v, bx, bz, cle, rayon, impasse, pref){
   }
   if(!v.route || v.routeBut !== cle){
     v.route = (cle==='rGra' || cle==='rEng')
-      ? itineraireReserve(v.pos.x,v.pos.z,bx,bz) : itineraire(v.pos.x, v.pos.z, bx, bz, pref);
+      ? itineraireReserve(v.pos.x,v.pos.z,bx,bz) : v.cargo && (v.cargo.frigorifique || v.cargo.prend?.includes('grumes'))
+        ? itineraireLivraison(v,bx,bz,pref) : itineraire(v.pos.x, v.pos.z, bx, bz, pref);
     v.routeI = 0; v.routeBut = cle;
     v.routeDep = {x:v.pos.x, z:v.pos.z};     // d'où part le premier tronçon : voir plus bas
     v.routeArr = null;
@@ -25422,6 +25431,14 @@ function refreshContratButton(){
 function vueContrats(){
   const M = missionVisible(), aPrendre = missionAPrendre();
   const v = MACHINES[cur].v;
+  if(contratsOuverts()){
+    const clients=SITES.filter(s=>siteOuvert(s)&&(s.achete.length||s.accepte.length));
+    const fideles=clients.filter(s=>(s.renom||0)>=RENOM_MAX).length;
+    titre('Votre réseau · '+fideles+' / '+clients.length+' clients fidélisés');
+    article(0x62D84E,'Des commandes à votre rythme',
+      'Choisissez vos contrats au téléphone. Marchandise payée à chaque livraison, prime à la fin. Les commandes grandissent avec votre ferme et votre relation client. Aucun délai imposé.',
+      'Contrats','no',null);
+  }
   titre('En cours');
   let rien = true;
   if(contratsOuverts()) for(const X of SITES){
@@ -28045,6 +28062,7 @@ const leconCourante = ()=> leconActive;
    pourquoi — et c'est le pire moment du jeu pour ne rien avoir à lire. */
 // Les achats sont présentés après l'appel qui crée le besoin, jamais à la seule montée de niveau.
 const ACHATS_MISSIONS = [
+  {m:2,f:'outils',cle:'engrais',txt:'Cette grosse commande de blé justifie un épandeur. Fertilisez pour accélérer la pousse.'},
   {m:4,f:'modules',cle:'farine',txt:'Le boulanger attend 72 kg de farine. Installez le moulin à l’atelier ; inutile d’améliorer sa vitesse pour ce premier lot.'},
   {m:5,f:'cultures',cle:'mais',txt:'L’usine commande du maïs. Achetez cette semence au Comptoir, puis sélectionnez-la sur le semoir.'},
   {m:8,f:'cultures',cle:'orge',txt:'Le restaurant attend votre bière. Commencez par acheter la semence d’orge.'},
@@ -28067,7 +28085,7 @@ const ACHATS_MISSIONS = [
   {m:32,f:'engins',cle:'caseyeur',txt:'Le caseyeur pêche les crustacés : il complète la barque, qui pêche le poisson.'},
   {m:32,f:'engins',cle:'frigo',txt:'Débarquez les prises au quai. Seul un transport frigorifique peut ensuite livrer poisson et crustacés par la route.'}
 ];
-const ELEVAGES_MISSIONS = {6:{cle:'poule',n:3},12:{cle:'vache',n:2},16:{cle:'mouton',n:2},20:{cle:'ruche',n:2},28:{cle:'cochon',n:4}};
+const ELEVAGES_MISSIONS = {6:{cle:'poule',n:3},12:{cle:'vache',n:2},16:{cle:'mouton',n:4},20:{cle:'ruche',n:2},28:{cle:'cochon',n:4}};
 function achatMission(A){
   const x=A.f==='modules'?moduleDe(A.cle):A.f==='cultures'?CROPS.find(c=>c.cle===A.cle):A.f==='outils'?TOOLS.find(t=>t.key===A.cle):MACHINES.find(m=>m.key===A.cle);
   if(!x) return null;
@@ -28082,6 +28100,12 @@ function achatMission(A){
 function coutMissionRestant(index){
   let n=0;
   for(const A of ACHATS_MISSIONS) if(A.m===index){const x=achatMission(A);if(x)n+=x.prix||0;}
+  // Réserve prudente pour la nouvelle plantation, même si le joueur choisit une terre déjà libre.
+  if(index===24 || index===26){
+    const lots=PARCELS.filter(p=>!p.owned&&p.price>0).sort((a,b)=>a.price-b.price);
+    const c=CROPS.find(c=>c.cle===(index===24?'olives':'raisin'));
+    if(lots.length&&c?.plantation){const p=lots[0];n+=p.price+c.plantation*Math.floor(p.w/CS)*Math.floor(p.h/CS)/PARC_REF;}
+  }
   const e=ELEVAGES_MISSIONS[index];
   if(e){
     const P=PATURES.find(p=>p.espece===e.cle),E=ESPECES[e.cle];
@@ -28166,6 +28190,7 @@ function calculerLecon(){
   return null;
 }
 function veillerLecons(dt){
+  if(lectureEnCours())return;
   leconT -= dt;
   if(leconT > 0) return;
   leconT = LECON_PERIODE;
@@ -28436,6 +28461,7 @@ function annoncerEtape(E){
                    duree:5.0, suite:suite});
 }
 function veillerTuto(){
+  if(lectureEnCours())return;
   const L = listeEtapes();
   if(!L) return;
   let n = 0;
@@ -28514,6 +28540,13 @@ function objectifMission(){
         return {lieu:'Comptoir des pêcheurs',x:PORT.chantierQuai.x,z:PORT.chantierQuai.z,quoi:'aller',txt:'PRÉPARER LES BATEAUX'};
       const G=SITES.find(s=>s.nom==='Garage');
       return {lieu:'Garage',x:G.dropX,z:G.dropZ,quoi:'aller',txt:'ACHETER LE CAMION FRIGO'};
+    }
+    if(M.faire==='alimentPlus'){
+      const reste=Math.max(0,184-quantitePreparation());
+      const O=HALLE.file.some(c=>c.cle==='alimentPlus') || potentiel('alimentPlus').sortie>=1
+        ? {lieu:'atelier',x:HALLE.quai.x,z:HALLE.quai.z,quoi:'produire',txt:'PRODUIRE L’ALIMENT PREMIUM'}
+        : objectifProduit('alimentPlus',Math.max(184,stockFermeCommande('alimentPlus')+reste),null);
+      return O?{...O,txt:O.txt+' · '+Math.min(184,Math.floor(quantitePreparation()))+'/184 kg'}:null;
     }
     if(PRODUITS[M.faire]) return objectifProduit(M.faire, 1, S);
     if(M.faire === 'porcs4'){
@@ -30056,7 +30089,7 @@ function updateElevage(dt){
       const mange = jeune ? 1 : Math.min(P.grain, E.ration*dt);
       if(!jeune) P.grain -= mange;
       if(mange > 0){
-        nourries++;
+        nourries+=jeune?1:Math.min(1,mange/Math.max(1e-9,E.ration*dt));
         /* UN COCHON NE VIEILLIT PAS, IL ENGRAISSE. « Ils grandissent », dit le cahier
            des charges, « après avoir consommé suffisamment d'aliment » — vingt-cinq
            kilos pour être prêt. Sa maturité se compte donc en aliment mangé et non en
@@ -30560,7 +30593,7 @@ function montrerRefus(S, cle, q){
           ' en plus pour le moment. J\u2019en ai encore plein les étagères.\u00a0\u00bb</i>' +
           (l.length ? '<br><br>Autres acheteurs<br>' + l.join('<br>')
                     : '<br><br>Personne d\'autre n\'en achète pour l\'instant.'),
-    suite: 'Toucher pour continuer',
+    suite: 'Appuyez sur la flèche pour continuer',
     face: {nom: S.nom, humeur: 'refus'}, duree: 9
   });
 }
@@ -31559,7 +31592,7 @@ let contratVu = null;                 // {C, S, offre:bool, mission:bool}
    c'est. La mission suivante a un autre indice, et sonne à son tour. */
 let telDecroche = -1;
 function demandeTelephone(){
-  if(!contratsOuverts()) return null;
+  if(lectureEnCours() || !contratsOuverts()) return null;
   return SITES.find(s=>s.offre && !s.offre.lu) || SITES.find(s=>s.offre) || null;
 }
 function telephoneAttend(){ return !!missionAPrendre() || !!demandeTelephone(); }
@@ -31627,9 +31660,9 @@ function rendreContrat(){
      — RETOUR la laisse sur place — mais il n'y a pas de bouton pour s'en débarrasser,
      et la renommée n'a rien à voir là-dedans. */
   document.getElementById('ctrenom').textContent = mission
-    ? 'Elle ouvre le palier suivant. On peut la reprendre plus tard : elle attendra ici.'
+    ? 'Elle fait avancer la campagne. Vous pouvez la prendre plus tard : elle attendra ici.'
     : (S ? 'Renommée ' + libelleRenom(S) +
-           (offre ? ' – un refus la fait descendre de deux crans.' : '') : '');
+           (offre ? ' – décliner une proposition ne la réduit pas.' : '') : '');
   document.getElementById('ctnon').style.display = (offre && !mission) ? 'block' : 'none';
   document.getElementById('ctoui').style.display = offre ? 'block' : 'none';
   document.getElementById('ctoui').textContent = mission ? 'Prendre la mission' : 'Accepter';
@@ -35822,7 +35855,7 @@ function etatJeu(){
        sauvegarde ne bouge pas : la garde de relecture est une égalité stricte, et
        l'incrémenter rejetterait d'un coup toutes les parties en cours. Une partie
        d'avant la campagne n'a pas ce bloc et se relit sans lui. */
-    campagne: {niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
+    campagne: {lectures:bravoPages.slice(bravoI),niveau: CAMPAGNE.niveau, xp: CAMPAGNE.xp, mission: CAMPAGNE.mission,
                faits: CAMPAGNE.faits.slice(), prise: CAMPAGNE.prise,
                /* LE RANG DE LA TABLE DES MISSIONS. `CAMPAGNE.mission` est un INDICE
                   dans MISSIONS : le jour où une mission change de contenu sans changer
@@ -36596,7 +36629,7 @@ function finIntro(){
       sous:'<i>« Apparemment, avant de récolter quoi que ce soit… ' +
            'il faut commencer par retourner la terre. »</i>',
       face:{nom:'Moi', humeur:'projette'},
-      suite:'Toucher pour continuer'});
+      suite:'Appuyez sur la flèche pour continuer'});
     annoncerFenetre({titre:'LE VIEUX TRACTEUR',
       sous:'<i>« Et le voilà, garé à côté de la maison.<br>Allons l’essayer. »</i>',
       face:{nom:'Moi', humeur:'projette'},
@@ -38329,10 +38362,7 @@ function loop(now){
   suivreOmbresVue();
 
   if(hintT > 0){ hintT -= dt; if(hintT <= 0) el.hint.style.opacity = 0; }
-  /* LE DÉCOMPTE DU BRAVO SURVIT À dt = 0. Ouvrir le plan ou les réglages met le jeu en
-     pause, et `dt` tombe à zéro en tête de boucle : un décompte pur laisserait l'écran
-     collé pour toujours. Le même repli que le tic d'interface. */
-  if(bravoT > 0){ bravoT -= (dt || 0.016); if(bravoT <= 0) suivantBravo(); }
+  // Les pages attendent la flèche, y compris pendant une pause.
   /* L'INTERFACE À VINGT IMAGES PAR SECONDE. Onze fonctions qui lisent l'état et
      écrivent dans le DOM, soixante fois par seconde : aucune n'affiche quoi que ce
      soit d'animé — de l'argent, une heure, des libellés de boutons. Vingt fois par
