@@ -4,11 +4,12 @@ const block=source.slice(source.indexOf('function objectifAutomatique('),source.
 function setup(){
  const c=vm.createContext({Math,Map,Set,Number,JSON,Infinity,planEl:{style:{display:'none'}},showHint(){},chLot:[],chContinu:false,
   FORET:{x0:-20,x1:100,z0:-20,z1:100,arbres:[{x:6,z:0,kg:10,etat:0},{x:20,z:10,kg:20,etat:0}]},obstacles:[],boxObs:[],EAU:{x0:-100,x1:100,z0:-100,z1:100},
-  DEPOT_BOIS:{stock:0,max:100},PORT:{spots:[{x:20,z:20},{x:40,z:40},{x:60,z:60}],debarque:{x:0,z:0},spotR:8},QUAI_PECHE:{stock:{},max:100},
+  DEPOT_BOIS:{stock:0,max:100},PORT:{spots:[{x:20,z:20,cle:'poisson'},{x:40,z:40,cle:'poisson'},{x:60,z:60,cle:'crustaces'}],debarque:{x:0,z:0},spotR:8},QUAI_PECHE:{stock:{},max:100},
   MACHINES:[],enginLibre:m=>!m.verrou&&!m.v.mission&&!m.v.auto,armerEngin(m,t){m.v.mission={taches:t};m.v.auto=true;},arreterMission(m){m.v.mission=null;m.v.auto=false;},
   arbreAPortee:()=>null,lancerCoupe:()=>true,viser:()=>[0,.5],pasDeRecul:()=>null,suivreRoute:()=>[0,.5],naturesDe:K=>K.load>0?[K.type||'poisson']:[]});
  c.depotPrend=a=>c.DEPOT_BOIS.stock+a.kg<=c.DEPOT_BOIS.max;c.quaiPecheTotal=()=>Object.values(c.QUAI_PECHE.stock).reduce((a,b)=>a+b,0);
  for(const key of ['abatteuse','barque','chalutier','caseyeur','t1'])c.MACHINES.push({key,nom:key,verrou:false,bateau:['barque','chalutier','caseyeur'].includes(key),peche:['barque','chalutier','caseyeur'].includes(key)?{cle:'poisson'}:null,v:{pos:{x:0,z:0},vmax:8,speed:0,cargo:{load:0,capacite:60},mission:null,auto:false}});
+ c.MACHINES.find(m=>m.key==='caseyeur').peche.cle='crustaces';
  vm.runInContext(block+'\nthis.jobs=NATURE_JOBS;this.natureJob=natureJob;',c);return c;
 }
 let n=0;function test(name,f){f(setup());n++;console.log('PASS '+name);}

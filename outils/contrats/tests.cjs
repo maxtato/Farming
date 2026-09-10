@@ -11,7 +11,7 @@ function context(){
  const c=vm.createContext({Math:math,console,Number,Set,Infinity,mondePret:true,MODE_LIBRE:false,TOUT_OUVERT:false,
   CAMPAGNE:{mission:37,prise:false,faits:[],xp:100000,niveau:20,clientsPresentes:[]},SITES_ANNONCE:[],CONTRATS:[],SITES:[],MACHINES:[],TOOLS:[],CROPS:[],PATURES:[],PARCELS:[{owned:true,cellules:1000}],
   ESPECES:{},ESP_CLES:[],ATELIER_MODULES:[],siloStock:{},HALLE:{stock:{},modules:[]},DEPOT_BOIS:{stock:0,quai:{x:1,z:2}},QUAI_PECHE:{stock:{}},
-  PORT:{charge:{x:3,z:4},debarque:{x:5,z:6},chantierQuai:{x:7,z:8},spots:[{x:9,z:10}]},FORET:{x0:10,x1:30,z0:40,z1:60},
+  PORT:{charge:{x:3,z:4},debarque:{x:5,z:6},chantierQuai:{x:7,z:8},spots:[{x:9,z:10,cle:'poisson'},{x:12,z:14,cle:'crustaces'}]},FORET:{x0:10,x1:30,z0:40,z1:60},
   offreT:8,CONTRAT_MAX:4,OFFRE_MAX:3,RENOM_MIN:-6,RENOM_MAX:10,OFFRE_ATTENTE:55,OFFRE_VIE:180,ECH_PRIX:4,money:0,STAT:{ventes:0},ELEVAGE:{debit:40},hopper:100,delivered:0,
   TREMIE_SITE_MAX:335,contratVu:null,contratEl:{style:{}},telDecroche:-1,LECONS:[],leconsDites:[],leconActive:null,
   MISSIONS_REECRITS:[8,9],TUTO_INSERE:4,TUTO_INSERE3:5,TUTO_INSERE4:6,TUTO_INSERE4B:7,NIVEAUX:Array(20).fill({}),SITES_ANCIENS_NOMS:{},
@@ -41,7 +41,7 @@ function context(){
 // Use complete declarations for arrow functions containing internal semicolons.
 function ready(){
  const c=context();
- load(c,['limiteActionAutomatique','resteObjectifAutomatique']);
+ load(c,['limiteActionAutomatique','resteObjectifAutomatique','spotPecheProche']);
  load(c,['produitsOuverts','capaciteFerme','tirerLigne','tirerCommande','stockFermeCommande','transportCommande','avanceChez','resteCommande','resteContrat','livraison','solderContrat','poserOffre','accepterOffre','refuserOffre','libelleRenom','remplirCommandes','chargerCampagne','quantiteMax','executer','entamerEtal','objectifNature','testerFaire','demandeTelephone','ouvrirContrat','capaciteBetail','updateBetail']);
  c.missionVisible=()=>!c.MODE_LIBRE&&c.CAMPAGNE.prise?c.MISSIONS[c.CAMPAGNE.mission]||null:null;
  return c;

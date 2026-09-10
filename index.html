@@ -3048,7 +3048,7 @@ const PORT = {
      quai de chargement — on va le regarder, pas s'y garer. */
   bande:{x0:-200, x1:-196, z0:-56, z1:14},     // le béton entre la rue du chantier et l'eau : la plage ne commence qu'après
   marina:{z:-2, x0:-236, x1:-197, w:5},
-  spots:[{x:-310, z:-10}, {x:-370, z:55}, {x:-300, z:105}],
+  spots:[{x:-310,z:-10,cle:'poisson'},{x:-370,z:55,cle:'poisson'},{x:-240,z:105,cle:'crustaces'}],
   r:6.5, spotR:8, eau:null
 };
 // L'eau : le rectangle où un bateau peut aller, et où un engin à roues ne peut pas — au
@@ -8387,7 +8387,67 @@ function restaurerForet(E){
 const QUAI_PECHE = {stock:{}, max:1500, pose:false};
 const quaiPecheTotal = ()=>{ let t = 0; for(const k in QUAI_PECHE.stock) t += QUAI_PECHE.stock[k]; return t; };
 const aChantier = (v)=> !!v && Math.hypot(v.pos.x - PORT.chantierQuai.x, v.pos.z - PORT.chantierQuai.z) <= PORT.r;
-const dansSpot = (v)=> PORT.spots.find((S)=> Math.hypot(v.pos.x - S.x, v.pos.z - S.z) <= PORT.spotR) || null;
+/* Trois repères réutilisés : deux bancs de poissons, une zone à crustacés.
+   La marée les renouvelle hors des bateaux et des trajets déjà réservés. */
+function spotPecheProche(cle, v){
+  let best=null,distance=Infinity;
+  for(const S of PORT.spots)if(S.cle===cle){
+    const d=Math.hypot(S.x-v.pos.x,S.z-v.pos.z);
+    if(d<distance){distance=d;best=S;}
+  }
+  return best;
+}
+function dansSpot(v, cle){
+  return PORT.spots.find(S=>S.cle===cle && Math.hypot(v.pos.x-S.x,v.pos.z-S.z)<=PORT.spotR)||null;
+}
+function positionSpotValide(x,z,autres){
+  const marge=PORT.spotR+14,J=PORT.jetee,M=PORT.marina;
+  if(!Number.isFinite(x)||!Number.isFinite(z)||x<EAU.x0+marge||x>EAU.x1-marge||z<EAU.z0+marge||z>EAU.z1-marge)return false;
+  if(J && Math.abs(x-J.x)<J.w/2+marge && z<J.z1+marge)return false;
+  if(M && x>M.x0-marge && z<M.z+40)return false;
+  return !autres.some(S=>Math.hypot(S.x-x,S.z-z)<PORT.spotR*2+20);
+}
+function poserReperePeche(S){
+  if(!S.repere)return;
+  const R=S.repere;R.x=S.x;R.z=S.z;
+  for(const m of [R.anneau,R.centre]){m.position.x=S.x;m.position.z=S.z;m.updateMatrix();m.matrixWorldNeedsUpdate=true;}
+}
+function deplacerSpotPeche(S,alea=Math.random,libre=()=>true){
+  const marge=PORT.spotR+14,autres=PORT.spots.filter(P=>P!==S);
+  // Les crustacés restent plutôt près de la côte ; les poissons plus au large.
+  const x0=S.cle==='crustaces'?Math.max(EAU.x0+marge,EAU.x1-100):EAU.x0+marge;
+  const x1=S.cle==='crustaces'?EAU.x1-marge:EAU.x1-75;
+  for(let i=0;i<120;i++){
+    const x=x0+alea()*(x1-x0),z=EAU.z0+marge+alea()*(EAU.z1-EAU.z0-2*marge);
+    if(!positionSpotValide(x,z,autres)||Math.hypot(x-S.x,z-S.z)<45||!libre(x,z))continue;
+    S.x=x;S.z=z;S.t=180+alea()*120;S.utilise=false;poserReperePeche(S);return true;
+  }
+  S.t=15;return false;
+}
+function initialiserSpotsPeche(){
+  for(const S of PORT.spots)deplacerSpotPeche(S);
+}
+function majSpotsPeche(dt){
+  const loin=(x,z)=>!MACHINES.some(m=>!m.verrou && m.bateau && Math.hypot(m.v.pos.x-x,m.v.pos.z-z)<PORT.spotR+20);
+  PORT.spots.forEach((S,i)=>{
+    S.t=(S.t||0)-dt;
+    if(S.t>0&&!S.utilise)return;
+    if(!loin(S.x,S.z)||NATURE_JOBS.some(J=>J.phase==='aller'&&J.cible===i&&J.key!=='abatteuse'))return;
+    deplacerSpotPeche(S,Math.random,loin);
+  });
+}
+function sauverSpotsPeche(){
+  return PORT.spots.map(S=>({x:S.x,z:S.z,cle:S.cle,t:S.t,utilise:!!S.utilise}));
+}
+function chargerSpotsPeche(liste){
+  if(!Array.isArray(liste)||liste.length!==PORT.spots.length)return;
+  if(!liste.every((S,i)=>S && S.cle===PORT.spots[i].cle && positionSpotValide(S.x,S.z,liste.filter((_,j)=>j!==i))))return;
+  liste.forEach((S,i)=>{
+    Object.assign(PORT.spots[i],{x:S.x,z:S.z,t:Number.isFinite(S.t)?Math.max(0,Math.min(300,S.t)):180,utilise:!!S.utilise});
+    poserReperePeche(PORT.spots[i]);
+  });
+}
+
 /* UN SOL ONDULÉ, EN MAILLAGE. Un chemin de sable de la ferme est peint sur les tuiles :
    `fillPoly` y trace un polygone dont les deux bords ondulent et se referment d'équerre aux
    extrémités. Hors des tuiles — la forêt est à cent mètres à l'est — il n'y a rien à
@@ -8576,6 +8636,7 @@ function habillerLesHerbes(){
   }
 }
 function construirePort(){
+  initialiserSpotsPeche();
   /* L'eau : un plan, à cinq centimètres au-dessus de l'herbe qui continue dessous, et
      des vaguelettes plus sombres semées à graine fixe et cuites en une seule pièce. */
   const largeur = EAU.x1 - EAU.x0, hauteur = EAU.z1 - EAU.z0;
@@ -8926,11 +8987,13 @@ function construirePort(){
     anneauAction(Q.x, Q.z, 1.3,
       ()=> couleurPoste('quaiPeche', agirQuai) !== GUIDE.GRIS,
       {coulDyn: ()=> couleurPoste('quaiPeche', agirQuai)});
-  const agirSpot = ()=>{ const m = MACHINES[cur]; return !!(m.peche && m.v.cargo && m.v.cargo.load < m.v.cargo.capacite - 0.01); };
-  for(const Sp of PORT.spots)
-    anneauAction(Sp.x, Sp.z, 2.1,
-      ()=> couleurPoste('spot', agirSpot) !== GUIDE.GRIS,
-      {coulDyn: ()=> couleurPoste('spot', agirSpot)});
+  for(const Sp of PORT.spots){
+    const couleur=Sp.cle==='poisson'?0x48C9E6:0xF0AD56;
+    anneauAction(Sp.x,Sp.z,2.1,()=>true,{coul:couleur,coulDyn:()=>{
+      const m=MACHINES[cur];return m.peche && m.peche.cle!==Sp.cle?GUIDE.GRIS:couleur;
+    }});
+    Sp.repere=ANNEAUX[ANNEAUX.length-1];
+  }
   poseBulle('Quai de débarque', 0x1E4A6B, '', PORT.quai.x, 4.0, PORT.quai.z, 0);
   /* LA LANDE DERRIÈRE LE PORT. Au nord du quai, l'ouest du monde est de la terre, et le
      semis général s'arrête aux tuiles : sans rien, elle serait nue jusqu'au bout du monde.
@@ -8995,9 +9058,15 @@ function travailPeche(m, dt){
   const v = m.v, K = v.cargo;
   v.enPeche = false;
   if(!K || v.speed > 0.6 || (natureJob(m.key) && natureJob(m.key).phase !== 'aller')){ v.pecheT = 0; return; }
-  const Sp = dansSpot(v);
-  if(!Sp){ v.pecheT = 0; return; }
-  const cle = m.peche.cle;
+  const cle=m.peche.cle,Sp=dansSpot(v,cle);
+  if(!Sp){
+    v.pecheT=0;
+    const autre=PORT.spots.find(S=>Math.hypot(v.pos.x-S.x,v.pos.z-S.z)<=PORT.spotR);
+    if(autre && m===MACHINES[cur] && v.mauvaisSpot!==autre.cle)
+      showHint(autre.cle==='crustaces'?'ZONE À CRUSTACÉS · CASEYEUR REQUIS':'BANC DE POISSONS · BARQUE OU CHALUTIER');
+    v.mauvaisSpot=autre?autre.cle:null;return;
+  }
+  v.mauvaisSpot=null;
   if(K.load >= K.capacite - 0.01 || (naturesDe(K).some((k)=> k !== cle))){
     if(m === MACHINES[cur] && !v.pleinDit){ v.pleinDit = true; showHint('CALE PLEINE · DÉBARQUER AU QUAI'); }
     return;
@@ -9008,17 +9077,17 @@ function travailPeche(m, dt){
   v.pecheT = (v.pecheT || 0) + dt;
   if(arrive){
     for(let n = 0; n < 8; n++) bullePeche(v);
-    sautPoisson(v); sautPoisson(v);
+    if(cle==='poisson'){sautPoisson(v);sautPoisson(v);}
     v.sautT = 0.5 + Math.random()*0.5;
   }
   if(siSouvent(0.13)) bullePeche(v);
   v.sautT = (v.sautT || 0) - dt;
-  if(v.sautT <= 0){ sautPoisson(v); v.sautT = 0.8 + Math.random()*1.0; }
+  if(cle==='poisson' && v.sautT <= 0){ sautPoisson(v); v.sautT = 0.8 + Math.random()*1.0; }
   if(v.pecheT >= m.peche.duree){
     v.pecheT = 0;
     const q = Math.min(m.peche.lot, K.capacite - K.load);
     ajouterCharge(K, cle, q);
-    STAT.peche += q;
+    STAT.peche += q;Sp.utilise=true;
     solderLecon('peche');
     for(let n = 0; n < 4; n++) puff(v.pos.x + (Math.random() - 0.5)*3, 0.3, v.pos.z + (Math.random() - 0.5)*3, 0xDCE6E4, 0.45, 0.5);
     if(m === MACHINES[cur]) showHint(nomDe(cle).toUpperCase() + ' · ' + kg(K.load) + (K.load >= K.capacite - 0.01 ? ' · CALE PLEINE' : ''));
@@ -27754,10 +27823,9 @@ const LECONS = [
    quand:()=> MACHINES[cur].key === 'abatteuse'},
   /* LA PREMIÈRE FOIS QU'ON MONTE DANS UN BATEAU : la flèche montre le spot le plus proche,
      et la leçon se solde au premier lot remonté. */
-  {cle:'peche', court:"S’arrêter sur un spot pour pêcher.", humeur:'projette', ou:'spot', nom:'LA PÊCHE', titre:'LA PÊCHE',
-   txt:'LA PÊCHE – Va sur un spot, le cercle au large, et arrête-toi : dès que les poissons '
-     + 'sautent autour du bateau, la cale se remplit toute seule, lot après lot. Pleine, '
-     + 'reviens la vider au quai de débarque.',
+  {cle:'peche', court:"Bleu : poissons. Orange : crustacés. Arrête-toi pour pêcher.", humeur:'projette', ou:'spot', nom:'LA PÊCHE', titre:'LA PÊCHE',
+   txt:'LA PÊCHE – Barque et chalutier : zones bleues. Caseyeur : zones orange. '
+     + 'Arrête-toi pour remplir la cale, puis débarque au quai. Les zones changent avec la marée.',
    quand:()=> !!MACHINES[cur].peche}
 ];
 /* CE QU'UNE LEÇON DÉSIGNE SUR LA CARTE. Le vocabulaire de `lieuTuto` ne suffisait pas :
@@ -27785,6 +27853,7 @@ function lieuLecon(L){
     const v = MACHINES[cur].v;
     let best = null, bd = 1e9;
     for(const Sp of PORT.spots){
+      if(Sp.cle!==(MACHINES[cur].peche?.cle||'poisson'))continue;
       const d = Math.hypot(Sp.x - v.pos.x, Sp.z - v.pos.z);
       if(d < bd){ bd = d; best = Sp; }
     }
@@ -28391,7 +28460,8 @@ function objectifNature(cle, reste, S){
   const bateaux=MACHINES.filter(m=>!m.verrou&&m.peche&&m.peche.cle===cle);
   if(!bateaux.length) return cible('Comptoir des pêcheurs',PORT.chantierQuai,'materiel',cle==='crustaces'?'PRENDRE LE CASEYEUR':'PRENDRE UN BATEAU');
   if(bateaux.some(m=>chargeDe(caisseDe(m),cle)>0.01)) return cible('quaiPeche',PORT.debarque,'vider','DÉBARQUER LA MARÉE');
-  return cible('Zone de pêche',PORT.spots[0],'aller','PÊCHER '+nomHaut(cle));
+  const spot=spotPecheProche(cle,bateaux[0].v);
+  return spot?cible(cle==='crustaces'?'Zone à crustacés':'Banc de poissons',spot,'aller','PÊCHER '+nomHaut(cle)):null;
 }
 function objectifProduit(cle, reste, S){
   if(cle==='grumes'||cle==='poisson'||cle==='crustaces') return objectifNature(cle,reste,S);
@@ -35596,6 +35666,7 @@ function etatJeu(){
     foret: etatForet(),
     depotBois: DEPOT_BOIS.stock,
     quaiPeche: Object.assign({}, QUAI_PECHE.stock),
+    spotsPeche:sauverSpotsPeche(),
     /* LES CHANTIERS SE SAUVEGARDENT, ET RIEN DE LEUR AVANCEMENT.
        C'est le dividende du choix de départ : l'étape ne se mémorise pas, elle SE LIT SUR
        LA TERRE. Un chantier n'est donc qu'un réglage — cette parcelle, cette graine, ce
@@ -36270,6 +36341,7 @@ function chargerPartie(S){
                           dest:q.d || {}, continu:!!q.k, nourrir:q.n || 'auto',objectifs:q.objectifs});
       C2.recolte = !!q.r; C2.livre = !!q.l;
     }
+    chargerSpotsPeche(S.spotsPeche);
     chargerNature(S.nature);
     updateJourNuit(0);
     flushTiles();
@@ -36986,6 +37058,7 @@ function naviguerNature(m, J, but, dt, rayon = 2){
   return r;
 }
 function changerPhaseNature(J, phase){
+  if(phase==='vider' && J.key!=='abatteuse')J.cible=-1;
   J.phase=phase;J.trajet=null;J.stagne=0;J.retry=0;J.recul=0;
 }
 function conduireNature(m, dt){
@@ -37034,10 +37107,11 @@ function conduireNature(m, dt){
   if(!K){J.statut='Cale indisponible';return [0,0];}
   if((K.load>=K.capacite-.01 || naturesDe(K).some(k=>k!==m.peche.cle)) && J.phase==='aller')changerPhaseNature(J,'vider');
   if(J.phase==='aller'){
+    if(!PORT.spots[J.cible]||PORT.spots[J.cible].cle!==m.peche.cle){J.cible=-1;J.trajet=null;J.but=null;}
     if(J.cible<0){
-      const disponibles=PORT.spots.map((s,i)=>i).filter(i=>!NATURE_JOBS.some(O=>O!==J&&O.key!=='abatteuse'&&O.cible===i)
+      const disponibles=PORT.spots.map((s,i)=>i).filter(i=>PORT.spots[i].cle===m.peche.cle && !NATURE_JOBS.some(O=>O!==J&&O.key!=='abatteuse'&&O.cible===i)
         &&!MACHINES.some(o=>o!==m&&o.bateau&&!o.verrou&&!o.v.auto&&Math.hypot(o.v.pos.x-PORT.spots[i].x,o.v.pos.z-PORT.spots[i].z)<PORT.spotR+3));
-      if(!disponibles.length){J.statut='Spots de pêche occupés';return [0,0];}
+      if(!disponibles.length){J.statut=m.peche.cle==='crustaces'?'Zone à crustacés occupée':'Bancs de poissons occupés';return [0,0];}
       J.cible=disponibles.reduce((a,b)=>Math.hypot(v.pos.x-PORT.spots[a].x,v.pos.z-PORT.spots[a].z)<Math.hypot(v.pos.x-PORT.spots[b].x,v.pos.z-PORT.spots[b].z)?a:b);
     }
     J.statut='Vers le spot de pêche';
@@ -37108,7 +37182,7 @@ function dessinerPlanNature(rE){
   if(!planNature)return false;
   const key=planNature,m=MACHINES.find(m=>m.key===key),J=natureJob(key),g=id=>document.getElementById(id),cle=produitNature(key);
   g('planquoi').appendChild(planPuce(key==='abatteuse'?'Coupe de bois':'Pêche · '+nomDe(cle),true,null));
-  g('planbloc3nom').textContent='Production';
+  g('planbloc3nom').textContent=key==='abatteuse'?'Production':cle==='crustaces'?'Zones orange · crustacés':'Zones bleues · poissons';
   g('planmodes').appendChild(planPuce(J?J.statut:key==='abatteuse'?'Arbres mûrs → dépôt':'Cale pleine → quai',true,null));
   g('planoption').style.display='none';g('planprod').style.display='none';
   const dest=J?J.dest:planNatureDest;
@@ -37507,6 +37581,7 @@ function majChantiers(dt){
   _tChantiers += dt;
   if(_tChantiers < PAS_CHANTIERS) return;
   const pas = _tChantiers; _tChantiers = 0;
+  majSpotsPeche(pas);
   let change = majLivraisonsNature() || retirerChantiersTermines();
   for(let k = CHANTIERS.length - 1; k >= 0; k--){
     const C = CHANTIERS[k];
