@@ -11,8 +11,9 @@
 
 156 tests de régression validés. Contrôle supplémentaire des 40 fichiers : alpha réel, coins transparents, format 4:5, aucun résidu de fond magenta, copie de déploiement identique. Réglages de résolution inchangés.
 
-Le phare et la rive ont été examinés dans le rendu 3D du jeu, sans erreur signalée. Les vingt expressions ont été comparées aux portraits d'origine sur une planche commune. Le contrôle complémentaire des fenêtres dans le navigateur a été interrompu par une indisponibilité de celui-ci.
+Le phare, la rive et les bateaux ont été examinés dans le rendu 3D du jeu, sans erreur signalée. Les vingt expressions ont été comparées aux portraits d'origine sur une planche commune. Après rétablissement du navigateur, 36 affichages ont été contrôlés dans les fenêtres du jeu : les neuf personnages comparés occupent tous 96 × 120 pixels en contrat et le même cadre adaptatif en annonce. Le second réglage de palette a également été vérifié. Le guichet propose la barque, le chalutier et le caseyeur. Le portrait publié sur Vercel et l'accueil de la version d'essai se chargent correctement.
 
 ## Retour arrière
 
 Version d'essai précédente : `e07963ec9235ccca859fea957c4d7b2a3b064271`. Restaurer ce déploiement ou annuler le commit de cette correction. Aucun changement de format de sauvegarde, aucune suppression des anciens portraits, aucune publication en production.
+
