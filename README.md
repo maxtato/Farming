@@ -17058,10 +17058,10 @@ garé derrière lui empêche d'aborder dans l'axe, est pris de biais par l'ouest
 trois chantiers : la chape s'arrête à 2–8 cm de sa marque, l'outil à moins de 2° de son axe
 (11° pour le semoir) ; `poserALaPlace` rattrape l'écart en un tiers de seconde.
 
-Le joueur, lui, ne peut plus poser un outil de ferme hors de la dalle de la cour : le bouton
-garde son signe et dit « CHARRUE – À DÉTELER SUR LE PARKING DE LA FERME ». Les semi-remorques
-gardent leur liberté. Et une partie d'avant retrouve, au chargement, chaque outil libre dans
-sa case.
+Le joueur, lui, dételle toujours où il veut : une première version lui réservait le geste au
+parking de la ferme, et il l'a refusée — « pour dételer à la main, reviens en arrière ». Seul
+l'automate range. Et une partie d'avant retrouve, au chargement, chaque outil libre dans sa
+case.
 
 ### Chacun rentre, même en continu — la moissonneuse comprise
 
