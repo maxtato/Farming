@@ -6814,19 +6814,34 @@ function fruit(P, x, y, z, r, c){
           m:new THREE.Matrix4().makeTranslation(x, y, z), c});
 }
 
-/* ---------- les deux jeunes âges, COMMUNS aux cinq céréales ---------- */
+/* ---------- les deux jeunes âges, COMMUNS aux cinq céréales ----------
+   LA PETITE POUSSE ÉTAIT PLUS GROSSE QUE LE BLÉ QUI EN SORTAIT. Le joueur : « lorsque
+   le blé pousse, il devrait sembler plus grand que la petite pousse, ce qui n'est pas le
+   cas : la petite pousse paraît plus large et plus grosse. À part le brin, qui est plus
+   long une fois fini de pousser, les proportions sont incorrectes. »
+   MESURÉ À PLEINE ÉCHELLE : la pousse faisait 0,42 m de haut pour 0,34 de large — deux
+   feuilles de 14 cm de section, ouvertes à 24°. La montaison, 0,81 × 0,50, et le blé mûr
+   1,63 × 0,59. Les hauteurs montaient, mais chaque âge démarrait à l'échelle qui égalait
+   la HAUTEUR du précédent, sans regarder sa largeur : la montaison repartait à 52 % —
+   feuilles de 29 cm au lieu de 40 — et l'épi à 49 %, deux tiges de six centimètres
+   d'épaisseur après une touffe d'un demi-mètre. Le pied MAIGRISSAIT deux fois en route.
+   DEUX CORRECTIONS. Les jeunes âges s'affinent — la pousse, deux brins de 30 et 26 cm et
+   de 9 cm de section, presque droits ; la montaison, des feuilles plus étroites et plus
+   dressées autour d'une tige plus mince — si bien que chaque âge tient dans le suivant,
+   en hauteur ET en largeur. Et le raccord se fait sur les deux axes (voir `ECH_PIED`). Le
+   compte de triangles ne bouge pas : 12 et 24. */
 function agePousse(){
   const P = [];
-  brin(P, 0.06, 0.4, 1.15, 0.40, 0.07);
-  brin(P, 0.04, 3.0, 1.05, 0.34, 0.06);
+  brin(P, 0.03, 0.4, 1.28, 0.30, 0.045);
+  brin(P, 0.02, 3.0, 1.22, 0.26, 0.040);
   return mergeParts(P);
 }
 function ageMontee(){
   const P = [];
-  fut(P, 0.72, 0.03, 0.05);
-  brin(P, 0.16, 0.5, 1.05, 0.56, 0.085);
-  brin(P, 0.30, 2.6, 1.00, 0.50, 0.080);
-  brin(P, 0.44, 4.4, 0.95, 0.44, 0.070);
+  fut(P, 0.64, 0.028, 0.045);
+  brin(P, 0.10, 0.5, 1.22, 0.52, 0.065);
+  brin(P, 0.26, 2.6, 1.26, 0.48, 0.060);
+  brin(P, 0.42, 4.4, 1.30, 0.42, 0.055);
   return mergeParts(P);
 }
 
@@ -7204,10 +7219,20 @@ const CHAMPS = [];                                        // culture/âge -> [se
 const champRec = [];                                      // culture/âge -> [secteur -> [place -> fiche]]
 const CHAMP_GEO = [], CHAMP_MAT = [];                     // partagés par toutes les parcelles
 const ECH_AGE = [];                                       // culture -> échelle de départ de chaque âge
+/* culture -> âge -> {h0, l0, kh, kl} : le raccord d'une ANNUELLE, axe par axe (voir
+   `buildField`). Les permanentes n'y figurent pas et gardent `ECH_AGE`. */
+const ECH_PIED = [];
 function hauteurGeo(g){
   if(!g) return 1;
   if(!g.boundingBox) g.computeBoundingBox();
   return Math.max(0.01, g.boundingBox.max.y - g.boundingBox.min.y);
+}
+// L'emprise au sol d'un pied : la plus grande des deux largeurs, puisqu'il tourne au hasard.
+function largeurGeo(g){
+  if(!g) return 1;
+  if(!g.boundingBox) g.computeBoundingBox();
+  const B = g.boundingBox;
+  return Math.max(0.01, B.max.x - B.min.x, B.max.z - B.min.z);
 }
 /* three renvoie TOUT le tampon d'un maillage dès qu'on lève `needsUpdate` : 608 ko par
    culture, quel que soit le nombre d'instances réellement modifiées. Une seule plante
@@ -7533,6 +7558,29 @@ function buildField(){
     const H = ages.map((f)=> f ? hauteurGeo(geoDe(f)) : 0);
     ECH_AGE[c] = ages.map((f, a)=> a === 0 ? 0.34
       : Math.max(0.30, Math.min(0.98, H[a-1]/(H[a] || 1))));
+    /* MAIS LA HAUTEUR SEULE NE SUFFIT PAS À UNE CÉRÉALE : c'est ce qui faisait maigrir le
+       blé à chaque palier. Une feuille de pousse est large pour sa hauteur, une tige
+       d'épi est mince ; égaler la hauteur rendait donc le pied plus étroit qu'il n'était
+       une image plus tôt. Les annuelles se raccordent AXE PAR AXE : l'âge qui commence
+       part de la hauteur ET de la largeur où le précédent s'est arrêté, et chacune monte
+       à son rythme jusqu'à sa pleine taille.
+       ET AUCUN ÂGE NE FINIT PLUS GRAND QUE LE SUIVANT. La pousse et la montaison sont
+       communes aux cinq céréales, et trois épis — l'orge, l'avoine, le colza — sont plus
+       minces qu'une touffe de montaison. Sans plafond, l'orge perdrait un quart de sa
+       largeur en épiant. On rabat donc, en partant de l'adulte, la pleine taille de chaque
+       âge à celle du suivant (`kh`, `kl`) : chaque céréale ne fait que grandir, sur les
+       deux axes, du semis à la moisson. Les permanentes ne changent pas : leurs âges sont
+       des arbres et des ceps, que rien ici n'a mis en cause. */
+    if(!CROPS[c].perenne){
+      const L = ages.map((f)=> f ? largeurGeo(geoDe(f)) : 0);
+      const Hc = H.slice(), Lc = L.slice(), n = ages.length;
+      for(let a = n - 2; a >= 0; a--){ Hc[a] = Math.min(Hc[a], Hc[a+1]); Lc[a] = Math.min(Lc[a], Lc[a+1]); }
+      const borne = (x)=> Math.max(0.15, Math.min(0.98, x));
+      ECH_PIED[c] = ages.map((f, a)=> ({
+        h0: a === 0 ? 0.34 : borne(Hc[a-1]/(Hc[a] || 1)),
+        l0: a === 0 ? 0.34 : borne(Lc[a-1]/(Lc[a] || 1)),
+        kh: Hc[a]/(H[a] || 1), kl: Lc[a]/(L[a] || 1)}));
+    }
   }
   for(const p of PARCELS) if(p.owned) activateParcel(p);
 }
@@ -7701,13 +7749,20 @@ function setInstance(n, g, alive){
      souche déjà installée qu'on vient de vendanger n'a rien perdu de son bois. Dans les
      deux cas l'échelle reste à un, et c'est la géométrie de l'âge — un cep court, un
      sarment, puis quatre — qui dit à elle seule où en est le pied. */
-  let pousse = 1;
+  let pousse = 1, pousseH = 1;
   if(!etabli && !enRang){
     const bornes = C2.perenne ? BORNES_PER : BORNES_ANN;
     const g0 = bornes[age], g1 = bornes[age + 1];
     const t = Math.max(0, Math.min(1, (g - g0)/Math.max(0.001, g1 - g0)));
-    const e0 = (ECH_AGE[c] && ECH_AGE[c][age]) || 0.5;
-    pousse = e0 + (1 - e0)*t;
+    // Une annuelle grandit axe par axe (voir `ECH_PIED`) ; une permanente, d'un bloc.
+    const R = ECH_PIED[c] && ECH_PIED[c][age];
+    if(R){
+      pousse  = R.kl*(R.l0 + (1 - R.l0)*t);
+      pousseH = R.kh*(R.h0 + (1 - R.h0)*t);
+    } else {
+      const e0 = (ECH_AGE[c] && ECH_AGE[c][age]) || 0.5;
+      pousse = pousseH = e0 + (1 - e0)*t;
+    }
   }
   /* `large` CHANGE LA TAILLE, `haut` NE FAIT QU'ÉTIRER. Le second ne portait que sur y :
      s'en servir pour rapetisser le blé l'aurait tassé, pas rétréci. `large` multiplie
@@ -7718,9 +7773,10 @@ function setInstance(n, g, alive){
   // taille tirée au hasard laisserait un pied sur deux sans fil — le palissage
   // deviendrait un pointillé.
   const s = (enRang ? 1 : b.sc) * ech * pousse;
+  const sH = (enRang ? 1 : b.sc) * ech * pousseH;
   _q.setFromAxisAngle(_axeY, enRang ? 0 : b.rot);
   _v3.set(enRang ? cellX(b.i) : b.x, 0, enRang ? cellZ(b.j) : b.z);
-  _s3.set(s, s*C2.haut, s);
+  _s3.set(s, sH*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
   _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
   const M = CHAMPS[k][secteur], place = champSlot[n];
@@ -19406,6 +19462,147 @@ function ravitaillementChamp(m, t, dt){
   delete M.reserveChamp; quitterLieu(v);
   return [0,0];
 }
+/* ---------- UN OUTIL QU'ON LÂCHE SE RANGE À SA PLACE, SUR LE PARKING ----------
+   Le joueur : « toutes les charrues et les objets qui sont portés et tirés par les
+   tracteurs doivent toujours être remis sur le parking à côté de la ferme, pas être
+   déposés sur la route. »
+   CE QUI LES SEMAIT PARTOUT, MESURÉ SUR UN CHANTIER BLÉ DE SIX MINUTES. Deux règles,
+   chacune défendable seule. La tâche `outil` dételait l'ancien outil LÀ OÙ ELLE PRENAIT
+   LE NOUVEAU : la charrue finissait au milieu de l'allée de la cour, à 13,6 m de sa case,
+   et la fois suivante au pied du semoir qu'on était venu chercher. Et un chantier en
+   continu ne renvoyait personne au parc : le tracteur restait attelé au bord du champ, sur
+   le chemin, pendant toute la pousse — à 53 m de la ferme, son outil derrière lui.
+   DÉSORMAIS UN ENGIN AUTOMATIQUE NE LÂCHE PLUS UN OUTIL N'IMPORTE OÙ : il le ramène à SA
+   case (`TOOL_PARK`), dans l'axe, et ne dételle qu'une fois l'outil dessus. C'est la tâche
+   `outil` qui le fait avant d'atteler l'autre, et la tâche `parc` avant de se garer.
+   LA MANŒUVRE EST CELLE D'UN CHAUFFEUR, ET ELLE SE FAIT EN MARCHE AVANT. Les outils sont
+   rangés timon au nord ; on vient donc par le sud de la rangée — la bande de dalle qui
+   longe la rocade —, on se met dans l'axe de la case, et l'on remonte tout droit jusqu'à ce
+   que la chape soit sur sa marque. Dix mètres de ligne droite : l'outil est aligné quand
+   on le lâche, et le petit écart qui reste se rattrape en une demi-seconde (`RANGEMENTS`).
+   Les semi-remorques ne sont pas concernées : leur place est devant l'entrepôt d'export,
+   et elles ne sont pas des outils de ferme. */
+const RANGE_RECUL = 8;          // l'approche, en mètres derrière la case
+function placeOutil(T){
+  if(!T || T.semi) return null;
+  const q = TOOL_PARK[TOOLS.indexOf(T)];
+  return q ? {x:q[0], z:q[1], cap:q[2]} : null;
+}
+/* Le point d'où l'on remonte vers la case. Il tombe derrière elle, dans son axe — sauf si
+   un autre outil y est garé : le combiné dort derrière le semoir, et y mener le tracteur
+   le ferait passer au travers. On décale alors l'approche d'un demi-entraxe, et la ligne
+   droite reste assez longue pour que l'outil s'aligne. */
+function approcheRangement(T, S){
+  const fx = Math.sin(S.cap), fz = Math.cos(S.cap);
+  const rx = Math.cos(S.cap), rz = -Math.sin(S.cap);
+  let k = RANGE_RECUL;
+  // On reste sur la dalle : derrière la rangée du combiné, c'est déjà la rocade.
+  const zMax = COUR_Z1 - 1.5;
+  if(S.z - fz*k > zMax) k = Math.max(4, (zMax - S.z)/(-fz || 1));
+  const occupe = (x, z)=> TOOLS.some((U)=> U !== T && !U.verrou && !U.attached && !U.semi
+    && Math.hypot(U.group.position.x - x, U.group.position.z - z) < 4.2);
+  for(const dec of [0, PLACE_PAS*0.55, -PLACE_PAS*0.55]){
+    const x = S.x - fx*k + rx*dec, z = S.z - fz*k + rz*dec;
+    if(!occupe(x, z)) return {x, z};
+  }
+  return {x:S.x - fx*k, z:S.z - fz*k};
+}
+/* Rend une commande tant que l'outil n'est pas rangé, `null` quand il l'est — ou quand il
+   n'y a rien à ranger.
+   L'ÉTAT VIT SUR L'ENGIN, PAS DANS LA MISSION. Un tracteur qui rentre au parc est LIBRE
+   (`rentreAuParc`) : le répartiteur peut lui confier une étape au milieu de la manœuvre,
+   et la nouvelle mission commence justement par ranger ce qu'il traîne. Gardée dans
+   l'ancienne mission, la manœuvre repartait de zéro — demi-tour au milieu de la rangée
+   pour retourner à l'approche. Sur l'engin, elle continue. On ne la reprend que si l'on
+   n'a pas quitté les abords de la case : un joueur qui a pris le volant entre-temps
+   l'a emmené ailleurs. */
+function rangerOutil(m, dt){
+  const v = m.v, T = v.tool;
+  if(!T || T.attached !== v){ v.rangement = null; return null; }
+  const S = placeOutil(T);
+  if(!S){ v.rangement = null; return null; }
+  let R = v.rangement;
+  if(R && R.etape > 0 && Math.hypot(v.pos.x - S.x, v.pos.z - S.z) > 16) R = null;
+  if(!R || R.T !== T) R = v.rangement = {T, etape:0, t:0, A:approcheRangement(T, S)};
+  R.t += dt;
+  const fx = Math.sin(S.cap), fz = Math.cos(S.cap);
+  // Le tracteur s'arrête là où sa chape tombe sur la case : `hc` devant elle.
+  const hc = hitchDe(v, T);
+  if(R.etape === 0){
+    const r = suivreRoute(v, R.A.x, R.A.z, 'rg' + TOOLS.indexOf(T), 2.5);
+    if(r && R.t < 90) return r;
+    R.etape = 1; R.t = 0;
+    v.route = null; v.routeBut = null; v.routeArr = null; v.sortie = null;
+  }
+  if(R.etape === 1){
+    // Où en est la chape le long de l'axe de la case : négatif, elle n'y est pas encore.
+    const f = v.fwd();
+    const hx = v.pos.x - f.x*hc, hz = v.pos.z - f.z*hc;
+    const reste = -((hx - S.x)*fx + (hz - S.z)*fz);
+    if(reste > 0.15 && R.t < 25){
+      /* ON SUIT L'AXE DE LA CASE, ON NE VISE PAS UN POINT. Viser l'arrivée depuis une
+         approche décalée — celle du semoir, que le combiné oblige à prendre de biais —
+         faisait arriver l'outil de travers : 25° mesurés. On vise donc trois mètres
+         DEVANT soi SUR L'AXE : le tracteur rejoint la ligne en quelques mètres, puis la
+         remonte droit, et l'outil a le temps de se mettre dans sa trace. */
+      const s0 = (v.pos.x - S.x)*fx + (v.pos.z - S.z)*fz;
+      const s1 = Math.min(s0 + 3.0, hc + 3.0);
+      const cmd = viser(v, S.x + fx*s1, S.z + fz*s1, 0.3, 1.6);
+      /* Au pas sur la fin : la manœuvre se joue au demi-mètre. La consigne est une
+         fraction de `vmax`, et sous 0,05 le moteur ne pousse plus — il freine. On garde
+         donc toujours un filet de gaz, faute de quoi le tracteur s'arrêterait avant la
+         marque et attendrait là les vingt-cinq secondes du garde-fou. */
+      const vise = Math.min(3.2, 0.6 + reste*0.6);
+      cmd[1] = Math.min(cmd[1], Math.max(0.06, vise/Math.max(1, v.vmax)));
+      return cmd;
+    }
+    R.etape = 2; R.t = 0;
+  }
+  // Arrêté, on dételle — et l'outil prend sa place exacte (voir `poserALaPlace`).
+  if(v.speed > 0.4 && R.t < 3) return [0, 0];
+  detachTool(v);
+  poserALaPlace(T);
+  v.rangement = null;
+  v.route = null; v.routeBut = null; v.routeArr = null; v.sortie = null;
+  if(m === MACHINES[cur]) refreshHitchButton();
+  return null;
+}
+/* LES DERNIERS CENTIMÈTRES. Le tracteur arrête la chape à deux à huit centimètres de sa
+   marque, l'outil à moins de deux degrés de son axe — onze pour le semoir, qu'on aborde
+   de biais à cause du combiné garé derrière lui (mesuré sur trois chantiers). On le fait
+   glisser jusqu'à la pose exacte de la case, celle du premier matin, en un tiers de
+   seconde. Pour la logique, il y est tout de suite : `T.x`/`T.z` désignent la case dès le
+   dételage, et c'est là qu'on viendra le reprendre. */
+const RANGEMENTS = [];
+function poserALaPlace(T){
+  const S = placeOutil(T);
+  if(!S || T.attached) return;
+  const g = T.group;
+  for(let k = RANGEMENTS.length - 1; k >= 0; k--) if(RANGEMENTS[k].T === T) RANGEMENTS.splice(k, 1);
+  RANGEMENTS.push({T, x0:g.position.x, z0:g.position.z, c0:g.rotation.y, t:0, S});
+  T.x = S.x; T.z = S.z; T.cap = S.cap; T.rangeVers = S;
+}
+function majRangements(dt){
+  for(let k = RANGEMENTS.length - 1; k >= 0; k--){
+    const R = RANGEMENTS[k], T = R.T;
+    if(T.attached){ T.rangeVers = null; RANGEMENTS.splice(k, 1); continue; }
+    R.t = Math.min(1, R.t + dt/0.35);
+    const e = R.t*R.t*(3 - 2*R.t);
+    let dc = R.S.cap - R.c0;
+    while(dc >  Math.PI) dc -= Math.PI*2;
+    while(dc < -Math.PI) dc += Math.PI*2;
+    T.group.position.set(R.x0 + (R.S.x - R.x0)*e, 0, R.z0 + (R.S.z - R.z0)*e);
+    T.group.rotation.y = R.c0 + dc*e;
+    if(R.t >= 1){ T.group.rotation.y = R.S.cap; T.rangeVers = null; RANGEMENTS.splice(k, 1); }
+  }
+}
+/* LE PARKING DE LA FERME, au sens où le joueur l'entend : la dalle de la cour. On y teste
+   la CHAPE et l'ESSIEU — un outil dont le timon est sur la dalle mais l'arrière sur la
+   rocade n'y est pas rangé. */
+function surParkingFerme(x, z, marge){
+  const m = marge || 0;
+  return x >= COUR_X0 + m && x <= YARD.x + YARD.w/2 - m && z >= COUR_Z0 + m && z <= COUR_Z1 - m;
+}
 function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
@@ -19512,10 +19709,11 @@ function missionDrive(m, dt){
      trajet et l'attelage, et rien d'autre : elle se glisse donc devant n'importe quelle
      tâche de parcelle, et une chaîne complète s'écrit sans une ligne de pilotage neuve.
 
-     ON DÉTELLE SUR PLACE, ET C'EST VOULU. L'engin arrive avec ce qu'il traîne, le pose
-     là où il vient chercher l'autre — c'est-à-dire au parc à outils — et repart. Un
-     outil abandonné garde sa position au sol (voir `detachTool`), donc on le retrouvera
-     là où on l'a laissé, et non rangé par magie. */
+     ON NE DÉTELLE PLUS SUR PLACE. L'engin posait ce qu'il traînait là où il venait
+     chercher l'autre : la charrue finissait dans l'allée de la cour, puis au pied du
+     semoir. Il la ramène maintenant à SA case avant d'aller prendre le suivant (voir
+     `rangerOutil`) ; seule une semi-remorque, qui n'a pas de case à la ferme, se pose
+     encore là où l'on prend la suivante. */
   if(t.quoi === 'outil'){
     const T = TOOLS[t.t];
     v.cleVoulue = null; v.sensVoulu = 'route';
@@ -19528,6 +19726,9 @@ function missionDrive(m, dt){
     // cette garde est là pour que ce soit vrai même si un plan ancien le demandait.
     if(!peutAtteler(v, T)){ tacheSuivante(m); return [0, 0]; }
     if(v.tool === T && T.attached === v){ tacheSuivante(m); return [0, 0]; }
+    // Ce qu'on traîne retourne d'abord à sa case : voir `rangerOutil`.
+    const rg = rangerOutil(m, dt);
+    if(rg) return rg;
     /* UN OUTIL PRIS PAR UN AUTRE N'EST PAS UNE ERREUR, C'EST UNE ATTENTE. Deux chantiers
        peuvent vouloir la même charrue au même moment ; celui qui arrive second patiente
        au lieu d'abandonner son plan. Trente secondes — de quoi laisser finir une passe
@@ -19567,6 +19768,11 @@ function missionDrive(m, dt){
     v.cleVoulue = null; v.sensVoulu = 'route';
     const P = v.parc;
     if(!P){ tacheSuivante(m); return [0, 0]; }
+    /* ET L'OUTIL RENTRE À SA CASE AVANT LE TRACTEUR. Un tracteur se garait attelé : sa
+       charrue dormait dans l'allée, en travers du chemin des autres. Il la pose d'abord
+       à sa place, puis va à la sienne. */
+    const rg = rangerOutil(m, dt);
+    if(rg){ M.attente = 0; return rg; }
     /* EN DEUX TEMPS, PARCE QU'UNE CASE N'EST PAS UN QUAI. `suivreRoute` valide son
        dernier point de passage AU LARGE — cinq mètres et demi, ce qui convient à la
        grille d'un silo et laissait l'engin s'arrêter à 4,76 m de sa place, mesuré. Une
@@ -19582,8 +19788,17 @@ function missionDrive(m, dt){
       M.etape = 1; v.route = null; v.routeBut = null; v.routeArr = null;
     }
     M.attente = (M.attente || 0) + dt;
-    if(Math.hypot(P.x - v.pos.x, P.z - v.pos.z) > 1.5 && M.attente < 20)
-      return viser(v, P.x, P.z, 1.2);
+    /* ET L'ON ENTRE DANS SA CASE AU PAS. Les sept mètres se faisaient pleins gaz : la
+       machine lâchait l'accélérateur à 1,2 m de sa marque et finissait sur son élan —
+       trois mètres et demi plus loin, mesuré, le nez sur le chemin du nord. On ralentit
+       donc à l'approche, comme pour poser un outil, et l'on s'arrête à soixante
+       centimètres. */
+    const dP = Math.hypot(P.x - v.pos.x, P.z - v.pos.z);
+    if(dP > 0.6 && M.attente < 20){
+      const cmd = viser(v, P.x, P.z, 0.6);
+      cmd[1] = Math.min(cmd[1], Math.max(0.06, Math.min(3.5, 0.6 + dP*0.55)/Math.max(1, v.vmax)));
+      return cmd;
+    }
     tacheSuivante(m);
     return [0, 0];
   }
@@ -26507,6 +26722,24 @@ const buyEl = document.getElementById('buy');
    DEUX PARCELLES NE PEUVENT PAS SE DISPUTER LE POINT — elles ne se recouvrent pas — mais
    la boucle garde une comparaison : c'est elle qui choisit la plus INTÉRIEURE si jamais
    deux friches se touchaient au bord. */
+/* LA TERRE QUE LE TUTORIEL CONSEILLE : LA MOINS CHÈRE, PAS LA PREMIÈRE DU TABLEAU.
+   Le joueur : « dans le tutoriel, lorsqu'on débloque le maïs, on nous demande d'aller
+   débloquer une parcelle qui est très chère, c'est incohérent : il faudrait que la
+   deuxième parcelle débloquée soit la moins chère. »
+   IL AVAIT RAISON, ET C'ÉTAIT UN `find`. La mission demandait « la première parcelle non
+   possédée », c'est-à-dire PARCELS[0] — le coin nord-ouest, à 27 000 € —, alors que celle
+   d'à côté, à l'ouest du champ de départ, en coûte 1 000. Le cercle jaune de l'achat,
+   lui, visait la plus PROCHE de l'engin : une troisième règle, encore différente.
+   UNE SEULE RÈGLE MAINTENANT, pour les trois appels : la friche à vendre la moins chère.
+   Les enclos ne s'achètent pas : on les écarte, comme tout ce qui n'a pas de panneau. */
+function parcelleConseillee(){
+  let best = null;
+  for(const p of PARCELS){
+    if(p.owned || p.pature || !p.signPos || !(p.price > 0)) continue;
+    if(!best || p.price < best.price) best = p;
+  }
+  return best;
+}
 function parcelForSale(v){
   let best = null, bd = 0;
   for(const p of PARCELS){
@@ -26567,6 +26800,17 @@ hitchEl.addEventListener('pointerdown', ()=>{
   }
   const T = toolOf(m);
   if(T){
+    /* ON NE POSE UN OUTIL DE FERME QUE SUR LE PARKING DE LA FERME. C'est la même règle
+       que pour l'automate (voir `rangerOutil`), dite au joueur : une charrue lâchée sur la
+       rocade y restait, en travers de la circulation, jusqu'à ce qu'un tracteur vienne la
+       chercher. Le bouton garde son signe — il n'y a rien de caché —, et dit où aller. Les
+       semi-remorques gardent leur liberté : elles n'ont pas de case à la ferme. */
+    if(placeOutil(T) && !(surParkingFerme(T.group.position.x, T.group.position.z, 0)
+                          && surParkingFerme(T.x, T.z, 0.5))){
+      showHint(T.nom.toUpperCase() + ' – À DÉTELER SUR LE PARKING DE LA FERME');
+      refreshHitchButton();
+      return;
+    }
     detachTool(m.v);
     showHint(T.nom.toUpperCase() + ' DÉTELÉ');
   } else {
@@ -28017,13 +28261,8 @@ function lieuLecon(L){
   }
   if(ou === 'parcelle'){
     if(L.parcelle)return {lieu:'parcelle',x:L.parcelle.x,z:L.parcelle.z};
-    const v = MACHINES[cur].v;
-    let best = null, bd = 1e9;
-    for(const q of PARCELS){
-      if(q.owned || !q.signPos) continue;
-      const d = Math.hypot(q.x - v.pos.x, q.z - v.pos.z);
-      if(d < bd){ bd = d; best = q; }
-    }
+    // La moins chère, et non plus la plus proche de l'engin : voir `parcelleConseillee`.
+    const best = parcelleConseillee();
     return best ? {lieu:'parcelle', x:best.x, z:best.z} : null;
   }
   if(ou === 'champ'){
@@ -28151,7 +28390,7 @@ function conseilProgression(){
     const embarques=MACHINES.reduce((n,m)=>n+(!m.verrou&&m.v.betailEspece===e.cle?(m.v.betail||0):0),0);
     const besoin=Math.max(0,e.n-embarques-(e.cle==='cochon'?(STAT.porcs||0):0));
     if(!P && PARCELS.filter(p=>p.owned&&!p.pature).length<2){
-      const terrain=PARCELS.filter(p=>!p.owned&&p.signPos&&p.price>0).sort((a,b)=>a.price-b.price)[0];
+      const terrain=parcelleConseillee();
       if(terrain&&peutAcheterParcelle()&&money>=terrain.price) return lecon('terre-'+e.cle,'parcelle','Achetez une seconde terre avant de créer cet enclos. Conservez une parcelle pour les céréales et la nourriture.',{obligatoire:true,court:'Acheter une terre pour l’enclos',parcelle:terrain});
       return lecon('budget-terre-'+e.cle,'Coopérative','Vendez une récolte pour financer une terre supplémentaire. Gardez votre champ cultivable pour nourrir la ferme.',{obligatoire:true,court:'Financer une seconde terre'});
     }
@@ -28799,7 +29038,7 @@ function origineFerme(cle, ici, prof){
                          'AMÉNAGER UN ENCLOS – ' + E3.pluriel.toUpperCase(),
                          {x:terre.x, z:terre.z});
     if(peutAcheterParcelle()){
-      const F3 = PARCELS.find((p)=> !p.owned);
+      const F3 = parcelleConseillee();
       if(F3) return ici('champ', 'parcelle',
                         'IL FAUT UNE PARCELLE POUR LES ' + E3.pluriel.toUpperCase(),
                         {x:F3.x, z:F3.z});
@@ -28866,7 +29105,7 @@ function origineFerme(cle, ici, prof){
      vraiment. Une friche à vendre d'abord, si le palier en laisse acheter une ; sinon
      la parcelle la plus proche de la récolte, qu'il faut libérer. */
   if(peutAcheterParcelle()){
-    const F = PARCELS.find((p)=> !p.owned);
+    const F = parcelleConseillee();
     if(F) return ici('champ', 'parcelle', 'IL FAUT UNE PARCELLE POUR LE ' + nomHaut(cle),
                      {x:F.x, z:F.z});
   }
@@ -35925,7 +36164,10 @@ function etatJeu(){
                            load:T.load||0, type:T.type||null, charge:T.charge||null, crop:T.crop||0,
                            cuves: Object.assign({}, T.cuves),
                            cuveQ:cuveCourante(T), cuveCle:cuveCleDe(T),
-                           x:T.group.position.x, z:T.group.position.z, cap:T.group.rotation.y,
+                           // un outil qui glisse vers sa case se sauve DANS sa case
+                           x:T.rangeVers ? T.rangeVers.x : T.group.position.x,
+                           z:T.rangeVers ? T.rangeVers.z : T.group.position.z,
+                           cap:T.rangeVers ? T.rangeVers.cap : T.group.rotation.y,
                            porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
     patures: PATURES.map(P=>({
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
@@ -36461,6 +36703,15 @@ function chargerPartie(S){
       if(T.semi){T.axle.x=q.x-Math.sin(q.cap)*T.L;T.axle.z=q.z-Math.cos(q.cap)*T.L;}
       if(q.porteur >= 0 && MACHINES[q.porteur] && !MACHINES[q.porteur].verrou)
         attachTool(MACHINES[q.porteur].v, T);
+      /* UNE PARTIE D'AVANT LE RANGEMENT A SES OUTILS SEMÉS PARTOUT — dans l'allée, au pied
+         d'un autre, au bord d'un champ. Un outil de ferme que personne ne tire repart donc
+         de SA case : c'est l'état que le joueur demande, et c'est celui d'où l'automate
+         sait les reprendre et les reposer. */
+      const S = !T.attached && placeOutil(T);
+      if(S){
+        T.group.position.set(S.x, 0, S.z); T.group.rotation.y = S.cap;
+        T.x = S.x; T.z = S.z; T.cap = S.cap; T.axle.x = S.x; T.axle.z = S.z;
+      }
     });
     /* LA CAMPAGNE SE RELIT EN DERNIER, et c'est nécessaire : une partie d'avant la
        campagne n'a pas de palier écrit, on le DÉDUIT de ce qu'elle possède — ses
@@ -37909,12 +38160,18 @@ const chargeA = (m)=>{ const K = caisseDe(m);
   return (K && K.load > 0.01) || (m.key === 'moisson' && hopper > VIDE_TREMIE); };
 function libererEngins(pas){
   for(const C of CHANTIERS){
-    /* UN CHANTIER EN CONTINU NE RENVOIE PERSONNE. La règle est écrite dans ce fichier
-       depuis que l'automatisation existe : « une fois une action automatique terminée, SI
-       ELLE N'EST PAS EN CONTINU, le véhicule doit venir se garer sur le parking. » Un
-       chantier en continu ne se termine jamais ; ses engins repartent au tour suivant, et
-       les renvoyer au parc entre deux passes ne serait qu'un aller-retour de plus. */
-    if(C.continu) continue;
+    /* UN CHANTIER EN CONTINU RENVOIE AUSSI AU PARC CE QUI N'A PLUS RIEN À FAIRE.
+       Il ne renvoyait personne : « ses engins repartent au tour suivant, et les renvoyer
+       au parc entre deux passes ne serait qu'un aller-retour de plus. » Le tour suivant,
+       c'est après le labour, le semis, l'engrais et la pousse : plus de trois minutes
+       mesurées sur un chantier blé, pendant lesquelles la moissonneuse restait plantée
+       sur la grille du silo et le tracteur au bord du champ, attelé. Le joueur : « je veux que la moissonneuse, lorsqu'elle a fini de
+       déposer le blé au silo, vienne se garer aussi sur le parking. »
+       LE TOUR SUIVANT NE PERD RIEN À CE RETOUR. Un engin n'est rendu qu'après trois
+       secondes d'inutilité continue, APRÈS que tous les chantiers se sont servis : entre
+       le labour et le semis, le répartiteur le reprend avant que le délai coure. Et un
+       retour au parc se reprend (`rentreAuParc`) : si la parcelle mûrit pendant qu'il
+       roule, il fait demi-tour. */
     for(let k = (C.servi || []).length - 1; k >= 0; k--){
       const i = C.servi[k];
       if(i === C.enginTerre || i === C.enginPort) continue;
@@ -38240,6 +38497,7 @@ function loop(now){
     nettoyerReliquats(dt);
     flushTint();
     updateCargo(dt);
+    majRangements(dt);
     updateCommandes(dt);
     updateJourNuit(dt);
     updateElevage(dt);
