@@ -17033,3 +17033,66 @@ sur quarante secondes) ; la benne laissée au silo à demi pleine de blé, « re
 1 576 « GRUMES AU DÉPÔT » et 526 « BLÉ RENTRÉ » — la benne aussi faisait la navette sur
 place. Les bancs `élevage` (35/35), `commandes` (ses deux échecs d'avant) et `port` (43/43),
 où les engins agissent en automatique et aux quais, repassent comme avant.
+
+## Les outils rentrent à leur case, la moissonneuse au parking, le blé grandit pour de bon
+
+Le joueur, en quatre demandes : « toutes les charrues et les objets portés et tirés par les
+tracteurs doivent toujours être remis sur le parking à côté de la ferme, pas déposés sur la
+route » ; « que la moissonneuse, lorsqu'elle a fini de déposer le blé au silo, vienne se
+garer sur le parking » ; « refais les pousses de blé : la petite pousse paraît plus large et
+plus grosse que le blé qui en sort » ; « dans le tutoriel, quand on débloque le maïs, on nous
+demande de débloquer une parcelle très chère : la deuxième doit être la moins chère ».
+
+### Un outil qu'on lâche se range à sa place
+
+**Mesuré avant, sur un chantier blé de six minutes.** La tâche `outil` dételait l'ancien
+outil LÀ OÙ ELLE PRENAIT LE NOUVEAU : la charrue finissait dans l'allée de la cour, à 13,6 m
+de sa case. Et un chantier en continu ne renvoyait personne : pendant la pousse, le tracteur
+restait attelé au bord du champ, à 53 m de la ferme.
+
+**La règle.** Un engin automatique ne lâche plus un outil n'importe où. `rangerOutil` le
+ramène à SA case (`TOOL_PARK`) avant d'atteler le suivant, et avant de se garer : approche
+par la bande de dalle qui longe la rocade, huit mètres derrière la case, puis on remonte
+l'axe en marche avant jusqu'à ce que la chape soit sur sa marque. Le semoir, que le combiné
+garé derrière lui empêche d'aborder dans l'axe, est pris de biais par l'ouest. Mesuré sur
+trois chantiers : la chape s'arrête à 2–8 cm de sa marque, l'outil à moins de 2° de son axe
+(11° pour le semoir) ; `poserALaPlace` rattrape l'écart en un tiers de seconde.
+
+Le joueur, lui, ne peut plus poser un outil de ferme hors de la dalle de la cour : le bouton
+garde son signe et dit « CHARRUE – À DÉTELER SUR LE PARKING DE LA FERME ». Les semi-remorques
+gardent leur liberté. Et une partie d'avant retrouve, au chargement, chaque outil libre dans
+sa case.
+
+### Chacun rentre, même en continu — la moissonneuse comprise
+
+`libererEngins` sautait les chantiers en continu. Il ne les saute plus : un engin qui n'a plus
+rien à faire depuis trois secondes rentre au parc, outil rangé d'abord. La moissonneuse, vidée
+au silo, regagne sa case au lieu d'y attendre la moisson suivante ; un tracteur qui a fini
+d'épandre rentre pendant la pousse. Le répartiteur se sert avant ce délai : entre deux étapes,
+le tracteur est repris sans détour, et un retour au parc se reprend toujours.
+
+Et l'on entre dans sa case au pas : les sept derniers mètres se faisaient pleins gaz, et les
+tracteurs finissaient 3,4 m trop loin, le nez sur le chemin du nord. Mesuré après : 0,1 à
+0,2 m de leur marque.
+
+### La pousse ne grossit plus en grandissant à l'envers
+
+Pleine échelle, la pousse faisait 0,42 × 0,34 m, la montaison 0,81 × 0,50, le blé 1,63 × 0,59.
+Chaque âge démarrait à l'échelle qui égalait la HAUTEUR du précédent : la montaison repartait
+à 52 %, l'épi à 49 % — le pied maigrissait deux fois. Les deux jeunes âges s'affinent (deux
+brins de 30 et 26 cm, presque droits ; des feuilles plus étroites et plus dressées), et les
+annuelles se raccordent axe par axe (`ECH_PIED`) : hauteur et largeur repartent chacune de là
+où l'âge précédent s'est arrêté, et aucun âge ne finit plus grand que le suivant — l'orge,
+l'avoine et le colza, plus minces qu'une touffe de montaison, ne perdent plus de largeur en
+épiant. Mêmes triangles qu'avant ; les vignes et les oliviers ne changent pas.
+
+### La deuxième terre conseillée est la moins chère
+
+La mission du maïs demandait `PARCELS.find(p => !p.owned)` : le coin nord-ouest, 27 000 €,
+quand la friche voisine du champ de départ en coûte 1 000. `parcelleConseillee` rend la moins
+chère des friches à vendre, et sert aux trois appels — culture, élevage, cercle jaune de
+l'achat.
+
+**Bancs.** `progression` : le conseil va à la friche la moins chère, jamais à la première du
+tableau. `automatisation` : un chantier en continu rend au parc ce qui ne travaille plus, et
+garde celui qui travaille. Les treize suites repassent.
