@@ -19604,13 +19604,6 @@ function majRangements(dt){
     if(R.t >= 1){ T.group.rotation.y = R.S.cap; T.rangeVers = null; RANGEMENTS.splice(k, 1); }
   }
 }
-/* LE PARKING DE LA FERME, au sens où le joueur l'entend : la dalle de la cour. On y teste
-   la CHAPE et l'ESSIEU — un outil dont le timon est sur la dalle mais l'arrière sur la
-   rocade n'y est pas rangé. */
-function surParkingFerme(x, z, marge){
-  const m = marge || 0;
-  return x >= COUR_X0 + m && x <= YARD.x + YARD.w/2 - m && z >= COUR_Z0 + m && z <= COUR_Z1 - m;
-}
 function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
@@ -26810,17 +26803,11 @@ hitchEl.addEventListener('pointerdown', ()=>{
   }
   const T = toolOf(m);
   if(T){
-    /* ON NE POSE UN OUTIL DE FERME QUE SUR LE PARKING DE LA FERME. C'est la même règle
-       que pour l'automate (voir `rangerOutil`), dite au joueur : une charrue lâchée sur la
-       rocade y restait, en travers de la circulation, jusqu'à ce qu'un tracteur vienne la
-       chercher. Le bouton garde son signe — il n'y a rien de caché —, et dit où aller. Les
-       semi-remorques gardent leur liberté : elles n'ont pas de case à la ferme. */
-    if(placeOutil(T) && !(surParkingFerme(T.group.position.x, T.group.position.z, 0)
-                          && surParkingFerme(T.x, T.z, 0.5))){
-      showHint(T.nom.toUpperCase() + ' – À DÉTELER SUR LE PARKING DE LA FERME');
-      refreshHitchButton();
-      return;
-    }
+    /* LE JOUEUR DÉTELLE OÙ IL VEUT. Une version a réservé le geste au parking de la
+       ferme, comme l'automate ; le joueur l'a refusée — « pour dételer à la main, reviens
+       en arrière ». L'outil reste donc là où on le pose. C'est l'automate seul qui range
+       à la case (voir `rangerOutil`), et une partie rechargée retrouve ses outils libres
+       dans leur case. */
     detachTool(m.v);
     showHint(T.nom.toUpperCase() + ' DÉTELÉ');
   } else {
