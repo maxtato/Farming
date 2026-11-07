@@ -17096,3 +17096,81 @@ l'achat.
 **Bancs.** `progression` : le conseil va à la friche la moins chère, jamais à la première du
 tableau. `automatisation` : un chantier en continu rend au parc ce qui ne travaille plus, et
 garde celui qui travaille. Les treize suites repassent.
+
+## Le tutoriel relu avec les yeux de quelqu'un qui découvre
+
+Le joueur : « analyse tout le tutoriel […] est-ce que tous les boutons clignotent bien au
+moment où on doit cliquer dessus […] essaie d'imaginer pour quelqu'un qui découvre le jeu ».
+Le tour entier a été joué en téléphone paysage (844 × 390), de l'intro à la première vente,
+puis les vingt et une fenêtres de commerce ont été ouvertes une à une. Ce qui en sort :
+
+### Tout ce qu'il faut toucher bat
+
+Les boutons du bas battaient ; ceux qui naissent dans le paysage, non. « Répondre au
+téléphone », « Charger » et « Livrer » battent maintenant dans la colonne d'actions — un cadre
+posé à cinq pixels, dont seule l'opacité bat (la colonne coupe ce qui dépasse), blanc sur le
+jaune, jaune sur le vert. « Prendre la mission » bat comme « Valider ». Et au tutoriel, LANCER
+referme le plan : il restait ouvert sous la fenêtre de l'étape suivante, et rien ne disait de
+le fermer.
+
+### La phrase du bas dit le premier geste
+
+`suiteEtape` remplace la cascade d'`annoncerEtape`, dans l'ordre des gestes : changer de
+véhicule (« touche le bouton qui clignote en bas, puis « Tracteur vert » »), dételer ce qu'on
+porte (« Dételle d'abord la charrue »), puis seulement le cercle. La première marche disait
+« le cercle jaune est sur l'outil » à quelqu'un assis dans le pick-up.
+
+La marche « Reprendre le pick-up » n'a plus de lieu (`ou:null`) : la flèche menait à sa place
+de départ, vide, à 46 m — il était garé devant la maison. Le bouton des véhicules bat, puis la
+ligne du pick-up.
+
+### Le reste du guidage
+
+- La carte du plan s'ouvre, au tutoriel, rapprochée sur la parcelle à toucher : elle faisait
+  huit pixels de côté, elle en fait cinquante. Le cadre jaune est recentré (boîte de bordure).
+- « Élevage – à partir de 800 € » ne sort plus pendant le tutoriel, ni à qui travaille son
+  champ (outil attelé ou moissonneuse) : il se posait à chaque arrêt sur la flèche et
+  l'étiquette.
+- L'étiquette du champ dit « Labouré – à semer » et « Semé – ça pousse » au seuil où la marche
+  passe (98 %) : elle affichait « 99 % labouré » sous la fenêtre qui annonçait le champ prêt.
+- Entre deux missions, le bandeau dit « Le téléphone sonne – rentre à la ferme pour décrocher » :
+  il ne portait plus que le nom du commerce où l'on était garé.
+- Le bouton « Prix des commerces » bat après la première vente, tant qu'on ne l'a jamais
+  ouvert (`CAMPAGNE.vuPrix`, sauvegardé ; absent d'une vieille partie, il vaut « vu »).
+
+### Les fenêtres tiennent dans l'écran
+
+- À moins de 440 px de haut, la fenêtre de récit reprend une cinquantaine de pixels (marges,
+  interlignes, chiffre de la prime, rond de la flèche) ; à moins de 380, le portrait en cède
+  encore. Mesuré à 844 × 390 et 740 × 360 : la fin de mission (« un nouvel appel arrivera au
+  téléphone » n'était jamais vu) et les vingt et une fenêtres de commerce tiennent sans
+  défiler.
+- Passé huit produits, la liste d'un commerce se resserre (`.client-produits.dense`) : le
+  Marché en montrait douze sur seize, l'Entrepôt d'export seize sur vingt-deux. La phrase du
+  bas nomme le vrai bouton — le « carnet des commerces » n'existait nulle part.
+- La fenêtre des prix met d'abord ce qu'on cultive ou qu'on a en stock : le blé était
+  avant-dernier, sous les vaches à 3 500 €. Et l'on lit « € / bête ».
+- Les étiquettes du paysage s'effacent quand leur plaque mord sur une commande (`jaugeSousHud`,
+  boîtes relues deux fois par seconde) : « Cuve à graines » passait sous le bouton A.
+
+### Les textes et les comptes
+
+- « TRACTEUR TRACTEUR – SANS OUTIL » : `nomVehicule`, le nom de la liste des véhicules, sert
+  partout. « CHARRUE ATTELÉE », « BENNE DÉTELÉE » (`accordOutil`).
+- La ligne d'un transfert en cours dit « CHARGER BLÉ · ENCORE 22 KG » au lieu de
+  « CHARGER BLÉ 107 KG · 22 KG ».
+- La fenêtre d'une leçon dit « Suis la flèche bleue au bord de l'écran : Silo » au lieu de
+  « La flèche bleue du bord mène à silo ».
+- La caisse s'écrit partout tronquée, au centime près (`caisseTxt`) : 209 € en haut, 210 €
+  dans les fenêtres, pour les mêmes 209,98 €.
+- Le dernier pas d'un transfert dosé se règle sur le débit MESURÉ (`choixDebit`), et non sur
+  une borne trois fois trop haute : il tombait sur une asymptote, 29,98 kg pour trente, et la
+  mission — soldée à un centième près — ne se fermait pas. Les objectifs et la clôture de
+  mission tolèrent deux millièmes de la commande (`tolQte`).
+
+Laissés tels quels, parce que ce sont des choix de jeu : la Boucherie achète huile et miel,
+l'Usine avoine de l'huile de colza (c'est bien un ingrédient du lait d'avoine).
+
+**Bancs.** `progression` : la longue liste d'un commerce est resserrée et nomme le bouton des
+prix ; la marche du pick-up n'a pas de lieu, celle du parking garde le sien ; une livraison à
+deux millièmes près solde sa ligne. Les quatorze suites passent.

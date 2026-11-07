@@ -1155,6 +1155,11 @@
   #brplus .vign{width:26px;height:26px;vertical-align:middle;margin:0 3px;object-fit:contain}
   .client-produits{display:flex;flex-wrap:wrap;gap:5px 10px;justify-content:center;letter-spacing:0;text-transform:none}
   .client-produit{display:inline-flex;align-items:center;font-size:11px}
+  /* LA LISTE LONGUE SE RESSERRE (voir `pageDeblocage`) : seize à vingt-deux produits
+     tiennent en quatre ou cinq lignes au lieu de déborder du papier. */
+  .client-produits.dense{gap:1px 8px;line-height:1.35}
+  .client-produits.dense .client-produit{font-size:10px}
+  #brplus .client-produits.dense .vign{width:17px;height:17px;margin:0 2px}
   /* ---------- LE TAMPON « STOCK PLEIN » ----------
      Le joueur : « avec comme un tampon rouge sur le côté qui met stock plein ».
      C'est un tampon de caoutchouc, et un tampon de caoutchouc a trois signes : il est
@@ -1257,6 +1262,25 @@
   /* `animation:none` sous le doigt : sans ça la poussée infinie reprendrait la main sur
      `transform` et l'appui ne se verrait pas. */
   #brgo:active{animation:none;transform:scale(1.12)}
+  /* SUR UN TÉLÉPHONE EN PAYSAGE, TOUT TIENT SANS DÉFILER. À 390 pixels de haut, la fin de
+     mission débordait d'une trentaine de pixels — la ligne « un nouvel appel arrivera au
+     téléphone » n'était jamais vue —, et quatre fenêtres de commerce coupaient leur
+     liste. Le défileur rattrapait le reste, mais rien ne disait qu'il y avait un reste.
+     On reprend donc cinquante pixels là où personne ne les regarde : les marges, les
+     interlignes, le chiffre de la prime et le rond de la flèche, quatre pixels chacun.
+     Le portrait garde sa place : c'est lui qui dit qui parle. */
+  @media (max-height:440px){
+    #brboite{padding-top:9px;padding-bottom:9px}
+    #brdefile{gap:4px}
+    #brface{width:min(192px,18vh);height:min(240px,22.5vh)}
+    #brsous{line-height:1.5}
+    #brprix{font-size:28px;padding:6px 18px}
+    #brplus{line-height:1.45}
+    #bravo #brgo{margin-top:3px;width:34px;height:34px;min-width:34px;min-height:34px}
+  }
+  /* Et sur les plus petits (360 de haut), le portrait cède encore quelques pixels. */
+  @media (max-height:380px){#brface{width:min(192px,16vh);height:min(240px,20vh)}
+    #brsous{line-height:1.4}#brdefile{gap:3px}}
   /* LE VISAGE D'UNE ÉTAPE EST PLUS PETIT, ET C'EST LA MÊME RAISON QUI FAIT TOUT LE RESTE
      DE CETTE FENÊTRE. Une marche de tutoriel NE MET PAS LE JEU EN PAUSE : elle se pose
      pendant qu'on roule, et elle doit se lire sans arrêter la main. Le portrait d'une fin
@@ -1283,7 +1307,7 @@
     transform:translateX(-50%);pointer-events:auto;display:none;
     flex-direction:column;align-items:center;gap:5px;
     max-height:calc(100% - 210px - env(safe-area-inset-bottom));overflow-y:auto;
-    padding:2px 0}
+    padding:7px 9px}
   /* LA COULEUR D'UN BOUTON DIT SON RÔLE, ET RIEN D'AUTRE.
      Elle disait le LIEU — la colonne prenait la teinte du cercle sous les roues, et tous
      ses boutons avec. À la Coopérative du tutoriel, le cercle est vert : on y trouvait
@@ -1329,6 +1353,20 @@
     font-size:10px;font-weight:bold;letter-spacing:1.1px;
     white-space:nowrap;flex:none}
   #choix .ch.jaune{--act:#FFD21E;--actOmb:#C79E0A}
+  /* LE BOUTON QUE LE JEU ATTEND BAT AUSSI DANS LA COLONNE. « Répondre au téléphone »,
+     « Charger » et « Livrer » étaient les trois seuls gestes de la première demi-heure
+     que le guidage désignait par un cercle au sol, mais pas par un battement : le
+     joueur arrivait sur l'anneau et trouvait un bouton immobile, de la même allure que
+     tous les autres. Il bat maintenant comme les boutons du bas.
+     UN CADRE QUI NE GRANDIT PAS : la colonne coupe ce qui dépasse (`overflow-y:auto`),
+     un halo mis à l'échelle y ferait naître une barre de défilement. Le cadre est donc
+     posé à cinq pixels du bouton — la colonne a reçu le rembourrage qu'il faut — et
+     seule son opacité bat, pendant que le bouton respire en se resserrant. Blanc sur le
+     jaune, jaune sur le vert : il doit se détacher de l'aplat qu'il entoure. */
+  #choix .ch.appel{position:relative;animation:appelRespire .95s ease-in-out infinite}
+  #choix .ch.appel::after{content:'';position:absolute;inset:-5px;border-radius:15px;
+    border:3px solid #FAD201;pointer-events:none;animation:appelPlat .95s ease-in-out infinite}
+  #choix .ch.jaune.appel::after{border-color:#fff}
   /* Le VERT dans la colonne : il n'y reste qu'une ligne, « RÉPONDRE AU TÉLÉPHONE »,
      devant la maison. C'est la seule chose de tout le jeu qui se dise en vert, au sol
      comme dans la colonne — et elle ne se confond donc avec rien. */
@@ -1596,9 +1634,9 @@
   /* LA CARTE APPELLE COMME LES MENUS. Pendant la marche de l'automatisation, la puce ou
      le bouton à toucher prend le jaune du guidage et bat comme une ligne de menu ; la
      parcelle à désigner porte un cadre jaune posé sur la carte, qui suit le zoom. */
-  #plan .pc.appel,#plan .pb.appel,#actego.appel{background:#FAD201;color:#10171B;position:relative;
+  #plan .pc.appel,#plan .pb.appel,#actego.appel,#ctoui.appel{background:#FAD201;color:#10171B;position:relative;
     box-shadow:0 3px 0 #B49700;animation:appelRespire .95s ease-in-out infinite}
-  #plan .pc.appel::after,#plan .pb.appel::after,#actego.appel::after{content:'';position:absolute;inset:-3px;
+  #plan .pc.appel::after,#plan .pb.appel::after,#actego.appel::after,#ctoui.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:12px;border:3px solid #FAD201;pointer-events:none;
     animation:appel 1.05s ease-out infinite}
   #plancible{position:absolute;display:none;border:3px solid #FAD201;border-radius:4px;
@@ -3575,9 +3613,10 @@ const prixUnite = (cle)=> prixDe(cle)/parKgDe(cle);
    et c'est le seul endroit où la conversion apparaît. */
 const u2kg = (cle, u)=> u/parKgDe(cle);
 // Comment on dit ce prix : « € / kg », « € / L », « € pièce ».
-const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce' : '€ / ' + uniteDe(cle);
+const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce'
+  : uniteDe(cle) === 'bêtes' ? '€ / bête' : '€ / ' + uniteDe(cle);
 // Le singulier, pour les tournures « par litre apporté », « par œuf engagé ».
-const UNITE_UN = {kg:'kg', L:'litre', 'œufs':'œuf'};
+const UNITE_UN = {kg:'kg', L:'litre', 'œufs':'œuf', 'bêtes':'bête'};
 const uniteUn = (cle)=> UNITE_UN[uniteDe(cle)] || uniteDe(cle);
 /* QUATRE FAÇONS D'ÉCRIRE LA MÊME QUANTITÉ, selon la phrase qui l'accueille :
 
@@ -4435,7 +4474,7 @@ function acheteursDe(cle, sauf, quantite){
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
 const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false,
-                  ouverture:false, clientsPresentes:[]};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
+                  ouverture:false, clientsPresentes:[], vuPrix:false};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
    d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
@@ -5233,9 +5272,18 @@ function pageDeblocage(S){
   if(S.nom==='Comptoir des pêcheurs') txt='Votre flotte est prête. Barque et chalutier pour le poisson, caseyeur pour les crustacés. Débarquez au quai, puis livrez avec le camion frigo.';
   else if(S.abattoir) txt+=' Les animaux arrivent uniquement en fourgon.';
   else if(S.accepte&&S.accepte.length) txt+=' Les apports à l’usine sont payés à la livraison.';
+  /* ET LA LISTE TIENT DANS LA FENÊTRE. Le Marché en annonçait seize, l'Entrepôt d'export
+     vingt-deux : à trois par ligne et vingt-six pixels de vignette, la fenêtre en montrait
+     douze, et le reste — avec la phrase du bas — partait dans un défilement que rien ne
+     signalait. Passé huit produits, la liste se resserre : petite vignette, petit
+     caractère, et elle tient en cinq lignes au plus.
+     ET LA PHRASE DU BAS NOMME LE BON BOUTON. Elle renvoyait au « carnet des commerces »,
+     qui n'existe sous ce nom nulle part : c'est le bouton à l'étiquette, à gauche, qui
+     s'intitule « Prix des commerces » — et il bat jusqu'à ce qu'on l'ait ouvert. */
   const vign=pris.map(c=>'<span class="client-produit">'+(vignetteDe(c)?'<img class="vign" src="'+vignetteDe(c)+'" alt="">':'')+nomDe(c)+'</span>').join('');
-  return {titre:S.nom.toUpperCase(),sous:'<i>« '+txt+' »</i>',plus:'<div class="client-produits">'+vign+'</div>',
-    face:{nom:S.nom,humeur:'bravo'},suite:'Produits et prix dans le carnet des commerces',duree:9};
+  return {titre:S.nom.toUpperCase(),sous:'<i>« '+txt+' »</i>',
+    plus:'<div class="client-produits'+(pris.length>8?' dense':'')+'">'+vign+'</div>',
+    face:{nom:S.nom,humeur:'bravo'},suite:'Les prix : bouton « Prix des commerces », l’étiquette à gauche',duree:9};
 }
 function veillerDeblocages(){
   while(SITES_ANNONCE.length){
@@ -5577,6 +5625,7 @@ function chargerCampagne(S){
     /* L'ARRIVÉE DU PICK-UP, VUE OU NON. Absent d'une vieille sauvegarde, le champ vaut
        « vue » : une partie en cours ne se voit pas raconter l'héritage en repartant. */
     CAMPAGNE.ouverture = C.ouv === undefined ? true : !!C.ouv;
+    CAMPAGNE.vuPrix = C.vuPrix === undefined ? true : !!C.vuPrix;
     /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
        la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
        après a glissé d'un cran. `99` — « tout franchi » — ne bouge pas. */
@@ -5707,7 +5756,7 @@ function veillerMission(){
   const M = missionVisible();
   if(!M) return;
   if(M.faire){ if(testerFaire(M.faire)) finirMission(); return; }
-  if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - 0.01)) finirMission();
+  if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - tolQte(l.need))) finirMission();
 }
 
 /* LE RESTAURANT NE COMMANDE PLUS TOUT SEUL.
@@ -17655,7 +17704,12 @@ function refreshCommandes(){
   const ET = M ? null : etapeTuto();
   const LC = leconCourante();
   const SV = serviceIci(v0);
-  const sig = (M ? (M.nom || titreMission(M)) + '|' + (OM ? (OM.court || OM.txt) : '') : '')
+  /* ET ENTRE DEUX MISSIONS, LE TÉLÉPHONE SE DIT AUSSI. La première vente soldée, le
+     bandeau ne portait plus que le nom du commerce où l'on était garé : la mission
+     suivante attendait au téléphone de la ferme, et seule une petite flèche verte au bord
+     de l'écran le laissait deviner. */
+  const TEL = (!M && !ET && missionAPrendre()) ? 'Rentre à la ferme pour décrocher' : '';
+  const sig = 'tel:' + TEL + '|' + (M ? (M.nom || titreMission(M)) + '|' + (OM ? (OM.court || OM.txt) : '') : '')
     + '\n' + (ET ? champEtape(ET, 'titre') : '')
     + '\n' + (LC ? (LC.court || LC.nom || LC.titre) : '')
     + '\n' + (SV ? SV.nom : '');
@@ -17692,6 +17746,13 @@ function refreshCommandes(){
      mission au-dessus — celle-ci RAPPELLE, celle-là APPREND, et elle ne dure que le temps
      de l'apprentissage : elle a donc droit à ses deux lignes là où la mission n'en a
      qu'une. */
+  if(TEL){
+    const mi = document.createElement('div'); mi.className = 'mis';
+    const nm = document.createElement('span'); nm.textContent = 'Le téléphone sonne';
+    const fm = document.createElement('span'); fm.className = 'mf'; fm.textContent = TEL;
+    mi.appendChild(nm); mi.appendChild(fm);
+    el.ctr.appendChild(mi);
+  }
   if(ET){
     /* ET LA MARCHE DE TUTORIEL N'Y MET PLUS SON RÉCIT. La même règle que pour la mission :
        le bandeau rappelle ce qu'il y a à faire, il ne raconte pas. « On ne sème pas sur de
@@ -23140,6 +23201,19 @@ const MACHINES = [
    ne s'ajoute QUE là où le doute existe — le nom reste « Tracteur » au bandeau, dans
    la liste du parc et sur la carte, où la couleur du modèle est sous les yeux. */
 const nomEngin = (m)=> m.robe ? m.nom + ' ' + m.robe : m.nom;
+/* LE NOM QU'ON LIT DANS LA LISTE DES VÉHICULES, PARTOUT. La liste écrivait « Moissonneuse »,
+   le bandeau de conduite « TRACTEUR » suivi du nom du modèle — qui est déjà « Tracteur » :
+   on lisait « TRACTEUR TRACTEUR – SANS OUTIL ». Une seule fonction, et la phrase du
+   tutoriel qui dit quel véhicule prendre écrit le même mot que la ligne qui bat. */
+const nomVehicule = (m)=> m.key === 't4' ? 'Tracteur puissant' : m.key === 'moisson' ? 'Moissonneuse'
+  : m.key === 'semi' ? 'Semi-remorque' : nomEngin(m);
+/* ET LES OUTILS ONT UN GENRE. « CHARRUE ATTELÉ », « DÉTELER CHARRUE D'ABORD » : la charrue,
+   la benne et la citerne sont féminines, et une phrase sans article se lit comme un
+   télégramme. */
+const OUTIL_FEM = new Set(['labour', 'benne', 'citerne']);
+const leOutil = (T)=>{ const n = T.nom.toLowerCase();
+  return (/^[aeiouéèêh]/.test(n) ? 'l\u2019' : OUTIL_FEM.has(T.key) ? 'la ' : 'le ') + n; };
+const accordOutil = (T, mot)=> mot + (OUTIL_FEM.has(T.key) ? 'E' : '');
 /* ---------- CE QUI EST ENCORE À VENDRE ----------
    `verrou` a toujours voulu dire deux choses à la fois : « pas encore acheté » et « à
    vendre ». Le tracteur rouge et le bleu séparent les deux — ils ne sont plus proposés,
@@ -24064,6 +24138,13 @@ const ONGLETS = [
   {id:'budget',   nom:'Budget'}
 ];
 const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
+/* LA CAISSE S'ÉCRIT PARTOUT DE LA MÊME FAÇON. Le haut de l'écran tronquait — 209 € —
+   et les fenêtres arrondissaient — 210 € — pour les mêmes 209,98 €. On tronque partout,
+   pour ne jamais afficher un euro qu'on n'a pas, avec un centime de marge pour que
+   209,999… reste 210. */
+const caisseTxt = ()=> Math.floor(money + 0.01).toLocaleString('fr-FR') + ' €';
+// La marge d'une quantité livrée : deux millièmes de la commande, au moins un centième.
+const tolQte = (need)=> Math.max(0.01, need*0.002);
 /* Les intrants se comptent en pièces, pas en billets : arrondi à l'euro, un sac de blé
    à 4,50 € s'affichait « 5 € » et l'on ne voyait plus lequel des cinq sacs était le moins
    cher — ils tombaient tous sur cinq. En dessous de dix euros on garde les centimes. */
@@ -24161,6 +24242,7 @@ function ouvrirFenetre(id, vue){
   relacherCommandes();
   fermerPanneau();
   fenActive = id;
+  if(id === 'prix') CAMPAGNE.vuPrix = true;       // le bouton cesse de battre : voir `prixAppel`
   if(vue) fenVue[id] = vue;
   fen.style.display = 'block';
   paused = true;
@@ -24186,7 +24268,7 @@ function rendreFenetre(){
      bandeau retombe à la hauteur de son titre, et la liste récupère ce qu'il prenait. */
   document.getElementById('fenface').style.display = F.accroche ? 'none' : '';
   poserVisage(document.getElementById('fenface'), F.accroche ? null : F.visage, 'neutre');
-  fenargent.textContent = eur(money);
+  fenargent.textContent = caisseTxt();
   const vues = F.vues || null;
   fenonglets.innerHTML = '';
   fenonglets.style.display = vues ? 'flex' : 'none';
@@ -25313,8 +25395,7 @@ function ouvrirParc(){
     const A = enginTuto();
     l.className = 'pe' + (i === cur ? ' on' : '') + (A && A.key === m.key ? ' appel' : '');
     l.dataset.cle = m.key;
-    const nom = m.key === 't4' ? 'Tracteur puissant' : m.key === 'moisson' ? 'Moissonneuse'
-      : m.key === 'semi' ? 'Semi-remorque' : nomEngin(m);
+    const nom = nomVehicule(m);
     l.setAttribute('role','button');l.tabIndex=0;
     l.setAttribute('aria-label',nom + ' · ' + etat + ' · ' + det);
     l.setAttribute('aria-current',i===cur?'true':'false');
@@ -25406,7 +25487,7 @@ function machineLabel(i){
        + ' – Vendange et olives · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
   if(m.v.cargo) return m.nom.toUpperCase() + etoiles(m.v.level) + ' – Transporte '
        + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
-  return 'TRACTEUR ' + m.nom.toUpperCase() + etoiles(m.v.level) + ' – '
+  return nomVehicule(m).toUpperCase() + etoiles(m.v.level) + ' – '
        + (T ? T.nom + etoiles(T.level) + ' : ' + T.aide : 'sans outil');
 }
 
@@ -26025,6 +26106,7 @@ function ouvrirPlan(){
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
+  planZoomTuto = tutoPlan();
   document.getElementById('plantitre').textContent = 'Chantiers';
   planEl.style.display = 'block';
   paused = true;
@@ -26227,7 +26309,9 @@ function poserCible(){
   const p = PARCELS[planCible];
   const x0 = planOx + (p.x - p.w/2 - X0)*planEch, y0 = planOy + (p.z - p.h/2 - Z0)*planEch;
   c.style.left = (x0 - 4) + 'px'; c.style.top = (y0 - 4) + 'px';
-  c.style.width = (p.w*planEch + 2) + 'px'; c.style.height = (p.h*planEch + 2) + 'px';
+  // Boîte de bordure : les huit pixels sont les quatre de marge de chaque côté, cadre
+  // compris. À +2, le cadre glissait de quatre pixels vers le coin haut-gauche.
+  c.style.width = (p.w*planEch + 8) + 'px'; c.style.height = (p.h*planEch + 8) + 'px';
   c.style.display = 'block';
 }
 function guiderPlan(){
@@ -26261,6 +26345,12 @@ let planEch = 1, planOx = 0, planOy = 0;
    qui s'en déduisent. Rien d'autre à retoucher. */
 let planZoom = 1, planCx = null, planCz = null;
 const PLAN_ZOOM_MAX = 6;
+/* AU TUTORIEL, LA CARTE S'OUVRE SUR LA PARCELLE. Au monde entier, la parcelle à toucher
+   faisait huit pixels de côté dans un cadre de quatre-vingt-dix de haut : la consigne
+   « touche une parcelle verte » demandait de viser un timbre-poste. La première fois que
+   la carte s'ouvre sur la parcelle à désigner, elle s'en rapproche jusqu'à ce qu'elle
+   occupe les deux tiers de la hauteur — une fois, et le pincement reprend la main. */
+let planZoomTuto = false;
 // Le cadrage ne sort jamais de la carte : à zoom 1 il est exactement centré, et plus on
 // grossit, plus le centre peut s'écarter — d'exactement ce que le cadre laisse voir.
 function planCadrer(L, H, base){
@@ -26288,6 +26378,11 @@ function dessinerCarte(){
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   // même échelle sur les deux axes : la carte du monde est carrée
   const base = Math.min(L/WX, H/WZ);
+  if(planZoomTuto && planCible >= 0){
+    const p = PARCELS[planCible];
+    planZoom = Math.max(1, Math.min(PLAN_ZOOM_MAX, 0.66*H/(p.h*base), 0.5*L/(p.w*base)));
+    planCx = p.x; planCz = p.z; planZoomTuto = false;
+  }
   planCadrer(L, H, base);
   planEch = base*planZoom;
   planOx = L/2 - (planCx - X0)*planEch;
@@ -26565,6 +26660,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
     ? (!!chProduit && !!chDest[chProduit])
     : (!!patureDe(ref) && Object.keys(chDest).length > 0);
   if(!pret) return;
+  const enTuto = tutoPlan();
   for(const i of lot)
     poserChantier(i, {quoi:chQuoi, continu:chContinu, crop:chCrop,
                       engrais:chEngrais, produit:chProduit, nourrir:chNourrir,
@@ -26580,6 +26676,12 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
      second : on relâche le lot, la liste des chantiers en cours revient, et la parcelle
      suivante est à un doigt. */
   chLot = []; planTaches = []; majPlan();
+  /* SAUF AU TUTORIEL. Le plan restait ouvert, la fenêtre de l'étape suivante s'ouvrait
+     par-dessus, et une fois celle-ci lue rien ne disait qu'il fallait encore fermer la
+     carte avec la petite croix — le bouton des véhicules, que l'étape désigne, était
+     caché dessous. Le joueur qui découvre n'a qu'un chantier à lancer : on le lui
+     referme. */
+  if(enTuto) fermerPlan();
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
@@ -26601,10 +26703,17 @@ for(const b of document.querySelectorAll('#regie .rgb'))
    qu'aucun ne peut désigner autre chose que les trois autres. Le bouton s'éteint dès
    que la fenêtre est ouverte : on y est, c'est à l'onglet de prendre le relais. */
 const regieBtns = Array.from(document.querySelectorAll('#regie .rgb'));
+/* ET LES PRIX BATTENT UNE FOIS, APRÈS LA PREMIÈRE VENTE. Chaque commerce qu'on livre
+   pour la première fois dit ce qu'il achète, et renvoie au bouton des prix pour savoir
+   combien : rien ne le désignait, et c'est une étiquette sans mot parmi trois icônes.
+   Il bat donc tant qu'on ne l'a jamais ouvert — et seulement quand rien d'autre
+   n'appelle, pour qu'une seule chose batte à la fois. */
+const prixAppel = ()=> !CAMPAGNE.vuPrix && !tutoActif() && (CAMPAGNE.mission > 0 || STAT.ventes > 0.01);
 function refreshRegie(){
   const A = appelMenu();
   for(const b of regieBtns)
-    b.classList.toggle('appel', !!(A && A.fen === b.dataset.p && fenActive !== A.fen));
+    b.classList.toggle('appel', !!(A ? (A.fen === b.dataset.p && fenActive !== A.fen)
+                                     : (b.dataset.p === 'prix' && fenActive !== 'prix' && prixAppel())));
 }
 document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenetre);
 document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
@@ -26809,10 +26918,10 @@ hitchEl.addEventListener('pointerdown', ()=>{
        à la case (voir `rangerOutil`), et une partie rechargée retrouve ses outils libres
        dans leur case. */
     detachTool(m.v);
-    showHint(T.nom.toUpperCase() + ' DÉTELÉ');
+    showHint(T.nom.toUpperCase() + ' ' + accordOutil(T, 'DÉTELÉ'));
   } else {
     const F = nearestFreeTool(m.v);
-    if(F){ attachTool(m.v, F); showHint(F.nom.toUpperCase() + ' ATTELÉ'); }
+    if(F){ attachTool(m.v, F); showHint(F.nom.toUpperCase() + ' ' + accordOutil(F, 'ATTELÉ')); }
     else {
       /* ET L'ON DIT POURQUOI QUAND L'OUTIL EST LÀ MAIS PAS POUR NOUS. « Aucun outil à
          portée », le nez sur le combiné, se lit comme une panne du bouton : le joueur
@@ -26873,13 +26982,15 @@ function updateCargo(dt){
          que chaque image ne résorbait plus que 11 % du reste : une fin de transfert de
          cinq kilos immobilisait l'engin près d'une seconde à écouler des grammes. */
       const DEBIT_MAX = 140;
-      const dtA = (choixLimite !== null && m === MACHINES[cur])
-                  ? Math.min(dt, choixLimite/DEBIT_MAX) : dt;
+      const lim = choixLimite !== null && m === MACHINES[cur];
+      const dtA = lim ? Math.min(dt, choixLimite/(choixDebit || DEBIT_MAX)) : dt;
       executer(m, A, dtA);
-      if(choixLimite !== null && m === MACHINES[cur]){
-        choixLimite -= Math.abs(chargePortee(m) - avant);
+      if(lim){
+        const bouge = Math.abs(chargePortee(m) - avant);
+        if(dtA > 1e-6 && bouge > 1e-6) choixDebit = Math.max(choixDebit, bouge/dtA);
+        choixLimite -= bouge;
         if(choixLimite <= 0.01){
-          choixLimite = null; choixEnCours = null;
+          choixLimite = null; choixEnCours = null; choixDebit = 0;
           showHint('OBJECTIF ATTEINT');
         }
       }
@@ -27881,7 +27992,13 @@ const TUTO = [
      le pick-up, il ne faut pas forcément une indication comme quoi on va au village ; on
      prend le pick-up pour aller explorer les environs. » La marche se solde dès qu'on est
      dedans ; les deux secondes du téléphone ne courent plus ici mais au croisement. */
-  {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP', humeur:'serein',
+  /* PAS DE CERCLE : ON CHANGE DE VÉHICULE PAR LE BOUTON, OÙ QU'IL SOIT. La marche
+     visait la place de départ du pick-up — `v.parc` —, et le pick-up n'y est jamais à ce
+     moment-là : il est resté devant la maison, où l'accueil l'a garé. La flèche menait le
+     joueur à une place vide, quarante-six mètres plus loin, pour un geste qui se fait
+     d'un doigt depuis n'importe où. La marche n'a plus de lieu ; le bouton des véhicules
+     bat (`enginTuto`), puis la ligne du pick-up, et la phrase du bas le dit. */
+  {cle:'pickup', ou:null, engin:'pickup', titre:'REPRENDRE LE PICK-UP', humeur:'serein',
    txt:'REPRENDRE LE PICK-UP – Le grain est à l’abri, la machine est garée. Avant d’aller '
      + 'plus loin, j’irais bien voir à quoi ressemblent les environs. Le pick-up fera '
      + 'l’affaire.',
@@ -28468,7 +28585,9 @@ function veillerLecons(dt){
      tient, et mentirait le jour où l'on ajoutera un mur tardif. */
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' – ').slice(1).join(' – ') || L.txt,
     etape:true, duree:5.5, face:{nom:'Moi', humeur:L.humeur || (L.mur ? 'contrarie' : 'surpris')},
-    suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
+    suite:P ? 'Suis la flèche bleue au bord de l\u2019écran : '
+              + (P.lieu === 'spot' ? 'le coin de pêche' : P.lieu === 'forêt' ? 'la forêt'
+                 : (ENDROITS[P.lieu] || P.lieu))
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }
 // Dites CETTE SESSION-CI. Volontairement hors sauvegarde : relire une partie et revoir
@@ -28678,29 +28797,42 @@ function lieuTuto(E){
    dit ne pas le voir. La même fenêtre que la fin de mission le dit en grand, avec la
    phrase qui explique quoi faire — et le bandeau du bas garde la consigne tout du long,
    pour quand on l'a fermée. Le titre du texte est retiré : il est déjà au-dessus. */
-function annoncerEtape(E){
-  const txt = champEtape(E, 'txt'), ou = champEtape(E, 'ou');
-  const detail = (txt || '').split(' – ').slice(1).join(' – ');
-  // La phrase du bas dit où va le cercle, et le cercle peut être sur l'outil.
+/* LA PHRASE DU BAS DE LA FENÊTRE D'ÉTAPE : LE GESTE QUI VIENT EN PREMIER.
+   Elle disait où était le cercle, et c'était souvent le deuxième geste. La première
+   marche du jeu s'ouvre dans le pick-up, et la phrase parlait du « cercle jaune sur
+   l'outil » : le joueur roulait jusqu'à la charrue en pick-up, et rien ne s'attelait.
+   L'ordre est donc celui des gestes : changer de véhicule, dételer ce qu'on porte, puis
+   seulement aller au cercle. Chaque phrase nomme le bouton qui bat quand il y en a un. */
+function suiteEtape(E){
+  const ou = champEtape(E, 'ou');
   const L0 = lieuTuto(E);
-  /* ET SI L'ON PORTE DÉJÀ AUTRE CHOSE, LA PHRASE LE DIT. Une marche qui demande le
-     semoir arrive presque toujours charrue attelée : le geste qu'elle réclame vraiment
-     est double — dételer, puis atteler —, et la moitié qu'on oublie est la première. */
+  const change = enginTuto();
   const _porte = (E.outil && MACHINES[cur] && MACHINES[cur].key !== 'moisson')
                  ? toolOf(MACHINES[cur]) : null;
   const _veut = E.outil ? TOOLS.find((x)=> x.key === E.outil) : null;
-  const suite = (_porte && _veut && _porte !== _veut)
-    ? 'Dételer ' + _porte.nom.toLowerCase() + ' d\u2019abord, au parc de la ferme'
-    : (L0 && L0.lieu === 'outil')
-    ? 'Le cercle jaune est sur l\'outil, au parc de la ferme'
-    // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions, et il ne
-    // ressemble à aucun autre. La phrase doit dire la bonne couleur.
-    // UNE MARCHE SANS LIEU DÉSIGNE SON BOUTON : c'est lui qui bat, pas le sol.
-    : E.bouton ? 'Le bouton A clignote en jaune sur l\u2019écran de jeu'
-    : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
-    : (ou === 'croisement' ? 'Le cercle jaune est au croisement des chemins, en haut des parcelles'
-    : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
-                      : 'Suis le cercle jaune – ' + ou)));
+  if(change) return 'D\u2019abord, change de véhicule : touche le bouton qui clignote en bas, '
+                  + 'puis « ' + nomVehicule(change) + ' »';
+  /* SI L'ON PORTE DÉJÀ AUTRE CHOSE, ON LE DÉPOSE D'ABORD. Une marche qui demande le semoir
+     arrive presque toujours charrue attelée : le geste est double, et la moitié qu'on
+     oublie est la première. */
+  if(_porte && _veut && _porte !== _veut)
+    return 'Dételle d\u2019abord ' + leOutil(_porte) + ' au parc de la ferme : le bouton d\u2019attelage clignotera';
+  if(L0 && L0.lieu === 'outil')
+    return 'Le cercle jaune est sur ' + (_veut ? leOutil(_veut) : 'l\u2019outil') + ', au parc de la ferme';
+  // UNE MARCHE SANS LIEU DÉSIGNE SON BOUTON : c'est lui qui bat, pas le sol.
+  if(E.bouton === 'auto') return 'Le bouton A clignote en jaune sur l\u2019écran de jeu';
+  // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions.
+  if(ou === 'ferme') return 'Le cercle VERT est devant ta maison, sur l\u2019herbe';
+  if(ou === 'croisement') return 'Le cercle jaune est au croisement des chemins, en haut des parcelles';
+  if(ou === 'champ') return 'Le cercle jaune est sur ta parcelle';
+  if(ou === 'parc') return 'Le cercle jaune est sur sa place, au parc de la ferme';
+  if(ou === 'silo') return 'Le cercle jaune est au silo : suis la flèche jaune';
+  return ou ? 'Suis la flèche jaune jusqu\u2019à : ' + ou : '';
+}
+function annoncerEtape(E){
+  const txt = champEtape(E, 'txt'), ou = champEtape(E, 'ou');
+  const detail = (txt || '').split(' – ').slice(1).join(' – ');
+  const suite = suiteEtape(E);
   /* ET C'EST LUI QUI DIT LA MARCHE, PAS L'INTERFACE. Une marche de tutoriel est le
      moment où il découvre le geste suivant : il le dit à voix haute, avec la tête de
      quelqu'un qui cherche. La DERNIÈRE, elle, est celle où ça a marché — il y sourit,
@@ -28870,7 +29002,10 @@ function objectifProduit(cle, reste, S){
     aBord += qC;
     if(!T || qC > chargeDe(T, cle)) T = C2;
   }
-  if(S && T && (aBord >= reste - 0.01 || T.load >= T.capacite - 0.01))
+  // Deux millièmes de la commande, et au moins un centième : c'est le grain qui reste
+  // dans la vis, pas une livraison qui manque. Même marge que la clôture de mission.
+  const tol = tolQte(reste);
+  if(S && T && (aBord >= reste - tol || T.load >= T.capacite - 0.01))
     return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, aBord)),
                {x:S.dropX, z:S.dropZ});
 
@@ -28890,7 +29025,7 @@ function objectifProduit(cle, reste, S){
   const chargerEntrepot = ()=> ici('entrepot', 'charger',
     'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
     {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
-  if(auSilo + aLEntrepot + aBord >= reste - 0.01){
+  if(auSilo + aLEntrepot + aBord >= reste - tol){
     /* LE SEUIL DE 0,5 EST UN « IL Y A QUELQUE CHOSE À PRENDRE », PAS UNE DÉCISION — et il
        laissait une zone morte : trois cents grammes au silo et 29,8 kg dans la benne pour
        une commande de trente, la porte du compte s'ouvre et aucune des deux branches ne
@@ -30977,6 +31112,14 @@ let choixEnCours = null;
    l'exemplaire neuf — une limite posée sur l'objet retenu disparaîtrait à l'image
    suivante. */
 let choixLimite = null;
+/* LE DÉBIT MESURÉ DU TRANSFERT EN COURS. Le dernier pas se raccourcissait d'après une
+   borne fixe, 140 kg/s, trois fois le débit réel : chaque image ne résorbait donc qu'un
+   tiers du reste, et le transfert s'arrêtait sur une ASYMPTOTE — 29,98 kg pour trente
+   demandés. La mission voulait trente à un centième près : elle ne se soldait pas, et
+   l'objectif redemandait « CHARGER BLÉ 30 KG » à qui en portait 29,98. On mesure donc le
+   débit à la première image et l'on raccourcit le dernier pas d'après lui : il tombe
+   pile. Le plus fort débit vu sert de borne, si bien qu'on ne dépasse jamais. */
+let choixDebit = 0;
 // Ce que porte l'engin, tous contenants confondus : c'est la variation de ce nombre
 // qui mesure ce qu'un transfert a réellement déplacé, quel que soit son sens.
 function chargePortee(m){
@@ -31073,7 +31216,7 @@ function actionRetenue(m){
     const A = L.find((B)=> B.sens === e.sens && B.cle === e.cle && B.lieu === e.lieu
                            && !B.commande === !e.commande);
     if(!A) continue;
-    choixEnCours = A; choixLimite = e.q;
+    choixEnCours = A; choixLimite = e.q; choixDebit = 0;
     return A;
   }
   return null;
@@ -31275,7 +31418,7 @@ function executer(m, A, dt){
       if(siSouvent(0.4)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
-        showHint(nomDe(A.cle).toUpperCase() + ' VENDU – ' + Math.floor(money) + ' €');
+        showHint(nomDe(A.cle).toUpperCase() + ' VENDU – ' + Math.floor(money + 0.01) + ' €');
       return;
     }
     /* ON VERSE CHEZ UNE USINE, ET ON EST PAYÉ — CE QUI N'ÉTAIT PAS LE CAS.
@@ -31301,7 +31444,7 @@ function executer(m, A, dt){
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
         showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()
-                 + ' – ' + Math.floor(money) + ' €');
+                 + ' – ' + Math.floor(money + 0.01) + ' €');
       return;
     }
     case 'reprendre': {
@@ -31327,7 +31470,7 @@ function executer(m, A, dt){
         puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,
              teinteDe(A.cle), 0.4, 0.2);
       if(hopper <= 0.01){ hopper = 0;
-        showHint(vente ? A.S.nom.toUpperCase() + ' – ' + Math.floor(money) + ' €'
+        showHint(vente ? A.S.nom.toUpperCase() + ' – ' + Math.floor(money + 0.01) + ' €'
                        : nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()); }
       return;
     }
@@ -31807,6 +31950,12 @@ function actionService(){
     return out;
   }
   // à l'arrêt au milieu d'une parcelle à soi, encore cultivable : proposer l'aménagement
+  /* MAIS PAS À QUI EST EN TRAIN DE LA TRAVAILLER. « ÉLEVAGE – À PARTIR DE 800 € » sortait
+     à chaque arrêt sur son propre champ — charrue au crochet, trémie pleine, au premier
+     quart d'heure et avec zéro euro en caisse —, et le bouton bleu se posait sur la
+     flèche et sur l'étiquette du champ. Pendant le tutoriel il n'a rien à faire là ; après,
+     il ne sort qu'à qui vient VOIR la parcelle — sans outil et hors moissonneuse. */
+  if(tutoActif() || m.key === 'moisson' || toolOf(m)) return null;
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
@@ -31917,6 +32066,9 @@ function rendreContrat(){
   document.getElementById('ctnon').style.display = (offre && !mission) ? 'block' : 'none';
   document.getElementById('ctoui').style.display = offre ? 'block' : 'none';
   document.getElementById('ctoui').textContent = mission ? 'Prendre la mission' : 'Accepter';
+  // Une mission de campagne est toujours ce que le jeu attend : son bouton bat, comme
+  // « Valider » dans la fenêtre de chargement. Une proposition de commerce reste sage.
+  document.getElementById('ctoui').classList.toggle('appel', !!(offre && mission));
 }
 document.getElementById('ctfond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
 document.getElementById('ctretour').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
@@ -32239,7 +32391,7 @@ function veillerLivraison(dt){
     prix:'+ ' + eur(gagne),
     plus:[combien, auKilo].filter(Boolean).join('&nbsp;×&nbsp;'),
     face:{nom:B.lieu, humeur:'bravo'},
-    suite:'La caisse est à ' + eur(money)});
+    suite:'La caisse est à ' + caisseTxt()});
 }
 function refreshChoix(){
   const m = MACHINES[cur];
@@ -32389,7 +32541,15 @@ function refreshChoix(){
        d'elle-même. On garde la ligne, qui dit ce qui se passe et combien il reste à
        faire, et l'on retire le bouton. */
     titreTxt = 'En cours';
-    lignes.push({txt:retenue.txt + (choixLimite !== null ? '  ·  ' + qteHaut(retenue.cle, choixLimite) : ''),
+    /* ET ELLE NE MÉLANGE PLUS DEUX QUANTITÉS. Le libellé de l'action porte ce qu'il y a
+       au tas — « CHARGER BLÉ 107 KG » —, et la ligne y accolait ce qu'il restait à
+       charger : « CHARGER BLÉ 107 KG · 22 KG », deux nombres sans dire lequel était quoi.
+       Pendant un transfert dosé, elle dit le geste, la marchandise et le reste. */
+    const enCours = (choixLimite !== null && retenue.cle && PRODUITS[retenue.cle])
+      ? (MOT_VERBE[verbeActe(retenue)] || 'Transfert').toUpperCase() + ' ' + nomHaut(retenue.cle)
+        + '  ·  ENCORE ' + qteHaut(retenue.cle, choixLimite)
+      : retenue.txt;
+    lignes.push({txt:enCours,
                  cls:'ch on', f:null});
   } else {
     titreTxt = 'Que faire ici ?';
@@ -32457,7 +32617,7 @@ function refreshChoix(){
       const lieu = L2.length ? nomLieu(L2[0])
                  : (patIci ? (ESPECES[patIci.P.espece] || ESPECES.vache).pluriel : '');
       lignes.push({txt:MOT_VERBE[vb].toUpperCase() + (n > 1 ? '  ·  ' + n : ''),
-                   cls:'ch' + (jaune ? ' jaune' : ''),
+                   cls:'ch' + (jaune ? ' jaune appel' : ''),
                    f:()=> ouvrirActes({
                      sur:lieu, titre:MOT_VERBE[vb],
                      lignes:lignesDe(L2), gestes:gestes,
@@ -32488,7 +32648,7 @@ function refreshChoix(){
        première mission ne se prend plus chez le client, à la place de la vente, mais
        chez soi, une fois le tour du fermier terminé. Un seul libellé suffit donc, et il
        dit ce qu'il fait. */
-    lignes.unshift({txt:'RÉPONDRE AU TÉLÉPHONE', cls:'ch vert',
+    lignes.unshift({txt:'RÉPONDRE AU TÉLÉPHONE', cls:'ch vert appel',
                     f:()=> ouvrirContrat(missionEnContrat(misIci), null, true, misIci)});
   }
   /* ET LE CONTRAT D'UN COMMERCE EST BLEU, comme sa pastille. Il était vert, du temps où
@@ -33249,10 +33409,40 @@ function peindreJauge(J, nom, sous, k, coul){
 // Une étiquette ne se montre que si elle a quelque chose à dire ET qu'on est assez près :
 // vingt étiquettes éparpillées sur la vallée, ce serait un tableau de bord, pas un paysage.
 const JAUGE_PORTEE = 62;
+/* ET UNE ÉTIQUETTE S'EFFACE SOUS LES COMMANDES. Elles sont peintes dans la scène, donc
+   SOUS l'interface : « Cuve à graines » passait derrière le bouton A, « Entrepôt » sous la
+   rangée des engins, « Atelier » et « Cuve à gazole » sous la pédale. Rien n'était
+   masqué pour le doigt, mais l'œil lisait deux couches mêlées à l'endroit précis où il
+   cherche ses boutons. Une étiquette dont la plaque mord sur une commande s'efface donc
+   en fondu, et revient dès qu'elle en sort.
+   LES BOÎTES SONT RELUES DEUX FOIS PAR SECONDE, PAS À CHAQUE IMAGE : une lecture de boîte
+   force la mise en page, et les commandes ne bougent qu'au changement d'orientation. */
+const _vJauge = new THREE.Vector3();
+let hudZones = [], hudZonesT = 0;
+function zonesHud(){
+  const t = performance.now();
+  if(t - hudZonesT < 500) return hudZones;
+  hudZonesT = t; hudZones = [];
+  for(const id of ['engbar', 'regie', 'stick', 'thr', 'boutons', 'fuel', 'choix', 'service', 'veh', 'atelier']){
+    const e = document.getElementById(id);
+    if(!e || !e.offsetParent) continue;
+    const r = e.getBoundingClientRect();
+    if(r.width > 2 && r.height > 2) hudZones.push(r);
+  }
+  return hudZones;
+}
+function jaugeSousHud(x, y, z){
+  _vJauge.set(x, y, z).project(camera);
+  if(_vJauge.z > 1) return false;
+  const sx = (_vJauge.x*0.5 + 0.5)*innerWidth, sy = (-_vJauge.y*0.5 + 0.5)*innerHeight;
+  // La plaque fait à peu près cent vingt pixels sur quarante à cette distance de caméra.
+  const L = 62, Hh = 22;
+  return zonesHud().some((r)=> sx + L > r.left && sx - L < r.right && sy + Hh > r.top && sy - Hh < r.bottom);
+}
 function montrerJauge(J, x, y, z, nom, sous, k, coul, dt, pulse){
   const v = MACHINES[cur].v;
   const loin = Math.hypot(v.pos.x - x, v.pos.z - z) > JAUGE_PORTEE;
-  const vise = loin ? 0 : 1;
+  const vise = (loin || jaugeSousHud(x, y, z)) ? 0 : 1;
   J.f += (vise - J.f)*Math.min(1, dt*6);
   J.sp.material.opacity = J.f*(pulse ? battementJauge() : 1);
   J.sp.visible = J.sp.material.opacity > 0.02;
@@ -33757,11 +33947,16 @@ function majJauges(dt){
     let nom, dit, part, teinte;
     if(!p.pousseN){                                   // on laboure
       part = p.nCell ? trav/p.nCell : 0;
-      nom = 'Labour'; dit = pc(part) + ' labouré' + (part >= 1 ? ' – à semer' : '');
-      teinte = part >= 1 ? '#C9A66B' : '#9A8468';
+      /* FINI QUAND LE TUTORIEL LE DIT FINI. La marche passe à 98 % (`PART_ETAPE`, le
+         reliquat de virage) et l'étiquette disait encore « 99 % labouré » sous la fenêtre
+         qui annonçait le champ prêt : le joueur repartait chercher le centième. Au même
+         seuil, elle dit le résultat au lieu du chiffre. */
+      const fini = part >= PART_ETAPE;
+      nom = 'Labour'; dit = fini ? 'Labouré – à semer' : pc(part) + ' labouré';
+      teinte = fini ? '#C9A66B' : '#9A8468';
     } else if(p.pousseN < trav){                      // on sème ce qui est labouré
       part = p.pousseN/trav;
-      nom = C2.nom; dit = pc(part) + ' semé'; teinte = '#C9A66B';
+      nom = C2.nom; dit = part >= PART_ETAPE ? 'Semé – ça pousse' : pc(part) + ' semé'; teinte = '#C9A66B';
     } else {                                          // tout est semé : ça pousse
       const mur = p.murN >= p.pousseN;
       part = p.pousse; nom = C2.nom;
@@ -34742,9 +34937,14 @@ function ongletPrix(){
   const natures = [];
   for(const S of SITES) for(const k of S.achete) if(natures.indexOf(k) < 0) natures.push(k);
   natures.sort((a, b)=> prixDe(b) - prixDe(a));
-
-  titre('Où vendre, et combien');
-  for(const cle of natures){
+  /* CE QU'ON A D'ABORD. La liste triait les vingt-sept produits du plus cher au moins cher,
+     et le joueur qui n'a que du blé lisait d'abord les vaches à 3 500 € la tête, puis
+     l'huile d'olive, le fromage de brebis… et trouvait son blé avant-dernier. Ce qu'on
+     cultive déjà ou qu'on a en stock passe donc devant, dans le même ordre de prix ; le
+     reste suit, sous son propre titre. */
+  const aMoi = (cle)=> CROPS.some((c)=> !c.verrou && c.cle === cle) || stockFermeCommande(cle) > 0.01;
+  const miens = natures.filter(aMoi);
+  const ligneDe = (cle)=>{
     const P = PRODUITS[cle];
     const chez = SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
       .map((S)=> ({S, prix:prixChez(S, cle), place:placeChez(S, cle), max:(S.etal || Infinity)}))
@@ -34770,7 +34970,13 @@ function ongletPrix(){
         ' € par ' + uniteUn(cle) + ' engagé').join(' · '));
     article(parseInt(P.couleur.slice(1), 16), P.nom, l.join('<br>'),
       dec(prixUnite(cle)) + ' ' + parUniteTxt(cle), 'no', null, null, cle);
-  }
+  };
+  if(miens.length){
+    titre('Ce que tu produis : où le vendre');
+    miens.forEach(ligneDe);
+    titre('Les autres produits');
+  } else titre('Où vendre, et combien');
+  natures.filter((k)=> !aMoi(k)).forEach(ligneDe);
 
   titre('Comment lire ces prix');
   const d = document.createElement('div'); d.className = 'art';
@@ -35092,7 +35298,7 @@ let confirmeReset = false;
 
 // On remplace l'aiguillage d'origine : mêmes onglets qu'avant, plus les trois nouveaux.
 function rendrePanneau(){
-  pargent.textContent = eur(money);
+  pargent.textContent = caisseTxt();
   const O = ONGLETS.find(o=>o.id===ongletActif) || ONGLETS[0];
   ongletActif = O.id;
   ptitre.textContent = O.nom;
@@ -36128,6 +36334,9 @@ function etatJeu(){
                // L'arrivée du pick-up a-t-elle été jouée jusqu'aux trois pages ?
                // Facultatif : absent, il vaut « oui » (voir `chargerCampagne`).
                ouv: CAMPAGNE.ouverture ? 1 : 0,
+               // La fenêtre des prix a-t-elle déjà été ouverte ? Facultatif : absent, il
+               // vaut « oui », et une partie en cours ne voit pas le bouton se mettre à battre.
+               vuPrix: CAMPAGNE.vuPrix ? 1 : 0,
                // Quelle TABLE a écrit ce rang : voir `TUTO_V`. Facultatif, `v` ne bouge pas.
                tv: TUTO_V,
                /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
@@ -37008,7 +37217,7 @@ function refreshHUD(){
   texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
                        : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
                                     : 'NIVEAU ' + n + ' – ' + N.nom);
-  texteSiChange(el.money,Math.floor(money).toLocaleString('fr-FR')+' €');
+  texteSiChange(el.money,caisseTxt());
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
      au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
      ligne du poids. Sans lui on moissonne, on rentre au silo, et le transfert s'arrête
@@ -37045,7 +37254,7 @@ function ouvrirFin(){
   accBtns.innerHTML = '';
   document.getElementById('acctitre').textContent = 'MOISSON FAITE';
   sous.innerHTML = 'La campagne est finie – niveau ' + CAMPAGNE.niveau + ', ' +
-    Math.round(CAMPAGNE.xp) + ' XP, ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
+    Math.round(CAMPAGNE.xp) + ' XP, ' + caisseTxt() + ', jour ' + JOUR.jours + '.<br>' +
     kg(STAT.moisson) + ' récoltés · ' + kg(STAT.mill) + ' de farine moulue · ' +
     litres(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
   boutonAccueil('Continuer à jouer', true, ()=>{ accueil.style.display = 'none'; paused = false; last = performance.now(); });
