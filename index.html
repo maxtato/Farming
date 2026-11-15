@@ -1741,6 +1741,39 @@
 @media(max-height:500px){#pboite,#fenboite{padding:9px 12px}#ptete,#fentete{padding-bottom:6px;margin-bottom:4px}.accbtn{padding:9px 22px}#accbtns{margin:8px 0 2px}}
 @media(prefers-reduced-motion:reduce){.art .act,.accbtn,.ong{transition:none}}
 
+
+/* ---------- LE PLAISIR DE JOUER (chapitre 29 bis du script) ---------- */
+.stat{position:relative}
+#money{display:inline-block;transform-origin:left center;transition:transform .16s ease-out,color .3s}
+#money.bat{transform:scale(1.16);color:#FAD201}
+#gainchip{position:absolute;left:100%;top:50%;margin-left:16px;transform:translate(-6px,-50%);opacity:0;
+  white-space:nowrap;font-size:11px;font-weight:bold;letter-spacing:.4px;padding:3px 8px;border-radius:8px;
+  font-variant-numeric:tabular-nums;pointer-events:none;transition:opacity .35s,transform .35s}
+#gainchip.on{opacity:1;transform:translate(0,-50%)}
+#gainchip.plus{background:#FAD201;color:#2A2410;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+#gainchip.moins{background:rgba(17,30,28,.90);color:#F0B9A8;border:1px solid rgba(240,185,168,.35)}
+#fete{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+  text-align:center;z-index:19;padding:10px 34px 12px;border-radius:14px;
+  background:rgba(17,30,28,.88);border:1px solid rgba(250,210,1,.55);box-shadow:0 4px 0 rgba(0,0,0,.4)}
+#fete.on{animation:feteEntre 3.2s cubic-bezier(.2,1.4,.4,1) both}
+#fetehaut{font-size:24px;letter-spacing:5px;font-weight:bold;color:#FAD201}
+#fetenom{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:#F2E7C9;margin-top:3px}
+#fete::before,#fete::after{content:'★';position:absolute;top:50%;color:#FAD201;font-size:15px;opacity:0}
+#fete::before{left:11px}#fete::after{right:11px}
+#fete.on::before,#fete.on::after{animation:feteEtoile 3.2s ease-out both}
+@keyframes feteEntre{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}9%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
+  15%{transform:translate(-50%,-50%) scale(1)}84%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-62%) scale(.98)}}
+@keyframes feteEtoile{0%,10%{opacity:0;transform:translateY(-50%) scale(.2) rotate(-40deg)}22%{opacity:1;transform:translateY(-50%) scale(1.25) rotate(8deg)}
+  32%,84%{opacity:1;transform:translateY(-50%) scale(1) rotate(0)}100%{opacity:0;transform:translateY(-50%) scale(1)}}
+#menuBtn.aprendre::after{content:'';position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;
+  background:#FAD201;border:2px solid #14201E;animation:aprendreBat 1.1s ease-in-out infinite}
+@keyframes aprendreBat{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}
+.defibar{height:5px;border-radius:3px;background:rgba(94,76,44,.16);overflow:hidden;margin:1px 0 4px}
+.defibar i{display:block;height:100%;border-radius:3px;background:#E0A63A}
+.art.sansact .act{display:none}
+@media (prefers-reduced-motion:reduce){#fete.on{animation-timing-function:linear}#money{transition:none}
+  #menuBtn.aprendre::after{animation:none}}
 </style>
 </head>
 <body>
@@ -1750,7 +1783,7 @@
        lettres dans l'écran Stockage. Restent l'argent — ce qui décide de tout — et
        l'heure, qui décide du reste. -->
   <div class="pill" id="stats">
-    <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span></div>
+    <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span><span id="gainchip"></span></div>
     <div class="stat"><span class="dot" style="background:#7FD1E8"></span><span id="heure">09:00</span></div>
   </div>
   <div class="pill" id="diag"></div>
@@ -1764,6 +1797,7 @@
   <div id="viseurs"><div id="tel"><div class="onde"></div>
     <img class="tp" src="pictos/telephone.png" alt=""></div></div>
   <div id="pause"><i></i><i></i></div>
+  <div id="fete"><div id="fetehaut"></div><div id="fetenom"></div></div>
   <div id="hint"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctete"><div id="parctitre">Changer d'engin</div><div id="parcfermer">✕</div></div><div id="parcliste"></div></div></div>
   <div id="menuBtn" class="pic" aria-label="Menu"></div>
@@ -35177,6 +35211,10 @@ function ongletReglages(){
   article(0x7FD1E8, 'Ambiance sonore',
     AUDIO.on ? 'Moteur, livraisons et notifications' : 'Coupé',
     AUDIO.on ? 'Couper' : 'Activer', AUDIO.on ? 'ok' : '', ()=> AUDIO.basculer());
+  article(0x7FD1E8, 'Vibrations',
+    PLAISIR.e.vibre ? 'Un battement quand l\'argent rentre, quand un palier tombe' : 'Coupées',
+    PLAISIR.e.vibre ? 'Couper' : 'Activer', PLAISIR.e.vibre ? 'ok' : '',
+    ()=>{ PLAISIR.e.vibre = !PLAISIR.e.vibre; plaisirEcrire(); vibrer(20); });
   article(0x7FD1E8, 'Volume', 'Actuellement ' + Math.round(AUDIO.volume*100) + ' %',
     'Changer', '', ()=>{ AUDIO.volume = AUDIO.volume >= 0.95 ? 0.25 : Math.min(1, AUDIO.volume + 0.25); AUDIO.majVolume(); });
 
@@ -35321,7 +35359,7 @@ function rendrePanneau(){
   ({campagne:ongletCampagne, engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
-    parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
+    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis})[ongletActif]();
 }
 
 /* ---------- L'ÉCRAN DE CAMPAGNE ----------
@@ -37217,7 +37255,7 @@ function refreshHUD(){
   texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
                        : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
                                     : 'NIVEAU ' + n + ' – ' + N.nom);
-  texteSiChange(el.money,caisseTxt());
+  texteSiChange(el.money,caisseVue());
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
      au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
      ligne du poids. Sans lui on moissonne, on rentre au silo, et le transfert s'arrête
@@ -37261,6 +37299,431 @@ function ouvrirFin(){
   accueil.style.display = 'flex';
   paused = true;
 }
+
+/* ---------- 29 bis. LE PLAISIR DE JOUER ---------- */
+/* Le joueur : « retravaille ce jeu pour qu'il soit encore plus propre et addictif. »
+   Quatre choses, qui tiennent toutes dans ce chapitre :
+     • LA CAISSE SE VOIT BOUGER. Le chiffre du haut sautait d'une valeur à l'autre ; il
+       défile, il bat, et une étiquette dit de combien — en plus comme en moins.
+     • UN PALIER SE FÊTE. Il ne valait qu'une ligne de notification.
+     • DES DÉFIS DU JOUR ET DES RECORDS, pour qu'il y ait toujours un but à vingt minutes
+       en plus du but à deux heures que donne la campagne.
+     • UNE RAISON DE REVENIR : la série de jours, et les champs qui ont poussé pendant
+       l'absence.
+
+   RIEN DE TOUT CELA NE TOUCHE À LA SAUVEGARDE NI AUX FONCTIONS QUE LES BANCS EXTRAIENT.
+   L'état vit sous sa propre clé — il appartient au joueur, pas à une partie : la série
+   et les records survivent à « Nouvelle campagne ». Et le chapitre OBSERVE le jeu au lieu
+   de s'y accrocher : il lit `money`, `STAT`, `CAMPAGNE` une fois par image et en déduit
+   ce qui s'est passé. Les deux seules fonctions qu'il enveloppe, `encaisser` et
+   `solderContrat`, le sont ICI, à l'exécution — leur texte, que les bancs découpent dans
+   le source, n'a pas changé d'un caractère.
+
+   ET AUCUNE PRIME NE TOMBE TOUTE SEULE. Un défi rempli se TOUCHE pour être encaissé, dans
+   l'onglet Défis. C'est un geste de plus, voulu : c'est lui qui fait revenir dans le
+   menu, et c'est aussi ce qui garantit que l'économie de la campagne — auditée au centime
+   — ne reçoit jamais un euro que le joueur n'a pas demandé. */
+const PLAISIR = {
+  clef: 'moisson.plaisir.v1',
+  pret: false,                 // levé au lancement de la partie, comme SAVE.pret
+  vu: 0, cible: 0,             // la caisse affichée, et celle qu'on a vue la dernière fois
+  chipSomme: 0, chipT: 0,      // l'étiquette « + 128 € » : ce qu'elle cumule, ce qu'il lui reste à vivre
+  rafale: 0, rafaleT: 0,       // une vente en cours : son total, et le silence qui la clôt
+  tickT: 0, tickN: 0,          // le grelot qui monte pendant qu'on décharge
+  niveauVu: 1, missionVue: 0,
+  stat: null,                  // les compteurs du jeu, tels qu'on les a lus la dernière fois
+  feteT: 0, saleT: 0, sale: false, horlogeT: 0,
+  e: {jour:'', defis:[], pleine:false, serie:0, serieMax:0, dernier:'', primeJour:'',
+      records:{vente:0, journee:0}, jourGains:0, recordJourDit:'',
+      cumul:{gains:0, km:0, commandes:0, defis:0}, vibre:true}
+};
+const plaisirJour = (d)=>{ d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function plaisirLire(){
+  try {
+    const s = localStorage.getItem(PLAISIR.clef);
+    if(!s) return;
+    const E = JSON.parse(s), e = PLAISIR.e;
+    if(!E || typeof E !== 'object') return;
+    // Champ par champ, sous garde : un état abîmé ne doit rien casser, il se réécrit.
+    for(const k of ['jour', 'dernier', 'primeJour', 'recordJourDit']) if(typeof E[k] === 'string') e[k] = E[k];
+    for(const k of ['serie', 'serieMax', 'jourGains']) if(E[k] >= 0) e[k] = +E[k];
+    e.pleine = !!E.pleine;
+    if(E.vibre === false) e.vibre = false;
+    if(E.records) for(const k in e.records) if(E.records[k] >= 0) e.records[k] = +E.records[k];
+    if(E.cumul) for(const k in e.cumul) if(E.cumul[k] >= 0) e.cumul[k] = +E.cumul[k];
+    if(Array.isArray(E.defis))
+      e.defis = E.defis.filter((D)=> D && PLAISIR_DEFIS[D.id] && D.cible > 0)
+                       .map((D)=> ({id:D.id, cible:+D.cible, fait:Math.max(0, +D.fait || 0),
+                                    prime:Math.max(0, +D.prime || 0), xp:Math.max(0, +D.xp || 0), paye:!!D.paye}));
+  } catch(err){}
+}
+function plaisirEcrire(){
+  PLAISIR.sale = false;
+  try { localStorage.setItem(PLAISIR.clef, JSON.stringify(PLAISIR.e)); } catch(err){}
+}
+function vibrer(motif){
+  if(!PLAISIR.e.vibre) return;
+  try { if(navigator.vibrate) navigator.vibrate(motif); } catch(err){}
+}
+// Quatre notes qui montent : le même carillon pour tout ce qui se fête, plus ou moins haut.
+function plaisirCarillon(base){
+  const notes = [1, 1.26, 1.5, 2];
+  notes.forEach((r, i)=> setTimeout(()=> AUDIO.bip(base*r, i === 3 ? 0.42 : 0.16, 'triangle', 0.11), i*95));
+}
+
+/* ---------- LES DÉFIS DU JOUR ----------
+   Trois par jour de calendrier, les mêmes toute la journée : on les tire d'une graine
+   faite de la date. Chacun lit un compteur que le jeu tient déjà. La cible suit le
+   palier — un défi de niveau 2 ne demande pas ce que demande un défi de niveau 15 — et
+   un défi de PRODUIT n'est proposé que si la ferme en a déjà sorti : on ne demande pas
+   du lait à qui n'a pas de vaches. */
+const PLAISIR_DEFIS = {
+  gains:    {nom:(n)=> 'Encaisser ' + eur(n),                     unite:eur,    cible:(n)=> 50*Math.round(4*Math.pow(n, 1.5)),      poids:1.0},
+  recolte:  {nom:(n)=> 'Récolter ' + kg(n),                        unite:kg,     cible:(n)=> Math.min(800, n < 3 ? 150 : 100*n),     poids:1.0, stat:'moisson'},
+  route:    {nom:(n)=> 'Rouler ' + n + ' km',                      unite:(v)=> dec(v, 1) + ' km', cible:(n)=> Math.min(8, 2 + Math.floor(n/3)), poids:0.7},
+  commande: {nom:(n)=> 'Honorer ' + n + ' commande' + (n > 1 ? 's' : ''), unite:(v)=> Math.floor(v) + '', cible:(n)=> n < 8 ? 1 : n < 14 ? 2 : 3, poids:1.3,
+             si:()=> !MODE_LIBRE},
+  farine:   {nom:(n)=> 'Moudre ' + kg(n) + ' de farine',           unite:kg,     cible:(n)=> 40 + 8*n,  poids:1.1, stat:'mill',    produit:true},
+  lait:     {nom:(n)=> 'Tirer ' + litres(n) + ' de lait',          unite:litres, cible:(n)=> 60 + 8*n,  poids:1.1, stat:'lait',    produit:true},
+  oeufs:    {nom:(n)=> 'Ramasser ' + n + ' œufs',                  unite:(v)=> Math.floor(v) + '', cible:(n)=> 12 + 2*n, poids:1.0, stat:'oeufs', produit:true},
+  miel:     {nom:(n)=> 'Récolter ' + kg(n) + ' de miel',           unite:kg,     cible:(n)=> 6 + Math.floor(n/2), poids:1.1, stat:'miel', produit:true},
+  laine:    {nom:(n)=> 'Tondre ' + kg(n) + ' de laine',            unite:kg,     cible:(n)=> 8 + Math.floor(n/2), poids:1.1, stat:'laine', produit:true},
+  grumes:   {nom:(n)=> 'Sortir ' + kg(n) + ' de grumes',           unite:kg,     cible:(n)=> 80 + 6*n,  poids:1.2, stat:'grumes',  produit:true},
+  peche:    {nom:(n)=> 'Pêcher ' + kg(n),                          unite:kg,     cible:(n)=> 40 + 4*n,  poids:1.2, stat:'peche',   produit:true}
+};
+function plaisirTirer(jour){
+  // Une graine tirée de la date : le même jour donne les mêmes trois défis.
+  let g = 2166136261;
+  for(let i = 0; i < jour.length; i++){ g ^= jour.charCodeAt(i); g = Math.imul(g, 16777619) >>> 0; }
+  const alea = ()=>{ g = (Math.imul(g, 1664525) + 1013904223) >>> 0; return g/4294967296; };
+  const n = CAMPAGNE.niveau;
+  const libres = [], produits = [];
+  for(const id in PLAISIR_DEFIS){
+    const D = PLAISIR_DEFIS[id];
+    if(D.si && !D.si()) continue;
+    if(D.produit){ if(STAT[D.stat] > 0) produits.push(id); }
+    else libres.push(id);
+  }
+  const melange = (T)=>{ for(let i = T.length - 1; i > 0; i--){ const j = Math.floor(alea()*(i + 1)); [T[i], T[j]] = [T[j], T[i]]; } return T; };
+  melange(libres); melange(produits);
+  // Un seul défi de produit au plus : les deux autres restent faisables par n'importe qui.
+  const choix = (produits.length ? [produits[0]] : []).concat(libres).slice(0, 3);
+  return choix.map((id)=>{
+    const D = PLAISIR_DEFIS[id];
+    return {id, cible:D.cible(n), fait:0, paye:false,
+            prime:Math.max(30, Math.round(35*n*D.poids/10)*10), xp:Math.round((3 + n)*D.poids)};
+  });
+}
+const plaisirTuto = ()=> typeof tutoActif === 'function' && tutoActif();
+/* LE JOUR CHANGE : nouveaux défis, et la série avance ou retombe. Appelé au lancement,
+   puis toutes les quelques secondes — minuit peut passer pendant qu'on joue. Tant que le
+   tutoriel tient la main, on ne tire rien : trois défis par-dessus la première consigne
+   du jeu la noieraient. */
+function plaisirJourNouveau(){
+  const e = PLAISIR.e, auj = plaisirJour();
+  if(e.dernier !== auj){
+    const hier = plaisirJour(new Date(Date.now() - 86400000));
+    e.serie = (e.dernier === hier) ? e.serie + 1 : 1;
+    e.serieMax = Math.max(e.serieMax, e.serie);
+    e.dernier = auj; e.jourGains = 0;
+    PLAISIR.sale = true;
+  }
+  if(e.jour !== auj && !plaisirTuto()){
+    e.jour = auj; e.defis = plaisirTirer(auj); e.pleine = false;
+    PLAISIR.sale = true;
+  }
+}
+function plaisirAvancer(id, q){
+  if(!(q > 0)) return;
+  for(const D of PLAISIR.e.defis){
+    if(D.id !== id || D.fait >= D.cible) continue;
+    D.fait = Math.min(D.cible, D.fait + q);
+    PLAISIR.sale = true;
+    if(D.fait >= D.cible){
+      showHint('DÉFI REMPLI – PRIME À PRENDRE DANS LE MENU');
+      vibrer([18, 40, 18]);
+      plaisirCarillon(660);
+    }
+  }
+}
+const primeFidelite = ()=> 20*CAMPAGNE.niveau*Math.min(7, PLAISIR.e.serie);
+const primePleine   = ()=> Math.round(PLAISIR.e.defis.reduce((s, D)=> s + D.prime, 0)*0.5/10)*10;
+// Ce qu'il y a à prendre maintenant : c'est ce qui allume la pastille du bouton de menu.
+function plaisirAPrendre(){
+  const e = PLAISIR.e;
+  let n = e.defis.filter((D)=> D.fait >= D.cible && !D.paye).length;
+  if(e.defis.length && e.defis.every((D)=> D.paye) && !e.pleine) n++;
+  if(e.serie >= 2 && e.primeJour !== e.dernier && !plaisirTuto()) n++;
+  return n;
+}
+function plaisirPayer(euros, xp){
+  money += euros;                      // pas `encaisser` : une prime n'est pas une vente
+  if(xp > 0) gagnerXp(xp);
+  pluiePieces(euros, null, null, 6);
+  vibrer([14, 30, 28]);
+  PLAISIR.sale = true;
+}
+
+/* ---------- L'ONGLET ---------- */
+function ongletDefis(){
+  const e = PLAISIR.e;
+  plaisirJourNouveau();
+  titre('Défis du jour');
+  if(!e.defis.length){
+    article(0xFAD201, 'Après le tutoriel',
+      'Trois défis par jour, avec une prime à la clé. Ils arrivent dès que les premières leçons sont passées.',
+      'Bientôt', 'no', null);
+  }
+  for(const D of e.defis){
+    const T = PLAISIR_DEFIS[D.id], fini = D.fait >= D.cible, part = Math.min(1, D.fait/D.cible);
+    const d = article(fini ? 0x8BE07A : 0xFAD201, T.nom(D.cible),
+      '<div class="defibar"><i style="width:' + (part*100).toFixed(1) + '%"></i></div>' +
+      (fini ? 'Rempli' : T.unite(D.fait) + ' sur ' + T.unite(D.cible)) +
+      '  ·  prime <span class="q">' + eur(D.prime) + '</span>  ·  +' + D.xp + ' XP',
+      D.paye ? 'Encaissé' : fini ? 'Encaisser' : Math.floor(part*100) + ' %',
+      D.paye ? 'ok' : fini ? 'vert' : 'no',
+      (!fini || D.paye) ? null : ()=>{
+        D.paye = true; e.cumul.defis++;
+        plaisirPayer(D.prime, D.xp);
+        showHint('DÉFI ENCAISSÉ – ' + eur(D.prime));
+      });
+    if(fini && !D.paye) d.classList.add('appel');
+  }
+  if(e.defis.length){
+    const tous = e.defis.every((D)=> D.paye);
+    const d = article(e.pleine ? 0x8BE07A : 0xE0A63A, 'Journée pleine',
+      'Les trois défis du jour remplis et encaissés  ·  prime <span class="q">' + eur(primePleine()) + '</span>',
+      e.pleine ? 'Encaissé' : tous ? 'Encaisser' : e.defis.filter((D)=> D.paye).length + ' / 3',
+      e.pleine ? 'ok' : tous ? 'vert' : 'no',
+      (!tous || e.pleine) ? null : ()=>{
+        e.pleine = true;
+        plaisirPayer(primePleine(), 0);
+        plaisirCarillon(784);
+        showHint('JOURNÉE PLEINE – ' + eur(primePleine()));
+      });
+    if(tous && !e.pleine) d.classList.add('appel');
+  }
+
+  titre('Fidélité');
+  const prise = e.primeJour === e.dernier, due = e.serie >= 2 && !prise && !plaisirTuto();
+  const d2 = article(0x7FD1E8, e.serie + (e.serie > 1 ? ' jours de suite' : ' jour'),
+    (e.serie >= 2
+       ? 'Prime du jour <span class="q">' + eur(primeFidelite()) + '</span> – elle grossit jusqu\'au septième jour.'
+       : 'Revenez demain : la prime de fidélité commence au deuxième jour et grossit jusqu\'au septième.') +
+    '<br>Meilleure série : ' + e.serieMax + ' jour' + (e.serieMax > 1 ? 's' : ''),
+    prise ? 'Encaissé' : due ? 'Encaisser' : 'Demain', prise ? 'ok' : due ? 'vert' : 'no',
+    !due ? null : ()=>{
+      e.primeJour = e.dernier;
+      plaisirPayer(primeFidelite(), 0);
+      showHint('FIDÉLITÉ – ' + eur(primeFidelite()));
+    });
+  if(due) d2.classList.add('appel');
+
+  titre('Records');
+  article(0xFAD201, 'Plus grosse vente d\'un seul arrêt', e.records.vente > 0 ? eur(e.records.vente) : 'Aucune vente encore', '', 'no', null).classList.add('sansact');
+  article(0xFAD201, 'Meilleure journée', (e.records.journee > 0 ? eur(e.records.journee) : 'Aucune encore') +
+    '  ·  aujourd\'hui ' + eur(e.jourGains), '', 'no', null).classList.add('sansact');
+  titre('Carnet');
+  article(0xD8CBA6, 'Depuis le début',
+    eur(e.cumul.gains) + ' encaissés  ·  ' + dec(e.cumul.km, 1) + ' km parcourus<br>' +
+    e.cumul.commandes + ' commande' + (e.cumul.commandes > 1 ? 's' : '') + ' honorée' + (e.cumul.commandes > 1 ? 's' : '') +
+    '  ·  ' + e.cumul.defis + ' défi' + (e.cumul.defis > 1 ? 's' : '') + ' encaissé' + (e.cumul.defis > 1 ? 's' : ''),
+    '', 'no', null).classList.add('sansact');
+}
+
+/* ---------- CE QUI ENTRE EN CAISSE ----------
+   `encaisser` est le seul passage de tout ce qui se VEND. On l'enveloppe ici pour savoir
+   trois choses que le solde seul ne dit pas : que c'est une vente et non une prime, à
+   quel rythme elle tombe, et combien vaut l'arrêt entier — une benne se paie image par
+   image, et c'est le total de la rafale qui fait un record, pas un de ses centimes. */
+{
+  const encaisserNu = encaisser;
+  encaisser = function(n){
+    const r = encaisserNu(n);
+    if(r > 0 && PLAISIR.pret) plaisirVente(r);
+    return r;
+  };
+  const solderNu = solderContrat;
+  solderContrat = function(k){
+    const avant = CONTRATS[k];
+    solderNu(k);
+    if(avant && PLAISIR.pret){ PLAISIR.e.cumul.commandes++; plaisirAvancer('commande', 1); vibrer([20, 40, 20, 40, 60]); }
+  };
+}
+const PLAISIR_GAMME = [523, 587, 659, 784, 880, 1047, 1175, 1319];
+function plaisirVente(n){
+  const P = PLAISIR, e = P.e;
+  e.cumul.gains += n; e.jourGains += n;
+  P.rafale += n; P.rafaleT = 1.4;
+  plaisirAvancer('gains', n);
+  P.sale = true;
+  // Le grelot : une note toutes les deux dixièmes de seconde, qui monte d'un degré à
+  // chaque fois. On l'entend à peine — c'est l'oreille qui dit que ça rentre.
+  if(P.tickT <= 0){
+    P.tickT = 0.2;
+    AUDIO.bip(PLAISIR_GAMME[Math.min(PLAISIR_GAMME.length - 1, P.tickN)], 0.07, 'triangle', 0.035);
+    P.tickN++;
+  }
+}
+function plaisirFinRafale(){
+  const P = PLAISIR, e = P.e, total = P.rafale;
+  P.rafale = 0; P.tickN = 0;
+  // Un record ne s'annonce que s'il y en avait un à battre : la toute première vente
+  // du jeu en serait un, et la deuxième, et la troisième.
+  if(total > e.records.vente){
+    const dit = e.records.vente >= 100 && total >= e.records.vente*1.05;
+    e.records.vente = total;
+    if(dit){ showHint('RECORD DE VENTE – ' + eur(total)); vibrer([20, 50, 40]); }
+  }
+  if(e.jourGains > e.records.journee){
+    const dit = e.records.journee >= 200 && e.recordJourDit !== e.dernier;
+    e.records.journee = e.jourGains;
+    if(dit){ e.recordJourDit = e.dernier; showHint('MEILLEURE JOURNÉE – ' + eur(e.jourGains)); }
+  }
+}
+
+/* ---------- LA CAISSE QUI DÉFILE, ET SON ÉTIQUETTE ---------- */
+const plaisirEl = {chip: document.getElementById('gainchip'), fete: document.getElementById('fete'),
+                   feteHaut: document.getElementById('fetehaut'), feteNom: document.getElementById('fetenom'),
+                   menu: document.getElementById('menuBtn')};
+// Ce que le bandeau écrit : la valeur qui défile, tronquée comme `caisseTxt` tronque.
+const caisseVue = ()=> PLAISIR.pret ? Math.floor(PLAISIR.vu + 0.01).toLocaleString('fr-FR') + ' €' : caisseTxt();
+function plaisirCaisse(dt){
+  const P = PLAISIR;
+  const ecart = money - P.cible;
+  if(Math.abs(ecart) >= 0.5){
+    // Une étiquette qui change de signe repart de zéro : + 40 € puis − 650 € ne font pas − 610 €.
+    if(P.chipT > 0 && (P.chipSomme > 0) !== (ecart > 0)) P.chipSomme = 0;
+    if(P.chipT <= 0){ P.chipSomme = 0; if(ecart > 0) vibrer(8); }
+    P.chipSomme += ecart; P.chipT = 1.7;
+    P.cible = money;
+    const plus = P.chipSomme > 0;
+    texteSiChange(plaisirEl.chip, (plus ? '+ ' : '− ') + Math.abs(Math.round(P.chipSomme)).toLocaleString('fr-FR') + ' €');
+    plaisirEl.chip.className = 'on ' + (plus ? 'plus' : 'moins');
+    if(plus && !el.money.classList.contains('bat')){
+      el.money.classList.add('bat');
+      setTimeout(()=> el.money.classList.remove('bat'), 320);
+    }
+  } else if(Math.abs(ecart) > 0) P.cible = money;
+  if(P.chipT > 0){ P.chipT -= dt; if(P.chipT <= 0) plaisirEl.chip.className = ''; }
+  // Le chiffre rejoint le solde en un tiers de seconde, et s'y pose exactement.
+  const d = money - P.vu;
+  if(Math.abs(d) < 1) P.vu = money;
+  else P.vu += d*Math.min(1, dt*9) + Math.sign(d)*Math.min(Math.abs(d), dt*4);
+}
+function plaisirFete(haut, nom){
+  plaisirEl.feteHaut.textContent = haut;
+  plaisirEl.feteNom.textContent = nom;
+  plaisirEl.fete.classList.remove('on');
+  void plaisirEl.fete.offsetWidth;
+  plaisirEl.fete.classList.add('on');
+  PLAISIR.feteT = 3.2;
+}
+
+/* ---------- LE RETOUR ----------
+   Les champs poussent pendant qu'on n'est pas là — vingt minutes au plus, de quoi mûrir
+   ce qui était semé sans faire sauter une saison. Seules les CULTURES avancent : les
+   bêtes, les ateliers et les étals reprennent où on les a laissés, parce qu'eux
+   consomment — du grain, du gazole, de la place — et qu'on ne dépense rien à la place
+   d'un joueur absent. Rentrer et trouver ses blés mûrs est le meilleur accueil que le
+   jeu puisse faire, et il ne coûte qu'un appel à `grow`. */
+const ABSENCE_POUSSE_MAX = 20*60, ABSENCE_PAGE = 30*60;
+function plaisirRetour(absence){
+  let muries = 0;
+  if(absence >= 60 && growingList.length){
+    const avant = growingList.length;
+    grow(Math.min(absence, ABSENCE_POUSSE_MAX));
+    flushTint();
+    muries = avant - growingList.length;
+  }
+  if(absence < ABSENCE_PAGE || plaisirTuto()) return;
+  const e = PLAISIR.e;
+  const h = absence/3600, duree = h >= 48 ? Math.round(h/24) + ' jours' : h >= 1.5 ? Math.round(h) + ' heures' : Math.round(absence/60) + ' minutes';
+  const lignes = ['Partie laissée il y a ' + duree + '.'];
+  if(muries > 0) lignes.push('<b>Les cultures ont poussé pendant votre absence</b> : il y a de quoi moissonner.');
+  if(e.serie >= 2) lignes.push('<b>' + e.serie + ' jours de suite</b> – prime de fidélité de ' + eur(primeFidelite()) + ' à prendre dans le menu.');
+  if(e.defis.length && e.defis.some((D)=> !D.paye))
+    lignes.push('Défis du jour : ' + e.defis.filter((D)=> !D.paye).map((D)=> PLAISIR_DEFIS[D.id].nom(D.cible)).join(' · ') + '.');
+  annoncerFenetre({titre:'BON RETOUR', sous:lignes.join('<br>'), suite:'Au travail'});
+}
+
+/* ---------- LE LANCEMENT, ET LE BATTEMENT ---------- */
+function plaisirLancer(){
+  const P = PLAISIR;
+  P.pret = true;
+  P.vu = P.cible = money;
+  P.niveauVu = CAMPAGNE.niveau; P.missionVue = CAMPAGNE.mission;
+  P.stat = Object.assign({}, STAT);
+  plaisirLire();
+  plaisirJourNouveau();
+  // L'absence se lit dans la sauvegarde de CE tiroir : une partie neuve n'en a pas.
+  let absence = 0;
+  try { const S = lireSauvegarde(clefCourante()); if(S && S.quand > 0) absence = Math.max(0, (Date.now() - S.quand)/1000); } catch(err){}
+  if(absence > 0) plaisirRetour(absence);
+  plaisirEcrire();
+}
+function plaisirUpdate(dt, dtImage){
+  const P = PLAISIR;
+  if(!P.pret){ if(demarre) plaisirLancer(); else return; }
+  const e = P.e;
+  plaisirCaisse(dtImage);
+  if(P.feteT > 0){ P.feteT -= dtImage; if(P.feteT <= 0) plaisirEl.fete.classList.remove('on'); }
+  if(P.tickT > 0) P.tickT -= dtImage;
+  if(P.rafaleT > 0){ P.rafaleT -= dtImage; if(P.rafaleT <= 0) plaisirFinRafale(); }
+  if(dt > 0){
+    // La route : ce que roule l'engin qu'on tient, moteur du défi et ligne du carnet.
+    const v = MACHINES[cur] && MACHINES[cur].v;
+    if(v && Math.abs(v.speed) > 0.5){
+      const km = Math.abs(v.speed)*dt/1000;
+      e.cumul.km += km; plaisirAvancer('route', km);
+    }
+  }
+  // Un palier franchi : le bandeau, le carillon, la pluie.
+  if(CAMPAGNE.niveau !== P.niveauVu){
+    if(CAMPAGNE.niveau > P.niveauVu){
+      const N = NIVEAUX[CAMPAGNE.niveau - 1];
+      plaisirFete('NIVEAU ' + CAMPAGNE.niveau, N ? N.nom : '');
+      plaisirCarillon(523);
+      vibrer([30, 50, 30, 50, 90]);
+      pluiePieces(0, null, null, 9);
+    }
+    P.niveauVu = CAMPAGNE.niveau;
+  }
+  if(CAMPAGNE.mission !== P.missionVue){
+    if(CAMPAGNE.mission > P.missionVue){
+      e.cumul.commandes++; plaisirAvancer('commande', 1);
+      vibrer([20, 40, 20, 40, 60]);
+      P.sale = true;
+    }
+    P.missionVue = CAMPAGNE.mission;
+  }
+  // Les compteurs du jeu, quatre fois par seconde : ce qui a monté avance les défis.
+  P.horlogeT -= dtImage;
+  if(P.horlogeT <= 0){
+    P.horlogeT = 0.25;
+    for(const D of e.defis){
+      const k = PLAISIR_DEFIS[D.id].stat;
+      if(!k) continue;
+      const q = (STAT[k] || 0) - (P.stat[k] || 0);
+      // Un bond énorme n'est pas une récolte, c'est une partie qu'on vient de recharger.
+      if(q > 0 && q < 5000) plaisirAvancer(D.id, q);
+    }
+    for(const k in STAT) P.stat[k] = STAT[k];
+    const n = plaisirAPrendre();
+    if((n > 0) !== plaisirEl.menu.classList.contains('aprendre')) plaisirEl.menu.classList.toggle('aprendre', n > 0);
+    P.saleT -= 0.25;
+    if(P.saleT <= 0){
+      P.saleT = 5;
+      plaisirJourNouveau();
+      if(P.sale) plaisirEcrire();
+    }
+  }
+}
+window.addEventListener('pagehide', ()=>{ if(PLAISIR.pret) plaisirEcrire(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && PLAISIR.pret) plaisirEcrire(); });
+
+ONGLETS.splice(1, 0, {id:'defis', nom:'Défis'});
 
 /* ---------- 30. BOUCLE ---------- */
 mondePret = true;
@@ -38646,6 +39109,7 @@ function loop(now){
   if(paused) dt = 0;
 
   AUDIO.synchroniser();
+  plaisirUpdate(dt, _dtImage);
   keyboardInput();
   commandesBoutons(dt || 0.016);
   const m = MACHINES[cur], v = m.v;
