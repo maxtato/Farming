@@ -18028,7 +18028,14 @@ function planAuto(m, cible){
     const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
     for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
       const id = j*GNX+i;
-      if(state[id] !== ST.HORS && T.from.indexOf(state[id]) >= 0) n++;
+      if(state[id] === ST.HORS || T.from.indexOf(state[id]) < 0) continue;
+      /* L'ÉPANDEUR NE COMPTE QUE CE QUI N'A PAS REÇU D'ENGRAIS. Il sort du semé pour rendre
+         du semé : à ne regarder que l'état, une parcelle déjà fertilisée comptait autant
+         qu'une parcelle à faire, et le pilote choisissait la plus GRANDE des deux — il
+         repassait donc sur celle qu'il venait de finir, en vidant sa cuve, et ne partait
+         jamais sur la suivante. Même critère que `resteCellules`. */
+      if(T.key === 'engrais' && fert[id]) continue;
+      n++;
     }
     if(n > bestN){ bestN = n; best = p; }
   }
