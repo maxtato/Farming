@@ -8,7 +8,7 @@ const chapitre=source.slice(debut,fin);
 let tests=0;function test(nom,f){f();tests++;console.log('PASS',nom);}
 function monde(o={}){
  const boite={};
- const el=()=>({textContent:'',className:'',classList:{add(){},remove(){},toggle(){},contains:()=>false},offsetWidth:0});
+ const el=()=>({addEventListener(){},textContent:'',className:'',classList:{add(){},remove(){},toggle(){},contains:()=>false},offsetWidth:0});
  const c=vm.createContext(Object.assign({Math,JSON,Date,String,Object,Array,console,setTimeout:()=>{},
   localStorage:{getItem:k=>k in boite?boite[k]:null,setItem:(k,v)=>{boite[k]=String(v);}},
   navigator:{},window:{addEventListener(){}},document:{hidden:false,addEventListener(){},getElementById:el},

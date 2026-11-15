@@ -1772,6 +1772,26 @@
 .defibar{height:5px;border-radius:3px;background:rgba(94,76,44,.16);overflow:hidden;margin:1px 0 4px}
 .defibar i{display:block;height:100%;border-radius:3px;background:#E0A63A}
 .art.sansact .act{display:none}
+/* ---------- PASSE PROPRETÉ (audit du 15 novembre 2026) ---------- */
+#pausevoile{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:rgba(12,20,19,.62);pointer-events:auto;z-index:5}
+#pausevoile.on{display:flex}
+#pausevoile b{font-size:30px;letter-spacing:10px;color:#F2E7C9;padding-left:10px}
+#pausevoile span{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:rgba(242,231,201,.75)}
+#pause{z-index:7}
+#pause.repr i{width:0;height:0;background:none;border-radius:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #fff}
+#pause.repr i + i{display:none}
+.accbtn.danger{background:#C4553A;color:#fff;box-shadow:0 4px 0 #8E3A26}
+/* Le libellé du palier se lisait mal sur le blé mûr : il prend le fond des autres pastilles. */
+#goaltxt{background:rgba(17,30,28,.62);padding:2px 10px;border-radius:8px;text-shadow:none}
+#choix .titre{font-size:10px;opacity:1;background:rgba(17,30,28,.78);padding:3px 9px;border-radius:7px;margin-bottom:3px}
+#viseurs .vis .nm{font-size:9px}
+/* DES CIBLES PLUS LARGES QUE LEUR DESSIN. Les boutons restent fins — c'est voulu — mais un
+   doigt ne vise pas à vingt-quatre pixels : la zone qui répond déborde du tracé. */
+.art .act,#brgo,#parcfermer{position:relative}
+.art .act::before{content:'';position:absolute;inset:-9px -8px}
+#brgo::before,#parcfermer::before{content:'';position:absolute;inset:-6px}
+#goalwrap::before{content:'';position:absolute;inset:-13px -6px -22px}
 @media (prefers-reduced-motion:reduce){#fete.on{animation-timing-function:linear}#money{transition:none}
   #menuBtn.aprendre::after{animation:none}}
 </style>
@@ -1797,6 +1817,7 @@
   <div id="viseurs"><div id="tel"><div class="onde"></div>
     <img class="tp" src="pictos/telephone.png" alt=""></div></div>
   <div id="pause"><i></i><i></i></div>
+  <div id="pausevoile"><b>PAUSE</b><span>Touche l’écran pour reprendre</span></div>
   <div id="fete"><div id="fetehaut"></div><div id="fetenom"></div></div>
   <div id="hint"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctete"><div id="parctitre">Changer d'engin</div><div id="parcfermer">✕</div></div><div id="parcliste"></div></div></div>
@@ -24625,8 +24646,8 @@ function ongletOutils(){
              (PRODUITS[k] ? ' ' + dNom(PRODUITS[k].nom.toLowerCase()) : '')).join(', ')
          : ' · cuve vide (' + kg(T.cuveMax) + ' par nature)');
     const det = (T.cargo ? 'Benne ' + kg(T.capacite) : 'Largeur ' + dec(T.width, 1) + ' m')
-      + cuve + ' · niveau ' + T.level + (porteur ? ' · attelé au ' + porteur.nom : ' · au sol');
-    article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
+      + cuve + ' · niveau ' + T.level + (porteur ? ' · ' + accordOutil(T, 'attelé').replace(/E$/, 'e') + ' au ' + porteur.nom : ' · au sol');
+    article(0xF0C24A, T.nom, det, porteur ? accordOutil(T, 'Attelé').replace(/E$/, 'e') : 'Libre', 'no', null, null, T.key);
   }
   const aPrendre = TOOLS.filter((T)=> T.verrou);
   if(aPrendre.length){
@@ -24785,8 +24806,8 @@ function vueAchatOutils(){
     if(T.verrou) continue;
     const porteur = T.attached ? MACHINES.find((m)=> m.v === T.attached) : null;
     article(0xF0C24A, T.nom, detailOutil(T) + ' · niveau ' + T.level +
-      (porteur ? ' · attelé au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
-      porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
+      (porteur ? ' · ' + accordOutil(T, 'attelé').replace(/E$/, 'e') + ' au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
+      porteur ? accordOutil(T, 'Attelé').replace(/E$/, 'e') : 'Libre', 'no', null, null, T.key);
   }
 }
 /* AMÉLIORER : TOUT CE QU'ON POSSÈDE, pas seulement l'engin où l'on est assis. Le
@@ -26811,7 +26832,7 @@ function refreshVehButton(){
   const A = appelMenu();
   vehEl.classList.toggle('appel', !!(A && A.fen === 'achat' && fenActive !== 'achat' && reste));
   vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
-                        : (reste ? 'RIEN À VENDRE À CE PALIER'
+                        : (reste ? 'VOIR LE CATALOGUE'
                                  : (chantier ? 'TOUS LES BATEAUX SONT AU PORT'
                                              : 'TOUT LE MATÉRIEL EST À LA FERME'));
 }
@@ -26990,7 +27011,11 @@ function showHint(t){
    porte, et le relire coûte moins cher que d'inventer une migration pour un nombre
    dont plus personne ne se sert. */
 let etape = 0;
-document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'REPRISE'); });
+/* LA PAUSE SE VOIT. Elle ne laissait qu'un mot au bas de l'écran, effacé en deux secondes :
+   passé ce délai, rien ne distinguait un jeu en pause d'un jeu figé. Un voile et un mot
+   la disent tant qu'elle dure, et toucher le voile la lève (voir `plaisirPause`). */
+let pauseMain = false;
+document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; pauseMain = paused; if(!paused) last = performance.now(); showHint(paused ? 'PAUSE' : 'REPRISE'); });
 
 /* livraison au silo */
 
@@ -37132,7 +37157,7 @@ function finIntro(){
   if(!(tutoActif() && CAMPAGNE.tuto === 0)) return;
     annoncerFenetre({titre:'UN HÉRITAGE',
       sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
-           'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
+           'La maison, les terres… et un tracteur qui a probablement mon âge.&nbsp;»</i>',
       face:{nom:'Moi', humeur:'perplexe'},
       suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
     annoncerFenetre({titre:'PREMIER JOUR',  // « il va falloir apprendre » : il se projette
@@ -37217,8 +37242,19 @@ function lancerPartie(reprise){
   // 2. la reprise du mode libre, s'il y a quelque chose à reprendre
   if(SL) boutonAccueil('Reprendre – mode libre', false, reprendre(SL, true));
   // 3. repartir de zéro, dans l'un ou l'autre
-  if(SC) boutonAccueil('Nouvelle campagne', false, ()=>{
-    effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
+  /* DEUX TOUCHERS POUR EFFACER UNE CAMPAGNE. Le bouton est posé contre « Reprendre », et
+     un seul toucher effaçait la partie sans retour : c'est le même double appui que
+     « Recommencer » demande déjà dans les réglages. Il se désarme seul en quatre secondes. */
+  if(SC){
+    let sur = false;
+    const bN = boutonAccueil('Nouvelle campagne', false, ()=>{
+      if(!sur){
+        sur = true; bN.textContent = 'Effacer la campagne ?'; bN.classList.add('danger');
+        setTimeout(()=>{ sur = false; bN.textContent = 'Nouvelle campagne'; bN.classList.remove('danger'); }, 4000);
+        return;
+      }
+      effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
+  }
   boutonAccueil('Mode libre', false, lancerLibre);
 })();
 
@@ -37665,6 +37701,7 @@ function plaisirLancer(){
 }
 function plaisirUpdate(dt, dtImage){
   const P = PLAISIR;
+  plaisirPause();
   if(!P.pret){ if(demarre) plaisirLancer(); else return; }
   const e = P.e;
   plaisirCaisse(dtImage);
@@ -37720,6 +37757,14 @@ function plaisirUpdate(dt, dtImage){
     }
   }
 }
+// Le voile de pause : il ne vaut que pour la pause DEMANDÉE, pas pour celle d'un menu ouvert.
+const pauseVoile = document.getElementById('pausevoile'), pauseBtn = document.getElementById('pause');
+function plaisirPause(){
+  if(!paused) pauseMain = false;
+  const on = pauseMain && paused && panneau.style.display !== 'block' && !fenActive && accueil.style.display === 'none';
+  if(on !== pauseVoile.classList.contains('on')){ pauseVoile.classList.toggle('on', on); pauseBtn.classList.toggle('repr', on); }
+}
+pauseVoile.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); paused = false; pauseMain = false; last = performance.now(); showHint('REPRISE'); });
 window.addEventListener('pagehide', ()=>{ if(PLAISIR.pret) plaisirEcrire(); });
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && PLAISIR.pret) plaisirEcrire(); });
 

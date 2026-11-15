@@ -48,3 +48,23 @@ primes de mission (150 € à la première, 4 000 € et plus au palier 8).
 
 13 contrôles dans `outils/plaisir/tests.cjs`, ajoutés à `npm test`. Contrôle visuel dans Chromium en
 844 × 390 et 667 × 375. Les vibrations et le rendu sur un vrai téléphone restent à valider.
+
+## Passe propreté (même jour)
+
+Un audit a joué le début de la campagne en 844 × 390 et 667 × 375 : 23 constats, aucune erreur JS.
+Corrigé ici :
+
+- **« Nouvelle campagne » demande deux touchers** ; un seul effaçait la partie, contre « Reprendre ».
+- **La pause se voit** : voile, mot, bouton passé en ▶ ; toucher l'écran la lève.
+- Libellé du palier sur fond sombre (illisible sur le blé mûr) ; titre « Que faire ici ? » lisible ;
+  nom des flèches de guidage de 7 à 9 px.
+- **Cibles tactiles élargies sans grossir les boutons** : boutons des listes, flèche des dialogues,
+  croix de la liste des engins, barre de progression.
+- Bouton du garage « Voir le catalogue » au lieu de « Rien à vendre à ce palier » ; accord
+  « charrue … attelée » ; guillemet fermant insécable dans « Un héritage ».
+
+Relevé mais NON corrigé, à trancher : outils de développement et « Tout déverrouiller » visibles dans
+les réglages ; étiquettes du monde qui passent sous le HUD ; écran d'automatisation (lignes coupées,
+mini-carte, consignes en triple, onglets verrouillés non grisés) ; vocabulaire mission / commande /
+contrat et niveau / palier / cran ; tutoiement et vouvoiement mêlés ; étape de labour bloquée sous
+98 % sans montrer le reliquat ; bandeau « plan terminé » pendant que le chantier continue.
