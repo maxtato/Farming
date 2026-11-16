@@ -4413,6 +4413,8 @@ const CONTRATS = [];              // ce qu'on a accepté, et rien d'autre
    LIBRE, hors campagne, les rouvrira : la machinerie reste entière derrière ce seul
    interrupteur, et il n'y a pas une ligne morte ailleurs. */
 let MODE_LIBRE = false;
+// Le mode NÉGOCE est un mode libre sans commerces : voir « LE NÉGOCE », avant l'écran d'accueil.
+let MODE_NEGOCE = false;
 /* ET LA CAMPAGNE FINIE LES ROUVRE. Le dernier client le dit lui-même en payant sa grande
    réception : « les commerces continueront désormais à proposer des contrats, tandis que
    vous pouvez développer librement votre exploitation ». Sans cette ligne, la promesse
@@ -4464,7 +4466,7 @@ function entamerEtal(S, cle, q){
    manque, et les deux fournisseurs — le garage et le comptoir agricole — ne sont
    jamais fermés : sans eux on ne pourrait rien acheter du tout. */
 const siteOuvert = (S)=> !!S && ouvert('sites', S.nom);
-const acheteMaintenant = (S, cle)=> siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
+const acheteMaintenant = (S, cle)=> !(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) && siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
 /* ET LA VENTE LIBRE N'EXISTE PAS AVANT D'AVOIR ÉTÉ DÉBLOQUÉE. Le jeu l'annonce en toutes
    lettres à la fin de la première mission — « VENTE LIBRE DÉBLOQUÉE · la Coopérative achète
    votre production à tout moment » — et pourtant elle était proposée AVANT, à côté du
@@ -4478,7 +4480,7 @@ const venteLibreOuverte = ()=> MODE_LIBRE || (!commandesObligatoires() && CAMPAG
 const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
 const TREMIE_SITE_MAX = 335;
 const accepteMaintenant = (S, cle)=>
-  siteOuvert(S) && S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX
+  !(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) && siteOuvert(S) && S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX
   && (!commandesObligatoires() || resteCommande(S.nom, cle) > 0.01);
 // …et rend un produit tant qu'il en reste sur son quai.
 function stockASortir(S, cle){
@@ -28768,6 +28770,8 @@ function calculerLecon(){
   return null;
 }
 function veillerLecons(dt){
+  // Le négoce n'enseigne rien : ni fenêtre, ni ligne de bandeau.
+  if(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE){ leconActive = null; return; }
   if(lectureEnCours())return;
   leconT -= dt;
   if(leconT > 0) return;
@@ -31956,7 +31960,7 @@ function updateBetail(dt){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const v = m.v;
-    if((m.key!=='fourgon'&&!v.betailAncien) || !v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
+    if((typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) || (m.key!=='fourgon'&&!v.betailAncien) || !v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
     const cle='betail_'+v.betailEspece;
     if(commandesObligatoires() && resteCommande(BOUCHERIE.nom,cle)<1){v.venteT=0;continue;}
     v.venteT = (v.venteT || 0) + dt;
@@ -35557,7 +35561,7 @@ function rendrePanneau(){
   ({campagne:ongletCampagne, engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
-    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis})[ongletActif]();
+    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis, marche:ongletMarche})[ongletActif]();
 }
 
 /* ---------- L'ÉCRAN DE CAMPAGNE ----------
@@ -37219,6 +37223,144 @@ addEventListener('pagehide', ()=>{ relacherCommandes(); sauvegarder(false); });
 // et recueillir le premier geste du joueur — celui sans lequel aucun navigateur
 // n'autorise le son.
 const accueil = document.getElementById('accueil');
+/* ---------- LE NÉGOCE ----------
+   Le joueur : « une version annexe où il n'y aurait plus de commerces. On produit et on
+   stocke à l'entrepôt, et suivant la demande des camions viennent charger et on est payé.
+   Un mode à part. Pas de personnage. Moins de narratif : juste de la production, la
+   gestion des parcelles et des stockages, et la vente au meilleur prix. »
+   C'EST UN MODE LIBRE, À TROIS CHOSES PRÈS.
+   1. Aucun commerce n'achète (`acheteMaintenant`, `accepteMaintenant`, la boucherie) : le
+      garage et le comptoir vendent toujours, il faut bien s'équiper et semer.
+   2. Tout se vend depuis la ferme, au COURS DU MOMENT. Chaque produit a son cours, qui
+      dérive entre 65 % et 155 % du barème et change de cap toutes les deux à trois
+      minutes ; vendre gros pèse sur le cours, qui se refait en quelques minutes. Garder
+      en stock pour vendre haut, c'est tout le jeu — et le stock est borné.
+   3. Vendre appelle un camion : il arrive par la route de la ferme, s'arrête devant
+      l'entrepôt, charge ce qu'il y a au silo et à l'entrepôt, paie et repart. Le prix est
+      celui du moment où on l'a appelé.
+   NI HISTOIRE NI LEÇON : le tutoriel est soldé d'entrée, les leçons aussi.
+   Il a son tiroir de sauvegarde (`clefPartie`) : le mode libre et la campagne n'en savent rien.
+   CE QUI NE SE VEND PAS ICI : les bêtes sur pied. Le lait, le bois et la marée se vendent
+   une fois PORTÉS À L'ENTREPÔT — c'est le transport qui reste au joueur. */
+const NEGO = {clefPartie:'moisson.partie.negoce.v1', clef:'moisson.negoce.v1',
+                cours:{}, camions:[], total:0, voyages:0, sale:false, saleT:0};
+const NEGOCE_BAS = 0.65, NEGOCE_HAUT = 1.55, NEGOCE_POIDS = 9000, NEGOCE_CAMION = 1500;
+const negoceVendable = (cle)=> !!PRODUITS[cle] && !PRODUITS[cle].betail && !PRODUITS[cle].interne;
+function negoceCours(cle){
+  let c = NEGO.cours[cle];
+  if(!c) c = NEGO.cours[cle] = {k:0.85 + Math.random()*0.4, cible:NEGOCE_BAS + Math.random()*(NEGOCE_HAUT - NEGOCE_BAS),
+                                  t:40 + Math.random()*120, press:0};
+  return c;
+}
+const negoceCoef = (cle)=>{ const c = negoceCours(cle); return c.k*(1 - Math.min(0.35, c.press)); };
+const negocePrix = (cle)=> prixDe(cle)*negoceCoef(cle);
+// Ce que la ferme peut mettre sur un camion : le silo, l'entrepôt, le quai de l'atelier.
+const negoceStock = (cle)=> (siloStock[cle] || 0) + entrepotStock(cle) + (HALLE.stock[cle] || 0);
+function negoceRetirer(cle, q){
+  let reste = q;
+  const s = Math.min(reste, siloStock[cle] || 0); if(s > 0){ siloStock[cle] -= s; reste -= s; }
+  const e = Math.min(reste, entrepotStock(cle)); if(e > 0){ entrepotRetire(cle, e); reste -= e; }
+  const h = Math.min(reste, HALLE.stock[cle] || 0); if(h > 0){ halleRetire(cle, h); reste -= h; }
+  return q - reste;
+}
+const negoceEnRoute = (cle)=> NEGO.camions.some((K)=> K.cle === cle && K.phase !== 'part');
+function negoceVendre(cle){
+  if(negoceEnRoute(cle)) return false;
+  const q = Math.min(NEGOCE_CAMION, negoceStock(cle));
+  if(q < 1) return false;
+  const Q = ENTREPOT.quai || {x:18.6, z:65.5};
+  const g = buildFourgon();
+  if(q > 600) g.scale.setScalar(1.22);
+  // Deux camions ne s'arrêtent pas l'un dans l'autre : le suivant se range derrière.
+  const file = NEGO.camions.filter((C)=> C.phase !== 'part').length;
+  const K = {cle, q, prix:negocePrix(cle), phase:'aller', t:0, x:Q.x + 170 + 40*file, z:Q.z + 7.1, arret:Q.x + 13*file, g};
+  g.position.set(K.x, 0, K.z); g.rotation.y = -Math.PI/2; scene.add(g);
+  NEGO.camions.push(K);
+  showHint('CAMION EN ROUTE – ' + nomDe(cle).toUpperCase() + ' À ' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €');
+  return true;
+}
+function negoceLire(){
+  try {
+    const E = JSON.parse(localStorage.getItem(NEGO.clef) || 'null');
+    if(!E) return;
+    if(E.cours) for(const k in E.cours) if(PRODUITS[k] && E.cours[k] && E.cours[k].k > 0) NEGO.cours[k] = E.cours[k];
+    NEGO.total = +E.total || 0; NEGO.voyages = +E.voyages || 0;
+  } catch(e){}
+}
+function negoceEcrire(){
+  try { localStorage.setItem(NEGO.clef, JSON.stringify({cours:NEGO.cours, total:NEGO.total, voyages:NEGO.voyages})); } catch(e){}
+}
+function negoceEntrer(){
+  if(MODE_NEGOCE) return;
+  MODE_NEGOCE = true;
+  SAVE.clefLibre = NEGO.clefPartie;
+  CAMPAGNE.tuto = 999;                                    // ni arrivée en pick-up, ni étapes
+  for(const k in LECONS) if(CAMPAGNE.lecons.indexOf(k) < 0) CAMPAGNE.lecons.push(k);
+  ONGLETS.splice(0, 0, {id:'marche', nom:'Marché'});
+  negoceLire();
+}
+function negoceUpdate(dt){
+  if(!MODE_NEGOCE || dt <= 0) return;
+  for(const cle in PRODUITS){
+    if(!negoceVendable(cle)) continue;
+    const c = negoceCours(cle);
+    c.t -= dt;
+    if(c.t <= 0){ c.cible = NEGOCE_BAS + Math.random()*(NEGOCE_HAUT - NEGOCE_BAS); c.t = 100 + Math.random()*100; }
+    c.k += (c.cible - c.k)*Math.min(1, dt/30);
+    c.press *= Math.exp(-dt/150);
+  }
+  for(let i = NEGO.camions.length - 1; i >= 0; i--){
+    const K = NEGO.camions[i];
+    if(K.phase === 'aller'){
+      K.x -= Math.min(15, 2 + Math.abs(K.x - K.arret)*0.6)*dt;
+      if(K.x <= K.arret + 0.3){ K.x = K.arret; K.phase = 'charge'; K.t = 5; }
+    } else if(K.phase === 'charge'){
+      K.t -= dt;
+      if(K.t <= 0){
+        const pris = negoceRetirer(K.cle, K.q), gain = pris*K.prix;
+        if(pris > 0.5){
+          encaisser(gain);
+          NEGO.total += gain; NEGO.voyages++;
+          negoceCours(K.cle).press += gain/NEGOCE_POIDS;
+          if(typeof pluiePieces === 'function') pluiePieces(gain, K.x, K.z - 7);
+          showHint('CAMION CHARGÉ – ' + nomDe(K.cle).toUpperCase() + ' ' + kg(pris) + '  +' + eur(gain));
+        } else showHint('LE CAMION REPART À VIDE – PLUS DE ' + nomDe(K.cle).toUpperCase());
+        K.phase = 'part'; K.v = 0; NEGO.sale = true;
+      }
+    } else {
+      K.v = Math.min(15, (K.v || 0) + 5*dt); K.x -= K.v*dt;
+      if(K.x < K.arret - 170){ scene.remove(K.g); NEGO.camions.splice(i, 1); continue; }
+    }
+    K.g.position.x = K.x;
+  }
+  NEGO.saleT += dt;
+  if(NEGO.saleT > 20 || NEGO.sale){ NEGO.saleT = 0; NEGO.sale = false; negoceEcrire(); }
+}
+function ongletMarche(){
+  titre('Marché');
+  const fleche = (c)=> c.cible > c.k + 0.04 ? ' ▲' : (c.cible < c.k - 0.04 ? ' ▼' : '');
+  const cles = Object.keys(PRODUITS).filter(negoceVendable);
+  const stock = cles.filter((k)=> negoceStock(k) >= 1).sort((a, b)=> negoceCoef(b) - negoceCoef(a));
+  if(!stock.length)
+    article(0xFAD201, 'Rien à vendre', 'Récolte, puis vide au silo ou à l\'entrepôt.', '', 'no', null);
+  for(const cle of stock){
+    const c = negoceCours(cle), k = negoceCoef(cle), q = Math.min(NEGOCE_CAMION, negoceStock(cle)), route = negoceEnRoute(cle);
+    article(k >= 1.15 ? 0x8BE07A : (k <= 0.85 ? 0xE0694A : 0xFAD201), nomDe(cle),
+      kg(negoceStock(cle)) + '  ·  <b>' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €</b>  ·  '
+        + Math.round(k*100) + ' % du cours' + fleche(c) + '<br><span class="q">' + eur(q*negocePrix(cle)) + '</span> le camion',
+      route ? 'En route' : 'Vendre', route ? 'ok' : (k >= 1 ? 'vert' : ''),
+      route ? null : ()=>{ negoceVendre(cle); rafraichirEcran(); }, cle, cle);
+  }
+  const ouv = produitsOuverts();
+  const autres = cles.filter((k)=> negoceStock(k) < 1 && ouv.indexOf(k) >= 0)
+    .sort((a, b)=> negoceCoef(b) - negoceCoef(a)).slice(0, 4);
+  if(autres.length){
+    titre('Les cours les plus hauts');
+    article(0xFAD201, autres.map((k)=> nomDe(k) + ' ' + Math.round(negoceCoef(k)*100) + ' %' + fleche(negoceCours(k))).join('  ·  '),
+      NEGO.voyages ? NEGO.voyages + ' camions partis  ·  ' + eur(NEGO.total) + ' encaissés' : 'Un cours change de cap toutes les deux à trois minutes.',
+      '', 'no', null);
+  }
+}
 const accBtns = document.getElementById('accbtns');
 let demarre = false;
 function boutonAccueil(txt, principal, f){
@@ -37432,6 +37574,10 @@ function lancerPartie(reprise){
       effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
   }
   boutonAccueil('Mode libre', false, lancerLibre);
+  // Le négoce : son tiroir de sauvegarde à lui, et sa reprise quand il y a de quoi reprendre.
+  const SN = lireSauvegarde(NEGO.clefPartie);
+  if(SN) boutonAccueil('Reprendre – négoce', false, ()=>{ negoceEntrer(); reprendre(SN, true)(); });
+  boutonAccueil('Négoce', false, ()=>{ negoceEntrer(); lancerLibre(); });
 })();
 
 /* ---------- 29. PROGRESSION ---------- */
@@ -37465,7 +37611,7 @@ function refreshHUD(){
   // Le bandeau dit LEQUEL des deux modes on a repris : rien d'autre à l'écran ne les
   // distingue, et l'on ne saurait pas pourquoi tout est achetable.
   texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
-                       : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
+                       : MODE_NEGOCE ? 'NÉGOCE' : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
                                     : 'NIVEAU ' + n + ' – ' + N.nom);
   texteSiChange(el.money,caisseVue());
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
@@ -38031,7 +38177,7 @@ function plaisirUpdate(dt, dtImage){
   if(P.tickT > 0) P.tickT -= dtImage;
   if(P.rafaleT > 0){ P.rafaleT -= dtImage; if(P.rafaleT <= 0) plaisirFinRafale(); }
   if(P.mainT > 0){ P.mainT -= dtImage; if(P.mainT <= 0) plaisirMainPayer(); }
-  plaisirRoute(dtImage); plaisirEtoiles(dt); plaisirSalaire(dt);
+  plaisirRoute(dtImage); plaisirEtoiles(dt); plaisirSalaire(dt); negoceUpdate(dt);
   if(dt > 0){
     // La route : ce que roule l'engin qu'on tient, moteur du défi et ligne du carnet.
     const v = MACHINES[cur] && MACHINES[cur].v;

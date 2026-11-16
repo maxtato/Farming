@@ -55,3 +55,13 @@ dernières missions payaient 8 250 à 30 000 € de prime.
 Non vérifié : que chaque achat obligatoire de la campagne reste finançable avec les primes
 réduites (l'audit de septembre laissait 146 763 € de marge ; la baisse en retire environ 60 000,
 et les terres coûtent moins cher). La vente libre se ferme toujours à la fin de la campagne.
+
+## Le mode Négoce (première version)
+
+Bouton « Négoce » à l'écran titre, sauvegarde à part (`moisson.partie.negoce.v1`, cours dans
+`moisson.negoce.v1`). C'est un mode libre où aucun commerce n'achète : onglet « Marché » dans le
+menu, un cours par produit (65 à 155 % du barème, nouveau cap toutes les 100 à 200 s, la vente
+pèse sur le cours), bouton « Vendre » qui appelle un camion (1 500 kg au plus) ; il s'arrête
+devant l'entrepôt, charge silo + entrepôt + quai de l'atelier, paie au prix du moment de l'appel.
+Ni tutoriel, ni leçons, ni personnage. Le garage et le comptoir vendent toujours.
+Non fait : vente des bêtes, camion qui évite le joueur et le trafic, onglet « Campagne » masqué.
