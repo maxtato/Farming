@@ -3296,10 +3296,19 @@ const CHEMINS_NORD = [];                    // {x0,x1,z0,z1,vert} : voir `paintS
      doubler de prix indéfiniment, sans quoi les dernières parcelles ne se prennent
      jamais. Le total reste du même ordre qu'avant, à peu près deux millions et demi ;
      c'est sa RÉPARTITION qui change, et avec elle les vingt premières minutes. */
-  const GRILLE = [1000, 1800, 3500, 5500, 8000, 12000, 18000, 27000, 40000,
-                  73000, 89000, 109000, 133000, 162000, 198000, 241000,
-                  294000, 359000, 438000, 534000, 651000];
-  rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
+  /* LA TERRE SE PAIE À SA TAILLE, ET L'ÉCHELLE S'ARRÊTE À 40 000 (novembre 2026). Relevé en
+     jouant : la grille montait à 241 000 € sans regarder la surface — un carré de vingt
+     mètres (227 cases, 62 kg de blé) valait 162 000 €, soit des dizaines d'heures de
+     récolte pour se rembourser, et « la culture ne rapportait pas ». La grille donne
+     maintenant le prix d'une parcelle STANDARD (30 × 30 m), et chaque terre le paie au
+     prorata de sa surface : les petits carrés coûtent moins de la moitié, les deux
+     grands champs quatre fois plus. Le total passe d'environ 1,1 million à 520 000 €. */
+  const GRILLE = [1000, 1800, 3000, 4500, 6500, 9000, 12000, 15000, 18000,
+                  21000, 24000, 27000, 30000, 33000, 36000, 40000];
+  rest.forEach((p,i)=>{
+    const prix = GRILLE[Math.min(i, GRILLE.length-1)]*(p.w*p.h)/900;
+    p.price = Math.max(500, Math.round(prix/100)*100);
+  });
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
 // une bande d'herbe de 4 m entre le parking et la route, qu'on traversait à chaque
@@ -3474,7 +3483,7 @@ const PRODUITS = {
      fait soixante grammes, donc 16,67 œufs au kilo et 3,33 € le kilo. C'est aussi ce qui
      remet la boulangerie à l'endroit : écrire 0,20 le KILO rendait une viennoiserie
      moins chère qu'un pain, faute d'avoir converti. */
-  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:0.80, unite:'œufs', parKg:1/0.060,
+  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:1.20, unite:'œufs', parKg:1/0.060,
            nomme:true},
   laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:7.228},
   // Le miel se récolte en petites quantités et se vend cher : c'est le produit brut
@@ -3493,11 +3502,13 @@ const PRODUITS = {
      le raisin : la forêt s'ouvre au septième palier et doit y valoir le détour sans rendre
      les parcelles inutiles. La scierie paie ce chiffre, le menuisier 40 % de plus. */
   // Lignes de commande comptées à la tête ; elles restent hors des caisses de marchandises.
-  betail_vache: {nom:'Vaches',couleur:'#DCEEF5',brut:3500,unite:'bêtes',betail:'vache',interne:true},
-  betail_poule: {nom:'Poules',couleur:'#F6E7B8',brut:270,unite:'bêtes',betail:'poule',interne:true},
-  betail_cochon: {nom:'Cochons',couleur:'#D49A86',brut:1640,unite:'bêtes',betail:'cochon',interne:true},
-  betail_mouton: {nom:'Brebis',couleur:'#EDE6D6',brut:1560,unite:'bêtes',betail:'mouton',interne:true},
-  grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:2.6},
+  betail_vache: {nom:'Vaches',couleur:'#DCEEF5',brut:760,unite:'bêtes',betail:'vache',interne:true},
+  betail_poule: {nom:'Poules',couleur:'#F6E7B8',brut:44,unite:'bêtes',betail:'poule',interne:true},
+  betail_cochon: {nom:'Cochons',couleur:'#D49A86',brut:480,unite:'bêtes',betail:'cochon',interne:true},
+  betail_mouton: {nom:'Brebis',couleur:'#EDE6D6',brut:250,unite:'bêtes',betail:'mouton',interne:true},
+  // 2,6 → 1,9 : joué, l'abatteuse remplit le dépôt (1 158 kg) en moins de cinq minutes et
+  // la forêt a repoussé entre-temps — 600 € la minute, deux fois un chalutier.
+  grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:1.9},
 
   /* --- ce qui sort de la mer --- */
   /* LE POISSON ET LES CRUSTACÉS. Une barque en remonte dix kilos toutes les huit secondes,
@@ -7631,9 +7642,11 @@ const CROPS = [
 /* LA CULTURE RAPPORTE UN QUART DE PLUS (novembre 2026). Le joueur : « regarde l'équilibre
    des gains une fois sorti des missions, pour que la culture rapporte ». UN SEUL BOUTON,
    posé ici : tout ce qui lit `kg` — la moisson, la fiche du catalogue, la capacité de la
-   ferme — suit. Un quart et pas davantage : la parcelle de départ rend 144 kg, et la
-   trémie neuve en tient 150 ; au-delà, la toute première moisson déborderait. */
-const RENDEMENT = 1.25;
+   ferme — suit. D'abord un quart, puis 1,6 après avoir joué toutes les filières : un
+   champ automatisé rapportait 70 € la minute quand un chalutier en sort 340. La parcelle
+   de départ rend 184 kg ; la trémie neuve est passée de 150 à 200 pour que la toute
+   première moisson tienne en un voyage. */
+const RENDEMENT = 1.6;
 for(const C of CROPS) C.kg *= RENDEMENT;
 const CROP_DE = {};                       // clé de produit → indice de culture
 CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
@@ -23609,9 +23622,9 @@ const PALIERS = {
               crans:[{vite:1.00}, {vite:1.12, prix:900}, {vite:1.25, prix:2600},
                      {vite:1.40, prix:6000}, {vite:1.55, prix:12000}]},
   moisson:   {nom:'Moissonneuse', donne:'vitesse, trémie et largeur de coupe',
-              crans:[{vite:1.00, tremie:150, coupe:1.00},
-                     {vite:1.12, tremie:250, coupe:1.20, prix:1500},
-                     {vite:1.25, tremie:450, coupe:1.50, prix:4500},
+              crans:[{vite:1.00, tremie:200, coupe:1.00},
+                     {vite:1.12, tremie:320, coupe:1.20, prix:1500},
+                     {vite:1.25, tremie:500, coupe:1.50, prix:4500},
                      {vite:1.40, tremie:800, coupe:1.80, prix:10000}]},
   enjambeuse:{nom:'Enjambeuse',   donne:'vitesse et capacité',
               crans:[{vite:1.00, caisse:120},
@@ -23727,7 +23740,8 @@ const SILO_UP = {nom:'Silo', det:'Ce que la tour tient de céréales',
                  paliers:[1, 1.5, 2.1, 2.9], prix:[0, 1200, 4000, 11000]};
 const siloFacteur = ()=>
   SILO_UP.paliers[Math.max(0, Math.min(SILO_UP.paliers.length - 1, (SILO.cran || 1) - 1))];
-const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*siloFacteur());
+// × RENDEMENT : le silo suit ce que la terre rend, sans quoi deux moissons le bouchent.
+const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*RENDEMENT*siloFacteur());
 /* DEUX PRÉDICATS NOMMÉS, PARCE QUE LA MÊME QUESTION ÉTAIT POSÉE EN TROIS ENDROITS.
    « Le silo est-il plein ? » s'écrivait `siloTotal() < siloMax()` ici, `siloTotal() <
    siloMax() - 0.01` là, et la marge d'un centième n'était pas la même partout. L'entrepôt
@@ -29916,11 +29930,19 @@ function teteMouton(R){
 
 // Le catalogue. Chaque espèce dit son allure, sa robe, son économie et l'aménagement
 // que réclame son enclos. Tout le reste du jeu ne lit que cette table.
+/* LA REVENTE D'UNE BÊTE NE VAUT PLUS SIX FOIS SON ACHAT (novembre 2026). Joué au banc : deux
+   vaches achetées 1 200 €, six kilos de grain, six minutes — 7 000 € à la boucherie. Une
+   étable de vingt places sortait 58 000 € toutes les six minutes quand un champ de blé en
+   donne 340 : plus personne n'avait de raison de cultiver. La boucherie paie maintenant
+   `prixBete` × 2 = l'achat plus une marge qui ressemble à ce que la bête aurait produit
+   pendant ce temps : vache 760 € (achetée 600), cochon 480 (220, plus 25 kg d'aliment),
+   brebis 250 (180), poule 44 (30). Les lignes `betail_*` de PRODUITS portent les mêmes
+   chiffres : c'est sur elles que se règlent les commandes de bêtes. */
 const ESPECES = {
   vache: {
     cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
     // 1,15 -> 1,32 : une vache faisait 1,90 m au garrot pour un tracteur de 4,84 de haut
-    pature:3500, prix:600, prixBete:1750, maturite:420, m2:88, echelle:1.32,
+    pature:3500, prix:600, prixBete:380, maturite:420, m2:88, echelle:1.32,
     cycle:300, rationCycle:2, batiment:'Étable',
     capacites:[2, 5, 10, 20], prixTaille:[1500, 4000, 9000],
     produit:'lait', nomProduit:'Lait', parCycle:25,
@@ -29934,7 +29956,7 @@ const ESPECES = {
   },
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
-    pature:800, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
+    pature:800, prix:30, prixBete:22, maturite:160, m2:13, echelle:1.55,
     /* LES ŒUFS SORTENT DEUX FOIS PLUS VITE : « les œufs sont un petit peu longs à sortir ».
        Cent cinquante secondes par cycle au lieu de trois cents, deux œufs par poule. */
     cycle:150, rationCycle:0.25, batiment:'Poulailler',
@@ -29950,7 +29972,7 @@ const ESPECES = {
   cochon: {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     // 1,25 -> 1,45 : un cochon reste plus bas qu'une vache, mais on le voit
-    pature:2800, prix:220, prixBete:820, maturite:320, m2:30, echelle:1.45,
+    pature:2800, prix:220, prixBete:240, maturite:320, m2:30, echelle:1.45,
     cycle:300, rationCycle:5, engraissement:25, batiment:'Porcherie',
     capacites:[4, 8, 16, 30], prixTaille:[1200, 3200, 7500],
     produit:null, nomProduit:null, parCycle:0,
@@ -30000,7 +30022,7 @@ const ESPECES = {
      robe, qui valaient déjà 0 à 2. */
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
-    pature:3000, prix:180, prixBete:780, maturite:400, m2:42, echelle:1.2,
+    pature:3000, prix:180, prixBete:125, maturite:400, m2:42, echelle:1.2,
     cycle:300, rationCycle:1, batiment:'Bergerie',
     capacites:[4, 8, 16, 30], prixTaille:[900, 2500, 6000],
     produit:'laine', nomProduit:'Laine', parCycle:2,
