@@ -4529,7 +4529,7 @@ function acheteursDe(cle, sauf, quantite){
    en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false,
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false, long:false,
                   ouverture:false, clientsPresentes:[], vuPrix:false};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
@@ -4940,7 +4940,7 @@ const MISSIONS = [
    position et « explorer les environs » en neuvième. Une sauvegarde d'avant passe par les
    deux décalages, dans l'ordre : l'ancien pick-up (6) devient 7, l'ancien appel (7) devient
    9, l'ancienne vente (8) devient 10. */
-const TUTO_V = 4, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
+const TUTO_V = 5, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
 const MISSIONS_V = 4;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
@@ -5681,6 +5681,10 @@ function chargerCampagne(S){
     /* L'ARRIVÉE DU PICK-UP, VUE OU NON. Absent d'une vieille sauvegarde, le champ vaut
        « vue » : une partie en cours ne se voit pas raconter l'héritage en repartant. */
     CAMPAGNE.ouverture = C.ouv === undefined ? true : !!C.ouv;
+    /* QUELLE OUVERTURE CETTE PARTIE A-T-ELLE COMMENCÉE. Depuis la table 5 la campagne
+       s'ouvre sur la moisson (`TUTO_COURT`) ; une partie écrite avant garde la longue,
+       celle dont son rang parle. Le drapeau se réécrit dans `tv` à chaque sauvegarde. */
+    CAMPAGNE.long = (C.tv | 0) < 5;
     CAMPAGNE.vuPrix = C.vuPrix === undefined ? true : !!C.vuPrix;
     /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
        la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
@@ -28142,6 +28146,61 @@ const TUTO = [
 // La marche à partir de laquelle le travail de la terre est appris — voir le commentaire
 // au-dessus de la table, et `combinePret` qui la lit.
 const TUTO_TERRE = TUTO.findIndex((E)=> E.cle === 'recolte');
+/* ---------- L'OUVERTURE COURTE : ON COMMENCE PAR MOISSONNER ----------
+   Mesuré en jouant l'ouverture longue : seize fenêtres et sept minutes vingt avant le
+   premier euro, dont deux minutes vingt-cinq à regarder pousser le blé. Le joueur :
+   « fais-les tous. Pas trop de fenêtres et pas trop de texte. »
+   L'oncle laisse donc un champ MÛR (`murirDepart`). On moissonne, on vide, on range, on
+   prend le pick-up, le téléphone sonne deux secondes après — et la première vente tombe
+   avant la troisième minute. Labourer, semer et automatiser s'apprennent ENSUITE, en
+   préambule de la deuxième mission, pendant que le deuxième blé pousse.
+   UNE SEULE FENÊTRE avant la mission : la première. Les autres marches sont `discret` —
+   un bandeau, la ligne d'objectif, le cercle et la flèche, qui suffisaient déjà.
+   LA TABLE LONGUE RESTE, intacte : c'est celle du mode libre, et celle des campagnes
+   commencées avant (`CAMPAGNE.long`). Les marches courtes reprennent les siennes par
+   leur clé — mêmes lieux, mêmes engins, mêmes conditions — et n'en changent que le texte. */
+const tutoDe = (cle, plus)=> Object.assign({}, TUTO.find((E)=> E.cle === cle), plus || {});
+const TUTO_COURT = [
+  tutoDe('recolte', {humeur:'perplexe',
+    txt:'PREMIÈRE RÉCOLTE – Mon oncle m’a laissé sa ferme… et un champ de blé mûr. Autant commencer par là.'}),
+  tutoDe('silo',    {discret:true, court:'SUIS LA FLÈCHE JAUNE'}),
+  tutoDe('parking', {discret:true, court:'CERCLE JAUNE AU PARC'}),
+  /* LE TÉLÉPHONE SONNE DEUX SECONDES APRÈS LA MONTÉE DANS LE PICK-UP : c'est la première
+     consigne que le joueur avait donnée pour cet appel, avant de l'envoyer au croisement.
+     Le croisement n'est plus un passage obligé — il se découvre en y passant, d'un
+     bandeau (voir `plaisirUpdate`). */
+  tutoDe('pickup',  {discret:true, court:'TOUCHE LE BOUTON QUI CLIGNOTE', titre:'PRENDRE LE PICK-UP',
+    fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0}),
+  tutoDe('appel',   {discret:true, court:'DÉCROCHE DEVANT LA MAISON'})
+];
+/* ET LA TERRE S'APPREND À LA DEUXIÈME MISSION. Un préambule indique sans bloquer : les
+   80 kg de l'usine se livrent quand on veut. Pour qui a suivi l'ouverture longue, les
+   trois marches se soldent d'elles-mêmes — il les a déjà faites. */
+const dejaAppris = (cle)=>{ const f = TUTO.find((E)=> E.cle === cle).fait; return ()=> CAMPAGNE.long || f(); };
+MISSIONS[1].prep = [
+  tutoDe('labour', {fait:dejaAppris('labour'),
+    txt:'PRÉPARER LA TERRE – Pour le prochain blé, il faut retourner la terre. La charrue est au parc.'}),
+  tutoDe('semis',  {fait:dejaAppris('semis'),
+    txt:'SEMER DU BLÉ – La terre est prête. Le semoir est au parc.'}),
+  tutoDe('auto',   {fait:dejaAppris('auto'),
+    txt:'LANCER L’AUTOMATISATION – Je ne vais pas tout conduire moi-même. Le bouton A s’en charge.'})
+];
+/* LE CHAMP DE L'ONCLE EST MÛR. On pose chaque cellule comme `grow` la laisse à maturité. */
+function murirDepart(){
+  const p = PARCELS.find((q)=> q.owned);
+  if(!p) return;
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i;
+    if(state[id] === ST.HORS || instOf[id] < 0) continue;
+    cropCell[id] = 0; wheatBase[instOf[id]].crop = 0;
+    growth[id] = 1; fert[id] = 0; replante[id] = 0; enPousse[id] = 0;
+    state[id] = ST.MUR;
+    setInstance(instOf[id], 1, 1);
+  }
+  flushTint();
+}
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
    cahier des charges veut qu'on aille l'acheter puis le remplir. C'est la même chose
@@ -28310,8 +28369,11 @@ const LECONS = [
   {cle:'plan', court:"Programmer les parcelles dans le plan de travail.", humeur:'serein', ou:null, nom:'PLAN DE TRAVAIL', titre:'LE PLAN DE TRAVAIL',
    txt:'LE PLAN DE TRAVAIL – On n’est pas obligé de tout conduire soi-même. Depuis la '
      + 'carte, une machine peut être envoyée travailler seule sur une parcelle.',
+   // L'ouverture courte l'enseigne en préambule de la deuxième mission : la leçon attend
+   // qu'elle soit passée, sans quoi elle ouvrait sa fenêtre à la prise de la première.
    quand:()=> TOOLS.some((T)=> !T.verrou && T.from)
-              && PARCELS.some((q)=> q.owned && !q.pature)},
+              && PARCELS.some((q)=> q.owned && !q.pature)
+              && (MODE_LIBRE || CAMPAGNE.long || CAMPAGNE.mission >= 2)},
 
   {cle:'silo', court:"Agrandir le silo dans le menu Stockage.", humeur:'inquiet', ou:'silo', fen:'stockage', onglet:'agrandir',
    nom:'SILO', titre:'LE SILO SE REMPLIT',
@@ -28679,7 +28741,8 @@ function listeEtapes(){
   if(MODE_LIBRE) return CAMPAGNE.tuto < TUTO.length ? TUTO : null;
   const M = MISSIONS[CAMPAGNE.mission];
   if(!M) return null;
-  if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise) return TUTO;
+  if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise)
+    return (CAMPAGNE.long || typeof TUTO_COURT === 'undefined') ? TUTO : TUTO_COURT;
   return (CAMPAGNE.prise && M.prep) ? M.prep : null;
 }
 function etapeTuto(){
@@ -28919,6 +28982,8 @@ function annoncerEtape(E){
      moment où il découvre le geste suivant : il le dit à voix haute, avec la tête de
      quelqu'un qui cherche. La DERNIÈRE, elle, est celle où ça a marché — il y sourit,
      et c'est le seul endroit du tutoriel où on le voit content. */
+  /* UNE MARCHE DISCRÈTE NE PREND PAS L'ÉCRAN : un bandeau, et la ligne d'objectif. */
+  if(E.discret){ showHint(champEtape(E, 'titre') + (E.court ? ' – ' + E.court : '')); return; }
   const L = listeEtapes() || [];
   const dernier = L.length && L[L.length - 1] === E;
   annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', etape:true,
@@ -31381,7 +31446,8 @@ function executer(m, A, dt){
       solderLecon('tremie');
       livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
-      if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
+      if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'
+        + ((typeof PLAISIR !== 'undefined' && PLAISIR.tremie >= 5) ? '  +' + kg(PLAISIR.tremie).toUpperCase() : '')); }
       return;
     }
     case 'ranger': {
@@ -36434,7 +36500,7 @@ function etatJeu(){
                // vaut « oui », et une partie en cours ne voit pas le bouton se mettre à battre.
                vuPrix: CAMPAGNE.vuPrix ? 1 : 0,
                // Quelle TABLE a écrit ce rang : voir `TUTO_V`. Facultatif, `v` ne bouge pas.
-               tv: TUTO_V,
+               tv: CAMPAGNE.long ? 4 : TUTO_V,
                /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
                   `v` ne bouge toujours pas : une sauvegarde d'avant les leçons n'a pas
                   ce champ, et son absence vaut « toutes apprises ». */
@@ -37188,6 +37254,8 @@ function finIntro(){
   INTRO.actif = false; INTRO.phase = '';
   CAMPAGNE.ouverture = true;      // vue : elle ne se rejouera pas à la reprise
   if(!(tutoActif() && CAMPAGNE.tuto === 0)) return;
+  // L'ouverture courte n'a qu'une fenêtre, et c'est sa première marche qui la porte.
+  if(!CAMPAGNE.long && !MODE_LIBRE){ annoncerEtape(etapeTuto()); return; }
     annoncerFenetre({titre:'UN HÉRITAGE',
       sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
            'La maison, les terres… et un tracteur qui a probablement mon âge.&nbsp;»</i>',
@@ -37235,6 +37303,7 @@ function lancerPartie(reprise){
     if(tutoActif() && CAMPAGNE.tuto === 0 && !CAMPAGNE.ouverture) finIntro();
     return;
   }
+  if(!MODE_LIBRE && !CAMPAGNE.long && CAMPAGNE.mission === 0 && CAMPAGNE.tuto === 0) murirDepart();
   if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
 }
 /* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
@@ -37404,7 +37473,7 @@ const PLAISIR = {
   feteT: 0, saleT: 0, sale: false, horlogeT: 0,
   e: {jour:'', defis:[], pleine:false, serie:0, serieMax:0, dernier:'', primeJour:'',
       records:{vente:0, journee:0}, jourGains:0, recordJourDit:'',
-      cumul:{gains:0, km:0, commandes:0, defis:0}, vibre:true}
+      cumul:{gains:0, km:0, commandes:0, defis:0}, vibre:true, croisement:false}
 };
 const plaisirJour = (d)=>{ d = d || new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -37419,6 +37488,7 @@ function plaisirLire(){
     for(const k of ['serie', 'serieMax', 'jourGains']) if(E[k] >= 0) e[k] = +E[k];
     e.pleine = !!E.pleine;
     if(E.vibre === false) e.vibre = false;
+    e.croisement = !!E.croisement;
     if(E.records) for(const k in e.records) if(E.records[k] >= 0) e.records[k] = +E.records[k];
     if(E.cumul) for(const k in e.cumul) if(E.cumul[k] >= 0) e.cumul[k] = +E.cumul[k];
     if(Array.isArray(E.defis))
@@ -37755,14 +37825,24 @@ function plaisirUpdate(dt, dtImage){
       e.cumul.km += km; plaisirAvancer('route', km);
     }
   }
+  /* L'OUVERTURE COURTE : le téléphone attend deux secondes de pick-up, et le croisement
+     se découvre en y passant — une fois, d'un bandeau, sans fenêtre ni détour imposé. */
+  if(!CAMPAGNE.long && !MODE_LIBRE){
+    const E0 = etapeTuto();
+    if(E0 && E0.cle === 'pickup' && CAMPAGNE.mission === 0)
+      appelT = (MACHINES[cur] && MACHINES[cur].key === 'pickup') ? Math.max(0, appelT - dt) : APPEL_DELAI;
+    if(!e.croisement && auCroisement()){
+      e.croisement = true; P.sale = true;
+      showHint('DES TERRES À VENDRE PAR ICI – CHAQUE PANNEAU PORTE SON PRIX');
+    }
+  }
   /* LA TRÉMIE VIDÉE EST UN GAIN, ET ELLE SE DIT COMME UN GAIN. Cent kilos passaient de la
      machine au silo en deux secondes sous un bandeau « blé au silo » : le fruit de tout
      le tour du champ, sans un chiffre. On retient ce que la trémie a porté, et on le dit
      quand elle touche le fond. */
   if(hopper > P.tremie) P.tremie = hopper;
   else if(hopper < 0.5 && P.tremie >= 5){
-    showHint('AU SILO  +' + kg(P.tremie).toUpperCase());
-    plaisirCarillon(440); vibrer([16, 30, 16]);
+    plaisirCarillon(440); vibrer([16, 30, 16]);     // le bandeau, lui, est écrit au silo
     P.tremie = 0;
   }
   // Un palier franchi : le bandeau, le carillon, la pluie.
