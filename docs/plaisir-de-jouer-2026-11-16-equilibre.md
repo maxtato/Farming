@@ -76,3 +76,15 @@ Non fait : vente des bêtes, camion qui évite le joueur et le trafic, onglet «
 - **Négoce** : bandeau « BLÉ MÛR – PARCELLE N À MOISSONNER » une fois par maturité, et section
   « Champs » dans l'onglet Marché (barre de pousse par parcelle). La jauge au-dessus du champ ne
   s'affiche toujours qu'à ~60 m de la parcelle, dans tous les modes.
+
+## Négoce, deuxième version : tout passe par le bouton étiquette
+
+- Le bouton étiquette (à gauche) ouvre la fenêtre « Négoce » : Vendre / Champs / Acheter. Il bat
+  quand un produit en stock dépasse 125 % de son cours ; le bandeau du haut affiche en permanence
+  le meilleur cours du stock. L'onglet « Marché » du menu est supprimé.
+- Vendre = recevoir une offre : Accepter, Négocier (+12 % ; 75 / 50 / 30 % de chances selon que le
+  cours est bas, moyen ou haut ; refus = acheteur parti 45 s), Attendre.
+- Anneaux et enseignes des commerces éteints. Véhicules, améliorations, semences, engrais et gazole
+  s'achètent depuis la page « Acheter », sans personnage ni phrase d'accroche.
+- Non fait : achat des terres depuis la fenêtre (il faut toujours rouler jusqu'au panneau),
+  vente des bêtes, modèles 3D du village toujours présents.

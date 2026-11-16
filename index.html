@@ -24366,6 +24366,9 @@ const FENETRES = {
                                          {id:'metiers',  nom:'Métiers'},
                                          {id:'reglages', nom:'Améliorations'}]},
   prix:       {titre:'Prix des commerces'},
+  // Le mode Négoce : tout ce qui se vend et s'achète passe par cette fenêtre-ci.
+  negoce:     {titre:'Négoce', vues:[{id:'vendre', nom:'Vendre'}, {id:'champs', nom:'Champs'},
+                                     {id:'acheter', nom:'Acheter'}]},
   /* LA FENÊTRE DES CONTRATS. Sans onglets : ce qui court et ce qui est fait se lisent
      d'affilée, du plus urgent au plus ancien, et couper en deux obligerait à changer de
      page pour savoir si l'on a déjà livré cette marchandise-là. */
@@ -24412,6 +24415,8 @@ function rendreFenetre(){
   if(!fenActive) return;
   const F = FENETRES[fenActive];
   if(!F){ fermerFenetre(); return; }
+  // Le négoce n'a pas de personnage : ni visage au bandeau, ni phrase d'accroche.
+  const accroche = MODE_NEGOCE ? null : F.accroche, visage = MODE_NEGOCE ? null : F.visage;
   fentitre.textContent = F.titre;
   /* LE TENANCIER QUITTE LE BANDEAU QUAND IL A UNE ACCROCHE. Le joueur : « pour le garage
      et le comptoir agricole, retravaille la mise en page pour qu'on voie plus les
@@ -24426,8 +24431,8 @@ function rendreFenetre(){
      première ligne de la LISTE, où il est deux fois plus grand, où il a la place de dire
      bonjour — et où il s'en va tout seul dès qu'on descend chercher un article. Le
      bandeau retombe à la hauteur de son titre, et la liste récupère ce qu'il prenait. */
-  document.getElementById('fenface').style.display = F.accroche ? 'none' : '';
-  poserVisage(document.getElementById('fenface'), F.accroche ? null : F.visage, 'neutre');
+  document.getElementById('fenface').style.display = accroche ? 'none' : '';
+  poserVisage(document.getElementById('fenface'), accroche ? null : visage, 'neutre');
   fenargent.textContent = caisseTxt();
   const vues = F.vues || null;
   fenonglets.innerHTML = '';
@@ -24460,15 +24465,15 @@ function rendreFenetre(){
      bandeau, lui, le posait dans 64 — 288/64 vaut 4,5, et le demi-pixel ne se voyait que
      parce que le rendu est `auto`. Il n'y a plus une seule boîte de portrait hors grille
      dans le jeu. */
-  if(F.accroche){
+  if(accroche){
     const acc = document.createElement('div');
     acc.className = 'fenacc';
     const im = document.createElement('img');
     im.className = 'face'; im.alt = '';
-    poserVisage(im, F.visage, 'neutre');
+    poserVisage(im, visage, 'neutre');
     const mot = document.createElement('div');
     mot.className = 'fenaccmot';
-    mot.innerHTML = '<i>« ' + F.accroche + ' »</i>';
+    mot.innerHTML = '<i>« ' + accroche + ' »</i>';
     acc.appendChild(im); acc.appendChild(mot);
     fenliste.appendChild(acc);
   }
@@ -24483,6 +24488,7 @@ function rendreFenetre(){
     production: {produire:vueProdProduire, metiers:vueProdMetiers,
                  reglages:vueProdReglages},
     prix:       {_:ongletPrix},
+    negoce:     {vendre:vueNegoceVendre, champs:vueNegoceChamps, acheter:vueNegoceAcheter},
     contrats:   {_:vueContrats},
     comptoir:   {semences:vueComptoirSemences, consos:vueComptoirConsos,
                  cuves:vueComptoirCuves},
@@ -24847,7 +24853,8 @@ function ligneAchat(o){
 }
 function vueAchatEngins(){
   const chantier = aChantier(MACHINES[cur].v);
-  const aPrendre = MACHINES.filter((m)=> enVente(m) && !!m.bateau === chantier);
+  // En négoce il n'y a ni garage ni chantier naval où aller : tout est sur la même page.
+  const aPrendre = MACHINES.filter((m)=> enVente(m) && (MODE_NEGOCE || !!m.bateau === chantier));
   if(aPrendre.length){
     titre('À la concession');
     for(const m of aPrendre)
@@ -26859,7 +26866,8 @@ autoEl.addEventListener('pointerdown', ouvrirPlan);
 // La régie : trois boutons, trois écrans. Ils ouvrent le panneau directement sur le
 // bon onglet — le menu reste accessible, mais on n'a plus à le traverser.
 for(const b of document.querySelectorAll('#regie .rgb'))
-  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); ouvrirFenetre(b.dataset.p); });
+  b.addEventListener('pointerdown', (e)=>{ e.stopPropagation();
+    ouvrirFenetre(MODE_NEGOCE && b.dataset.p === 'prix' ? 'negoce' : b.dataset.p); });
 /* ET CELUI QUE L'ÉTAPE ATTEND BAT. C'est le premier maillon de la chaîne demandée :
    « je veux que le bouton pour la production pulse en jaune, et à l'intérieur l'onglet
    pour acheter le moulin pulse en jaune aussi ». Le bouton mène à la fenêtre, la fenêtre
@@ -26877,7 +26885,8 @@ function refreshRegie(){
   const A = appelMenu();
   for(const b of regieBtns)
     b.classList.toggle('appel', !!(A ? (A.fen === b.dataset.p && fenActive !== A.fen)
-                                     : (b.dataset.p === 'prix' && fenActive !== 'prix' && prixAppel())));
+                                     : (b.dataset.p === 'prix' && (MODE_NEGOCE ? fenActive !== 'negoce' && negoceBonMoment()
+                                                                               : fenActive !== 'prix' && prixAppel()))));
 }
 document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenetre);
 document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
@@ -29741,7 +29750,7 @@ function classeGarage(){
        deviner lequel des deux vient de changer. Une seule marque, une seule règle de
        couleur, et rien à apprendre. */
     anneauAction(S.dropX, S.dropZ, S.bat*0.05,
-                 ()=> couleurAnneau(S) !== GUIDE.GRIS,
+                 ()=> !MODE_NEGOCE && couleurAnneau(S) !== GUIDE.GRIS,
                  {coulDyn: ()=> couleurAnneau(S)});
   }
 })();
@@ -35592,7 +35601,7 @@ function rendrePanneau(){
   ({campagne:ongletCampagne, engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
-    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis, marche:ongletMarche})[ongletActif]();
+    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis})[ongletActif]();
 }
 
 /* ---------- L'ÉCRAN DE CAMPAGNE ----------
@@ -37295,7 +37304,7 @@ function negoceRetirer(cle, q){
   return q - reste;
 }
 const negoceEnRoute = (cle)=> NEGO.camions.some((K)=> K.cle === cle && K.phase !== 'part');
-function negoceVendre(cle){
+function negoceVendre(cle, bonus){
   if(negoceEnRoute(cle)) return false;
   const q = Math.min(NEGOCE_CAMION, negoceStock(cle));
   if(q < 1) return false;
@@ -37304,10 +37313,10 @@ function negoceVendre(cle){
   if(q > 600) g.scale.setScalar(1.22);
   // Deux camions ne s'arrêtent pas l'un dans l'autre : le suivant se range derrière.
   const file = NEGO.camions.filter((C)=> C.phase !== 'part').length;
-  const K = {cle, q, prix:negocePrix(cle), phase:'aller', t:0, x:Q.x + 170 + 40*file, z:Q.z + 7.1, arret:Q.x + 13*file, g};
+  const K = {cle, q, prix:negocePrix(cle)*(bonus || 1), phase:'aller', t:0, x:Q.x + 170 + 40*file, z:Q.z + 7.1, arret:Q.x + 13*file, g};
   g.position.set(K.x, 0, K.z); g.rotation.y = -Math.PI/2; scene.add(g);
   NEGO.camions.push(K);
-  showHint('CAMION EN ROUTE – ' + nomDe(cle).toUpperCase() + ' À ' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €');
+  showHint('CAMION EN ROUTE – ' + nomDe(cle).toUpperCase() + ' À ' + K.prix.toFixed(2).replace('.', ',') + ' €');
   return true;
 }
 function negoceLire(){
@@ -37327,7 +37336,6 @@ function negoceEntrer(){
   SAVE.clefLibre = NEGO.clefPartie;
   CAMPAGNE.tuto = 999;                                    // ni arrivée en pick-up, ni étapes
   for(const k in LECONS) if(CAMPAGNE.lecons.indexOf(k) < 0) CAMPAGNE.lecons.push(k);
-  ONGLETS.splice(0, 0, {id:'marche', nom:'Marché'});
   negoceLire();
 }
 function negoceUpdate(dt){
@@ -37339,6 +37347,7 @@ function negoceUpdate(dt){
     if(c.t <= 0){ c.cible = NEGOCE_BAS + Math.random()*(NEGOCE_HAUT - NEGOCE_BAS); c.t = 100 + Math.random()*100; }
     c.k += (c.cible - c.k)*Math.min(1, dt/30);
     c.press *= Math.exp(-dt/150);
+    if(c.gel > 0) c.gel -= dt;
   }
   for(let i = NEGO.camions.length - 1; i >= 0; i--){
     const K = NEGO.camions[i];
@@ -37371,6 +37380,7 @@ function negoceUpdate(dt){
   NEGO.champT = (NEGO.champT || 0) - dt;
   if(NEGO.champT <= 0){
     NEGO.champT = 1;
+    for(const S of SITES) if(S.bulle && S.bulle.visible) S.bulle.visible = false;   // plus d'enseignes
     PARCELS.forEach((p, i)=>{
       if(!p.owned || p.pature) return;
       const mur = p.pousseN > 0 && p.murN >= p.pousseN*0.98;
@@ -37384,47 +37394,104 @@ function negoceUpdate(dt){
   NEGO.saleT += dt;
   if(NEGO.saleT > 20 || NEGO.sale){ NEGO.saleT = 0; NEGO.sale = false; negoceEcrire(); }
 }
-function ongletMarche(){
-  titre('Marché');
-  const fleche = (c)=> c.cible > c.k + 0.04 ? ' ▲' : (c.cible < c.k - 0.04 ? ' ▼' : '');
+/* LA FENÊTRE DU NÉGOCE. Le joueur : « je ne vois pas comment vendre, comment négocier les
+   prix. Il y a un pictogramme d'étiquette à gauche de l'écran : utilise ça. On voit encore
+   les cercles et les noms des commerces, tu peux les enlever. Fais que ce mode soit
+   vraiment un nouveau mode, complètement différent du reste. »
+   LE BOUTON ÉTIQUETTE EST LE COMPTOIR. Il ouvre trois pages : Vendre, Champs, Acheter. Il
+   bat quand un produit en stock passe 125 % de son cours, et le bandeau du haut dit en
+   permanence le meilleur cours de ce qu'on a en magasin.
+   VENDRE, C'EST RECEVOIR UNE OFFRE. Toucher un produit montre ce que l'acheteur propose,
+   et trois réponses : accepter ; négocier — douze pour cent de mieux s'il cède, et s'il
+   refuse il s'en va trois quarts de minute ; attendre. Il cède d'autant plus volontiers
+   que le cours est bas : c'est là qu'il a de la marge.
+   IL N'Y A PLUS DE VILLAGE À VISITER. Les anneaux et les enseignes des commerces sont
+   éteints ; le garage, les améliorations et le comptoir s'ouvrent d'ici (page Acheter). */
+const NEGO_PLUS = 0.12, NEGO_GEL = 45;
+const negoceGel = (cle)=> Math.max(0, negoceCours(cle).gel || 0);
+const negoceChance = (cle)=>{ const k = negoceCoef(cle); return k < 0.9 ? 0.75 : (k < 1.2 ? 0.5 : 0.3); };
+function negoceMeilleur(){
+  let best = null;
+  for(const cle in PRODUITS)
+    if(negoceVendable(cle) && negoceStock(cle) >= 1 && (!best || negoceCoef(cle) > negoceCoef(best))) best = cle;
+  return best;
+}
+const negoceBonMoment = ()=>{ const b = negoceMeilleur(); return !!b && negoceCoef(b) >= 1.25 && !negoceEnRoute(b); };
+const negoceFleche = (c)=> c.cible > c.k + 0.04 ? ' ▲' : (c.cible < c.k - 0.04 ? ' ▼' : '');
+const negoceEuro = (v)=> v.toFixed(2).replace('.', ',') + ' €';
+function negoceBandeau(){
+  const b = negoceMeilleur();
+  if(!b) return 'NÉGOCE – RIEN EN STOCK';
+  return (nomDe(b) + ' ' + negoceEuro(negocePrix(b)) + negoceFleche(negoceCours(b))
+          + ' · ' + Math.round(negoceCoef(b)*100) + ' %').toUpperCase();
+}
+function vueNegoceVendre(){
   const cles = Object.keys(PRODUITS).filter(negoceVendable);
+  const O = NEGO.offre && negoceStock(NEGO.offre) >= 1 && !negoceEnRoute(NEGO.offre) ? NEGO.offre : (NEGO.offre = null);
+  if(O){
+    const q = Math.min(NEGOCE_CAMION, negoceStock(O)), px = negocePrix(O), c = negoceCours(O);
+    titre('L\'offre – ' + nomDe(O));
+    article(0x8BE07A, 'Accepter ' + negoceEuro(px), kg(q) + '  ·  <span class="q">' + eur(q*px) + '</span>  ·  le camion part tout de suite',
+      'Accepter', 'vert', ()=>{ NEGO.offre = null; negoceVendre(O); rendreFenetre(); }, null, O);
+    article(0xFAD201, 'Négocier ' + negoceEuro(px*(1 + NEGO_PLUS)),
+      '<span class="q">' + eur(q*px*(1 + NEGO_PLUS)) + '</span>  ·  ' + Math.round(negoceChance(O)*100) + ' % de chances  ·  sinon il part ' + NEGO_GEL + ' s',
+      'Négocier', '', ()=>{
+        NEGO.offre = null;
+        if(Math.random() < negoceChance(O)){ negoceVendre(O, 1 + NEGO_PLUS); showHint('IL CÈDE – ' + nomDe(O).toUpperCase() + ' À ' + negoceEuro(px*(1 + NEGO_PLUS))); }
+        else { c.gel = NEGO_GEL; showHint('IL REFUSE ET S\'EN VA – ' + nomDe(O).toUpperCase() + ' DANS ' + NEGO_GEL + ' S'); }
+        rendreFenetre();
+      }, null, O);
+    article(0x8A9298, 'Attendre', 'Le cours ' + (c.cible > c.k + 0.04 ? 'monte' : (c.cible < c.k - 0.04 ? 'baisse' : 'est stable')) + '  ·  ' + Math.round(negoceCoef(O)*100) + ' % du prix normal',
+      'Retour', '', ()=>{ NEGO.offre = null; rendreFenetre(); });
+    return;
+  }
   const stock = cles.filter((k)=> negoceStock(k) >= 1).sort((a, b)=> negoceCoef(b) - negoceCoef(a));
+  titre('En stock');
   if(!stock.length)
     article(0xFAD201, 'Rien à vendre', 'Récolte, puis vide au silo ou à l\'entrepôt.', '', 'no', null).classList.add('sansact');
   for(const cle of stock){
-    const c = negoceCours(cle), k = negoceCoef(cle), q = Math.min(NEGOCE_CAMION, negoceStock(cle)), route = negoceEnRoute(cle);
+    const c = negoceCours(cle), k = negoceCoef(cle), q = Math.min(NEGOCE_CAMION, negoceStock(cle));
+    const route = negoceEnRoute(cle), gel = negoceGel(cle);
     article(k >= 1.15 ? 0x8BE07A : (k <= 0.85 ? 0xE0694A : 0xFAD201), nomDe(cle),
-      kg(negoceStock(cle)) + '  ·  <b>' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €</b>  ·  '
-        + Math.round(k*100) + ' % du cours' + fleche(c) + '<br><span class="q">' + eur(q*negocePrix(cle)) + '</span> le camion',
-      route ? 'En route' : 'Vendre', route ? 'ok' : (k >= 1 ? 'vert' : ''),
-      route ? null : ()=>{ negoceVendre(cle); rafraichirEcran(); }, cle, cle);
-  }
-  // Les champs : où en est chaque parcelle, sans avoir à s'en approcher.
-  const champs = PARCELS.map((p, i)=> ({p, i})).filter((x)=> x.p.owned && !x.p.pature);
-  if(champs.length){
-    titre('Champs');
-    for(const {p, i} of champs){
-      const trav = (p.labN || 0) + (p.pousseN || 0), C2 = CROPS[p.pousseCrop] || CROPS[0];
-      const mur = p.pousseN > 0 && p.murN >= p.pousseN*0.98;
-      const part = !p.pousseN ? 0 : Math.min(1, p.pousse || 0);
-      const dit = !trav ? 'En friche – à labourer'
-                : !p.pousseN ? 'Labouré – à semer'
-                : mur ? 'À moissonner'
-                : Math.min(99, Math.floor(part*100)) + ' % de pousse';
-      article(mur ? 0xFFD21E : 0x8BE07A, 'Parcelle ' + (i + 1) + (p.pousseN ? ' · ' + C2.nom : ''),
-        (p.pousseN ? '<div class="defibar"><i style="width:' + (mur ? 100 : part*100).toFixed(0) + '%"></i></div>' : '') + dit,
-        mur ? 'Mûr' : '', mur ? 'vert' : 'no', null, null, p.pousseN ? C2.cle : null).classList.toggle('sansact', !mur);
-    }
+      kg(negoceStock(cle)) + '  ·  <b>' + negoceEuro(negocePrix(cle)) + '</b>  ·  '
+        + Math.round(k*100) + ' %' + negoceFleche(c) + '<br><span class="q">' + eur(q*negocePrix(cle)) + '</span> le camion',
+      route ? 'En route' : (gel ? Math.ceil(gel) + ' s' : 'Vendre'), route ? 'ok' : (gel ? 'no' : (k >= 1 ? 'vert' : '')),
+      (route || gel) ? null : ()=>{ NEGO.offre = cle; rendreFenetre(); }, cle, cle);
   }
   const ouv = produitsOuverts();
   const autres = cles.filter((k)=> negoceStock(k) < 1 && ouv.indexOf(k) >= 0)
     .sort((a, b)=> negoceCoef(b) - negoceCoef(a)).slice(0, 4);
   if(autres.length){
-    titre('Les cours les plus hauts');
-    article(0xFAD201, autres.map((k)=> nomDe(k) + ' ' + Math.round(negoceCoef(k)*100) + ' %' + fleche(negoceCours(k))).join('  ·  '),
-      NEGO.voyages ? NEGO.voyages + ' camions partis  ·  ' + eur(NEGO.total) + ' encaissés' : 'Un cours change de cap toutes les deux à trois minutes.',
+    titre('À produire : les cours les plus hauts');
+    article(0xFAD201, autres.map((k)=> nomDe(k) + ' ' + Math.round(negoceCoef(k)*100) + ' %' + negoceFleche(negoceCours(k))).join('  ·  '),
+      NEGO.voyages ? NEGO.voyages + ' camions partis  ·  ' + eur(NEGO.total) + ' encaissés' : '100 % = le prix normal. Un cours change de cap toutes les deux à trois minutes.',
       '', 'no', null).classList.add('sansact');
   }
+}
+function vueNegoceChamps(){
+  const champs = PARCELS.map((p, i)=> ({p, i})).filter((x)=> x.p.owned && !x.p.pature);
+  for(const {p, i} of champs){
+    const trav = (p.labN || 0) + (p.pousseN || 0), C2 = CROPS[p.pousseCrop] || CROPS[0];
+    const mur = p.pousseN > 0 && p.murN >= p.pousseN*0.98;
+    const part = !p.pousseN ? 0 : Math.min(1, p.pousse || 0);
+    const dit = !trav ? 'En friche – à labourer'
+              : !p.pousseN ? 'Labouré – à semer'
+              : mur ? 'À moissonner'
+              : Math.min(99, Math.floor(part*100)) + ' % de pousse';
+    article(mur ? 0xFFD21E : 0x8BE07A, 'Parcelle ' + (i + 1) + (p.pousseN ? ' · ' + C2.nom : ''),
+      (p.pousseN ? '<div class="defibar"><i style="width:' + (mur ? 100 : part*100).toFixed(0) + '%"></i></div>' : '') + dit
+        + (p.pousseN ? '  ·  ' + Math.round(negoceCoef(C2.cle)*100) + ' % du cours' + negoceFleche(negoceCours(C2.cle)) : ''),
+      mur ? 'Mûr' : '', mur ? 'vert' : 'no', null, null, p.pousseN ? C2.cle : null).classList.toggle('sansact', !mur);
+  }
+  const aVendre = PARCELS.filter((p)=> !p.owned).sort((a, b)=> a.price - b.price)[0];
+  if(aVendre)
+    article(0x8A9298, 'Agrandir', 'La terre la moins chère : ' + eur(aVendre.price) + '. Roule jusqu\'à son panneau « À vendre ».', '', 'no', null).classList.add('sansact');
+}
+function vueNegoceAcheter(){
+  const va = (id, vue)=> ()=>{ ouvrirFenetre(id, vue); };
+  article(0xFAD201, 'Véhicules et outils', 'Tracteurs, moissonneuse, remorques, bateaux.', 'Ouvrir', 'vert', va('achat', 'engins'));
+  article(0xFAD201, 'Améliorations', 'Vitesse, trémie, largeur de travail.', 'Ouvrir', '', va('amelio', 'engins'));
+  article(0x8BE07A, 'Semences, engrais, gazole', 'Livrés dans les cuves de la ferme.', 'Ouvrir', '', va('comptoir', 'semences'));
 }
 const accBtns = document.getElementById('accbtns');
 let demarre = false;
@@ -37676,7 +37743,7 @@ function refreshHUD(){
   // Le bandeau dit LEQUEL des deux modes on a repris : rien d'autre à l'écran ne les
   // distingue, et l'on ne saurait pas pourquoi tout est achetable.
   texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
-                       : MODE_NEGOCE ? 'NÉGOCE' : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
+                       : MODE_NEGOCE ? negoceBandeau() : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
                                     : 'NIVEAU ' + n + ' – ' + N.nom);
   texteSiChange(el.money,caisseVue());
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
