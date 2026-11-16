@@ -12,7 +12,7 @@ function monde(o={}){
  const c=vm.createContext(Object.assign({Math,JSON,Date,String,Object,Array,console,setTimeout:()=>{},
   localStorage:{getItem:k=>k in boite?boite[k]:null,setItem:(k,v)=>{boite[k]=String(v);}},
   navigator:{},window:{addEventListener(){}},document:{hidden:false,addEventListener(){},getElementById:el},
-  money:0,cur:0,demarre:true,MODE_LIBRE:false,CAMPAGNE:{niveau:1,mission:0,xp:0},NIVEAUX:Array(20).fill({nom:'Palier'}),
+  money:0,cur:0,demarre:true,MODE_LIBRE:false,CAMPAGNE:{niveau:1,mission:1,xp:0},NIVEAUX:Array(20).fill({nom:'Palier'}),
   STAT:{moisson:0,mill:0,lait:0,oeufs:0,miel:0,laine:0,grumes:0,peche:0,ventes:0},MACHINES:[{v:{speed:0}}],CONTRATS:[],ONGLETS:[{id:'campagne'}],
   growingList:[],grow:()=>{},flushTint:()=>{},lireSauvegarde:()=>null,clefCourante:()=>'k',
   AUDIO:{bip(){}},el:{money:el()},hints:[],pages:[],xp:0,
@@ -111,5 +111,11 @@ test('Le chapitre n’écrit rien dans la sauvegarde de la partie',()=>{
  const f=source.slice(source.indexOf('function etatJeu('),source.indexOf('function sauvegarder('));
  assert(!/PLAISIR|plaisir/.test(f));
  assert(!/PLAISIR|plaisir/.test(source.slice(source.indexOf('function chargerPartie('),source.indexOf('function chargerPartie(')+40000)));
+});
+test('En campagne, rien avant la première vente : ni défis ni prime pendant la première livraison',()=>{
+ const c=monde();run(c,'CAMPAGNE.mission=0;plaisirLancer();');
+ assert.equal(run(c,'PLAISIR.e.defis.length'),0);
+ run(c,'CAMPAGNE.mission=1;plaisirJourNouveau();');assert.equal(run(c,'PLAISIR.e.defis.length'),3);
+ assert(run(c,'PLAISIR.e.defis.every(D=>D.fait===0)'),'la première mission ne remplit aucun défi');
 });
 console.log(tests+' plaisir tests passed.');
