@@ -1793,6 +1793,12 @@
 #brgo::before,#parcfermer::before{content:'';position:absolute;inset:-6px}
 #goalwrap::before{content:'';position:absolute;inset:-13px -6px -22px}
 #acte.neuf input[type=range]{pointer-events:none}
+#etoiles{position:absolute;left:50%;top:64px;transform:translateX(-50%);display:none;white-space:nowrap;pointer-events:none;
+  font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#FAD201;background:rgba(17,30,28,.72);padding:3px 11px;border-radius:9px;
+  font-variant-numeric:tabular-nums}
+#etoiles.on{display:block}
+#etoiles.presse{color:#F0B9A8;animation:etoilesBat .8s ease-in-out infinite}
+@keyframes etoilesBat{0%,100%{opacity:1}50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){#fete.on{animation-timing-function:linear}#money{transition:none}
   #menuBtn.aprendre::after{animation:none}}
 </style>
@@ -1818,6 +1824,7 @@
   <div id="viseurs"><div id="tel"><div class="onde"></div>
     <img class="tp" src="pictos/telephone.png" alt=""></div></div>
   <div id="pause"><i></i><i></i></div>
+  <div id="etoiles"></div>
   <div id="pausevoile"><b>PAUSE</b><span>Touche l’écran pour reprendre</span></div>
   <div id="fete"><div id="fetehaut"></div><div id="fetenom"></div></div>
   <div id="hint"></div>
@@ -16344,14 +16351,15 @@ class Vehicle {
     } else if(!moteurLong) this.gaz = throttle;
     const dc = doux ? this.douceur : 1;
     // moteur / frein moteur
-    const target = throttle * this.vmax;
+    // `elan` : l'avantage de la chaussée pour qui conduit lui-même — voir `plaisirRoute`.
+    const target = throttle * this.vmax * (this.elan || 1);
     if(moteurLong){
       vf=moteurSemi(this,dt,throttle,frein,vf,accelE);
     } else if(Math.abs(throttle) > 0.05){
       const pousse = Math.sign(target-vf) === Math.sign(throttle);
       const acc = pousse ? accelE*(doux ? Math.abs(this.gaz) : 1) : accelE*2.2*dc;
       vf += Math.max(-acc*dt, Math.min(acc*dt, target-vf));
-      if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
+      if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax * (this.elan || 1));
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
     } else {
       // Frein au pied : trois fois le frein moteur. C'est ce qui rend la pédale utile —
@@ -37469,11 +37477,13 @@ const PLAISIR = {
   rafale: 0, rafaleT: 0,       // une vente en cours : son total, et le silence qui la clôt
   tickT: 0, tickN: 0,          // le grelot qui monte pendant qu'on décharge
   niveauVu: 1, missionVue: 0, tremie: 0,
+  main: 0, mainT: 0,           // la prime du travail fait à la main, et le silence qui la paie
+  chrono: -1, priseVue: false, etoilesPage: null,
   stat: null,                  // les compteurs du jeu, tels qu'on les a lus la dernière fois
   feteT: 0, saleT: 0, sale: false, horlogeT: 0,
   e: {jour:'', defis:[], pleine:false, serie:0, serieMax:0, dernier:'', primeJour:'',
       records:{vente:0, journee:0}, jourGains:0, recordJourDit:'',
-      cumul:{gains:0, km:0, commandes:0, defis:0}, vibre:true, croisement:false}
+      cumul:{gains:0, km:0, commandes:0, defis:0, main:0, etoiles:0}, vibre:true, croisement:false, routeDite:false}
 };
 const plaisirJour = (d)=>{ d = d || new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -37488,7 +37498,7 @@ function plaisirLire(){
     for(const k of ['serie', 'serieMax', 'jourGains']) if(E[k] >= 0) e[k] = +E[k];
     e.pleine = !!E.pleine;
     if(E.vibre === false) e.vibre = false;
-    e.croisement = !!E.croisement;
+    e.croisement = !!E.croisement; e.routeDite = !!E.routeDite;
     if(E.records) for(const k in e.records) if(E.records[k] >= 0) e.records[k] = +E.records[k];
     if(E.cumul) for(const k in e.cumul) if(E.cumul[k] >= 0) e.cumul[k] = +E.cumul[k];
     if(Array.isArray(E.defis))
@@ -37672,7 +37682,8 @@ function ongletDefis(){
   article(0xD8CBA6, 'Depuis le début',
     eur(e.cumul.gains) + ' encaissés  ·  ' + dec(e.cumul.km, 1) + ' km parcourus<br>' +
     e.cumul.commandes + ' commande' + (e.cumul.commandes > 1 ? 's' : '') + ' honorée' + (e.cumul.commandes > 1 ? 's' : '') +
-    '  ·  ' + e.cumul.defis + ' défi' + (e.cumul.defis > 1 ? 's' : '') + ' encaissé' + (e.cumul.defis > 1 ? 's' : ''),
+    '  ·  ' + e.cumul.defis + ' défi' + (e.cumul.defis > 1 ? 's' : '') + ' encaissé' + (e.cumul.defis > 1 ? 's' : '') +
+    '<br>' + eur(e.cumul.main) + ' gagnés à la main  ·  ' + e.cumul.etoiles + ' ★ de mission',
     '', 'no', null).classList.add('sansact');
 }
 
@@ -37727,10 +37738,116 @@ function plaisirFinRafale(){
   }
 }
 
+/* ---------- CONDUIRE RAPPORTE PLUS QUE DÉLÉGUER ----------
+   Mesuré en jouant : cinq touchers lancent l'automatisation, et quatre minutes plus tard
+   le champ était labouré, semé et moissonné sans le joueur. Rien ne distinguait alors le
+   travail qu'on fait de celui qu'on regarde faire. Deux avantages, pour celui qui tient
+   le volant et pour lui seul :
+     • UNE PRIME AU TRAVAIL À LA MAIN. Chaque case labourée ou semée, chaque kilo
+       moissonné par l'engin qu'on conduit vaut quelques centimes de plus. Un tour de
+       champ complet au premier palier : 87 € pour un blé qui en vaut 230.
+     • LA ROUTE REND PLUS VITE. On roulait aussi vite dans l'herbe que sur la chaussée :
+       couper à travers champs était toujours le bon choix. Sur la route, +15 %.
+   L'AUTOMATE N'Y A PAS DROIT, et il ne coûte rien de plus qu'avant : on ne punit pas la
+   délégation, on récompense le geste. Les montants sont à régler manette en main. */
+const MAIN_CASE = 0.06, MAIN_KG = 0.2, ROUTE_ELAN = 1.15;
+const mainPalier = ()=> 1 + 0.25*(CAMPAGNE.niveau - 1);
+function plaisirMain(dLab, dSem, dMoi){
+  const m = MACHINES[cur], v = m && m.v;
+  if(!v || v.auto || v.mission || Math.abs(v.speed) < 0.5) return;
+  const T = toolOf(m);
+  // Si un automate fait le même travail au même moment, on ne sait pas à qui sont les cases.
+  const robot = (test)=> MACHINES.some((x)=> x !== m && x.v && x.v.auto && test(x, toolOf(x)));
+  let g = 0;
+  if(dLab > 0 && T && (T.key === 'labour' || T.key === 'combine')
+     && !robot((x, U)=> U && (U.key === 'labour' || U.key === 'combine'))) g += dLab*MAIN_CASE;
+  if(dSem > 0 && T && T.seme && !robot((x, U)=> U && U.seme)) g += dSem*MAIN_CASE;
+  if(dMoi > 0 && (m.key === 'moisson' || (T && T.recolte))
+     && !robot((x, U)=> x.key === 'moisson' || (U && U.recolte))) g += dMoi*MAIN_KG;
+  // Six secondes sans travailler closent la passe : un demi-tour en bout de champ ne la coupe pas.
+  if(g > 0){ PLAISIR.main += g*mainPalier(); PLAISIR.mainT = 6; }
+}
+function plaisirMainPayer(){
+  const r = Math.round(PLAISIR.main);
+  PLAISIR.main = 0;
+  if(r < 1) return;
+  money += r; PLAISIR.e.cumul.main += r; PLAISIR.sale = true;
+  // Pendant qu'une marche du tutoriel guide, l'étiquette de la caisse suffit : pas de bandeau par-dessus la consigne.
+  if(!plaisirTuto()) showHint('À LA MAIN  +' + eur(r));
+  vibrer([12, 24, 12]);
+}
+function plaisirRoute(dt){
+  for(const m of MACHINES) if(m.v && m !== MACHINES[cur] && m.v.elan) m.v.elan = 1;
+  const v = MACHINES[cur] && MACHINES[cur].v;
+  if(!v) return;
+  const vise = (!v.auto && !v.mission && !INTRO.actif && !v.bateau && surRoute(v.pos.x, v.pos.z, 0)) ? ROUTE_ELAN : 1;
+  v.elan = (v.elan || 1) + (vise - (v.elan || 1))*Math.min(1, dt*3);
+  if(vise > 1 && !PLAISIR.e.routeDite && Math.abs(v.speed) > v.vmax*1.05 && !plaisirTuto()){
+    PLAISIR.e.routeDite = true; PLAISIR.sale = true;
+    showHint('SUR LA ROUTE, ÇA ROULE PLUS VITE');
+  }
+}
+
+/* ---------- LES ÉTOILES D'UNE MISSION ----------
+   On ne pouvait pas mal jouer une mission : aucun délai, aucun risque, la même prime au
+   bout. Une mission livrée vite gagne des étoiles et un supplément — trois étoiles sous
+   deux minutes (+20 % de la prime), deux sous cinq minutes (+10 %). AUCUNE PÉNALITÉ :
+   passé cinq minutes la prime est celle d'avant, et le compteur s'efface.
+   LES MISSIONS À PRÉAMBULE N'EN ONT PAS — on n'y presse pas un joueur qui apprend —, ni
+   celles qu'on reprend d'une sauvegarde, dont on ne sait plus quand elles ont commencé. */
+const ETOILES_3 = 120, ETOILES_2 = 300;
+const etoilesDe = (t)=> t < 0 ? 0 : t <= ETOILES_3 ? 3 : t <= ETOILES_2 ? 2 : 1;
+const etoilesTxt = (n)=> '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n);
+const etoilesBonus = (M, n)=> n >= 2 ? Math.round((M.prime || 0)*(n === 3 ? 0.2 : 0.1)/10)*10 : 0;
+{
+  const finirNu = finirMission;
+  finirMission = function(){
+    const M = missionCourante(), avant = CAMPAGNE.mission, P = PLAISIR;
+    const n = (M && P.pret && P.chrono >= 0) ? etoilesDe(P.chrono) : 0;
+    const bonus = M ? etoilesBonus(M, n) : 0;
+    P.etoilesPage = n >= 2 ? {n:n, bonus:bonus} : null;
+    finirNu();
+    P.etoilesPage = null;
+    if(CAMPAGNE.mission > avant && n > 0){
+      P.e.cumul.etoiles += n; P.sale = true;
+      if(bonus > 0) money += bonus;
+    }
+    P.chrono = -1;
+  };
+  // La page « Contrat terminé » porte ses étoiles : on la retouche dès qu'elle est écrite.
+  const ouvrirNu = ouvrirBravo;
+  ouvrirBravo = function(){
+    ouvrirNu.apply(this, arguments);
+    const E = PLAISIR.etoilesPage;
+    if(!E) return;
+    PLAISIR.etoilesPage = null;
+    const Pg = bravoPages.slice().reverse().find((p)=> p && p.prix && !p.etoiles);
+    if(!Pg) return;
+    Pg.etoiles = true;
+    Pg.plus = '<span style="color:#C98A12;letter-spacing:3px">' + etoilesTxt(E.n) + '</span>&nbsp; · &nbsp;+ ' + eur(E.bonus) + ' de rapidité' + (Pg.plus ? '&nbsp; · &nbsp;' + Pg.plus : '');
+    if(bravoPages[bravoI] === Pg) peindreBravo();
+  };
+}
+function plaisirEtoiles(dt){
+  const P = PLAISIR, M = missionCourante();
+  if(CAMPAGNE.prise !== P.priseVue){
+    // La mission vient d'être prise : le compteur part, sauf si elle a un préambule.
+    if(CAMPAGNE.prise && M && !M.prep && !M.faire) P.chrono = 0;
+    P.priseVue = CAMPAGNE.prise;
+  }
+  if(P.chrono >= 0 && CAMPAGNE.prise) P.chrono += dt;
+  const n = (P.chrono >= 0 && CAMPAGNE.prise && P.chrono <= ETOILES_2) ? etoilesDe(P.chrono) : 0;
+  if(!n){ if(plaisirEl.etoiles.className) plaisirEl.etoiles.className = ''; return; }
+  const reste = Math.ceil((n === 3 ? ETOILES_3 : ETOILES_2) - P.chrono);
+  texteSiChange(plaisirEl.etoiles, etoilesTxt(n) + '  ' + Math.floor(reste/60) + ':' + String(reste%60).padStart(2, '0'));
+  const cl = 'on' + (reste <= 15 ? ' presse' : '');
+  if(plaisirEl.etoiles.className !== cl) plaisirEl.etoiles.className = cl;
+}
+
 /* ---------- LA CAISSE QUI DÉFILE, ET SON ÉTIQUETTE ---------- */
 const plaisirEl = {chip: document.getElementById('gainchip'), fete: document.getElementById('fete'),
                    feteHaut: document.getElementById('fetehaut'), feteNom: document.getElementById('fetenom'),
-                   menu: document.getElementById('menuBtn')};
+                   menu: document.getElementById('menuBtn'), etoiles: document.getElementById('etoiles')};
 // Ce que le bandeau écrit : la valeur qui défile, tronquée comme `caisseTxt` tronque.
 // Trente kilos à deux euros font 59,99 en flottants : on arrondit au centime avant de tronquer.
 const caisseVue = ()=> PLAISIR.pret ? Math.floor(Math.round(PLAISIR.vu*100)/100 + 1e-6).toLocaleString('fr-FR') + ' €' : caisseTxt();
@@ -37799,6 +37916,7 @@ function plaisirLancer(){
   P.pret = true;
   P.vu = P.cible = money;
   P.niveauVu = CAMPAGNE.niveau; P.missionVue = CAMPAGNE.mission;
+  P.priseVue = CAMPAGNE.prise; P.chrono = -1;
   P.stat = Object.assign({}, STAT);
   plaisirLire();
   plaisirJourNouveau();
@@ -37817,6 +37935,8 @@ function plaisirUpdate(dt, dtImage){
   if(P.feteT > 0){ P.feteT -= dtImage; if(P.feteT <= 0) plaisirEl.fete.classList.remove('on'); }
   if(P.tickT > 0) P.tickT -= dtImage;
   if(P.rafaleT > 0){ P.rafaleT -= dtImage; if(P.rafaleT <= 0) plaisirFinRafale(); }
+  if(P.mainT > 0){ P.mainT -= dtImage; if(P.mainT <= 0) plaisirMainPayer(); }
+  plaisirRoute(dtImage); plaisirEtoiles(dt);
   if(dt > 0){
     // La route : ce que roule l'engin qu'on tient, moteur du défi et ligne du carnet.
     const v = MACHINES[cur] && MACHINES[cur].v;
@@ -37875,6 +37995,7 @@ function plaisirUpdate(dt, dtImage){
       // Un bond énorme n'est pas une récolte, c'est une partie qu'on vient de recharger.
       if(q > 0 && q < 5000) plaisirAvancer(D.id, q);
     }
+    plaisirMain((STAT.labour || 0) - (P.stat.labour || 0), (STAT.semis || 0) - (P.stat.semis || 0), (STAT.moisson || 0) - (P.stat.moisson || 0));
     for(const k in STAT) P.stat[k] = STAT[k];
     const n = plaisirAPrendre();
     if((n > 0) !== plaisirEl.menu.classList.contains('aprendre')) plaisirEl.menu.classList.toggle('aprendre', n > 0);

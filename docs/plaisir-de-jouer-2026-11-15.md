@@ -68,3 +68,31 @@ les réglages ; étiquettes du monde qui passent sous le HUD ; écran d'automati
 mini-carte, consignes en triple, onglets verrouillés non grisés) ; vocabulaire mission / commande /
 contrat et niveau / palier / cran ; tutoiement et vouvoiement mêlés ; étape de labour bloquée sous
 98 % sans montrer le reliquat ; bandeau « plan terminé » pendant que le chantier continue.
+
+## Quatre chantiers après une partie jouée (16 novembre)
+
+Retour illustré : https://claude.ai/artifact/7azZtn7DVP4HeVonuxQ99N. Le joueur : « fais-les tous
+dans l'ordre. Pas trop de fenêtres et pas trop de texte. »
+
+**Écran net.** Le toucher qui ouvre « Charger » ne règle plus le curseur (il sautait à 56 kg pour
+30 demandés) ; « Objectif atteint » au chargement devient « Transfert terminé » ; « Plan terminé »
+ne passe plus à chaque étape d'un chantier ; les étiquettes du monde s'écartent du bandeau du haut ;
+la trémie vidée annonce ses kilos.
+
+**Ouverture courte** (`TUTO_COURT`, table 5). Le champ de l'oncle est mûr : moisson, silo, parking,
+pick-up, téléphone deux secondes après, première vente. Une fenêtre avant la mission au lieu de
+quatorze ; premier euro à 2 min 36 au banc au lieu de 7 min 20. Labour, semis et automatisation
+passent en préambule de la deuxième mission. Le mode libre et les campagnes commencées avant
+(`tv < 5`, `CAMPAGNE.long`) gardent la table longue.
+
+**Conduire rapporte.** Prime au travail fait par l'engin qu'on conduit (0,06 € la case labourée ou
+semée, 0,20 € le kilo moissonné, × 1 + 0,25 par palier au-dessus du premier), payée à la fin de la
+passe. Sur la chaussée, +15 % de vitesse pour qui tient le volant. L'automate n'a ni l'un ni l'autre.
+
+**Missions étoilées.** Trois étoiles sous deux minutes (+20 % de la prime), deux sous cinq (+10 %),
+aucune pénalité ensuite. Pas de compteur sur une mission à préambule ni sur une mission reprise
+d'une sauvegarde.
+
+NON FAIT, et pourquoi : décrocher depuis le véhicule (le joueur a demandé plusieurs fois que toute
+mission se prenne devant la maison) ; vitesse de travail réduite et salaire de l'automate (ils
+touchent l'équilibre audité de la campagne — à décider manette en main).

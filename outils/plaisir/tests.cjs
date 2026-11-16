@@ -14,12 +14,12 @@ function monde(o={}){
   navigator:{},window:{addEventListener(){}},document:{hidden:false,addEventListener(){},getElementById:el},
   money:0,cur:0,demarre:true,MODE_LIBRE:false,CAMPAGNE:{niveau:1,mission:1,xp:0},NIVEAUX:Array(20).fill({nom:'Palier'}),
   hopper:0,STAT:{moisson:0,mill:0,lait:0,oeufs:0,miel:0,laine:0,grumes:0,peche:0,ventes:0},MACHINES:[{v:{speed:0}}],CONTRATS:[],ONGLETS:[{id:'campagne'}],
-  growingList:[],grow:()=>{},flushTint:()=>{},lireSauvegarde:()=>null,clefCourante:()=>'k',
+  MISSIONS:[{prime:150},{prime:220,prep:[1]},{prime:450}],INTRO:{actif:false},growingList:[],grow:()=>{},flushTint:()=>{},lireSauvegarde:()=>null,clefCourante:()=>'k',
   AUDIO:{bip(){}},el:{money:el()},hints:[],pages:[],xp:0,
   eur:v=>Math.round(v)+' €',kg:v=>Math.round(v)+' kg',litres:v=>Math.round(v)+' L',dec:(v,n)=>v.toFixed(n),caisseTxt:()=>'',
   texteSiChange(){},pluiePieces(){},titre(){},article:()=>({classList:{add(){}}}),tutoActif:()=>false},o));
  vm.runInContext('function showHint(t){hints.push(t);}function annoncerFenetre(p){pages.push(p);}function gagnerXp(n){xp+=n;}'+
-  'function encaisser(n){if(!(n>0))return 0;money+=n;return n;}function solderContrat(k){CONTRATS[k]=null;}',c);
+  'function encaisser(n){if(!(n>0))return 0;money+=n;return n;}function solderContrat(k){CONTRATS[k]=null;}var bravoPages=[],bravoI=0,peints=0;function peindreBravo(){peints++;}function ouvrirBravo(M){bravoPages.push({titre:"Avant"},{titre:"CONTRAT TERMINÉ",prix:"+ 150 €",plus:"x"},{titre:"Après"});}function finirMission(){const M=missionCourante();CAMPAGNE.mission++;CAMPAGNE.prise=false;ouvrirBravo(M);}function missionCourante(){return MISSIONS[CAMPAGNE.mission]||null;}function toolOf(m){return m.v.tool||null;}function surRoute(){return false;}',c);
  vm.runInContext(chapitre.replace(/^const /gm,'var '),c);
  c.boite=boite;return c;
 }
@@ -117,5 +117,43 @@ test('En campagne, rien avant la première vente : ni défis ni prime pendant la
  assert.equal(run(c,'PLAISIR.e.defis.length'),0);
  run(c,'CAMPAGNE.mission=1;plaisirJourNouveau();');assert.equal(run(c,'PLAISIR.e.defis.length'),3);
  assert(run(c,'PLAISIR.e.defis.every(D=>D.fait===0)'),'la première mission ne remplit aucun défi');
+});
+test('Trois étoiles sous deux minutes, deux sous cinq, et jamais de pénalité',()=>{
+ const c=monde();run(c,'CAMPAGNE.mission=0;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);');
+ assert.equal(run(c,'PLAISIR.chrono'),0);
+ run(c,'plaisirEtoiles(50);');const m0=c.money;run(c,'finirMission();');
+ assert.equal(c.money,m0+30,'trois étoiles : 20 % de 150 €');assert.equal(run(c,'PLAISIR.e.cumul.etoiles'),3);
+ const d=monde();run(d,'CAMPAGNE.mission=2;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);plaisirEtoiles(200);');
+ const m1=d.money;run(d,'finirMission();');assert.equal(d.money,m1+50,'deux étoiles : 10 % de 450 €, arrondi à la dizaine');
+ const f=monde();run(f,'CAMPAGNE.mission=2;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);plaisirEtoiles(900);');
+ const m2=f.money;run(f,'finirMission();');assert.equal(f.money,m2,'hors délai : la prime d’avant, rien de moins');
+});
+test('Une mission à préambule, ou reprise d’une sauvegarde, n’a pas de compteur',()=>{
+ const c=monde();run(c,'CAMPAGNE.mission=1;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);plaisirEtoiles(10);');
+ assert.equal(run(c,'PLAISIR.chrono'),-1);
+ const d=monde();run(d,'CAMPAGNE.mission=2;CAMPAGNE.prise=true;plaisirLancer();plaisirEtoiles(10);');
+ assert.equal(run(d,'PLAISIR.chrono'),-1);const m=d.money;run(d,'finirMission();');assert.equal(d.money,m);
+});
+test('La page de fin de mission porte les étoiles, et elle seule',()=>{
+ const c=monde();run(c,'CAMPAGNE.mission=0;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);plaisirEtoiles(50);finirMission();');
+ const P=run(c,'bravoPages');assert.equal(P[0].plus,undefined);assert(/★★★/.test(P[1].plus));assert(/30 €/.test(P[1].plus));assert(/x$/.test(P[1].plus));assert.equal(P[2].plus,undefined);
+ const d=monde();run(d,'CAMPAGNE.mission=2;plaisirLancer();CAMPAGNE.prise=true;plaisirEtoiles(0);plaisirEtoiles(900);finirMission();');
+ assert.equal(run(d,'bravoPages[1].plus'),'x','une étoile : la page reste telle quelle');
+});
+test('La prime à la main ne va qu’à l’engin qu’on conduit, jamais à l’automate',()=>{
+ const c=monde();run(c,'plaisirLancer();MACHINES[0]={key:"t1",v:{speed:5,auto:false,mission:null,tool:{key:"labour"}}};plaisirMain(100,0,0);');
+ assert(Math.abs(run(c,'PLAISIR.main')-6)<1e-9);
+ run(c,'MACHINES[0].v.auto=true;plaisirMain(100,0,0);');assert(Math.abs(run(c,'PLAISIR.main')-6)<1e-9,'au pilote : rien');
+ run(c,'MACHINES[0].v.auto=false;MACHINES.push({key:"t2",v:{speed:3,auto:true,tool:{key:"labour"}}});plaisirMain(100,0,0);');
+ assert(Math.abs(run(c,'PLAISIR.main')-6)<1e-9,'un automate laboure aussi : on ne sait pas à qui sont les cases');
+ const m=c.money;run(c,'plaisirMainPayer();');assert.equal(c.money,m+6);assert.equal(run(c,'PLAISIR.main'),0);
+});
+test('L’ouverture courte : cinq marches, une seule fenêtre, et la terre en préambule de la deuxième mission',()=>{
+ const a=source.indexOf('const TUTO_COURT = ['),b=source.indexOf('];',a);const bloc=source.slice(a,b);
+ assert.deepEqual([...bloc.matchAll(/tutoDe\('(\w+)'/g)].map(m=>m[1]),['recolte','silo','parking','pickup','appel']);
+ assert.equal((bloc.match(/discret:true/g)||[]).length,4,'quatre marches en bandeau, une en fenêtre');
+ const p=source.slice(source.indexOf('MISSIONS[1].prep = ['),source.indexOf('];',source.indexOf('MISSIONS[1].prep = [')));
+ assert.deepEqual([...p.matchAll(/tutoDe\('(\w+)'/g)].map(m=>m[1]),['labour','semis','auto']);
+ assert(/CAMPAGNE\.long \|\| typeof TUTO_COURT === 'undefined'\) \? TUTO : TUTO_COURT/.test(source),'une partie d’avant garde la table longue');
 });
 console.log(tests+' plaisir tests passed.');
