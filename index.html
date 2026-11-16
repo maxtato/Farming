@@ -26243,9 +26243,11 @@ function produitsPossibles(cleBrut){
 }
 /* Qui peut prendre ce produit. On garde le silo et l'entrepôt : « ranger sans vendre »
    est une destination parfaitement légitime, et c'est même la plus simple. */
+// En négoce aucun commerce n'achète : il ne reste que les stockages de la ferme.
 const destinationsDe = (cle)=> lieuxPossibles()
   .filter((L)=> lieuPrend(L.cle).indexOf(cle) >= 0)
-  .map((L)=> L.cle);
+  .map((L)=> L.cle)
+  .filter((d)=> !(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) || !SITES.some((S)=> S.nom === d));
 /* Les produits d'un élevage : un pour la plupart, deux pour la bergerie — la laine et
    le lait de brebis sortent du même troupeau. */
 function produitsElevage(P){
@@ -26827,7 +26829,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
      panaché remet ses parcelles au même réglage, ce qui est précisément ce qu'on veut
      quand on en ajoute une à deux qui tournent déjà. */
   if(lot.every((i)=> chantierDe(i))){
-    for(const i of lot) retirerChantier(i);
+    for(const i of lot){ retirerChantier(i); PARCELS[i].sansAuto = true; }   // le joueur l'a arrêté : voir `negoceEtendre`
     showHint(lot.length > 1 ? lot.length + ' CHANTIERS ARRÊTÉS'
                             : 'CHANTIER ARRÊTÉ – PARCELLE ' + (lot[0] + 1));
     chLot = []; planTaches = []; majPlan(); return;
@@ -37364,6 +37366,28 @@ function negoceEntrer(){
   for(const k in LECONS) if(CAMPAGNE.lecons.indexOf(k) < 0) CAMPAGNE.lecons.push(k);
   negoceLire();
 }
+/* L'AUTOMATISATION S'ÉTEND AUX CHAMPS QU'ON N'A PAS PROGRAMMÉS.
+   Le joueur : « j'ai un champ en friche et le tracteur rouge ne part pas le labourer alors
+   qu'il est disponible. Il faut qu'à chaque fois les tracteurs regardent le travail qu'il y
+   a à faire. » Relevé sur vingt minutes, trois champs, deux tracteurs : un tracteur libre
+   ne reste à l'arrêt que dans deux cas — l'outil qu'il lui faut est sur l'autre tracteur,
+   ou le champ n'a PAS DE CHANTIER. Le plan de travail se règle parcelle par parcelle, et
+   un champ qu'on vient d'acheter n'en a pas : personne n'y va, sans un mot.
+   En négoce, dès qu'un champ au moins tourne en automatique, tout champ sans chantier
+   reçoit le même réglage que lui (culture, engrais, en continu, grain au silo). Celui que
+   le joueur a ARRÊTÉ de sa main (`sansAuto`) reste à lui. */
+function negoceEtendre(){
+  const modele = CHANTIERS.find((C)=> C.quoi !== 'elevage' && C.continu);
+  if(!modele) return;
+  PARCELS.forEach((p, i)=>{
+    if(!p.owned || p.pature || p.sansAuto || chantierDe(i)) return;
+    const c = CROPS[modele.crop || 0];
+    if(c && c.perenne) return;                    // vigne et oliviers se décident à la main
+    poserChantier(i, {quoi:'culture', crop:modele.crop || 0, engrais:!!modele.engrais, continu:true,
+                      produit:modele.produit, dest:Object.assign({}, modele.dest)});
+    showHint('PARCELLE ' + (i + 1) + ' – AJOUTÉE À L\'AUTOMATISATION');
+  });
+}
 function negoceUpdate(dt){
   if(!MODE_NEGOCE || dt <= 0) return;
   for(const cle in PRODUITS){
@@ -37406,6 +37430,7 @@ function negoceUpdate(dt){
   NEGO.champT = (NEGO.champT || 0) - dt;
   if(NEGO.champT <= 0){
     NEGO.champT = 1;
+    negoceEtendre();
     for(const S of SITES) if(S.bulle && S.bulle.visible) S.bulle.visible = false;   // plus d'enseignes
     PARCELS.forEach((p, i)=>{
       if(!p.owned || p.pature) return;
@@ -38920,7 +38945,7 @@ function dessinerActivitesPlan(){
   };
   for(const C of CHANTIERS)ajouter((C.quoi==='elevage'?'Élevage':'Culture')+' · P'+(C.p+1),chLot.includes(C.p),C.continu,
     ()=>{planCategorie=C.quoi;planNature=null;chLot=[C.p];chargerReglages(C.p);planTaches=[{quoi:'parcelle',p:C.p}];majPlan();},
-    ()=>{retirerChantier(C.p);chLot=chLot.filter(p=>p!==C.p);planTaches=chLot.map(p=>({quoi:'parcelle',p}));});
+    ()=>{retirerChantier(C.p);PARCELS[C.p].sansAuto=true;chLot=chLot.filter(p=>p!==C.p);planTaches=chLot.map(p=>({quoi:'parcelle',p}));});
   for(const J of NATURE_JOBS){const m=MACHINES.find(m=>m.key===J.key);
     ajouter(m.nom,planNature===J.key,J.continu,()=>{planCategorie=J.key==='abatteuse'?'foret':'port';planNature=J.key;planNatureDest=J.dest;chLot=[];planTaches=[];majPlan();},()=>retirerNature(J.key));
   }
@@ -39675,6 +39700,8 @@ function outilsAttendusDans(L, sauf){
 }
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){
+  // Un chantier d'un seul cycle est un choix : le négoce ne le reconduira pas tout seul.
+  if(typeof PARCELS !== 'undefined' && PARCELS[ip]) PARCELS[ip].sansAuto = !(o && o.continu);
   const dejaLa = CHANTIERS.findIndex((C)=> C.p === ip);
   if(dejaLa >= 0){
     const C = CHANTIERS[dejaLa];

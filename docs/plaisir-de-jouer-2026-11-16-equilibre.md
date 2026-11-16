@@ -107,3 +107,12 @@ camion. Rejoué au banc de bout en bout avec l'automatisation pour les travaux d
   qu'une charrue.
 - Plan de travail : la puce « Engrais » est cochée d'office quand l'épandeur est acheté et qu'il
   y a de l'engrais en cuve. L'étape d'épandage elle-même fonctionnait (529 cellules sur 529 au banc).
+
+## Négoce : l'automatisation s'étend aux champs sans chantier
+
+Relevé (3 champs, 2 tracteurs, 20 min de jeu) : un tracteur libre ne reste à l'arrêt que si
+l'outil voulu est sur l'autre tracteur, ou si le champ n'a pas de chantier. `negoceEtendre` :
+dès qu'un chantier de culture tourne en continu, tout champ possédé sans chantier reçoit le même
+réglage (bandeau « PARCELLE N – AJOUTÉE À L'AUTOMATISATION »). Un champ arrêté par le joueur, ou
+lancé pour un seul cycle, n'est pas repris (`sansAuto`). Vigne et oliviers exclus.
+En négoce, le plan ne propose plus les commerces comme destination, seulement les stockages.
