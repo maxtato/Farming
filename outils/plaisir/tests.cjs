@@ -13,7 +13,7 @@ function monde(o={}){
   localStorage:{getItem:k=>k in boite?boite[k]:null,setItem:(k,v)=>{boite[k]=String(v);}},
   navigator:{},window:{addEventListener(){}},document:{hidden:false,addEventListener(){},getElementById:el},
   money:0,cur:0,demarre:true,MODE_LIBRE:false,CAMPAGNE:{niveau:1,mission:1,xp:0},NIVEAUX:Array(20).fill({nom:'Palier'}),
-  STAT:{moisson:0,mill:0,lait:0,oeufs:0,miel:0,laine:0,grumes:0,peche:0,ventes:0},MACHINES:[{v:{speed:0}}],CONTRATS:[],ONGLETS:[{id:'campagne'}],
+  hopper:0,STAT:{moisson:0,mill:0,lait:0,oeufs:0,miel:0,laine:0,grumes:0,peche:0,ventes:0},MACHINES:[{v:{speed:0}}],CONTRATS:[],ONGLETS:[{id:'campagne'}],
   growingList:[],grow:()=>{},flushTint:()=>{},lireSauvegarde:()=>null,clefCourante:()=>'k',
   AUDIO:{bip(){}},el:{money:el()},hints:[],pages:[],xp:0,
   eur:v=>Math.round(v)+' €',kg:v=>Math.round(v)+' kg',litres:v=>Math.round(v)+' L',dec:(v,n)=>v.toFixed(n),caisseTxt:()=>'',

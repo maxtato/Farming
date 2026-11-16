@@ -1792,6 +1792,7 @@
 .art .act::before{content:'';position:absolute;inset:-9px -8px}
 #brgo::before,#parcfermer::before{content:'';position:absolute;inset:-6px}
 #goalwrap::before{content:'';position:absolute;inset:-13px -6px -22px}
+#acte.neuf input[type=range]{pointer-events:none}
 @media (prefers-reduced-motion:reduce){#fete.on{animation-timing-function:linear}#money{transition:none}
   #menuBtn.aprendre::after{animation:none}}
 </style>
@@ -19471,7 +19472,12 @@ function tacheSuivante(m){
   // main, et une consigne de recul qu'il ne consommera jamais doit disparaître.
   desarmerRecul(v);
   v.mission = null; v.auto = false;
-  showHint(m.nom.toUpperCase() + ' – PLAN TERMINÉ');
+  /* ET ON NE DIT « PLAN TERMINÉ » QUE SI RIEN NE SUIT. Un chantier enchaîne ses étapes —
+     labour, semis, moisson — et chacune se soldait par ce bandeau : trois fois en quatre
+     minutes pendant que le chantier continuait. L'engin d'un chantier se tait ; la fin du
+     chantier a son propre message. */
+  if(typeof CHANTIERS === 'undefined' || !CHANTIERS.some((C)=> MACHINES[C.enginTerre] === m || MACHINES[C.enginPort] === m))
+    showHint(m.nom.toUpperCase() + ' – PLAN TERMINÉ');
 }
 /* ---------- PAR OÙ L'ON ABORDE LE DÉPART DU TRAVAIL, ÉCRIT UNE FOIS ----------
    Le point d'alignement est en amont de la première ligne ; y arriver par la ligne droite
@@ -27066,7 +27072,8 @@ function updateCargo(dt){
         choixLimite -= bouge;
         if(choixLimite <= 0.01){
           choixLimite = null; choixEnCours = null; choixDebit = 0;
-          showHint('OBJECTIF ATTEINT');
+          // « Objectif atteint » passait au CHARGEMENT, la livraison encore à faire.
+          showHint('TRANSFERT TERMINÉ');
         }
       }
     }
@@ -32339,6 +32346,14 @@ function ouvrirActes(o){
      les lignes de menu et les boutons de la carte : on valide, et l'on va livrer. */
   go.classList.toggle('appel', !!o.appel && acteLignes.length > 0);
   acteEl.style.display = 'block';
+  /* LE DOIGT QUI OUVRE LA FENÊTRE NE RÈGLE PAS SON CURSEUR. Le bouton « Charger » de la
+     colonne et le curseur de la fenêtre occupent le même point de l'écran : la fenêtre
+     s'ouvre à l'appui, et le clic que le navigateur fabrique au relâchement tombait sur
+     le curseur — qui sautait au milieu de sa course. Vu en jouant : 56 kg affichés pour
+     une mission qui en demande 30, alors que le curseur venait d'être posé sur 30. Les
+     curseurs ne prennent donc pas le doigt pendant la première demi-seconde. */
+  acteEl.classList.add('neuf');
+  setTimeout(()=> acteEl.classList.remove('neuf'), 500);
 }
 /* LA VALIDATION POSE LA FILE, ET RIEN D'AUTRE. Aucun kilo ne bouge ici : c'est
    `executer` qui transfère, à son rythme, sous les yeux du joueur — et c'est ce qui fait
@@ -33498,7 +33513,9 @@ function zonesHud(){
   const t = performance.now();
   if(t - hudZonesT < 500) return hudZones;
   hudZonesT = t; hudZones = [];
-  for(const id of ['engbar', 'regie', 'stick', 'thr', 'boutons', 'fuel', 'choix', 'service', 'veh', 'atelier']){
+  // … et du bandeau du haut : la caisse, la barre de niveau et son titre, la mission, les deux boutons.
+  for(const id of ['engbar', 'regie', 'stick', 'thr', 'boutons', 'fuel', 'choix', 'service', 'veh', 'atelier',
+                   'stats', 'goalwrap', 'goaltxt', 'ctr', 'menuBtn', 'pause']){
     const e = document.getElementById(id);
     if(!e || !e.offsetParent) continue;
     const r = e.getBoundingClientRect();
@@ -37382,7 +37399,7 @@ const PLAISIR = {
   chipSomme: 0, chipT: 0,      // l'étiquette « + 128 € » : ce qu'elle cumule, ce qu'il lui reste à vivre
   rafale: 0, rafaleT: 0,       // une vente en cours : son total, et le silence qui la clôt
   tickT: 0, tickN: 0,          // le grelot qui monte pendant qu'on décharge
-  niveauVu: 1, missionVue: 0,
+  niveauVu: 1, missionVue: 0, tremie: 0,
   stat: null,                  // les compteurs du jeu, tels qu'on les a lus la dernière fois
   feteT: 0, saleT: 0, sale: false, horlogeT: 0,
   e: {jour:'', defis:[], pleine:false, serie:0, serieMax:0, dernier:'', primeJour:'',
@@ -37645,7 +37662,8 @@ const plaisirEl = {chip: document.getElementById('gainchip'), fete: document.get
                    feteHaut: document.getElementById('fetehaut'), feteNom: document.getElementById('fetenom'),
                    menu: document.getElementById('menuBtn')};
 // Ce que le bandeau écrit : la valeur qui défile, tronquée comme `caisseTxt` tronque.
-const caisseVue = ()=> PLAISIR.pret ? Math.floor(PLAISIR.vu + 0.01).toLocaleString('fr-FR') + ' €' : caisseTxt();
+// Trente kilos à deux euros font 59,99 en flottants : on arrondit au centime avant de tronquer.
+const caisseVue = ()=> PLAISIR.pret ? Math.floor(Math.round(PLAISIR.vu*100)/100 + 1e-6).toLocaleString('fr-FR') + ' €' : caisseTxt();
 function plaisirCaisse(dt){
   const P = PLAISIR;
   const ecart = money - P.cible;
@@ -37736,6 +37754,16 @@ function plaisirUpdate(dt, dtImage){
       const km = Math.abs(v.speed)*dt/1000;
       e.cumul.km += km; plaisirAvancer('route', km);
     }
+  }
+  /* LA TRÉMIE VIDÉE EST UN GAIN, ET ELLE SE DIT COMME UN GAIN. Cent kilos passaient de la
+     machine au silo en deux secondes sous un bandeau « blé au silo » : le fruit de tout
+     le tour du champ, sans un chiffre. On retient ce que la trémie a porté, et on le dit
+     quand elle touche le fond. */
+  if(hopper > P.tremie) P.tremie = hopper;
+  else if(hopper < 0.5 && P.tremie >= 5){
+    showHint('AU SILO  +' + kg(P.tremie).toUpperCase());
+    plaisirCarillon(440); vibrer([16, 30, 16]);
+    P.tremie = 0;
   }
   // Un palier franchi : le bandeau, le carillon, la pluie.
   if(CAMPAGNE.niveau !== P.niveauVu){
