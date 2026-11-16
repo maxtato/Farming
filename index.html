@@ -17457,7 +17457,8 @@ function tirerCommande(type){
   // Réassort, commande régulière ou gros lot, bornés par la capacité réelle.
   const tirage=Math.random(),format=tirage<.3?'Réassort':tirage<.8?'Commande régulière':'Gros lot';
   const volume=tirage<.3?.8:tirage<.8?1.8:3.5;
-  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX*volume
+  /* × APRES_CAMPAGNE : voir « LA MARCHE ENTRE LA CAMPAGNE ET L'APRÈS », plus bas. */
+  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX*volume*(typeof APRES_CAMPAGNE === 'number' ? APRES_CAMPAGNE : 1)
     *(1+Math.max(0,Math.min(10,S.renom||0))*.04);
   const lignes=[];
   for(let i=0;i<nombre;i++){
@@ -17466,7 +17467,7 @@ function tirerCommande(type){
     if(l.need>0.001) lignes.push(l);
   }
   if(!lignes.length) return null;
-  const brut=lignes.reduce((n,l)=>n+prime(l.cle)*l.need,0),mult=lignes.length>1?1.35:1;
+  const brut=lignes.reduce((n,l)=>n+prime(l.cle)*l.need,0),mult=(lignes.length>1?1.35:1)*(typeof PRIME_COMMANDE === 'number' ? PRIME_COMMANDE : 1);
   return {type:lignes.length>1?'combinee':'brute',lieu:S.nom,lignes,
     prime:Math.max(20,Math.round(brut*mult/5)*5),xp:Math.max(4,Math.round(brut*mult/26)),temps:0,
     texte:format+' · '+(lignes.length>1?'Livrez les produits de la liste en plusieurs voyages si nécessaire.':'Pouvez-vous préparer ce lot ?')+' Aucun délai imposé.'};
@@ -28226,6 +28227,22 @@ const TUTO_COURT = [
    80 kg de l'usine se livrent quand on veut. Pour qui a suivi l'ouverture longue, les
    trois marches se soldent d'elles-mêmes — il les a déjà faites. */
 const dejaAppris = (cle)=>{ const f = TUTO.find((E)=> E.cle === cle).fait; return ()=> CAMPAGNE.long || f(); };
+/* ---------- LA MARCHE ENTRE LA CAMPAGNE ET L'APRÈS ----------
+   Le joueur : « ce que je veux éviter, c'est le paiement très bénéfique pendant la campagne
+   et, une fois la campagne finie, des gains trop réduits ». Relevé : les dernières missions
+   payaient de 10 000 à 30 000 € de prime, et la commande médiane d'après campagne 3 200 €
+   tout compris (400 commandes tirées au palier 20, ferme équipée) — une chute de un à
+   quatre le jour où l'on finit.
+   DEUX GESTES, UN DE CHAQUE CÔTÉ. Les primes de mission gardent leurs 3 000 premiers
+   euros et la moitié du reste (19 500 → 11 250, 30 000 → 16 500) : les premières
+   missions, celles qui financent l'installation, ne bougent pas. Et les commandes
+   visent 1,8 fois plus de valeur (`APRES_CAMPAGNE`, lu par `tirerCommande`) — mais ce
+   vœu reste plafonné par ce que la ferme sait produire, et au banc il ne déplaçait que
+   les grosses commandes. Leur PRIME vaut donc aussi 1,4 fois plus (`PRIME_COMMANDE`),
+   ce qui, lui, paie toutes les commandes, petites comprises. */
+const PRIME_PLEINE = 3000, PRIME_RESTE = 0.5, APRES_CAMPAGNE = 1.8, PRIME_COMMANDE = 1.4;
+for(const M of MISSIONS)
+  if(M.prime > PRIME_PLEINE) M.prime = Math.round((PRIME_PLEINE + (M.prime - PRIME_PLEINE)*PRIME_RESTE)/10)*10;
 MISSIONS[1].prep = [
   tutoDe('labour', {fait:dejaAppris('labour'),
     txt:'PRÉPARER LA TERRE – Pour le prochain blé, il faut retourner la terre. La charrue est au parc.'}),

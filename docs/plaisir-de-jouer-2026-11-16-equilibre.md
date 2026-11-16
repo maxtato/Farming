@@ -37,3 +37,21 @@ coupe, pêche, traite, ponte, croissance des bêtes), les ventes sont calculées
 
 La transformation (moulin, fromagerie, cave, huilerie), la vigne et les oliviers, les commandes
 d'après campagne et la campagne complète mission par mission. Les 16 suites de tests passent.
+
+## La marche entre la campagne et l'après
+
+Demande : éviter « le paiement très bénéfique pendant la campagne » puis « des gains trop réduits »
+une fois la campagne finie.
+
+Relevé (400 commandes tirées au palier 20, ferme d'essai : 8 parcelles, 5 élevages au premier
+cran, pas d'atelier) : commande médiane 3 230 € tout compris, 10 % à plus de 8 000 € ; les dix
+dernières missions payaient 8 250 à 30 000 € de prime.
+
+- Primes de mission : 3 000 premiers euros pleins, moitié du reste (`PRIME_PLEINE`, `PRIME_RESTE`).
+  19 500 → 11 250, 30 000 → 16 500 ; rien ne change sous 3 000 €.
+- Commandes : valeur visée × 1,8 (`APRES_CAMPAGNE`), prime × 1,4 (`PRIME_COMMANDE`).
+  Même ferme d'essai après réglage : médiane 4 220 €, 10 % à plus de 13 100 €.
+
+Non vérifié : que chaque achat obligatoire de la campagne reste finançable avec les primes
+réduites (l'audit de septembre laissait 146 763 € de marge ; la baisse en retire environ 60 000,
+et les terres coûtent moins cher). La vente libre se ferme toujours à la fin de la campagne.
