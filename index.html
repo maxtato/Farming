@@ -26262,7 +26262,13 @@ function chargerReglages(ip){
     chQuoi = C.quoi; chCrop = C.crop || 0; chEngrais = !!C.engrais;
     chProduit = C.produit; chDest = Object.assign({}, C.dest); chContinu = !!C.continu;
   } else {
-    chCrop = 0; chEngrais = false; chDest = {}; chContinu = false;
+    /* L'ENGRAIS EST COCHÉ D'OFFICE QUAND ON A DE QUOI ÉPANDRE. Le joueur : « les épandeurs
+       n'entrent pas dans le process d'automatisation, j'ai l'impression ». Ils y entrent,
+       mais par une puce à cocher, éteinte par défaut : épandeur acheté et engrais en
+       cuve, elle est maintenant allumée — on la décoche si l'on n'en veut pas. */
+    const Tep0 = TOOLS.find((t)=> t.key === 'engrais');
+    chCrop = 0; chDest = {}; chContinu = false;
+    chEngrais = !!(Tep0 && !Tep0.verrou && (CUVES.engrais >= 0.5 || cuveDe(Tep0, 'engrais') >= 0.5));
     chProduit = (chQuoi === 'culture') ? CROPS[0].cle : null;
   }
   if(chQuoi === 'elevage'){
@@ -39631,7 +39637,41 @@ function enginPourOutil(classe, ou, io){
     if(k < 0 || MACHINES[k].verrou) return -1;
     return (classeDe(MACHINES[k]) === classe && enginLibre(MACHINES[k])) ? k : -1;
   }
+  /* ON NE PREND PAS LE TRACTEUR QUI PORTE L'OUTIL QU'UN AUTRE CHAMP ATTEND.
+     Le joueur : « si on a plusieurs tracteurs, ils ne travaillent pas ensemble. Deux
+     champs, un labouré et l'autre en friche : un tracteur doit aller semer, l'autre
+     prendre la charrue. » Le plus proche du champ à semer est souvent celui qui vient
+     de le labourer — charrue encore attelée. Le prendre pour semer l'envoyait au parc
+     poser la charrue, pendant que le champ en friche attendait cette même charrue
+     (« EST SUR UN ENGIN OCCUPÉ ») et que l'autre tracteur ne faisait rien. S'il reste
+     un tracteur libre qui ne porte rien d'attendu ailleurs, c'est lui qui part ; celui
+     qui porte la charrue revient au champ qui la demande, sans détour par le parc. */
+  if(typeof outilsAttendus === 'function'){
+    const voulus = outilsAttendus(io);
+    if(voulus.length){
+      const sans = enginLePlusProche(classe, ou, (m)=> !(m.v.tool && voulus.indexOf(TOOLS.indexOf(m.v.tool)) >= 0));
+      if(sans >= 0) return sans;
+    }
+  }
   return enginLePlusProche(classe, ou);
+}
+// Les outils que demandent, à cet instant, les chantiers qui n'ont pas encore d'engin.
+let _attendusEnCours = false;      // `besoinEtape` interroge `enginPourOutil`, qui revient ici : pas de boucle
+function outilsAttendus(sauf){
+  const L = [];
+  if(_attendusEnCours) return L;
+  _attendusEnCours = true;
+  try { outilsAttendusDans(L, sauf); } finally { _attendusEnCours = false; }
+  return L;
+}
+function outilsAttendusDans(L, sauf){
+  for(const C of CHANTIERS){
+    if(C.quoi === 'elevage' || C.enginTerre >= 0) continue;
+    const et = etapeChantier(C, true);
+    if(et === ET_POUSSE || et === ET_FINI) continue;
+    const B = besoinEtape(C, et);
+    if(B && B.outil >= 0 && B.outil !== sauf && L.indexOf(B.outil) < 0) L.push(B.outil);
+  }
 }
 /* Poser un chantier de culture sur une parcelle, ou le retirer. */
 function poserChantier(ip, o){

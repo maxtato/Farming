@@ -95,3 +95,15 @@ Non fait : vente des bêtes, camion qui évite le joueur et le trafic, onglet «
 premières marches sont celles du tutoriel existant en mode discret (bandeau, cercles et boutons
 jaunes, ni fenêtre ni personnage) ; la sixième fait battre le bouton étiquette jusqu'au premier
 camion. Rejoué au banc de bout en bout avec l'automatisation pour les travaux des champs.
+
+## Automatisation à plusieurs tracteurs, engrais par défaut
+
+- `enginPourOutil` : à choix égal, on ne prend plus le tracteur qui porte un outil qu'un autre
+  chantier sans engin attend (`outilsAttendus`). Rejoué au banc (achat réel de la parcelle,
+  joueur assis dans le tracteur qui porte la charrue, champ A labouré, champ B en friche) :
+  les deux tracteurs partent dans les cinq secondes, l'un chercher le semoir, l'autre labourer.
+  Avant : le champ en friche affichait « CHARRUE EST SUR UN ENGIN OCCUPÉ » dix à quinze secondes.
+- Deux champs en friche et une seule charrue : le second tracteur attend toujours, il n'y a
+  qu'une charrue.
+- Plan de travail : la puce « Engrais » est cochée d'office quand l'épandeur est acheté et qu'il
+  y a de l'engrais en cuve. L'étape d'épandage elle-même fonctionnait (529 cellules sur 529 au banc).
