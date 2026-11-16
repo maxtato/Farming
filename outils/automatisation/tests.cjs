@@ -258,4 +258,14 @@ test('Fertilizer-only work does not wait for seeds or request a seed refill',c=>
  const tasks=c.tachesEtape(C,'engrais',{classe:'tracteur',outil:3});
  assert(!tasks.some(t=>t.nat==='graine'));assert(tasks.some(t=>t.nat==='engrais'));
 });
+test('A continuous chantier sends its idle machines home, but never the one at work',c=>{
+ const a=source.indexOf('const ARENTRER = []'),b=source.indexOf('function rentrerAuParc(',a);assert(a>=0&&b>a);
+ vm.runInContext(source.slice(a,b).replace(/^const /gm,'var '),c);
+ c.hopper=0;c.VIDE_TREMIE=.5;const armes=[];c.armerEngin=(m,t)=>{armes.push([c.MACHINES.indexOf(m),t[0].quoi]);m.v.mission={taches:t,i:0};m.v.auto=true;};
+ for(const m of c.MACHINES){m.v.parc={x:100,z:100};}
+ const C={p:0,continu:true,servi:[0,1],enginTerre:1,enginPort:-1};c.CHANTIERS.push(C);
+ for(let k=0;k<4;k++)c.libererEngins(1);
+ assert.deepEqual(armes,[[0,'parc']],'Only the idle tractor returns; the working one keeps its place');
+ assert.deepEqual(C.servi,[1]);
+});
 console.log(n+' automation tests passed.');

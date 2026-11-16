@@ -393,7 +393,7 @@
   #parcliste .pe .pn{font-size:12px;letter-spacing:.15px;line-height:1.2}
   #parcliste .pe .pd{font-size:10px;line-height:1.3}
   #parcliste .pe .vign{width:34px;height:40px}
-  #parcliste .pe .engin-vign{width:56px;height:42px;flex:none;object-fit:contain}
+  #parcliste .pe .engin-vign{width:48px;height:48px;flex:none;object-fit:contain}
   #parcliste .pe .etat{display:block;font-weight:bold;color:var(--titreC)}
   #parcliste .pe:focus-visible{outline:2px solid var(--titreC);outline-offset:-2px}
   @media(max-width:520px){#parcliste{grid-template-columns:minmax(0,1fr)}#parcboite{max-width:340px}#parcliste .pe{min-height:60px}}
@@ -1155,6 +1155,11 @@
   #brplus .vign{width:26px;height:26px;vertical-align:middle;margin:0 3px;object-fit:contain}
   .client-produits{display:flex;flex-wrap:wrap;gap:5px 10px;justify-content:center;letter-spacing:0;text-transform:none}
   .client-produit{display:inline-flex;align-items:center;font-size:11px}
+  /* LA LISTE LONGUE SE RESSERRE (voir `pageDeblocage`) : seize à vingt-deux produits
+     tiennent en quatre ou cinq lignes au lieu de déborder du papier. */
+  .client-produits.dense{gap:1px 8px;line-height:1.35}
+  .client-produits.dense .client-produit{font-size:10px}
+  #brplus .client-produits.dense .vign{width:17px;height:17px;margin:0 2px}
   /* ---------- LE TAMPON « STOCK PLEIN » ----------
      Le joueur : « avec comme un tampon rouge sur le côté qui met stock plein ».
      C'est un tampon de caoutchouc, et un tampon de caoutchouc a trois signes : il est
@@ -1257,6 +1262,25 @@
   /* `animation:none` sous le doigt : sans ça la poussée infinie reprendrait la main sur
      `transform` et l'appui ne se verrait pas. */
   #brgo:active{animation:none;transform:scale(1.12)}
+  /* SUR UN TÉLÉPHONE EN PAYSAGE, TOUT TIENT SANS DÉFILER. À 390 pixels de haut, la fin de
+     mission débordait d'une trentaine de pixels — la ligne « un nouvel appel arrivera au
+     téléphone » n'était jamais vue —, et quatre fenêtres de commerce coupaient leur
+     liste. Le défileur rattrapait le reste, mais rien ne disait qu'il y avait un reste.
+     On reprend donc cinquante pixels là où personne ne les regarde : les marges, les
+     interlignes, le chiffre de la prime et le rond de la flèche, quatre pixels chacun.
+     Le portrait garde sa place : c'est lui qui dit qui parle. */
+  @media (max-height:440px){
+    #brboite{padding-top:9px;padding-bottom:9px}
+    #brdefile{gap:4px}
+    #brface{width:min(192px,18vh);height:min(240px,22.5vh)}
+    #brsous{line-height:1.5}
+    #brprix{font-size:28px;padding:6px 18px}
+    #brplus{line-height:1.45}
+    #bravo #brgo{margin-top:3px;width:34px;height:34px;min-width:34px;min-height:34px}
+  }
+  /* Et sur les plus petits (360 de haut), le portrait cède encore quelques pixels. */
+  @media (max-height:380px){#brface{width:min(192px,16vh);height:min(240px,20vh)}
+    #brsous{line-height:1.4}#brdefile{gap:3px}}
   /* LE VISAGE D'UNE ÉTAPE EST PLUS PETIT, ET C'EST LA MÊME RAISON QUI FAIT TOUT LE RESTE
      DE CETTE FENÊTRE. Une marche de tutoriel NE MET PAS LE JEU EN PAUSE : elle se pose
      pendant qu'on roule, et elle doit se lire sans arrêter la main. Le portrait d'une fin
@@ -1283,7 +1307,7 @@
     transform:translateX(-50%);pointer-events:auto;display:none;
     flex-direction:column;align-items:center;gap:5px;
     max-height:calc(100% - 210px - env(safe-area-inset-bottom));overflow-y:auto;
-    padding:2px 0}
+    padding:7px 9px}
   /* LA COULEUR D'UN BOUTON DIT SON RÔLE, ET RIEN D'AUTRE.
      Elle disait le LIEU — la colonne prenait la teinte du cercle sous les roues, et tous
      ses boutons avec. À la Coopérative du tutoriel, le cercle est vert : on y trouvait
@@ -1329,6 +1353,20 @@
     font-size:10px;font-weight:bold;letter-spacing:1.1px;
     white-space:nowrap;flex:none}
   #choix .ch.jaune{--act:#FFD21E;--actOmb:#C79E0A}
+  /* LE BOUTON QUE LE JEU ATTEND BAT AUSSI DANS LA COLONNE. « Répondre au téléphone »,
+     « Charger » et « Livrer » étaient les trois seuls gestes de la première demi-heure
+     que le guidage désignait par un cercle au sol, mais pas par un battement : le
+     joueur arrivait sur l'anneau et trouvait un bouton immobile, de la même allure que
+     tous les autres. Il bat maintenant comme les boutons du bas.
+     UN CADRE QUI NE GRANDIT PAS : la colonne coupe ce qui dépasse (`overflow-y:auto`),
+     un halo mis à l'échelle y ferait naître une barre de défilement. Le cadre est donc
+     posé à cinq pixels du bouton — la colonne a reçu le rembourrage qu'il faut — et
+     seule son opacité bat, pendant que le bouton respire en se resserrant. Blanc sur le
+     jaune, jaune sur le vert : il doit se détacher de l'aplat qu'il entoure. */
+  #choix .ch.appel{position:relative;animation:appelRespire .95s ease-in-out infinite}
+  #choix .ch.appel::after{content:'';position:absolute;inset:-5px;border-radius:15px;
+    border:3px solid #FAD201;pointer-events:none;animation:appelPlat .95s ease-in-out infinite}
+  #choix .ch.jaune.appel::after{border-color:#fff}
   /* Le VERT dans la colonne : il n'y reste qu'une ligne, « RÉPONDRE AU TÉLÉPHONE »,
      devant la maison. C'est la seule chose de tout le jeu qui se dise en vert, au sol
      comme dans la colonne — et elle ne se confond donc avec rien. */
@@ -1596,9 +1634,9 @@
   /* LA CARTE APPELLE COMME LES MENUS. Pendant la marche de l'automatisation, la puce ou
      le bouton à toucher prend le jaune du guidage et bat comme une ligne de menu ; la
      parcelle à désigner porte un cadre jaune posé sur la carte, qui suit le zoom. */
-  #plan .pc.appel,#plan .pb.appel,#actego.appel{background:#FAD201;color:#10171B;position:relative;
+  #plan .pc.appel,#plan .pb.appel,#actego.appel,#ctoui.appel{background:#FAD201;color:#10171B;position:relative;
     box-shadow:0 3px 0 #B49700;animation:appelRespire .95s ease-in-out infinite}
-  #plan .pc.appel::after,#plan .pb.appel::after,#actego.appel::after{content:'';position:absolute;inset:-3px;
+  #plan .pc.appel::after,#plan .pb.appel::after,#actego.appel::after,#ctoui.appel::after{content:'';position:absolute;inset:-3px;
     border-radius:12px;border:3px solid #FAD201;pointer-events:none;
     animation:appel 1.05s ease-out infinite}
   #plancible{position:absolute;display:none;border:3px solid #FAD201;border-radius:4px;
@@ -1703,6 +1741,66 @@
 @media(max-height:500px){#pboite,#fenboite{padding:9px 12px}#ptete,#fentete{padding-bottom:6px;margin-bottom:4px}.accbtn{padding:9px 22px}#accbtns{margin:8px 0 2px}}
 @media(prefers-reduced-motion:reduce){.art .act,.accbtn,.ong{transition:none}}
 
+
+/* ---------- LE PLAISIR DE JOUER (chapitre 29 bis du script) ---------- */
+.stat{position:relative}
+#money{display:inline-block;transform-origin:left center;transition:transform .16s ease-out,color .3s}
+#money.bat{transform:scale(1.16);color:#FAD201}
+#gainchip{position:absolute;left:100%;top:50%;margin-left:16px;transform:translate(-6px,-50%);opacity:0;
+  white-space:nowrap;font-size:11px;font-weight:bold;letter-spacing:.4px;padding:3px 8px;border-radius:8px;
+  font-variant-numeric:tabular-nums;pointer-events:none;transition:opacity .35s,transform .35s}
+#gainchip.on{opacity:1;transform:translate(0,-50%)}
+#gainchip.plus{background:#FAD201;color:#2A2410;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+#gainchip.moins{background:rgba(17,30,28,.90);color:#F0B9A8;border:1px solid rgba(240,185,168,.35)}
+#fete{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+  text-align:center;z-index:19;padding:10px 34px 12px;border-radius:14px;
+  background:rgba(17,30,28,.88);border:1px solid rgba(250,210,1,.55);box-shadow:0 4px 0 rgba(0,0,0,.4)}
+#fete.on{animation:feteEntre 3.2s cubic-bezier(.2,1.4,.4,1) both}
+#fetehaut{font-size:24px;letter-spacing:5px;font-weight:bold;color:#FAD201}
+#fetenom{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:#F2E7C9;margin-top:3px}
+#fete::before,#fete::after{content:'★';position:absolute;top:50%;color:#FAD201;font-size:15px;opacity:0}
+#fete::before{left:11px}#fete::after{right:11px}
+#fete.on::before,#fete.on::after{animation:feteEtoile 3.2s ease-out both}
+@keyframes feteEntre{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}9%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
+  15%{transform:translate(-50%,-50%) scale(1)}84%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-62%) scale(.98)}}
+@keyframes feteEtoile{0%,10%{opacity:0;transform:translateY(-50%) scale(.2) rotate(-40deg)}22%{opacity:1;transform:translateY(-50%) scale(1.25) rotate(8deg)}
+  32%,84%{opacity:1;transform:translateY(-50%) scale(1) rotate(0)}100%{opacity:0;transform:translateY(-50%) scale(1)}}
+#menuBtn.aprendre::after{content:'';position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;
+  background:#FAD201;border:2px solid #14201E;animation:aprendreBat 1.1s ease-in-out infinite}
+@keyframes aprendreBat{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}
+.defibar{height:5px;border-radius:3px;background:rgba(94,76,44,.16);overflow:hidden;margin:1px 0 4px}
+.defibar i{display:block;height:100%;border-radius:3px;background:#E0A63A}
+.art.sansact .act{display:none}
+/* ---------- PASSE PROPRETÉ (audit du 15 novembre 2026) ---------- */
+#pausevoile{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:rgba(12,20,19,.62);pointer-events:auto;z-index:5}
+#pausevoile.on{display:flex}
+#pausevoile b{font-size:30px;letter-spacing:10px;color:#F2E7C9;padding-left:10px}
+#pausevoile span{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:rgba(242,231,201,.75)}
+#pause{z-index:7}
+#pause.repr i{width:0;height:0;background:none;border-radius:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #fff}
+#pause.repr i + i{display:none}
+.accbtn.danger{background:#C4553A;color:#fff;box-shadow:0 4px 0 #8E3A26}
+/* Le libellé du palier se lisait mal sur le blé mûr : il prend le fond des autres pastilles. */
+#goaltxt{background:rgba(17,30,28,.62);padding:2px 10px;border-radius:8px;text-shadow:none}
+#choix .titre{font-size:10px;opacity:1;background:rgba(17,30,28,.78);padding:3px 9px;border-radius:7px;margin-bottom:3px}
+#viseurs .vis .nm{font-size:9px}
+/* DES CIBLES PLUS LARGES QUE LEUR DESSIN. Les boutons restent fins — c'est voulu — mais un
+   doigt ne vise pas à vingt-quatre pixels : la zone qui répond déborde du tracé. */
+.art .act,#brgo,#parcfermer{position:relative}
+.art .act::before{content:'';position:absolute;inset:-9px -8px}
+#brgo::before,#parcfermer::before{content:'';position:absolute;inset:-6px}
+#goalwrap::before{content:'';position:absolute;inset:-13px -6px -22px}
+#acte.neuf input[type=range]{pointer-events:none}
+#etoiles{position:absolute;left:50%;top:64px;transform:translateX(-50%);display:none;white-space:nowrap;pointer-events:none;
+  font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#FAD201;background:rgba(17,30,28,.72);padding:3px 11px;border-radius:9px;
+  font-variant-numeric:tabular-nums}
+#etoiles.on{display:block}
+#etoiles.presse{color:#F0B9A8;animation:etoilesBat .8s ease-in-out infinite}
+@keyframes etoilesBat{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){#fete.on{animation-timing-function:linear}#money{transition:none}
+  #menuBtn.aprendre::after{animation:none}}
 </style>
 </head>
 <body>
@@ -1712,7 +1810,7 @@
        lettres dans l'écran Stockage. Restent l'argent — ce qui décide de tout — et
        l'heure, qui décide du reste. -->
   <div class="pill" id="stats">
-    <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span></div>
+    <div class="stat"><span class="dot" style="background:#FAD201"></span><span id="money">0 €</span><span id="gainchip"></span></div>
     <div class="stat"><span class="dot" style="background:#7FD1E8"></span><span id="heure">09:00</span></div>
   </div>
   <div class="pill" id="diag"></div>
@@ -1726,6 +1824,9 @@
   <div id="viseurs"><div id="tel"><div class="onde"></div>
     <img class="tp" src="pictos/telephone.png" alt=""></div></div>
   <div id="pause"><i></i><i></i></div>
+  <div id="etoiles"></div>
+  <div id="pausevoile"><b>PAUSE</b><span>Touche l’écran pour reprendre</span></div>
+  <div id="fete"><div id="fetehaut"></div><div id="fetenom"></div></div>
   <div id="hint"></div>
   <div id="parc"><div id="parcfond"></div><div id="parcboite"><div id="parctete"><div id="parctitre">Changer d'engin</div><div id="parcfermer">✕</div></div><div id="parcliste"></div></div></div>
   <div id="menuBtn" class="pic" aria-label="Menu"></div>
@@ -2566,20 +2667,28 @@ function fusionnerGroupe(g){
 }
 // fusion de primitives colorées en une seule géométrie (pour l'InstancedMesh du blé)
 function mergeParts(parts){
-  const pos=[], nor=[], col=[], c=new THREE.Color();
+  // Conserver les sommets partagés des primitives. Déplier un cube indexé faisait
+  // traiter 36 sommets au lieu de 24, pour les mêmes douze triangles. Aucun arrondi
+  // ni rapprochement de sommets : les normales, couleurs et arêtes restent exactes.
+  const pos=[], nor=[], col=[], indices=[], c=new THREE.Color();
+  let partage=false;
   for(const p of parts){
-    const g = p.g.index ? p.g.toNonIndexed() : p.g.clone();
+    const g = p.g.clone(), debut=pos.length/3;
     if(p.m) g.applyMatrix4(p.m);
     const pa=g.attributes.position.array, na=g.attributes.normal.array;
     c.set(p.c);
     for(let i=0;i<pa.length;i+=3){
       pos.push(pa[i],pa[i+1],pa[i+2]); nor.push(na[i],na[i+1],na[i+2]); col.push(c.r,c.g,c.b);
     }
+    if(g.index){ partage=true; for(let i=0;i<g.index.count;i++) indices.push(debut+g.index.getX(i)); }
+    else for(let i=0;i<pa.length/3;i++) indices.push(debut+i);
+    g.dispose();
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+  if(partage) geo.setIndex(indices);
   return geo;
 }
 
@@ -3187,10 +3296,19 @@ const CHEMINS_NORD = [];                    // {x0,x1,z0,z1,vert} : voir `paintS
      doubler de prix indéfiniment, sans quoi les dernières parcelles ne se prennent
      jamais. Le total reste du même ordre qu'avant, à peu près deux millions et demi ;
      c'est sa RÉPARTITION qui change, et avec elle les vingt premières minutes. */
-  const GRILLE = [1000, 1800, 3500, 5500, 8000, 12000, 18000, 27000, 40000,
-                  73000, 89000, 109000, 133000, 162000, 198000, 241000,
-                  294000, 359000, 438000, 534000, 651000];
-  rest.forEach((p,i)=> p.price = GRILLE[Math.min(i, GRILLE.length-1)]);
+  /* LA TERRE SE PAIE À SA TAILLE, ET L'ÉCHELLE S'ARRÊTE À 40 000 (novembre 2026). Relevé en
+     jouant : la grille montait à 241 000 € sans regarder la surface — un carré de vingt
+     mètres (227 cases, 62 kg de blé) valait 162 000 €, soit des dizaines d'heures de
+     récolte pour se rembourser, et « la culture ne rapportait pas ». La grille donne
+     maintenant le prix d'une parcelle STANDARD (30 × 30 m), et chaque terre le paie au
+     prorata de sa surface : les petits carrés coûtent moins de la moitié, les deux
+     grands champs quatre fois plus. Le total passe d'environ 1,1 million à 520 000 €. */
+  const GRILLE = [1000, 1800, 3000, 4500, 6500, 9000, 12000, 15000, 18000,
+                  21000, 24000, 27000, 30000, 33000, 36000, 40000];
+  rest.forEach((p,i)=>{
+    const prix = GRILLE[Math.min(i, GRILLE.length-1)]*(p.w*p.h)/900;
+    p.price = Math.max(500, Math.round(prix/100)*100);
+  });
 })();
 // Les dalles de la cour et du garage butent contre la chaussée. Sans ça il restait
 // une bande d'herbe de 4 m entre le parking et la route, qu'on traversait à chaque
@@ -3365,7 +3483,7 @@ const PRODUITS = {
      fait soixante grammes, donc 16,67 œufs au kilo et 3,33 € le kilo. C'est aussi ce qui
      remet la boulangerie à l'endroit : écrire 0,20 le KILO rendait une viennoiserie
      moins chère qu'un pain, faute d'avoir converti. */
-  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:0.80, unite:'œufs', parKg:1/0.060,
+  oeufs:  {nom:'Œufs',      couleur:'#F6E7B8', parUnite:1.20, unite:'œufs', parKg:1/0.060,
            nomme:true},
   laine:  {nom:'Laine',     couleur:'#EDE6D6', brut:7.228},
   // Le miel se récolte en petites quantités et se vend cher : c'est le produit brut
@@ -3384,11 +3502,13 @@ const PRODUITS = {
      le raisin : la forêt s'ouvre au septième palier et doit y valoir le détour sans rendre
      les parcelles inutiles. La scierie paie ce chiffre, le menuisier 40 % de plus. */
   // Lignes de commande comptées à la tête ; elles restent hors des caisses de marchandises.
-  betail_vache: {nom:'Vaches',couleur:'#DCEEF5',brut:3500,unite:'bêtes',betail:'vache',interne:true},
-  betail_poule: {nom:'Poules',couleur:'#F6E7B8',brut:270,unite:'bêtes',betail:'poule',interne:true},
-  betail_cochon: {nom:'Cochons',couleur:'#D49A86',brut:1640,unite:'bêtes',betail:'cochon',interne:true},
-  betail_mouton: {nom:'Brebis',couleur:'#EDE6D6',brut:1560,unite:'bêtes',betail:'mouton',interne:true},
-  grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:2.6},
+  betail_vache: {nom:'Vaches',couleur:'#DCEEF5',brut:760,unite:'bêtes',betail:'vache',interne:true},
+  betail_poule: {nom:'Poules',couleur:'#F6E7B8',brut:44,unite:'bêtes',betail:'poule',interne:true},
+  betail_cochon: {nom:'Cochons',couleur:'#D49A86',brut:480,unite:'bêtes',betail:'cochon',interne:true},
+  betail_mouton: {nom:'Brebis',couleur:'#EDE6D6',brut:250,unite:'bêtes',betail:'mouton',interne:true},
+  // 2,6 → 1,9 : joué, l'abatteuse remplit le dépôt (1 158 kg) en moins de cinq minutes et
+  // la forêt a repoussé entre-temps — 600 € la minute, deux fois un chalutier.
+  grumes: {nom:'Grumes',    couleur:'#8A6A3A', brut:1.9},
 
   /* --- ce qui sort de la mer --- */
   /* LE POISSON ET LES CRUSTACÉS. Une barque en remonte dix kilos toutes les huit secondes,
@@ -3567,9 +3687,10 @@ const prixUnite = (cle)=> prixDe(cle)/parKgDe(cle);
    et c'est le seul endroit où la conversion apparaît. */
 const u2kg = (cle, u)=> u/parKgDe(cle);
 // Comment on dit ce prix : « € / kg », « € / L », « € pièce ».
-const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce' : '€ / ' + uniteDe(cle);
+const parUniteTxt = (cle)=> uniteDe(cle) === 'œufs' ? '€ pièce'
+  : uniteDe(cle) === 'bêtes' ? '€ / bête' : '€ / ' + uniteDe(cle);
 // Le singulier, pour les tournures « par litre apporté », « par œuf engagé ».
-const UNITE_UN = {kg:'kg', L:'litre', 'œufs':'œuf'};
+const UNITE_UN = {kg:'kg', L:'litre', 'œufs':'œuf', 'bêtes':'bête'};
 const uniteUn = (cle)=> UNITE_UN[uniteDe(cle)] || uniteDe(cle);
 /* QUATRE FAÇONS D'ÉCRIRE LA MÊME QUANTITÉ, selon la phrase qui l'accueille :
 
@@ -4292,6 +4413,8 @@ const CONTRATS = [];              // ce qu'on a accepté, et rien d'autre
    LIBRE, hors campagne, les rouvrira : la machinerie reste entière derrière ce seul
    interrupteur, et il n'y a pas une ligne morte ailleurs. */
 let MODE_LIBRE = false;
+// Le mode NÉGOCE est un mode libre sans commerces : voir « LE NÉGOCE », avant l'écran d'accueil.
+let MODE_NEGOCE = false;
 /* ET LA CAMPAGNE FINIE LES ROUVRE. Le dernier client le dit lui-même en payant sa grande
    réception : « les commerces continueront désormais à proposer des contrats, tandis que
    vous pouvez développer librement votre exploitation ». Sans cette ligne, la promesse
@@ -4343,7 +4466,7 @@ function entamerEtal(S, cle, q){
    manque, et les deux fournisseurs — le garage et le comptoir agricole — ne sont
    jamais fermés : sans eux on ne pourrait rien acheter du tout. */
 const siteOuvert = (S)=> !!S && ouvert('sites', S.nom);
-const acheteMaintenant = (S, cle)=> siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
+const acheteMaintenant = (S, cle)=> !(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) && siteOuvert(S) && S.achete.indexOf(cle) >= 0 && placeChez(S, cle) > 0.01;
 /* ET LA VENTE LIBRE N'EXISTE PAS AVANT D'AVOIR ÉTÉ DÉBLOQUÉE. Le jeu l'annonce en toutes
    lettres à la fin de la première mission — « VENTE LIBRE DÉBLOQUÉE · la Coopérative achète
    votre production à tout moment » — et pourtant elle était proposée AVANT, à côté du
@@ -4357,7 +4480,7 @@ const venteLibreOuverte = ()=> MODE_LIBRE || (!commandesObligatoires() && CAMPAG
 const totalTremieSite = (S)=>{ let t = 0; for(const k in S.tremie) t += S.tremie[k]; return t; };
 const TREMIE_SITE_MAX = 335;
 const accepteMaintenant = (S, cle)=>
-  siteOuvert(S) && S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX
+  !(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) && siteOuvert(S) && S.accepte.indexOf(cle) >= 0 && totalTremieSite(S) < TREMIE_SITE_MAX
   && (!commandesObligatoires() || resteCommande(S.nom, cle) > 0.01);
 // …et rend un produit tant qu'il en reste sur son quai.
 function stockASortir(S, cle){
@@ -4426,8 +4549,8 @@ function acheteursDe(cle, sauf, quantite){
    en insère une au milieu de la table. Une partie neuve n'a rien appris ; une partie
    RELUE d'avant les leçons les a toutes apprises, faute de quoi son joueur s'entendrait
    expliquer comment acheter un tracteur au bout de trois heures de jeu. */
-const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false,
-                  ouverture:false, clientsPresentes:[]};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
+const CAMPAGNE = {niveau:1, xp:0, mission:0, tuto:0, lecons:[], retard:0, explore:false, long:false,
+                  ouverture:false, clientsPresentes:[], vuPrix:false};   // l'arrivée du pick-up a-t-elle été jouée : voir `lancerPartie`
 /* LE DÉLAI AVANT QU'UNE MISSION ARRIVE, ET IL Y EN A DEUX ESPÈCES.
    Le joueur : « laisse un petit délai variable entre 3 et 10 secondes pour l'arrivée
    d'une nouvelle mission une fois qu'une mission est finalisée » ; et, pour la toute
@@ -4466,6 +4589,7 @@ const NIVEAUX = [
   {nom:'Productivité', resume:'L\'épandeur : la même terre, plus vite',
    outils:['engrais'], parcelles:1},
   {nom:'Première transformation', resume:'Le moulin, la farine, la boulangerie',
+   engins:['t2'],
    modules:['farine'], sites:['Boulangerie'], parcelles:1},
   {nom:'Le maïs et les poules', resume:'Une deuxième parcelle, le broyeur, le poulailler',
    cultures:['mais'], modules:['aliment'], especes:['poule'], parcelles:2},
@@ -4489,7 +4613,7 @@ const NIVEAUX = [
    cultures:['avoine'], engins:['abatteuse', 'porteur'],
    sites:['Usine avoine', 'Scierie'], parcelles:3},
   {nom:'Les vaches', resume:'Le mélangeur premium, l\'étable, la laiterie',
-   modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
+   engins:['t3'], modules:['alimentPlus'], especes:['vache'], sites:['Laiterie'], parcelles:4},
   {nom:'Fromage fermier', resume:'La fromagerie de la ferme',
    modules:['fromage'], parcelles:4},
   /* ET LE CAMION AMÉRICAIN S'OUVRE AVEC L'ENTREPÔT, ce qui va de soi : c'est pour lui
@@ -4625,14 +4749,14 @@ const MISSIONS = [
       ce soit la dame de la Coopérative qui parle ». La page est celle de tout commerce
       qui s'ouvre (`pageDeblocage`) : ce qu'elle prend, combien, à quel prix, dans sa voix. */
    apres:[{deblocage:'Coopérative'}]},
-  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:80}], prime:220, xp:80,
-   texte:'La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 80 kg.',
+  {niv:1, lieu:'Usine céréales', lignes:[{cle:'ble', need:60}], prime:220, xp:80,
+   texte:'La Coopérative m’a parlé de votre blé. J’aimerais vérifier ce qu’il donne chez nous. Apportez-moi 60 kg.',
    fin:'Hum… bonne tenue, grain régulier. Ça ira très bien. Gardez cette qualité et nous pourrons parler de volumes plus sérieux.'},
   /* LE SEUL PRÉAMBULE DE LA CAMPAGNE. Le cahier des charges veut que l'épandeur soit
      PRÉSENTÉ une fois — on va le chercher, on le remplit, on voit la pousse accélérer —
      et qu'il redevienne facultatif dès la mission suivante. Deux étapes qui indiquent,
      et qui ne bloquent rien : la mission se solde en livrant, épandeur ou pas. */
-  {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:150}], prime:450, xp:100,
+  {niv:2, lieu:'Coopérative', lignes:[{cle:'ble', need:100}], prime:450, xp:100,
    prep:[
      /* Le joueur : « je veux que ça arrive après que le téléphone sonne et que la dame
         de la Coopérative dise que pour produire plus gros, regarder du côté de l'épandeur ;
@@ -4658,24 +4782,24 @@ const MISSIONS = [
      {cle:'engrais', ou:'cuveEngrais', outil:'engrais', titre:'REMPLIR L’ÉPANDEUR',
       txt:'REMPLIR L’ÉPANDEUR – La cuve blanche de la cour est pleine d’engrais. Autant s’en servir.',
       fait:()=> cuveDe(TOOLS.find((T)=> T.key === 'engrais'), 'engrais') > 0.5}],
-   texte:'J’ai une commande un peu plus grosse : 150 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses.',
+   texte:'J’ai une commande un peu plus grosse : 100 kg de blé. Et si vous commencez à manquer de temps, regardez du côté de l’épandeur. L’engrais peut accélérer les choses.',
    fin:'Très bien. Vous commencez à produire régulièrement. C’est généralement à ce moment-là qu’on commence à acheter trop de machines.'},
-  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:250}], prime:680, xp:120,
-   texte:'Le premier lot nous a convaincus. Cette fois, j’en voudrais 250 kg. Voyons si vous savez tenir le volume.',
+  {niv:2, lieu:'Usine céréales', lignes:[{cle:'ble', need:150}], prime:680, xp:120,
+   texte:'Le premier lot nous a convaincus. Cette fois, j’en voudrais 150 kg. Voyons si vous savez tenir le volume.',
    fin:'Parfait. Quantité, qualité, délai. Vous commencez à devenir un fournisseur intéressant.'},
-  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:72}], prime:1050, xp:150,
+  {niv:3, lieu:'Boulangerie', lignes:[{cle:'farine', need:50}], prime:1050, xp:150,
    prep:[{cle:'installer-moulin',ou:()=>money>=650?'atelier':'Coopérative',titre:'INSTALLER LE MOULIN',court:'Installer le moulin à l’atelier.',txt:()=>money>=650?'INSTALLER LE MOULIN – Le boulanger attend votre farine. Le moulin coûte 650 € ; les améliorations attendront les grosses commandes.':'FINANCER LE MOULIN – Vendez une récolte à la Coopérative pour réunir les 650 €.',fen:()=>money>=650?'production':null,onglet:'metiers',art:'farine',fait:()=>atelierA('farine')}],
-   texte:'Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 72 kg. Je m’occupe du reste.',
+   texte:'Votre blé est bon, mais moi, ce qu’il me faut, c’est de la farine ! Installez un moulin et apportez-m’en 50 kg. Je m’occupe du reste.',
    fin:'Ah, ça c’est une farine qui me plaît ! Vous voyez ? Même blé… mais déjà beaucoup plus de valeur.'},
-  {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:180}], prime:1350, xp:170,
-   texte:'Le blé fonctionne. Passons au maïs. 180 kg pour un premier test.',
+  {niv:4, lieu:'Usine céréales', lignes:[{cle:'mais', need:120}], prime:1350, xp:170,
+   texte:'Le blé fonctionne. Passons au maïs. 120 kg pour un premier test.',
    fin:'Très bien. Continuez comme ça. Une exploitation capable de fournir plusieurs céréales nous intéresse beaucoup plus.'},
-  {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 24)}], prime:1880, xp:180,
-   texte:'La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 24 œufs pour moi.',
+  {niv:4, lieu:'Boulangerie', lignes:[{cle:'oeufs', need:u2kg('oeufs', 18)}], prime:1880, xp:180,
+   texte:'La farine, j’ai. Maintenant il me faut des œufs. Quelques poules, un peu de patience… et 18 œufs pour moi.',
    fin:'Parfait ! Avec votre farine et vos œufs, je vais finir par ne plus avoir besoin de personne d’autre.'},
   {niv:5, lieu:'Boulangerie',
-   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}], prime:2100, xp:200,
-   texte:'Cette fois je veux le panier complet : 72 kg de farine et 36 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps.',
+   lignes:[{cle:'farine', need:50}, {cle:'oeufs', need:u2kg('oeufs', 24)}], prime:2100, xp:200,
+   texte:'Cette fois je veux le panier complet : 50 kg de farine et 24 œufs. Voyons si vous arrivez à faire tourner deux productions en même temps.',
    fin:'Tout est là, et en même temps. Ça, c’est déjà une vraie organisation de ferme.'},
   /* LE PALIER SIX NE COMPTE PLUS DEUX FOIS LA MÊME ORGE.
      Il demandait 200 kg d'orge à la Brasserie, puis 140 L de bière au Restaurant. Or 140 L
@@ -4691,14 +4815,14 @@ const MISSIONS = [
      arriver à 30. » Les primes et les expériences ne bougent PAS de position — 3 200 puis
      3 600, 220 puis 240 — parce que la campagne entière vaut 11 640 XP et qu'un banc compte
      les trente valeurs dans l'ordre. */
-  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:140}], prime:2400, xp:220,
-   texte:'On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 140 litres.',
+  {niv:6, lieu:'Restaurant', lignes:[{cle:'biere', need:80}], prime:2400, xp:220,
+   texte:'On me demande de plus en plus de produits du coin. Si vous arrivez à faire une bière avec votre propre orge, je vous prends 80 litres.',
    fin:'Très bonne. Et surtout : brassée juste à côté. Celle-là, je vais pouvoir la mettre en avant sur la carte.'},
-  {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:60}, {cle:'farine', need:120}], prime:2700, xp:240,
-   texte:'J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 60 litres de bière et 120 kg de farine.',
+  {niv:6, lieu:'Épicerie', lignes:[{cle:'biere', need:40}, {cle:'farine', need:70}], prime:2700, xp:240,
+   texte:'J’ai goûté votre bière au restaurant. Les clients en parlent déjà. Je monte un rayon local : 40 litres de bière et 70 kg de farine.',
    fin:'Parfait. Votre ferme a maintenant son petit coin dans mon magasin. Essayez de ne pas me laisser les rayons vides.'},
-  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:200}], prime:3000, xp:260,
-   texte:'Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 200 kg et nous testerons votre récolte.',
+  {niv:7, lieu:'Usine avoine', lignes:[{cle:'avoine', need:120}], prime:3000, xp:260,
+   texte:'Nous cherchons justement un producteur d’avoine du secteur. Faites-moi parvenir 120 kg et nous testerons votre récolte.',
    fin:'Très bon résultat. Continuez à en produire : ce ne sera probablement pas notre dernière commande.'},
   /* LA SEULE MISSION QUE LE HÉROS SE DONNE À LUI-MÊME. Personne ne commande d'aliment
      premium : c'est lui qui regarde ses trois céréales et décide de mieux nourrir ses
@@ -4708,56 +4832,56 @@ const MISSIONS = [
    titre:'Produire 184 kg d’aliment premium',
    texte:'Je vous réserverai une collecte de lait. Avant les vaches, préparez leur nourriture : installez le mélangeur premium et produisez 184 kg avec vos céréales.',
    fin:'La nourriture est prête. Nous pouvons maintenant préparer votre première collecte de lait.'},
-  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:4120, xp:300,
-   texte:'On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 200 litres.',
+  {niv:8, lieu:'Laiterie', lignes:[{cle:'lait', need:120}], prime:4120, xp:300,
+   texte:'On m’a dit que votre ferme continuait de s’agrandir. Si vous vous lancez dans les vaches, je vous réserve une première collecte de 120 litres.',
    fin:'Très bon lait. Pour un premier troupeau, c’est prometteur. Si vous augmentez la production, appelez-moi.'},
-  {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:350}], prime:4500, xp:320,
-   texte:'J’aurais besoin de 350 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir.',
+  {niv:9, lieu:'Laiterie', lignes:[{cle:'lait', need:200}], prime:4500, xp:320,
+   texte:'J’aurais besoin de 200 litres cette fois. Plus de vaches ou plus de patience : je vous laisse choisir.',
    fin:'Parfait. Là, on ne parle plus d’un essai. Votre production laitière commence à compter.'},
-  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:28}], prime:5250, xp:340,
-   texte:'Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 28 kg de fromage.',
+  {niv:9, lieu:'Restaurant', lignes:[{cle:'fromage', need:20}], prime:5250, xp:340,
+   texte:'Votre lait est bon. Maintenant, faites-en quelque chose qu’on puisse mettre sur une assiette. Je vous prends 20 kg de fromage.',
    fin:'Excellent. Celui-là reste sur la carte. Et je veux pouvoir écrire “fabriqué à la ferme”.'},
   {niv:10, lieu:'Supermarché',
-   lignes:[{cle:'fromage', need:56}, {cle:'oeufs', need:u2kg('oeufs', 48)}], prime:6000, xp:360,
-   texte:'Nous ouvrons un rayon producteurs locaux. Pour le lancement : 56 kg de fromage et 48 œufs. Il faut que le rayon paraisse rempli dès le premier jour.',
+   lignes:[{cle:'fromage', need:30}, {cle:'oeufs', need:u2kg('oeufs', 30)}], prime:6000, xp:360,
+   texte:'Nous ouvrons un rayon producteurs locaux. Pour le lancement : 30 kg de fromage et 30 œufs. Il faut que le rayon paraisse rempli dès le premier jour.',
    fin:'Parfait. Les quantités sont bonnes. Votre ferme est officiellement référencée chez nous.'},
   {niv:11, lieu:'Atelier textile', lignes:[{cle:'laine', need:12}], prime:6380, xp:380,
    texte:'Je prépare une petite série en laine locale. Si vous montez une bergerie, je peux utiliser vos 12 premiers kilos. Avec quatre moutons nourris, cette première collecte prend environ huit minutes.',
    fin:'Très belle matière. J’avais besoin d’un producteur régulier dans le secteur. Je crois que je viens de le trouver.'},
-  {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:160}], prime:6750, xp:400,
-   texte:'Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 160 litres de lait de brebis.',
+  {niv:11, lieu:'Fromagerie', lignes:[{cle:'laitBrebis', need:100}], prime:6750, xp:400,
+   texte:'Vos brebis donnent de la laine… mais elles peuvent faire beaucoup mieux que ça. Apportez-moi 100 litres de lait de brebis.',
    fin:'Ah oui… beaucoup plus riche que le lait de vache. Avec ça, on peut faire quelque chose de vraiment intéressant.'},
-  {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:40}], prime:7120, xp:420,
+  {niv:12, lieu:'Restaurant', lignes:[{cle:'fromageBrebis', need:24}], prime:7120, xp:420,
    texte:'J’ai goûté le fromage fait avec votre lait de brebis. Maintenant je veux le vôtre. Quarante kilos.',
    fin:'Celui-là a du caractère. Gardez-moi une place dans votre prochaine production.'},
-  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:40}], prime:7500, xp:450,
-   texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 40 kg. Faites tourner la bergerie en automatique pendant vos autres travaux.',
+  {niv:13, lieu:'Atelier textile', lignes:[{cle:'laine', need:24}], prime:7500, xp:450,
+   texte:'La première série est partie plus vite que prévu. Cette fois j’en veux 24 kg. Faites tourner la bergerie en automatique pendant vos autres travaux.',
    fin:'Parfait. Votre bergerie est officiellement devenue mon fournisseur.'},
   {niv:13, lieu:'Marché', lignes:[{cle:'miel', need:12}], prime:8250, xp:480,
    texte:'On me demande du miel local toutes les semaines. Installez quelques ruches et gardez-moi les 12 premiers kilos.',
    fin:'Regardez-moi ça… Celui-là ne va pas rester longtemps sur l’étal.'},
   {niv:14, lieu:'Boulangerie',
-   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 36)}, {cle:'miel', need:12}],
+   lignes:[{cle:'farine', need:50}, {cle:'oeufs', need:u2kg('oeufs', 24)}, {cle:'miel', need:12}],
    prime:9000, xp:500,
    texte:'J’ai une idée : votre farine, vos œufs et votre miel. Si ça fonctionne comme je l’imagine, on tient quelque chose.',
    fin:'Exactement ! Tout vient de votre ferme. Là, je peux vraiment raconter une histoire aux clients.'},
-  {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:300}], prime:9750, xp:520,
-   texte:'Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 300 kg pour commencer.',
+  {niv:15, lieu:'Coopérative', lignes:[{cle:'colza', need:180}], prime:9750, xp:520,
+   texte:'Le colza se vend bien cette saison. Si vous avez envie d’essayer, je vous prends 180 kg pour commencer.',
    fin:'Très bien. Et avant de tout revendre brut, regardez ce qu’un pressoir peut en tirer.'},
-  {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:68}], prime:10880, xp:560,
-   texte:'J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 68 litres d’huile de colza.',
+  {niv:15, lieu:'Restaurant', lignes:[{cle:'huile', need:40}], prime:10880, xp:560,
+   texte:'J’aimerais remplacer une partie de nos huiles par quelque chose produit ici. Apportez-moi 40 litres d’huile de colza.',
    fin:'Parfait. Produit à quelques kilomètres de la cuisine : difficile de faire plus local.'},
-  {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:200}], prime:12750, xp:600,
-   texte:'Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 200 kg d’olives.',
+  {niv:16, lieu:'Supermarché', lignes:[{cle:'olives', need:120}], prime:12750, xp:600,
+   texte:'Les clients demandent davantage de produits frais locaux. Je vous réserve une place pour 120 kg d’olives.',
    fin:'Très bien. Les caisses partent directement en rayon. Maintenant, j’attends de voir ce que vous allez faire avec l’huile.'},
-  {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:40}], prime:13500, xp:650,
-   texte:'Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 40 litres de votre huile.',
+  {niv:17, lieu:'Restaurant', lignes:[{cle:'huileOlive', need:24}], prime:13500, xp:650,
+   texte:'Les olives étaient très bonnes. Mais moi, ce que je veux vraiment, c’est 24 litres de votre huile.',
    fin:'Voilà. Là, on change de catégorie. Cette huile vaut clairement plus que les olives vendues brutes.'},
-  {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:200}], prime:15000, xp:700,
-   texte:'On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 200 kg fera l’affaire.',
+  {niv:17, lieu:'Supermarché', lignes:[{cle:'raisin', need:120}], prime:15000, xp:700,
+   texte:'On aimerait ajouter du raisin local au rayon fruits. Une première livraison de 120 kg fera l’affaire.',
    fin:'Très bien. Il se vendra facilement comme ça. Mais connaissant le caviste… il ne va pas vouloir le manger.'},
-  {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:140}], prime:16500, xp:750,
-   texte:'Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 140 litres de votre première cuvée.',
+  {niv:18, lieu:'Caviste', lignes:[{cle:'vin', need:80}], prime:16500, xp:750,
+   texte:'Votre raisin m’intrigue. Ne le vendez pas tout. Installez une cave, laissez-le travailler… et apportez-moi 80 litres de votre première cuvée.',
    fin:'Hm… intéressant. Vraiment intéressant. Vous ne cultivez plus seulement des produits. Vous commencez à avoir une signature.'},
   {niv:19, appel:true,lieu:'Boucherie',faire:'porcs4', prime:19500, xp:850, qui:'Boucherie', titre:'Livrer quatre porcs à la boucherie',
    texte:'Vous produisez maintenant assez d’aliment pour élever correctement des porcs. Montez une porcherie et préparez-moi quatre bêtes.',
@@ -4770,10 +4894,10 @@ const MISSIONS = [
      un bouton : CONTINUER À JOUER. La page « LA FERME CONTINUE » est ici et non ajoutée
      d'office, pour que le bouton reste le dernier. */
   {niv:20, lieu:'Restaurant', entete:'UNE GRANDE COMMANDE',
-   lignes:[{cle:'farine', need:72}, {cle:'oeufs', need:u2kg('oeufs', 60)},
-           {cle:'fromage', need:28}, {cle:'fromageBrebis', need:20},
-           {cle:'miel', need:12}, {cle:'huile', need:34},
-           {cle:'huileOlive', need:20}, {cle:'vin', need:140}],
+   lignes:[{cle:'farine', need:50}, {cle:'oeufs', need:u2kg('oeufs', 36)},
+           {cle:'fromage', need:20}, {cle:'fromageBrebis', need:14},
+           {cle:'miel', need:8}, {cle:'huile', need:20},
+           {cle:'huileOlive', need:14}, {cle:'vin', need:80}],
    prime:30000, xp:1000,
    texte:'J’organise une réception entièrement consacrée aux producteurs du village. Et pour être franche… j’aimerais construire presque tout le menu autour de votre ferme.\nFarine, œufs, fromage de vache, fromage de brebis, miel, huiles et vin. Pas besoin de courir. Organisez-vous.',
    fin:'Tout est là. Absolument tout. Quand je pense que votre première livraison faisait trente kilos de blé…',
@@ -4837,7 +4961,7 @@ const MISSIONS = [
    position et « explorer les environs » en neuvième. Une sauvegarde d'avant passe par les
    deux décalages, dans l'ordre : l'ancien pick-up (6) devient 7, l'ancien appel (7) devient
    9, l'ancienne vente (8) devient 10. */
-const TUTO_V = 4, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
+const TUTO_V = 5, TUTO_INSERE = 5, TUTO_INSERE3 = 6, TUTO_INSERE4 = 6, TUTO_INSERE4B = 8;
 const MISSIONS_V = 4;
 const MISSIONS_REECRITS = [8, 9];
 /* CE QU'UN COMMERCE S'APPELAIT AVANT. La renommée est le seul état durable rangé par
@@ -5044,7 +5168,10 @@ const VIGNETTES = {
   grumes:'grumes', abatteuse:'abatteuse', porteur:'porteur',
   // Le port : les mêmes rendus du jeu, sur fond magenta, par la même chaîne.
   poisson:'poisson', crustaces:'crustaces',
-  barque:'barque', chalutier:'chalutier', caseyeur:'caseyeur', frigo:'frigo'
+  barque:'barque', chalutier:'chalutier', caseyeur:'caseyeur', frigo:'frigo',
+  // Le camion bordeaux : même procédé, rendu du jeu sur fond magenta. Il était le seul
+  // engin sans planche — la fenêtre « Choisir un véhicule » lui gardait un vieux picto.
+  semi:'semi'
 };
 const vignetteDe = (cle)=> (cle && VIGNETTES[cle]) ? 'produits/' + VIGNETTES[cle] + '.png' : null;
 /* CE DONT UNE MISSION OU UN CONTRAT PARLE, quand il en parle. Un engagement porte des
@@ -5225,9 +5352,18 @@ function pageDeblocage(S){
   if(S.nom==='Comptoir des pêcheurs') txt='Votre flotte est prête. Barque et chalutier pour le poisson, caseyeur pour les crustacés. Débarquez au quai, puis livrez avec le camion frigo.';
   else if(S.abattoir) txt+=' Les animaux arrivent uniquement en fourgon.';
   else if(S.accepte&&S.accepte.length) txt+=' Les apports à l’usine sont payés à la livraison.';
+  /* ET LA LISTE TIENT DANS LA FENÊTRE. Le Marché en annonçait seize, l'Entrepôt d'export
+     vingt-deux : à trois par ligne et vingt-six pixels de vignette, la fenêtre en montrait
+     douze, et le reste — avec la phrase du bas — partait dans un défilement que rien ne
+     signalait. Passé huit produits, la liste se resserre : petite vignette, petit
+     caractère, et elle tient en cinq lignes au plus.
+     ET LA PHRASE DU BAS NOMME LE BON BOUTON. Elle renvoyait au « carnet des commerces »,
+     qui n'existe sous ce nom nulle part : c'est le bouton à l'étiquette, à gauche, qui
+     s'intitule « Prix des commerces » — et il bat jusqu'à ce qu'on l'ait ouvert. */
   const vign=pris.map(c=>'<span class="client-produit">'+(vignetteDe(c)?'<img class="vign" src="'+vignetteDe(c)+'" alt="">':'')+nomDe(c)+'</span>').join('');
-  return {titre:S.nom.toUpperCase(),sous:'<i>« '+txt+' »</i>',plus:'<div class="client-produits">'+vign+'</div>',
-    face:{nom:S.nom,humeur:'bravo'},suite:'Produits et prix dans le carnet des commerces',duree:9};
+  return {titre:S.nom.toUpperCase(),sous:'<i>« '+txt+' »</i>',
+    plus:'<div class="client-produits'+(pris.length>8?' dense':'')+'">'+vign+'</div>',
+    face:{nom:S.nom,humeur:'bravo'},suite:'Les prix : bouton « Prix des commerces », l’étiquette à gauche',duree:9};
 }
 function veillerDeblocages(){
   while(SITES_ANNONCE.length){
@@ -5569,6 +5705,11 @@ function chargerCampagne(S){
     /* L'ARRIVÉE DU PICK-UP, VUE OU NON. Absent d'une vieille sauvegarde, le champ vaut
        « vue » : une partie en cours ne se voit pas raconter l'héritage en repartant. */
     CAMPAGNE.ouverture = C.ouv === undefined ? true : !!C.ouv;
+    /* QUELLE OUVERTURE CETTE PARTIE A-T-ELLE COMMENCÉE. Depuis la table 5 la campagne
+       s'ouvre sur la moisson (`TUTO_COURT`) ; une partie écrite avant garde la longue,
+       celle dont son rang parle. Le drapeau se réécrit dans `tv` à chaque sauvegarde. */
+    CAMPAGNE.long = (C.tv | 0) < 5;
+    CAMPAGNE.vuPrix = C.vuPrix === undefined ? true : !!C.vuPrix;
     /* ET L'INDICE SUIT LA TABLE QUI A GRANDI. Une sauvegarde écrite avant l'insertion de
        la marche du parking porte un rang d'AVANT : tout ce qui était à cette place ou
        après a glissé d'un cran. `99` — « tout franchi » — ne bouge pas. */
@@ -5699,7 +5840,7 @@ function veillerMission(){
   const M = missionVisible();
   if(!M) return;
   if(M.faire){ if(testerFaire(M.faire)) finirMission(); return; }
-  if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - 0.01)) finirMission();
+  if(M.lignes.every((l, i)=> (CAMPAGNE.faits[i] || 0) >= l.need - tolQte(l.need))) finirMission();
 }
 
 /* LE RESTAURANT NE COMMANDE PLUS TOUT SEUL.
@@ -6814,19 +6955,34 @@ function fruit(P, x, y, z, r, c){
           m:new THREE.Matrix4().makeTranslation(x, y, z), c});
 }
 
-/* ---------- les deux jeunes âges, COMMUNS aux cinq céréales ---------- */
+/* ---------- les deux jeunes âges, COMMUNS aux cinq céréales ----------
+   LA PETITE POUSSE ÉTAIT PLUS GROSSE QUE LE BLÉ QUI EN SORTAIT. Le joueur : « lorsque
+   le blé pousse, il devrait sembler plus grand que la petite pousse, ce qui n'est pas le
+   cas : la petite pousse paraît plus large et plus grosse. À part le brin, qui est plus
+   long une fois fini de pousser, les proportions sont incorrectes. »
+   MESURÉ À PLEINE ÉCHELLE : la pousse faisait 0,42 m de haut pour 0,34 de large — deux
+   feuilles de 14 cm de section, ouvertes à 24°. La montaison, 0,81 × 0,50, et le blé mûr
+   1,63 × 0,59. Les hauteurs montaient, mais chaque âge démarrait à l'échelle qui égalait
+   la HAUTEUR du précédent, sans regarder sa largeur : la montaison repartait à 52 % —
+   feuilles de 29 cm au lieu de 40 — et l'épi à 49 %, deux tiges de six centimètres
+   d'épaisseur après une touffe d'un demi-mètre. Le pied MAIGRISSAIT deux fois en route.
+   DEUX CORRECTIONS. Les jeunes âges s'affinent — la pousse, deux brins de 30 et 26 cm et
+   de 9 cm de section, presque droits ; la montaison, des feuilles plus étroites et plus
+   dressées autour d'une tige plus mince — si bien que chaque âge tient dans le suivant,
+   en hauteur ET en largeur. Et le raccord se fait sur les deux axes (voir `ECH_PIED`). Le
+   compte de triangles ne bouge pas : 12 et 24. */
 function agePousse(){
   const P = [];
-  brin(P, 0.06, 0.4, 1.15, 0.40, 0.07);
-  brin(P, 0.04, 3.0, 1.05, 0.34, 0.06);
+  brin(P, 0.03, 0.4, 1.28, 0.30, 0.045);
+  brin(P, 0.02, 3.0, 1.22, 0.26, 0.040);
   return mergeParts(P);
 }
 function ageMontee(){
   const P = [];
-  fut(P, 0.72, 0.03, 0.05);
-  brin(P, 0.16, 0.5, 1.05, 0.56, 0.085);
-  brin(P, 0.30, 2.6, 1.00, 0.50, 0.080);
-  brin(P, 0.44, 4.4, 0.95, 0.44, 0.070);
+  fut(P, 0.64, 0.028, 0.045);
+  brin(P, 0.10, 0.5, 1.22, 0.52, 0.065);
+  brin(P, 0.26, 2.6, 1.26, 0.48, 0.060);
+  brin(P, 0.42, 4.4, 1.30, 0.42, 0.055);
   return mergeParts(P);
 }
 
@@ -7204,10 +7360,20 @@ const CHAMPS = [];                                        // culture/âge -> [se
 const champRec = [];                                      // culture/âge -> [secteur -> [place -> fiche]]
 const CHAMP_GEO = [], CHAMP_MAT = [];                     // partagés par toutes les parcelles
 const ECH_AGE = [];                                       // culture -> échelle de départ de chaque âge
+/* culture -> âge -> {h0, l0, kh, kl} : le raccord d'une ANNUELLE, axe par axe (voir
+   `buildField`). Les permanentes n'y figurent pas et gardent `ECH_AGE`. */
+const ECH_PIED = [];
 function hauteurGeo(g){
   if(!g) return 1;
   if(!g.boundingBox) g.computeBoundingBox();
   return Math.max(0.01, g.boundingBox.max.y - g.boundingBox.min.y);
+}
+// L'emprise au sol d'un pied : la plus grande des deux largeurs, puisqu'il tourne au hasard.
+function largeurGeo(g){
+  if(!g) return 1;
+  if(!g.boundingBox) g.computeBoundingBox();
+  const B = g.boundingBox;
+  return Math.max(0.01, B.max.x - B.min.x, B.max.z - B.min.z);
 }
 /* three renvoie TOUT le tampon d'un maillage dès qu'on lève `needsUpdate` : 608 ko par
    culture, quel que soit le nombre d'instances réellement modifiées. Une seule plante
@@ -7475,6 +7641,15 @@ const CROPS = [
    temps:480, repousse:360, kg:0.2174, haut:1.00, large:0.60, cout:7500, verrou:true, perenne:true,
    plantation:1200, masque:(i, j)=> i % 5 === 0 && j % 5 === 0}
 ];
+/* LA CULTURE RAPPORTE UN QUART DE PLUS (novembre 2026). Le joueur : « regarde l'équilibre
+   des gains une fois sorti des missions, pour que la culture rapporte ». UN SEUL BOUTON,
+   posé ici : tout ce qui lit `kg` — la moisson, la fiche du catalogue, la capacité de la
+   ferme — suit. D'abord un quart, puis 1,6 après avoir joué toutes les filières : un
+   champ automatisé rapportait 70 € la minute quand un chalutier en sort 340. La parcelle
+   de départ rend 184 kg ; la trémie neuve est passée de 150 à 200 pour que la toute
+   première moisson tienne en un voyage. */
+const RENDEMENT = 1.6;
+for(const C of CROPS) C.kg *= RENDEMENT;
 const CROP_DE = {};                       // clé de produit → indice de culture
 CROPS.forEach((c, i)=>{ CROP_DE[c.cle] = i; });
 const cropCell = new Uint8Array(NCELL);
@@ -7533,6 +7708,29 @@ function buildField(){
     const H = ages.map((f)=> f ? hauteurGeo(geoDe(f)) : 0);
     ECH_AGE[c] = ages.map((f, a)=> a === 0 ? 0.34
       : Math.max(0.30, Math.min(0.98, H[a-1]/(H[a] || 1))));
+    /* MAIS LA HAUTEUR SEULE NE SUFFIT PAS À UNE CÉRÉALE : c'est ce qui faisait maigrir le
+       blé à chaque palier. Une feuille de pousse est large pour sa hauteur, une tige
+       d'épi est mince ; égaler la hauteur rendait donc le pied plus étroit qu'il n'était
+       une image plus tôt. Les annuelles se raccordent AXE PAR AXE : l'âge qui commence
+       part de la hauteur ET de la largeur où le précédent s'est arrêté, et chacune monte
+       à son rythme jusqu'à sa pleine taille.
+       ET AUCUN ÂGE NE FINIT PLUS GRAND QUE LE SUIVANT. La pousse et la montaison sont
+       communes aux cinq céréales, et trois épis — l'orge, l'avoine, le colza — sont plus
+       minces qu'une touffe de montaison. Sans plafond, l'orge perdrait un quart de sa
+       largeur en épiant. On rabat donc, en partant de l'adulte, la pleine taille de chaque
+       âge à celle du suivant (`kh`, `kl`) : chaque céréale ne fait que grandir, sur les
+       deux axes, du semis à la moisson. Les permanentes ne changent pas : leurs âges sont
+       des arbres et des ceps, que rien ici n'a mis en cause. */
+    if(!CROPS[c].perenne){
+      const L = ages.map((f)=> f ? largeurGeo(geoDe(f)) : 0);
+      const Hc = H.slice(), Lc = L.slice(), n = ages.length;
+      for(let a = n - 2; a >= 0; a--){ Hc[a] = Math.min(Hc[a], Hc[a+1]); Lc[a] = Math.min(Lc[a], Lc[a+1]); }
+      const borne = (x)=> Math.max(0.15, Math.min(0.98, x));
+      ECH_PIED[c] = ages.map((f, a)=> ({
+        h0: a === 0 ? 0.34 : borne(Hc[a-1]/(Hc[a] || 1)),
+        l0: a === 0 ? 0.34 : borne(Lc[a-1]/(Lc[a] || 1)),
+        kh: Hc[a]/(H[a] || 1), kl: Lc[a]/(L[a] || 1)}));
+    }
   }
   for(const p of PARCELS) if(p.owned) activateParcel(p);
 }
@@ -7701,13 +7899,20 @@ function setInstance(n, g, alive){
      souche déjà installée qu'on vient de vendanger n'a rien perdu de son bois. Dans les
      deux cas l'échelle reste à un, et c'est la géométrie de l'âge — un cep court, un
      sarment, puis quatre — qui dit à elle seule où en est le pied. */
-  let pousse = 1;
+  let pousse = 1, pousseH = 1;
   if(!etabli && !enRang){
     const bornes = C2.perenne ? BORNES_PER : BORNES_ANN;
     const g0 = bornes[age], g1 = bornes[age + 1];
     const t = Math.max(0, Math.min(1, (g - g0)/Math.max(0.001, g1 - g0)));
-    const e0 = (ECH_AGE[c] && ECH_AGE[c][age]) || 0.5;
-    pousse = e0 + (1 - e0)*t;
+    // Une annuelle grandit axe par axe (voir `ECH_PIED`) ; une permanente, d'un bloc.
+    const R = ECH_PIED[c] && ECH_PIED[c][age];
+    if(R){
+      pousse  = R.kl*(R.l0 + (1 - R.l0)*t);
+      pousseH = R.kh*(R.h0 + (1 - R.h0)*t);
+    } else {
+      const e0 = (ECH_AGE[c] && ECH_AGE[c][age]) || 0.5;
+      pousse = pousseH = e0 + (1 - e0)*t;
+    }
   }
   /* `large` CHANGE LA TAILLE, `haut` NE FAIT QU'ÉTIRER. Le second ne portait que sur y :
      s'en servir pour rapetisser le blé l'aurait tassé, pas rétréci. `large` multiplie
@@ -7718,9 +7923,10 @@ function setInstance(n, g, alive){
   // taille tirée au hasard laisserait un pied sur deux sans fil — le palissage
   // deviendrait un pointillé.
   const s = (enRang ? 1 : b.sc) * ech * pousse;
+  const sH = (enRang ? 1 : b.sc) * ech * pousseH;
   _q.setFromAxisAngle(_axeY, enRang ? 0 : b.rot);
   _v3.set(enRang ? cellX(b.i) : b.x, 0, enRang ? cellZ(b.j) : b.z);
-  _s3.set(s, s*C2.haut, s);
+  _s3.set(s, sH*C2.haut, s);
   _m4.compose(_v3, _q, _s3);
   _col.copy(C2.lo).lerp(C2.hi, Math.min(1, Math.max(0, (g - 0.20)/0.40)));
   const M = CHAMPS[k][secteur], place = champSlot[n];
@@ -16171,14 +16377,15 @@ class Vehicle {
     } else if(!moteurLong) this.gaz = throttle;
     const dc = doux ? this.douceur : 1;
     // moteur / frein moteur
-    const target = throttle * this.vmax;
+    // `elan` : l'avantage de la chaussée pour qui conduit lui-même — voir `plaisirRoute`.
+    const target = throttle * this.vmax * (this.elan || 1);
     if(moteurLong){
       vf=moteurSemi(this,dt,throttle,frein,vf,accelE);
     } else if(Math.abs(throttle) > 0.05){
       const pousse = Math.sign(target-vf) === Math.sign(throttle);
       const acc = pousse ? accelE*(doux ? Math.abs(this.gaz) : 1) : accelE*2.2*dc;
       vf += Math.max(-acc*dt, Math.min(acc*dt, target-vf));
-      if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax);
+      if(Math.sign(target) > 0) vf = Math.min(vf, this.vmax * (this.elan || 1));
       else if(Math.sign(target) < 0) vf = Math.max(vf, -this.vmax*0.45);
     } else {
       // Frein au pied : trois fois le frein moteur. C'est ce qui rend la pédale utile —
@@ -17252,7 +17459,8 @@ function tirerCommande(type){
   // Réassort, commande régulière ou gros lot, bornés par la capacité réelle.
   const tirage=Math.random(),format=tirage<.3?'Réassort':tirage<.8?'Commande régulière':'Gros lot';
   const volume=tirage<.3?.8:tirage<.8?1.8:3.5;
-  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX*volume
+  /* × APRES_CAMPAGNE : voir « LA MARCHE ENTRE LA CAMPAGNE ET L'APRÈS », plus bas. */
+  const valeur=(13+CAMPAGNE.niveau*CAMPAGNE.niveau*.65)*ECH_PRIX*volume*(typeof APRES_CAMPAGNE === 'number' ? APRES_CAMPAGNE : 1)
     *(1+Math.max(0,Math.min(10,S.renom||0))*.04);
   const lignes=[];
   for(let i=0;i<nombre;i++){
@@ -17261,7 +17469,7 @@ function tirerCommande(type){
     if(l.need>0.001) lignes.push(l);
   }
   if(!lignes.length) return null;
-  const brut=lignes.reduce((n,l)=>n+prime(l.cle)*l.need,0),mult=lignes.length>1?1.35:1;
+  const brut=lignes.reduce((n,l)=>n+prime(l.cle)*l.need,0),mult=(lignes.length>1?1.35:1)*(typeof PRIME_COMMANDE === 'number' ? PRIME_COMMANDE : 1);
   return {type:lignes.length>1?'combinee':'brute',lieu:S.nom,lignes,
     prime:Math.max(20,Math.round(brut*mult/5)*5),xp:Math.max(4,Math.round(brut*mult/26)),temps:0,
     texte:format+' · '+(lignes.length>1?'Livrez les produits de la liste en plusieurs voyages si nécessaire.':'Pouvez-vous préparer ce lot ?')+' Aucun délai imposé.'};
@@ -17591,7 +17799,12 @@ function refreshCommandes(){
   const ET = M ? null : etapeTuto();
   const LC = leconCourante();
   const SV = serviceIci(v0);
-  const sig = (M ? (M.nom || titreMission(M)) + '|' + (OM ? (OM.court || OM.txt) : '') : '')
+  /* ET ENTRE DEUX MISSIONS, LE TÉLÉPHONE SE DIT AUSSI. La première vente soldée, le
+     bandeau ne portait plus que le nom du commerce où l'on était garé : la mission
+     suivante attendait au téléphone de la ferme, et seule une petite flèche verte au bord
+     de l'écran le laissait deviner. */
+  const TEL = (!M && !ET && missionAPrendre()) ? 'Rentre à la ferme pour décrocher' : '';
+  const sig = 'tel:' + TEL + '|' + (M ? (M.nom || titreMission(M)) + '|' + (OM ? (OM.court || OM.txt) : '') : '')
     + '\n' + (ET ? champEtape(ET, 'titre') : '')
     + '\n' + (LC ? (LC.court || LC.nom || LC.titre) : '')
     + '\n' + (SV ? SV.nom : '');
@@ -17628,6 +17841,13 @@ function refreshCommandes(){
      mission au-dessus — celle-ci RAPPELLE, celle-là APPREND, et elle ne dure que le temps
      de l'apprentissage : elle a donc droit à ses deux lignes là où la mission n'en a
      qu'une. */
+  if(TEL){
+    const mi = document.createElement('div'); mi.className = 'mis';
+    const nm = document.createElement('span'); nm.textContent = 'Le téléphone sonne';
+    const fm = document.createElement('span'); fm.className = 'mf'; fm.textContent = TEL;
+    mi.appendChild(nm); mi.appendChild(fm);
+    el.ctr.appendChild(mi);
+  }
   if(ET){
     /* ET LA MARCHE DE TUTORIEL N'Y MET PLUS SON RÉCIT. La même règle que pour la mission :
        le bandeau rappelle ce qu'il y a à faire, il ne raconte pas. « On ne sème pas sur de
@@ -17848,7 +18068,14 @@ function planAuto(m, cible){
     const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
     for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
       const id = j*GNX+i;
-      if(state[id] !== ST.HORS && T.from.indexOf(state[id]) >= 0) n++;
+      if(state[id] === ST.HORS || T.from.indexOf(state[id]) < 0) continue;
+      /* L'ÉPANDEUR NE COMPTE QUE CE QUI N'A PAS REÇU D'ENGRAIS. Il sort du semé pour rendre
+         du semé : à ne regarder que l'état, une parcelle déjà fertilisée comptait autant
+         qu'une parcelle à faire, et le pilote choisissait la plus GRANDE des deux — il
+         repassait donc sur celle qu'il venait de finir, en vidant sa cuve, et ne partait
+         jamais sur la suivante. Même critère que `resteCellules`. */
+      if(T.key === 'engrais' && fert[id]) continue;
+      n++;
     }
     if(n > bestN){ bestN = n; best = p; }
   }
@@ -19284,7 +19511,12 @@ function tacheSuivante(m){
   // main, et une consigne de recul qu'il ne consommera jamais doit disparaître.
   desarmerRecul(v);
   v.mission = null; v.auto = false;
-  showHint(m.nom.toUpperCase() + ' – PLAN TERMINÉ');
+  /* ET ON NE DIT « PLAN TERMINÉ » QUE SI RIEN NE SUIT. Un chantier enchaîne ses étapes —
+     labour, semis, moisson — et chacune se soldait par ce bandeau : trois fois en quatre
+     minutes pendant que le chantier continuait. L'engin d'un chantier se tait ; la fin du
+     chantier a son propre message. */
+  if(typeof CHANTIERS === 'undefined' || !CHANTIERS.some((C)=> MACHINES[C.enginTerre] === m || MACHINES[C.enginPort] === m))
+    showHint(m.nom.toUpperCase() + ' – PLAN TERMINÉ');
 }
 /* ---------- PAR OÙ L'ON ABORDE LE DÉPART DU TRAVAIL, ÉCRIT UNE FOIS ----------
    Le point d'alignement est en amont de la première ligne ; y arriver par la ligne droite
@@ -19406,6 +19638,140 @@ function ravitaillementChamp(m, t, dt){
   delete M.reserveChamp; quitterLieu(v);
   return [0,0];
 }
+/* ---------- UN OUTIL QU'ON LÂCHE SE RANGE À SA PLACE, SUR LE PARKING ----------
+   Le joueur : « toutes les charrues et les objets qui sont portés et tirés par les
+   tracteurs doivent toujours être remis sur le parking à côté de la ferme, pas être
+   déposés sur la route. »
+   CE QUI LES SEMAIT PARTOUT, MESURÉ SUR UN CHANTIER BLÉ DE SIX MINUTES. Deux règles,
+   chacune défendable seule. La tâche `outil` dételait l'ancien outil LÀ OÙ ELLE PRENAIT
+   LE NOUVEAU : la charrue finissait au milieu de l'allée de la cour, à 13,6 m de sa case,
+   et la fois suivante au pied du semoir qu'on était venu chercher. Et un chantier en
+   continu ne renvoyait personne au parc : le tracteur restait attelé au bord du champ, sur
+   le chemin, pendant toute la pousse — à 53 m de la ferme, son outil derrière lui.
+   DÉSORMAIS UN ENGIN AUTOMATIQUE NE LÂCHE PLUS UN OUTIL N'IMPORTE OÙ : il le ramène à SA
+   case (`TOOL_PARK`), dans l'axe, et ne dételle qu'une fois l'outil dessus. C'est la tâche
+   `outil` qui le fait avant d'atteler l'autre, et la tâche `parc` avant de se garer.
+   LA MANŒUVRE EST CELLE D'UN CHAUFFEUR, ET ELLE SE FAIT EN MARCHE AVANT. Les outils sont
+   rangés timon au nord ; on vient donc par le sud de la rangée — la bande de dalle qui
+   longe la rocade —, on se met dans l'axe de la case, et l'on remonte tout droit jusqu'à ce
+   que la chape soit sur sa marque. Dix mètres de ligne droite : l'outil est aligné quand
+   on le lâche, et le petit écart qui reste se rattrape en une demi-seconde (`RANGEMENTS`).
+   Les semi-remorques ne sont pas concernées : leur place est devant l'entrepôt d'export,
+   et elles ne sont pas des outils de ferme. */
+const RANGE_RECUL = 8;          // l'approche, en mètres derrière la case
+function placeOutil(T){
+  if(!T || T.semi) return null;
+  const q = TOOL_PARK[TOOLS.indexOf(T)];
+  return q ? {x:q[0], z:q[1], cap:q[2]} : null;
+}
+/* Le point d'où l'on remonte vers la case. Il tombe derrière elle, dans son axe — sauf si
+   un autre outil y est garé : le combiné dort derrière le semoir, et y mener le tracteur
+   le ferait passer au travers. On décale alors l'approche d'un demi-entraxe, et la ligne
+   droite reste assez longue pour que l'outil s'aligne. */
+function approcheRangement(T, S){
+  const fx = Math.sin(S.cap), fz = Math.cos(S.cap);
+  const rx = Math.cos(S.cap), rz = -Math.sin(S.cap);
+  let k = RANGE_RECUL;
+  // On reste sur la dalle : derrière la rangée du combiné, c'est déjà la rocade.
+  const zMax = COUR_Z1 - 1.5;
+  if(S.z - fz*k > zMax) k = Math.max(4, (zMax - S.z)/(-fz || 1));
+  const occupe = (x, z)=> TOOLS.some((U)=> U !== T && !U.verrou && !U.attached && !U.semi
+    && Math.hypot(U.group.position.x - x, U.group.position.z - z) < 4.2);
+  for(const dec of [0, PLACE_PAS*0.55, -PLACE_PAS*0.55]){
+    const x = S.x - fx*k + rx*dec, z = S.z - fz*k + rz*dec;
+    if(!occupe(x, z)) return {x, z};
+  }
+  return {x:S.x - fx*k, z:S.z - fz*k};
+}
+/* Rend une commande tant que l'outil n'est pas rangé, `null` quand il l'est — ou quand il
+   n'y a rien à ranger.
+   L'ÉTAT VIT SUR L'ENGIN, PAS DANS LA MISSION. Un tracteur qui rentre au parc est LIBRE
+   (`rentreAuParc`) : le répartiteur peut lui confier une étape au milieu de la manœuvre,
+   et la nouvelle mission commence justement par ranger ce qu'il traîne. Gardée dans
+   l'ancienne mission, la manœuvre repartait de zéro — demi-tour au milieu de la rangée
+   pour retourner à l'approche. Sur l'engin, elle continue. On ne la reprend que si l'on
+   n'a pas quitté les abords de la case : un joueur qui a pris le volant entre-temps
+   l'a emmené ailleurs. */
+function rangerOutil(m, dt){
+  const v = m.v, T = v.tool;
+  if(!T || T.attached !== v){ v.rangement = null; return null; }
+  const S = placeOutil(T);
+  if(!S){ v.rangement = null; return null; }
+  let R = v.rangement;
+  if(R && R.etape > 0 && Math.hypot(v.pos.x - S.x, v.pos.z - S.z) > 16) R = null;
+  if(!R || R.T !== T) R = v.rangement = {T, etape:0, t:0, A:approcheRangement(T, S)};
+  R.t += dt;
+  const fx = Math.sin(S.cap), fz = Math.cos(S.cap);
+  // Le tracteur s'arrête là où sa chape tombe sur la case : `hc` devant elle.
+  const hc = hitchDe(v, T);
+  if(R.etape === 0){
+    const r = suivreRoute(v, R.A.x, R.A.z, 'rg' + TOOLS.indexOf(T), 2.5);
+    if(r && R.t < 90) return r;
+    R.etape = 1; R.t = 0;
+    v.route = null; v.routeBut = null; v.routeArr = null; v.sortie = null;
+  }
+  if(R.etape === 1){
+    // Où en est la chape le long de l'axe de la case : négatif, elle n'y est pas encore.
+    const f = v.fwd();
+    const hx = v.pos.x - f.x*hc, hz = v.pos.z - f.z*hc;
+    const reste = -((hx - S.x)*fx + (hz - S.z)*fz);
+    if(reste > 0.15 && R.t < 25){
+      /* ON SUIT L'AXE DE LA CASE, ON NE VISE PAS UN POINT. Viser l'arrivée depuis une
+         approche décalée — celle du semoir, que le combiné oblige à prendre de biais —
+         faisait arriver l'outil de travers : 25° mesurés. On vise donc trois mètres
+         DEVANT soi SUR L'AXE : le tracteur rejoint la ligne en quelques mètres, puis la
+         remonte droit, et l'outil a le temps de se mettre dans sa trace. */
+      const s0 = (v.pos.x - S.x)*fx + (v.pos.z - S.z)*fz;
+      const s1 = Math.min(s0 + 3.0, hc + 3.0);
+      const cmd = viser(v, S.x + fx*s1, S.z + fz*s1, 0.3, 1.6);
+      /* Au pas sur la fin : la manœuvre se joue au demi-mètre. La consigne est une
+         fraction de `vmax`, et sous 0,05 le moteur ne pousse plus — il freine. On garde
+         donc toujours un filet de gaz, faute de quoi le tracteur s'arrêterait avant la
+         marque et attendrait là les vingt-cinq secondes du garde-fou. */
+      const vise = Math.min(3.2, 0.6 + reste*0.6);
+      cmd[1] = Math.min(cmd[1], Math.max(0.06, vise/Math.max(1, v.vmax)));
+      return cmd;
+    }
+    R.etape = 2; R.t = 0;
+  }
+  // Arrêté, on dételle — et l'outil prend sa place exacte (voir `poserALaPlace`).
+  if(v.speed > 0.4 && R.t < 3) return [0, 0];
+  detachTool(v);
+  poserALaPlace(T);
+  v.rangement = null;
+  v.route = null; v.routeBut = null; v.routeArr = null; v.sortie = null;
+  if(m === MACHINES[cur]) refreshHitchButton();
+  return null;
+}
+/* LES DERNIERS CENTIMÈTRES. Le tracteur arrête la chape à deux à huit centimètres de sa
+   marque, l'outil à moins de deux degrés de son axe — onze pour le semoir, qu'on aborde
+   de biais à cause du combiné garé derrière lui (mesuré sur trois chantiers). On le fait
+   glisser jusqu'à la pose exacte de la case, celle du premier matin, en un tiers de
+   seconde. Pour la logique, il y est tout de suite : `T.x`/`T.z` désignent la case dès le
+   dételage, et c'est là qu'on viendra le reprendre. */
+const RANGEMENTS = [];
+function poserALaPlace(T){
+  const S = placeOutil(T);
+  if(!S || T.attached) return;
+  const g = T.group;
+  for(let k = RANGEMENTS.length - 1; k >= 0; k--) if(RANGEMENTS[k].T === T) RANGEMENTS.splice(k, 1);
+  RANGEMENTS.push({T, x0:g.position.x, z0:g.position.z, c0:g.rotation.y, t:0, S});
+  T.x = S.x; T.z = S.z; T.cap = S.cap; T.rangeVers = S;
+}
+function majRangements(dt){
+  for(let k = RANGEMENTS.length - 1; k >= 0; k--){
+    const R = RANGEMENTS[k], T = R.T;
+    if(T.attached){ T.rangeVers = null; RANGEMENTS.splice(k, 1); continue; }
+    R.t = Math.min(1, R.t + dt/0.35);
+    const e = R.t*R.t*(3 - 2*R.t);
+    let dc = R.S.cap - R.c0;
+    while(dc >  Math.PI) dc -= Math.PI*2;
+    while(dc < -Math.PI) dc += Math.PI*2;
+    T.group.position.set(R.x0 + (R.S.x - R.x0)*e, 0, R.z0 + (R.S.z - R.z0)*e);
+    T.group.rotation.y = R.c0 + dc*e;
+    if(R.t >= 1){ T.group.rotation.y = R.S.cap; T.rangeVers = null; RANGEMENTS.splice(k, 1); }
+  }
+}
 function missionDrive(m, dt){
   const v = m.v, M = v.mission;
   const t = M.taches[M.i];
@@ -19512,10 +19878,11 @@ function missionDrive(m, dt){
      trajet et l'attelage, et rien d'autre : elle se glisse donc devant n'importe quelle
      tâche de parcelle, et une chaîne complète s'écrit sans une ligne de pilotage neuve.
 
-     ON DÉTELLE SUR PLACE, ET C'EST VOULU. L'engin arrive avec ce qu'il traîne, le pose
-     là où il vient chercher l'autre — c'est-à-dire au parc à outils — et repart. Un
-     outil abandonné garde sa position au sol (voir `detachTool`), donc on le retrouvera
-     là où on l'a laissé, et non rangé par magie. */
+     ON NE DÉTELLE PLUS SUR PLACE. L'engin posait ce qu'il traînait là où il venait
+     chercher l'autre : la charrue finissait dans l'allée de la cour, puis au pied du
+     semoir. Il la ramène maintenant à SA case avant d'aller prendre le suivant (voir
+     `rangerOutil`) ; seule une semi-remorque, qui n'a pas de case à la ferme, se pose
+     encore là où l'on prend la suivante. */
   if(t.quoi === 'outil'){
     const T = TOOLS[t.t];
     v.cleVoulue = null; v.sensVoulu = 'route';
@@ -19528,6 +19895,9 @@ function missionDrive(m, dt){
     // cette garde est là pour que ce soit vrai même si un plan ancien le demandait.
     if(!peutAtteler(v, T)){ tacheSuivante(m); return [0, 0]; }
     if(v.tool === T && T.attached === v){ tacheSuivante(m); return [0, 0]; }
+    // Ce qu'on traîne retourne d'abord à sa case : voir `rangerOutil`.
+    const rg = rangerOutil(m, dt);
+    if(rg) return rg;
     /* UN OUTIL PRIS PAR UN AUTRE N'EST PAS UNE ERREUR, C'EST UNE ATTENTE. Deux chantiers
        peuvent vouloir la même charrue au même moment ; celui qui arrive second patiente
        au lieu d'abandonner son plan. Trente secondes — de quoi laisser finir une passe
@@ -19567,6 +19937,11 @@ function missionDrive(m, dt){
     v.cleVoulue = null; v.sensVoulu = 'route';
     const P = v.parc;
     if(!P){ tacheSuivante(m); return [0, 0]; }
+    /* ET L'OUTIL RENTRE À SA CASE AVANT LE TRACTEUR. Un tracteur se garait attelé : sa
+       charrue dormait dans l'allée, en travers du chemin des autres. Il la pose d'abord
+       à sa place, puis va à la sienne. */
+    const rg = rangerOutil(m, dt);
+    if(rg){ M.attente = 0; return rg; }
     /* EN DEUX TEMPS, PARCE QU'UNE CASE N'EST PAS UN QUAI. `suivreRoute` valide son
        dernier point de passage AU LARGE — cinq mètres et demi, ce qui convient à la
        grille d'un silo et laissait l'engin s'arrêter à 4,76 m de sa place, mesuré. Une
@@ -19582,8 +19957,17 @@ function missionDrive(m, dt){
       M.etape = 1; v.route = null; v.routeBut = null; v.routeArr = null;
     }
     M.attente = (M.attente || 0) + dt;
-    if(Math.hypot(P.x - v.pos.x, P.z - v.pos.z) > 1.5 && M.attente < 20)
-      return viser(v, P.x, P.z, 1.2);
+    /* ET L'ON ENTRE DANS SA CASE AU PAS. Les sept mètres se faisaient pleins gaz : la
+       machine lâchait l'accélérateur à 1,2 m de sa marque et finissait sur son élan —
+       trois mètres et demi plus loin, mesuré, le nez sur le chemin du nord. On ralentit
+       donc à l'approche, comme pour poser un outil, et l'on s'arrête à soixante
+       centimètres. */
+    const dP = Math.hypot(P.x - v.pos.x, P.z - v.pos.z);
+    if(dP > 0.6 && M.attente < 20){
+      const cmd = viser(v, P.x, P.z, 0.6);
+      cmd[1] = Math.min(cmd[1], Math.max(0.06, Math.min(3.5, 0.6 + dP*0.55)/Math.max(1, v.vmax)));
+      return cmd;
+    }
     tacheSuivante(m);
     return [0, 0];
   }
@@ -20532,6 +20916,8 @@ const TRAFIC_ROBES = (function(){
       v.setAttribute('position', g.attributes.position);
       v.setAttribute('normal', g.attributes.normal);
       v.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      // La variante change seulement la couleur ; elle garde les mêmes triangles.
+      if(g.index) v.setIndex(g.index);
       // Les bornes se calculent ICI : `dimsTrafic` ne le fait que soixante lignes plus
       // bas, et recopier un `null` laisserait chaque variante les refaire pour son compte.
       if(!g.boundingBox) g.computeBoundingBox();
@@ -22129,7 +22515,16 @@ function gabaritOutil(T){
       else          { const r = Math.max(0.8, Math.min(2.2, W/2));  g = {travers:false, cx:cx, cz:cz, demi:Math.max(0, Lz/2 - r), r:r}; }
     }
   } catch(e){}
-  return (T._gab = g || {travers:true, cx:0, cz:-(T.L || 2), demi:Math.max(0, (T.width || 2)/2 - 1), r:1});
+  g = g || {travers:true, cx:0, cz:-(T.L || 2), demi:Math.max(0, (T.width || 2)/2 - 1), r:1};
+  /* LES RAMPES DE L'ÉPANDEUR NE SONT PLUS UN OBSTACLE. Le joueur : « les tiges se cognent
+     partout ; fais qu'elles soient comme transparentes — pas visuellement, mais qu'elles
+     passent à travers les arbres — sinon c'est inconduisible. » Douze mètres en travers :
+     chaque arbre, chaque poteau, chaque clôture au bord d'un champ arrêtait le tracteur à
+     six mètres de sa roue. Même décision que pour la coupe de la moissonneuse : les rampes
+     passent, il ne reste que la cuve, au centre, large comme le tracteur qui la tire. Le
+     dessin et la largeur de travail (`width`) ne changent pas. */
+  if(T.key === 'engrais'){ g.r = Math.min(g.r, 1.1); g.demi = Math.min(g.demi, 0.3); }
+  return (T._gab = g);
 }
 /* LA COUPE N'EST PLUS UNE GÉLULE. Le joueur : « fais que l'outil de la moissonneuse ne
    soit pas un obstacle. » Elle avait la sienne, une barre de six mètres en travers de
@@ -22714,7 +23109,13 @@ const MACHINES = [
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3B9440)
     })},
-  /* LE ROUGE ET LE BLEU QUITTENT LA VENTE, et cette fois c'est pour de bon. Ils étaient
+  /* LE ROUGE ET LE BLEU REVIENNENT EN VENTE (novembre 2026). Le joueur : « crée-moi
+     d'autres tracteurs achetables, un rouge et un bleu, on pourra automatiser ». Ils ne
+     remplacent pas le lourd : ce sont des BRAS DE PLUS pour le plan de travail — un
+     tracteur par chantier —, et chaque bras au travail en automatique touche un salaire
+     (voir « LE SALAIRE DE L'AUTOMATE », chapitre 29 bis). Le rouge ouvre au palier 3,
+     le bleu au palier 8. Ce qui suit est l'histoire de leur retrait, gardée pour mémoire.
+     LE ROUGE ET LE BLEU QUITTENT LA VENTE, et cette fois c'est pour de bon. Ils étaient
      revenus au nom d'un ATTELAGE DE PLUS — la charrue sur l'un, le semoir sur l'autre,
      et l'on cesse l'aller-retour au parc à outils. Le combiné 3-en-1 répond mieux à la
      même question : il n'y a plus trois attelages à garder debout, il n'y en a qu'un, et
@@ -22725,16 +23126,16 @@ const MACHINES = [
      cours sur la mauvaise machine, et une ferme qui a déjà payé son tracteur rouge le
      perdrait. `retire` ne ferme QUE la concession — un rouge déjà acheté reste au parc,
      tire ses outils, s'améliore et se sauvegarde exactement comme avant. */
-  {key:'t2', nom:'Tracteur', robe:'rouge', teinte:0xD44435, verrou:true, retire:true, prix:4500,
+  {key:'t2', nom:'Tracteur', robe:'rouge', teinte:0xD44435, verrou:true, prix:2500,
    timbre:'tracteur', ton:0.94, plage:[0.56, 1.02], v:new Vehicle({
-      x:placeCentre(1), z:47, cap:Math.PI, vmax:13, accel:10, turn:2.0, grip:5.6, trackW:1.35,
+      x:placeCentre(1), z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
       susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0xD44435)
     })},
-  {key:'t3', nom:'Tracteur', robe:'bleu', teinte:0x2F6FB5, verrou:true, retire:true, prix:18000,
+  {key:'t3', nom:'Tracteur', robe:'bleu', teinte:0x2F6FB5, verrou:true, prix:2500,
    timbre:'tracteur', ton:0.88, plage:[0.56, 1.02], v:new Vehicle({
-      x:placeCentre(2), z:47, cap:Math.PI, vmax:14, accel:10, turn:2.0, grip:5.4, trackW:1.35,
-      susp:{k:26, d:4.4, roll:0.058, pitch:0.032, rough:1.15},
+      x:placeCentre(2), z:47, cap:Math.PI, vmax:12, accel:9, turn:1.9, grip:5.2, trackW:1.35,
+      susp:{k:30, d:5.2, roll:0.045, pitch:0.028, rough:1.0},
       build:()=>buildTracteur(0x3574C6)
     })},
   /* LE PICK-UP EST DONNÉ. Sans lui on ne peut RIEN sortir de la ferme : la benne se
@@ -22829,9 +23230,15 @@ const MACHINES = [
      six mètres d'outil chargé de graine et d'engrais sans patiner. Le vert reste le
      tracteur agile ; le lourd est celui qui traîne.
      EN FIN DE TABLE, et c'est impératif : la sauvegarde sérialise MACHINES par position. */
+  /* LE VERT, LE ROUGE ET LE BLEU SONT LE MÊME TRACTEUR (novembre 2026). Le joueur : « juste
+     les mêmes. Seul le jaune XL est plus costaud et va plus vite ». Même modèle, mêmes
+     chiffres, même prix pour le rouge et le bleu ; seule la robe change. LE LOURD passe
+     donc DEVANT : 14 de pointe contre 12, et la même échelle d'améliorations que les
+     autres — il était à 11, plus lent que tout le monde, ce qui en faisait un tracteur
+     qu'on n'achetait que pour le combiné. */
   {key:'t4', nom:'Tracteur', robe:'lourd', teinte:0xF0B32B, verrou:true, prix:6000,
    timbre:'lourd', ton:1.0, plage:[0.68, 1.0], v:new Vehicle({
-      x:placeCentre(3), z:47, cap:Math.PI, vmax:11, accel:8, turn:1.55, grip:6.4, trackW:1.78,
+      x:placeCentre(3), z:47, cap:Math.PI, vmax:14, accel:10, turn:1.55, grip:6.4, trackW:1.78,
       susp:{k:24, d:4.6, roll:0.050, pitch:0.030, rough:1.10},
       chape:3.8, build:buildTracteurLourd
     })},
@@ -22922,6 +23329,19 @@ const MACHINES = [
    ne s'ajoute QUE là où le doute existe — le nom reste « Tracteur » au bandeau, dans
    la liste du parc et sur la carte, où la couleur du modèle est sous les yeux. */
 const nomEngin = (m)=> m.robe ? m.nom + ' ' + m.robe : m.nom;
+/* LE NOM QU'ON LIT DANS LA LISTE DES VÉHICULES, PARTOUT. La liste écrivait « Moissonneuse »,
+   le bandeau de conduite « TRACTEUR » suivi du nom du modèle — qui est déjà « Tracteur » :
+   on lisait « TRACTEUR TRACTEUR – SANS OUTIL ». Une seule fonction, et la phrase du
+   tutoriel qui dit quel véhicule prendre écrit le même mot que la ligne qui bat. */
+const nomVehicule = (m)=> m.key === 't4' ? 'Tracteur puissant' : m.key === 'moisson' ? 'Moissonneuse'
+  : m.key === 'semi' ? 'Semi-remorque' : nomEngin(m);
+/* ET LES OUTILS ONT UN GENRE. « CHARRUE ATTELÉ », « DÉTELER CHARRUE D'ABORD » : la charrue,
+   la benne et la citerne sont féminines, et une phrase sans article se lit comme un
+   télégramme. */
+const OUTIL_FEM = new Set(['labour', 'benne', 'citerne']);
+const leOutil = (T)=>{ const n = T.nom.toLowerCase();
+  return (/^[aeiouéèêh]/.test(n) ? 'l\u2019' : OUTIL_FEM.has(T.key) ? 'la ' : 'le ') + n; };
+const accordOutil = (T, mot)=> mot + (OUTIL_FEM.has(T.key) ? 'E' : '');
 /* ---------- CE QUI EST ENCORE À VENDRE ----------
    `verrou` a toujours voulu dire deux choses à la fois : « pas encore acheté » et « à
    vendre ». Le tracteur rouge et le bleu séparent les deux — ils ne sont plus proposés,
@@ -23198,16 +23618,16 @@ const PALIERS = {
   t3:        {nom:'Tracteur bleu',  donne:'vitesse de travail',
               crans:[{vite:1.00}, {vite:1.12, prix:600}, {vite:1.25, prix:1800},
                      {vite:1.40, prix:4500}, {vite:1.55, prix:9000}]},
-  /* LE LOURD MONTE MOINS HAUT QUE LE VERT, et c'est cohérent avec ce qu'il est : sa
-     dernière vitesse vaut celle du vert au troisième cran. On ne paie pas pour qu'il
-     devienne agile — on paie pour qu'il traîne le combiné un peu plus vite. */
+  /* LE LOURD MONTE AUSSI HAUT QUE LES AUTRES, et il part de plus haut : c'est le plus
+     costaud et le plus rapide du parc, il le reste à tous les crans. Il coûte plus cher
+     à améliorer, parce qu'il rend davantage. */
   t4:        {nom:'Tracteur lourd', donne:'vitesse de travail',
-              crans:[{vite:1.00}, {vite:1.10, prix:900}, {vite:1.20, prix:2600},
-                     {vite:1.32, prix:6000}, {vite:1.45, prix:12000}]},
+              crans:[{vite:1.00}, {vite:1.12, prix:900}, {vite:1.25, prix:2600},
+                     {vite:1.40, prix:6000}, {vite:1.55, prix:12000}]},
   moisson:   {nom:'Moissonneuse', donne:'vitesse, trémie et largeur de coupe',
-              crans:[{vite:1.00, tremie:150, coupe:1.00},
-                     {vite:1.12, tremie:250, coupe:1.20, prix:1500},
-                     {vite:1.25, tremie:450, coupe:1.50, prix:4500},
+              crans:[{vite:1.00, tremie:200, coupe:1.00},
+                     {vite:1.12, tremie:320, coupe:1.20, prix:1500},
+                     {vite:1.25, tremie:500, coupe:1.50, prix:4500},
                      {vite:1.40, tremie:800, coupe:1.80, prix:10000}]},
   enjambeuse:{nom:'Enjambeuse',   donne:'vitesse et capacité',
               crans:[{vite:1.00, caisse:120},
@@ -23323,7 +23743,8 @@ const SILO_UP = {nom:'Silo', det:'Ce que la tour tient de céréales',
                  paliers:[1, 1.5, 2.1, 2.9], prix:[0, 1200, 4000, 11000]};
 const siloFacteur = ()=>
   SILO_UP.paliers[Math.max(0, Math.min(SILO_UP.paliers.length - 1, (SILO.cran || 1) - 1))];
-const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*siloFacteur());
+// × RENDEMENT : le silo suit ce que la terre rend, sans quoi deux moissons le bouchent.
+const siloMax = ()=> Math.round((160 + terreCultivable()*0.30)*RENDEMENT*siloFacteur());
 /* DEUX PRÉDICATS NOMMÉS, PARCE QUE LA MÊME QUESTION ÉTAIT POSÉE EN TROIS ENDROITS.
    « Le silo est-il plein ? » s'écrivait `siloTotal() < siloMax()` ici, `siloTotal() <
    siloMax() - 0.01` là, et la marge d'un centième n'était pas la même partout. L'entrepôt
@@ -23846,6 +24267,13 @@ const ONGLETS = [
   {id:'budget',   nom:'Budget'}
 ];
 const eur = (v)=> Math.round(v).toLocaleString('fr-FR') + ' €';
+/* LA CAISSE S'ÉCRIT PARTOUT DE LA MÊME FAÇON. Le haut de l'écran tronquait — 209 € —
+   et les fenêtres arrondissaient — 210 € — pour les mêmes 209,98 €. On tronque partout,
+   pour ne jamais afficher un euro qu'on n'a pas, avec un centime de marge pour que
+   209,999… reste 210. */
+const caisseTxt = ()=> Math.floor(money + 0.01).toLocaleString('fr-FR') + ' €';
+// La marge d'une quantité livrée : deux millièmes de la commande, au moins un centième.
+const tolQte = (need)=> Math.max(0.01, need*0.002);
 /* Les intrants se comptent en pièces, pas en billets : arrondi à l'euro, un sac de blé
    à 4,50 € s'affichait « 5 € » et l'on ne voyait plus lequel des cinq sacs était le moins
    cher — ils tombaient tous sur cinq. En dessous de dix euros on garde les centimes. */
@@ -23943,6 +24371,7 @@ function ouvrirFenetre(id, vue){
   relacherCommandes();
   fermerPanneau();
   fenActive = id;
+  if(id === 'prix') CAMPAGNE.vuPrix = true;       // le bouton cesse de battre : voir `prixAppel`
   if(vue) fenVue[id] = vue;
   fen.style.display = 'block';
   paused = true;
@@ -23968,7 +24397,7 @@ function rendreFenetre(){
      bandeau retombe à la hauteur de son titre, et la liste récupère ce qu'il prenait. */
   document.getElementById('fenface').style.display = F.accroche ? 'none' : '';
   poserVisage(document.getElementById('fenface'), F.accroche ? null : F.visage, 'neutre');
-  fenargent.textContent = eur(money);
+  fenargent.textContent = caisseTxt();
   const vues = F.vues || null;
   fenonglets.innerHTML = '';
   fenonglets.style.display = vues ? 'flex' : 'none';
@@ -24291,8 +24720,8 @@ function ongletOutils(){
              (PRODUITS[k] ? ' ' + dNom(PRODUITS[k].nom.toLowerCase()) : '')).join(', ')
          : ' · cuve vide (' + kg(T.cuveMax) + ' par nature)');
     const det = (T.cargo ? 'Benne ' + kg(T.capacite) : 'Largeur ' + dec(T.width, 1) + ' m')
-      + cuve + ' · niveau ' + T.level + (porteur ? ' · attelé au ' + porteur.nom : ' · au sol');
-    article(0xF0C24A, T.nom, det, porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
+      + cuve + ' · niveau ' + T.level + (porteur ? ' · ' + accordOutil(T, 'attelé').replace(/E$/, 'e') + ' au ' + porteur.nom : ' · au sol');
+    article(0xF0C24A, T.nom, det, porteur ? accordOutil(T, 'Attelé').replace(/E$/, 'e') : 'Libre', 'no', null, null, T.key);
   }
   const aPrendre = TOOLS.filter((T)=> T.verrou);
   if(aPrendre.length){
@@ -24451,8 +24880,8 @@ function vueAchatOutils(){
     if(T.verrou) continue;
     const porteur = T.attached ? MACHINES.find((m)=> m.v === T.attached) : null;
     article(0xF0C24A, T.nom, detailOutil(T) + ' · niveau ' + T.level +
-      (porteur ? ' · attelé au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
-      porteur ? 'Attelé' : 'Libre', 'no', null, null, T.key);
+      (porteur ? ' · ' + accordOutil(T, 'attelé').replace(/E$/, 'e') + ' au ' + nomEngin(porteur).toLowerCase() : ' · au sol'),
+      porteur ? accordOutil(T, 'Attelé').replace(/E$/, 'e') : 'Libre', 'no', null, null, T.key);
   }
 }
 /* AMÉLIORER : TOUT CE QU'ON POSSÈDE, pas seulement l'engin où l'on est assis. Le
@@ -25095,12 +25524,15 @@ function ouvrirParc(){
     const A = enginTuto();
     l.className = 'pe' + (i === cur ? ' on' : '') + (A && A.key === m.key ? ' appel' : '');
     l.dataset.cle = m.key;
-    const nom = m.key === 't4' ? 'Tracteur puissant' : m.key === 'moisson' ? 'Moissonneuse'
-      : m.key === 'semi' ? 'Semi-remorque' : nomEngin(m);
+    const nom = nomVehicule(m);
     l.setAttribute('role','button');l.tabIndex=0;
     l.setAttribute('aria-label',nom + ' · ' + etat + ' · ' + det);
     l.setAttribute('aria-current',i===cur?'true':'false');
-    l.innerHTML = '<img class="engin-vign" src="pictos/engins/' + m.key + '.png" alt="" width="160" height="112">'
+    /* LA MÊME IMAGE QU'AU GARAGE. Le joueur : « les visuels ne sont pas ceux qu'on voit
+       quand on veut les acheter ou les améliorer — utilise ceux des améliorations ». Un
+       engin n'a qu'un portrait : la planche de la concession. L'ancien picto ne sert
+       plus que de secours, pour un engin à venir qui n'aurait pas encore sa planche. */
+    l.innerHTML = '<img class="engin-vign" src="' + (vignetteDe(m.key) || 'pictos/engins/' + m.key + '.png') + '" alt="" width="160" height="112">'
       + '<div class="pn">' + nom + '<div class="pd"><span class="etat">' + etat + '</span>' + det + '</div></div>';
     l.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setMachine(i);fermerParc();}});
     auToucher(l, ()=>{ setMachine(i); fermerParc(); });
@@ -25188,7 +25620,7 @@ function machineLabel(i){
        + ' – Vendange et olives · ' + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
   if(m.v.cargo) return m.nom.toUpperCase() + etoiles(m.v.level) + ' – Transporte '
        + Math.round(m.v.cargo.load) + ' / ' + m.v.cargo.capacite + ' kg';
-  return 'TRACTEUR ' + m.nom.toUpperCase() + etoiles(m.v.level) + ' – '
+  return nomVehicule(m).toUpperCase() + etoiles(m.v.level) + ' – '
        + (T ? T.nom + etoiles(T.level) + ' : ' + T.aide : 'sans outil');
 }
 
@@ -25807,6 +26239,7 @@ function ouvrirPlan(){
   // La carte se rouvre toujours au monde entier : reprendre le cadrage de la fois d'avant
   // ferait s'ouvrir un écran sur un coin de champ sans qu'on sache où l'on est.
   planZoom = 1; planCx = null; planCz = null; planDoigts.clear(); planBouge = false;
+  planZoomTuto = tutoPlan();
   document.getElementById('plantitre').textContent = 'Chantiers';
   planEl.style.display = 'block';
   paused = true;
@@ -26009,7 +26442,9 @@ function poserCible(){
   const p = PARCELS[planCible];
   const x0 = planOx + (p.x - p.w/2 - X0)*planEch, y0 = planOy + (p.z - p.h/2 - Z0)*planEch;
   c.style.left = (x0 - 4) + 'px'; c.style.top = (y0 - 4) + 'px';
-  c.style.width = (p.w*planEch + 2) + 'px'; c.style.height = (p.h*planEch + 2) + 'px';
+  // Boîte de bordure : les huit pixels sont les quatre de marge de chaque côté, cadre
+  // compris. À +2, le cadre glissait de quatre pixels vers le coin haut-gauche.
+  c.style.width = (p.w*planEch + 8) + 'px'; c.style.height = (p.h*planEch + 8) + 'px';
   c.style.display = 'block';
 }
 function guiderPlan(){
@@ -26043,6 +26478,12 @@ let planEch = 1, planOx = 0, planOy = 0;
    qui s'en déduisent. Rien d'autre à retoucher. */
 let planZoom = 1, planCx = null, planCz = null;
 const PLAN_ZOOM_MAX = 6;
+/* AU TUTORIEL, LA CARTE S'OUVRE SUR LA PARCELLE. Au monde entier, la parcelle à toucher
+   faisait huit pixels de côté dans un cadre de quatre-vingt-dix de haut : la consigne
+   « touche une parcelle verte » demandait de viser un timbre-poste. La première fois que
+   la carte s'ouvre sur la parcelle à désigner, elle s'en rapproche jusqu'à ce qu'elle
+   occupe les deux tiers de la hauteur — une fois, et le pincement reprend la main. */
+let planZoomTuto = false;
 // Le cadrage ne sort jamais de la carte : à zoom 1 il est exactement centré, et plus on
 // grossit, plus le centre peut s'écarter — d'exactement ce que le cadre laisse voir.
 function planCadrer(L, H, base){
@@ -26070,6 +26511,11 @@ function dessinerCarte(){
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   // même échelle sur les deux axes : la carte du monde est carrée
   const base = Math.min(L/WX, H/WZ);
+  if(planZoomTuto && planCible >= 0){
+    const p = PARCELS[planCible];
+    planZoom = Math.max(1, Math.min(PLAN_ZOOM_MAX, 0.66*H/(p.h*base), 0.5*L/(p.w*base)));
+    planCx = p.x; planCz = p.z; planZoomTuto = false;
+  }
   planCadrer(L, H, base);
   planEch = base*planZoom;
   planOx = L/2 - (planCx - X0)*planEch;
@@ -26347,6 +26793,7 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
     ? (!!chProduit && !!chDest[chProduit])
     : (!!patureDe(ref) && Object.keys(chDest).length > 0);
   if(!pret) return;
+  const enTuto = tutoPlan();
   for(const i of lot)
     poserChantier(i, {quoi:chQuoi, continu:chContinu, crop:chCrop,
                       engrais:chEngrais, produit:chProduit, nourrir:chNourrir,
@@ -26362,6 +26809,12 @@ document.getElementById('planlancer').addEventListener('pointerdown', ()=>{
      second : on relâche le lot, la liste des chantiers en cours revient, et la parcelle
      suivante est à un doigt. */
   chLot = []; planTaches = []; majPlan();
+  /* SAUF AU TUTORIEL. Le plan restait ouvert, la fenêtre de l'étape suivante s'ouvrait
+     par-dessus, et une fois celle-ci lue rien ne disait qu'il fallait encore fermer la
+     carte avec la petite croix — le bouton des véhicules, que l'étape désigne, était
+     caché dessous. Le joueur qui découvre n'a qu'un chantier à lancer : on le lui
+     referme. */
+  if(enTuto) fermerPlan();
 });
 function arreterMission(M){
   M.v.mission = null; M.v.auto = false; M.v.plan = null; M.v.sensVoulu = null;
@@ -26383,10 +26836,17 @@ for(const b of document.querySelectorAll('#regie .rgb'))
    qu'aucun ne peut désigner autre chose que les trois autres. Le bouton s'éteint dès
    que la fenêtre est ouverte : on y est, c'est à l'onglet de prendre le relais. */
 const regieBtns = Array.from(document.querySelectorAll('#regie .rgb'));
+/* ET LES PRIX BATTENT UNE FOIS, APRÈS LA PREMIÈRE VENTE. Chaque commerce qu'on livre
+   pour la première fois dit ce qu'il achète, et renvoie au bouton des prix pour savoir
+   combien : rien ne le désignait, et c'est une étiquette sans mot parmi trois icônes.
+   Il bat donc tant qu'on ne l'a jamais ouvert — et seulement quand rien d'autre
+   n'appelle, pour qu'une seule chose batte à la fois. */
+const prixAppel = ()=> !CAMPAGNE.vuPrix && !tutoActif() && (CAMPAGNE.mission > 0 || STAT.ventes > 0.01);
 function refreshRegie(){
   const A = appelMenu();
   for(const b of regieBtns)
-    b.classList.toggle('appel', !!(A && A.fen === b.dataset.p && fenActive !== A.fen));
+    b.classList.toggle('appel', !!(A ? (A.fen === b.dataset.p && fenActive !== A.fen)
+                                     : (b.dataset.p === 'prix' && fenActive !== 'prix' && prixAppel())));
 }
 document.getElementById('fenfermer').addEventListener('pointerdown', fermerFenetre);
 document.getElementById('fenfond').addEventListener('pointerdown', fermerFenetre);
@@ -26450,7 +26910,7 @@ function refreshVehButton(){
   const A = appelMenu();
   vehEl.classList.toggle('appel', !!(A && A.fen === 'achat' && fenActive !== 'achat' && reste));
   vehEl.textContent = n ? 'ACHETER  ·  ' + n + ' ARTICLE' + (n > 1 ? 'S' : '')
-                        : (reste ? 'RIEN À VENDRE À CE PALIER'
+                        : (reste ? 'VOIR LE CATALOGUE'
                                  : (chantier ? 'TOUS LES BATEAUX SONT AU PORT'
                                              : 'TOUT LE MATÉRIEL EST À LA FERME'));
 }
@@ -26507,6 +26967,24 @@ const buyEl = document.getElementById('buy');
    DEUX PARCELLES NE PEUVENT PAS SE DISPUTER LE POINT — elles ne se recouvrent pas — mais
    la boucle garde une comparaison : c'est elle qui choisit la plus INTÉRIEURE si jamais
    deux friches se touchaient au bord. */
+/* LA TERRE QUE LE TUTORIEL CONSEILLE : LA MOINS CHÈRE, PAS LA PREMIÈRE DU TABLEAU.
+   Le joueur : « dans le tutoriel, lorsqu'on débloque le maïs, on nous demande d'aller
+   débloquer une parcelle qui est très chère, c'est incohérent : il faudrait que la
+   deuxième parcelle débloquée soit la moins chère. »
+   IL AVAIT RAISON, ET C'ÉTAIT UN `find`. La mission demandait « la première parcelle non
+   possédée », c'est-à-dire PARCELS[0] — le coin nord-ouest, à 27 000 € —, alors que celle
+   d'à côté, à l'ouest du champ de départ, en coûte 1 000. Le cercle jaune de l'achat,
+   lui, visait la plus PROCHE de l'engin : une troisième règle, encore différente.
+   UNE SEULE RÈGLE MAINTENANT, pour les trois appels : la friche à vendre la moins chère.
+   Les enclos ne s'achètent pas : on les écarte, comme tout ce qui n'a pas de panneau. */
+function parcelleConseillee(){
+  let best = null;
+  for(const p of PARCELS){
+    if(p.owned || p.pature || !p.signPos || !(p.price > 0)) continue;
+    if(!best || p.price < best.price) best = p;
+  }
+  return best;
+}
 function parcelForSale(v){
   let best = null, bd = 0;
   for(const p of PARCELS){
@@ -26567,11 +27045,16 @@ hitchEl.addEventListener('pointerdown', ()=>{
   }
   const T = toolOf(m);
   if(T){
+    /* LE JOUEUR DÉTELLE OÙ IL VEUT. Une version a réservé le geste au parking de la
+       ferme, comme l'automate ; le joueur l'a refusée — « pour dételer à la main, reviens
+       en arrière ». L'outil reste donc là où on le pose. C'est l'automate seul qui range
+       à la case (voir `rangerOutil`), et une partie rechargée retrouve ses outils libres
+       dans leur case. */
     detachTool(m.v);
-    showHint(T.nom.toUpperCase() + ' DÉTELÉ');
+    showHint(T.nom.toUpperCase() + ' ' + accordOutil(T, 'DÉTELÉ'));
   } else {
     const F = nearestFreeTool(m.v);
-    if(F){ attachTool(m.v, F); showHint(F.nom.toUpperCase() + ' ATTELÉ'); }
+    if(F){ attachTool(m.v, F); showHint(F.nom.toUpperCase() + ' ' + accordOutil(F, 'ATTELÉ')); }
     else {
       /* ET L'ON DIT POURQUOI QUAND L'OUTIL EST LÀ MAIS PAS POUR NOUS. « Aucun outil à
          portée », le nez sur le combiné, se lit comme une panne du bouton : le joueur
@@ -26606,7 +27089,11 @@ function showHint(t){
    porte, et le relire coûte moins cher que d'inventer une migration pour un nombre
    dont plus personne ne se sert. */
 let etape = 0;
-document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; showHint(paused ? 'PAUSE' : 'REPRISE'); });
+/* LA PAUSE SE VOIT. Elle ne laissait qu'un mot au bas de l'écran, effacé en deux secondes :
+   passé ce délai, rien ne distinguait un jeu en pause d'un jeu figé. Un voile et un mot
+   la disent tant qu'elle dure, et toucher le voile la lève (voir `plaisirPause`). */
+let pauseMain = false;
+document.getElementById('pause').addEventListener('pointerdown', ()=>{ paused = !paused; pauseMain = paused; if(!paused) last = performance.now(); showHint(paused ? 'PAUSE' : 'REPRISE'); });
 
 /* livraison au silo */
 
@@ -26632,14 +27119,17 @@ function updateCargo(dt){
          que chaque image ne résorbait plus que 11 % du reste : une fin de transfert de
          cinq kilos immobilisait l'engin près d'une seconde à écouler des grammes. */
       const DEBIT_MAX = 140;
-      const dtA = (choixLimite !== null && m === MACHINES[cur])
-                  ? Math.min(dt, choixLimite/DEBIT_MAX) : dt;
+      const lim = choixLimite !== null && m === MACHINES[cur];
+      const dtA = lim ? Math.min(dt, choixLimite/(choixDebit || DEBIT_MAX)) : dt;
       executer(m, A, dtA);
-      if(choixLimite !== null && m === MACHINES[cur]){
-        choixLimite -= Math.abs(chargePortee(m) - avant);
+      if(lim){
+        const bouge = Math.abs(chargePortee(m) - avant);
+        if(dtA > 1e-6 && bouge > 1e-6) choixDebit = Math.max(choixDebit, bouge/dtA);
+        choixLimite -= bouge;
         if(choixLimite <= 0.01){
-          choixLimite = null; choixEnCours = null;
-          showHint('OBJECTIF ATTEINT');
+          choixLimite = null; choixEnCours = null; choixDebit = 0;
+          // « Objectif atteint » passait au CHARGEMENT, la livraison encore à faire.
+          showHint('TRANSFERT TERMINÉ');
         }
       }
     }
@@ -27640,7 +28130,13 @@ const TUTO = [
      le pick-up, il ne faut pas forcément une indication comme quoi on va au village ; on
      prend le pick-up pour aller explorer les environs. » La marche se solde dès qu'on est
      dedans ; les deux secondes du téléphone ne courent plus ici mais au croisement. */
-  {cle:'pickup', ou:'parc', engin:'pickup', titre:'REPRENDRE LE PICK-UP', humeur:'serein',
+  /* PAS DE CERCLE : ON CHANGE DE VÉHICULE PAR LE BOUTON, OÙ QU'IL SOIT. La marche
+     visait la place de départ du pick-up — `v.parc` —, et le pick-up n'y est jamais à ce
+     moment-là : il est resté devant la maison, où l'accueil l'a garé. La flèche menait le
+     joueur à une place vide, quarante-six mètres plus loin, pour un geste qui se fait
+     d'un doigt depuis n'importe où. La marche n'a plus de lieu ; le bouton des véhicules
+     bat (`enginTuto`), puis la ligne du pick-up, et la phrase du bas le dit. */
+  {cle:'pickup', ou:null, engin:'pickup', titre:'REPRENDRE LE PICK-UP', humeur:'serein',
    txt:'REPRENDRE LE PICK-UP – Le grain est à l’abri, la machine est garée. Avant d’aller '
      + 'plus loin, j’irais bien voir à quoi ressemblent les environs. Le pick-up fera '
      + 'l’affaire.',
@@ -27702,6 +28198,77 @@ const TUTO = [
 // La marche à partir de laquelle le travail de la terre est appris — voir le commentaire
 // au-dessus de la table, et `combinePret` qui la lit.
 const TUTO_TERRE = TUTO.findIndex((E)=> E.cle === 'recolte');
+/* ---------- L'OUVERTURE COURTE : ON COMMENCE PAR MOISSONNER ----------
+   Mesuré en jouant l'ouverture longue : seize fenêtres et sept minutes vingt avant le
+   premier euro, dont deux minutes vingt-cinq à regarder pousser le blé. Le joueur :
+   « fais-les tous. Pas trop de fenêtres et pas trop de texte. »
+   L'oncle laisse donc un champ MÛR (`murirDepart`). On moissonne, on vide, on range, on
+   prend le pick-up, le téléphone sonne deux secondes après — et la première vente tombe
+   avant la troisième minute. Labourer, semer et automatiser s'apprennent ENSUITE, en
+   préambule de la deuxième mission, pendant que le deuxième blé pousse.
+   UNE SEULE FENÊTRE avant la mission : la première. Les autres marches sont `discret` —
+   un bandeau, la ligne d'objectif, le cercle et la flèche, qui suffisaient déjà.
+   LA TABLE LONGUE RESTE, intacte : c'est celle du mode libre, et celle des campagnes
+   commencées avant (`CAMPAGNE.long`). Les marches courtes reprennent les siennes par
+   leur clé — mêmes lieux, mêmes engins, mêmes conditions — et n'en changent que le texte. */
+const tutoDe = (cle, plus)=> Object.assign({}, TUTO.find((E)=> E.cle === cle), plus || {});
+const TUTO_COURT = [
+  tutoDe('recolte', {humeur:'perplexe',
+    txt:'PREMIÈRE RÉCOLTE – Mon oncle m’a laissé sa ferme… et un champ de blé mûr. Autant commencer par là.'}),
+  tutoDe('silo',    {discret:true, court:'SUIS LA FLÈCHE JAUNE'}),
+  tutoDe('parking', {discret:true, court:'CERCLE JAUNE AU PARC'}),
+  /* LE TÉLÉPHONE SONNE DEUX SECONDES APRÈS LA MONTÉE DANS LE PICK-UP : c'est la première
+     consigne que le joueur avait donnée pour cet appel, avant de l'envoyer au croisement.
+     Le croisement n'est plus un passage obligé — il se découvre en y passant, d'un
+     bandeau (voir `plaisirUpdate`). */
+  tutoDe('pickup',  {discret:true, court:'TOUCHE LE BOUTON QUI CLIGNOTE', titre:'PRENDRE LE PICK-UP',
+    fait:()=> !!MACHINES[cur] && MACHINES[cur].key === 'pickup' && appelT <= 0}),
+  tutoDe('appel',   {discret:true, court:'DÉCROCHE DEVANT LA MAISON'})
+];
+/* ET LA TERRE S'APPREND À LA DEUXIÈME MISSION. Un préambule indique sans bloquer : les
+   80 kg de l'usine se livrent quand on veut. Pour qui a suivi l'ouverture longue, les
+   trois marches se soldent d'elles-mêmes — il les a déjà faites. */
+const dejaAppris = (cle)=>{ const f = TUTO.find((E)=> E.cle === cle).fait; return ()=> CAMPAGNE.long || f(); };
+/* ---------- LA MARCHE ENTRE LA CAMPAGNE ET L'APRÈS ----------
+   Le joueur : « ce que je veux éviter, c'est le paiement très bénéfique pendant la campagne
+   et, une fois la campagne finie, des gains trop réduits ». Relevé : les dernières missions
+   payaient de 10 000 à 30 000 € de prime, et la commande médiane d'après campagne 3 200 €
+   tout compris (400 commandes tirées au palier 20, ferme équipée) — une chute de un à
+   quatre le jour où l'on finit.
+   DEUX GESTES, UN DE CHAQUE CÔTÉ. Les primes de mission gardent leurs 3 000 premiers
+   euros et la moitié du reste (19 500 → 11 250, 30 000 → 16 500) : les premières
+   missions, celles qui financent l'installation, ne bougent pas. Et les commandes
+   visent 1,8 fois plus de valeur (`APRES_CAMPAGNE`, lu par `tirerCommande`) — mais ce
+   vœu reste plafonné par ce que la ferme sait produire, et au banc il ne déplaçait que
+   les grosses commandes. Leur PRIME vaut donc aussi 1,4 fois plus (`PRIME_COMMANDE`),
+   ce qui, lui, paie toutes les commandes, petites comprises. */
+const PRIME_PLEINE = 3000, PRIME_RESTE = 0.5, APRES_CAMPAGNE = 1.8, PRIME_COMMANDE = 1.4;
+for(const M of MISSIONS)
+  if(M.prime > PRIME_PLEINE) M.prime = Math.round((PRIME_PLEINE + (M.prime - PRIME_PLEINE)*PRIME_RESTE)/10)*10;
+MISSIONS[1].prep = [
+  tutoDe('labour', {fait:dejaAppris('labour'),
+    txt:'PRÉPARER LA TERRE – Pour le prochain blé, il faut retourner la terre. La charrue est au parc.'}),
+  tutoDe('semis',  {fait:dejaAppris('semis'),
+    txt:'SEMER DU BLÉ – La terre est prête. Le semoir est au parc.'}),
+  tutoDe('auto',   {fait:dejaAppris('auto'),
+    txt:'LANCER L’AUTOMATISATION – Je ne vais pas tout conduire moi-même. Le bouton A s’en charge.'})
+];
+/* LE CHAMP DE L'ONCLE EST MÛR. On pose chaque cellule comme `grow` la laisse à maturité. */
+function murirDepart(){
+  const p = PARCELS.find((q)=> q.owned);
+  if(!p) return;
+  const i0 = Math.max(0, Math.floor((p.x-p.w/2-X0)/CS)), i1 = Math.min(GNX-1, Math.ceil((p.x+p.w/2-X0)/CS));
+  const j0 = Math.max(0, Math.floor((p.z-p.h/2-Z0)/CS)), j1 = Math.min(GNZ-1, Math.ceil((p.z+p.h/2-Z0)/CS));
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const id = j*GNX+i;
+    if(state[id] === ST.HORS || instOf[id] < 0) continue;
+    cropCell[id] = 0; wheatBase[instOf[id]].crop = 0;
+    growth[id] = 1; fert[id] = 0; replante[id] = 0; enPousse[id] = 0;
+    state[id] = ST.MUR;
+    setInstance(instOf[id], 1, 1);
+  }
+  flushTint();
+}
 /* LE MÊME MÉCANISME SERT AUX PRÉAMBULES. Une mission peut demander qu'on aille chercher
    quelque chose AVANT de pouvoir la faire — la troisième présente l'épandeur, et le
    cahier des charges veut qu'on aille l'acheter puis le remplir. C'est la même chose
@@ -27870,8 +28437,11 @@ const LECONS = [
   {cle:'plan', court:"Programmer les parcelles dans le plan de travail.", humeur:'serein', ou:null, nom:'PLAN DE TRAVAIL', titre:'LE PLAN DE TRAVAIL',
    txt:'LE PLAN DE TRAVAIL – On n’est pas obligé de tout conduire soi-même. Depuis la '
      + 'carte, une machine peut être envoyée travailler seule sur une parcelle.',
+   // L'ouverture courte l'enseigne en préambule de la deuxième mission : la leçon attend
+   // qu'elle soit passée, sans quoi elle ouvrait sa fenêtre à la prise de la première.
    quand:()=> TOOLS.some((T)=> !T.verrou && T.from)
-              && PARCELS.some((q)=> q.owned && !q.pature)},
+              && PARCELS.some((q)=> q.owned && !q.pature)
+              && (MODE_LIBRE || CAMPAGNE.long || CAMPAGNE.mission >= 2)},
 
   {cle:'silo', court:"Agrandir le silo dans le menu Stockage.", humeur:'inquiet', ou:'silo', fen:'stockage', onglet:'agrandir',
    nom:'SILO', titre:'LE SILO SE REMPLIT',
@@ -28017,13 +28587,8 @@ function lieuLecon(L){
   }
   if(ou === 'parcelle'){
     if(L.parcelle)return {lieu:'parcelle',x:L.parcelle.x,z:L.parcelle.z};
-    const v = MACHINES[cur].v;
-    let best = null, bd = 1e9;
-    for(const q of PARCELS){
-      if(q.owned || !q.signPos) continue;
-      const d = Math.hypot(q.x - v.pos.x, q.z - v.pos.z);
-      if(d < bd){ bd = d; best = q; }
-    }
+    // La moins chère, et non plus la plus proche de l'engin : voir `parcelleConseillee`.
+    const best = parcelleConseillee();
     return best ? {lieu:'parcelle', x:best.x, z:best.z} : null;
   }
   if(ou === 'champ'){
@@ -28151,7 +28716,7 @@ function conseilProgression(){
     const embarques=MACHINES.reduce((n,m)=>n+(!m.verrou&&m.v.betailEspece===e.cle?(m.v.betail||0):0),0);
     const besoin=Math.max(0,e.n-embarques-(e.cle==='cochon'?(STAT.porcs||0):0));
     if(!P && PARCELS.filter(p=>p.owned&&!p.pature).length<2){
-      const terrain=PARCELS.filter(p=>!p.owned&&p.signPos&&p.price>0).sort((a,b)=>a.price-b.price)[0];
+      const terrain=parcelleConseillee();
       if(terrain&&peutAcheterParcelle()&&money>=terrain.price) return lecon('terre-'+e.cle,'parcelle','Achetez une seconde terre avant de créer cet enclos. Conservez une parcelle pour les céréales et la nourriture.',{obligatoire:true,court:'Acheter une terre pour l’enclos',parcelle:terrain});
       return lecon('budget-terre-'+e.cle,'Coopérative','Vendez une récolte pour financer une terre supplémentaire. Gardez votre champ cultivable pour nourrir la ferme.',{obligatoire:true,court:'Financer une seconde terre'});
     }
@@ -28205,6 +28770,8 @@ function calculerLecon(){
   return null;
 }
 function veillerLecons(dt){
+  // Le négoce n'enseigne rien : ni fenêtre, ni ligne de bandeau.
+  if(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE){ leconActive = null; return; }
   if(lectureEnCours())return;
   leconT -= dt;
   if(leconT > 0) return;
@@ -28232,7 +28799,9 @@ function veillerLecons(dt){
      tient, et mentirait le jour où l'on ajoutera un mur tardif. */
   annoncerFenetre({titre:L.titre, sous:L.txt.split(' – ').slice(1).join(' – ') || L.txt,
     etape:true, duree:5.5, face:{nom:'Moi', humeur:L.humeur || (L.mur ? 'contrarie' : 'surpris')},
-    suite:P ? 'La flèche bleue du bord mène à ' + P.lieu
+    suite:P ? 'Suis la flèche bleue au bord de l\u2019écran : '
+              + (P.lieu === 'spot' ? 'le coin de pêche' : P.lieu === 'forêt' ? 'la forêt'
+                 : (ENDROITS[P.lieu] || P.lieu))
             : 'Le bouton bat en jaune tant que ce n’est pas fait'});
 }
 // Dites CETTE SESSION-CI. Volontairement hors sauvegarde : relire une partie et revoir
@@ -28242,7 +28811,8 @@ function listeEtapes(){
   if(MODE_LIBRE) return CAMPAGNE.tuto < TUTO.length ? TUTO : null;
   const M = MISSIONS[CAMPAGNE.mission];
   if(!M) return null;
-  if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise) return TUTO;
+  if(CAMPAGNE.mission === 0 && !CAMPAGNE.prise)
+    return (CAMPAGNE.long || typeof TUTO_COURT === 'undefined') ? TUTO : TUTO_COURT;
   return (CAMPAGNE.prise && M.prep) ? M.prep : null;
 }
 function etapeTuto(){
@@ -28442,33 +29012,48 @@ function lieuTuto(E){
    dit ne pas le voir. La même fenêtre que la fin de mission le dit en grand, avec la
    phrase qui explique quoi faire — et le bandeau du bas garde la consigne tout du long,
    pour quand on l'a fermée. Le titre du texte est retiré : il est déjà au-dessus. */
-function annoncerEtape(E){
-  const txt = champEtape(E, 'txt'), ou = champEtape(E, 'ou');
-  const detail = (txt || '').split(' – ').slice(1).join(' – ');
-  // La phrase du bas dit où va le cercle, et le cercle peut être sur l'outil.
+/* LA PHRASE DU BAS DE LA FENÊTRE D'ÉTAPE : LE GESTE QUI VIENT EN PREMIER.
+   Elle disait où était le cercle, et c'était souvent le deuxième geste. La première
+   marche du jeu s'ouvre dans le pick-up, et la phrase parlait du « cercle jaune sur
+   l'outil » : le joueur roulait jusqu'à la charrue en pick-up, et rien ne s'attelait.
+   L'ordre est donc celui des gestes : changer de véhicule, dételer ce qu'on porte, puis
+   seulement aller au cercle. Chaque phrase nomme le bouton qui bat quand il y en a un. */
+function suiteEtape(E){
+  const ou = champEtape(E, 'ou');
   const L0 = lieuTuto(E);
-  /* ET SI L'ON PORTE DÉJÀ AUTRE CHOSE, LA PHRASE LE DIT. Une marche qui demande le
-     semoir arrive presque toujours charrue attelée : le geste qu'elle réclame vraiment
-     est double — dételer, puis atteler —, et la moitié qu'on oublie est la première. */
+  const change = enginTuto();
   const _porte = (E.outil && MACHINES[cur] && MACHINES[cur].key !== 'moisson')
                  ? toolOf(MACHINES[cur]) : null;
   const _veut = E.outil ? TOOLS.find((x)=> x.key === E.outil) : null;
-  const suite = (_porte && _veut && _porte !== _veut)
-    ? 'Dételer ' + _porte.nom.toLowerCase() + ' d\u2019abord, au parc de la ferme'
-    : (L0 && L0.lieu === 'outil')
-    ? 'Le cercle jaune est sur l\'outil, au parc de la ferme'
-    // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions, et il ne
-    // ressemble à aucun autre. La phrase doit dire la bonne couleur.
-    // UNE MARCHE SANS LIEU DÉSIGNE SON BOUTON : c'est lui qui bat, pas le sol.
-    : E.bouton ? 'Le bouton A clignote en jaune sur l\u2019écran de jeu'
-    : (ou === 'ferme' ? 'Le cercle VERT est devant ta maison, sur l\'herbe'
-    : (ou === 'croisement' ? 'Le cercle jaune est au croisement des chemins, en haut des parcelles'
-    : (ou === 'champ' ? 'Le cercle jaune est sur ta parcelle'
-                      : 'Suis le cercle jaune – ' + ou)));
+  if(change) return 'D\u2019abord, change de véhicule : touche le bouton qui clignote en bas, '
+                  + 'puis « ' + nomVehicule(change) + ' »';
+  /* SI L'ON PORTE DÉJÀ AUTRE CHOSE, ON LE DÉPOSE D'ABORD. Une marche qui demande le semoir
+     arrive presque toujours charrue attelée : le geste est double, et la moitié qu'on
+     oublie est la première. */
+  if(_porte && _veut && _porte !== _veut)
+    return 'Dételle d\u2019abord ' + leOutil(_porte) + ' au parc de la ferme : le bouton d\u2019attelage clignotera';
+  if(L0 && L0.lieu === 'outil')
+    return 'Le cercle jaune est sur ' + (_veut ? leOutil(_veut) : 'l\u2019outil') + ', au parc de la ferme';
+  // UNE MARCHE SANS LIEU DÉSIGNE SON BOUTON : c'est lui qui bat, pas le sol.
+  if(E.bouton === 'auto') return 'Le bouton A clignote en jaune sur l\u2019écran de jeu';
+  // CHEZ SOI LE CERCLE EST VERT, pas jaune : c'est celui des missions.
+  if(ou === 'ferme') return 'Le cercle VERT est devant ta maison, sur l\u2019herbe';
+  if(ou === 'croisement') return 'Le cercle jaune est au croisement des chemins, en haut des parcelles';
+  if(ou === 'champ') return 'Le cercle jaune est sur ta parcelle';
+  if(ou === 'parc') return 'Le cercle jaune est sur sa place, au parc de la ferme';
+  if(ou === 'silo') return 'Le cercle jaune est au silo : suis la flèche jaune';
+  return ou ? 'Suis la flèche jaune jusqu\u2019à : ' + ou : '';
+}
+function annoncerEtape(E){
+  const txt = champEtape(E, 'txt'), ou = champEtape(E, 'ou');
+  const detail = (txt || '').split(' – ').slice(1).join(' – ');
+  const suite = suiteEtape(E);
   /* ET C'EST LUI QUI DIT LA MARCHE, PAS L'INTERFACE. Une marche de tutoriel est le
      moment où il découvre le geste suivant : il le dit à voix haute, avec la tête de
      quelqu'un qui cherche. La DERNIÈRE, elle, est celle où ça a marché — il y sourit,
      et c'est le seul endroit du tutoriel où on le voit content. */
+  /* UNE MARCHE DISCRÈTE NE PREND PAS L'ÉCRAN : un bandeau, et la ligne d'objectif. */
+  if(E.discret){ showHint(champEtape(E, 'titre') + (E.court ? ' – ' + E.court : '')); return; }
   const L = listeEtapes() || [];
   const dernier = L.length && L[L.length - 1] === E;
   annoncerFenetre({titre:champEtape(E, 'titre'), sous:detail || txt || '', etape:true,
@@ -28634,7 +29219,10 @@ function objectifProduit(cle, reste, S){
     aBord += qC;
     if(!T || qC > chargeDe(T, cle)) T = C2;
   }
-  if(S && T && (aBord >= reste - 0.01 || T.load >= T.capacite - 0.01))
+  // Deux millièmes de la commande, et au moins un centième : c'est le grain qui reste
+  // dans la vis, pas une livraison qui manque. Même marge que la clôture de mission.
+  const tol = tolQte(reste);
+  if(S && T && (aBord >= reste - tol || T.load >= T.capacite - 0.01))
     return ici(S.nom, 'livrer', 'LIVRER ' + qteNomHaut(cle, Math.min(reste, aBord)),
                {x:S.dropX, z:S.dropZ});
 
@@ -28654,7 +29242,7 @@ function objectifProduit(cle, reste, S){
   const chargerEntrepot = ()=> ici('entrepot', 'charger',
     'CHARGER ' + qteNomHaut(cle, Math.min(reste, aLEntrepot)),
     {x:ENTREPOT.quai.x, z:ENTREPOT.quai.z});
-  if(auSilo + aLEntrepot + aBord >= reste - 0.01){
+  if(auSilo + aLEntrepot + aBord >= reste - tol){
     /* LE SEUIL DE 0,5 EST UN « IL Y A QUELQUE CHOSE À PRENDRE », PAS UNE DÉCISION — et il
        laissait une zone morte : trois cents grammes au silo et 29,8 kg dans la benne pour
        une commande de trente, la porte du compte s'ouvre et aucune des deux branches ne
@@ -28799,7 +29387,7 @@ function origineFerme(cle, ici, prof){
                          'AMÉNAGER UN ENCLOS – ' + E3.pluriel.toUpperCase(),
                          {x:terre.x, z:terre.z});
     if(peutAcheterParcelle()){
-      const F3 = PARCELS.find((p)=> !p.owned);
+      const F3 = parcelleConseillee();
       if(F3) return ici('champ', 'parcelle',
                         'IL FAUT UNE PARCELLE POUR LES ' + E3.pluriel.toUpperCase(),
                         {x:F3.x, z:F3.z});
@@ -28866,7 +29454,7 @@ function origineFerme(cle, ici, prof){
      vraiment. Une friche à vendre d'abord, si le palier en laisse acheter une ; sinon
      la parcelle la plus proche de la récolte, qu'il faut libérer. */
   if(peutAcheterParcelle()){
-    const F = PARCELS.find((p)=> !p.owned);
+    const F = parcelleConseillee();
     if(F) return ici('champ', 'parcelle', 'IL FAUT UNE PARCELLE POUR LE ' + nomHaut(cle),
                      {x:F.x, z:F.z});
   }
@@ -29363,11 +29951,19 @@ function teteMouton(R){
 
 // Le catalogue. Chaque espèce dit son allure, sa robe, son économie et l'aménagement
 // que réclame son enclos. Tout le reste du jeu ne lit que cette table.
+/* LA REVENTE D'UNE BÊTE NE VAUT PLUS SIX FOIS SON ACHAT (novembre 2026). Joué au banc : deux
+   vaches achetées 1 200 €, six kilos de grain, six minutes — 7 000 € à la boucherie. Une
+   étable de vingt places sortait 58 000 € toutes les six minutes quand un champ de blé en
+   donne 340 : plus personne n'avait de raison de cultiver. La boucherie paie maintenant
+   `prixBete` × 2 = l'achat plus une marge qui ressemble à ce que la bête aurait produit
+   pendant ce temps : vache 760 € (achetée 600), cochon 480 (220, plus 25 kg d'aliment),
+   brebis 250 (180), poule 44 (30). Les lignes `betail_*` de PRODUITS portent les mêmes
+   chiffres : c'est sur elles que se règlent les commandes de bêtes. */
 const ESPECES = {
   vache: {
     cle:'vache', nom:'Vache', pluriel:'Vaches', un:'une vache', des:'vaches',
     // 1,15 -> 1,32 : une vache faisait 1,90 m au garrot pour un tracteur de 4,84 de haut
-    pature:3500, prix:600, prixBete:1750, maturite:420, m2:88, echelle:1.32,
+    pature:3500, prix:600, prixBete:380, maturite:420, m2:88, echelle:1.32,
     cycle:300, rationCycle:2, batiment:'Étable',
     capacites:[2, 5, 10, 20], prixTaille:[1500, 4000, 9000],
     produit:'lait', nomProduit:'Lait', parCycle:25,
@@ -29381,7 +29977,7 @@ const ESPECES = {
   },
   poule: {
     cle:'poule', nom:'Poule', pluriel:'Poules', un:'une poule', des:'poules',
-    pature:800, prix:30, prixBete:135, maturite:160, m2:13, echelle:1.55,
+    pature:800, prix:30, prixBete:22, maturite:160, m2:13, echelle:1.55,
     /* LES ŒUFS SORTENT DEUX FOIS PLUS VITE : « les œufs sont un petit peu longs à sortir ».
        Cent cinquante secondes par cycle au lieu de trois cents, deux œufs par poule. */
     cycle:150, rationCycle:0.25, batiment:'Poulailler',
@@ -29397,7 +29993,7 @@ const ESPECES = {
   cochon: {
     cle:'cochon', nom:'Cochon', pluriel:'Cochons', un:'un cochon', des:'cochons',
     // 1,25 -> 1,45 : un cochon reste plus bas qu'une vache, mais on le voit
-    pature:2800, prix:220, prixBete:820, maturite:320, m2:30, echelle:1.45,
+    pature:2800, prix:220, prixBete:240, maturite:320, m2:30, echelle:1.45,
     cycle:300, rationCycle:5, engraissement:25, batiment:'Porcherie',
     capacites:[4, 8, 16, 30], prixTaille:[1200, 3200, 7500],
     produit:null, nomProduit:null, parCycle:0,
@@ -29447,7 +30043,7 @@ const ESPECES = {
      robe, qui valaient déjà 0 à 2. */
   mouton: {
     cle:'mouton', nom:'Mouton', pluriel:'Moutons', un:'un mouton', des:'moutons',
-    pature:3000, prix:180, prixBete:780, maturite:400, m2:42, echelle:1.2,
+    pature:3000, prix:180, prixBete:125, maturite:400, m2:42, echelle:1.2,
     cycle:300, rationCycle:1, batiment:'Bergerie',
     capacites:[4, 8, 16, 30], prixTaille:[900, 2500, 6000],
     produit:'laine', nomProduit:'Laine', parCycle:2,
@@ -30741,6 +31337,14 @@ let choixEnCours = null;
    l'exemplaire neuf — une limite posée sur l'objet retenu disparaîtrait à l'image
    suivante. */
 let choixLimite = null;
+/* LE DÉBIT MESURÉ DU TRANSFERT EN COURS. Le dernier pas se raccourcissait d'après une
+   borne fixe, 140 kg/s, trois fois le débit réel : chaque image ne résorbait donc qu'un
+   tiers du reste, et le transfert s'arrêtait sur une ASYMPTOTE — 29,98 kg pour trente
+   demandés. La mission voulait trente à un centième près : elle ne se soldait pas, et
+   l'objectif redemandait « CHARGER BLÉ 30 KG » à qui en portait 29,98. On mesure donc le
+   débit à la première image et l'on raccourcit le dernier pas d'après lui : il tombe
+   pile. Le plus fort débit vu sert de borne, si bien qu'on ne dépasse jamais. */
+let choixDebit = 0;
 // Ce que porte l'engin, tous contenants confondus : c'est la variation de ce nombre
 // qui mesure ce qu'un transfert a réellement déplacé, quel que soit son sens.
 function chargePortee(m){
@@ -30837,7 +31441,7 @@ function actionRetenue(m){
     const A = L.find((B)=> B.sens === e.sens && B.cle === e.cle && B.lieu === e.lieu
                            && !B.commande === !e.commande);
     if(!A) continue;
-    choixEnCours = A; choixLimite = e.q;
+    choixEnCours = A; choixLimite = e.q; choixDebit = 0;
     return A;
   }
   return null;
@@ -30920,7 +31524,8 @@ function executer(m, A, dt){
       solderLecon('tremie');
       livraison('silo', A.cle, q); compter(A.cle, q, true);
       fumeeGrille(A.cle);
-      if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'); }
+      if(hopper <= 0.01){ hopper = 0; showHint(nomDe(A.cle).toUpperCase() + ' AU SILO'
+        + ((typeof PLAISIR !== 'undefined' && PLAISIR.tremie >= 5) ? '  +' + kg(PLAISIR.tremie).toUpperCase() : '')); }
       return;
     }
     case 'ranger': {
@@ -31039,7 +31644,7 @@ function executer(m, A, dt){
       if(siSouvent(0.4)) puff(A.S.dropX, 2.6, A.S.dropZ, teinteDe(A.cle), 0.4, 0.3);
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
-        showHint(nomDe(A.cle).toUpperCase() + ' VENDU – ' + Math.floor(money) + ' €');
+        showHint(nomDe(A.cle).toUpperCase() + ' VENDU – ' + Math.floor(money + 0.01) + ' €');
       return;
     }
     /* ON VERSE CHEZ UNE USINE, ET ON EST PAYÉ — CE QUI N'ÉTAIT PAS LE CAS.
@@ -31065,7 +31670,7 @@ function executer(m, A, dt){
       viderType(T);
       if(chargeDe(T, A.cle) <= 0.01)
         showHint(nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()
-                 + ' – ' + Math.floor(money) + ' €');
+                 + ' – ' + Math.floor(money + 0.01) + ' €');
       return;
     }
     case 'reprendre': {
@@ -31091,7 +31696,7 @@ function executer(m, A, dt){
         puff(A.S.dropX + (Math.random()-0.5)*3, 3 + Math.random()*3, A.S.dropZ + (Math.random()-0.5)*3,
              teinteDe(A.cle), 0.4, 0.2);
       if(hopper <= 0.01){ hopper = 0;
-        showHint(vente ? A.S.nom.toUpperCase() + ' – ' + Math.floor(money) + ' €'
+        showHint(vente ? A.S.nom.toUpperCase() + ' – ' + Math.floor(money + 0.01) + ' €'
                        : nomDe(A.cle).toUpperCase() + ' LIVRÉ À ' + A.S.nom.toUpperCase()); }
       return;
     }
@@ -31355,7 +31960,7 @@ function updateBetail(dt){
   for(const m of MACHINES){
     if(m.verrou) continue;
     const v = m.v;
-    if((m.key!=='fourgon'&&!v.betailAncien) || !v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
+    if((typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE) || (m.key!=='fourgon'&&!v.betailAncien) || !v.betail || v.speed > 2.5 || !aQuai(v, BOUCHERIE) || !siteOuvert(BOUCHERIE)) continue;
     const cle='betail_'+v.betailEspece;
     if(commandesObligatoires() && resteCommande(BOUCHERIE.nom,cle)<1){v.venteT=0;continue;}
     v.venteT = (v.venteT || 0) + dt;
@@ -31571,6 +32176,12 @@ function actionService(){
     return out;
   }
   // à l'arrêt au milieu d'une parcelle à soi, encore cultivable : proposer l'aménagement
+  /* MAIS PAS À QUI EST EN TRAIN DE LA TRAVAILLER. « ÉLEVAGE – À PARTIR DE 800 € » sortait
+     à chaque arrêt sur son propre champ — charrue au crochet, trémie pleine, au premier
+     quart d'heure et avec zéro euro en caisse —, et le bouton bleu se posait sur la
+     flèche et sur l'étiquette du champ. Pendant le tutoriel il n'a rien à faire là ; après,
+     il ne sort qu'à qui vient VOIR la parcelle — sans outil et hors moissonneuse. */
+  if(tutoActif() || m.key === 'moisson' || toolOf(m)) return null;
   for(const p of PARCELS){
     if(!p.owned || p.pature) continue;
     if(Math.abs(v.pos.x-p.x) > p.w/2 || Math.abs(v.pos.z-p.z) > p.h/2) continue;
@@ -31681,6 +32292,9 @@ function rendreContrat(){
   document.getElementById('ctnon').style.display = (offre && !mission) ? 'block' : 'none';
   document.getElementById('ctoui').style.display = offre ? 'block' : 'none';
   document.getElementById('ctoui').textContent = mission ? 'Prendre la mission' : 'Accepter';
+  // Une mission de campagne est toujours ce que le jeu attend : son bouton bat, comme
+  // « Valider » dans la fenêtre de chargement. Une proposition de commerce reste sage.
+  document.getElementById('ctoui').classList.toggle('appel', !!(offre && mission));
 }
 document.getElementById('ctfond').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
 document.getElementById('ctretour').addEventListener('pointerdown', (e)=>{ e.stopPropagation(); fermerContrat(); });
@@ -31876,6 +32490,14 @@ function ouvrirActes(o){
      les lignes de menu et les boutons de la carte : on valide, et l'on va livrer. */
   go.classList.toggle('appel', !!o.appel && acteLignes.length > 0);
   acteEl.style.display = 'block';
+  /* LE DOIGT QUI OUVRE LA FENÊTRE NE RÈGLE PAS SON CURSEUR. Le bouton « Charger » de la
+     colonne et le curseur de la fenêtre occupent le même point de l'écran : la fenêtre
+     s'ouvre à l'appui, et le clic que le navigateur fabrique au relâchement tombait sur
+     le curseur — qui sautait au milieu de sa course. Vu en jouant : 56 kg affichés pour
+     une mission qui en demande 30, alors que le curseur venait d'être posé sur 30. Les
+     curseurs ne prennent donc pas le doigt pendant la première demi-seconde. */
+  acteEl.classList.add('neuf');
+  setTimeout(()=> acteEl.classList.remove('neuf'), 500);
 }
 /* LA VALIDATION POSE LA FILE, ET RIEN D'AUTRE. Aucun kilo ne bouge ici : c'est
    `executer` qui transfère, à son rythme, sous les yeux du joueur — et c'est ce qui fait
@@ -32003,7 +32625,7 @@ function veillerLivraison(dt){
     prix:'+ ' + eur(gagne),
     plus:[combien, auKilo].filter(Boolean).join('&nbsp;×&nbsp;'),
     face:{nom:B.lieu, humeur:'bravo'},
-    suite:'La caisse est à ' + eur(money)});
+    suite:'La caisse est à ' + caisseTxt()});
 }
 function refreshChoix(){
   const m = MACHINES[cur];
@@ -32153,7 +32775,15 @@ function refreshChoix(){
        d'elle-même. On garde la ligne, qui dit ce qui se passe et combien il reste à
        faire, et l'on retire le bouton. */
     titreTxt = 'En cours';
-    lignes.push({txt:retenue.txt + (choixLimite !== null ? '  ·  ' + qteHaut(retenue.cle, choixLimite) : ''),
+    /* ET ELLE NE MÉLANGE PLUS DEUX QUANTITÉS. Le libellé de l'action porte ce qu'il y a
+       au tas — « CHARGER BLÉ 107 KG » —, et la ligne y accolait ce qu'il restait à
+       charger : « CHARGER BLÉ 107 KG · 22 KG », deux nombres sans dire lequel était quoi.
+       Pendant un transfert dosé, elle dit le geste, la marchandise et le reste. */
+    const enCours = (choixLimite !== null && retenue.cle && PRODUITS[retenue.cle])
+      ? (MOT_VERBE[verbeActe(retenue)] || 'Transfert').toUpperCase() + ' ' + nomHaut(retenue.cle)
+        + '  ·  ENCORE ' + qteHaut(retenue.cle, choixLimite)
+      : retenue.txt;
+    lignes.push({txt:enCours,
                  cls:'ch on', f:null});
   } else {
     titreTxt = 'Que faire ici ?';
@@ -32221,7 +32851,7 @@ function refreshChoix(){
       const lieu = L2.length ? nomLieu(L2[0])
                  : (patIci ? (ESPECES[patIci.P.espece] || ESPECES.vache).pluriel : '');
       lignes.push({txt:MOT_VERBE[vb].toUpperCase() + (n > 1 ? '  ·  ' + n : ''),
-                   cls:'ch' + (jaune ? ' jaune' : ''),
+                   cls:'ch' + (jaune ? ' jaune appel' : ''),
                    f:()=> ouvrirActes({
                      sur:lieu, titre:MOT_VERBE[vb],
                      lignes:lignesDe(L2), gestes:gestes,
@@ -32252,7 +32882,7 @@ function refreshChoix(){
        première mission ne se prend plus chez le client, à la place de la vente, mais
        chez soi, une fois le tour du fermier terminé. Un seul libellé suffit donc, et il
        dit ce qu'il fait. */
-    lignes.unshift({txt:'RÉPONDRE AU TÉLÉPHONE', cls:'ch vert',
+    lignes.unshift({txt:'RÉPONDRE AU TÉLÉPHONE', cls:'ch vert appel',
                     f:()=> ouvrirContrat(missionEnContrat(misIci), null, true, misIci)});
   }
   /* ET LE CONTRAT D'UN COMMERCE EST BLEU, comme sa pastille. Il était vert, du temps où
@@ -33013,10 +33643,42 @@ function peindreJauge(J, nom, sous, k, coul){
 // Une étiquette ne se montre que si elle a quelque chose à dire ET qu'on est assez près :
 // vingt étiquettes éparpillées sur la vallée, ce serait un tableau de bord, pas un paysage.
 const JAUGE_PORTEE = 62;
+/* ET UNE ÉTIQUETTE S'EFFACE SOUS LES COMMANDES. Elles sont peintes dans la scène, donc
+   SOUS l'interface : « Cuve à graines » passait derrière le bouton A, « Entrepôt » sous la
+   rangée des engins, « Atelier » et « Cuve à gazole » sous la pédale. Rien n'était
+   masqué pour le doigt, mais l'œil lisait deux couches mêlées à l'endroit précis où il
+   cherche ses boutons. Une étiquette dont la plaque mord sur une commande s'efface donc
+   en fondu, et revient dès qu'elle en sort.
+   LES BOÎTES SONT RELUES DEUX FOIS PAR SECONDE, PAS À CHAQUE IMAGE : une lecture de boîte
+   force la mise en page, et les commandes ne bougent qu'au changement d'orientation. */
+const _vJauge = new THREE.Vector3();
+let hudZones = [], hudZonesT = 0;
+function zonesHud(){
+  const t = performance.now();
+  if(t - hudZonesT < 500) return hudZones;
+  hudZonesT = t; hudZones = [];
+  // … et du bandeau du haut : la caisse, la barre de niveau et son titre, la mission, les deux boutons.
+  for(const id of ['engbar', 'regie', 'stick', 'thr', 'boutons', 'fuel', 'choix', 'service', 'veh', 'atelier',
+                   'stats', 'goalwrap', 'goaltxt', 'ctr', 'menuBtn', 'pause']){
+    const e = document.getElementById(id);
+    if(!e || !e.offsetParent) continue;
+    const r = e.getBoundingClientRect();
+    if(r.width > 2 && r.height > 2) hudZones.push(r);
+  }
+  return hudZones;
+}
+function jaugeSousHud(x, y, z){
+  _vJauge.set(x, y, z).project(camera);
+  if(_vJauge.z > 1) return false;
+  const sx = (_vJauge.x*0.5 + 0.5)*innerWidth, sy = (-_vJauge.y*0.5 + 0.5)*innerHeight;
+  // La plaque fait à peu près cent vingt pixels sur quarante à cette distance de caméra.
+  const L = 62, Hh = 22;
+  return zonesHud().some((r)=> sx + L > r.left && sx - L < r.right && sy + Hh > r.top && sy - Hh < r.bottom);
+}
 function montrerJauge(J, x, y, z, nom, sous, k, coul, dt, pulse){
   const v = MACHINES[cur].v;
   const loin = Math.hypot(v.pos.x - x, v.pos.z - z) > JAUGE_PORTEE;
-  const vise = loin ? 0 : 1;
+  const vise = (loin || jaugeSousHud(x, y, z)) ? 0 : 1;
   J.f += (vise - J.f)*Math.min(1, dt*6);
   J.sp.material.opacity = J.f*(pulse ? battementJauge() : 1);
   J.sp.visible = J.sp.material.opacity > 0.02;
@@ -33521,11 +34183,16 @@ function majJauges(dt){
     let nom, dit, part, teinte;
     if(!p.pousseN){                                   // on laboure
       part = p.nCell ? trav/p.nCell : 0;
-      nom = 'Labour'; dit = pc(part) + ' labouré' + (part >= 1 ? ' – à semer' : '');
-      teinte = part >= 1 ? '#C9A66B' : '#9A8468';
+      /* FINI QUAND LE TUTORIEL LE DIT FINI. La marche passe à 98 % (`PART_ETAPE`, le
+         reliquat de virage) et l'étiquette disait encore « 99 % labouré » sous la fenêtre
+         qui annonçait le champ prêt : le joueur repartait chercher le centième. Au même
+         seuil, elle dit le résultat au lieu du chiffre. */
+      const fini = part >= PART_ETAPE;
+      nom = 'Labour'; dit = fini ? 'Labouré – à semer' : pc(part) + ' labouré';
+      teinte = fini ? '#C9A66B' : '#9A8468';
     } else if(p.pousseN < trav){                      // on sème ce qui est labouré
       part = p.pousseN/trav;
-      nom = C2.nom; dit = pc(part) + ' semé'; teinte = '#C9A66B';
+      nom = C2.nom; dit = part >= PART_ETAPE ? 'Semé – ça pousse' : pc(part) + ' semé'; teinte = '#C9A66B';
     } else {                                          // tout est semé : ça pousse
       const mur = p.murN >= p.pousseN;
       part = p.pousse; nom = C2.nom;
@@ -34506,9 +35173,14 @@ function ongletPrix(){
   const natures = [];
   for(const S of SITES) for(const k of S.achete) if(natures.indexOf(k) < 0) natures.push(k);
   natures.sort((a, b)=> prixDe(b) - prixDe(a));
-
-  titre('Où vendre, et combien');
-  for(const cle of natures){
+  /* CE QU'ON A D'ABORD. La liste triait les vingt-sept produits du plus cher au moins cher,
+     et le joueur qui n'a que du blé lisait d'abord les vaches à 3 500 € la tête, puis
+     l'huile d'olive, le fromage de brebis… et trouvait son blé avant-dernier. Ce qu'on
+     cultive déjà ou qu'on a en stock passe donc devant, dans le même ordre de prix ; le
+     reste suit, sous son propre titre. */
+  const aMoi = (cle)=> CROPS.some((c)=> !c.verrou && c.cle === cle) || stockFermeCommande(cle) > 0.01;
+  const miens = natures.filter(aMoi);
+  const ligneDe = (cle)=>{
     const P = PRODUITS[cle];
     const chez = SITES.filter((S)=> S.achete.indexOf(cle) >= 0)
       .map((S)=> ({S, prix:prixChez(S, cle), place:placeChez(S, cle), max:(S.etal || Infinity)}))
@@ -34534,7 +35206,13 @@ function ongletPrix(){
         ' € par ' + uniteUn(cle) + ' engagé').join(' · '));
     article(parseInt(P.couleur.slice(1), 16), P.nom, l.join('<br>'),
       dec(prixUnite(cle)) + ' ' + parUniteTxt(cle), 'no', null, null, cle);
-  }
+  };
+  if(miens.length){
+    titre('Ce que tu produis : où le vendre');
+    miens.forEach(ligneDe);
+    titre('Les autres produits');
+  } else titre('Où vendre, et combien');
+  natures.filter((k)=> !aMoi(k)).forEach(ligneDe);
 
   titre('Comment lire ces prix');
   const d = document.createElement('div'); d.className = 'art';
@@ -34735,6 +35413,10 @@ function ongletReglages(){
   article(0x7FD1E8, 'Ambiance sonore',
     AUDIO.on ? 'Moteur, livraisons et notifications' : 'Coupé',
     AUDIO.on ? 'Couper' : 'Activer', AUDIO.on ? 'ok' : '', ()=> AUDIO.basculer());
+  article(0x7FD1E8, 'Vibrations',
+    PLAISIR.e.vibre ? 'Un battement quand l\'argent rentre, quand un palier tombe' : 'Coupées',
+    PLAISIR.e.vibre ? 'Couper' : 'Activer', PLAISIR.e.vibre ? 'ok' : '',
+    ()=>{ PLAISIR.e.vibre = !PLAISIR.e.vibre; plaisirEcrire(); vibrer(20); });
   article(0x7FD1E8, 'Volume', 'Actuellement ' + Math.round(AUDIO.volume*100) + ' %',
     'Changer', '', ()=>{ AUDIO.volume = AUDIO.volume >= 0.95 ? 0.25 : Math.min(1, AUDIO.volume + 0.25); AUDIO.majVolume(); });
 
@@ -34856,7 +35538,7 @@ let confirmeReset = false;
 
 // On remplace l'aiguillage d'origine : mêmes onglets qu'avant, plus les trois nouveaux.
 function rendrePanneau(){
-  pargent.textContent = eur(money);
+  pargent.textContent = caisseTxt();
   const O = ONGLETS.find(o=>o.id===ongletActif) || ONGLETS[0];
   ongletActif = O.id;
   ptitre.textContent = O.nom;
@@ -34879,7 +35561,7 @@ function rendrePanneau(){
   ({campagne:ongletCampagne, engins:ongletEngins, outils:ongletOutils, graines:ongletGraines,
     comptoir:ongletComptoir, elevage:ongletElevage, filieres:ongletFilieres,
     stockage:ongletStockage, production:ongletProduction, prix:ongletPrix,
-    parcelles:ongletParcelles, reglages:ongletReglages})[ongletActif]();
+    parcelles:ongletParcelles, reglages:ongletReglages, defis:ongletDefis, marche:ongletMarche})[ongletActif]();
 }
 
 /* ---------- L'ÉCRAN DE CAMPAGNE ----------
@@ -35892,8 +36574,11 @@ function etatJeu(){
                // L'arrivée du pick-up a-t-elle été jouée jusqu'aux trois pages ?
                // Facultatif : absent, il vaut « oui » (voir `chargerCampagne`).
                ouv: CAMPAGNE.ouverture ? 1 : 0,
+               // La fenêtre des prix a-t-elle déjà été ouverte ? Facultatif : absent, il
+               // vaut « oui », et une partie en cours ne voit pas le bouton se mettre à battre.
+               vuPrix: CAMPAGNE.vuPrix ? 1 : 0,
                // Quelle TABLE a écrit ce rang : voir `TUTO_V`. Facultatif, `v` ne bouge pas.
-               tv: TUTO_V,
+               tv: CAMPAGNE.long ? 4 : TUTO_V,
                /* LES LEÇONS DÉJÀ APPRISES, par clé. Facultatif comme tout ce bloc, et
                   `v` ne bouge toujours pas : une sauvegarde d'avant les leçons n'a pas
                   ce champ, et son absence vaut « toutes apprises ». */
@@ -35925,7 +36610,10 @@ function etatJeu(){
                            load:T.load||0, type:T.type||null, charge:T.charge||null, crop:T.crop||0,
                            cuves: Object.assign({}, T.cuves),
                            cuveQ:cuveCourante(T), cuveCle:cuveCleDe(T),
-                           x:T.group.position.x, z:T.group.position.z, cap:T.group.rotation.y,
+                           // un outil qui glisse vers sa case se sauve DANS sa case
+                           x:T.rangeVers ? T.rangeVers.x : T.group.position.x,
+                           z:T.rangeVers ? T.rangeVers.z : T.group.position.z,
+                           cap:T.rangeVers ? T.rangeVers.cap : T.group.rotation.y,
                            porteur: T.attached ? MACHINES.findIndex(m=>m.v === T.attached) : -1})),
     patures: PATURES.map(P=>({
       parcelle: PARCELS.indexOf(P.p), espece:P.espece, lait:P.produit, grain:P.grain,
@@ -36461,6 +37149,15 @@ function chargerPartie(S){
       if(T.semi){T.axle.x=q.x-Math.sin(q.cap)*T.L;T.axle.z=q.z-Math.cos(q.cap)*T.L;}
       if(q.porteur >= 0 && MACHINES[q.porteur] && !MACHINES[q.porteur].verrou)
         attachTool(MACHINES[q.porteur].v, T);
+      /* UNE PARTIE D'AVANT LE RANGEMENT A SES OUTILS SEMÉS PARTOUT — dans l'allée, au pied
+         d'un autre, au bord d'un champ. Un outil de ferme que personne ne tire repart donc
+         de SA case : c'est l'état que le joueur demande, et c'est celui d'où l'automate
+         sait les reprendre et les reposer. */
+      const S = !T.attached && placeOutil(T);
+      if(S){
+        T.group.position.set(S.x, 0, S.z); T.group.rotation.y = S.cap;
+        T.x = S.x; T.z = S.z; T.cap = S.cap; T.axle.x = S.x; T.axle.z = S.z;
+      }
     });
     /* LA CAMPAGNE SE RELIT EN DERNIER, et c'est nécessaire : une partie d'avant la
        campagne n'a pas de palier écrit, on le DÉDUIT de ce qu'elle possède — ses
@@ -36526,6 +37223,144 @@ addEventListener('pagehide', ()=>{ relacherCommandes(); sauvegarder(false); });
 // et recueillir le premier geste du joueur — celui sans lequel aucun navigateur
 // n'autorise le son.
 const accueil = document.getElementById('accueil');
+/* ---------- LE NÉGOCE ----------
+   Le joueur : « une version annexe où il n'y aurait plus de commerces. On produit et on
+   stocke à l'entrepôt, et suivant la demande des camions viennent charger et on est payé.
+   Un mode à part. Pas de personnage. Moins de narratif : juste de la production, la
+   gestion des parcelles et des stockages, et la vente au meilleur prix. »
+   C'EST UN MODE LIBRE, À TROIS CHOSES PRÈS.
+   1. Aucun commerce n'achète (`acheteMaintenant`, `accepteMaintenant`, la boucherie) : le
+      garage et le comptoir vendent toujours, il faut bien s'équiper et semer.
+   2. Tout se vend depuis la ferme, au COURS DU MOMENT. Chaque produit a son cours, qui
+      dérive entre 65 % et 155 % du barème et change de cap toutes les deux à trois
+      minutes ; vendre gros pèse sur le cours, qui se refait en quelques minutes. Garder
+      en stock pour vendre haut, c'est tout le jeu — et le stock est borné.
+   3. Vendre appelle un camion : il arrive par la route de la ferme, s'arrête devant
+      l'entrepôt, charge ce qu'il y a au silo et à l'entrepôt, paie et repart. Le prix est
+      celui du moment où on l'a appelé.
+   NI HISTOIRE NI LEÇON : le tutoriel est soldé d'entrée, les leçons aussi.
+   Il a son tiroir de sauvegarde (`clefPartie`) : le mode libre et la campagne n'en savent rien.
+   CE QUI NE SE VEND PAS ICI : les bêtes sur pied. Le lait, le bois et la marée se vendent
+   une fois PORTÉS À L'ENTREPÔT — c'est le transport qui reste au joueur. */
+const NEGO = {clefPartie:'moisson.partie.negoce.v1', clef:'moisson.negoce.v1',
+                cours:{}, camions:[], total:0, voyages:0, sale:false, saleT:0};
+const NEGOCE_BAS = 0.65, NEGOCE_HAUT = 1.55, NEGOCE_POIDS = 9000, NEGOCE_CAMION = 1500;
+const negoceVendable = (cle)=> !!PRODUITS[cle] && !PRODUITS[cle].betail && !PRODUITS[cle].interne;
+function negoceCours(cle){
+  let c = NEGO.cours[cle];
+  if(!c) c = NEGO.cours[cle] = {k:0.85 + Math.random()*0.4, cible:NEGOCE_BAS + Math.random()*(NEGOCE_HAUT - NEGOCE_BAS),
+                                  t:40 + Math.random()*120, press:0};
+  return c;
+}
+const negoceCoef = (cle)=>{ const c = negoceCours(cle); return c.k*(1 - Math.min(0.35, c.press)); };
+const negocePrix = (cle)=> prixDe(cle)*negoceCoef(cle);
+// Ce que la ferme peut mettre sur un camion : le silo, l'entrepôt, le quai de l'atelier.
+const negoceStock = (cle)=> (siloStock[cle] || 0) + entrepotStock(cle) + (HALLE.stock[cle] || 0);
+function negoceRetirer(cle, q){
+  let reste = q;
+  const s = Math.min(reste, siloStock[cle] || 0); if(s > 0){ siloStock[cle] -= s; reste -= s; }
+  const e = Math.min(reste, entrepotStock(cle)); if(e > 0){ entrepotRetire(cle, e); reste -= e; }
+  const h = Math.min(reste, HALLE.stock[cle] || 0); if(h > 0){ halleRetire(cle, h); reste -= h; }
+  return q - reste;
+}
+const negoceEnRoute = (cle)=> NEGO.camions.some((K)=> K.cle === cle && K.phase !== 'part');
+function negoceVendre(cle){
+  if(negoceEnRoute(cle)) return false;
+  const q = Math.min(NEGOCE_CAMION, negoceStock(cle));
+  if(q < 1) return false;
+  const Q = ENTREPOT.quai || {x:18.6, z:65.5};
+  const g = buildFourgon();
+  if(q > 600) g.scale.setScalar(1.22);
+  // Deux camions ne s'arrêtent pas l'un dans l'autre : le suivant se range derrière.
+  const file = NEGO.camions.filter((C)=> C.phase !== 'part').length;
+  const K = {cle, q, prix:negocePrix(cle), phase:'aller', t:0, x:Q.x + 170 + 40*file, z:Q.z + 7.1, arret:Q.x + 13*file, g};
+  g.position.set(K.x, 0, K.z); g.rotation.y = -Math.PI/2; scene.add(g);
+  NEGO.camions.push(K);
+  showHint('CAMION EN ROUTE – ' + nomDe(cle).toUpperCase() + ' À ' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €');
+  return true;
+}
+function negoceLire(){
+  try {
+    const E = JSON.parse(localStorage.getItem(NEGO.clef) || 'null');
+    if(!E) return;
+    if(E.cours) for(const k in E.cours) if(PRODUITS[k] && E.cours[k] && E.cours[k].k > 0) NEGO.cours[k] = E.cours[k];
+    NEGO.total = +E.total || 0; NEGO.voyages = +E.voyages || 0;
+  } catch(e){}
+}
+function negoceEcrire(){
+  try { localStorage.setItem(NEGO.clef, JSON.stringify({cours:NEGO.cours, total:NEGO.total, voyages:NEGO.voyages})); } catch(e){}
+}
+function negoceEntrer(){
+  if(MODE_NEGOCE) return;
+  MODE_NEGOCE = true;
+  SAVE.clefLibre = NEGO.clefPartie;
+  CAMPAGNE.tuto = 999;                                    // ni arrivée en pick-up, ni étapes
+  for(const k in LECONS) if(CAMPAGNE.lecons.indexOf(k) < 0) CAMPAGNE.lecons.push(k);
+  ONGLETS.splice(0, 0, {id:'marche', nom:'Marché'});
+  negoceLire();
+}
+function negoceUpdate(dt){
+  if(!MODE_NEGOCE || dt <= 0) return;
+  for(const cle in PRODUITS){
+    if(!negoceVendable(cle)) continue;
+    const c = negoceCours(cle);
+    c.t -= dt;
+    if(c.t <= 0){ c.cible = NEGOCE_BAS + Math.random()*(NEGOCE_HAUT - NEGOCE_BAS); c.t = 100 + Math.random()*100; }
+    c.k += (c.cible - c.k)*Math.min(1, dt/30);
+    c.press *= Math.exp(-dt/150);
+  }
+  for(let i = NEGO.camions.length - 1; i >= 0; i--){
+    const K = NEGO.camions[i];
+    if(K.phase === 'aller'){
+      K.x -= Math.min(15, 2 + Math.abs(K.x - K.arret)*0.6)*dt;
+      if(K.x <= K.arret + 0.3){ K.x = K.arret; K.phase = 'charge'; K.t = 5; }
+    } else if(K.phase === 'charge'){
+      K.t -= dt;
+      if(K.t <= 0){
+        const pris = negoceRetirer(K.cle, K.q), gain = pris*K.prix;
+        if(pris > 0.5){
+          encaisser(gain);
+          NEGO.total += gain; NEGO.voyages++;
+          negoceCours(K.cle).press += gain/NEGOCE_POIDS;
+          if(typeof pluiePieces === 'function') pluiePieces(gain, K.x, K.z - 7);
+          showHint('CAMION CHARGÉ – ' + nomDe(K.cle).toUpperCase() + ' ' + kg(pris) + '  +' + eur(gain));
+        } else showHint('LE CAMION REPART À VIDE – PLUS DE ' + nomDe(K.cle).toUpperCase());
+        K.phase = 'part'; K.v = 0; NEGO.sale = true;
+      }
+    } else {
+      K.v = Math.min(15, (K.v || 0) + 5*dt); K.x -= K.v*dt;
+      if(K.x < K.arret - 170){ scene.remove(K.g); NEGO.camions.splice(i, 1); continue; }
+    }
+    K.g.position.x = K.x;
+  }
+  NEGO.saleT += dt;
+  if(NEGO.saleT > 20 || NEGO.sale){ NEGO.saleT = 0; NEGO.sale = false; negoceEcrire(); }
+}
+function ongletMarche(){
+  titre('Marché');
+  const fleche = (c)=> c.cible > c.k + 0.04 ? ' ▲' : (c.cible < c.k - 0.04 ? ' ▼' : '');
+  const cles = Object.keys(PRODUITS).filter(negoceVendable);
+  const stock = cles.filter((k)=> negoceStock(k) >= 1).sort((a, b)=> negoceCoef(b) - negoceCoef(a));
+  if(!stock.length)
+    article(0xFAD201, 'Rien à vendre', 'Récolte, puis vide au silo ou à l\'entrepôt.', '', 'no', null);
+  for(const cle of stock){
+    const c = negoceCours(cle), k = negoceCoef(cle), q = Math.min(NEGOCE_CAMION, negoceStock(cle)), route = negoceEnRoute(cle);
+    article(k >= 1.15 ? 0x8BE07A : (k <= 0.85 ? 0xE0694A : 0xFAD201), nomDe(cle),
+      kg(negoceStock(cle)) + '  ·  <b>' + negocePrix(cle).toFixed(2).replace('.', ',') + ' €</b>  ·  '
+        + Math.round(k*100) + ' % du cours' + fleche(c) + '<br><span class="q">' + eur(q*negocePrix(cle)) + '</span> le camion',
+      route ? 'En route' : 'Vendre', route ? 'ok' : (k >= 1 ? 'vert' : ''),
+      route ? null : ()=>{ negoceVendre(cle); rafraichirEcran(); }, cle, cle);
+  }
+  const ouv = produitsOuverts();
+  const autres = cles.filter((k)=> negoceStock(k) < 1 && ouv.indexOf(k) >= 0)
+    .sort((a, b)=> negoceCoef(b) - negoceCoef(a)).slice(0, 4);
+  if(autres.length){
+    titre('Les cours les plus hauts');
+    article(0xFAD201, autres.map((k)=> nomDe(k) + ' ' + Math.round(negoceCoef(k)*100) + ' %' + fleche(negoceCours(k))).join('  ·  '),
+      NEGO.voyages ? NEGO.voyages + ' camions partis  ·  ' + eur(NEGO.total) + ' encaissés' : 'Un cours change de cap toutes les deux à trois minutes.',
+      '', 'no', null);
+  }
+}
 const accBtns = document.getElementById('accbtns');
 let demarre = false;
 function boutonAccueil(txt, principal, f){
@@ -36635,9 +37470,11 @@ function finIntro(){
   INTRO.actif = false; INTRO.phase = '';
   CAMPAGNE.ouverture = true;      // vue : elle ne se rejouera pas à la reprise
   if(!(tutoActif() && CAMPAGNE.tuto === 0)) return;
+  // L'ouverture courte n'a qu'une fenêtre, et c'est sa première marche qui la porte.
+  if(!CAMPAGNE.long && !MODE_LIBRE){ annoncerEtape(etapeTuto()); return; }
     annoncerFenetre({titre:'UN HÉRITAGE',
       sous:'<i>« Mon oncle m’a laissé la ferme.<br>' +
-           'La maison, les terres… et un tracteur qui a probablement mon âge. »</i>',
+           'La maison, les terres… et un tracteur qui a probablement mon âge.&nbsp;»</i>',
       face:{nom:'Moi', humeur:'perplexe'},
       suite:'« Maintenant, il va falloir apprendre à s’en servir. »'});
     annoncerFenetre({titre:'PREMIER JOUR',  // « il va falloir apprendre » : il se projette
@@ -36682,6 +37519,7 @@ function lancerPartie(reprise){
     if(tutoActif() && CAMPAGNE.tuto === 0 && !CAMPAGNE.ouverture) finIntro();
     return;
   }
+  if(!MODE_LIBRE && !CAMPAGNE.long && CAMPAGNE.mission === 0 && CAMPAGNE.tuto === 0) murirDepart();
   if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
 }
 /* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
@@ -36722,9 +37560,24 @@ function lancerPartie(reprise){
   // 2. la reprise du mode libre, s'il y a quelque chose à reprendre
   if(SL) boutonAccueil('Reprendre – mode libre', false, reprendre(SL, true));
   // 3. repartir de zéro, dans l'un ou l'autre
-  if(SC) boutonAccueil('Nouvelle campagne', false, ()=>{
-    effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
+  /* DEUX TOUCHERS POUR EFFACER UNE CAMPAGNE. Le bouton est posé contre « Reprendre », et
+     un seul toucher effaçait la partie sans retour : c'est le même double appui que
+     « Recommencer » demande déjà dans les réglages. Il se désarme seul en quatre secondes. */
+  if(SC){
+    let sur = false;
+    const bN = boutonAccueil('Nouvelle campagne', false, ()=>{
+      if(!sur){
+        sur = true; bN.textContent = 'Effacer la campagne ?'; bN.classList.add('danger');
+        setTimeout(()=>{ sur = false; bN.textContent = 'Nouvelle campagne'; bN.classList.remove('danger'); }, 4000);
+        return;
+      }
+      effacerSauvegarde(SAVE.clef); MODE_LIBRE = false; majBulles(); lancerPartie(); });
+  }
   boutonAccueil('Mode libre', false, lancerLibre);
+  // Le négoce : son tiroir de sauvegarde à lui, et sa reprise quand il y a de quoi reprendre.
+  const SN = lireSauvegarde(NEGO.clefPartie);
+  if(SN) boutonAccueil('Reprendre – négoce', false, ()=>{ negoceEntrer(); reprendre(SN, true)(); });
+  boutonAccueil('Négoce', false, ()=>{ negoceEntrer(); lancerLibre(); });
 })();
 
 /* ---------- 29. PROGRESSION ---------- */
@@ -36758,9 +37611,9 @@ function refreshHUD(){
   // Le bandeau dit LEQUEL des deux modes on a repris : rien d'autre à l'écran ne les
   // distingue, et l'on ne saurait pas pourquoi tout est achetable.
   texteSiChange(el.goal,acheve ? 'LA VALLÉE EST À TOI'
-                       : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
+                       : MODE_NEGOCE ? 'NÉGOCE' : MODE_LIBRE ? 'MODE LIBRE – NIVEAU ' + n
                                     : 'NIVEAU ' + n + ' – ' + N.nom);
-  texteSiChange(el.money,Math.floor(money).toLocaleString('fr-FR')+' €');
+  texteSiChange(el.money,caisseVue());
   /* LE SILO QUI SE REMPLIT LE DIT UNE FOIS. Le chiffre du bandeau virait à l'orange
      au-delà de 92 % : c'était le seul avertissement permanent, et il est parti avec la
      ligne du poids. Sans lui on moissonne, on rentre au silo, et le transfert s'arrête
@@ -36797,13 +37650,616 @@ function ouvrirFin(){
   accBtns.innerHTML = '';
   document.getElementById('acctitre').textContent = 'MOISSON FAITE';
   sous.innerHTML = 'La campagne est finie – niveau ' + CAMPAGNE.niveau + ', ' +
-    Math.round(CAMPAGNE.xp) + ' XP, ' + eur(money) + ', jour ' + JOUR.jours + '.<br>' +
+    Math.round(CAMPAGNE.xp) + ' XP, ' + caisseTxt() + ', jour ' + JOUR.jours + '.<br>' +
     kg(STAT.moisson) + ' récoltés · ' + kg(STAT.mill) + ' de farine moulue · ' +
     litres(STAT.lait) + ' de lait · ' + Math.round(STAT.betes) + ' bêtes vendues.';
   boutonAccueil('Continuer à jouer', true, ()=>{ accueil.style.display = 'none'; paused = false; last = performance.now(); });
   accueil.style.display = 'flex';
   paused = true;
 }
+
+/* ---------- 29 bis. LE PLAISIR DE JOUER ---------- */
+/* Le joueur : « retravaille ce jeu pour qu'il soit encore plus propre et addictif. »
+   Quatre choses, qui tiennent toutes dans ce chapitre :
+     • LA CAISSE SE VOIT BOUGER. Le chiffre du haut sautait d'une valeur à l'autre ; il
+       défile, il bat, et une étiquette dit de combien — en plus comme en moins.
+     • UN PALIER SE FÊTE. Il ne valait qu'une ligne de notification.
+     • DES DÉFIS DU JOUR ET DES RECORDS, pour qu'il y ait toujours un but à vingt minutes
+       en plus du but à deux heures que donne la campagne.
+     • UNE RAISON DE REVENIR : la série de jours, et les champs qui ont poussé pendant
+       l'absence.
+
+   RIEN DE TOUT CELA NE TOUCHE À LA SAUVEGARDE NI AUX FONCTIONS QUE LES BANCS EXTRAIENT.
+   L'état vit sous sa propre clé — il appartient au joueur, pas à une partie : la série
+   et les records survivent à « Nouvelle campagne ». Et le chapitre OBSERVE le jeu au lieu
+   de s'y accrocher : il lit `money`, `STAT`, `CAMPAGNE` une fois par image et en déduit
+   ce qui s'est passé. Les deux seules fonctions qu'il enveloppe, `encaisser` et
+   `solderContrat`, le sont ICI, à l'exécution — leur texte, que les bancs découpent dans
+   le source, n'a pas changé d'un caractère.
+
+   ET AUCUNE PRIME NE TOMBE TOUTE SEULE. Un défi rempli se TOUCHE pour être encaissé, dans
+   l'onglet Défis. C'est un geste de plus, voulu : c'est lui qui fait revenir dans le
+   menu, et c'est aussi ce qui garantit que l'économie de la campagne — auditée au centime
+   — ne reçoit jamais un euro que le joueur n'a pas demandé. */
+const PLAISIR = {
+  clef: 'moisson.plaisir.v1',
+  pret: false,                 // levé au lancement de la partie, comme SAVE.pret
+  vu: 0, cible: 0,             // la caisse affichée, et celle qu'on a vue la dernière fois
+  chipSomme: 0, chipT: 0,      // l'étiquette « + 128 € » : ce qu'elle cumule, ce qu'il lui reste à vivre
+  rafale: 0, rafaleT: 0,       // une vente en cours : son total, et le silence qui la clôt
+  tickT: 0, tickN: 0,          // le grelot qui monte pendant qu'on décharge
+  niveauVu: 1, missionVue: 0, tremie: 0,
+  main: 0, mainT: 0,           // la prime du travail fait à la main, et le silence qui la paie
+  chrono: -1, priseVue: false, etoilesPage: null,
+  stat: null,                  // les compteurs du jeu, tels qu'on les a lus la dernière fois
+  feteT: 0, saleT: 0, sale: false, horlogeT: 0,
+  e: {jour:'', defis:[], pleine:false, serie:0, serieMax:0, dernier:'', primeJour:'',
+      records:{vente:0, journee:0}, jourGains:0, recordJourDit:'',
+      cumul:{gains:0, km:0, commandes:0, defis:0, main:0, etoiles:0}, salaires:0, salaireDit:false, vibre:true, croisement:false, routeDite:false}
+};
+const plaisirJour = (d)=>{ d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function plaisirLire(){
+  try {
+    const s = localStorage.getItem(PLAISIR.clef);
+    if(!s) return;
+    const E = JSON.parse(s), e = PLAISIR.e;
+    if(!E || typeof E !== 'object') return;
+    // Champ par champ, sous garde : un état abîmé ne doit rien casser, il se réécrit.
+    for(const k of ['jour', 'dernier', 'primeJour', 'recordJourDit']) if(typeof E[k] === 'string') e[k] = E[k];
+    for(const k of ['serie', 'serieMax', 'jourGains', 'salaires']) if(E[k] >= 0) e[k] = +E[k];
+    if(E.salaireDit === true) e.salaireDit = true;
+    e.pleine = !!E.pleine;
+    if(E.vibre === false) e.vibre = false;
+    e.croisement = !!E.croisement; e.routeDite = !!E.routeDite;
+    if(E.records) for(const k in e.records) if(E.records[k] >= 0) e.records[k] = +E.records[k];
+    if(E.cumul) for(const k in e.cumul) if(E.cumul[k] >= 0) e.cumul[k] = +E.cumul[k];
+    if(Array.isArray(E.defis))
+      e.defis = E.defis.filter((D)=> D && PLAISIR_DEFIS[D.id] && D.cible > 0)
+                       .map((D)=> ({id:D.id, cible:+D.cible, fait:Math.max(0, +D.fait || 0),
+                                    prime:Math.max(0, +D.prime || 0), xp:Math.max(0, +D.xp || 0), paye:!!D.paye}));
+  } catch(err){}
+}
+function plaisirEcrire(){
+  PLAISIR.sale = false;
+  try { localStorage.setItem(PLAISIR.clef, JSON.stringify(PLAISIR.e)); } catch(err){}
+}
+function vibrer(motif){
+  if(!PLAISIR.e.vibre) return;
+  try { if(navigator.vibrate) navigator.vibrate(motif); } catch(err){}
+}
+// Quatre notes qui montent : le même carillon pour tout ce qui se fête, plus ou moins haut.
+function plaisirCarillon(base){
+  const notes = [1, 1.26, 1.5, 2];
+  notes.forEach((r, i)=> setTimeout(()=> AUDIO.bip(base*r, i === 3 ? 0.42 : 0.16, 'triangle', 0.11), i*95));
+}
+
+/* ---------- LES DÉFIS DU JOUR ----------
+   Trois par jour de calendrier, les mêmes toute la journée : on les tire d'une graine
+   faite de la date. Chacun lit un compteur que le jeu tient déjà. La cible suit le
+   palier — un défi de niveau 2 ne demande pas ce que demande un défi de niveau 15 — et
+   un défi de PRODUIT n'est proposé que si la ferme en a déjà sorti : on ne demande pas
+   du lait à qui n'a pas de vaches. */
+const PLAISIR_DEFIS = {
+  gains:    {nom:(n)=> 'Encaisser ' + eur(n),                     unite:eur,    cible:(n)=> 50*Math.round(4*Math.pow(n, 1.5)),      poids:1.0},
+  recolte:  {nom:(n)=> 'Récolter ' + kg(n),                        unite:kg,     cible:(n)=> Math.min(800, n < 3 ? 150 : 100*n),     poids:1.0, stat:'moisson'},
+  route:    {nom:(n)=> 'Rouler ' + n + ' km',                      unite:(v)=> dec(v, 1) + ' km', cible:(n)=> Math.min(8, 2 + Math.floor(n/3)), poids:0.7},
+  commande: {nom:(n)=> 'Honorer ' + n + ' commande' + (n > 1 ? 's' : ''), unite:(v)=> Math.floor(v) + '', cible:(n)=> n < 8 ? 1 : n < 14 ? 2 : 3, poids:1.3,
+             si:()=> !MODE_LIBRE},
+  farine:   {nom:(n)=> 'Moudre ' + kg(n) + ' de farine',           unite:kg,     cible:(n)=> 40 + 8*n,  poids:1.1, stat:'mill',    produit:true},
+  lait:     {nom:(n)=> 'Tirer ' + litres(n) + ' de lait',          unite:litres, cible:(n)=> 60 + 8*n,  poids:1.1, stat:'lait',    produit:true},
+  oeufs:    {nom:(n)=> 'Ramasser ' + n + ' œufs',                  unite:(v)=> Math.floor(v) + '', cible:(n)=> 12 + 2*n, poids:1.0, stat:'oeufs', produit:true},
+  miel:     {nom:(n)=> 'Récolter ' + kg(n) + ' de miel',           unite:kg,     cible:(n)=> 6 + Math.floor(n/2), poids:1.1, stat:'miel', produit:true},
+  laine:    {nom:(n)=> 'Tondre ' + kg(n) + ' de laine',            unite:kg,     cible:(n)=> 8 + Math.floor(n/2), poids:1.1, stat:'laine', produit:true},
+  grumes:   {nom:(n)=> 'Sortir ' + kg(n) + ' de grumes',           unite:kg,     cible:(n)=> 80 + 6*n,  poids:1.2, stat:'grumes',  produit:true},
+  peche:    {nom:(n)=> 'Pêcher ' + kg(n),                          unite:kg,     cible:(n)=> 40 + 4*n,  poids:1.2, stat:'peche',   produit:true}
+};
+function plaisirTirer(jour){
+  // Une graine tirée de la date : le même jour donne les mêmes trois défis.
+  let g = 2166136261;
+  for(let i = 0; i < jour.length; i++){ g ^= jour.charCodeAt(i); g = Math.imul(g, 16777619) >>> 0; }
+  const alea = ()=>{ g = (Math.imul(g, 1664525) + 1013904223) >>> 0; return g/4294967296; };
+  const n = CAMPAGNE.niveau;
+  const libres = [], produits = [];
+  for(const id in PLAISIR_DEFIS){
+    const D = PLAISIR_DEFIS[id];
+    if(D.si && !D.si()) continue;
+    if(D.produit){ if(STAT[D.stat] > 0) produits.push(id); }
+    else libres.push(id);
+  }
+  const melange = (T)=>{ for(let i = T.length - 1; i > 0; i--){ const j = Math.floor(alea()*(i + 1)); [T[i], T[j]] = [T[j], T[i]]; } return T; };
+  melange(libres); melange(produits);
+  // Un seul défi de produit au plus : les deux autres restent faisables par n'importe qui.
+  const choix = (produits.length ? [produits[0]] : []).concat(libres).slice(0, 3);
+  return choix.map((id)=>{
+    const D = PLAISIR_DEFIS[id];
+    return {id, cible:D.cible(n), fait:0, paye:false,
+            prime:Math.max(30, Math.round(35*n*D.poids/10)*10), xp:Math.round((3 + n)*D.poids)};
+  });
+}
+/* ET EN CAMPAGNE, LE TUTORIEL DURE JUSQU'À LA PREMIÈRE VENTE. `tutoActif` retombe dès la
+   mission prise, et les défis se tiraient donc pendant la toute première livraison : «
+   Honorer 1 commande » se remplissait à l'instant où elle se soldait, et son bandeau
+   passait par-dessus la fête de la première vente — vu en jouant. Rien avant le premier
+   euro. */
+const plaisirTuto = ()=> (typeof tutoActif === 'function' && tutoActif()) || (!MODE_LIBRE && CAMPAGNE.mission < 1);
+/* LE JOUR CHANGE : nouveaux défis, et la série avance ou retombe. Appelé au lancement,
+   puis toutes les quelques secondes — minuit peut passer pendant qu'on joue. Tant que le
+   tutoriel tient la main, on ne tire rien : trois défis par-dessus la première consigne
+   du jeu la noieraient. */
+function plaisirJourNouveau(){
+  const e = PLAISIR.e, auj = plaisirJour();
+  if(e.dernier !== auj){
+    const hier = plaisirJour(new Date(Date.now() - 86400000));
+    e.serie = (e.dernier === hier) ? e.serie + 1 : 1;
+    e.serieMax = Math.max(e.serieMax, e.serie);
+    e.dernier = auj; e.jourGains = 0;
+    PLAISIR.sale = true;
+  }
+  if(e.jour !== auj && !plaisirTuto()){
+    e.jour = auj; e.defis = plaisirTirer(auj); e.pleine = false;
+    PLAISIR.sale = true;
+  }
+}
+function plaisirAvancer(id, q){
+  if(!(q > 0)) return;
+  for(const D of PLAISIR.e.defis){
+    if(D.id !== id || D.fait >= D.cible) continue;
+    D.fait = Math.min(D.cible, D.fait + q);
+    PLAISIR.sale = true;
+    if(D.fait >= D.cible){
+      showHint('DÉFI REMPLI – PRIME À PRENDRE DANS LE MENU');
+      vibrer([18, 40, 18]);
+      plaisirCarillon(660);
+    }
+  }
+}
+const primeFidelite = ()=> 20*CAMPAGNE.niveau*Math.min(7, PLAISIR.e.serie);
+const primePleine   = ()=> Math.round(PLAISIR.e.defis.reduce((s, D)=> s + D.prime, 0)*0.5/10)*10;
+// Ce qu'il y a à prendre maintenant : c'est ce qui allume la pastille du bouton de menu.
+function plaisirAPrendre(){
+  const e = PLAISIR.e;
+  let n = e.defis.filter((D)=> D.fait >= D.cible && !D.paye).length;
+  if(e.defis.length && e.defis.every((D)=> D.paye) && !e.pleine) n++;
+  if(e.serie >= 2 && e.primeJour !== e.dernier && !plaisirTuto()) n++;
+  return n;
+}
+function plaisirPayer(euros, xp){
+  money += euros;                      // pas `encaisser` : une prime n'est pas une vente
+  if(xp > 0) gagnerXp(xp);
+  pluiePieces(euros, null, null, 6);
+  vibrer([14, 30, 28]);
+  PLAISIR.sale = true;
+}
+
+/* ---------- L'ONGLET ---------- */
+function ongletDefis(){
+  const e = PLAISIR.e;
+  plaisirJourNouveau();
+  titre('Défis du jour');
+  if(!e.defis.length){
+    article(0xFAD201, 'Après le tutoriel',
+      'Trois défis par jour, avec une prime à la clé. Ils arrivent dès que les premières leçons sont passées.',
+      'Bientôt', 'no', null);
+  }
+  for(const D of e.defis){
+    const T = PLAISIR_DEFIS[D.id], fini = D.fait >= D.cible, part = Math.min(1, D.fait/D.cible);
+    const d = article(fini ? 0x8BE07A : 0xFAD201, T.nom(D.cible),
+      '<div class="defibar"><i style="width:' + (part*100).toFixed(1) + '%"></i></div>' +
+      (fini ? 'Rempli' : T.unite(D.fait) + ' sur ' + T.unite(D.cible)) +
+      '  ·  prime <span class="q">' + eur(D.prime) + '</span>  ·  +' + D.xp + ' XP',
+      D.paye ? 'Encaissé' : fini ? 'Encaisser' : Math.floor(part*100) + ' %',
+      D.paye ? 'ok' : fini ? 'vert' : 'no',
+      (!fini || D.paye) ? null : ()=>{
+        D.paye = true; e.cumul.defis++;
+        plaisirPayer(D.prime, D.xp);
+        showHint('DÉFI ENCAISSÉ – ' + eur(D.prime));
+      });
+    if(fini && !D.paye) d.classList.add('appel');
+  }
+  if(e.defis.length){
+    const tous = e.defis.every((D)=> D.paye);
+    const d = article(e.pleine ? 0x8BE07A : 0xE0A63A, 'Journée pleine',
+      'Les trois défis du jour remplis et encaissés  ·  prime <span class="q">' + eur(primePleine()) + '</span>',
+      e.pleine ? 'Encaissé' : tous ? 'Encaisser' : e.defis.filter((D)=> D.paye).length + ' / 3',
+      e.pleine ? 'ok' : tous ? 'vert' : 'no',
+      (!tous || e.pleine) ? null : ()=>{
+        e.pleine = true;
+        plaisirPayer(primePleine(), 0);
+        plaisirCarillon(784);
+        showHint('JOURNÉE PLEINE – ' + eur(primePleine()));
+      });
+    if(tous && !e.pleine) d.classList.add('appel');
+  }
+
+  titre('Fidélité');
+  const prise = e.primeJour === e.dernier, due = e.serie >= 2 && !prise && !plaisirTuto();
+  const d2 = article(0x7FD1E8, e.serie + (e.serie > 1 ? ' jours de suite' : ' jour'),
+    (e.serie >= 2
+       ? 'Prime du jour <span class="q">' + eur(primeFidelite()) + '</span> – elle grossit jusqu\'au septième jour.'
+       : 'Revenez demain : la prime de fidélité commence au deuxième jour et grossit jusqu\'au septième.') +
+    '<br>Meilleure série : ' + e.serieMax + ' jour' + (e.serieMax > 1 ? 's' : ''),
+    prise ? 'Encaissé' : due ? 'Encaisser' : 'Demain', prise ? 'ok' : due ? 'vert' : 'no',
+    !due ? null : ()=>{
+      e.primeJour = e.dernier;
+      plaisirPayer(primeFidelite(), 0);
+      showHint('FIDÉLITÉ – ' + eur(primeFidelite()));
+    });
+  if(due) d2.classList.add('appel');
+
+  titre('Records');
+  article(0xFAD201, 'Plus grosse vente d\'un seul arrêt', e.records.vente > 0 ? eur(e.records.vente) : 'Aucune vente encore', '', 'no', null).classList.add('sansact');
+  article(0xFAD201, 'Meilleure journée', (e.records.journee > 0 ? eur(e.records.journee) : 'Aucune encore') +
+    '  ·  aujourd\'hui ' + eur(e.jourGains), '', 'no', null).classList.add('sansact');
+  titre('Carnet');
+  article(0xD8CBA6, 'Depuis le début',
+    eur(e.cumul.gains) + ' encaissés  ·  ' + dec(e.cumul.km, 1) + ' km parcourus<br>' +
+    e.cumul.commandes + ' commande' + (e.cumul.commandes > 1 ? 's' : '') + ' honorée' + (e.cumul.commandes > 1 ? 's' : '') +
+    '  ·  ' + e.cumul.defis + ' défi' + (e.cumul.defis > 1 ? 's' : '') + ' encaissé' + (e.cumul.defis > 1 ? 's' : '') +
+    '<br>' + eur(e.cumul.main) + ' gagnés à la main  ·  ' + e.cumul.etoiles + ' ★ de mission' +
+    (e.salaires >= 1 ? '<br>' + eur(Math.round(e.salaires)) + ' de salaires versés aux automates' : ''),
+    '', 'no', null).classList.add('sansact');
+}
+
+/* ---------- CE QUI ENTRE EN CAISSE ----------
+   `encaisser` est le seul passage de tout ce qui se VEND. On l'enveloppe ici pour savoir
+   trois choses que le solde seul ne dit pas : que c'est une vente et non une prime, à
+   quel rythme elle tombe, et combien vaut l'arrêt entier — une benne se paie image par
+   image, et c'est le total de la rafale qui fait un record, pas un de ses centimes. */
+{
+  const encaisserNu = encaisser;
+  encaisser = function(n){
+    const r = encaisserNu(n);
+    if(r > 0 && PLAISIR.pret) plaisirVente(r);
+    return r;
+  };
+  const solderNu = solderContrat;
+  solderContrat = function(k){
+    const avant = CONTRATS[k];
+    solderNu(k);
+    if(avant && PLAISIR.pret){ PLAISIR.e.cumul.commandes++; plaisirAvancer('commande', 1); vibrer([20, 40, 20, 40, 60]); }
+  };
+}
+const PLAISIR_GAMME = [523, 587, 659, 784, 880, 1047, 1175, 1319];
+function plaisirVente(n){
+  const P = PLAISIR, e = P.e;
+  e.cumul.gains += n; e.jourGains += n;
+  P.rafale += n; P.rafaleT = 1.4;
+  plaisirAvancer('gains', n);
+  P.sale = true;
+  // Le grelot : une note toutes les deux dixièmes de seconde, qui monte d'un degré à
+  // chaque fois. On l'entend à peine — c'est l'oreille qui dit que ça rentre.
+  if(P.tickT <= 0){
+    P.tickT = 0.2;
+    AUDIO.bip(PLAISIR_GAMME[Math.min(PLAISIR_GAMME.length - 1, P.tickN)], 0.07, 'triangle', 0.035);
+    P.tickN++;
+  }
+}
+function plaisirFinRafale(){
+  const P = PLAISIR, e = P.e, total = P.rafale;
+  P.rafale = 0; P.tickN = 0;
+  // Un record ne s'annonce que s'il y en avait un à battre : la toute première vente
+  // du jeu en serait un, et la deuxième, et la troisième.
+  if(total > e.records.vente){
+    const dit = e.records.vente >= 100 && total >= e.records.vente*1.05;
+    e.records.vente = total;
+    if(dit){ showHint('RECORD DE VENTE – ' + eur(total)); vibrer([20, 50, 40]); }
+  }
+  if(e.jourGains > e.records.journee){
+    const dit = e.records.journee >= 200 && e.recordJourDit !== e.dernier;
+    e.records.journee = e.jourGains;
+    if(dit){ e.recordJourDit = e.dernier; showHint('MEILLEURE JOURNÉE – ' + eur(e.jourGains)); }
+  }
+}
+
+/* ---------- CONDUIRE RAPPORTE PLUS QUE DÉLÉGUER ----------
+   Mesuré en jouant : cinq touchers lancent l'automatisation, et quatre minutes plus tard
+   le champ était labouré, semé et moissonné sans le joueur. Rien ne distinguait alors le
+   travail qu'on fait de celui qu'on regarde faire. Deux avantages, pour celui qui tient
+   le volant et pour lui seul :
+     • UNE PRIME AU TRAVAIL À LA MAIN. Chaque case labourée ou semée, chaque kilo
+       moissonné par l'engin qu'on conduit vaut quelques centimes de plus. Un tour de
+       champ complet au premier palier : 87 € pour un blé qui en vaut 230.
+     • LA ROUTE REND PLUS VITE. On roulait aussi vite dans l'herbe que sur la chaussée :
+       couper à travers champs était toujours le bon choix. Sur la route, +15 %.
+   L'AUTOMATE N'Y A PAS DROIT, et il ne coûte rien de plus qu'avant : on ne punit pas la
+   délégation, on récompense le geste. Les montants sont à régler manette en main. */
+const MAIN_CASE = 0.06, MAIN_KG = 0.2, ROUTE_ELAN = 1.15;
+const mainPalier = ()=> 1 + 0.25*(CAMPAGNE.niveau - 1);
+function plaisirMain(dLab, dSem, dMoi){
+  const m = MACHINES[cur], v = m && m.v;
+  if(!v || v.auto || v.mission || Math.abs(v.speed) < 0.5) return;
+  const T = toolOf(m);
+  // Si un automate fait le même travail au même moment, on ne sait pas à qui sont les cases.
+  const robot = (test)=> MACHINES.some((x)=> x !== m && x.v && x.v.auto && test(x, toolOf(x)));
+  let g = 0;
+  if(dLab > 0 && T && (T.key === 'labour' || T.key === 'combine')
+     && !robot((x, U)=> U && (U.key === 'labour' || U.key === 'combine'))) g += dLab*MAIN_CASE;
+  if(dSem > 0 && T && T.seme && !robot((x, U)=> U && U.seme)) g += dSem*MAIN_CASE;
+  if(dMoi > 0 && (m.key === 'moisson' || (T && T.recolte))
+     && !robot((x, U)=> x.key === 'moisson' || (U && U.recolte))) g += dMoi*MAIN_KG;
+  // Six secondes sans travailler closent la passe : un demi-tour en bout de champ ne la coupe pas.
+  if(g > 0){ PLAISIR.main += g*mainPalier(); PLAISIR.mainT = 6; }
+}
+function plaisirMainPayer(){
+  const r = Math.round(PLAISIR.main);
+  PLAISIR.main = 0;
+  if(r < 1) return;
+  money += r; PLAISIR.e.cumul.main += r; PLAISIR.sale = true;
+  // Pendant qu'une marche du tutoriel guide, l'étiquette de la caisse suffit : pas de bandeau par-dessus la consigne.
+  if(!plaisirTuto()) showHint('À LA MAIN  +' + eur(r));
+  vibrer([12, 24, 12]);
+}
+/* ---------- LE SALAIRE DE L'AUTOMATE ----------
+   Le joueur : « ce serait bien de payer un salaire, pour pas que ce soit trop facile ».
+   Un engin qui TRAVAILLE en automatique — il roule, il n'attend pas — coûte SALAIRE_MIN
+   euros la minute, un peu plus à chaque palier parce que la ferme rapporte plus. Un
+   engin à l'arrêt ne coûte rien : on ne paie pas l'attente d'une pousse.
+   LA CAISSE NE PASSE JAMAIS SOUS ZÉRO, et ce qu'elle ne peut pas payer est remis : un
+   salaire ne doit pas pouvoir bloquer une partie. RIEN PENDANT L'APPRENTISSAGE — les deux
+   premières missions montrent l'automate, elles ne le facturent pas.
+   DISCRET : le chiffre de la caisse descend sans étiquette rouge, un seul bandeau le dit
+   la première fois, et le total se lit au carnet. Conduire soi-même reste gratuit et
+   primé : c'est tout l'arbitrage. Montant à régler manette en main. */
+const SALAIRE_MIN = 18, SALAIRE_PALIER = 0.08;
+const salaireMinute = ()=> SALAIRE_MIN*(1 + SALAIRE_PALIER*(CAMPAGNE.niveau - 1));
+const salaireAuTravail = ()=> MACHINES.reduce((n, m)=> n + (m.v && m.v.auto && Math.abs(m.v.speed) > 0.3 ? 1 : 0), 0);
+function plaisirSalaire(dt){
+  if(dt <= 0 || (!MODE_LIBRE && CAMPAGNE.mission < 2)) return;
+  const n = salaireAuTravail();
+  if(!n) return;
+  const du = Math.min(money, n*salaireMinute()*dt/60);
+  if(du <= 0) return;
+  money -= du; PLAISIR.cible -= du;      // la caisse descend, l'étiquette « − » ne s'allume pas
+  PLAISIR.e.salaires += du;
+  if(!PLAISIR.e.salaireDit){
+    PLAISIR.e.salaireDit = true; PLAISIR.sale = true;
+    showHint('L\'AUTOMATE SE PAIE – ' + Math.round(salaireMinute()) + ' €/MIN PAR ENGIN AU TRAVAIL');
+  }
+}
+function plaisirRoute(dt){
+  for(const m of MACHINES) if(m.v && m !== MACHINES[cur] && m.v.elan) m.v.elan = 1;
+  const v = MACHINES[cur] && MACHINES[cur].v;
+  if(!v) return;
+  const vise = (!v.auto && !v.mission && !INTRO.actif && !v.bateau && surRoute(v.pos.x, v.pos.z, 0)) ? ROUTE_ELAN : 1;
+  v.elan = (v.elan || 1) + (vise - (v.elan || 1))*Math.min(1, dt*3);
+  if(vise > 1 && !PLAISIR.e.routeDite && Math.abs(v.speed) > v.vmax*1.05 && !plaisirTuto()){
+    PLAISIR.e.routeDite = true; PLAISIR.sale = true;
+    showHint('SUR LA ROUTE, ÇA ROULE PLUS VITE');
+  }
+}
+
+/* ---------- LES ÉTOILES D'UNE MISSION ----------
+   On ne pouvait pas mal jouer une mission : aucun délai, aucun risque, la même prime au
+   bout. Une mission livrée vite gagne des étoiles et un supplément — trois étoiles sous
+   deux minutes (+20 % de la prime), deux sous cinq minutes (+10 %). AUCUNE PÉNALITÉ :
+   passé cinq minutes la prime est celle d'avant, et le compteur s'efface.
+   LES MISSIONS À PRÉAMBULE N'EN ONT PAS — on n'y presse pas un joueur qui apprend —, ni
+   celles qu'on reprend d'une sauvegarde, dont on ne sait plus quand elles ont commencé. */
+const ETOILES_3 = 120, ETOILES_2 = 300;
+const etoilesDe = (t)=> t < 0 ? 0 : t <= ETOILES_3 ? 3 : t <= ETOILES_2 ? 2 : 1;
+const etoilesTxt = (n)=> '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n);
+const etoilesBonus = (M, n)=> n >= 2 ? Math.round((M.prime || 0)*(n === 3 ? 0.2 : 0.1)/10)*10 : 0;
+{
+  const finirNu = finirMission;
+  finirMission = function(){
+    const M = missionCourante(), avant = CAMPAGNE.mission, P = PLAISIR;
+    const n = (M && P.pret && P.chrono >= 0) ? etoilesDe(P.chrono) : 0;
+    const bonus = M ? etoilesBonus(M, n) : 0;
+    P.etoilesPage = n >= 2 ? {n:n, bonus:bonus} : null;
+    finirNu();
+    P.etoilesPage = null;
+    if(CAMPAGNE.mission > avant && n > 0){
+      P.e.cumul.etoiles += n; P.sale = true;
+      if(bonus > 0) money += bonus;
+    }
+    P.chrono = -1;
+  };
+  // La page « Contrat terminé » porte ses étoiles : on la retouche dès qu'elle est écrite.
+  const ouvrirNu = ouvrirBravo;
+  ouvrirBravo = function(){
+    ouvrirNu.apply(this, arguments);
+    const E = PLAISIR.etoilesPage;
+    if(!E) return;
+    PLAISIR.etoilesPage = null;
+    const Pg = bravoPages.slice().reverse().find((p)=> p && p.prix && !p.etoiles);
+    if(!Pg) return;
+    Pg.etoiles = true;
+    Pg.plus = '<span style="color:#C98A12;letter-spacing:3px">' + etoilesTxt(E.n) + '</span>&nbsp; · &nbsp;+ ' + eur(E.bonus) + ' de rapidité' + (Pg.plus ? '&nbsp; · &nbsp;' + Pg.plus : '');
+    if(bravoPages[bravoI] === Pg) peindreBravo();
+  };
+}
+function plaisirEtoiles(dt){
+  const P = PLAISIR, M = missionCourante();
+  if(CAMPAGNE.prise !== P.priseVue){
+    // La mission vient d'être prise : le compteur part, sauf si elle a un préambule.
+    if(CAMPAGNE.prise && M && !M.prep && !M.faire) P.chrono = 0;
+    P.priseVue = CAMPAGNE.prise;
+  }
+  if(P.chrono >= 0 && CAMPAGNE.prise) P.chrono += dt;
+  const n = (P.chrono >= 0 && CAMPAGNE.prise && P.chrono <= ETOILES_2) ? etoilesDe(P.chrono) : 0;
+  if(!n){ if(plaisirEl.etoiles.className) plaisirEl.etoiles.className = ''; return; }
+  const reste = Math.ceil((n === 3 ? ETOILES_3 : ETOILES_2) - P.chrono);
+  texteSiChange(plaisirEl.etoiles, etoilesTxt(n) + '  ' + Math.floor(reste/60) + ':' + String(reste%60).padStart(2, '0'));
+  const cl = 'on' + (reste <= 15 ? ' presse' : '');
+  if(plaisirEl.etoiles.className !== cl) plaisirEl.etoiles.className = cl;
+}
+
+/* ---------- LA CAISSE QUI DÉFILE, ET SON ÉTIQUETTE ---------- */
+const plaisirEl = {chip: document.getElementById('gainchip'), fete: document.getElementById('fete'),
+                   feteHaut: document.getElementById('fetehaut'), feteNom: document.getElementById('fetenom'),
+                   menu: document.getElementById('menuBtn'), etoiles: document.getElementById('etoiles')};
+// Ce que le bandeau écrit : la valeur qui défile, tronquée comme `caisseTxt` tronque.
+// Trente kilos à deux euros font 59,99 en flottants : on arrondit au centime avant de tronquer.
+const caisseVue = ()=> PLAISIR.pret ? Math.floor(Math.round(PLAISIR.vu*100)/100 + 1e-6).toLocaleString('fr-FR') + ' €' : caisseTxt();
+function plaisirCaisse(dt){
+  const P = PLAISIR;
+  const ecart = money - P.cible;
+  if(Math.abs(ecart) >= 0.5){
+    // Une étiquette qui change de signe repart de zéro : + 40 € puis − 650 € ne font pas − 610 €.
+    if(P.chipT > 0 && (P.chipSomme > 0) !== (ecart > 0)) P.chipSomme = 0;
+    if(P.chipT <= 0){ P.chipSomme = 0; if(ecart > 0) vibrer(8); }
+    P.chipSomme += ecart; P.chipT = 1.7;
+    P.cible = money;
+    const plus = P.chipSomme > 0;
+    texteSiChange(plaisirEl.chip, (plus ? '+ ' : '− ') + Math.abs(Math.round(P.chipSomme)).toLocaleString('fr-FR') + ' €');
+    plaisirEl.chip.className = 'on ' + (plus ? 'plus' : 'moins');
+    if(plus && !el.money.classList.contains('bat')){
+      el.money.classList.add('bat');
+      setTimeout(()=> el.money.classList.remove('bat'), 320);
+    }
+  } else if(Math.abs(ecart) > 0) P.cible = money;
+  if(P.chipT > 0){ P.chipT -= dt; if(P.chipT <= 0) plaisirEl.chip.className = ''; }
+  // Le chiffre rejoint le solde en un tiers de seconde, et s'y pose exactement.
+  const d = money - P.vu;
+  if(Math.abs(d) < 1) P.vu = money;
+  else P.vu += d*Math.min(1, dt*9) + Math.sign(d)*Math.min(Math.abs(d), dt*4);
+}
+function plaisirFete(haut, nom){
+  plaisirEl.feteHaut.textContent = haut;
+  plaisirEl.feteNom.textContent = nom;
+  plaisirEl.fete.classList.remove('on');
+  void plaisirEl.fete.offsetWidth;
+  plaisirEl.fete.classList.add('on');
+  PLAISIR.feteT = 3.2;
+}
+
+/* ---------- LE RETOUR ----------
+   Les champs poussent pendant qu'on n'est pas là — vingt minutes au plus, de quoi mûrir
+   ce qui était semé sans faire sauter une saison. Seules les CULTURES avancent : les
+   bêtes, les ateliers et les étals reprennent où on les a laissés, parce qu'eux
+   consomment — du grain, du gazole, de la place — et qu'on ne dépense rien à la place
+   d'un joueur absent. Rentrer et trouver ses blés mûrs est le meilleur accueil que le
+   jeu puisse faire, et il ne coûte qu'un appel à `grow`. */
+const ABSENCE_POUSSE_MAX = 20*60, ABSENCE_PAGE = 30*60;
+function plaisirRetour(absence){
+  let muries = 0;
+  if(absence >= 60 && growingList.length){
+    const avant = growingList.length;
+    grow(Math.min(absence, ABSENCE_POUSSE_MAX));
+    flushTint();
+    muries = avant - growingList.length;
+  }
+  if(absence < ABSENCE_PAGE || plaisirTuto()) return;
+  const e = PLAISIR.e;
+  const h = absence/3600, duree = h >= 48 ? Math.round(h/24) + ' jours' : h >= 1.5 ? Math.round(h) + ' heures' : Math.round(absence/60) + ' minutes';
+  const lignes = ['Partie laissée il y a ' + duree + '.'];
+  if(muries > 0) lignes.push('<b>Les cultures ont poussé pendant votre absence</b> : il y a de quoi moissonner.');
+  if(e.serie >= 2) lignes.push('<b>' + e.serie + ' jours de suite</b> – prime de fidélité de ' + eur(primeFidelite()) + ' à prendre dans le menu.');
+  if(e.defis.length && e.defis.some((D)=> !D.paye))
+    lignes.push('Défis du jour : ' + e.defis.filter((D)=> !D.paye).map((D)=> PLAISIR_DEFIS[D.id].nom(D.cible)).join(' · ') + '.');
+  annoncerFenetre({titre:'BON RETOUR', sous:lignes.join('<br>'), suite:'Au travail'});
+}
+
+/* ---------- LE LANCEMENT, ET LE BATTEMENT ---------- */
+function plaisirLancer(){
+  const P = PLAISIR;
+  P.pret = true;
+  P.vu = P.cible = money;
+  P.niveauVu = CAMPAGNE.niveau; P.missionVue = CAMPAGNE.mission;
+  P.priseVue = CAMPAGNE.prise; P.chrono = -1;
+  P.stat = Object.assign({}, STAT);
+  plaisirLire();
+  plaisirJourNouveau();
+  // L'absence se lit dans la sauvegarde de CE tiroir : une partie neuve n'en a pas.
+  let absence = 0;
+  try { const S = lireSauvegarde(clefCourante()); if(S && S.quand > 0) absence = Math.max(0, (Date.now() - S.quand)/1000); } catch(err){}
+  if(absence > 0) plaisirRetour(absence);
+  plaisirEcrire();
+}
+function plaisirUpdate(dt, dtImage){
+  const P = PLAISIR;
+  plaisirPause();
+  if(!P.pret){ if(demarre) plaisirLancer(); else return; }
+  const e = P.e;
+  plaisirCaisse(dtImage);
+  if(P.feteT > 0){ P.feteT -= dtImage; if(P.feteT <= 0) plaisirEl.fete.classList.remove('on'); }
+  if(P.tickT > 0) P.tickT -= dtImage;
+  if(P.rafaleT > 0){ P.rafaleT -= dtImage; if(P.rafaleT <= 0) plaisirFinRafale(); }
+  if(P.mainT > 0){ P.mainT -= dtImage; if(P.mainT <= 0) plaisirMainPayer(); }
+  plaisirRoute(dtImage); plaisirEtoiles(dt); plaisirSalaire(dt); negoceUpdate(dt);
+  if(dt > 0){
+    // La route : ce que roule l'engin qu'on tient, moteur du défi et ligne du carnet.
+    const v = MACHINES[cur] && MACHINES[cur].v;
+    if(v && Math.abs(v.speed) > 0.5){
+      const km = Math.abs(v.speed)*dt/1000;
+      e.cumul.km += km; plaisirAvancer('route', km);
+    }
+  }
+  /* L'OUVERTURE COURTE : le téléphone attend deux secondes de pick-up, et le croisement
+     se découvre en y passant — une fois, d'un bandeau, sans fenêtre ni détour imposé. */
+  if(!CAMPAGNE.long && !MODE_LIBRE){
+    const E0 = etapeTuto();
+    if(E0 && E0.cle === 'pickup' && CAMPAGNE.mission === 0)
+      appelT = (MACHINES[cur] && MACHINES[cur].key === 'pickup') ? Math.max(0, appelT - dt) : APPEL_DELAI;
+    if(!e.croisement && auCroisement()){
+      e.croisement = true; P.sale = true;
+      showHint('DES TERRES À VENDRE PAR ICI – CHAQUE PANNEAU PORTE SON PRIX');
+    }
+  }
+  /* LA TRÉMIE VIDÉE EST UN GAIN, ET ELLE SE DIT COMME UN GAIN. Cent kilos passaient de la
+     machine au silo en deux secondes sous un bandeau « blé au silo » : le fruit de tout
+     le tour du champ, sans un chiffre. On retient ce que la trémie a porté, et on le dit
+     quand elle touche le fond. */
+  if(hopper > P.tremie) P.tremie = hopper;
+  else if(hopper < 0.5 && P.tremie >= 5){
+    plaisirCarillon(440); vibrer([16, 30, 16]);     // le bandeau, lui, est écrit au silo
+    P.tremie = 0;
+  }
+  // Un palier franchi : le bandeau, le carillon, la pluie.
+  if(CAMPAGNE.niveau !== P.niveauVu){
+    if(CAMPAGNE.niveau > P.niveauVu){
+      const N = NIVEAUX[CAMPAGNE.niveau - 1];
+      plaisirFete('NIVEAU ' + CAMPAGNE.niveau, N ? N.nom : '');
+      plaisirCarillon(523);
+      vibrer([30, 50, 30, 50, 90]);
+      pluiePieces(0, null, null, 9);
+    }
+    P.niveauVu = CAMPAGNE.niveau;
+  }
+  if(CAMPAGNE.mission !== P.missionVue){
+    if(CAMPAGNE.mission > P.missionVue){
+      e.cumul.commandes++; plaisirAvancer('commande', 1);
+      vibrer([20, 40, 20, 40, 60]);
+      P.sale = true;
+    }
+    P.missionVue = CAMPAGNE.mission;
+  }
+  // Les compteurs du jeu, quatre fois par seconde : ce qui a monté avance les défis.
+  P.horlogeT -= dtImage;
+  if(P.horlogeT <= 0){
+    P.horlogeT = 0.25;
+    for(const D of e.defis){
+      const k = PLAISIR_DEFIS[D.id].stat;
+      if(!k) continue;
+      const q = (STAT[k] || 0) - (P.stat[k] || 0);
+      // Un bond énorme n'est pas une récolte, c'est une partie qu'on vient de recharger.
+      if(q > 0 && q < 5000) plaisirAvancer(D.id, q);
+    }
+    plaisirMain((STAT.labour || 0) - (P.stat.labour || 0), (STAT.semis || 0) - (P.stat.semis || 0), (STAT.moisson || 0) - (P.stat.moisson || 0));
+    for(const k in STAT) P.stat[k] = STAT[k];
+    const n = plaisirAPrendre();
+    if((n > 0) !== plaisirEl.menu.classList.contains('aprendre')) plaisirEl.menu.classList.toggle('aprendre', n > 0);
+    P.saleT -= 0.25;
+    if(P.saleT <= 0){
+      P.saleT = 5;
+      plaisirJourNouveau();
+      if(P.sale) plaisirEcrire();
+    }
+  }
+}
+// Le voile de pause : il ne vaut que pour la pause DEMANDÉE, pas pour celle d'un menu ouvert.
+const pauseVoile = document.getElementById('pausevoile'), pauseBtn = document.getElementById('pause');
+function plaisirPause(){
+  if(!paused) pauseMain = false;
+  const on = pauseMain && paused && panneau.style.display !== 'block' && !fenActive && accueil.style.display === 'none';
+  if(on !== pauseVoile.classList.contains('on')){ pauseVoile.classList.toggle('on', on); pauseBtn.classList.toggle('repr', on); }
+}
+pauseVoile.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); paused = false; pauseMain = false; last = performance.now(); showHint('REPRISE'); });
+window.addEventListener('pagehide', ()=>{ if(PLAISIR.pret) plaisirEcrire(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && PLAISIR.pret) plaisirEcrire(); });
+
+ONGLETS.splice(1, 0, {id:'defis', nom:'Défis'});
 
 /* ---------- 30. BOUCLE ---------- */
 mondePret = true;
@@ -37909,12 +39365,18 @@ const chargeA = (m)=>{ const K = caisseDe(m);
   return (K && K.load > 0.01) || (m.key === 'moisson' && hopper > VIDE_TREMIE); };
 function libererEngins(pas){
   for(const C of CHANTIERS){
-    /* UN CHANTIER EN CONTINU NE RENVOIE PERSONNE. La règle est écrite dans ce fichier
-       depuis que l'automatisation existe : « une fois une action automatique terminée, SI
-       ELLE N'EST PAS EN CONTINU, le véhicule doit venir se garer sur le parking. » Un
-       chantier en continu ne se termine jamais ; ses engins repartent au tour suivant, et
-       les renvoyer au parc entre deux passes ne serait qu'un aller-retour de plus. */
-    if(C.continu) continue;
+    /* UN CHANTIER EN CONTINU RENVOIE AUSSI AU PARC CE QUI N'A PLUS RIEN À FAIRE.
+       Il ne renvoyait personne : « ses engins repartent au tour suivant, et les renvoyer
+       au parc entre deux passes ne serait qu'un aller-retour de plus. » Le tour suivant,
+       c'est après le labour, le semis, l'engrais et la pousse : plus de trois minutes
+       mesurées sur un chantier blé, pendant lesquelles la moissonneuse restait plantée
+       sur la grille du silo et le tracteur au bord du champ, attelé. Le joueur : « je veux que la moissonneuse, lorsqu'elle a fini de
+       déposer le blé au silo, vienne se garer aussi sur le parking. »
+       LE TOUR SUIVANT NE PERD RIEN À CE RETOUR. Un engin n'est rendu qu'après trois
+       secondes d'inutilité continue, APRÈS que tous les chantiers se sont servis : entre
+       le labour et le semis, le répartiteur le reprend avant que le délai coure. Et un
+       retour au parc se reprend (`rentreAuParc`) : si la parcelle mûrit pendant qu'il
+       roule, il fait demi-tour. */
     for(let k = (C.servi || []).length - 1; k >= 0; k--){
       const i = C.servi[k];
       if(i === C.enginTerre || i === C.enginPort) continue;
@@ -38183,6 +39645,7 @@ function loop(now){
   if(paused) dt = 0;
 
   AUDIO.synchroniser();
+  plaisirUpdate(dt, _dtImage);
   keyboardInput();
   commandesBoutons(dt || 0.016);
   const m = MACHINES[cur], v = m.v;
@@ -38240,6 +39703,7 @@ function loop(now){
     nettoyerReliquats(dt);
     flushTint();
     updateCargo(dt);
+    majRangements(dt);
     updateCommandes(dt);
     updateJourNuit(dt);
     updateElevage(dt);

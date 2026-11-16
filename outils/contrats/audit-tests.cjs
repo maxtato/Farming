@@ -39,7 +39,7 @@ test('Recurring offers contain all three volume formats without imposing deadlin
  assert.deepEqual([...formats].sort(),['Commande régulière','Gros lot','Réassort'].sort());
 });
 test('Wool discovery takes under ten minutes with the four recommended sheep',()=>{
- const c=ready();assert.equal(c.MISSIONS[16].lignes[0].need,12);assert.equal(c.MISSIONS[19].lignes[0].need,40);
+ const c=ready();assert.equal(c.MISSIONS[16].lignes[0].need,12);assert.equal(c.MISSIONS[19].lignes[0].need,24);
  assert(12/(4*2/300)<600);assert(source.includes("16:{cle:'mouton',n:4}"));
 });
 test('A partial final ration produces only the corresponding fraction of an animal cycle',()=>{

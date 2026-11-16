@@ -17033,3 +17033,144 @@ sur quarante secondes) ; la benne laissée au silo à demi pleine de blé, « re
 1 576 « GRUMES AU DÉPÔT » et 526 « BLÉ RENTRÉ » — la benne aussi faisait la navette sur
 place. Les bancs `élevage` (35/35), `commandes` (ses deux échecs d'avant) et `port` (43/43),
 où les engins agissent en automatique et aux quais, repassent comme avant.
+
+## Les outils rentrent à leur case, la moissonneuse au parking, le blé grandit pour de bon
+
+Le joueur, en quatre demandes : « toutes les charrues et les objets portés et tirés par les
+tracteurs doivent toujours être remis sur le parking à côté de la ferme, pas déposés sur la
+route » ; « que la moissonneuse, lorsqu'elle a fini de déposer le blé au silo, vienne se
+garer sur le parking » ; « refais les pousses de blé : la petite pousse paraît plus large et
+plus grosse que le blé qui en sort » ; « dans le tutoriel, quand on débloque le maïs, on nous
+demande de débloquer une parcelle très chère : la deuxième doit être la moins chère ».
+
+### Un outil qu'on lâche se range à sa place
+
+**Mesuré avant, sur un chantier blé de six minutes.** La tâche `outil` dételait l'ancien
+outil LÀ OÙ ELLE PRENAIT LE NOUVEAU : la charrue finissait dans l'allée de la cour, à 13,6 m
+de sa case. Et un chantier en continu ne renvoyait personne : pendant la pousse, le tracteur
+restait attelé au bord du champ, à 53 m de la ferme.
+
+**La règle.** Un engin automatique ne lâche plus un outil n'importe où. `rangerOutil` le
+ramène à SA case (`TOOL_PARK`) avant d'atteler le suivant, et avant de se garer : approche
+par la bande de dalle qui longe la rocade, huit mètres derrière la case, puis on remonte
+l'axe en marche avant jusqu'à ce que la chape soit sur sa marque. Le semoir, que le combiné
+garé derrière lui empêche d'aborder dans l'axe, est pris de biais par l'ouest. Mesuré sur
+trois chantiers : la chape s'arrête à 2–8 cm de sa marque, l'outil à moins de 2° de son axe
+(11° pour le semoir) ; `poserALaPlace` rattrape l'écart en un tiers de seconde.
+
+Le joueur, lui, dételle toujours où il veut : une première version lui réservait le geste au
+parking de la ferme, et il l'a refusée — « pour dételer à la main, reviens en arrière ». Seul
+l'automate range. Et une partie d'avant retrouve, au chargement, chaque outil libre dans sa
+case.
+
+### Chacun rentre, même en continu — la moissonneuse comprise
+
+`libererEngins` sautait les chantiers en continu. Il ne les saute plus : un engin qui n'a plus
+rien à faire depuis trois secondes rentre au parc, outil rangé d'abord. La moissonneuse, vidée
+au silo, regagne sa case au lieu d'y attendre la moisson suivante ; un tracteur qui a fini
+d'épandre rentre pendant la pousse. Le répartiteur se sert avant ce délai : entre deux étapes,
+le tracteur est repris sans détour, et un retour au parc se reprend toujours.
+
+Et l'on entre dans sa case au pas : les sept derniers mètres se faisaient pleins gaz, et les
+tracteurs finissaient 3,4 m trop loin, le nez sur le chemin du nord. Mesuré après : 0,1 à
+0,2 m de leur marque.
+
+### La pousse ne grossit plus en grandissant à l'envers
+
+Pleine échelle, la pousse faisait 0,42 × 0,34 m, la montaison 0,81 × 0,50, le blé 1,63 × 0,59.
+Chaque âge démarrait à l'échelle qui égalait la HAUTEUR du précédent : la montaison repartait
+à 52 %, l'épi à 49 % — le pied maigrissait deux fois. Les deux jeunes âges s'affinent (deux
+brins de 30 et 26 cm, presque droits ; des feuilles plus étroites et plus dressées), et les
+annuelles se raccordent axe par axe (`ECH_PIED`) : hauteur et largeur repartent chacune de là
+où l'âge précédent s'est arrêté, et aucun âge ne finit plus grand que le suivant — l'orge,
+l'avoine et le colza, plus minces qu'une touffe de montaison, ne perdent plus de largeur en
+épiant. Mêmes triangles qu'avant ; les vignes et les oliviers ne changent pas.
+
+### La deuxième terre conseillée est la moins chère
+
+La mission du maïs demandait `PARCELS.find(p => !p.owned)` : le coin nord-ouest, 27 000 €,
+quand la friche voisine du champ de départ en coûte 1 000. `parcelleConseillee` rend la moins
+chère des friches à vendre, et sert aux trois appels — culture, élevage, cercle jaune de
+l'achat.
+
+**Bancs.** `progression` : le conseil va à la friche la moins chère, jamais à la première du
+tableau. `automatisation` : un chantier en continu rend au parc ce qui ne travaille plus, et
+garde celui qui travaille. Les treize suites repassent.
+
+## Le tutoriel relu avec les yeux de quelqu'un qui découvre
+
+Le joueur : « analyse tout le tutoriel […] est-ce que tous les boutons clignotent bien au
+moment où on doit cliquer dessus […] essaie d'imaginer pour quelqu'un qui découvre le jeu ».
+Le tour entier a été joué en téléphone paysage (844 × 390), de l'intro à la première vente,
+puis les vingt et une fenêtres de commerce ont été ouvertes une à une. Ce qui en sort :
+
+### Tout ce qu'il faut toucher bat
+
+Les boutons du bas battaient ; ceux qui naissent dans le paysage, non. « Répondre au
+téléphone », « Charger » et « Livrer » battent maintenant dans la colonne d'actions — un cadre
+posé à cinq pixels, dont seule l'opacité bat (la colonne coupe ce qui dépasse), blanc sur le
+jaune, jaune sur le vert. « Prendre la mission » bat comme « Valider ». Et au tutoriel, LANCER
+referme le plan : il restait ouvert sous la fenêtre de l'étape suivante, et rien ne disait de
+le fermer.
+
+### La phrase du bas dit le premier geste
+
+`suiteEtape` remplace la cascade d'`annoncerEtape`, dans l'ordre des gestes : changer de
+véhicule (« touche le bouton qui clignote en bas, puis « Tracteur vert » »), dételer ce qu'on
+porte (« Dételle d'abord la charrue »), puis seulement le cercle. La première marche disait
+« le cercle jaune est sur l'outil » à quelqu'un assis dans le pick-up.
+
+La marche « Reprendre le pick-up » n'a plus de lieu (`ou:null`) : la flèche menait à sa place
+de départ, vide, à 46 m — il était garé devant la maison. Le bouton des véhicules bat, puis la
+ligne du pick-up.
+
+### Le reste du guidage
+
+- La carte du plan s'ouvre, au tutoriel, rapprochée sur la parcelle à toucher : elle faisait
+  huit pixels de côté, elle en fait cinquante. Le cadre jaune est recentré (boîte de bordure).
+- « Élevage – à partir de 800 € » ne sort plus pendant le tutoriel, ni à qui travaille son
+  champ (outil attelé ou moissonneuse) : il se posait à chaque arrêt sur la flèche et
+  l'étiquette.
+- L'étiquette du champ dit « Labouré – à semer » et « Semé – ça pousse » au seuil où la marche
+  passe (98 %) : elle affichait « 99 % labouré » sous la fenêtre qui annonçait le champ prêt.
+- Entre deux missions, le bandeau dit « Le téléphone sonne – rentre à la ferme pour décrocher » :
+  il ne portait plus que le nom du commerce où l'on était garé.
+- Le bouton « Prix des commerces » bat après la première vente, tant qu'on ne l'a jamais
+  ouvert (`CAMPAGNE.vuPrix`, sauvegardé ; absent d'une vieille partie, il vaut « vu »).
+
+### Les fenêtres tiennent dans l'écran
+
+- À moins de 440 px de haut, la fenêtre de récit reprend une cinquantaine de pixels (marges,
+  interlignes, chiffre de la prime, rond de la flèche) ; à moins de 380, le portrait en cède
+  encore. Mesuré à 844 × 390 et 740 × 360 : la fin de mission (« un nouvel appel arrivera au
+  téléphone » n'était jamais vu) et les vingt et une fenêtres de commerce tiennent sans
+  défiler.
+- Passé huit produits, la liste d'un commerce se resserre (`.client-produits.dense`) : le
+  Marché en montrait douze sur seize, l'Entrepôt d'export seize sur vingt-deux. La phrase du
+  bas nomme le vrai bouton — le « carnet des commerces » n'existait nulle part.
+- La fenêtre des prix met d'abord ce qu'on cultive ou qu'on a en stock : le blé était
+  avant-dernier, sous les vaches à 3 500 €. Et l'on lit « € / bête ».
+- Les étiquettes du paysage s'effacent quand leur plaque mord sur une commande (`jaugeSousHud`,
+  boîtes relues deux fois par seconde) : « Cuve à graines » passait sous le bouton A.
+
+### Les textes et les comptes
+
+- « TRACTEUR TRACTEUR – SANS OUTIL » : `nomVehicule`, le nom de la liste des véhicules, sert
+  partout. « CHARRUE ATTELÉE », « BENNE DÉTELÉE » (`accordOutil`).
+- La ligne d'un transfert en cours dit « CHARGER BLÉ · ENCORE 22 KG » au lieu de
+  « CHARGER BLÉ 107 KG · 22 KG ».
+- La fenêtre d'une leçon dit « Suis la flèche bleue au bord de l'écran : Silo » au lieu de
+  « La flèche bleue du bord mène à silo ».
+- La caisse s'écrit partout tronquée, au centime près (`caisseTxt`) : 209 € en haut, 210 €
+  dans les fenêtres, pour les mêmes 209,98 €.
+- Le dernier pas d'un transfert dosé se règle sur le débit MESURÉ (`choixDebit`), et non sur
+  une borne trois fois trop haute : il tombait sur une asymptote, 29,98 kg pour trente, et la
+  mission — soldée à un centième près — ne se fermait pas. Les objectifs et la clôture de
+  mission tolèrent deux millièmes de la commande (`tolQte`).
+
+Laissés tels quels, parce que ce sont des choix de jeu : la Boucherie achète huile et miel,
+l'Usine avoine de l'huile de colza (c'est bien un ingrédient du lait d'avoine).
+
+**Bancs.** `progression` : la longue liste d'un commerce est resserrée et nomme le bouton des
+prix ; la marche du pick-up n'a pas de lieu, celle du parking garde le sien ; une livraison à
+deux millièmes près solde sa ligne. Les quatorze suites passent.
