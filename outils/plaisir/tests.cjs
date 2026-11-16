@@ -163,7 +163,7 @@ test('Le salaire : un engin qui roule en automatique coûte, à l’arrêt ou à
  run(c,'CAMPAGNE.niveau=11;plaisirSalaire(60);');assert(Math.abs(c.money-982+18*1.8)<1e-9,'+8 % par palier');
  c.money=5;run(c,'plaisirSalaire(60);');assert.equal(c.money,0);
  c.money=500;run(c,'CAMPAGNE.mission=1;plaisirSalaire(60);');assert.equal(c.money,500,'rien pendant l’apprentissage');
- assert(/teinte:0xD44435, verrou:true, prix:2500/.test(source)&&/teinte:0x2F6FB5, verrou:true, prix:7500/.test(source),'le rouge et le bleu sont en vente');
+ assert(/teinte:0xD44435, verrou:true, prix:2500/.test(source)&&/teinte:0x2F6FB5, verrou:true, prix:2500/.test(source),'le rouge et le bleu sont en vente');
  assert(/engins:\['t2'\]/.test(source)&&/engins:\['t3'\]/.test(source),'et chacun a son palier');
 });
 console.log(tests+' plaisir tests passed.');
