@@ -156,4 +156,14 @@ test('L’ouverture courte : cinq marches, une seule fenêtre, et la terre en pr
  assert.deepEqual([...p.matchAll(/tutoDe\('(\w+)'/g)].map(m=>m[1]),['labour','semis','auto']);
  assert(/CAMPAGNE\.long \|\| typeof TUTO_COURT === 'undefined'\) \? TUTO : TUTO_COURT/.test(source),'une partie d’avant garde la table longue');
 });
+test('Le salaire : un engin qui roule en automatique coûte, à l’arrêt ou à la main rien, et la caisse ne passe pas sous zéro',()=>{
+ const c=monde();run(c,'plaisirLancer();CAMPAGNE.mission=3;CAMPAGNE.niveau=1;MACHINES[0]={key:"t1",v:{speed:5,auto:true}};MACHINES.push({key:"t2",v:{speed:0,auto:true}},{key:"t3",v:{speed:6,auto:false}});');
+ c.money=1000;run(c,'PLAISIR.cible=money;plaisirSalaire(60);');assert(Math.abs(c.money-982)<1e-9,'18 € la minute, pour le seul engin qui roule en automatique');
+ assert(Math.abs(run(c,'money-PLAISIR.cible'))<1e-9,'aucune étiquette rouge');assert(Math.abs(run(c,'PLAISIR.e.salaires')-18)<1e-9);
+ run(c,'CAMPAGNE.niveau=11;plaisirSalaire(60);');assert(Math.abs(c.money-982+18*1.8)<1e-9,'+8 % par palier');
+ c.money=5;run(c,'plaisirSalaire(60);');assert.equal(c.money,0);
+ c.money=500;run(c,'CAMPAGNE.mission=1;plaisirSalaire(60);');assert.equal(c.money,500,'rien pendant l’apprentissage');
+ assert(/teinte:0xD44435, verrou:true, prix:2500/.test(source)&&/teinte:0x2F6FB5, verrou:true, prix:7500/.test(source),'le rouge et le bleu sont en vente');
+ assert(/engins:\['t2'\]/.test(source)&&/engins:\['t3'\]/.test(source),'et chacun a son palier');
+});
 console.log(tests+' plaisir tests passed.');

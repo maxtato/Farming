@@ -96,3 +96,25 @@ d'une sauvegarde.
 NON FAIT, et pourquoi : décrocher depuis le véhicule (le joueur a demandé plusieurs fois que toute
 mission se prenne devant la maison) ; vitesse de travail réduite et salaire de l'automate (ils
 touchent l'équilibre audité de la campagne — à décider manette en main).
+
+## 16 novembre — tracteurs, salaire, rendement, tour rapide
+
+Demande : « d'autres tracteurs achetables, un rouge et un bleu, on pourra automatiser ; payer un
+salaire ; que la culture rapporte une fois sorti des missions ; faire vite le tour des productions,
+pas forcément de grosses quantités ».
+
+- **Tracteur rouge et tracteur bleu de retour en vente** (`retire` levé) : rouge au palier 3 à
+  2 500 €, bleu au palier 8 à 7 500 €. Ils s'automatisent comme le vert (un tracteur par chantier).
+- **Salaire de l'automate** (`plaisirSalaire`, chapitre 29 bis) : `SALAIRE_MIN = 18` €/min par engin
+  qui ROULE en automatique, +8 % par palier (`SALAIRE_PALIER`). Rien à l'arrêt, rien avant la
+  troisième mission, jamais de caisse négative, pas d'étiquette rouge ; total au carnet (onglet Défis).
+  Au banc : un cycle de blé automatisé (labour + semis) coûte ≈ 50 € pour ≈ 340 € de blé.
+- **Rendement des cultures +25 %** : `RENDEMENT = 1.25`, un seul bouton après `CROPS`. Limité à un
+  quart parce que la parcelle de départ rend alors 144 kg pour une trémie neuve de 150.
+- **Missions plus courtes** : quantités ramenées à ~60 % des paliers 1 à 19 (blé 30/60/100/150,
+  farine 50, maïs 120, bière 80, avoine 120, lait 120/200, fromage 20/30, laine 12/24, colza 180,
+  huile 40, olives 120, raisin 120, vin 80…), textes des appels accordés. Primes et XP inchangés.
+  Les missions du palier 20 (bois, pêche) ne sont pas touchées.
+- Tests : `audit-tests.cjs` (laine 40 → 24), un contrôle de plus dans `outils/plaisir/tests.cjs` (20).
+
+À régler manette en main : `SALAIRE_MIN`, `RENDEMENT`, les prix des deux tracteurs.
