@@ -24100,6 +24100,14 @@ function work(m, dt){
     if(!fert[id]) nFert++;
   }
   const besoinCasier = (b)=> b.engrais ? nFert : nSemis;
+  /* EN NÉGOCE, L'OUTIL SE SERT TOUT SEUL À LA CUVE DE LA FERME. Le joueur : « l'épandeur ne
+     marche toujours pas ». En automatique il marchait (529 cellules sur 529 au banc) ;
+     à la main il roulait à vide, parce qu'il faut d'abord aller remplir sa cuve dans la
+     cour — un geste que rien n'apprend dans ce mode. Cuve vide, stock à la ferme : le
+     plein se fait sur place, épandeur comme semoir. */
+  if(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE && touched.length && bacsDe(T).length
+     && cellulesPossibles(T, touched.length, besoinCasier) < touched.length)
+    remplirCuve(T, (CROPS[T.crop || 0] || CROPS[0]).cle);
   if(cellulesPossibles(T, touched.length, besoinCasier) < touched.length){
     touched.length = 0;
     if(bacsDe(T).length) eligible = false;
@@ -26272,6 +26280,8 @@ function chargerReglages(ip){
     chCrop = 0; chDest = {}; chContinu = false;
     chEngrais = !!(Tep0 && !Tep0.verrou && (CUVES.engrais >= 0.5 || cuveDe(Tep0, 'engrais') >= 0.5));
     chProduit = (chQuoi === 'culture') ? CROPS[0].cle : null;
+    // En négoce il n'y a que le silo où livrer : inutile de le faire toucher.
+    if(MODE_NEGOCE && chProduit){ const D = destinationsDe(chProduit); if(D.length === 1) chDest[chProduit] = D[0]; }
   }
   if(chQuoi === 'elevage'){
     const P = patureDe(ip), l = P ? produitsElevage(P) : [];
@@ -27742,9 +27752,12 @@ function cellulesPossibles(T, voulu, besoin){
        acheter. Les deux se font au comptoir — c'est le seul endroit depuis que la cour
        ne remplit plus les cuves. */
     const dansLaCuve = b.plantation ? 0 : dansLaCuveDeLaCour(b);
+    // En négoce l'outil se sert seul à la cuve de la ferme : on ne dit que ce qui manque vraiment.
+    const neg = typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE;
+    if(!(neg && !b.plantation && dansLaCuve > b.par))
     showHint(b.plantation ? 'PLUS DE QUOI PLANTER'
              : b.nom + ' VIDE · ' + (dansLaCuve > b.par ? 'REMPLIR À LA CUVE DE LA COUR'
-                                                      : 'ACHETER AU COMPTOIR'));
+                                     : neg ? 'À ACHETER : BOUTON ÉTIQUETTE, PAGE ACHETER' : 'ACHETER AU COMPTOIR'));
     alerteStock = 6;
   }
   return Math.max(0, possible);
@@ -37376,7 +37389,22 @@ function negoceEntrer(){
    En négoce, dès qu'un champ au moins tourne en automatique, tout champ sans chantier
    reçoit le même réglage que lui (culture, engrais, en continu, grain au silo). Celui que
    le joueur a ARRÊTÉ de sa main (`sansAuto`) reste à lui. */
+const negoceEngraisPret = ()=>{ const T = TOOLS.find((t)=> t.key === 'engrais');
+  return !!(T && !T.verrou && (CUVES.engrais >= 0.5 || cuveDe(T, 'engrais') >= 0.5)); };
 function negoceEtendre(){
+  /* ET L'ÉPANDEUR ENTRE DANS LES CHANTIERS DÉJÀ LANCÉS. Un chantier réglé AVANT d'avoir
+     l'épandeur gardait « sans engrais » pour toujours, et l'épandeur acheté ensuite ne
+     sortait jamais du parc. Dès qu'il y a épandeur et engrais, tout chantier de culture
+     qui n'a pas REFUSÉ l'engrais en connaissance de cause (`engraisVu`) le prend. */
+  if(negoceEngraisPret())
+    for(const C of CHANTIERS){
+      if(C.quoi === 'elevage' || C.engraisVu) continue;
+      C.engraisVu = true;
+      if(!C.engrais && !(CROPS[C.crop || 0] || {}).perenne){
+        C.engrais = true;
+        showHint('PARCELLE ' + (C.p + 1) + ' – L\'ÉPANDEUR PASSERA APRÈS LE SEMIS');
+      }
+    }
   const modele = CHANTIERS.find((C)=> C.quoi !== 'elevage' && C.continu);
   if(!modele) return;
   PARCELS.forEach((p, i)=>{
@@ -39724,6 +39752,7 @@ function poserChantier(ip, o){
              etape:null, etapeM:null, enginTerre:-1, enginPort:-1,
              bloque:null, bloqueM:null, alternatives:null, malProduit:null};
   C.objectifs = o && o.objectifs || objectifsAutomatiques(C.dest);
+  if(typeof negoceEngraisPret === 'function' && typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE && negoceEngraisPret()) C.engraisVu = true;
   CHANTIERS.push(C);
   return C;
 }

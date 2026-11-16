@@ -116,3 +116,13 @@ dès qu'un chantier de culture tourne en continu, tout champ possédé sans chan
 réglage (bandeau « PARCELLE N – AJOUTÉE À L'AUTOMATISATION »). Un champ arrêté par le joueur, ou
 lancé pour un seul cycle, n'est pas repris (`sansAuto`). Vigne et oliviers exclus.
 En négoce, le plan ne propose plus les commerces comme destination, seulement les stockages.
+
+## Négoce : l'épandeur
+
+Au banc, l'épandage automatique fonctionnait par tous les chemins essayés (code, écran du plan).
+Deux cas où il ne se passait rien, corrigés pour le négoce :
+- chantier lancé AVANT l'achat de l'épandeur : il gardait « sans engrais ». `negoceEtendre`
+  l'active dès qu'épandeur et engrais sont là (`engraisVu` retient un refus fait en connaissance).
+- conduite à la main, cuve de l'outil vide : il fallait aller la remplir dans la cour. L'outil se
+  sert maintenant seul à la cuve de la ferme (épandeur et semoir).
+Le plan présélectionne le silo quand c'est la seule destination.
