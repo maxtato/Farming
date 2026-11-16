@@ -6772,7 +6772,17 @@ function paintSwath(key, a, ar, b, br, w){
   const grx0 = minx-2+MARGE, grx1 = maxx+2-MARGE;
   const grz0 = minz-2+MARGE, grz1 = maxz+2-MARGE;
   let ux = b.x-a.x, uz = b.z-a.z;
-  const ul = Math.hypot(ux,uz) || 1; ux /= ul; uz /= ul;
+  /* UN PASSAGE DE LONGUEUR NULLE N'A PAS DE SENS D'AVANCE, ET IL EFFAÇAIT LES RANGS.
+     Le joueur : « quand on utilise le semoir, les traits de passage ne sont pas parfaits,
+     il y a des ratés ». Vu de dessus au banc : des colonnes où chaque rang est coupé,
+     avec un tas de graines entre deux. À l'image où l'outil n'a pas bougé — un engin qui
+     marque le pas, deux images pour un seul pas de physique —, `a` et `b` se confondent :
+     la direction valait (0, 0), les rangs se traçaient sur une longueur nulle, donc pas du
+     tout, alors que le fond, lui, repeignait ses carrés et effaçait les rangs d'avant.
+     Sans avance mesurable, le sens est celui de l'outil : la perpendiculaire à sa largeur. */
+  let ul = Math.hypot(ux,uz);
+  if(ul < 0.02){ ux = -ar.z; uz = ar.x; ul = Math.hypot(ux,uz) || 1; }
+  ux /= ul; uz /= ul;
 
   worldDraw(minx, minz, maxx, maxz, (c)=>{
     for(const p of PARCELS){
@@ -6845,7 +6855,11 @@ function paintSwath(key, a, ar, b, br, w){
         // les graines tombent SUR les rangs du semoir, pas au hasard dans la largeur
         c.fillStyle = st.seeds;
         const rows = Math.floor(w/st.step);
-        const n = Math.max(1, Math.round(Math.hypot(b.x-a.x, b.z-a.z) * rows * 0.55));
+        /* LES GRAINES SE COMPTENT AU MÈTRE, PAS À L'IMAGE. « Au moins une par passage »
+           en posait une à chaque image, même à l'arrêt : un engin immobile empilait ses
+           graines en colonne. La part entière tombe à coup sûr, le reste au tirage. */
+        const nf = Math.hypot(b.x-a.x, b.z-a.z) * rows * 0.55;
+        const n = Math.floor(nf) + (Math.random() < nf - Math.floor(nf) ? 1 : 0);
         for(let k=0;k<n;k++){
           const t2 = Math.random();
           const row = Math.floor(Math.random()*rows);
@@ -24026,9 +24040,25 @@ function work(m, dt){
   for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
     const id = j*GNX+i;
     if(state[id] === ST.HORS) continue;
-    if(T.from.indexOf(state[id]) < 0) continue;
+    /* LE SEMOIR LAISSAIT DES TROUS DANS SA PROPRE TRACE. Le joueur : « les traits de passage
+       ne sont pas parfaits, il y a des ratés ». Relevé au banc : une image sur six ou sept
+       ne peignait rien, toujours aux mêmes abscisses. La peinture exige une cellule
+       ENCORE À TRAITER sous l'outil ; or le semoir sème la colonne de devant un peu en
+       avance (la marge de coupe), et tant que la suivante n'est pas à portée il n'a plus
+       sous lui que du déjà-semé : `eligible` tombait, et un demi-mètre de trace manquait.
+       La charrue n'a jamais eu ce défaut — son `from` contient son `to`. Une cellule que
+       CE passage vient de semer (moins de 0,6 s) compte donc pour peindre, et pour
+       peindre seulement : elle n'entre pas dans l'andain, et un semoir à vide, qui ne
+       sème rien, ne peint toujours rien. */
+    const dejaSeme = !!T.seme && state[id] === T.to && T.from.indexOf(state[id]) < 0
+                     && performance.now() - (T.semeT || -1e9) < 600;
+    if(T.from.indexOf(state[id]) < 0 && !dejaSeme) continue;
     if(PAR && (Math.abs(cellX(i) - PAR.x) > PAR.w/2 || Math.abs(cellZ(j) - PAR.z) > PAR.h/2))
       continue;
+    if(dejaSeme){
+      if(!eligible && inSweep(cellX(i), cellZ(j), prev, prev.r, cur, cur.r, w, CH, nsubW)) eligible = true;
+      continue;
+    }
     /* RIEN À FAIRE ICI : la terre est déjà à l'état voulu ET déjà fertilisée. C'était
        écrit pour le seul épandeur — dont l'état de départ et celui d'arrivée sont le même
        — et c'est la MÊME question pour le combiné, dont le `from` contient son `to`.
@@ -24128,6 +24158,7 @@ function work(m, dt){
      et les contrats attendent tous les deux. */
   const TRAVAUX = T.travaux || [T.key];
   const did = touched.length > 0;
+  if(did && T.seme) T.semeT = performance.now();
   if(did){
     if(TRAVAUX.indexOf('labour') >= 0) STAT.labour += touched.length;
     if(TRAVAUX.indexOf('semis')  >= 0) STAT.semis  += touched.length;
@@ -37333,6 +37364,23 @@ function negoceUpdate(dt){
     }
     K.g.position.x = K.x;
   }
+  /* LE CHAMP MÛR SE DIT, OÙ QU'ON SOIT. Le joueur : « je ne vois pas la barre de fin de
+     pousse se remplir, ni l'information pour moissonner ». La jauge d'une parcelle ne
+     s'affiche qu'à soixante mètres d'elle, et ce mode n'a ni mission ni leçon pour dire
+     le reste : un bandeau l'annonce donc une fois, et l'onglet Marché tient la liste. */
+  NEGO.champT = (NEGO.champT || 0) - dt;
+  if(NEGO.champT <= 0){
+    NEGO.champT = 1;
+    PARCELS.forEach((p, i)=>{
+      if(!p.owned || p.pature) return;
+      const mur = p.pousseN > 0 && p.murN >= p.pousseN*0.98;
+      if(mur && !p.negMur){
+        showHint(((CROPS[p.pousseCrop] || CROPS[0]).nom + ' mûr – parcelle ' + (i + 1) + ' à moissonner').toUpperCase());
+        if(typeof vibrer === 'function') vibrer(30);
+      }
+      p.negMur = mur;
+    });
+  }
   NEGO.saleT += dt;
   if(NEGO.saleT > 20 || NEGO.sale){ NEGO.saleT = 0; NEGO.sale = false; negoceEcrire(); }
 }
@@ -37342,7 +37390,7 @@ function ongletMarche(){
   const cles = Object.keys(PRODUITS).filter(negoceVendable);
   const stock = cles.filter((k)=> negoceStock(k) >= 1).sort((a, b)=> negoceCoef(b) - negoceCoef(a));
   if(!stock.length)
-    article(0xFAD201, 'Rien à vendre', 'Récolte, puis vide au silo ou à l\'entrepôt.', '', 'no', null);
+    article(0xFAD201, 'Rien à vendre', 'Récolte, puis vide au silo ou à l\'entrepôt.', '', 'no', null).classList.add('sansact');
   for(const cle of stock){
     const c = negoceCours(cle), k = negoceCoef(cle), q = Math.min(NEGOCE_CAMION, negoceStock(cle)), route = negoceEnRoute(cle);
     article(k >= 1.15 ? 0x8BE07A : (k <= 0.85 ? 0xE0694A : 0xFAD201), nomDe(cle),
@@ -37351,6 +37399,23 @@ function ongletMarche(){
       route ? 'En route' : 'Vendre', route ? 'ok' : (k >= 1 ? 'vert' : ''),
       route ? null : ()=>{ negoceVendre(cle); rafraichirEcran(); }, cle, cle);
   }
+  // Les champs : où en est chaque parcelle, sans avoir à s'en approcher.
+  const champs = PARCELS.map((p, i)=> ({p, i})).filter((x)=> x.p.owned && !x.p.pature);
+  if(champs.length){
+    titre('Champs');
+    for(const {p, i} of champs){
+      const trav = (p.labN || 0) + (p.pousseN || 0), C2 = CROPS[p.pousseCrop] || CROPS[0];
+      const mur = p.pousseN > 0 && p.murN >= p.pousseN*0.98;
+      const part = !p.pousseN ? 0 : Math.min(1, p.pousse || 0);
+      const dit = !trav ? 'En friche – à labourer'
+                : !p.pousseN ? 'Labouré – à semer'
+                : mur ? 'À moissonner'
+                : Math.min(99, Math.floor(part*100)) + ' % de pousse';
+      article(mur ? 0xFFD21E : 0x8BE07A, 'Parcelle ' + (i + 1) + (p.pousseN ? ' · ' + C2.nom : ''),
+        (p.pousseN ? '<div class="defibar"><i style="width:' + (mur ? 100 : part*100).toFixed(0) + '%"></i></div>' : '') + dit,
+        mur ? 'Mûr' : '', mur ? 'vert' : 'no', null, null, p.pousseN ? C2.cle : null).classList.toggle('sansact', !mur);
+    }
+  }
   const ouv = produitsOuverts();
   const autres = cles.filter((k)=> negoceStock(k) < 1 && ouv.indexOf(k) >= 0)
     .sort((a, b)=> negoceCoef(b) - negoceCoef(a)).slice(0, 4);
@@ -37358,7 +37423,7 @@ function ongletMarche(){
     titre('Les cours les plus hauts');
     article(0xFAD201, autres.map((k)=> nomDe(k) + ' ' + Math.round(negoceCoef(k)*100) + ' %' + fleche(negoceCours(k))).join('  ·  '),
       NEGO.voyages ? NEGO.voyages + ' camions partis  ·  ' + eur(NEGO.total) + ' encaissés' : 'Un cours change de cap toutes les deux à trois minutes.',
-      '', 'no', null);
+      '', 'no', null).classList.add('sansact');
   }
 }
 const accBtns = document.getElementById('accbtns');

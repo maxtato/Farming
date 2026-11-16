@@ -65,3 +65,14 @@ pèse sur le cours), bouton « Vendre » qui appelle un camion (1 500 kg au plus
 devant l'entrepôt, charge silo + entrepôt + quai de l'atelier, paie au prix du moment de l'appel.
 Ni tutoriel, ni leçons, ni personnage. Le garage et le comptoir vendent toujours.
 Non fait : vente des bêtes, camion qui évite le joueur et le trafic, onglet « Campagne » masqué.
+
+## Trace du semoir et champs du Négoce (soir du 16)
+
+- **Trace du semoir** : une image sur six ou sept ne peignait rien (le semoir sème la colonne de
+  devant en avance, puis n'a plus que du déjà-semé sous lui : `eligible` tombait). Une cellule
+  semée par ce passage depuis moins de 0,6 s compte maintenant pour peindre. Vérifié vu de
+  dessus au banc, avant / après. Au passage : direction de secours quand l'outil n'a pas bougé,
+  graines comptées au mètre et non à l'image.
+- **Négoce** : bandeau « BLÉ MÛR – PARCELLE N À MOISSONNER » une fois par maturité, et section
+  « Champs » dans l'onglet Marché (barre de pousse par parcelle). La jauge au-dessus du champ ne
+  s'affiche toujours qu'à ~60 m de la parcelle, dans tous les modes.
