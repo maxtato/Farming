@@ -26384,7 +26384,24 @@ function majPlan(){
        bien que c'est une étape supplémentaire, optionnelle ». */
     const Tep = TOOLS.find((t)=> t.key === 'engrais'), okE = !!(Tep && !Tep.verrou);
     const bE = planPuce('Engrais' + (okE ? '' : ' · épandeur au garage'), chEngrais,
-      okE ? ()=>{ chEngrais = !chEngrais; majPlan(); } : null);
+      /* L'ENGRAIS SE RÈGLE AUSSI SUR UN CHANTIER QUI TOURNE. Le joueur : « quand on veut
+         modifier l'automatisation et qu'on reclique sur Engrais, ça ne le prend pas en
+         compte ». La puce ne changeait que le réglage du PROCHAIN lancement, et sur un
+         chantier en cours le bouton du bas n'est plus « Lancer » mais « Arrêter » : il
+         n'y avait aucun moyen de l'appliquer. Comme « En continu », elle s'écrit donc
+         tout de suite sur les chantiers du lot ; `engraisVu` dit au négoce que c'est
+         un choix, pour qu'il ne le défasse pas. */
+      okE ? ()=>{
+        chEngrais = !chEngrais;
+        let n = 0;
+        for(const i of chLot){
+          const C = chantierDe(i);
+          if(C && C.quoi !== 'elevage'){ C.engrais = chEngrais; C.engraisVu = true; n++; }
+        }
+        if(n) showHint(chEngrais ? 'ENGRAIS AJOUTÉ – L\'ÉPANDEUR PASSERA APRÈS LE SEMIS'
+                                 : 'ENGRAIS RETIRÉ DU CHANTIER');
+        majPlan();
+      } : null);
     if(!okE) bE.classList.add('gris');
     rO.appendChild(bE);
     /* ---------- BLOC 4 : ce qu'on livre — la matière brute, ou ce que l'atelier en fait ----------
