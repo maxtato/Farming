@@ -28252,6 +28252,23 @@ const TUTO_TERRE = TUTO.findIndex((E)=> E.cle === 'recolte');
    commencées avant (`CAMPAGNE.long`). Les marches courtes reprennent les siennes par
    leur clé — mêmes lieux, mêmes engins, mêmes conditions — et n'en changent que le texte. */
 const tutoDe = (cle, plus)=> Object.assign({}, TUTO.find((E)=> E.cle === cle), plus || {});
+/* LE TUTORIEL DU NÉGOCE : DES BOUTONS JAUNES, ET RIEN D'AUTRE.
+   Le joueur : « fais aussi un tuto juste avec des boutons qui se mettent en jaune pour
+   labourer le champ, etc., déposer au silo. Il faut qu'un non-initié puisse comprendre le
+   système de jeu. » Les cinq marches de la terre sont celles de `TUTO`, avec leurs
+   cercles, leurs flèches et leurs boutons qui battent — mais DISCRÈTES : une ligne de
+   bandeau, ni fenêtre ni personnage. La sixième est propre à ce mode : vendre par le
+   bouton étiquette, qui bat tant que le premier camion n'est pas appelé. */
+const TUTO_NEGOCE = [
+  tutoDe('labour',  {discret:true, titre:'LABOURER · CERCLE JAUNE', court:'ROULE SUR LE CERCLE JAUNE POUR PRENDRE LA CHARRUE, PUIS VA AU CHAMP'}),
+  tutoDe('semis',   {discret:true, titre:'SEMER · CERCLE JAUNE',    court:'RETOURNE AU PARC CHANGER D’OUTIL : LE SEMOIR'}),
+  tutoDe('pousse',  {discret:true, titre:'LAISSER POUSSER',         court:'ÇA POUSSE TOUT SEUL – REGARDE LA BARRE'}),
+  tutoDe('recolte', {discret:true, titre:'MOISSONNER · BOUTON JAUNE', court:'CHANGE DE VÉHICULE : LA MOISSONNEUSE'}),
+  tutoDe('silo',    {discret:true, titre:'VIDER · FLÈCHE JAUNE',    court:'SUIS LA FLÈCHE JUSQU’AU SILO'}),
+  {cle:'vendreNegoce', ou:null, titre:'VENDRE · ÉTIQUETTE', discret:true, court:'TOUCHE L’ÉTIQUETTE QUI CLIGNOTE, À GAUCHE',
+   txt:'VENDRE – Touche l’étiquette qui clignote, à gauche.',
+   fait:()=> typeof NEGO !== 'undefined' && (NEGO.voyages > 0 || NEGO.camions.length > 0)}
+];
 const TUTO_COURT = [
   tutoDe('recolte', {humeur:'perplexe',
     txt:'PREMIÈRE RÉCOLTE – Mon oncle m’a laissé sa ferme… et un champ de blé mûr. Autant commencer par là.'}),
@@ -28848,6 +28865,8 @@ function veillerLecons(dt){
 // une fenêtre déjà lue ne coûte rien, l'oublier coûterait la leçon.
 const leconsDites = [];
 function listeEtapes(){
+  if(typeof MODE_NEGOCE !== 'undefined' && MODE_NEGOCE && typeof TUTO_NEGOCE !== 'undefined')
+    return CAMPAGNE.tuto < TUTO_NEGOCE.length ? TUTO_NEGOCE : null;
   if(MODE_LIBRE) return CAMPAGNE.tuto < TUTO.length ? TUTO : null;
   const M = MISSIONS[CAMPAGNE.mission];
   if(!M) return null;
@@ -29120,6 +29139,7 @@ function veillerTuto(){
        la Coopérative enchaîne sur la première mission, et c'est elle qui parle. En libre,
        la septième étape soldée, tout s'éteint : plus de cercle jaune, plus de flèche, plus
        de ligne de bandeau. Sans un mot, le joueur croirait avoir perdu quelque chose. */
+    else if(MODE_NEGOCE && !E) showHint('TU SAIS TOUT – PRODUIS, STOCKE, VENDS AU MEILLEUR COURS');
     else if(MODE_LIBRE && L === TUTO)
       annoncerFenetre({titre:'VOUS SAVEZ L’ESSENTIEL', etape:true, duree:6.0,
         face:{nom:'Moi', humeur:'rire'},
@@ -37334,7 +37354,7 @@ function negoceEntrer(){
   if(MODE_NEGOCE) return;
   MODE_NEGOCE = true;
   SAVE.clefLibre = NEGO.clefPartie;
-  CAMPAGNE.tuto = 999;                                    // ni arrivée en pick-up, ni étapes
+  CAMPAGNE.tuto = 0;                                      // le tutoriel du négoce : `TUTO_NEGOCE`
   for(const k in LECONS) if(CAMPAGNE.lecons.indexOf(k) < 0) CAMPAGNE.lecons.push(k);
   negoceLire();
 }
@@ -37416,7 +37436,8 @@ function negoceMeilleur(){
     if(negoceVendable(cle) && negoceStock(cle) >= 1 && (!best || negoceCoef(cle) > negoceCoef(best))) best = cle;
   return best;
 }
-const negoceBonMoment = ()=>{ const b = negoceMeilleur(); return !!b && negoceCoef(b) >= 1.25 && !negoceEnRoute(b); };
+const negoceBonMoment = ()=>{ const E = etapeTuto(); if(E && E.cle === 'vendreNegoce') return true;
+  const b = negoceMeilleur(); return !!b && negoceCoef(b) >= 1.25 && !negoceEnRoute(b); };
 const negoceFleche = (c)=> c.cible > c.k + 0.04 ? ' ▲' : (c.cible < c.k - 0.04 ? ' ▼' : '');
 const negoceEuro = (v)=> v.toFixed(2).replace('.', ',') + ' €';
 function negoceBandeau(){
@@ -37652,7 +37673,9 @@ function lancerPartie(reprise){
     return;
   }
   if(!MODE_LIBRE && !CAMPAGNE.long && CAMPAGNE.mission === 0 && CAMPAGNE.tuto === 0) murirDepart();
-  if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
+  // Le négoce ne raconte rien : pas d'arrivée en pick-up, la première marche se dit en une ligne.
+  if(MODE_NEGOCE){ if(tutoActif() && !reprise) annoncerEtape(etapeTuto()); }
+  else if(tutoActif() && CAMPAGNE.tuto === 0 && !lancerIntro()) finIntro();
 }
 /* L'ACCUEIL PROPOSE LES DEUX PARTIES, CHACUNE LÀ OÙ ON L'A LAISSÉE.
    L'ORDRE DES BOUTONS EST UN CONTRAT. Une centaine de bancs entrent dans le jeu en

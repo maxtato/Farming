@@ -88,3 +88,10 @@ Non fait : vente des bêtes, camion qui évite le joueur et le trafic, onglet «
   s'achètent depuis la page « Acheter », sans personnage ni phrase d'accroche.
 - Non fait : achat des terres depuis la fenêtre (il faut toujours rouler jusqu'au panneau),
   vente des bêtes, modèles 3D du village toujours présents.
+
+## Tutoriel du Négoce
+
+`TUTO_NEGOCE` : labourer, semer, laisser pousser, moissonner, vider au silo, vendre. Les cinq
+premières marches sont celles du tutoriel existant en mode discret (bandeau, cercles et boutons
+jaunes, ni fenêtre ni personnage) ; la sixième fait battre le bouton étiquette jusqu'au premier
+camion. Rejoué au banc de bout en bout avec l'automatisation pour les travaux des champs.
