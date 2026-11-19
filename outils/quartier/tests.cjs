@@ -1,0 +1,10 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const s=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8'),a=s.indexOf('function migrerQuartierForet('),b=s.indexOf('\n}',a)+2,c=vm.createContext({Math,Number,Set,SITES:[{nom:'Supermarché',x:360,z:-106.1}]});vm.runInContext(s.slice(a,b),c);
+let n=0;const test=(nom,run)=>{run();n++;console.log('PASS',nom);};
+const x=456.09874983370304,z=30.783749956885973;
+test('Vehicles parked at the former supermarket follow its new location',()=>{const q={machines:[{x:x-20,z:z+3,cap:0,cargo:{kg:80}}],outils:[],money:987};assert.equal(c.migrerQuartierForet(q),1);assert.equal(q.machines[0].x,363);assert.equal(q.machines[0].z,-86.1);assert.equal(q.machines[0].cap,Math.PI/2);assert.equal(q.machines[0].cargo.kg,80);assert.equal(q.money,987);});
+test('An attached tool follows its vehicle even outside the former lot',()=>{const q={machines:[{x:x-20,z,cap:0}],outils:[{x:x-20,z:z+29,cap:0,porteur:0}]};assert.equal(c.migrerQuartierForet(q),2);assert.equal(q.outils[0].x-q.machines[0].x,29);assert.equal(q.outils[0].z,q.machines[0].z);});
+test('A tool in the former lot also moves its attached vehicle as one unit',()=>{const q={machines:[{x:x-20,z:z+32,cap:0}],outils:[{x:x-20,z:z+23,cap:0,porteur:0}]};assert.equal(c.migrerQuartierForet(q),2);assert.equal(q.machines[0].x-q.outils[0].x,9);});
+test('Unrelated vehicles and detached tools keep their positions',()=>{const q={machines:[{x:10,z:5,cap:1}],outils:[{x:33,z:12,cap:2,porteur:-1}]};assert.equal(c.migrerQuartierForet(q),0);assert.equal(q.machines[0].x,10);assert.equal(q.outils[0].z,12);});
+test('The location migration runs only once',()=>{const q={machines:[{x,z,cap:0}],outils:[]};c.migrerQuartierForet(q);const copy=JSON.stringify(q);assert.equal(c.migrerQuartierForet(q),0);assert.equal(JSON.stringify(q),copy);});
+console.log(n+' neighbourhood tests passed.');
